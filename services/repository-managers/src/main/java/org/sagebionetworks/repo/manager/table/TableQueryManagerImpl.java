@@ -387,7 +387,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
-		boolean runFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
+		boolean returnFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
 		boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
 				.getIsConsistent());
 		
@@ -401,7 +401,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				queryBundle.getQuery().getOffset(),
 				queryBundle.getQuery().getLimit(),
 				runQuery,
-				runCount, runFacets, isConsistent
+				runCount, returnFacets, isConsistent
 				);
 		
 		if(runQuery){
@@ -409,6 +409,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		if(runCount){
 			bundle.setQueryCount(queryResult.getQueryCount());
+		}
+		
+		if(returnFacets){
+			bundle.setFacets(queryResult.getFacets());
 		}
 		
 		// select columns must be fetched for for the select columns or max
@@ -444,7 +448,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		query.setIsConsistent(isConsistent);
 		query.setSelectedFacets(selectedFacets);
 
-		StringWriter writer = new StringWriter(sql.length() + 50);//TODO: increase initial buffer size to ?
+		StringWriter writer = new StringWriter(sql.length() + 50);
 		XStream xstream = new XStream();
 		xstream.alias("Query", Query.class);
 		xstream.toXML(query, writer);
@@ -529,7 +533,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(
 			ProgressCallback<Void> progressCallback, UserInfo user, String sql,
-			List<SortItem> sortList, final CSVWriterStream writer,
+			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets,final CSVWriterStream writer,
 			boolean includeRowIdAndVersion, final boolean writeHeader)
 			throws TableUnavailableException, NotFoundException,
 			TableFailedException, LockUnavilableException {
@@ -553,7 +557,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, null ,handler, runCount, false, isConsistent); //TODO: NEED TO MODIFY DownloadFromTableRequest to take in facet parameters
+					query, selectedFacets ,handler, runCount, false, isConsistent);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());

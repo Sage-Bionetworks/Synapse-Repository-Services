@@ -1,10 +1,13 @@
 {
 	"description":"A set of values that have been selected for filtering in a faceted column",
 	"type":"interface",
-    "properties":{
+	"properties":{
+		"concreteType":{
+			"type": "string"
+		},
 		"columnName":{
 			"type": "string",
 			"description":"The name of the faceted column"
 		}
-    }
+	}
 }

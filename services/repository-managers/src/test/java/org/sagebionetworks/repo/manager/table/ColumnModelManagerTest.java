@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -200,6 +201,18 @@ public class ColumnModelManagerTest {
 		List<ColumnModel> results = columnModelManager.createColumnModels(user, Lists.newArrayList(in1, in2));
 		assertEquals(Lists.newArrayList(out1, out2), results);
 	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateColumnModelsInvalidFacetType(){
+		ColumnModel in1 = new ColumnModel();
+		in1.setName("abb1");
+		ColumnModel in2 = new ColumnModel();
+		in2.setName("abb2");
+		in2.setColumnType(ColumnType.LARGETEXT);
+		in2.setFacetType(FacetType.enumeration);
+		
+		columnModelManager.createColumnModels(user, Lists.newArrayList(in1, in2));
+	}
 
 	/**
 	 * Should not be able to create a column with a name that is reserved.
@@ -263,6 +276,16 @@ public class ColumnModelManagerTest {
 			assertTrue(e.getMessage().contains(invalid.getName()));
 			assertTrue(e.getMessage().contains("SQL key word"));
 		}
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateColumnModelInvalidFacetType(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("abc");
+		cm.setColumnType(ColumnType.LARGETEXT);
+		cm.setFacetType(FacetType.enumeration);
+		
+		columnModelManager.createColumnModel(user, cm);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -636,4 +659,122 @@ public class ColumnModelManagerTest {
 		ColumnModelManagerImpl.validateColumnChange(oldColumn, newColumn);
 	}
 	
+	//////////////////////////////
+	// validateFacetType() tests
+	//////////////////////////////
+	@Test
+	public void testValidateFacetTypeNullFacetType(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setFacetType(null);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test
+	public void testValidateFacetTypeStringColumnEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test
+	public void testValidateFacetTypeStringColumnRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setFacetType(FacetType.range);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test
+	public void testValidateFacetTypeIntegerColumnEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test
+	public void testValidateFacetTypeIntegerColumnRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER);
+		columnModel.setFacetType(FacetType.range);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test
+	public void testValidateFacetTypeBooleanColumnEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateFacetTypeBooleanColumnRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN);
+		columnModel.setFacetType(FacetType.range);
+		//should throw exception
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateFacetTypeDoubleColumnEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DOUBLE);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should throw exception
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test 
+	public void testValidateFacetTypeDoubleColumnRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DOUBLE);
+		columnModel.setFacetType(FacetType.range);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateFacetTypeDateColumnEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DATE);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should throw exception
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test 
+	public void testValidateFacetTypeDateColumnRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DATE);
+		columnModel.setFacetType(FacetType.range);
+		//should do nothing
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateFacetTypeOtherColumnTypeEnumerationFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.LARGETEXT);
+		columnModel.setFacetType(FacetType.enumeration);
+		//should throw exception
+		columnModelManager.validateFacetType(columnModel);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateFacetTypeOtherColumnTypeRangeFacet(){
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.LARGETEXT);
+		columnModel.setFacetType(FacetType.range);
+		//should throw exception
+		columnModelManager.validateFacetType(columnModel);
+	}
 }

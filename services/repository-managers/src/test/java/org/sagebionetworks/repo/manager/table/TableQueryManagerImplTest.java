@@ -11,7 +11,6 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
@@ -24,6 +23,7 @@ import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDL
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_RESULTS;
 import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS;
+import static org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.BUNDLE_MASK_QUERY_FACETS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +33,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -54,16 +53,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
@@ -86,8 +82,6 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -132,6 +126,9 @@ public class TableQueryManagerImplTest {
 	String facetColumnName;
 	String facetMax;
 	FacetColumnRangeRequest facetColumnRequest;
+	private FacetColumnResultRange expectedRangeResult;
+	private RowSet rowSet1;
+	private RowSet rowSet2;
 	
 	@Before
 	public void before() throws Exception {
@@ -232,6 +229,18 @@ public class TableQueryManagerImplTest {
 		facetColumnRequest = new FacetColumnRangeRequest();
 		facetColumnRequest.setColumnName(facetColumnName);
 		facetColumnRequest.setMax(facetMax);
+		
+		String expectedColMin = "100";
+		String expectedColMax = "123";
+		String expectedColumnName = "i2";
+		FacetType expectedFacetType = FacetType.range;
+		rowSet1 = createRowSetForTest(Lists.newArrayList(FacetTransformerValueCounts.VALUE_ALIAS, FacetTransformerValueCounts.COUNT_ALIAS));
+		rowSet2 = createRowSetForTest(Lists.newArrayList(FacetTransformerRange.MIN_ALIAS, FacetTransformerRange.MAX_ALIAS), Lists.newArrayList(expectedColMin, expectedColMax));
+		expectedRangeResult = new FacetColumnResultRange();
+		expectedRangeResult.setColumnName(expectedColumnName);
+		expectedRangeResult.setColumnMin(expectedColMin);
+		expectedRangeResult.setFacetType(expectedFacetType);
+		expectedRangeResult.setColumnMax(expectedColMax);
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -485,7 +494,6 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListNotReturningFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{
-		//TODO: test after unit tests for facetModel
 		Long count = 201L;
 		// setup count results
 		ArgumentCaptor<String> queryStringCaptor = ArgumentCaptor.forClass(String.class);
@@ -520,34 +528,12 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryAsStreamAfterAuthorizationNonEmptyFacetColumnsListReturnFacets() throws ParseException, LockUnavilableException, TableUnavailableException, TableFailedException{	
-		String expectedColMin = "100";
-		String expectedColMax = "123";
-		String expectedColumnName = "i2";
-		FacetType expectedFacetType = FacetType.range;
-		RowSet rowSet1 = new RowSet();
-		RowSet rowSet2 = new RowSet();
-		
-		//select column for first row
-		SelectColumn row1col1 = new SelectColumn();
-		row1col1.setName(FacetTransformerValueCounts.VALUE_ALIAS);
-		SelectColumn row1col2 = new SelectColumn();
-		row1col2.setName(FacetTransformerValueCounts.COUNT_ALIAS);
-		rowSet1.setHeaders(Lists.newArrayList(row1col1, row1col2));
-		rowSet1.setRows(new ArrayList<Row>());
-		
-		//select column for second row
-		SelectColumn row2col1 = new SelectColumn();
-		row2col1.setName(FacetTransformerRange.MIN_ALIAS);
-		SelectColumn row2col2 = new SelectColumn();
-		row2col2.setName(FacetTransformerRange.MAX_ALIAS);
-		rowSet2.setHeaders(Lists.newArrayList(row2col1, row2col2));
-		Row row = new Row();
-		row.setValues(Lists.newArrayList(expectedColMin, expectedColMax));
-		rowSet2.setRows(Lists.newArrayList(row));
-		
 		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
 		List<FacetColumnRequest> facetRequestList = new ArrayList<>();
 		facetRequestList.add(facetColumnRequest);
+		expectedRangeResult.setSelectedMin(facetColumnRequest.getMin());
+		expectedRangeResult.setSelectedMax(facetColumnRequest.getMax());
+
 		
 		RowHandler rowHandler = null;
 		boolean returnFacets = true;
@@ -569,11 +555,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getFacets());
 		assertEquals(2, results.getFacets().size());
 		FacetColumnResult facetResultColumn = results.getFacets().get(1);
-		assertNotNull(facetResultColumn);
-		assertEquals(expectedColMin, ((FacetColumnResultRange) facetResultColumn ).getColumnMin());
-		assertEquals(expectedColMax, ((FacetColumnResultRange) facetResultColumn ).getColumnMax());
-		assertEquals(expectedColumnName,facetResultColumn.getColumnName());
-		assertEquals(expectedFacetType, facetResultColumn.getFacetType());
+		assertEquals(expectedRangeResult, facetResultColumn);
 	}
 	
 	
@@ -702,6 +684,30 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
+	public void testQueryBundleFacets() throws LockUnavilableException, TableUnavailableException, TableFailedException{
+		when(mockTableIndexDAO.query(any(ProgressCallback.class), any(SqlQuery.class))).thenReturn(rowSet1, rowSet2);
+		
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setIsConsistent(true);
+		query.setOffset(0L);
+		query.setLimit(Long.MAX_VALUE);
+		QueryBundleRequest queryBundle = new QueryBundleRequest();
+		queryBundle.setQuery(query);
+		
+		queryBundle.setPartMask(BUNDLE_MASK_QUERY_FACETS);
+		QueryResultBundle bundle = manager.queryBundle(mockProgressCallbackVoid, user, queryBundle);
+		assertNull(bundle.getQueryResult());
+		assertNull(bundle.getQueryCount());
+		assertNull(bundle.getSelectColumns());
+		assertNull(bundle.getColumnModels());
+		assertNotNull(bundle.getFacets());
+		assertEquals(2, bundle.getFacets().size());
+		//we don't care about the first facet result because it has no useful data and only exists to make sure for loops work
+		assertEquals(expectedRangeResult, bundle.getFacets().get(1));
+	}
+	
+	@Test
 	public void testGetMaxRowsPerPage(){
 		Long maxRows = this.manager.getMaxRowsPerPage(models);
 		int maxRowSize = TableModelUtils.calculateMaxRowSize(models);
@@ -807,9 +813,11 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
+
 		// call under test
 		DownloadFromTableResult results = manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 		assertNotNull(results);
 		
@@ -825,9 +833,10 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList = null;
 		boolean includeRowIdAndVersion = false;
 		boolean writeHeader = true;
+		List<FacetColumnRequest> selectedFacets = null;
 		// call under test
 		manager.runConsistentQueryAsStream(
-				mockProgressCallbackVoid, user, sql, sortList, writer,
+				mockProgressCallbackVoid, user, sql, sortList, selectedFacets, writer,
 				includeRowIdAndVersion, writeHeader);
 	}
 	
@@ -1210,47 +1219,70 @@ public class TableQueryManagerImplTest {
 	}	
 	
 	@Test
-	public void testRunFacetQueries(){//TODO: rename to mock...
+	public void testRunFacetQueries(){
 		//setup
-		FacetModel facetModel = Mockito.mock(FacetModel.class);
-		FacetTransformer transformer1 = Mockito.mock(FacetTransformerValueCounts.class);
-		FacetTransformer transformer2 = Mockito.mock(FacetTransformerRange.class);
-		SqlQuery sql1 = Mockito.mock(SqlQuery.class);
-		SqlQuery sql2 = Mockito.mock(SqlQuery.class);
+		FacetModel mockFacetModel = Mockito.mock(FacetModel.class);
+		FacetTransformer mockTransformer1 = Mockito.mock(FacetTransformerValueCounts.class);
+		FacetTransformer mockTransformer2 = Mockito.mock(FacetTransformerRange.class);
+		SqlQuery mockSql1 = Mockito.mock(SqlQuery.class);
+		SqlQuery mockSql2 = Mockito.mock(SqlQuery.class);
 		RowSet rs1 = new RowSet();
 		RowSet rs2 = new RowSet();
 		FacetColumnResultValues result1 = new FacetColumnResultValues();
 		FacetColumnResultRange result2 = new FacetColumnResultRange();
 		
 		
-		when(transformer1.getFacetSqlQuery()).thenReturn(sql1);
-		when(transformer2.getFacetSqlQuery()).thenReturn(sql2);
-		when(mockTableIndexDAO.query(null, sql1)).thenReturn(rs1);
-		when(mockTableIndexDAO.query(null, sql2)).thenReturn(rs2);
-		when(transformer1.translateToResult(rs1)).thenReturn(result1);
-		when(transformer2.translateToResult(rs2)).thenReturn(result2);
-		List<FacetTransformer> transformersList = Arrays.asList(transformer1, transformer2);
-		when(facetModel.getFacetInformationQueries()).thenReturn(transformersList);
+		when(mockTransformer1.getFacetSqlQuery()).thenReturn(mockSql1);
+		when(mockTransformer2.getFacetSqlQuery()).thenReturn(mockSql2);
+		when(mockTableIndexDAO.query(null, mockSql1)).thenReturn(rs1);
+		when(mockTableIndexDAO.query(null, mockSql2)).thenReturn(rs2);
+		when(mockTransformer1.translateToResult(rs1)).thenReturn(result1);
+		when(mockTransformer2.translateToResult(rs2)).thenReturn(result2);
+		List<FacetTransformer> transformersList = Arrays.asList(mockTransformer1, mockTransformer2);
+		when(mockFacetModel.getFacetInformationQueries()).thenReturn(transformersList);
 		
 		//call method
-		List<FacetColumnResult> results = manager.runFacetQueries(facetModel, mockTableIndexDAO);
+		List<FacetColumnResult> results = manager.runFacetQueries(mockFacetModel, mockTableIndexDAO);
 		
 		//verify and assert
-		verify(facetModel).getFacetInformationQueries();
-		verify(transformer1).getFacetSqlQuery();
-		verify(transformer2).getFacetSqlQuery();
-		verify(mockTableIndexDAO).query(null, sql1);
-		verify(mockTableIndexDAO).query(null, sql2);
-		verify(transformer1).translateToResult(rs1);
-		verify(transformer2).translateToResult(rs2);
+		verify(mockFacetModel).getFacetInformationQueries();
+		verify(mockTransformer1).getFacetSqlQuery();
+		verify(mockTransformer2).getFacetSqlQuery();
+		verify(mockTableIndexDAO).query(null, mockSql1);
+		verify(mockTableIndexDAO).query(null, mockSql2);
+		verify(mockTransformer1).translateToResult(rs1);
+		verify(mockTransformer2).translateToResult(rs2);
 		
 		
 		assertEquals(2, results.size());
 		assertEquals(result1, results.get(0));
 		assertEquals(result2, results.get(1));
 		
-		verifyNoMoreInteractions(mockTableIndexDAO, facetModel,transformer1, transformer2);
+		verifyNoMoreInteractions(mockTableIndexDAO, mockFacetModel,mockTransformer1, mockTransformer2);
 
+	}
+	
+	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){
+		RowSet rowSet = new RowSet();
+		List<SelectColumn> headerObjects = new ArrayList<>();
+		
+		//select column for first row
+		for(String headerName: headerNames){
+			SelectColumn headerObj = new SelectColumn();
+			headerObj.setName(headerName);
+			headerObjects.add(headerObj);
+		}
+		rowSet.setHeaders(headerObjects);
+		rowSet.setRows(new ArrayList<Row>());
+		
+		List<Row> rows = new ArrayList<Row>();
+		for(List<String> rowValue : rowValues){
+			Row row = new Row();
+			row.setValues(rowValue);
+			rows.add(row);
+		}
+		rowSet.setRows(rows);
+		return rowSet;
 	}
 
 }

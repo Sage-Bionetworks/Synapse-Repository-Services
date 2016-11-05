@@ -31,8 +31,6 @@ public class SparseChangeSetTest {
 	List<ColumnModel> schema;
 	long versionNumber;
 	SparseChangeSet changeSet;
-	@Mock
-	ColumnModelProvider mockColumnModelProvider;
 	
 	@Before
 	public void before(){
@@ -43,7 +41,6 @@ public class SparseChangeSetTest {
 		schema = Lists.newArrayList(booleanColumn, stringColumn, doubleColumn);
 		versionNumber = 101;
 		changeSet = new SparseChangeSet("syn123",schema);
-		when(mockColumnModelProvider.getColumns(anyListOf(String.class))).thenReturn(schema);
 	}
 
 	
@@ -315,7 +312,7 @@ public class SparseChangeSetTest {
 		assertNotNull(dto);
 		//System.out.println(EntityFactory.createJSONStringForEntity(dto));
 		// Create a copy from the DTO
-		SparseChangeSet copy = new SparseChangeSet(dto, mockColumnModelProvider);
+		SparseChangeSet copy = new SparseChangeSet(dto, schema);
 		// the should be the same.
 		assertEquals(changeSet, copy);
 	}

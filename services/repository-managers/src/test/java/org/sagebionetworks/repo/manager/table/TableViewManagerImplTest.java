@@ -247,5 +247,12 @@ public class TableViewManagerImplTest {
 		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
+	
+	@Test
+	public void testGetTableSchema(){
+		when(columnModelManager.getColumnIdForTable(viewId)).thenReturn(schema);
+		List<String> retrievedSchema = manager.getTableSchema(viewId);
+		assertEquals(schema, retrievedSchema);
+	}
 
 }

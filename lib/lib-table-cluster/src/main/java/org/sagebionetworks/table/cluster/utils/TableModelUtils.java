@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -71,6 +73,8 @@ public class TableModelUtils {
 			return input.toString();
 		}
 	};
+	
+	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
@@ -261,12 +265,11 @@ public class TableModelUtils {
 	 * Validate the given SparseChangeSetDto.
 	 * @param set
 	 */
-	public static void validateRowSet(SparseChangeSetDto set) {
-		ValidateArgument.required(set, "SparseChangeSetDto");
-		ValidateArgument.required(set.getColumnIds(), "SparseChangeSetDto.columnIds");
-		ValidateArgument.required(set.getRows(), "SparseChangeSetDto.rows");
-		ValidateArgument.requirement(!set.getRows().isEmpty(), "SparseChangeSetDto.rows must contain at least one row");
-		ValidateArgument.required(set.getTableId(), "SparseChangeSetDto.tableId");
+	public static void validateRowSet(SparseChangeSet set) {
+		ValidateArgument.required(set, "SparseChangeSet");
+		ValidateArgument.required(set.getSchema(), "SparseChangeSet.schema");
+		ValidateArgument.requirement(set.getRowCount() > 0, "SparseChangeSet must contain at least one row.");
+		ValidateArgument.required(set.getTableId(), "SparseChangeSet.tableId");
 	}
 	
 	/**
@@ -445,11 +448,7 @@ public class TableModelUtils {
 		}
 		return value;
 	}
-
-	/**
-	 * Count all of the empty or invalid rows in the set
-	 * @param set
-	 */
+	
 	@Deprecated
 	public static int countEmptyOrInvalidRowIds(RawRowSet set) {
 		validateRowSet(set);
@@ -461,15 +460,15 @@ public class TableModelUtils {
 		}
 		return count;
 	}
-	
+
 	/**
 	 * Count all of the empty or invalid rows in the set
 	 * @param set
 	 */
-	public static int countEmptyOrInvalidRowIds(SparseChangeSetDto set) {
+	public static int countEmptyOrInvalidRowIds(SparseChangeSet set) {
 		validateRowSet(set);
 		int count = 0;
-		for (SparseRowDto row : set.getRows()) {
+		for (SparseRow row : set.rowIterator()) {
 			if(isNullOrInvalid(row.getRowId())){
 				count++;
 			}
@@ -535,10 +534,10 @@ public class TableModelUtils {
 	 * @param set
 	 * @param range
 	 */
-	public static void assignRowIdsAndVersionNumbers(SparseChangeSetDto set, IdRange range) {
+	public static void assignRowIdsAndVersionNumbers(SparseChangeSet set, IdRange range) {
 		validateRowSet(set);
 		Long id = range.getMinimumId();
-		for (SparseRowDto row : set.getRows()) {
+		for (SparseRow row : set.rowIterator()) {
 			// Set the version number for each row
 			row.setVersionNumber(range.getVersionNumber());
 			if(isNullOrInvalid(row.getRowId())){
@@ -708,8 +707,12 @@ public class TableModelUtils {
 		ValidateArgument.required(models, "SelectColumns");
 		List<String> ids = Lists.newArrayListWithCapacity(models.size());
 		for(SelectColumn model: models){
-			ValidateArgument.required(model.getId(), "SelectColumn.id");
-			ids.add(model.getId());
+			if(model == null){
+				ids.add(null);
+			}else{
+				ValidateArgument.required(model.getId(), "SelectColumn.id");
+				ids.add(model.getId());
+			}
 		}
 		return ids;
 	}
@@ -797,12 +800,12 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Map<Long, Long> getDistictValidRowIds(Iterable<Row> rows) {
+	public static Map<Long, Long> getDistictValidRowIds(Iterable<SparseRow> rows) {
 		ValidateArgument.required(rows, "rows");
 		Map<Long, Long> distictRowIds = Maps.newHashMap();
-		for (Row ref : rows) {
+		for (SparseRow ref : rows) {
 			if (!isNullOrInvalid(ref.getRowId())) {
-				if(ref.getValues() != null){
+				if(!ref.isDelete()){
 					if (distictRowIds.put(ref.getRowId(), ref.getVersionNumber()) != null) {
 						// the row id is found twice int the same rowset
 						throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
@@ -984,13 +987,15 @@ public class TableModelUtils {
 	 * @param row
 	 * @return
 	 */
-	public static int calculateActualRowSize(Row row){
+	public static int calculateActualRowSize(SparseRowDto row){
 		// row ID + row version.
 		int bytes = ColumnConstants.MAX_INTEGER_BYTES_AS_STRING*2;
 		if(row.getValues() != null){
-			for(String value: row.getValues()){
-				if(value != null){
-					bytes += value.length() * ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
+			for(String key: row.getValues().keySet()){
+				String value = row.getValues().get(key);
+				if (value != null) {
+					bytes += value.length()
+							* ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
 				}
 			}
 		}
@@ -1079,7 +1084,9 @@ public class TableModelUtils {
 		Map<String, Integer> columnIndexMap = Maps.newHashMap();
 		int index = 0;
 		for (String columnId : columnIds) {
-			columnIndexMap.put(columnId, index);
+			if(columnId != null){
+				columnIndexMap.put(columnId, index);
+			}
 			index++;
 		}
 		return columnIndexMap;
@@ -1379,34 +1386,102 @@ public class TableModelUtils {
 	}
 	
 	/**
-	 * Convert form RawRowSet to SparseChangeSetDto.
-	 * 
-	 * @param rowSet
+	 * Create a RowSet from a RawRowSet.
+	 * @param rawRowSet
+	 * @param schema
 	 * @return
 	 */
-	public static SparseChangeSetDto createSparseFromRowSet(RawRowSet rowSet) {
-		SparseChangeSetDto dto = new SparseChangeSetDto();
-		dto.setColumnIds(rowSet.getIds());
-		dto.setTableId(rowSet.getTableId());
-		dto.setEtag(rowSet.getEtag());
-		List<SparseRowDto> rows = new LinkedList<>();
-		dto.setRows(rows);
-		for (Row row : rowSet.getRows()) {
-			SparseRowDto rowDto = new SparseRowDto();
-			rows.add(rowDto);
-			rowDto.setRowId(row.getRowId());
-			rowDto.setVersionNumber(row.getVersionNumber());
-			HashMap<String, String> values = new HashMap<>();
-			rowDto.setValues(values);
-			if (row.getValues() != null) {
-				for (int i = 0; i < rowSet.getIds().size(); i++) {
-					String columnId = rowSet.getIds().get(i);
-					String value = row.getValues().get(i);
-					values.put(columnId, value);
+	public static RowSet createRowSet(RawRowSet rawRowSet, List<ColumnModel> schema){
+		RowSet rowSet = new RowSet();
+		rowSet.setEtag(rawRowSet.getEtag());
+		rowSet.setHeaders(getSelectColumns(schema));
+		rowSet.setTableId(rawRowSet.getTableId());
+		rowSet.setRows(new LinkedList<>(rawRowSet.getRows()));
+		return rowSet;
+	}
+	
+	/**
+	 * Create a SparseChangeSet from a RawRowSet
+	 * @param rawRowSet
+	 * @param schema
+	 * @return
+	 */
+	public static SparseChangeSet createSparseChangeSet(RawRowSet rawRowSet, List<ColumnModel> schema) {
+		RowSet rowSet = createRowSet(rawRowSet, schema);
+		return createSparseChangeSet(rowSet, schema);
+	}
+	
+	/**
+	 * Validate the given PartialRowSet against the given schema.
+	 * @param partial
+	 * @param schema
+	 */
+	public static void validatePartialRowSet(PartialRowSet partial, List<ColumnModel> schema){
+		Set<Long> columnIds = new HashSet<Long>(schema.size());
+		for(ColumnModel cm: schema){
+			columnIds.add(Long.parseLong(cm.getId()));
+		}
+		for(PartialRow row: partial.getRows()){
+			validatePartialRow(row, columnIds);
+		}
+	}
+	
+	/**
+	 * Validate the PartialRow matches the headers.
+	 * 
+	 * @param row
+	 * @param headers
+	 */
+	public static void validatePartialRow(PartialRow row, Set<Long> columnIds){
+		ValidateArgument.required(row, "PartialRow");
+		ValidateArgument.required(columnIds, "columnIds");
+		if(row != null){
+			if(row.getValues() != null){
+				for(String key: row.getValues().keySet()){
+					try {
+						Long columnId = Long.parseLong(key);
+						if(!columnIds.contains(columnId)){
+							throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+						}
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException(String.format(PARTIAL_ROW_KEY_NOT_A_VALID, key, row.getRowId()));
+					}
 				}
 			}
 		}
-		return dto;
 	}
+	
+	/**
+	 * Translate from a PartialRowSet to a SparseChangeSetDto.
+	 * @param versionNumber
+	 * @param partialSet
+	 * @return
+	 */
+	public static SparseChangeSetDto createSparseChangeSetFromPartialRowSet(TableRowChange lastRowChange, PartialRowSet partialSet){
+		Long versionNumber = 0L;
+		String lastEtag = null;
+		if(lastRowChange != null){
+			versionNumber = lastRowChange.getRowVersion();
+			lastEtag = lastRowChange.getEtag();
+		}
+		List<SparseRowDto> sparseRows = new LinkedList<SparseRowDto>();
+		for(PartialRow partialRow: partialSet.getRows()){
+			// ignore partial rows with empty values
+			if(partialRow.getValues() != null && partialRow.getValues().isEmpty()){
+				continue;
+			}
+			SparseRowDto sparseRow = new SparseRowDto();
+			sparseRow.setRowId(partialRow.getRowId());
+			sparseRow.setVersionNumber(versionNumber);
+			sparseRow.setValues(partialRow.getValues());
+			sparseRows.add(sparseRow);
+		}
+		SparseChangeSetDto results = new SparseChangeSetDto();
+		results.setEtag(lastEtag);
+		results.setRows(sparseRows);
+		results.setTableId(partialSet.getTableId());;
+		return results;
+	}
+	
 
 }

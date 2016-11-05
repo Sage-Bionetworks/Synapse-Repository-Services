@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -334,6 +336,40 @@ public class TableModelTestUtils {
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}
+	
+	/**
+	 * Helper to translate from value arrays to maps of values.
+	 * 
+	 * @param list
+	 * @param schema
+	 * @return
+	 */
+	public static List<Map<String, String>> mapInput(List<String[]> list, List<ColumnModel> schema){
+		List<Map<String, String>> results = new LinkedList<>();
+		for(String[] array: list){
+			results.add(mapInput(array, schema));
+		}
+		return results;
+	}
+	
+	/**
+	 * Helper to translate from a value array to a map of values.
+	 * @param values
+	 * @param schema
+	 * @return
+	 */
+	public static Map<String, String> mapInput(String[] values, List<ColumnModel> schema){
+		if(values.length != schema.size()){
+			throw new IllegalArgumentException("Values and schema must be the same size.");
+		}
+		Map<String, String> map = new HashMap<>(schema.size());
+		for(int i=0; i<schema.size(); i++){
+			ColumnModel cm = schema.get(i);
+			String value = values[i];
+			map.put(cm.getId(), value);
+		}
+		return map;
+	}
 
 	public static Row createRow(Long rowId, Long rowVersion, String... values) {
 		Row row = new Row();
@@ -342,12 +378,27 @@ public class TableModelTestUtils {
 		row.setValues(Lists.newArrayList(values));
 		return row;
 	}
+	
+	public static SparseRowDto createSparseRow(Long rowId, Long rowVersion, List<ColumnModel> schema, String... values) {
+		SparseRowDto row = new SparseRowDto();
+		row.setRowId(rowId);
+		row.setVersionNumber(rowVersion);
+		row.setValues(mapInput(values, schema));
+		return row;
+	}
 
 	public static Row createDeletionRow(Long rowId, Long rowVersion) {
 		Row row = new Row();
 		row.setRowId(rowId);
 		row.setVersionNumber(rowVersion);
 		row.setValues(null);
+		return row;
+	}
+	
+	public static SparseRowDto createDeletionSparseRow(Long rowId, Long rowVersion) {
+		SparseRowDto row = new SparseRowDto();
+		row.setRowId(rowId);
+		row.setVersionNumber(rowVersion);
 		return row;
 	}
 

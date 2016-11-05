@@ -254,6 +254,12 @@
             </list>
         </property>
     </bean>
+    
+	<bean id="migrationExecutorService" class="java.util.concurrent.Executors"
+		scope="singleton" factory-method="newFixedThreadPool">
+		<constructor-arg value="10" />
+	</bean>
+	
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />

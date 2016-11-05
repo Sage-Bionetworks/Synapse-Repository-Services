@@ -6,7 +6,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.SparseChangeSet;
 
@@ -86,7 +85,7 @@ public interface TableIndexManager {
 	 *            must match the version number of each row in the passed
 	 *            changeset.
 	 */
-	public void applyChangeSetToIndex(SparseChangeSet rowset, List<ColumnModel> currentSchema,
+	public void applyChangeSetToIndex(SparseChangeSet rowset,
 			long changeSetVersionNumber);
 
 	/**
@@ -95,16 +94,6 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 */
 	public void setIndexSchema(ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
-	
-	/**
-	 * Set the current schema of the table's index with the option to keep columns that are missing.
-	 * 
-	 * @param progressCallback
-	 * @param newSchema
-	 * @param removeMissingColumns
-	 */
-	void setIndexSchema(ProgressCallback<Void> progressCallback,
-			List<ColumnModel> newSchema, boolean removeMissingColumns);
 	
 	/**
 	 * 

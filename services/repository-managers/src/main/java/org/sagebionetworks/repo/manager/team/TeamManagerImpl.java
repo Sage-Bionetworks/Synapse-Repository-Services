@@ -233,7 +233,7 @@ public class TeamManagerImpl implements TeamManager {
 				ModelConstants.TEAM_MESSENGER_PERMISSIONS));
 		// let public send messages to team by default
 		acl.getResourceAccess().add(createResourceAccess(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
 				ModelConstants.TEAM_MESSENGER_PERMISSIONS));
 
 		return acl;
@@ -706,6 +706,7 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
+		tms.setCanSendEmail(authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
 		return tms;
 	}
 

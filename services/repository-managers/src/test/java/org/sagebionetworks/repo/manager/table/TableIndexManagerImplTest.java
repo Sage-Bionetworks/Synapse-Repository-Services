@@ -148,7 +148,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testApplyChangeSetToIndexHappy(){
 		//call under test.
-		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// both groups should be written
@@ -165,7 +165,7 @@ public class TableIndexManagerImplTest {
 		// For this case the index already has this change set applied.
 		when(mockIndexDao.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(versionNumber+1);
 		//call under test.
-		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, versionNumber);
 		// nothing do do.
 		verify(mockIndexDao, never()).executeInWriteTransaction(any(TransactionCallback.class));
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(Grouping.class));
@@ -190,7 +190,7 @@ public class TableIndexManagerImplTest {
 		row.setCellValue("99", "some string");
 		
 		//call under test.
-		manager.applyChangeSetToIndex(sparseChangeSet, schema, versionNumber);
+		manager.applyChangeSetToIndex(sparseChangeSet, versionNumber);
 		// All changes should be executed in a transaction
 		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		// change should be written to the index
