@@ -14,16 +14,16 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	
 	@Autowired
-	private DBOBasicDao basicDao;	
+	private DBOBasicDao basicDao;
+
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String SELECT_ALL = "SELECT *";
 	
@@ -64,7 +64,7 @@ public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 	public List<String> getAllBySubmission(String submissionId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);		
-		List<SubmissionFileHandleDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_SUBMISSION_SQL, rowMapper, param);
+		List<SubmissionFileHandleDBO> dbos = namedJdbcTemplate.query(SELECT_BY_SUBMISSION_SQL, param, rowMapper);
 		List<String> fileHandleIds = new ArrayList<String>(dbos.size());
 		for (SubmissionFileHandleDBO dbo : dbos) {
 			fileHandleIds.add(dbo.getFileHandleId().toString());
