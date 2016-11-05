@@ -60,6 +60,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;
@@ -161,7 +164,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	public List<Evaluation> getByContentSource(String id, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		params.addValue(OFFSET_PARAM_NAME, offset);
@@ -174,7 +176,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	@Override
 	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
@@ -188,7 +189,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public List<Evaluation> getInRange(long limit, long offset,
 			EvaluationStatus status) throws DatastoreException,
 			NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
@@ -206,12 +206,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	@Override
 	public long getCountByContentSource(String id) throws DatastoreException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		return namedJdbcTemplate.queryForObject(COUNT_BY_CONTENT_SOURCE, params, Long.class);
 	}
-
 
 	@Override
 	@WriteTransaction
@@ -242,7 +240,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	@Override
 	public String lookupByName(String name) throws DatastoreException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME, name);
 		try {
@@ -433,7 +430,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 
 		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
@@ -463,7 +459,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	public long getAvailableCount(List<Long> principalIds, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 
 		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)

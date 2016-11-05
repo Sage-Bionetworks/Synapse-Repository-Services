@@ -107,6 +107,9 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	@Autowired
 	private DBOBasicDao dboBasicDao;
@@ -303,7 +306,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		Collections.sort(ownerIds);
 		param.addValue(COL_SUBSTATUS_ANNO_SUBID, ownerIds);
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		namedJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, param);
 	}
 	
@@ -317,7 +319,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	public List<SubmissionBundle> getChangedSubmissions(Long scopeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBMISSION_EVAL_ID, scopeId);
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		return namedJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES, param,
 				new RowMapper<SubmissionBundle>() {
 					@Override
@@ -341,7 +342,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	@Override
 	public void deleteAnnotationsByScope(Long scopeId) {
 		if (scopeId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		// first find the IDs that are in the annotations table but (no longer) in the SUBMISSION (truth) table
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);

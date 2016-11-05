@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -29,9 +28,10 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-	
+
 	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -90,7 +90,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 
 	@Override
 	public List<Participant> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
@@ -106,7 +105,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Override
 	public List<Participant> getAllByEvaluation(String evalId, long limit, long offset) throws DatastoreException, NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
@@ -123,7 +121,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Override
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
-		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
 		return namedJdbcTemplate.queryForObject(COUNT_BY_EVALUATION_SQL, parameters, Long.class);
