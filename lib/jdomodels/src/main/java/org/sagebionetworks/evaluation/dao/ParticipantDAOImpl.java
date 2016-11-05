@@ -20,7 +20,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -30,7 +31,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -57,7 +58,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 
 	@Override
 	@WriteTransaction
-	public long create(Participant dto) throws DatastoreException {		
+	public long create(Participant dto) throws DatastoreException {
 		// Convert to DBO
 		ParticipantDBO dbo = new ParticipantDBO();
 		copyDtoToDbo(dto, dbo);
@@ -89,10 +90,11 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 
 	@Override
 	public List<Participant> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
-		List<ParticipantDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
+		List<ParticipantDBO> dbos = namedJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, param, rowMapper);
 		List<Participant> dtos = new ArrayList<Participant>();
 		for (ParticipantDBO dbo : dbos) {
 			Participant dto = new Participant();
@@ -104,11 +106,12 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Override
 	public List<Participant> getAllByEvaluation(String evalId, long limit, long offset) throws DatastoreException, NotFoundException {
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
 		param.addValue(EVAL_ID, evalId);		
-		List<ParticipantDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_EVALUATION_SQL, rowMapper, param);
+		List<ParticipantDBO> dbos = namedJdbcTemplate.query(SELECT_BY_EVALUATION_SQL, param, rowMapper);
 		List<Participant> dtos = new ArrayList<Participant>();
 		for (ParticipantDBO dbo : dbos) {
 			Participant dto = new Participant();
@@ -120,9 +123,10 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Override
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
+		NamedParameterJdbcTemplate namedJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate.getDataSource());
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVALUATION_SQL, parameters);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVALUATION_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -131,7 +135,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);
 		param.addValue(EVAL_ID, evalId);
-		basicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, param);
 	}
 
 	/**
@@ -161,7 +165,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	protected static void copyDboToDto(ParticipantDBO dbo, Participant dto) throws DatastoreException {		
+	protected static void copyDboToDto(ParticipantDBO dbo, Participant dto) throws DatastoreException {
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
