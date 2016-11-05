@@ -1,0 +1,13 @@
+{
+	"description": "Response of an asynchronous migration type count operation",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AsyncMigrationResponse"
+        }
+    ],
+	"properties": {
+		"count": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationTypeCount"
+		}
+	}
+}

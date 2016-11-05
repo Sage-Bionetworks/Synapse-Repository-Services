@@ -54,6 +54,7 @@
     <import resource="classpath:table-view-worker-sqs-spb.xml"/>
     <import resource="classpath:table-update-transaction-worker-sqs-spb.xml"/>
     <import resource="classpath:table-entity-replication-worker-spb.xml"/>
+    <import resource="classpath:migration-sqs-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -89,6 +90,7 @@
 				<ref bean="fileBulkDownloadMessageReveiverTrigger"/>
 				<ref bean="threadStatsWorkerTrigger"/>
 				<ref bean="broadcastMessageQueueMessageReveiverTrigger"/>
+				<ref bean="migrationMessageReceiverTrigger"/>
 				<!-- others -->
 				<ref bean="changeSentMessageSynchTrigger" />
 				<ref bean="stackConfigurationReloadTrigger" />

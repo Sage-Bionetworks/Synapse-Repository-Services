@@ -1,0 +1,14 @@
+{
+	"description": "Request checksum for given type.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.migration.AsyncMigrationRequest"
+		}
+	],
+	"properties": {
+		"type": {
+			"description": "The migration type",
+			"type": "string"
+		}
+	}
+}
