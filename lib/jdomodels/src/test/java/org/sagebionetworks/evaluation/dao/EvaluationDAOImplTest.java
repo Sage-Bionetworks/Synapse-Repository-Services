@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,9 +51,6 @@ public class EvaluationDAOImplTest {
 	
 	private Evaluation eval;	
 	private AccessControlList aclToDelete = null;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 
 	List<String> toDelete;
 	
