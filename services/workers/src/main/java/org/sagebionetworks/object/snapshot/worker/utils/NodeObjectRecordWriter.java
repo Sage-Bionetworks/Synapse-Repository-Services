@@ -147,7 +147,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		}
 	}
 
-	public ObjectRecord buildDeletedNodeRecord(ChangeMessage message) throws IOException {
+	public static ObjectRecord buildDeletedNodeRecord(ChangeMessage message) throws IOException {
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(message.getObjectId());
 		ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, message.getTimestamp().getTime());
