@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
@@ -39,6 +40,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class AsyncMigrationRequestProcessorImplTest {
@@ -83,7 +86,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		AsyncMigrationTypeCountResult expectedAsyncRes = new AsyncMigrationTypeCountResult();
 		expectedAsyncRes.setCount(expectedTypeCount);
 		
-		reqProcessor.processAsyncMigrationTypeCountRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -99,7 +102,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getMigrationTypeCount(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
 		
-		reqProcessor.processAsyncMigrationTypeCountRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -124,7 +127,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		AsyncMigrationRangeChecksumResult expectedAsyncRes = new AsyncMigrationRangeChecksumResult();
 		expectedAsyncRes.setChecksum(expectedChecksum);
 		
-		reqProcessor.processAsyncMigrationRangeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -143,7 +146,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getChecksumForIdRange(any(UserInfo.class), any(MigrationType.class), anyString(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		reqProcessor.processAsyncMigrationRangeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -163,7 +166,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		AsyncMigrationTypeChecksumResult expectedAsyncRes = new AsyncMigrationTypeChecksumResult();
 		expectedAsyncRes.setChecksum(expectedChecksum);
 		
-		reqProcessor.processAsyncMigrationTypeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -179,7 +182,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getChecksumForType(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
 	
-		reqProcessor.processAsyncMigrationTypeChecksumRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -209,7 +212,7 @@ public class AsyncMigrationRequestProcessorImplTest {
 		AsyncMigrationRowMetadataResult expectedAsyncRes = new AsyncMigrationRowMetadataResult();
 		expectedAsyncRes.setRowMetadata(expectedRowMetadataRes);;
 		
-		reqProcessor.processAsyncMigrationRowMetadataRequest(mockProgressCallback, userInfo, mrmr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mrmr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -229,10 +232,62 @@ public class AsyncMigrationRequestProcessorImplTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getRowMetadataByRangeForType(any(UserInfo.class), any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		reqProcessor.processAsyncMigrationRowMetadataRequest(mockProgressCallback, userInfo, mrmr, jobId);
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mrmr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
 	}
+
+	private class AsyncMigrationInvalidRequest implements AsyncMigrationRequest {
+
+		@Override
+		public JSONObjectAdapter initializeFromJSONObject(
+				JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo)
+				throws JSONObjectAdapterException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public String getJSONSchema() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public String getConcreteType() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public void setConcreteType(String concreteType) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testProcessAsyncMigrationInvalidRequest() throws Throwable {
+		String jobId = "1";
+		UserInfo userInfo = new UserInfo(true);
+		userInfo.setId(100L);
+		AsyncMigrationInvalidRequest mri = new AsyncMigrationInvalidRequest();
+		Exception expectedException = new IllegalArgumentException("SomeException");
+	
+		reqProcessor.processAsyncMigrationRequest(mockProgressCallback, userInfo, mri, jobId);
+		
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
+		
+	}
+
+
 
 }

@@ -34,25 +34,17 @@ public class MigrationWorker implements MessageDrivenRunner {
 			throws RecoverableMessageException, Exception {
 		
 		try {
-			processStatus(progressCallback, message);
+			processRequest(progressCallback, message);
 		} catch (Throwable e) {
 			log.error("Failed", e);
 		}
 	}
 	
-	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+	public void processRequest(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		final UserInfo user = userManager.getUserInfo(status.getStartedByUserId());
 		final AsyncMigrationRequest req = AsynchJobUtils.extractRequestBody(status, AsyncMigrationRequest.class);
-		if (req instanceof AsyncMigrationTypeCountRequest) {
-			AsyncMigrationTypeCountRequest mtcReq = (AsyncMigrationTypeCountRequest) req;
-			requestProcessor.processAsyncMigrationTypeCountRequest(progressCallback, user, mtcReq, status.getJobId());
-		} else if (req instanceof AsyncMigrationRangeChecksumRequest) {
-			AsyncMigrationRangeChecksumRequest mrcReq = (AsyncMigrationRangeChecksumRequest) req;
-			requestProcessor.processAsyncMigrationRangeChecksumRequest(progressCallback, user, mrcReq, status.getJobId());
-		} else {
-			throw new IllegalArgumentException("Unrecognized AsyncMigrationRequest");
-		}
+		requestProcessor.processAsyncMigrationRequest(progressCallback, user, req, status.getJobId());
 	}
 	
 }

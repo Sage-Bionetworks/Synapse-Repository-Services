@@ -56,7 +56,7 @@ public class MigrationWorkerTest {
 	}
 
 	@Test
-	public void testAsyncMigrationTypeCountRequest() throws Throwable {
+	public void testAsyncMigrationValidRequest() throws Throwable {
 		String jobId = "1";
 		Message msg = new Message();
 		msg.setBody(jobId);
@@ -74,87 +74,8 @@ public class MigrationWorkerTest {
 		
 		migrationWorker.run(mockProgressCallback, msg);
 		
-		verify(mockRequestProcessor).processAsyncMigrationTypeCountRequest(eq(mockProgressCallback), eq(expectedUserInfo), eq(expectedReq), eq(jobId));
+		verify(mockRequestProcessor).processAsyncMigrationRequest(eq(mockProgressCallback), eq(expectedUserInfo), eq(expectedReq), eq(jobId));
 		
-	}
-
-	@Test
-	public void testAsyncMigrationRangeChecksumRequest() throws Throwable {
-		String jobId = "1";
-		Message msg = new Message();
-		msg.setBody(jobId);
-		
-		AsynchronousJobStatus expectedJobStatus = new AsynchronousJobStatus();
-		expectedJobStatus.setJobId(jobId);
-		expectedJobStatus.setStartedByUserId(100L);
-		AsyncMigrationRangeChecksumRequest expectedReq = new AsyncMigrationRangeChecksumRequest();
-		expectedJobStatus.setRequestBody(expectedReq);
-		when(mockAsynchJobStatusManager.lookupJobStatus(anyString())).thenReturn(expectedJobStatus);
-		
-		UserInfo expectedUserInfo = new UserInfo(true);
-		expectedUserInfo.setId(100L);
-		when(mockUserManager.getUserInfo(eq(100L))).thenReturn(expectedUserInfo);
-		
-		migrationWorker.run(mockProgressCallback, msg);
-		
-		verify(mockRequestProcessor).processAsyncMigrationRangeChecksumRequest(eq(mockProgressCallback), eq(expectedUserInfo), eq(expectedReq), eq(jobId));
-		
-	}
-	
-	private class AsyncMigrationInvalidRequest implements AsyncMigrationRequest {
-
-		@Override
-		public JSONObjectAdapter initializeFromJSONObject(
-				JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo)
-				throws JSONObjectAdapterException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getJSONSchema() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getConcreteType() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public void setConcreteType(String concreteType) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testUnknowAsyncMigrationRequest() throws Throwable {
-		String jobId = "1";
-		Message msg = new Message();
-		msg.setBody(jobId);
-		
-		AsynchronousJobStatus expectedJobStatus = new AsynchronousJobStatus();
-		expectedJobStatus.setJobId(jobId);
-		expectedJobStatus.setStartedByUserId(100L);
-		AsyncMigrationInvalidRequest expectedReq = new AsyncMigrationInvalidRequest();
-		expectedJobStatus.setRequestBody(expectedReq);
-		when(mockAsynchJobStatusManager.lookupJobStatus(anyString())).thenReturn(expectedJobStatus);
-		
-		UserInfo expectedUserInfo = new UserInfo(true);
-		expectedUserInfo.setId(100L);
-		when(mockUserManager.getUserInfo(eq(100L))).thenReturn(expectedUserInfo);
-		
-		migrationWorker.processStatus(mockProgressCallback, msg);
 	}
 
 }

@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
@@ -36,22 +38,60 @@ public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequest
 
 
 	@Override
-	public void processAsyncMigrationTypeCountRequest(
+	public void processAsyncMigrationRequest(
 			final ProgressCallback<Void> progressCallback, final UserInfo user,
-			final AsyncMigrationTypeCountRequest mtcReq, final String jobId) throws Throwable {
-
-		final String t = mtcReq.getType();
-		final MigrationType mt = MigrationType.valueOf(t);
+			final AsyncMigrationRequest mReq, final String jobId) throws Throwable {
 
 		try {
 			callWithAutoProgress(progressCallback, new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
-					MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, mt);
-					AsyncMigrationTypeCountResult res = new AsyncMigrationTypeCountResult();
-					res.setCount(mtc);
-					asynchJobStatusManager.setComplete(jobId, res);
-					return null;
+					if (mReq instanceof AsyncMigrationTypeCountRequest) {
+						AsyncMigrationTypeCountRequest mtcr = (AsyncMigrationTypeCountRequest)mReq;
+						String t = mtcr.getType();
+						MigrationType mt = MigrationType.valueOf(t);
+						MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, mt);
+						AsyncMigrationTypeCountResult res = new AsyncMigrationTypeCountResult();
+						res.setCount(mtc);
+						asynchJobStatusManager.setComplete(jobId, res);
+						return null;
+					} else if (mReq instanceof AsyncMigrationTypeChecksumRequest) {
+						AsyncMigrationTypeChecksumRequest mtcReq = (AsyncMigrationTypeChecksumRequest)mReq;
+						String t = mtcReq.getType();
+						MigrationType mt = MigrationType.valueOf(t);
+						MigrationTypeChecksum mtc = migrationManager.getChecksumForType(user, mt);
+						AsyncMigrationTypeChecksumResult res = new AsyncMigrationTypeChecksumResult();
+						res.setChecksum(mtc);
+						asynchJobStatusManager.setComplete(jobId, res);
+						return null;
+					} else if (mReq instanceof AsyncMigrationRangeChecksumRequest) {
+						AsyncMigrationRangeChecksumRequest mrcReq = (AsyncMigrationRangeChecksumRequest)mReq;
+						String t = mrcReq.getType();
+						MigrationType mt = MigrationType.valueOf(t);
+						String salt = mrcReq.getSalt();
+						long minId = mrcReq.getMinId();
+						long maxId = mrcReq.getMaxId();
+						MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(user, mt, salt, minId, maxId);
+						AsyncMigrationRangeChecksumResult res = new AsyncMigrationRangeChecksumResult();
+						res.setChecksum(mrc);
+						asynchJobStatusManager.setComplete(jobId, res);
+						return null;
+					} if (mReq instanceof AsyncMigrationRowMetadataRequest) {
+						AsyncMigrationRowMetadataRequest mrmReq = (AsyncMigrationRowMetadataRequest)mReq;
+						String t = mrmReq.getType();
+						MigrationType mt = MigrationType.valueOf(t);
+						Long minId = mrmReq.getMinId();
+						Long maxId = mrmReq.getMaxId();
+						Long limit = mrmReq.getLimit();
+						Long offset = mrmReq.getOffset();
+						RowMetadataResult rmr = migrationManager.getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
+						AsyncMigrationRowMetadataResult res = new AsyncMigrationRowMetadataResult();
+						res.setRowMetadata(rmr);
+						asynchJobStatusManager.setComplete(jobId, res);
+						return null;
+					} else {
+						throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
+					}
 				}
 			});
 		} catch (Throwable e) {
@@ -59,98 +99,6 @@ public class AsyncMigrationRequestProcessorImpl implements AsyncMigrationRequest
 			asynchJobStatusManager.setJobFailed(jobId, e);
 			throw e;
 		}
-
-	}
-
-	@Override
-	public void processAsyncMigrationRangeChecksumRequest(
-			final ProgressCallback<Void> progressCallback, final UserInfo user,
-			final AsyncMigrationRangeChecksumRequest mrcReq, final String jobId)
-			throws Throwable {
-		
-		final String t = mrcReq.getType();
-		final MigrationType mt = MigrationType.valueOf(t);
-		final String salt = mrcReq.getSalt();
-		final long minId = mrcReq.getMinId();
-		final long maxId = mrcReq.getMaxId();
-
-		try {
-			callWithAutoProgress(progressCallback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(user, mt, salt, minId, maxId);
-					AsyncMigrationRangeChecksumResult res = new AsyncMigrationRangeChecksumResult();
-					res.setChecksum(mrc);
-					asynchJobStatusManager.setComplete(jobId, res);
-					return null;
-				}
-			});
-		} catch (Throwable e) {
-			// Record the error
-			asynchJobStatusManager.setJobFailed(jobId, e);
-			throw e;
-		}
-		
-	}
-
-	@Override
-	public void processAsyncMigrationTypeChecksumRequest(
-			final ProgressCallback<Void> progressCallback, final UserInfo user,
-			final AsyncMigrationTypeChecksumRequest mtcReq, final String jobId)
-			throws Throwable {
-
-		final String t = mtcReq.getType();
-		final MigrationType mt = MigrationType.valueOf(t);
-
-		try {
-			callWithAutoProgress(progressCallback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					MigrationTypeChecksum mtc = migrationManager.getChecksumForType(user, mt);
-					AsyncMigrationTypeChecksumResult res = new AsyncMigrationTypeChecksumResult();
-					res.setChecksum(mtc);
-					asynchJobStatusManager.setComplete(jobId, res);
-					return null;
-				}
-			});
-		} catch (Throwable e) {
-			// Record the error
-			asynchJobStatusManager.setJobFailed(jobId, e);
-			throw e;
-		}
-
-	}
-
-	@Override
-	public void processAsyncMigrationRowMetadataRequest(
-			final ProgressCallback<Void> progressCallback, final UserInfo user,
-			final AsyncMigrationRowMetadataRequest mrmReq, final String jobId)
-			throws Throwable {
-
-		final String t = mrmReq.getType();
-		final MigrationType mt = MigrationType.valueOf(t);
-		final Long minId = mrmReq.getMinId();
-		final Long maxId = mrmReq.getMaxId();
-		final Long limit = mrmReq.getLimit();
-		final Long offset = mrmReq.getOffset();
-
-		try {
-			callWithAutoProgress(progressCallback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					RowMetadataResult rmr = migrationManager.getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
-					AsyncMigrationRowMetadataResult res = new AsyncMigrationRowMetadataResult();
-					res.setRowMetadata(rmr);
-					asynchJobStatusManager.setComplete(jobId, res);
-					return null;
-				}
-			});
-		} catch (Throwable e) {
-			// Record the error
-			asynchJobStatusManager.setJobFailed(jobId, e);
-			throw e;
-		}
-		
 	}
 
 	private <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
