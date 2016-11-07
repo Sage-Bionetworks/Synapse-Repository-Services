@@ -5,10 +5,8 @@ import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
-import org.sagebionetworks.repo.manager.migration.MigrationManagerSupport;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
