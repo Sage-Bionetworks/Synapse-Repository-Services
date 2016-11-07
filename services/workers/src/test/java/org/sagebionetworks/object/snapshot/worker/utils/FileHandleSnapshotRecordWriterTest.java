@@ -1,6 +1,9 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -14,6 +17,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
@@ -35,6 +39,8 @@ public class FileHandleSnapshotRecordWriterTest {
 	private FileHandleDao mockFileHandleDao;
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
+	@Mock
+	private ProgressCallback<Void> mockCallback;
 	private FileHandleSnapshotRecordWriter writer;
 	private String id = "123";
 
@@ -46,33 +52,36 @@ public class FileHandleSnapshotRecordWriterTest {
 		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteFileMessageTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, id, ObjectType.FILE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
+		verify(mockCallback).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void invalidChangeMessageTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
 	
 	@Test
 	public void validChangeMessageTest() throws IOException {
 		FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setEtag("etag");
-		Mockito.when(mockFileHandleDao.get(id)).thenReturn(fileHandle);
+		when(mockFileHandleDao.get(id)).thenReturn(fileHandle);
 		
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.FILE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		FileHandleSnapshot record = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(fileHandle);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(record, changeMessage.getTimestamp().getTime());
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockFileHandleDao).get(id);
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage, changeMessage));
+		verify(mockFileHandleDao, times(2)).get(id);
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected, expected)), eq(expected.getJsonClassName()));
+		verify(mockCallback, times(3)).progressMade(null);
 	}
 
 	@Test
