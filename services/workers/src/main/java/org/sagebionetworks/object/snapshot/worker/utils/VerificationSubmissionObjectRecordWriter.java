@@ -1,18 +1,19 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.VerificationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -34,29 +35,37 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 	public static final long LIMIT = 10L;
 
 	@Override
-	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
-		if (message.getObjectType() != ObjectType.VERIFICATION_SUBMISSION || message.getChangeType() == ChangeType.DELETE) {
-			throw new IllegalArgumentException();
-		}
-		Long userId = Long.parseLong(message.getObjectId());
+	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		try {
-			long offset = 0L;
-			VerificationPagedResults records = null;
-			do {
-				List<ObjectRecord> toWrite = new ArrayList<ObjectRecord>();
-				records = verificationManager.listVerificationSubmissions(adminUser, null, userId, LIMIT , offset);
-				for (VerificationSubmission record : records.getResults()) {
-					toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
-				}
-				if (!toWrite.isEmpty()) {
-					objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
-				}
-				offset += LIMIT;
-			} while (offset < records.getTotalNumberOfResults());
-		} catch (NotFoundException e) {
-			log.error("Cannot find verification submission for user " + message.getObjectId() + " message: " + message.toString()) ;
+		for (ChangeMessage message : messages) {
+			progressCallback.progressMade(null);
+			if (message.getObjectType() != ObjectType.VERIFICATION_SUBMISSION) {
+				throw new IllegalArgumentException();
+			}
+			// skip delete messages
+			if (message.getChangeType() == ChangeType.DELETE) {
+				continue;
+			}
+			Long userId = Long.parseLong(message.getObjectId());
+			try {
+				long offset = 0L;
+				VerificationPagedResults records = null;
+				do {
+					progressCallback.progressMade(null);
+					records = verificationManager.listVerificationSubmissions(adminUser, null, userId, LIMIT , offset);
+					for (VerificationSubmission record : records.getResults()) {
+						toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
+					}
+					offset += LIMIT;
+				} while (offset < records.getTotalNumberOfResults());
+			} catch (NotFoundException e) {
+				log.error("Cannot find verification submission for user " + message.getObjectId() + " message: " + message.toString()) ;
+			}
+		}
+		if (!toWrite.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 	}
-
 }

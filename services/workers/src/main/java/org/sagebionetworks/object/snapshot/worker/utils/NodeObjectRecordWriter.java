@@ -1,12 +1,14 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -44,20 +46,6 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	private EntityPermissionsManager entityPermissionManager;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
-
-	NodeObjectRecordWriter(){}
-
-	// for test only
-	NodeObjectRecordWriter(NodeDAO nodeDAO, UserManager userManager,
-			AccessRequirementManager accessRequirementManager,
-			EntityPermissionsManager entityPermissionManager,
-			ObjectRecordDAO objectRecordDAO) {
-		this.nodeDAO = nodeDAO;
-		this.userManager = userManager;
-		this.accessRequirementManager = accessRequirementManager;
-		this.entityPermissionManager = entityPermissionManager;
-		this.objectRecordDAO = objectRecordDAO;
-	}
 
 	/**
 	 * set record's isPublic, isRestricted, and isControlled fields
@@ -125,31 +113,44 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
-		if (message.getObjectType() != ObjectType.ENTITY) {
-			throw new IllegalArgumentException();
-		}
-		if (message.getChangeType() == ChangeType.DELETE) {
-			captureDeletedNodeRecord(message);
-		} else {
-			try {
-				Node node = nodeDAO.getNode(message.getObjectId());
-				NodeRecord record = buildNodeRecord(node);
-				record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
-				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
-				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-			} catch (EntityInTrashCanException e) {
-				captureDeletedNodeRecord(message);
-			} catch (NotFoundException e) {
-				log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+		List<ObjectRecord> nonDeleteRecords = new LinkedList<ObjectRecord>();
+		List<ObjectRecord> deleteRecords = new LinkedList<ObjectRecord>();
+		for (ChangeMessage message : messages) {
+			progressCallback.progressMade(null);
+			if (message.getObjectType() != ObjectType.ENTITY) {
+				throw new IllegalArgumentException();
 			}
+			if (message.getChangeType() == ChangeType.DELETE) {
+				deleteRecords.add(buildDeletedNodeRecord(message));
+			} else {
+				try {
+					Node node = nodeDAO.getNode(message.getObjectId());
+					NodeRecord record = buildNodeRecord(node);
+					record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
+					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+					nonDeleteRecords.add(objectRecord);
+				} catch (EntityInTrashCanException e) {
+					deleteRecords.add(buildDeletedNodeRecord(message));
+				} catch (NotFoundException e) {
+					log.error("Cannot find node for a " + message.getChangeType() + " message: " + message.toString()) ;
+				}
+			}
+		}
+		if (!nonDeleteRecords.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(nonDeleteRecords, nonDeleteRecords.get(0).getJsonClassName());
+		}
+		if (!deleteRecords.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(deleteRecords, deleteRecords.get(0).getJsonClassName());
 		}
 	}
 
-	public void captureDeletedNodeRecord(ChangeMessage message) throws IOException {
+	public ObjectRecord buildDeletedNodeRecord(ChangeMessage message) throws IOException {
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(message.getObjectId());
 		ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, message.getTimestamp().getTime());
-		objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
+		return objectRecord;
 	}
 }
