@@ -204,11 +204,4 @@ public interface V2WikiPageDao {
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 
-	/**
-	 * Delete old versions of the Wiki markdown, keeping numVersionsToKeep versions
-	 * 
-	 * @param wikiPageId
-	 * @param numVersionsToKeep
-	 */
-	void deleteOldWikiVersions(String wikiPageId, Long numVersionsToKeep);
 }
