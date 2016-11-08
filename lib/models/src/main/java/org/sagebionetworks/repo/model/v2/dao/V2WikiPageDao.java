@@ -204,4 +204,10 @@ public interface V2WikiPageDao {
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 
+	/**
+	 * 
+	 * @param key
+	 * @param versionsToDelete
+	 */
+	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete);
 }

@@ -69,6 +69,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -125,6 +128,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			"SELECT "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST
 			+" FROM "+V2_TABLE_WIKI_MARKDOWN
 			+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
+	private static final String SQL_DELETE_WIKI_VERSIONS =
+			"DELETE FROM " + V2_TABLE_WIKI_MARKDOWN +
+				" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId AND " +
+				V2_COL_WIKI_MARKDOWN_VERSION + " IN (:versions)";
+	
 
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
@@ -767,6 +775,30 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			allAttachments.addAll(list);
 		}
 		return allAttachments;
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete) {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null.");
+		}
+		if (versionsToDelete == null) {
+			throw new IllegalArgumentException("VersionsToDelete cannot be null.");
+		}
+		if (versionsToDelete.size() == 0) {
+			return; // Nothing to do
+		}
+		String wikiId = key.getWikiPageId();
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("wikiPageId", wikiId);
+		params.addValue("versions", versionsToDelete);
+		try {
+			namedTemplate.update(SQL_DELETE_WIKI_VERSIONS, params);
+		} catch (NotFoundException e) {
+			// Nothing to do if none found
+		}
 	}
 	
 }
