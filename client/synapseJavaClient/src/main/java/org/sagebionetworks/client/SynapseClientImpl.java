@@ -1902,6 +1902,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Override
+	public void deleteAccessApproval(Long approvalId)
+			throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + approvalId, getUserAgent());
+	}
+
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 

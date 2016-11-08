@@ -806,6 +806,8 @@ public class IT500SynapseJavaClient {
 		
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		adminSynapse.deleteAccessApproval(created.getId());
 	}
 
 	@Test
