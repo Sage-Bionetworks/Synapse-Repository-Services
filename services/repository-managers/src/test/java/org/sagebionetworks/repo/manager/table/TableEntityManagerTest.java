@@ -99,7 +99,7 @@ import com.google.common.collect.Sets;
 public class TableEntityManagerTest {
 	
 	@Mock
-	ProgressCallback<Long> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	@Mock
 	StackStatusDao mockStackStatusDao;
 	@Mock
@@ -407,7 +407,7 @@ public class TableEntityManagerTest {
 		assertEquals(results.getEtag(), etag);
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockProgressCallback).progressMade(anyLong());
+		verify(mockProgressCallback).progressMade(null);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
@@ -454,7 +454,7 @@ public class TableEntityManagerTest {
 		assertEquals(new Long(5), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockProgressCallback, times(3)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(null);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 
@@ -683,7 +683,7 @@ public class TableEntityManagerTest {
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(3)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(null);
 	}
 	
 	@Test (expected=ReadOnlyException.class)
@@ -696,7 +696,7 @@ public class TableEntityManagerTest {
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(3)).progressMade(anyLong());
+		verify(mockProgressCallback, times(3)).progressMade(null);
 	}
 	
 	@Test
@@ -961,35 +961,35 @@ public class TableEntityManagerTest {
 	}
 	
 	@Test
-	public void testUpdateTable(){
+	public void testUpdateTable() throws IOException{
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateTableNullProgress(){
+	public void testUpdateTableNullProgress() throws IOException{
 		mockProgressCallbackVoid = null;
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateTableNullUser(){
+	public void testUpdateTableNullUser() throws IOException{
 		user = null;
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateTableNullRequset(){
+	public void testUpdateTableNullRequset() throws IOException{
 		schemaChangeRequest = null;
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, schemaChangeRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateTableUnkownRequset(){
+	public void testUpdateTableUnkownRequset() throws IOException{
 		TableUpdateRequest unknown = Mockito.mock(TableUpdateRequest.class);
 		// call under test.
 		manager.updateTable(mockProgressCallbackVoid, user, unknown);

@@ -128,7 +128,7 @@ public class MigrationManagerImplAutowireTest {
 	private String tableId;
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
-	ProgressCallback<Long> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
 	private long startId;
 

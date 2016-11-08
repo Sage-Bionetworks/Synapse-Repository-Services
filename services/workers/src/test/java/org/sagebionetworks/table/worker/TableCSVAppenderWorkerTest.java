@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.s3.AmazonS3Client;

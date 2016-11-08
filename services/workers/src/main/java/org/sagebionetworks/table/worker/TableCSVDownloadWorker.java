@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;

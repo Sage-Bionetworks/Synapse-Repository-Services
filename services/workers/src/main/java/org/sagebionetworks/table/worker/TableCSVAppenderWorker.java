@@ -22,18 +22,17 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
-
-import au.com.bytecode.opencsv.CSVReader;
 /**
  * This worker reads CSV files from S3 and appends the data to a given TableEntity.
  * 
@@ -56,8 +55,6 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private AmazonS3Client s3Client;
-	
-	private long rowCount;
 
 	@Override
 	public void run(ProgressCallback<Void> progressCallback,
@@ -117,20 +114,18 @@ public class TableCSVAppenderWorker implements MessageDrivenRunner {
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, body.getColumnIds());
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, throttledProgressCallback);
 			// Append the data to the table
-			rowCount = 0;
 			String etag = tableEntityManager.appendRowsAsStream(user, body.getTableId(),
 					tableSchema, iteratorProxy, body.getUpdateEtag(), null,
-					new ProgressCallback<Long>() {
+					new ProgressCallback<Void>() {
 
 				@Override
-				public void progressMade(Long count) {
+				public void progressMade(Void count) {
 					// update the message.
 					progressCallback.progressMade(null);
-					rowCount += count;
 				}});
 			// Done
 			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(rowCount);
+			result.setRowsProcessed(iterator.getRowsRead());
 			result.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){

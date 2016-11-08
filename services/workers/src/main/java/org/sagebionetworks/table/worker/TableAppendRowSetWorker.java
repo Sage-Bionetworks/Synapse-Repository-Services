@@ -79,20 +79,14 @@ public class TableAppendRowSetWorker implements MessageDrivenRunner {
 			long progressTotal = 100L;
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
-			ProgressCallback<Long> rowCallback = new ProgressCallback<Long>() {
-				@Override
-				public void progressMade(Long progress) {
-					progressCallback.progressMade(null);
-				}
-			};
 			// Do the work
 			RowReferenceSet results = null;
 			if(appendSet instanceof PartialRowSet){
 				PartialRowSet partialRowSet = (PartialRowSet) appendSet;
-				results =  tableEntityManager.appendPartialRows(user, tableId, partialRowSet, rowCallback);
+				results =  tableEntityManager.appendPartialRows(user, tableId, partialRowSet, progressCallback);
 			}else if(appendSet instanceof RowSet){
 				RowSet rowSet = (RowSet)appendSet;
-				results = tableEntityManager.appendRows(user, tableId, rowSet, rowCallback);
+				results = tableEntityManager.appendRows(user, tableId, rowSet, progressCallback);
 			}else{
 				throw new IllegalArgumentException("Unknown RowSet type: "+appendSet.getClass().getName());
 			}

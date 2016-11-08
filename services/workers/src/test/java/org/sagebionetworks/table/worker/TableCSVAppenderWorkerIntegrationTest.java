@@ -45,6 +45,8 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -213,6 +215,13 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		if (!useCSVHeader) {
 			body.setColumnIds(Lists.newArrayList(schema.get(1).getId(), schema.get(0).getId()));
 		}
+		
+		TableUpdateTransactionRequest txRequest = new TableUpdateTransactionRequest();
+		List<TableUpdateRequest> txChagnes = new LinkedList<TableUpdateRequest>();
+		txChagnes.add(body);
+		txRequest.setChanges(txChagnes);
+		txRequest.setEntityId(tableId);
+		
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
