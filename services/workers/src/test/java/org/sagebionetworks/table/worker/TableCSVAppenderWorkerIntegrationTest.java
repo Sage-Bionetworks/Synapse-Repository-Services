@@ -367,7 +367,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		body.setEntityId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		System.out.println("Appending");
-		status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 
