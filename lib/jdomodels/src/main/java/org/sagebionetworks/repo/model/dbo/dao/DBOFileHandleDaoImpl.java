@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -39,9 +38,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -77,9 +77,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	private static final String SQL_COUNT_REFERENCES = "SELECT COUNT(*) FROM " + TABLE_FILES + " WHERE " + COL_FILES_BUCKET_NAME
 			+ " = ? AND `" + COL_FILES_KEY + "` = ?";
-
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -88,7 +85,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private TableMapping<DBOFileHandle> rowMapping = new DBOFileHandle().getTableMapping();
 
@@ -146,7 +146,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		try{
 			// Change the etag
 			String newEtag = UUID.randomUUID().toString();
-			simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
+			jdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
 			
 			// Send the update message
 			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
@@ -165,7 +165,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(id == null) throw new IllegalArgumentException("FileId cannot be null");
 		try{
 			// Is this in the database.
-			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
+			jdbcTemplate.queryForObject(SQL_DOES_EXIST, Long.class, id);
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;
@@ -178,7 +178,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
 		try{
 			// Lookup the creator.
-			Long creator = simpleJdbcTemplate.queryForLong(SQL_SELECT_CREATOR, Long.parseLong(fileHandleId));
+			Long creator = jdbcTemplate.queryForObject(SQL_SELECT_CREATOR, Long.class, fileHandleId);
 			return creator.toString();
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
@@ -193,7 +193,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
 		for (List<String> fileHandleIdsBatch : Lists.partition(fileHandleIds, 100)) {
-			simpleJdbcTemplate.query(SQL_SELECT_CREATORS, new RowMapper<Void>() {
+			namedJdbcTemplate.query(SQL_SELECT_CREATORS, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch),
+					new RowMapper<Void>() {
 				@Override
 				public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
 					String creator = rs.getString(COL_FILES_CREATED_BY);
@@ -201,7 +202,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 					resultMap.put(creator, id);
 					return null;
 				}
-			}, new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch));
+			});
 		}
 		return resultMap;
 	}
@@ -214,14 +215,14 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			MapSqlParameterSource parameters = new MapSqlParameterSource();
 			parameters.addValue("ids", fileHandleIdsBatch);
 			parameters.addValue("createdById", createdById);
-			simpleJdbcTemplate.query(SQL_SELECT_FILES_CREATED_BY_USER, new RowMapper<Void>() {
+			namedJdbcTemplate.query(SQL_SELECT_FILES_CREATED_BY_USER, parameters, new RowMapper<Void>() {
 				@Override
 				public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
 					String fileHandleId = rs.getString(COL_FILES_ID);
 					results.add(fileHandleId);
 					return null;
 				}
-			}, parameters);
+			});
 		}
 		return results;
 	}
@@ -232,8 +233,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
 		try{
 			// Lookup the creator.
-			long previewId = simpleJdbcTemplate.queryForLong(SQL_SELECT_PREVIEW_ID, Long.parseLong(fileHandleId));
-			if(previewId > 0){
+			Long previewId = jdbcTemplate.queryForObject(SQL_SELECT_PREVIEW_ID, Long.class, fileHandleId);
+			if(previewId != null && previewId > 0){
 				return Long.toString(previewId);
 			}else{
 				throw new NotFoundException("A preview does not exist for: "+fileHandleId);
@@ -274,8 +275,8 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		// because we are using an IN clause and the number of incoming fileHandleIds is undetermined, we need to batch
 		// the selects here
 		for (List<String> fileHandleIdsBatch : Iterables.partition(idsList, 100)) {
-			List<DBOFileHandle> handles = simpleJdbcTemplate.query(SQL_SELECT_BATCH, rowMapping, new SinglePrimaryKeySqlParameterSource(
-					fileHandleIdsBatch));
+			List<DBOFileHandle> handles = namedJdbcTemplate.query(SQL_SELECT_BATCH,
+					new SinglePrimaryKeySqlParameterSource(fileHandleIdsBatch), rowMapping);
 			for (DBOFileHandle handle : handles) {
 				resultMap.put(handle.getIdString(), FileMetadataUtils.createDTOFromDBO(handle));
 			}
@@ -285,17 +286,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public long getS3objectReferenceCount(String bucketName, String key) {
-		return simpleJdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+		return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
 	}
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
 	}
 	
 	@Override
 	public long getMaxId() throws DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
+		return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
 	}
 
 	@WriteTransactionReadCommitted

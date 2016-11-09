@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -50,7 +50,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
@@ -194,7 +194,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED, membershipInvitationRowMapper, param);
+		return namedJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED, param, membershipInvitationRowMapper);
 	}
 
 	@Override
@@ -205,8 +205,8 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_TEAM_PAGINATED, membershipInvtnSubmissionRowMapper, param);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);
+		return namedJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_TEAM_PAGINATED, param, membershipInvtnSubmissionRowMapper);
 	}
 
 
@@ -220,7 +220,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED, rowMapper, param);
+		return namedJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED, param, rowMapper);
 	}
 	
 	
@@ -236,7 +236,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_INVITER_BY_TEAM_AND_USER, INVITER_ROW_MAPPER, param);
+		return namedJdbcTemplate.query(SELECT_INVITER_BY_TEAM_AND_USER, param, INVITER_ROW_MAPPER);
 	}
 
 
@@ -251,9 +251,13 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	public long getOpenByUserCount(long userId, long now)
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
-		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);	
-		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);
+		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param, Long.class);
+		if (count == null) {
+			throw new NotFoundException();
+		}
+		return count;
 	}
 
 	@Override
@@ -263,7 +267,11 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param);
+		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param, Long.class);
+		if (count == null) {
+			throw new NotFoundException();
+		}
+		return count;
 	}
 
 	@Override
@@ -272,7 +280,11 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param);
+		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
+		if (count == null) {
+			throw new NotFoundException();
+		}
+		return count;
 	}
 
 	@WriteTransaction
@@ -282,7 +294,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
-		simpleJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
+		namedJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
 	}
 
 
