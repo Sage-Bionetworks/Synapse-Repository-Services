@@ -83,6 +83,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testparseValueForDBUserId(){
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.USERID, "123");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
 	public void testparseValueForDBEntityId() {
 		String expected = "syn123.3";
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123.3");
@@ -1145,7 +1152,8 @@ public class SQLUtilsTest {
 		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnType(ColumnType.DOUBLE));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.ENTITYID));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.FILEHANDLEID));
-		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.USERID));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER)); //TODO: is this correct??
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LARGETEXT));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LINK));
 	}

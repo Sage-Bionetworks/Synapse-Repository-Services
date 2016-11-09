@@ -93,6 +93,7 @@ public class TableModelTestUtils {
 				case DOUBLE:
 					defaultValue = "1.3";
 					break;
+				case USERID:
 				case FILEHANDLEID:
 				case ENTITYID:
 				case LARGETEXT:
@@ -304,6 +305,7 @@ public class TableModelTestUtils {
 		switch (cm.getColumnType()) {
 		case STRING:
 			return (isUpdate ? "updatestring" : "string") + i;
+		case USERID:
 		case INTEGER:
 			return "" + (i + 3000);
 		case DATE:

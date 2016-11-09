@@ -215,7 +215,7 @@ public class TableIndexDAOImplTest {
 		// We should be able to update all of the rows
 		rows.get(4).setValues(
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123.3", "link2", "largeText"));
+						"syn123.3", "link2", "largeText", "42"));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
@@ -239,6 +239,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(123L, row.get("_C5_"));
 		assertEquals("syn123.3", row.get("_C6_"));
 		assertEquals("largeText", row.get("_C8_"));
+		assertEquals(42L, row.get("_C9_"));
 	}
 
 	@Test
@@ -362,7 +363,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
 				"203000", "false", "404000", "505000", "syn606000.607000",
-				"link708000", "largeText804000");
+				"link708000", "largeText804000", "903000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -370,7 +371,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
-				"true", "404001", "505001", "syn606001.607001", "link708001", "largeText804001");
+				"true", "404001", "505001", "syn606001.607001", 
+				"link708001", "largeText804001", "903001");
 		assertEquals(expectedValues, row.getValues());
 		// progress should be made for each row.
 		verify(mockProgressCallback, times(2)).progressMade(null);
@@ -685,7 +687,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList(null, null, null, null,
-				null, null, null, null,  null);
+				null, null, null, null,  null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
@@ -693,7 +695,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null);
+				null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
