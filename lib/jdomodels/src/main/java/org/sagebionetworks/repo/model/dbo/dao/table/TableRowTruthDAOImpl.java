@@ -346,15 +346,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			return jdbcTemplate.queryForObject(
-					SQL_SELECT_VERSION_FOR_ETAG, new RowMapper<Long>() {
-						@Override
-						public Long mapRow(ResultSet rs, int rowNum)
-								throws SQLException {
-							return rs.getLong(COL_TABLE_ROW_VERSION);
-						}
-					}, tableId, etag);
-		} catch (EmptyResultDataAccessException e) {
+			return jdbcTemplate.queryForObject(SQL_SELECT_VERSION_FOR_ETAG, Long.class, tableId, etag);
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			throw new IllegalArgumentException("Invalid etag: " + etag);
 		}
 	}

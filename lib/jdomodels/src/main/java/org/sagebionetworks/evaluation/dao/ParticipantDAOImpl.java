@@ -123,7 +123,11 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
-		return namedJdbcTemplate.queryForObject(COUNT_BY_EVALUATION_SQL, parameters, Long.class);
+		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_EVALUATION_SQL, parameters, Long.class);
+		if (count != null) {
+			return count;
+		}
+		return 0L;
 	}
 
 	@Override

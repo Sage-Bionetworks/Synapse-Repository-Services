@@ -1596,7 +1596,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long totalCount = 0;
 		try {
 			totalCount = namedParameterJdbcTemplate.queryForObject(countSql, params, Long.class);
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);

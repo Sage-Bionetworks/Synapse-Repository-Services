@@ -161,15 +161,19 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		Long count = namedParameterJdbcTemplate.queryForObject(SELECT_COUNT_FOR_USER, paramMap, Long.class);
-		return count.intValue();
+		if (count != null) {
+			return count.intValue();
+		}
+		return 0;
 	}
 
 	@Override
 	public int getCount() throws DatastoreException {
 		//no parameters on this query but need to pass a SqlParameterSource anyways
-		Long count = namedParameterJdbcTemplate.queryForObject(SELECT_COUNT, new MapSqlParameterSource(), Long.class); 
-		
-		return count.intValue();
+		Long count = namedParameterJdbcTemplate.queryForObject(SELECT_COUNT, new MapSqlParameterSource(), Long.class); if (count != null) {
+			return count.intValue();
+		}
+		return 0;
 	}
 
 	@Override

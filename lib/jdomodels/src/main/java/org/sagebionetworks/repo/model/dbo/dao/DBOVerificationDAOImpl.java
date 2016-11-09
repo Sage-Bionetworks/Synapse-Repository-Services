@@ -270,7 +270,11 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 		String sql = "SELECT COUNT(*) "+listVerificationSubmissionsSQLcore(states, userId);
 		MapSqlParameterSource param = listVerificationSubmissionsParams(states, userId);
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		return namedTemplate.queryForObject(sql, param, Long.class);
+		Long count = namedTemplate.queryForObject(sql, param, Long.class);
+		if (count != null) {
+			return count;
+		}
+		return 0L;
 	}
 	
 	private static final String REASON_CHARACTER_SET = "UTF-8";

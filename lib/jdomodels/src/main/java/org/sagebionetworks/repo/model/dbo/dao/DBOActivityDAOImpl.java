@@ -185,7 +185,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		long totalCount = 0;
 		try {
 			totalCount = namedJdbcTemplate.queryForObject(SQL_GET_NODES_FOR_ACTIVITY_COUNT, params, Long.class);
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);

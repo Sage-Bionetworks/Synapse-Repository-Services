@@ -127,7 +127,11 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public long listColumnModelsCount(String namePrefix) {
 		String likeString = preparePrefix(namePrefix);
-		return jdbcTemplate.queryForObject(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT,new SingleColumnRowMapper<Long>(), likeString);
+		Long count = jdbcTemplate.queryForObject(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT,new SingleColumnRowMapper<Long>(), likeString);
+		if (count != null) {
+			return count;
+		}
+		return 0L;
 	}
 
 	@WriteTransaction
@@ -287,7 +291,11 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		return namedTemplate.queryForObject(sql, parameters, new SingleColumnRowMapper<Long>());
+		Long count = namedTemplate.queryForObject(sql, parameters, new SingleColumnRowMapper<Long>());
+		if (count != null) {
+			return count;
+		}
+		return 0L;
 	}
 
 	/**
