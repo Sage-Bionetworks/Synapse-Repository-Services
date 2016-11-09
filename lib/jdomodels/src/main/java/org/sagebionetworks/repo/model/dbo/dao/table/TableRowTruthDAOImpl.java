@@ -366,7 +366,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			return jdbcTemplate.queryForObject(SQL_SELECT_MAX_ROWID, Long.class, tableId);
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			// presumably, no rows have been added yet
 			return 0L;
 		}

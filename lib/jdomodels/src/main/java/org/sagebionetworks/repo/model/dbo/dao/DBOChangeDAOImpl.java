@@ -357,8 +357,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Override
 	public boolean doesChangeNumberExist(Long changeNumber) {
-		long count = jdbcTemplate.queryForObject(SQL_COUNT_CHANGE_NUMBER, Long.class, changeNumber);
-		return count == 1;
+		Long count = jdbcTemplate.queryForObject(SQL_COUNT_CHANGE_NUMBER, Long.class, changeNumber);
+		return count != null && count == 1;
 	}
 
 	@Override

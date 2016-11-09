@@ -343,7 +343,6 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public long getVerificationSubmitter(long verificationId) {
 		return jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId);
-		
 	}
 
 }

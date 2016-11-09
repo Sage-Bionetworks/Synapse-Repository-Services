@@ -828,7 +828,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public long getVersionCount(String entityId) throws NotFoundException,
 			DatastoreException {
-		return jdbcTemplate.queryForObject(SQL_COUNT_REVISONS, Long.class, KeyFactory.stringToKey(entityId));
+		Long count = jdbcTemplate.queryForObject(SQL_COUNT_REVISONS, Long.class, KeyFactory.stringToKey(entityId));
+		if (count != null) {
+			return count;
+		}
+		return 0L;
 	}
 
 	@Override
@@ -941,7 +945,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			long count = jdbcTemplate.queryForObject(SQL_COUNT_REVISON_ID, Long.class, KeyFactory.stringToKey(nodeId), revNumber);
 			return count > 0;
-		}catch(Exception e){
+		}catch(EmptyResultDataAccessException | NullPointerException e){
 			// Can occur when the schema does not exist.
 			return false;
 		}
@@ -1387,7 +1391,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return activityId == null ? null : activityId.toString();
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
-		}		
+		}
 	}
 	
 	@Override
@@ -1418,7 +1422,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			this.jdbcTemplate.queryForObject(SQL_GET_FIRST_CHILD, Long.class, KeyFactory.stringToKey(nodeId));
 			// At least one node has this parent id.
 			return true;
-		}catch(EmptyResultDataAccessException e){
+		}catch(EmptyResultDataAccessException | NullPointerException e){
 			// Nothing has that parent id.
 			return false;
 		}
@@ -1729,7 +1733,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_ID_BY_ALIAS, Long.class, alias);
 			return KeyFactory.keyToString(id);
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			throw new NotFoundException("Did not find a match for alias: "+alias);
 		}
 	}
@@ -1740,7 +1744,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
 			return KeyFactory.keyToString(id);
-		} catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
 		}
 	}
