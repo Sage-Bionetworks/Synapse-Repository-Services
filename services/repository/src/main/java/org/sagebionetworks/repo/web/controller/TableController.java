@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
@@ -42,6 +44,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -1106,8 +1109,10 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
+		// wrap the job as a transaction
+		TableUpdateTransactionRequest request = TableModelUtils.wrapInTransactionRequest(uploadRequest);
 		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, uploadRequest);
+				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
@@ -1146,7 +1151,8 @@ public class TableController extends BaseController {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
-		return (UploadToTableResult) jobStatus.getResponseBody();
+		// This job is wrapped in a transaction.
+		return TableModelUtils.extractResponseFromTransaction(jobStatus.getResponseBody(), UploadToTableResult.class);
 	}
 
 }

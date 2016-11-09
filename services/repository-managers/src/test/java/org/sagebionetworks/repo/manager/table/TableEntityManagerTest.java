@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -885,6 +886,14 @@ public class TableEntityManagerTest {
 		assertTrue(manager.isTemporaryTableNeededToValidate(request));
 	}
 	
+	@Test
+	public void testIsTemporaryTableNeededToValidateUploadToTableRequest(){
+		UploadToTableRequest request = new UploadToTableRequest();
+		request.setTableId(tableId);
+		// call under test
+		assertFalse(manager.isTemporaryTableNeededToValidate(request));
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testIsTemporaryTableNeededToValidateUnknown(){
 		TableUpdateRequest mockRequest = Mockito.mock(TableUpdateRequest.class);
@@ -918,6 +927,13 @@ public class TableEntityManagerTest {
 		TableUpdateRequest unknown = Mockito.mock(TableUpdateRequest.class);
 		// Call under test
 		manager.validateUpdateRequest(mockProgressCallbackVoid, user, unknown, mockIndexManager);
+	}
+	
+	@Test
+	public void testValidateUpdateUploadToTableRequest(){
+		UploadToTableRequest request = new UploadToTableRequest();
+		// Call under test
+		manager.validateUpdateRequest(mockProgressCallbackVoid, user, request, mockIndexManager);
 	}
 	
 	@Test

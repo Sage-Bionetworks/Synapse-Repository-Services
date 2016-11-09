@@ -575,6 +575,9 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
 			return containsColumnUpdate(schemaChange.getChanges());
+		}if(change instanceof UploadToTableRequest){
+			// might switch to true to support uniqueness constraints.
+			return false;
 		}else{
 			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
 		}
@@ -614,6 +617,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		ValidateArgument.required(change, "change");
 		if(change instanceof TableSchemaChangeRequest){
 			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
+		}else if(change instanceof UploadToTableRequest){
+			// nothing to validate
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
