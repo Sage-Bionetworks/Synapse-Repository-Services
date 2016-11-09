@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.table.cluster.utils;
 
 import java.io.Reader;
 
@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.Constants;

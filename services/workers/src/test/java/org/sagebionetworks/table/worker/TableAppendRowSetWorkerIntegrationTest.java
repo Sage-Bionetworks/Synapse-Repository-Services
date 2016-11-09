@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -157,6 +158,7 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		AppendableRowSetRequest body = new AppendableRowSetRequest();
 		PartialRowSet set = new PartialRowSet();
 		body.setToAppend(set);
+		body.setEntityId(tableId);
 		set.setTableId(tableId);
 		PartialRow row = new PartialRow();
 		row.setRowId(null);
@@ -164,13 +166,12 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		values.put(headers.get(1).toString(), "12345");
 		row.setValues(values);
 		set.setRows(Arrays.asList(row));
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 		assertNotNull(status);
-		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof RowReferenceSetResults);
-		RowReferenceSetResults results = (RowReferenceSetResults) status.getResponseBody();
+		RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), RowReferenceSetResults.class);
 		assertNotNull(results.getRowReferenceSet());
 		RowReferenceSet refSet = results.getRowReferenceSet();
 		assertNotNull(refSet.getRows());
@@ -189,17 +190,18 @@ public class TableAppendRowSetWorkerIntegrationTest {
 		RowSet set = new RowSet();
 		set.setHeaders(select);
 		body.setToAppend(set);
+		body.setEntityId(tableId);
 		set.setTableId(tableId);
 		Row row = new Row();
 		row.setValues(Arrays.asList("one", "1234"));
 		set.setRows(Arrays.asList(row));
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof RowReferenceSetResults);
-		RowReferenceSetResults results = (RowReferenceSetResults) status.getResponseBody();
+		RowReferenceSetResults results = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), RowReferenceSetResults.class);
 		assertNotNull(results.getRowReferenceSet());
 		RowReferenceSet refSet = results.getRowReferenceSet();
 		assertNotNull(refSet.getRows());
