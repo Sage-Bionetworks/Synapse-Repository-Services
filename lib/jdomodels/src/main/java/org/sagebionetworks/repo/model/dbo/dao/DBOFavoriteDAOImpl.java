@@ -141,7 +141,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		long totalCount = 0;
 		try {
 			totalCount = namedJdbcTemplate.queryForObject(COUNT_FAVORITES_SQL, params, Long.class);
-		} catch (EmptyResultDataAccessException | NullPointerException e) {
+		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
@@ -203,7 +203,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		long totalCount = 0;
 		try {
 			totalCount = namedJdbcTemplate.queryForObject(COUNT_FAVORITES_SQL, params, Long.class);
-		} catch (EmptyResultDataAccessException | NullPointerException e) {
+		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);

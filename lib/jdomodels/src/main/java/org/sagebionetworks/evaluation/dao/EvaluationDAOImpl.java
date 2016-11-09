@@ -208,11 +208,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public long getCountByContentSource(String id) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
-		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_CONTENT_SOURCE, params, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(COUNT_BY_CONTENT_SOURCE, params, Long.class);
 	}
 
 	@Override
@@ -480,10 +476,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
 		}
-		Long count = namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
 	}
 }

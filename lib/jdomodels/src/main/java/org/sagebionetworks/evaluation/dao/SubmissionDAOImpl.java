@@ -325,11 +325,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCountByUser(String userId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(USER_ID, userId);
-		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_USER_SQL, parameters, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(COUNT_BY_USER_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -353,11 +349,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
-		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_SQL, parameters, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -383,11 +375,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
 		parameters.put(USER_ID, userId);
-		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_USER_SQL, parameters, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_USER_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -413,11 +401,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
 		parameters.put(STATUS, status.ordinal());
-		Long count = namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_STATUS_SQL, parameters, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_STATUS_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -456,11 +440,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
 		String sqlString = sql.toString();
-		Long count = namedJdbcTemplate.queryForObject(sqlString, param, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(sqlString, param, Long.class);
 	}
 
 	private static void addStartEndAndStatusClauses(StringBuilder sql, MapSqlParameterSource param,
@@ -524,11 +504,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
 		param.addValue(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID, contributorId);
 		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
-		Long count = namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
 	}
 
 	/*

@@ -254,11 +254,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		Long count = namedTemplate.queryForObject(SELECT_FOR_PARTICIPANT_COUNT, param, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedTemplate.queryForObject(SELECT_FOR_PARTICIPANT_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -286,11 +282,8 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
 		param.addValue(COL_RESOURCE_ACCESS_GROUP_ID, requesterPrincipals);
-		Long count = namedTemplate.queryForObject(SELECT_FOR_PARTICIPANT_AND_REQUESTER_COUNT, param, Long.class);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return namedTemplate.queryForObject(SELECT_FOR_PARTICIPANT_AND_REQUESTER_COUNT, param, Long.class);
+		
 	}
 
 	@WriteTransaction
