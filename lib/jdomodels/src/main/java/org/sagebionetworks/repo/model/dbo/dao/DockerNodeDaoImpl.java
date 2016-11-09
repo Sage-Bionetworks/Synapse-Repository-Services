@@ -46,7 +46,7 @@ public class DockerNodeDaoImpl implements DockerNodeDao {
 		try {
 			long nodeId = jdbcTemplate.queryForObject(REPOSITORY_ID_SQL, Long.class, repositoryName);
 			return KeyFactory.keyToString(nodeId);
-		} catch (EmptyResultDataAccessException | NullPointerException e) {
+		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
 	}

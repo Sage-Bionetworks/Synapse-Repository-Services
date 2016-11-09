@@ -137,11 +137,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 	public long countDockerCommits(String entityId) {
 		ValidateArgument.required(entityId, "entityId");
 		long nodeIdAsLong = KeyFactory.stringToKey(entityId);
-		Long count = jdbcTemplate.queryForObject(LATEST_COMMIT_COUNT_SQL, Long.class, nodeIdAsLong);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return jdbcTemplate.queryForObject(LATEST_COMMIT_COUNT_SQL, Long.class, nodeIdAsLong);
 	}
 
 	@Override

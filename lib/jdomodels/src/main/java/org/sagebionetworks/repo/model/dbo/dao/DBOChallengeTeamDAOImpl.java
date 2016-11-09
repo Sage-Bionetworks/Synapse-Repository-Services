@@ -212,18 +212,14 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	
 	@Override
 	public boolean isTeamRegistered(long challengeId, long teamId) throws DatastoreException {
-		Long count = jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_AND_TEAM, Long.class, challengeId, teamId);
-		return count != null && count > 0;
+		long count = jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_AND_TEAM, Long.class, challengeId, teamId);
+		return count>0;
 	}
 
 	@Override
 	public long listForChallengeCount(long challengeId)
 			throws NotFoundException, DatastoreException {
-		Long count = jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return jdbcTemplate.queryForObject(SELECT_FOR_CHALLENGE_COUNT, Long.class, challengeId);
 	}
 
 	@WriteTransaction
@@ -246,11 +242,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	@Override
 	public long listRegistratableCount(long challengeId, long userId)
 			throws NotFoundException, DatastoreException {
-		Long count = jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
+		return jdbcTemplate.queryForObject(SELECT_REGISTRATABLE_TEAMS_COUNT, Long.class, userId, challengeId);
 	}
 
 	/*
@@ -264,12 +256,9 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	}
 
 	@Override
-	public long listSubmissionTeamsCount(long challengeId, long submitterPrincipalId) {
-		Long count = jdbcTemplate.queryForObject(SELECT_CAN_SUBMIT_COUNT, Long.class, 
+	public long listSubmissionTeamsCount(long challengeId,
+			long submitterPrincipalId) {
+		return jdbcTemplate.queryForObject(SELECT_CAN_SUBMIT_COUNT, Long.class, 
 				challengeId, submitterPrincipalId);
-		if (count != null) {
-			return count;
-		}
-		return 0L;
 	}
 }

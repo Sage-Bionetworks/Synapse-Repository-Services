@@ -23,8 +23,8 @@ public class BroadcastMessageDaoImpl implements BroadcastMessageDao {
 
 	@Override
 	public boolean wasBroadcast(Long changeNumber) {
-		Long count = jdbcTemplate.queryForObject(SQL_COUNT_CHANGE_NUMBER, Long.class, changeNumber);
-		return count != null && count == 1;
+		long count = jdbcTemplate.queryForObject(SQL_COUNT_CHANGE_NUMBER, Long.class, changeNumber);
+		return count == 1;
 	}
 
 	@WriteTransactionReadCommitted
