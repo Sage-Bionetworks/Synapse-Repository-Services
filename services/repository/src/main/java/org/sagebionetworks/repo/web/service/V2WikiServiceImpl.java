@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
+import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -144,6 +145,13 @@ public class V2WikiServiceImpl implements V2WikiService {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getMarkdownFileHandleId(user, wikiPageKey, version);
 		return fileHandleManager.getRedirectURLForFileHandle(id);
+	}
+
+	@Override
+	public V2WikiPage deleteWikiVersions(Long userId, String ownerId,
+			ObjectType ownerType, String wikiId, List<String> versionsToDelete) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.deleteWikiVersions(user, ownerId, ownerType, wikiId, versionsToDelete);
 	}
 
 }

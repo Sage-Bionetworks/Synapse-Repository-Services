@@ -429,4 +429,44 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return key;
 	}
 
+	@WriteTransaction
+	@Override
+	public V2WikiPage deleteWikiVersions(UserInfo user, String ownerId, ObjectType ownerType, String wikiId,
+			List<String> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
+
+		if (user == null) throw new IllegalArgumentException("User cannot be null");
+		if (ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");
+		if (ownerType == null) throw new IllegalArgumentException("OwnerType cannot be null");
+		if (wikiId == null) throw new IllegalArgumentException("WikiId cannot be null");
+		if (versionsToDelete == null) throw new IllegalArgumentException("VersionsToDelete cannot be null");
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
+		validateUpdateAccess(user, key);
+
+		V2WikiPage wiki = wikiPageDao.get(key, null);
+		
+		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, Long.MAX_VALUE, 0L);
+		String currentVersion = history.get(0).getVersion();
+		if (versionsToDelete.contains(currentVersion)) {
+			throw new IllegalArgumentException("Cannot delete current version of a Wiki.");
+		}
+		List<String> versions = versionsFromHistory(history);
+		if (versionsToDelete.containsAll(versions)) {
+			throw new IllegalArgumentException("Cannot delete all the versions of a Wiki.");
+		}
+		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
+		
+		// Update the page with these changes
+		return updateWikiPage(user, ownerId, ownerType, wiki);
+
+	}
+	
+	private List<String> versionsFromHistory(List<V2WikiHistorySnapshot> history) {
+		List<String> versions = new LinkedList<String>();
+		for (V2WikiHistorySnapshot s: history) {
+			versions.add(s.getVersion());
+		}
+		return versions;
+	}
+
 }

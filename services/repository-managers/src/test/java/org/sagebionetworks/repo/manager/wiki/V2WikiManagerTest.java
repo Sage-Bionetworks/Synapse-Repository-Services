@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.wiki;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -22,7 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -1084,4 +1085,110 @@ public class V2WikiManagerTest {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "345");
 		wikiManager.getWikiHistory(new UserInfo(true), "123", ObjectType.ENTITY, key, new Long(10), null);
 	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsNullUser() throws Exception {
+		wikiManager.deleteWikiVersions(null, "123", ObjectType.ENTITY, "456", new LinkedList<String>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsNullOwnerId() throws Exception {
+		wikiManager.deleteWikiVersions(user, null, ObjectType.ENTITY, "456", new LinkedList<String>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsNullObjectType() throws Exception {
+		wikiManager.deleteWikiVersions(user, "123", null, "456", new LinkedList<String>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsNullWikiId() throws Exception {
+		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, null, new LinkedList<String>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsNullVersionsToDelete() throws Exception {
+		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, "456", null);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testDeleteWikiVersionsUnauthorized() throws Exception {
+		// setup deny
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, "456", new LinkedList<String>());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsCurrentVersion() throws Exception {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// Create 3 versions in history
+		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
+		for (int v = 2; v >= 0; v--) {
+			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
+			s.setVersion(String.valueOf(v));
+			expectedHistory.add(s);
+		}
+		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
+		List<String> versionsToDelete = Arrays.asList("2");
+		wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteWikiVersionsAllVersions() throws Exception {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// Create 3 versions in history
+		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
+		for (int v = 2; v >= 0; v--) {
+			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
+			s.setVersion(String.valueOf(v));
+			expectedHistory.add(s);
+		}
+		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
+		List<String> versionsToDelete = Arrays.asList("0", "1", "2");
+		wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+	}
+
+	@Test
+	public void testDeleteWikiVersions() throws Exception {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// Create 3 versions in history
+		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
+		for (int v = 2; v >= 0; v--) {
+			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
+			s.setVersion(String.valueOf(v));
+			expectedHistory.add(s);
+		}
+		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
+		// Setup wikiPage
+		V2WikiPage expectedWiki = new V2WikiPage();
+		expectedWiki.setId("345");
+		expectedWiki.setEtag("etag");
+		expectedWiki.setAttachmentFileHandleIds(null);
+		// Markdown
+		S3FileHandle markdownOne = new S3FileHandle();
+		markdownOne.setId("1");
+		markdownOne.setCreatedOn(new Date(1));
+		markdownOne.setFileName("one");
+		markdownOne.setCreatedBy("007");
+		when(mockFileDao.get(markdownOne.getId())).thenReturn(markdownOne);
+		expectedWiki.setMarkdownFileHandleId(markdownOne.getId());
+		when(mockWikiDao.get(key, null)).thenReturn(expectedWiki);
+		// UpdateWiki logic
+		when(mockWikiDao.lockForUpdate(expectedWiki.getId())).thenReturn(expectedWiki.getEtag());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdownOne.getId(), markdownOne.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		V2WikiPage expectedUpdatedWiki = new V2WikiPage();
+		expectedUpdatedWiki.setAttachmentFileHandleIds(expectedWiki.getAttachmentFileHandleIds());
+		expectedUpdatedWiki.setCreatedBy(expectedWiki.getCreatedBy());
+		expectedUpdatedWiki.setEtag("etag2");
+		when(mockWikiDao.updateWikiPage(any(V2WikiPage.class), any(Map.class), anyString(), any(ObjectType.class), any(List.class))).thenReturn(expectedUpdatedWiki);
+		// Call under test
+		
+		List<String> versionsToDelete = Arrays.asList("1");
+		V2WikiPage updatedWiki = wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+		assertNotNull(updatedWiki);
+		
+		verify(mockWikiDao).deleteWikiVersions(eq(key), eq(versionsToDelete));
+		verify(mockWikiDao).updateWikiPage(any(V2WikiPage.class), any(Map.class), anyString(), any(ObjectType.class), any(List.class));
+	}
+
 }

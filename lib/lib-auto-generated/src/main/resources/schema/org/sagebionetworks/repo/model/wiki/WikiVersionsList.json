@@ -1,0 +1,12 @@
+{
+	"description": "The list of version ids to delete",
+	"properties": {
+		"versionIds": {
+			"type": "array",
+			"description": "The list of wiki markdown version ids to delete.",
+            "items":{
+                "type":"string"
+            }
+		}
+	}
+}
