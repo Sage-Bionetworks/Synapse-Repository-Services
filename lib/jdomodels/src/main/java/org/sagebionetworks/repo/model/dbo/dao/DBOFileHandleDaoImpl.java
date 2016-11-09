@@ -233,13 +233,13 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
 		try{
 			// Lookup the creator.
-			Long previewId = jdbcTemplate.queryForObject(SQL_SELECT_PREVIEW_ID, Long.class, fileHandleId);
-			if(previewId != null && previewId > 0){
+			long previewId = jdbcTemplate.queryForObject(SQL_SELECT_PREVIEW_ID, Long.class, fileHandleId);
+			if(previewId > 0){
 				return Long.toString(previewId);
 			}else{
 				throw new NotFoundException("A preview does not exist for: "+fileHandleId);
 			}
-		}catch(EmptyResultDataAccessException e){
+		}catch(EmptyResultDataAccessException | NullPointerException e){
 			// This occurs when the file handle does not exist
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
