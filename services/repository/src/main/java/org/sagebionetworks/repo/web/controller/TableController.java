@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -467,8 +468,12 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
+		ValidateArgument.required(request, "AppendableRowSetRequest");
+		request.setEntityId(id);
+		// wrap the job as a transaction
+		TableUpdateTransactionRequest trasnactionRequest = TableModelUtils.wrapInTransactionRequest(request);
 		AsynchronousJobStatus job = serviceProvider
-				.getAsynchronousJobServices().startJob(userId, request);
+				.getAsynchronousJobServices().startJob(userId, trasnactionRequest);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
@@ -502,7 +507,7 @@ public class TableController extends BaseController {
 		AsynchronousJobStatus jobStatus = serviceProvider
 				.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 						asyncToken);
-		return (RowReferenceSetResults) jobStatus.getResponseBody();
+		return TableModelUtils.extractResponseFromTransaction(jobStatus.getResponseBody(), RowReferenceSetResults.class) ;
 	}
 
 	/**
@@ -1109,6 +1114,8 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
+		ValidateArgument.required(uploadRequest, "UploadToTableRequest");
+		uploadRequest.setEntityId(id);
 		// wrap the job as a transaction
 		TableUpdateTransactionRequest request = TableModelUtils.wrapInTransactionRequest(uploadRequest);
 		AsynchronousJobStatus job = serviceProvider

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
@@ -575,8 +577,10 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
 			return containsColumnUpdate(schemaChange.getChanges());
-		}if(change instanceof UploadToTableRequest){
+		}else if(change instanceof UploadToTableRequest){
 			// might switch to true to support uniqueness constraints.
+			return false;
+		}else if(change instanceof AppendableRowSetRequest){
 			return false;
 		}else{
 			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
@@ -619,6 +623,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
 		}else if(change instanceof UploadToTableRequest){
 			// nothing to validate
+		}else if(change instanceof AppendableRowSetRequest){
+			// nothing to validate
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
@@ -660,11 +666,47 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest)change);
 		}else if(change instanceof UploadToTableRequest){
 			return uploadToTable(callback, userInfo, (UploadToTableRequest)change);
+		}else if(change instanceof AppendableRowSetRequest){
+			return appendToTable(callback, userInfo, (AppendableRowSetRequest)change);
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
 	}
 	
+	/**
+	 * Append a rowset to a table from a transaction.
+	 * @param callback
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	TableUpdateResponse appendToTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, AppendableRowSetRequest request) {
+		ValidateArgument.required(request.getToAppend(), "AppendableRowSetRequest.toAppend");
+		try {
+			RowReferenceSet results = null;
+			if(request.getToAppend() instanceof PartialRowSet){
+				PartialRowSet partialRowSet = (PartialRowSet) request.getToAppend();
+				results =  appendPartialRows(userInfo, partialRowSet.getTableId(), partialRowSet, callback);
+			}else if(request.getToAppend() instanceof RowSet){
+				RowSet rowSet = (RowSet)request.getToAppend();
+				results = appendRows(userInfo, rowSet.getTableId(), rowSet, callback);
+			}else{
+				throw new IllegalArgumentException("Unknown RowSet type: "+request.getToAppend().getClass().getName());
+			}
+			RowReferenceSetResults  rrsr = new RowReferenceSetResults();
+			rrsr.setRowReferenceSet(results);
+			return rrsr;
+		} catch (DatastoreException e) {
+			throw new RuntimeException(e);
+		} catch (NotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+
 	/**
 	 * Upload the given file request to 
 	 * @param callback
