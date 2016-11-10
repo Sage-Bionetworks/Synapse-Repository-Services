@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * This is a utility for Data Definition Language (DDL) statements.
@@ -26,7 +26,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	StackConfiguration stackConfiguration;
 	
@@ -42,7 +42,7 @@ public class DDLUtilsImpl implements DDLUtils{
 		log.debug("Schema: "+schema);
 		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
 		log.debug("About to execute: "+sql);
-		List<Map<String, Object>> list = simpleJdbcTemplate.queryForList(sql);
+		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);
 		// If the table does not exist then create it.
 		if(list.size() > 1) throw new RuntimeException("Found more than one table named: "+mapping.getTableName());
 		if(list.size() == 0){
@@ -52,9 +52,9 @@ public class DDLUtilsImpl implements DDLUtils{
 			if(log.isDebugEnabled()){
 				log.debug(tableDDL);
 			}
-			simpleJdbcTemplate.update(tableDDL);
+			jdbcTemplate.update(tableDDL);
 			// Make sure it exists
-			List<Map<String, Object>> second = simpleJdbcTemplate.queryForList(sql);
+			List<Map<String, Object>> second = jdbcTemplate.queryForList(sql);
 			if(second.size() != 1){
 				throw new RuntimeException("Failed to create the table: "+mapping.getTableName()+" using connection: "+url);
 			}
@@ -120,7 +120,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public int dropTable(String tableName) {
 		try{
-			return simpleJdbcTemplate.update("DROP TABLE "+tableName);
+			return jdbcTemplate.update("DROP TABLE "+tableName);
 		}catch (BadSqlGrammarException e){
 			// This means the table does not exist
 			return 0;			

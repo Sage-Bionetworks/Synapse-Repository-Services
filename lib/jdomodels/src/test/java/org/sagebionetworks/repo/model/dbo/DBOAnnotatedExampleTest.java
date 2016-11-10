@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.dbo.DBOAnnotatedExample.ExampleEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -32,8 +31,6 @@ public class DBOAnnotatedExampleTest {
 	
 	@Autowired
 	DBOBasicDao dboBasicDao;
-	@Autowired
-	SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	List<Long> toDelete;
 	

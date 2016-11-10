@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * Implementation of the NodeQueryDao using JDO.
@@ -48,9 +48,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 	
-	// This is better suited for simple JDBC query.
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 
 	/**
@@ -114,10 +113,10 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			return new NodeQueryResults();
 		}
 		// Run the count query
-		long count = this.simpleJdbcTemplate.queryForLong(countQuery.toString(), parameters);
+		long count = this.namedJdbcTemplate.queryForObject(countQuery.toString(), parameters, Long.class);
 		// Now execute the non-count query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
-		List<Map<String, Object>> results = simpleJdbcTemplate.query(fullQuery.toString(), sizeLimitMapper, parameters);
+		List<Map<String, Object>> results = namedJdbcTemplate.query(fullQuery.toString(), parameters, sizeLimitMapper);
 		Long userId = userInfo.getId();
 		// Build the results based on on the select
 		if(log.isDebugEnabled()){
@@ -151,7 +150,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			return 0;
 		}
 		// Run the count query
-		long count = this.simpleJdbcTemplate.queryForLong(countQuery.toString(), parameters);
+		long count = this.namedJdbcTemplate.queryForObject(countQuery.toString(), parameters, Long.class);
 		return count;
 	}
 
@@ -241,26 +240,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		fullQuery.append(" ");
 		fullQuery.append(paging);
 		return true;
-	}
-	
-	/**
-	 * Helper to get the count from various objects
-	 * 
-	 * @param countObject
-	 * @return
-	 */
-	private long extractCount(Object countObject) {
-		if (countObject == null)
-			throw new IllegalArgumentException("Count cannot be null");
-		if (countObject instanceof Long) {
-			return (Long) countObject;
-		} else if (countObject instanceof Integer) {
-			return ((Integer) countObject).intValue();
-		} else {
-			throw new IllegalArgumentException(
-					"Cannot extract count from object: "
-							+ countObject.getClass().getName());
-		}
 	}
 
 	/**
