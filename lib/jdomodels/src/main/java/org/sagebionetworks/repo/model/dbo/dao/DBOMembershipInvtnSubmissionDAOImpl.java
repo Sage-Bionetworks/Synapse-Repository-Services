@@ -253,11 +253,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);
-		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param, Long.class);
-		if (count == null) {
-			throw new NotFoundException();
-		}
-		return count;
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -267,11 +263,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param, Long.class);
-		if (count == null) {
-			throw new NotFoundException();
-		}
-		return count;
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -280,11 +272,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		Long count = namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
-		if (count == null) {
-			throw new NotFoundException();
-		}
-		return count;
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
 	}
 
 	@WriteTransaction
