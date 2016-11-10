@@ -136,7 +136,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			case INTEGER:
 			case STRING:
 				break;
-			//booleans can only be faceted by enumeration
+			//booleans and userids can only be faceted by enumeration
+			case USERID:
 			case BOOLEAN:
 				if(facetType != FacetType.enumeration)
 					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");

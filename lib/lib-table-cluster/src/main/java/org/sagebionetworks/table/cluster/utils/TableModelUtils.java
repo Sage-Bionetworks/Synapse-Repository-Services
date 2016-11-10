@@ -353,6 +353,7 @@ public class TableModelUtils {
 						+ "'");
 			}
 			return Boolean.toString(boolValue);
+		case USERID:
 		case INTEGER:
 		case FILEHANDLEID:
 			long lv = Long.parseLong(value);
@@ -982,6 +983,8 @@ public class TableModelUtils {
 			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
 		case ENTITYID:
 			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
+		case USERID:
+			return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}

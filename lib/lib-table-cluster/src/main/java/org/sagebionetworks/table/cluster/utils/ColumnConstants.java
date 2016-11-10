@@ -56,6 +56,11 @@ public class ColumnConstants {
 	 */
 	public static final int MAX_ENTITY_ID_BYTES_AS_STRING = 3 + MAX_INTEGER_BYTES_AS_STRING + 1 + MAX_INTEGER_BYTES_AS_STRING;
 	
+	/**
+	 * The maximum number of bytes of a User ID when represented as a string (same as long).
+	 */
+	public static final int MAX_USER_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
+	
 	
 	/**
 	 * While the database will not count the bytes of a blob against the total size of 
