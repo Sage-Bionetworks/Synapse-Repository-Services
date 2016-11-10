@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -29,9 +28,6 @@ public class DBOGroupMembersDAOImplDeadlockTest {
     
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
     
     private static final Integer NUMBER_O_MONKEYS = 10;
     private static final Integer NUMBER_O_BARRELS = 5;
