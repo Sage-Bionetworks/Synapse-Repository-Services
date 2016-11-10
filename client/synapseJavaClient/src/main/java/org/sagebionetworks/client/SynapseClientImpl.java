@@ -1903,6 +1903,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
+			throws SynapseException {
+		String uri = ENTITY + "/" + entityId + "/" + ACCESS_APPROVAL;
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<AccessApproval> results =
+				new PaginatedResults<AccessApproval>(AccessApproval.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
 	public void deleteAccessApproval(Long approvalId)
 			throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + approvalId, getUserAgent());

@@ -116,7 +116,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
 		} else {
-			subjectIds.add(subjectId.getId());			
+			subjectIds.add(subjectId.getId());
 		}
 		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
