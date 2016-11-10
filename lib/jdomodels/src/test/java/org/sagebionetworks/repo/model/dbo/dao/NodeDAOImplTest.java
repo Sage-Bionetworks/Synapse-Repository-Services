@@ -2915,9 +2915,12 @@ public class NodeDAOImplTest {
 		Node file2 = nodeDao.getNode(""+file2Id);
 		assertEquals(null, file2.getParentId());
 		assertEquals(null, file2.getProjectId());
-		benefactor = nodeInheritanceDAO.getBenefactor(""+file2Id);
-		// should be its own benefactor
-		assertEquals("syn0", benefactor);
+		try {
+			benefactor = nodeInheritanceDAO.getBenefactor(""+file2Id);
+			fail("should throw NotFoundException");
+		} catch (NotFoundException e) {
+			// expected
+		}
 	}
 	
 	@Test

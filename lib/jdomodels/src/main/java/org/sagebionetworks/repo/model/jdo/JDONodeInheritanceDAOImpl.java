@@ -67,8 +67,9 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
-			return KeyFactory.keyToString(jdbcTemplate.queryForObject(SELECT_BENEFACTOR, Long.class, KeyFactory.stringToKey(beneficiaryId)));
-		} catch (EmptyResultDataAccessException e) {
+			long benefactorId = jdbcTemplate.queryForObject(SELECT_BENEFACTOR, Long.class, KeyFactory.stringToKey(beneficiaryId));
+			return KeyFactory.keyToString(benefactorId);
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			throw new NotFoundException("Entity id: "+beneficiaryId+" not found");
 		}
 	}

@@ -48,7 +48,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		// Must lock before looking up the benefactor of each.
 		nodeDao.lockNodes(Lists.newArrayList(nodeId,parentNodeId));
 		// First determine who this node is inheriting from
-		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);	
+		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
 		if (skipBenefactor && oldBenefactorId.equals(nodeId)) {
 			return;
 		}
