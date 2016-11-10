@@ -7,27 +7,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.util.ValidateArgument;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
@@ -38,7 +34,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -60,7 +56,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException {
 		Long id = KeyFactory.stringToKey(benefactorId);
-		List<String> list = simpleJdbcTemplate.query(SELECT_BENEFICIARIES, new RowMapper<String>(){
+		List<String> list = jdbcTemplate.query(SELECT_BENEFICIARIES, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
@@ -71,7 +67,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
-			return KeyFactory.keyToString(simpleJdbcTemplate.queryForLong(SELECT_BENEFACTOR, KeyFactory.stringToKey(beneficiaryId)));
+			return KeyFactory.keyToString(jdbcTemplate.queryForObject(SELECT_BENEFACTOR, Long.class, KeyFactory.stringToKey(beneficiaryId)));
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Entity id: "+beneficiaryId+" not found");
 		}

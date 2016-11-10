@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	
@@ -30,10 +30,9 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_STACK_STATUS_ID+" = "+DBOStackStatus.STATUS_ID;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;	
-	// This is better suited for simple JDBC query.
+	DBOBasicDao dboBasicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate namedJdbcTemplate;
 
 	/**
 	 * This should always occur in its own transaction.
@@ -89,12 +88,12 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			}
 		};
 		// Get the data
-		return simpleJdbcTemplate.queryForObject(SQL_GET_ALL_STATUS, mapper);
+		return namedJdbcTemplate.queryForObject(SQL_GET_ALL_STATUS, mapper);
 	}
 
 	@Override
 	public StatusEnum getCurrentStatus() {
-		String statusString = simpleJdbcTemplate.queryForObject(SQL_GET_STATUS, String.class);
+		String statusString = namedJdbcTemplate.queryForObject(SQL_GET_STATUS, String.class);
 		return StatusEnum.valueOf(statusString);
 	}
 
