@@ -210,4 +210,10 @@ public interface V2WikiPageDao {
 	 * @param versionsToDelete
 	 */
 	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete);
+	
+	/**
+	 * Update the Etag of a Wiki page
+	 * @param key
+	 */
+	public void updateWikiEtag(WikiPageKey key, String etag);
 }
