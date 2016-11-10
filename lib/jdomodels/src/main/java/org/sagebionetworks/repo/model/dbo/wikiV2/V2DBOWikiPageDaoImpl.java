@@ -132,7 +132,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			"DELETE FROM " + V2_TABLE_WIKI_MARKDOWN +
 				" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId AND " +
 				V2_COL_WIKI_MARKDOWN_VERSION + " IN (:versions)";
-	
+	private static final String SQL_UPDATE_WIKI_ETAG = 
+			"UPDATE " + V2_TABLE_WIKI_PAGE + " SET " + V2_COL_WIKI_ETAG + " = ? " +
+			"WHERE " + V2_COL_WIKI_ID + " = ?";
 
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
@@ -799,6 +801,20 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} catch (NotFoundException e) {
 			// Nothing to do if none found
 		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateWikiEtag(WikiPageKey key, String etag) {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null.");
+		}
+		if (etag == null) {
+			throw new IllegalArgumentException("Etag cannot be null.");
+		}
+		String wikiId = key.getWikiPageId();
+		int ra = jdbcTemplate.update(SQL_UPDATE_WIKI_ETAG, etag, wikiId);
+		return;
 	}
 	
 }

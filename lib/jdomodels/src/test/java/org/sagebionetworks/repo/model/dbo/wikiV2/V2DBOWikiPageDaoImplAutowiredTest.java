@@ -902,6 +902,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
+		
 		assertEquals(2, wikiPageDao.getWikiHistory(key, 10L, 0L).size());
 		
 		List<String> versionsToDelete = new LinkedList<String>();
@@ -1044,6 +1045,47 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 			// Expected
 		}
 		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testUpdateWikiEtagNullKey() throws Exception {
+		wikiPageDao.updateWikiEtag(null, "etag");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testUpdateWikiEtagNullEtag() throws Exception {
+		wikiPageDao.updateWikiEtag(new WikiPageKey(), null);
+	}
+	
+	@Test
+	public void testUpdateWikiEtag() throws Exception {
+		// Create a new wiki page
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> fileIds = new ArrayList<String>();
+		
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, fileIds);
+		assertNotNull(clone);
+		String etag1 = clone.getEtag();
+		assertNotNull(etag1);
+		
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+		
+		// Call under test
+		wikiPageDao.updateWikiEtag(key, "etag2");
+		
+		V2WikiPage clone2 = wikiPageDao.get(key, null);
+		assertNotNull(clone2);
+		String etag2 = clone2.getEtag();
+		assertNotNull(etag2);
+		assertFalse(etag1.equals(etag2));
 	}
 	
 	// Just create versions with modified page title
