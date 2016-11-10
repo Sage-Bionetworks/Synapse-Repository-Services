@@ -12,7 +12,9 @@ import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.ids.IdGenerator;
@@ -25,16 +27,20 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DBOUserGroupDAOImplUnitTest {
 	
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
 	private IdGenerator mockIdGenerator;
+	@Mock
 	private DBOBasicDao mockBasicDAO;
-	private SimpleJdbcTemplate mockSimpleJdbcTemplate;
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	private DBOUserGroupDAOImpl userGroupDAO;
 	private UserGroup ug;
 	private Long id = 1L;
@@ -42,15 +48,12 @@ public class DBOUserGroupDAOImplUnitTest {
 
 	@Before
 	public void setup() {
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		mockIdGenerator = Mockito.mock(IdGenerator.class);
-		mockBasicDAO = Mockito.mock(DBOBasicDao.class);
-		mockSimpleJdbcTemplate = Mockito.mock(SimpleJdbcTemplate.class);
+		MockitoAnnotations.initMocks(this);
 		userGroupDAO = new DBOUserGroupDAOImpl();
 		ReflectionTestUtils.setField(userGroupDAO, "basicDao", mockBasicDAO);
 		ReflectionTestUtils.setField(userGroupDAO, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(userGroupDAO, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(userGroupDAO, "simpleJdbcTemplate", mockSimpleJdbcTemplate);
+		ReflectionTestUtils.setField(userGroupDAO, "namedJdbcTemplate", mockNamedJdbcTemplate);
 		
 		ug = new UserGroup();
 		ug.setCreationDate(new Date());
@@ -68,7 +71,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		dbo.setId(Long.parseLong(ug.getId()));
 		dbo.setEtag(ug.getEtag());
 		UserGroupUtils.copyDtoToDbo(ug, dbo);
-		when(mockSimpleJdbcTemplate.queryForObject(anyString(), any(RowMapper.class), any(SqlParameterSource.class))).thenReturn(dbo);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
 		when(mockBasicDAO.update(any(DatabaseObject.class))).thenReturn(true);
 	}
 	
