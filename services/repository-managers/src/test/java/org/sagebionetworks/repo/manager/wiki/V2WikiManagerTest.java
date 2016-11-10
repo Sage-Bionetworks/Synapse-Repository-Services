@@ -1173,22 +1173,20 @@ public class V2WikiManagerTest {
 		when(mockFileDao.get(markdownOne.getId())).thenReturn(markdownOne);
 		expectedWiki.setMarkdownFileHandleId(markdownOne.getId());
 		when(mockWikiDao.get(key, null)).thenReturn(expectedWiki);
+
 		// UpdateWiki logic
 		when(mockWikiDao.lockForUpdate(expectedWiki.getId())).thenReturn(expectedWiki.getEtag());
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdownOne.getId(), markdownOne.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		V2WikiPage expectedUpdatedWiki = new V2WikiPage();
-		expectedUpdatedWiki.setAttachmentFileHandleIds(expectedWiki.getAttachmentFileHandleIds());
-		expectedUpdatedWiki.setCreatedBy(expectedWiki.getCreatedBy());
-		expectedUpdatedWiki.setEtag("etag2");
-		when(mockWikiDao.updateWikiPage(any(V2WikiPage.class), any(Map.class), anyString(), any(ObjectType.class), any(List.class))).thenReturn(expectedUpdatedWiki);
+
 		// Call under test
-		
 		List<String> versionsToDelete = Arrays.asList("1");
 		V2WikiPage updatedWiki = wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
 		assertNotNull(updatedWiki);
 		
+		ArgumentCaptor<String> etagCaptor = ArgumentCaptor.forClass(String.class);
 		verify(mockWikiDao).deleteWikiVersions(eq(key), eq(versionsToDelete));
-		verify(mockWikiDao).updateWikiPage(any(V2WikiPage.class), any(Map.class), anyString(), any(ObjectType.class), any(List.class));
+		verify(mockWikiDao).updateWikiEtag(eq(key), etagCaptor.capture());
+		assertFalse("etag".equals(etagCaptor.getValue()));
 	}
 
 }

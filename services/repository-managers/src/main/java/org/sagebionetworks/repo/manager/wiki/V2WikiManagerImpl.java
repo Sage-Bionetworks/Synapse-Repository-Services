@@ -443,6 +443,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
 		validateUpdateAccess(user, key);
 
+		String etag = wikiPageDao.lockForUpdate(wikiId);
+		
 		V2WikiPage wiki = wikiPageDao.get(key, null);
 		
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, Long.MAX_VALUE, 0L);
@@ -456,8 +458,11 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		}
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 		
-		// Update the page with these changes
-		return updateWikiPage(user, ownerId, ownerType, wiki);
+		// Update the etag of the page
+		String newEtag = UUID.randomUUID().toString();
+		wikiPageDao.updateWikiEtag(key, newEtag);
+		
+		return wikiPageDao.get(key, null);
 
 	}
 	
