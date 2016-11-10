@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
+import org.sagebionetworks.table.cluster.utils.CSVUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 

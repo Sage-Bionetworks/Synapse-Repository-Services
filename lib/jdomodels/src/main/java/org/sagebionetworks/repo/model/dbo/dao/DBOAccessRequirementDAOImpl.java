@@ -45,10 +45,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-
 
 /**
  * @author brucehoff
@@ -57,13 +55,13 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
-	private DBOBasicDao basicDao;	
+	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String SELECT_ALL_IDS_SQL = 
 		"SELECT "+SqlConstants.COL_ACCESS_REQUIREMENT_ID+" FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT;
@@ -135,7 +133,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
-		List<Long> arIds = simpleJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, new RowMapper<Long>(){
+		List<Long> arIds = namedJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, param, new RowMapper<Long>(){
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
@@ -145,7 +143,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					return null; 
 				}
 			}
-		}, param);
+		});
 		// now jus strip out the nulls and return the list
 		List<Long> result = new ArrayList<Long>();
 		for (Long arId : arIds) if (arId!=null) result.add(arId);
@@ -216,7 +214,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Override
 	public List<String> getIds() {
-		return simpleJdbcTemplate.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
+		return namedJdbcTemplate.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(SqlConstants.COL_ACCESS_REQUIREMENT_ID);
@@ -229,7 +227,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
-		List<DBOSubjectAccessRequirement> nars = simpleJdbcTemplate.query(SELECT_FOR_SAR_SQL, subjectAccessRequirementRowMapper, param);
+		List<DBOSubjectAccessRequirement> nars = namedJdbcTemplate.query(SELECT_FOR_SAR_SQL, param, subjectAccessRequirementRowMapper);
 		for (DBOSubjectAccessRequirement nar: nars) {
 			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 			subjectId.setType(RestrictableObjectType.valueOf(nar.getSubjectType()));
@@ -260,7 +258,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
-		List<DBOAccessRequirement> dbos = simpleJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL, accessRequirementRowMapper, param);
+		List<DBOAccessRequirement> dbos = namedJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL, param, accessRequirementRowMapper);
 		for (DBOAccessRequirement dbo : dbos) {
 			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
 			dtos.add(dto);
@@ -276,7 +274,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, dto.getId());
 		List<DBOAccessRequirement> ars = null;
 		try{
-			ars = simpleJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessRequirement>() {
+			ars = namedJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, param, new RowMapper<DBOAccessRequirement>() {
 				@Override
 				public DBOAccessRequirement mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
@@ -287,7 +285,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					return ar;
 				}
 				
-			}, param);
+			});
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -320,7 +318,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			// delete the existing subject-access-requirement records...
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
-			simpleJdbcTemplate.update(DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL, param);
+			namedJdbcTemplate.update(DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL, param);
 		}
 		// ... now populate with the updated values
 		populateSubjectAccessRequirement(acessRequirementId, subjectIds);

@@ -23,6 +23,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,6 +41,10 @@ import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -348,6 +353,7 @@ public class TableModelUtils {
 						+ "'");
 			}
 			return Boolean.toString(boolValue);
+		case USERID:
 		case INTEGER:
 		case FILEHANDLEID:
 			long lv = Long.parseLong(value);
@@ -977,6 +983,8 @@ public class TableModelUtils {
 			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
 		case ENTITYID:
 			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
+		case USERID:
+			return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
@@ -1483,5 +1491,39 @@ public class TableModelUtils {
 		return results;
 	}
 	
+	/**
+	 * Wrap a TableUpdateRequest in a transaction.
+	 * 
+	 * @param toWrap
+	 * @return
+	 */
+	public static TableUpdateTransactionRequest wrapInTransactionRequest(TableUpdateRequest toWrap){
+		ValidateArgument.required(toWrap, "TableUpdateRequest");
+		ValidateArgument.required(toWrap.getEntityId(), "TableUpdateRequest.entityId");
+		TableUpdateTransactionRequest result = new TableUpdateTransactionRequest();
+		result.setEntityId(toWrap.getEntityId());
+		result.setChanges(new LinkedList<TableUpdateRequest>());
+		result.getChanges().add(toWrap);
+		return result;
+	}
+	
+	/**
+	 * Extract a single TableUpdateResponse from a TableUpdateTransactionResponse;
+	 * @param transactionResponse
+	 * @param clazz
+	 * @return
+	 */
+	public static <T extends TableUpdateResponse> T extractResponseFromTransaction(AsynchronousResponseBody responseBody, Class<? extends T> clazz){
+		ValidateArgument.required(responseBody, "AsynchronousResponseBody");
+		ValidateArgument.required(clazz, "clazz");
+		ValidateArgument.requirement(responseBody instanceof TableUpdateTransactionResponse, "TableUpdateTransactionResponse");
+		TableUpdateTransactionResponse transactionResponse = (TableUpdateTransactionResponse) responseBody;
+		ValidateArgument.required(transactionResponse.getResults(), "TableUpdateTransactionResponse.results");
+		ValidateArgument.requirement(transactionResponse.getResults().size() == 1, "Expected one response in TableUpdateTransactionResponse.results");
+		TableUpdateResponse singleResponse = transactionResponse.getResults().get(0);
+		ValidateArgument.required(singleResponse, "TableUpdateTransactionResponse.results.get(0)");
+		ValidateArgument.requirement(clazz.isInstance(singleResponse), "Expected response to be of type "+clazz.getName());
+		return (T)singleResponse;
+	}
 
 }

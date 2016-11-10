@@ -45,6 +45,9 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -207,19 +210,21 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
+		body.setEntityId(tableId);
 		CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor();
 		csvTableDescriptor.setIsFirstLineHeader(useCSVHeader);
 		body.setCsvTableDescriptor(csvTableDescriptor);
 		if (!useCSVHeader) {
 			body.setColumnIds(Lists.newArrayList(schema.get(1).getId(), schema.get(0).getId()));
 		}
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 		assertNotNull(status);
-		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof UploadToTableResult);
-		UploadToTableResult response = (UploadToTableResult) status.getResponseBody();
+		UploadToTableResult response = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), UploadToTableResult.class);
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
 		// There should be one change set applied to the table
@@ -299,9 +304,12 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// We are now ready to start the job
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
+		body.setEntityId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		System.out.println("Inserting");
-		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 		// download the csv
@@ -356,9 +364,11 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// We are now ready to start the job
 		body = new UploadToTableRequest();
 		body.setTableId(tableId);
+		body.setEntityId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		System.out.println("Appending");
-		status = asynchJobStatusManager.startJob(adminUserInfo, body);
+		txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
 		// Wait for the job to complete.
 		status = waitForStatus(adminUserInfo, status);
 

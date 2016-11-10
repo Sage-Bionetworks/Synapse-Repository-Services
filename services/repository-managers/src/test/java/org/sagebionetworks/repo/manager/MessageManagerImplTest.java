@@ -263,12 +263,12 @@ public class MessageManagerImplTest {
 		testTeam = teamManager.create(testUser, testTeam);
 		final String testTeamId = testTeam.getId();
 		
-		// we don't want the public to be able to send messages to the team
+		// we don't want the authenticated users to be able to send messages to the team
 		AccessControlList acl = teamManager.getACL(testUser, testTeamId);
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (!ra.getPrincipalId().equals(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())) {
 				ras.add(ra);
 			}
 		}
@@ -631,7 +631,7 @@ public class MessageManagerImplTest {
 	
 	@Test
 	public void testTrustedUserCanSendToAnyTeam() throws Exception {
-		// can't send a message to a team you're not in...
+		// Cannot send a message to a team you're not in...
 		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
 					new HashSet<String>() {{add(testTeam.getId());}}, null);
 		cleanup.add(messageToTeam.getId());

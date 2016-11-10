@@ -28,7 +28,8 @@
 				"FILEHANDLEID",
 				"ENTITYID",
 				"LINK",
-				"LARGETEXT"
+				"LARGETEXT",
+				"USERID"
 			]
 		},
         "maximumSize":{

@@ -1,5 +1,9 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +18,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -42,6 +47,8 @@ public class PrincipalObjectRecordWriterTest {
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
 	private GroupMembersDAO mockGroupMembersDao;
+	@Mock
+	private ProgressCallback<Void> mockCallback;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -94,81 +101,89 @@ public class PrincipalObjectRecordWriterTest {
 	public void nonPrincipalChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ACTIVITY, "1", "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
 
 	@Test
 	public void createTeamTest() throws IOException {
 		ug.setIsIndividual(false);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
+		when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileManager, Mockito.never()).getUserProfile(Mockito.anyString());
-		Mockito.verify(mockTeamDAO).get(principalID.toString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockUserGroupDAO).get(principalID);
+		verify(mockUserProfileManager, never()).getUserProfile(anyString());
+		verify(mockTeamDAO).get(principalID.toString());
+		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteTeamTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
+		verify(mockCallback).progressMade(null);
 	}
 
 	@Test
 	public void updateTeamTest() throws IOException {
 		ug.setIsIndividual(false);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
+		when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		when(mockTeamDAO.get(principalID.toString())).thenReturn(team);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileManager, Mockito.never()).getUserProfile(Mockito.anyString());
-		Mockito.verify(mockTeamDAO).get(principalID.toString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockUserGroupDAO).get(principalID);
+		verify(mockUserProfileManager, never()).getUserProfile(anyString());
+		verify(mockTeamDAO).get(principalID.toString());
+		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
 	public void createUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
+		when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		ObjectRecord ugr = ObjectRecordBuilderUtils.buildObjectRecord(ug, timestamp);
 		ObjectRecord upr = ObjectRecordBuilderUtils.buildObjectRecord(up, timestamp);
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileManager).getUserProfile(principalID.toString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(ugr)), Mockito.eq(ugr.getJsonClassName()));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(upr)), Mockito.eq(upr.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockUserGroupDAO).get(principalID);
+		verify(mockUserProfileManager).getUserProfile(principalID.toString());
+		verify(mockTeamDAO, never()).get(anyString());
+		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(ugr)), eq(ugr.getJsonClassName()));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(upr)), eq(upr.getJsonClassName()));
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
 	public void updateUserProfileTest() throws IOException {
 		ug.setIsIndividual(true);
-		Mockito.when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
-		Mockito.when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
+		when(mockUserGroupDAO.get(principalID)).thenReturn(ug);
+		when(mockUserProfileManager.getUserProfile(principalID.toString())).thenReturn(up);
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockUserGroupDAO).get(principalID);
-		Mockito.verify(mockUserProfileManager).getUserProfile(principalID.toString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).get(Mockito.anyString());
-		Mockito.verify(mockTeamDAO, Mockito.never()).getMember(Mockito.anyString(), Mockito.anyString());
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockUserGroupDAO).get(principalID);
+		verify(mockUserProfileManager).getUserProfile(principalID.toString());
+		verify(mockTeamDAO, never()).get(anyString());
+		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteUserProfileTest() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, principalID.toString(), ObjectType.PRINCIPAL, etag, timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
+		verify(mockCallback).progressMade(null);
 	}
 
 	@Test

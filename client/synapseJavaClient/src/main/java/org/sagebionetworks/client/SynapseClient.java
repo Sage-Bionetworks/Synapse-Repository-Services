@@ -575,6 +575,10 @@ public interface SynapseClient extends BaseClient {
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
 
+	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId) throws SynapseException;
+
+	public void deleteAccessApproval(Long approvalId) throws SynapseException;
+
 	public JSONObject getEntity(String uri) throws SynapseException;
 
 	public <T extends JSONEntity> T getEntity(String entityId,

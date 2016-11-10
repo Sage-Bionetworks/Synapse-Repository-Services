@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -52,7 +52,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	/**
 	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
@@ -154,7 +154,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (versionNumber != null) {
 			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
 		}
-		List<DBODoi> dboList = simpleJdbcTemplate.query(sql, rowMapper, paramMap);
+		List<DBODoi> dboList = namedJdbcTemplate.query(sql, paramMap, rowMapper);
 		if (dboList == null || dboList.size() == 0) {
 			throw new NotFoundException("DOI not found for type " + objectType
 					+ ", ID " + objectId + ", Version " + versionNumber);

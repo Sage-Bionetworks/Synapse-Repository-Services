@@ -19,7 +19,8 @@ public enum ColumnTypeInfo {
 	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		null),
 	DOUBLE		(ColumnType.DOUBLE,			MySqlColumnType.DOUBLE,		ValueParsers.DOUBLE_PARSER,		null),
 	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	ValueParsers.BOOLEAN_PARSER,	null),
-	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	ValueParsers.STRING_PARSER,		null);
+	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	ValueParsers.STRING_PARSER,		null),
+	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	ValueParsers.LONG_PARSER,		20L);
 	
 	private ColumnType type;
 	private MySqlColumnType mySqlType;
