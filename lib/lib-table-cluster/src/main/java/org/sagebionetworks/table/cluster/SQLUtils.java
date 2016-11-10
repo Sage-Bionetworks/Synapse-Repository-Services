@@ -1167,12 +1167,10 @@ public class SQLUtils {
 			return AnnotationType.DATE;
 		case DOUBLE:
 			return AnnotationType.DOUBLE;
-		case USERID:
 		case INTEGER:
 			return AnnotationType.LONG;
 		default:
 			return AnnotationType.STRING;
-			//TODO: throw exception instead?
 		}
 	}
 

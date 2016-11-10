@@ -1152,8 +1152,8 @@ public class SQLUtilsTest {
 		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnType(ColumnType.DOUBLE));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.ENTITYID));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.FILEHANDLEID));
-		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.USERID));
-		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER)); //TODO: is this correct??
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.USERID));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LARGETEXT));
 		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LINK));
 	}
