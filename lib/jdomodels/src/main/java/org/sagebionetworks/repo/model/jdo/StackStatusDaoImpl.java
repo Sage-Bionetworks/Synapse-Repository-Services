@@ -32,7 +32,7 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	@Autowired
-	private JdbcTemplate namedJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	/**
 	 * This should always occur in its own transaction.
@@ -88,12 +88,12 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			}
 		};
 		// Get the data
-		return namedJdbcTemplate.queryForObject(SQL_GET_ALL_STATUS, mapper);
+		return jdbcTemplate.queryForObject(SQL_GET_ALL_STATUS, mapper);
 	}
 
 	@Override
 	public StatusEnum getCurrentStatus() {
-		String statusString = namedJdbcTemplate.queryForObject(SQL_GET_STATUS, String.class);
+		String statusString = jdbcTemplate.queryForObject(SQL_GET_STATUS, String.class);
 		return StatusEnum.valueOf(statusString);
 	}
 
