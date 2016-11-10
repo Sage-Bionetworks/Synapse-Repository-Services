@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -25,7 +24,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.verification.VerificationState;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -34,10 +33,6 @@ import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This is a generic dao like DBOBasicDao that provides data migration functions for individual tables.
@@ -278,7 +273,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String maxSql = this.maxSqlMap.get(type);
 		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
 		Long res = jdbcTemplate.queryForObject(maxSql, Long.class);
-		// Consistent with simpleJdbcTemplate
 		if (res == null) {
 			return 0;
 		} else {
@@ -292,7 +286,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String minSql = this.minSqlMap.get(type);
 		if(minSql == null) throw new IllegalArgumentException("Cannot find min SQL for "+type);
 		Long res = jdbcTemplate.queryForObject(minSql, Long.class);
-		// Consistent with simpleJdbcTemplate
 		if (res == null) {
 			return 0;
 		} else {

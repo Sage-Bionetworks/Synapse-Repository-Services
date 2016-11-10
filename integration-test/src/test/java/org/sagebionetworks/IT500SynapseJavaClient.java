@@ -39,6 +39,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -805,6 +806,10 @@ public class IT500SynapseJavaClient {
 		
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		assertNotNull(adminSynapse.getEntityAccessApproval(layer.getId()));
+
+		adminSynapse.deleteAccessApproval(created.getId());
 	}
 
 	@Test
@@ -1503,6 +1508,7 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
+	@Ignore // See PLFM-4131.
 	@Test
 	public void testMembershipInvitationAndAcceptanceViaNotification() throws Exception {
 		// create a Team

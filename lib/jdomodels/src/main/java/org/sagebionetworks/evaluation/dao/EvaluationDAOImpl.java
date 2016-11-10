@@ -45,7 +45,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -58,7 +59,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;
@@ -164,7 +168,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);	
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, rowMapper, params);
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, params, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
@@ -175,7 +179,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, param, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
@@ -189,7 +193,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(STATUS, status.ordinal());
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, rowMapper, param);
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, param, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
@@ -204,9 +208,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public long getCountByContentSource(String id) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_CONTENT_SOURCE, params, Long.class);
 	}
-
 
 	@Override
 	@WriteTransaction
@@ -220,7 +223,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		copyDtoToDbo(dto, dbo);
 		verifyEvaluationDBO(dbo);
 		
-		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
+		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
 		dbo.seteTag(newEtag);
 		
 		// TODO: detect and log NO-OP update
@@ -232,7 +235,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		basicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, param);
 	}
 
 	@Override
@@ -240,7 +243,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME, name);
 		try {
-			Long id = simpleJdbcTemplate.queryForLong(SELECT_BY_NAME_SQL, param);		
+			Long id = namedJdbcTemplate.queryForObject(SELECT_BY_NAME_SQL, param, Long.class);
 			return id.toString();
 		} catch (EmptyResultDataAccessException e) {
 			// name is not in use
@@ -385,7 +388,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private String lockForUpdate(String id) {
 		// Create a Select for update query
-		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
+		return jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
@@ -447,7 +450,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_PAGINATED_SUFFIX);
 		}
 
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql.toString(), rowMapper, param);
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
@@ -473,6 +476,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
 		}
-		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
 	}
 }

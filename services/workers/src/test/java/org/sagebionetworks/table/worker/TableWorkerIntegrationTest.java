@@ -174,7 +174,7 @@ public class TableWorkerIntegrationTest {
 	List<String> headers;
 	private String tableId;
 	
-	ProgressCallback<Long> mockPprogressCallback;
+	ProgressCallback<Void> mockPprogressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
 
 	private List<UserInfo> users;

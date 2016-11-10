@@ -48,7 +48,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
@@ -58,7 +59,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -271,7 +275,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID, submissionIds);
 		// now select * from submission_contributor where submission_id in (...)
 		List<SubmissionContributorDBO> contributorDbos = 
-				simpleJdbcTemplate.query(SELECT_CONTRIBUTORS_FOR_SUBMISSIONS, SUBMISSION_CONTRIBUTOR_ROW_MAPPER, param);
+				namedJdbcTemplate.query(SELECT_CONTRIBUTORS_FOR_SUBMISSIONS, param, SUBMISSION_CONTRIBUTOR_ROW_MAPPER);
 		for (SubmissionContributorDBO dbo : contributorDbos) {
 			Submission sub = submissionMap.get(dbo.getSubmissionId().toString());
 			if (sub==null) throw new IllegalStateException("Unrecognized submission Id "+dbo.getSubmissionId());
@@ -305,8 +309,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
-		param.addValue(USER_ID, userId);		
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_USER_SQL, SUBMISSION_ROW_MAPPER, param);
+		param.addValue(USER_ID, userId);
+		List<SubmissionDBO> dbos = namedJdbcTemplate.query(SELECT_BY_USER_SQL, param, SUBMISSION_ROW_MAPPER);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
@@ -321,7 +325,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCountByUser(String userId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(USER_ID, userId);
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_USER_SQL, parameters);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_USER_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -330,7 +334,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
 		param.addValue(EVAL_ID, evalId);		
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_EVALUATION_SQL, SUBMISSION_ROW_MAPPER, param);
+		List<SubmissionDBO> dbos = namedJdbcTemplate.query(SELECT_BY_EVALUATION_SQL, param, SUBMISSION_ROW_MAPPER);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
@@ -345,7 +349,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVAL_SQL, parameters);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -355,7 +359,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
 		param.addValue(USER_ID, principalId);
 		param.addValue(EVAL_ID, evalId);
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_EVAL_AND_USER_SQL, SUBMISSION_ROW_MAPPER, param);
+		List<SubmissionDBO> dbos = namedJdbcTemplate.query(SELECT_BY_EVAL_AND_USER_SQL, param, SUBMISSION_ROW_MAPPER);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
@@ -371,7 +375,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
 		parameters.put(USER_ID, userId);
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVAL_AND_USER_SQL, parameters);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_USER_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -381,7 +385,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
 		param.addValue(EVAL_ID, evalId);
 		param.addValue(STATUS, status.ordinal());
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_EVAL_AND_STATUS_SQL, SUBMISSION_ROW_MAPPER, param);
+		List<SubmissionDBO> dbos = namedJdbcTemplate.query(SELECT_BY_EVAL_AND_STATUS_SQL, param, SUBMISSION_ROW_MAPPER);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
@@ -397,7 +401,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
 		parameters.put(STATUS, status.ordinal());
-		return simpleJdbcTemplate.queryForLong(COUNT_BY_EVAL_AND_STATUS_SQL, parameters);
+		return namedJdbcTemplate.queryForObject(COUNT_BY_EVAL_AND_STATUS_SQL, parameters, Long.class);
 	}
 
 	@Override
@@ -436,7 +440,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 		addStartEndAndStatusClauses(sql, param,startDateIncl, endDateExcl, statuses);
 		String sqlString = sql.toString();
-		return simpleJdbcTemplate.queryForLong(sqlString, param);
+		return namedJdbcTemplate.queryForObject(sqlString, param, Long.class);
 	}
 
 	private static void addStartEndAndStatusClauses(StringBuilder sql, MapSqlParameterSource param,
@@ -474,7 +478,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		String sqlString = sql.toString();
 		// note: rather than get the result from the returned values of 'query()', we
 		// insert directly into the desired Map data structure, 'result'.
-		simpleJdbcTemplate.query(sqlString, 
+		namedJdbcTemplate.query(sqlString, param,
 				new RowMapper<Void>() {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum)
@@ -485,8 +489,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				return null;
 			}
 
-		}, 
-		param);
+		});
 		return result;
 	}
 
@@ -501,7 +504,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_SUBMISSION_EVAL_ID, evaluationId);
 		param.addValue(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID, contributorId);
 		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
-		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
 	}
 
 	/*
@@ -523,7 +526,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		String sqlString = sql.toString();
 		// note: rather than get the result from the returned values of 'query()', we
 		// insert directly into the desired list data structure, 'result'.
-		simpleJdbcTemplate.query(sqlString, 
+		namedJdbcTemplate.query(sqlString, param,
 				new RowMapper<Void>() {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum)
@@ -534,8 +537,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 				return null;
 			}
 
-		}, 
-		param);
+		});
 		return result;
 	}
 
@@ -553,14 +555,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID, contributorId);
 		sql.append(IS_TEAM_SUBMISSION_CLAUSE);
 		addStartEndAndStatusClauses(sql, param, startDateIncl, endDateExcl, statuses);
-		return simpleJdbcTemplate.queryForLong(sql.toString(), param) > 0;
+		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class) > 0;
 	}
 
 	@Override
 	public String getCreatedBy(String submissionId) {
 		ValidateArgument.required(submissionId, "submissionId");
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_CREATED_BY, String.class, submissionId);
+			return jdbcTemplate.queryForObject(SELECT_CREATED_BY, String.class, submissionId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}

@@ -9,12 +9,14 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
+import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -24,11 +26,15 @@ import com.google.common.collect.Lists;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ObjectRecordQueueAutowireTest {
+
+	private static final String QUEUE_NAME = "OBJECT";
 	
 	@Autowired
 	ObjectRecordDAO objectRecordDAO;
 	@Autowired
 	ObjectRecordQueue objectRecordQueue;
+	@Autowired
+	QueueCleaner queueCleaner;
 	
 	BulkFileDownloadResponse sampleResponse;
 	ObjectRecord sampleRecord;
@@ -48,6 +54,7 @@ public class ObjectRecordQueueAutowireTest {
 		batch = new ObjectRecordBatch(records, type);
 		// start clean
 		objectRecordDAO.deleteAllStackInstanceBatches(type);
+		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 	
 	@Test (timeout=1000*30)

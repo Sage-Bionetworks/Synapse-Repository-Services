@@ -345,6 +345,23 @@ public class TableModelUtilsTest {
 		cm.setDefaultValue("890");
 		assertEquals("890", TableModelUtils.validateRowValue(null, cm, 2, 3));
 	}
+	
+	@Test
+	public void testValidateUserId() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.USERID);
+		assertEquals("123", TableModelUtils.validateRowValue("123", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("true", cm, 1, 3);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,3] was not a valid USERID. For input string: \"true\"", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("890");
+		assertEquals("890", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
 
 	@Test
 	public void testValidateEntityId() {
@@ -938,6 +955,12 @@ public class TableModelUtilsTest {
 		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID, null));
 	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeUserID() throws UnsupportedEncodingException {
+		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.USERID, null));
+	}
 
 	@Test
 	public void testCalculateMaxSizeForTypeEntityId() throws UnsupportedEncodingException {
@@ -1023,7 +1046,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(3414, allBytes);
+		assertEquals(3434, allBytes);
 	}
 
 	@Test
@@ -1286,7 +1309,7 @@ public class TableModelUtilsTest {
 	public void testCreateSchemaMD5HexCM(){
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		String md5Hex = TableModelUtils.createSchemaMD5HexCM(models);
-		assertEquals("e01b96910d0eb4b107ebc34eae2bc44c", md5Hex);
+		assertEquals("e903d3b0a51bee1269d01669434e48ba", md5Hex);
 	}
 	
 	@Test

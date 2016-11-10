@@ -30,8 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -48,7 +47,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String SELECT_FOR_REQUIREMENT_SQL = 
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
@@ -120,7 +119,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();		
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		List<DBOAccessApproval> dbos = simpleJdbcTemplate.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, rowMapper, params);
+		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, params, rowMapper);
 		for (DBOAccessApproval dbo : dbos) {
 			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 			// validate:  The principal ID and accessor ID should each be from the passed in lists
@@ -141,7 +140,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
 		List<DBOAccessApproval> aas = null;
 		try{
-			aas = simpleJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessApproval>(){
+			aas = namedJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, param, new RowMapper<DBOAccessApproval>(){
 				@Override
 				public DBOAccessApproval mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
@@ -151,7 +150,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 					aa.seteTag(rs.getString(COL_ACCESS_APPROVAL_ETAG));
 					return aa;
 				}
-			}, param);
+			});
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -185,7 +184,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
 		MapSqlParameterSource params = new MapSqlParameterSource();		
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
-		List<DBOAccessApproval> dbos = simpleJdbcTemplate.query(SELECT_FOR_REQUIREMENT_SQL, rowMapper, params);
+		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_FOR_REQUIREMENT_SQL, params, rowMapper);
 		for (DBOAccessApproval dbo : dbos) {
 			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 			if (!accessRequirementId.equals(dto.getRequirementId().toString()))

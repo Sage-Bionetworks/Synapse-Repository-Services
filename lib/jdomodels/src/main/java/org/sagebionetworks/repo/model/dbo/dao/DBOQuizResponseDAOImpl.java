@@ -25,8 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
@@ -38,7 +37,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private static final RowMapper<DBOQuizResponse> QUIZ_RESPONSE_ROW_MAPPER = (new DBOQuizResponse()).getTableMapping();
 	
@@ -113,7 +112,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(LIMIT_PARAM_NAME, limit);
 		param.addValue(OFFSET_PARAM_NAME, offset);
-		List<DBOQuizResponse> dbos = simpleJdbcTemplate.query(SELECT_FOR_QUIZ_ID_PAGINATED, QUIZ_RESPONSE_ROW_MAPPER, param);
+		List<DBOQuizResponse> dbos = namedJdbcTemplate.query(SELECT_FOR_QUIZ_ID_PAGINATED, param, QUIZ_RESPONSE_ROW_MAPPER);
 		for (DBOQuizResponse dbo : dbos) {
 			QuizResponse dto = QuizResponseUtils.copyDboToDto(dbo);
 			dtos.add(dto);
@@ -127,7 +126,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
-		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_FOR_QUIZ_ID_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -140,7 +139,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
 		param.addValue(LIMIT_PARAM_NAME, limit);
 		param.addValue(OFFSET_PARAM_NAME, offset);
-		List<DBOQuizResponse> dbos = simpleJdbcTemplate.query(SELECT_FOR_QUIZ_ID_AND_USER_PAGINATED, QUIZ_RESPONSE_ROW_MAPPER, param);
+		List<DBOQuizResponse> dbos = namedJdbcTemplate.query(SELECT_FOR_QUIZ_ID_AND_USER_PAGINATED, param, QUIZ_RESPONSE_ROW_MAPPER);
 		for (DBOQuizResponse dbo : dbos) {
 			QuizResponse dto = QuizResponseUtils.copyDboToDto(dbo);
 			dtos.add(dto);
@@ -153,7 +152,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
-		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_AND_USER_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_FOR_QUIZ_ID_AND_USER_COUNT, param, Long.class);
 	}		
 
 	@Override
@@ -163,7 +162,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
 		try {
-			DBOQuizResponse dbo = simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, QUIZ_RESPONSE_ROW_MAPPER, param);
+			DBOQuizResponse dbo = namedJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, param, QUIZ_RESPONSE_ROW_MAPPER);
 			byte[] prSerizalized = dbo.getPassingRecord();
 			PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
 			passingRecord.setResponseId(dbo.getId());
@@ -183,7 +182,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		try {
-			List<DBOQuizResponse> dbos = simpleJdbcTemplate.query(SELECT_RESPONSES_FOR_USER_AND_QUIZ_PAGINATED, QUIZ_RESPONSE_ROW_MAPPER, param);
+			List<DBOQuizResponse> dbos = namedJdbcTemplate.query(SELECT_RESPONSES_FOR_USER_AND_QUIZ_PAGINATED, param, QUIZ_RESPONSE_ROW_MAPPER);
 			for (DBOQuizResponse dbo : dbos) {
 				byte[] prSerizalized = dbo.getPassingRecord();
 				PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
@@ -202,6 +201,6 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
-		return simpleJdbcTemplate.queryForLong(SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT, param, Long.class);
 	}
 }

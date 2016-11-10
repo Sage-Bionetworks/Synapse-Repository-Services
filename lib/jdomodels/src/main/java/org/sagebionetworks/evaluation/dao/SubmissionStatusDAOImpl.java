@@ -36,7 +36,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
@@ -44,7 +44,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 
@@ -102,7 +102,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		Set<String> idSet = new LinkedHashSet<String>(ids);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idSet);
-		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, SUBSTATUS_ROW_MAPPER, param);
+		List<SubmissionStatusDBO> dbos = namedJdbcTemplate.query(SELECT_BY_IDS, param, SUBSTATUS_ROW_MAPPER);
 		if (dbos.size()<idSet.size()) throw new NotFoundException("Expected submission statuses for "+idSet+
 				" but only found results for "+dbos.size());
 		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
@@ -167,7 +167,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idToEtagMap.keySet());
-		List<IdETagVersion> current = simpleJdbcTemplate.query(SQL_ETAG_FOR_UPDATE_BATCH, new RowMapper<IdETagVersion>() {
+		List<IdETagVersion> current = namedJdbcTemplate.query(SQL_ETAG_FOR_UPDATE_BATCH, param, new RowMapper<IdETagVersion>() {
 			@Override
 			public IdETagVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return new IdETagVersion(
@@ -175,7 +175,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 						rs.getString(COL_SUBSTATUS_ETAG), 
 						rs.getLong(COL_SUBSTATUS_VERSION));
 			}
-		}, param);
+		});
 		// Check the eTags
 		Map<Long,Long> result = new HashMap<Long,Long>();
 		for (IdETagVersion ev : current) {
@@ -208,7 +208,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBMISSION_ID, ids);
 		try {
-			return simpleJdbcTemplate.queryForLong(SELECT_EVALUATION_FOR_IDS, param);
+			return namedJdbcTemplate.queryForObject(SELECT_EVALUATION_FOR_IDS, param, Long.class);
 		} catch (EmptyResultDataAccessException erda) {
 			throw new NotFoundException("Submissions are not found in the system.");
 		} catch (IncorrectResultSizeDataAccessException irsdae) {
