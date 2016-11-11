@@ -23,16 +23,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class MigratableTableDAOImplUnitTest {
 
 	private MigratableTableDAOImpl dao;
-	private JdbcTemplate mockSimpleJdbcTemplate;
+	private JdbcTemplate mockJdbcTemplate;
 	@SuppressWarnings("rawtypes")
 	private List<MigratableDatabaseObject> databaseObjectRegister;
 	
 	@SuppressWarnings("rawtypes")
 	@Before
 	public void before(){
-		mockSimpleJdbcTemplate = Mockito.mock(JdbcTemplate.class);
+		mockJdbcTemplate = Mockito.mock(JdbcTemplate.class);
 		databaseObjectRegister = new ArrayList<MigratableDatabaseObject>();
-		dao = new MigratableTableDAOImpl(mockSimpleJdbcTemplate, databaseObjectRegister);
+		dao = new MigratableTableDAOImpl(mockJdbcTemplate, databaseObjectRegister);
 	}
 	
 	@Test

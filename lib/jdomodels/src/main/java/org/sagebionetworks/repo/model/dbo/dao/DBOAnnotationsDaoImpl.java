@@ -12,12 +12,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,8 +28,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
@@ -49,7 +46,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	private static String SELECT_DATE_ANNOS = String.format(SELECT_FORMAT, TABLE_DATE_ANNOTATIONS);
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	
@@ -57,7 +54,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	public Annotations getAnnotations(Long owner) {
 		final Annotations results = new Annotations();
 		// First select the string annotations
-		simpleJdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -67,7 +64,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the longs
-		simpleJdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -80,7 +77,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the doubles
-		simpleJdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -93,7 +90,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the dates
-		simpleJdbcTemplate.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
+		jdbcTemplate.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -153,7 +150,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	public void deleteAnnotationsByOwnerId(Long ownerId) {
 		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
-		simpleJdbcTemplate.update(SQL_DELETE_ANNOTATIONS_OWNER, ownerId);
+		jdbcTemplate.update(SQL_DELETE_ANNOTATIONS_OWNER, ownerId);
 	}
 
 }

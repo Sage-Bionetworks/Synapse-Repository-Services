@@ -49,7 +49,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
  * @author brucehoff
@@ -67,7 +66,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	private TransactionalMessenger transactionalMessenger;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -163,8 +162,8 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			throw new IllegalArgumentException(
 					"'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);
-		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED,
-				USER_PROFILE_ROW_MAPPER, param);
+		List<DBOUserProfile> dbos = namedJdbcTemplate.query(SELECT_PAGINATED, param,
+				USER_PROFILE_ROW_MAPPER);
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
 			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
@@ -177,7 +176,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		if (ids==null || ids.size()<1) return Collections.emptyList();
 		MapSqlParameterSource param = new MapSqlParameterSource();		
 		param.addValue(COL_USER_PROFILE_ID, ids);
-		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(LIST_FOR_IDS, USER_PROFILE_ROW_MAPPER, param);
+		List<DBOUserProfile> dbos = namedJdbcTemplate.query(LIST_FOR_IDS, param, USER_PROFILE_ROW_MAPPER);
 		Map<String,UserProfile> map = new HashMap<String,UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
 			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
@@ -214,8 +213,8 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
 		try {
-			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL,
-					USER_PROFILE_ROW_MAPPER, param);
+			dbo = namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param,
+					USER_PROFILE_ROW_MAPPER);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(
 					"The resource you are attempting to access cannot be found");
@@ -281,7 +280,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			throws NotFoundException {
 		Long userIdLong = Long.parseLong(userId);
 		try {
-			Long fileHandleId = simpleJdbcTemplate.queryForObject(
+			Long fileHandleId = jdbcTemplate.queryForObject(
 					SQL_SELECT_PROFILE_PIC_ID, Long.class, userIdLong);
 			if(fileHandleId == null){
 				throw new NotFoundException("User: " + userId
@@ -299,8 +298,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			return new ArrayList<UserNotificationInfo>();
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		return namedTemplate.query(SQL_GET_USER_INFO_FOR_NOTIFICATION, parameters, new RowMapper<UserNotificationInfo>(){
+		return namedJdbcTemplate.query(SQL_GET_USER_INFO_FOR_NOTIFICATION, parameters, new RowMapper<UserNotificationInfo>(){
 
 			@Override
 			public UserNotificationInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
