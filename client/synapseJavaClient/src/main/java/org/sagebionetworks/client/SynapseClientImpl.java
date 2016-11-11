@@ -3851,7 +3851,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	private AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
+	@Override
+	public AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
 		JSONObject responseBody = getSharedClientConnection().getJson(
 				endpoint, url, getUserAgent(),
 				new SharedClientConnection.ErrorHandler() {
