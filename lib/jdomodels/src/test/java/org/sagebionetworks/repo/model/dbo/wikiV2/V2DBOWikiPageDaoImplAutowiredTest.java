@@ -543,7 +543,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// In setRoot, passed through first branch because root == parent
 		// Root id should be set it itself
-		long rootIdForParent = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, root.getId());	
+		long rootIdForParent = jdbcTemplate.queryForObject(SQL_GET_ROOT_ID, Long.class, root.getId());
 		assertEquals(String.valueOf(rootIdForParent), rootId);
 		
 		// Add add children in reverse alphabetical order.
@@ -563,7 +563,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		}
 		
 		// Test one child; root should be set to parent root's id
-		long rootIdForChild = jdbcTemplate.queryForLong(SQL_GET_ROOT_ID, children.get(0).getId());	
+		long rootIdForChild = jdbcTemplate.queryForObject(SQL_GET_ROOT_ID, Long.class, children.get(0).getId());
 		assertEquals(String.valueOf(rootIdForChild), rootId);
 		
 		// Test getRootWiki for this hierarchy
@@ -928,10 +928,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 			V2WikiPage p = wikiPageDao.get(key, null); // Get latest version
 			String markdownId = (v % 2 == 0) ? markdownTwo.getId() : markdownOne.getId();
 			p.setMarkdownFileHandleId(markdownId);
-			V2WikiPage updated = wikiPageDao.updateWikiPage(p, fileNameMap, ownerId, ownerType, newIds);
+			wikiPageDao.updateWikiPage(p, fileNameMap, ownerId, ownerType, newIds);
 		}
-		
-		
 		return key;
 	}
 

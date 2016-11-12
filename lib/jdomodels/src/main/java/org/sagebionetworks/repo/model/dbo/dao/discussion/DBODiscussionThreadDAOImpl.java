@@ -44,6 +44,8 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
+	private NamedParameterJdbcTemplate namedTemplate;
+	@Autowired
 	private DBOBasicDao basicDao;
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
@@ -411,12 +413,12 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@Override
 	public long getThreadCountForForum(long forumId, DiscussionFilter filter) {
 		ValidateArgument.required(filter, "filter");
-		return jdbcTemplate.queryForLong(addCondition(SQL_SELECT_THREAD_COUNT_FOR_FORUM, filter), forumId);
+		return jdbcTemplate.queryForObject(addCondition(SQL_SELECT_THREAD_COUNT_FOR_FORUM, filter), Long.class, forumId);
 	}
 
 	@Override
 	public long countThreadView(long threadId) {
-		return jdbcTemplate.queryForLong(SQL_SELECT_THREAD_VIEW_COUNT, threadId);
+		return jdbcTemplate.queryForObject(SQL_SELECT_THREAD_VIEW_COUNT, Long.class, threadId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -493,11 +495,10 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		if (projectIds.isEmpty()) {
 			return 0L;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
 		parameters.addValue(PROJECT_IDS, projectIds);
 		String countQuery = addCondition(SQL_SELECT_THREAD_COUNT_FOR_ENTITY, filter);
-		return namedTemplate.queryForLong(countQuery, parameters);
+		return namedTemplate.queryForObject(countQuery, parameters, Long.class);
 	}
 
 	@Override
@@ -513,7 +514,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		if (projectIds.isEmpty()) {
 			return new ArrayList<DiscussionThreadBundle>();
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource parameters = new MapSqlParameterSource(ID, entityId);
 		parameters.addValue(PROJECT_IDS, projectIds);
 		String query = buildGetQuery(SQL_SELECT_THREADS_BY_ENTITY_ID, limit, offset, order, ascending, filter);
@@ -550,7 +550,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		if (entityIds.isEmpty() || projectIds.isEmpty()) {
 			return threadCounts;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource parameters = new MapSqlParameterSource(ENTITY_IDS, entityIds);
 		parameters.addValue(PROJECT_IDS, projectIds);
 		threadCounts.setList(namedTemplate.query(SQL_GET_THREAD_COUNTS, parameters, new RowMapper<EntityThreadCount>(){
@@ -573,7 +572,6 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		if (entityIds.isEmpty()) {
 			return result;
 		}
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource parameters = new MapSqlParameterSource(ENTITY_IDS, entityIds);
 		namedTemplate.query(SQL_GET_PROJECTS, parameters, new RowMapper<Void>(){
 			@Override

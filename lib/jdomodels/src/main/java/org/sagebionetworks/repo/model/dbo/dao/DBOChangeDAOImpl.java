@@ -209,17 +209,25 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Override
 	public long getMinimumChangeNumber() {
-		return jdbcTemplate.queryForLong(SQL_SELECT_MIN_CHANGE_NUMBER);
+		try {
+			return jdbcTemplate.queryForObject(SQL_SELECT_MIN_CHANGE_NUMBER, Long.class);
+		} catch (NullPointerException e) {
+			return 0L;
+		}
 	}
 	
 	@Override
 	public long getCurrentChangeNumber() {
-		return jdbcTemplate.queryForLong(SQL_SELECT_MAX_CHANGE_NUMBER);
+		try {
+			return jdbcTemplate.queryForObject(SQL_SELECT_MAX_CHANGE_NUMBER, Long.class);
+		} catch (NullPointerException e) {
+			return 0L;
+		}
 	}
 	
 	@Override
 	public long getCount() {
-		return jdbcTemplate.queryForLong(SQL_SELECT_COUNT_CHANGE_NUMBER);
+		return jdbcTemplate.queryForObject(SQL_SELECT_COUNT_CHANGE_NUMBER, Long.class);
 	}
 
 	@WriteTransaction
