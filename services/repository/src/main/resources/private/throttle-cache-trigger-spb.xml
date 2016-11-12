@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This trigger will fire changes messages pushed to the queue -->
-	<bean id="throttleRulesCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="throttleRulesCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
