@@ -104,6 +104,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.create(accessApproval);
 	}
 
+	@Deprecated
 	@Override
 	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,

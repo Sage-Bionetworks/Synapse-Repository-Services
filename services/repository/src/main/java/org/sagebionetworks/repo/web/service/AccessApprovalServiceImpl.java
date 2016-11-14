@@ -45,6 +45,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		return accessApprovalManager.getAccessApproval(userInfo, approvalId);
 	}
 
+	@Deprecated
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 
 			RestrictableObjectDescriptor subjectId) throws DatastoreException,

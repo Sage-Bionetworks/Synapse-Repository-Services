@@ -1902,6 +1902,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
 			throws SynapseException {
