@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This trigger pushes audit data to S3 -->
-	<bean id="accessRecorderTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="accessRecorderTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
@@ -26,7 +26,7 @@
 	</bean>
 
 	<!-- This trigger pushes ObjectRecords to S3 -->
-	<bean id="objectRecordQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="objectRecordQueueTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">

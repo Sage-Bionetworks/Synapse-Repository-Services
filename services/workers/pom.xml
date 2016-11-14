@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-		</dependency>			
+		</dependency>
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-core-asl</artifactId>
@@ -87,7 +87,7 @@
 			<artifactId>junit</artifactId>
 		</dependency>
 		<dependency>
-		    <groupId>org.quartz-scheduler</groupId>
+			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
 		</dependency>
 

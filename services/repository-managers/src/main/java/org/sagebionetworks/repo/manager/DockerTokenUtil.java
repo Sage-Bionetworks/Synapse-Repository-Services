@@ -88,43 +88,6 @@ public class DockerTokenUtil {
 				setHeaderParam("kid", PUBLIC_KEY_ID).
 				signWith(SignatureAlgorithm.ES256, PRIVATE_KEY).compact();
 
-		// The signature created by the Jwts library is wrong:
-		// The signature must be in P1363 format, NOT ASN.1, 
-		// which is what the code underlying 'compact()' generates when signing.
-		// Below we regenerate it, using this as a guide:
-		// http://crypto.stackexchange.com/questions/1795/how-can-i-convert-a-der-ecdsa-signature-to-asn-1
-		// generally Java seems to use ASN.1 formatting and not P1363
-		try {
-			String[] pieces = s.split("\\.");
-			if (pieces.length!=3) throw new RuntimeException("Expected 3 pieces but found "+pieces.length);
-			// the first two pieces are the message to sign.  The third piece is the (incorrect) signature.
-
-			Base64 base64 = new Base64();
-
-			// the original signature bytes
-			byte[] originalSigBytes = base64.decode(pieces[2]);
-
-			ASN1Primitive obj = ASN1Primitive.fromByteArray(originalSigBytes);
-			DLSequence app = (DLSequence) obj;
-			ASN1Encodable[] encodables = app.toArray();
-			assert encodables.length==2;
-			byte[] b;
-			// extract the two 32 byte integers from the ASN.1 format and simply concatenate
-			// them in a new binary array
-			byte[] p1363Signature = new byte[64];
-			b = encodables[0].toASN1Primitive().getEncoded();
-			System.arraycopy(b, b.length-32, p1363Signature, 0, 32);
-			b = encodables[1].toASN1Primitive().getEncoded();
-			System.arraycopy(b, b.length-32, p1363Signature, 32, 32);
-
-			String base64Encoded = Base64.encodeBase64URLSafeString(p1363Signature);
-			while (base64Encoded.endsWith("=")) 
-				base64Encoded = base64Encoded.substring(0, base64Encoded.length()-1);
-
-			s = pieces[0]+"."+pieces[1]+"."+base64Encoded;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
 		return s;
 
 	}

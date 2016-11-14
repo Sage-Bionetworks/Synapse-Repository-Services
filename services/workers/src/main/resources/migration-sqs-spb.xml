@@ -14,7 +14,7 @@
 	<bean id="requestProcessor" class="org.sagebionetworks.migration.worker.AsyncMigrationRequestProcessorImpl"
 		scope="singleton" />
 	
-	<bean id="migrationMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="migrationMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

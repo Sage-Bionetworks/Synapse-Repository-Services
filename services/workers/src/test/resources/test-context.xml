@@ -16,15 +16,6 @@
 		<constructor-arg ref="awsSQSClient" />
 	</bean>
 
-	<!-- This is a shared  Scheduler-->
-	<bean id="repositoryManagerTestScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
-		<property name="triggers">
-			<list>
-				<ref bean="messagePublisherTrigger" />
-			</list>
-		</property>
-	</bean>
-
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 
