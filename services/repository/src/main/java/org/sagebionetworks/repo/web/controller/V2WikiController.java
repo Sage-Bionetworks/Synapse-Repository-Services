@@ -1525,4 +1525,30 @@ public class V2WikiController extends BaseController {
 		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
 	}
 	
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiPage deleteEvaluationWikiMarkdownVersions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody(required = true) WikiVersionsList toDelete,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId);
+		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
+	}
+	
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	V2WikiPage deleteAccessRequirementsWikiMarkdownVersions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody(required = true) WikiVersionsList toDelete,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId);
+		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
+	}
+	
 }

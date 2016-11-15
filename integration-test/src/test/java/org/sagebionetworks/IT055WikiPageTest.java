@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -33,8 +35,11 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
@@ -147,6 +152,26 @@ public class IT055WikiPageTest {
 		assertNotNull(tree.getResults());
 		assertEquals(1, tree.getResults().size());
 		assertEquals(1, tree.getTotalNumberOfResults());
+		
+		PaginatedResults<V2WikiHistorySnapshot> preHistory = synapse.getV2WikiHistory(key, 100L, 0L);
+		assertNotNull(preHistory);
+		assertNotNull(preHistory.getResults());
+		assertEquals(2, preHistory.getResults().size());
+		
+		String preDeleteEtag = wiki.getEtag();
+		WikiVersionsList versionsToDelete = new WikiVersionsList();
+		List<String> ids = Arrays.asList("0");
+		versionsToDelete.setVersionIds(ids);
+		
+		V2WikiPage pDeletedHistory = synapse.deleteV2WikiVersions(key, versionsToDelete);
+		
+		assertFalse(preDeleteEtag.equals(pDeletedHistory.getEtag()));
+		PaginatedResults<V2WikiHistorySnapshot> postHistory = synapse.getV2WikiHistory(key, 100L, 0L);
+		assertNotNull(postHistory);
+		assertNotNull(postHistory.getResults());
+		assertEquals(1, postHistory.getResults().size());
+		assertEquals(preHistory.getResults().get(1), postHistory.getResults().get(0));
+		
 		// Delete the wiki
 		synapse.deleteWikiPage(key);
 		// Now try to get it
