@@ -37,11 +37,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
  * Basic database implementation of of PrincipalAliasDAO
@@ -75,7 +75,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
@@ -97,8 +97,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			// only allow one alias per principal.  Since this logic is enforced at the DAO level
 			// and not the database level, the 'SELECT FOR UPDATE' ensures all updates for a given
 			// principal are executed serially.
-			this.simpleJdbcTemplate.queryForLong(SQL_LOCK_PRINCIPAL, dto.getPrincipalId());
-		} catch (EmptyResultDataAccessException e) {
+			this.jdbcTemplate.queryForObject(SQL_LOCK_PRINCIPAL, Long.class, dto.getPrincipalId());
+		} catch (EmptyResultDataAccessException | NullPointerException e) {
 			throw new NotFoundException("A principal does not exist with principalId: "+dto.getPrincipalId());
 		}
 		// Convert to the DBO
@@ -148,7 +148,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	public PrincipalAlias getPrincipalAlias(Long aliasId) throws NotFoundException {
 		if(aliasId == null) throw new IllegalArgumentException("Alias cannot be null");
 		try {
-			DBOPrincipalAlias dbo = simpleJdbcTemplate.queryForObject(SQL_GET_ALIAS, principalAliasMapper, aliasId);
+			DBOPrincipalAlias dbo = jdbcTemplate.queryForObject(SQL_GET_ALIAS, principalAliasMapper, aliasId);
 			return AliasUtils.createDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// no match
@@ -161,7 +161,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		String unique = AliasUtils.getUniqueAliasName(alias);
 		try {
-			DBOPrincipalAlias dbo = simpleJdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS, principalAliasMapper, unique);
+			DBOPrincipalAlias dbo = jdbcTemplate.queryForObject(SQL_FIND_PRINCIPAL_WITH_ALIAS, principalAliasMapper, unique);
 			return AliasUtils.createDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// no match
@@ -177,7 +177,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		List<String> unique = new ArrayList<String>();
 		for (String alias : aliases) unique.add(AliasUtils.getUniqueAliasName(alias));
 		SqlParameterSource param = new MapSqlParameterSource(ALIAS_PARAM, unique);
-		for (DBOPrincipalAlias dbo : simpleJdbcTemplate.query(SQL_FIND_PRINCIPALS_WITH_ALIASES, principalAliasMapper, param)) {
+		for (DBOPrincipalAlias dbo : namedTemplate.query(SQL_FIND_PRINCIPALS_WITH_ALIASES, param, principalAliasMapper)) {
 			result.add(AliasUtils.createDTOFromDBO(dbo));
 		}
 		return result;
@@ -187,7 +187,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		String unique = AliasUtils.getUniqueAliasName(alias);
-		long count = simpleJdbcTemplate.queryForLong(SQL_IS_ALIAS_AVAILABLE, unique);
+		long count = jdbcTemplate.queryForObject(SQL_IS_ALIAS_AVAILABLE, Long.class, unique);
 		return count < 1;
 	}
 
@@ -195,20 +195,20 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	public boolean removeAliasFromPrincipal(Long principalId, Long aliasId) {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
 		if(aliasId == null) throw new IllegalArgumentException("AliasId cannot be null");
-		int count = this.simpleJdbcTemplate.update(SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID, principalId, aliasId);
+		int count = this.jdbcTemplate.update(SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID, principalId, aliasId);
 		return count > 0;
 	}
 	
 	@Override
 	public boolean removeAllAliasFromPrincipal(Long principalId) {
-		int count = this.simpleJdbcTemplate.update(SQL_DELETE_ALL_ALIASES_FOR_PRINCIPAL, principalId);
+		int count = this.jdbcTemplate.update(SQL_DELETE_ALL_ALIASES_FOR_PRINCIPAL, principalId);
 		return count > 0;
 	}
 
 	@Override
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId) {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
-		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID, principalAliasMapper, principalId);
+		List<DBOPrincipalAlias> results = this.jdbcTemplate.query(SQL_LIST_ALIASES_BY_ID, principalAliasMapper, principalId);
 		return AliasUtils.createDTOFromDBO(results);
 	}
 
@@ -217,7 +217,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			AliasType type) {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
 		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
-		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, principalAliasMapper, principalId, type.name());
+		List<DBOPrincipalAlias> results = this.jdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, principalAliasMapper, principalId, type.name());
 		return AliasUtils.createDTOFromDBO(results);
 	}
 	
@@ -227,14 +227,14 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
 		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
 		if(displayAlias == null) throw new IllegalArgumentException("displayAlias cannot be null");
-		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY, principalAliasMapper, principalId, type.name(), displayAlias);
+		List<DBOPrincipalAlias> results = this.jdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY, principalAliasMapper, principalId, type.name(), displayAlias);
 		return AliasUtils.createDTOFromDBO(results);
 	}
 	
 	@Override
 	public List<PrincipalAlias> listPrincipalAliases(AliasType type) {
 		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
-		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_TYPE, principalAliasMapper, type.name());
+		List<DBOPrincipalAlias> results = this.jdbcTemplate.query(SQL_LIST_ALIASES_BY_TYPE, principalAliasMapper, type.name());
 		return AliasUtils.createDTOFromDBO(results);
 	}
 
@@ -244,7 +244,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		if(principalIds.isEmpty()) return Collections.emptyList();
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		parameters.put(SET_BIND_VAR, principalIds);
-		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS, principalAliasMapper, parameters);
+		List<DBOPrincipalAlias> results = this.namedTemplate.query(SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS, parameters, principalAliasMapper);
 		return AliasUtils.createDTOFromDBO(results);
 	}
 	
@@ -316,7 +316,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		ValidateArgument.required(alias, "alias");
 		ValidateArgument.required(type, "type");
 		ValidateArgument.requirement(alias != "", "alias must not be empty");
-		List<Long> queryResult = simpleJdbcTemplate.query(SQL_GET_PRINCIPAL_ID, new RowMapper<Long>(){
+		List<Long> queryResult = jdbcTemplate.query(SQL_GET_PRINCIPAL_ID, new RowMapper<Long>(){
 
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {

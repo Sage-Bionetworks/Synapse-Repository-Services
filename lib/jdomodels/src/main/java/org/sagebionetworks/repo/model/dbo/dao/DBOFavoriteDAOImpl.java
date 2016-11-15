@@ -41,8 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author dburdick
@@ -51,10 +50,10 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	
 	@Autowired
-	private DBOBasicDao basicDao;	
+	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -96,18 +95,6 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 			return favorite;
 		}
 	};
-	
-	public DBOFavoriteDAOImpl() { }
-	
-	/**
-	 * For Testing
-	 */
-	public DBOFavoriteDAOImpl(DBOBasicDao basicDao,
-			SimpleJdbcTemplate simpleJdbcTemplate) {
-		super();
-		this.basicDao = basicDao;
-		this.simpleJdbcTemplate = simpleJdbcTemplate;
-	}
 
 	@Override
 	public Favorite add(Favorite dto) throws DatastoreException,
@@ -146,14 +133,14 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<Favorite> favorites = null;
-		favorites = simpleJdbcTemplate.query(SELECT_GET_FAVORITES_SQL, favoriteRowMapper, params);
+		favorites = namedJdbcTemplate.query(SELECT_GET_FAVORITES_SQL, params, favoriteRowMapper);
 			
 		// return the page of objects, along with the total result count
 		PaginatedResults<Favorite> queryResults = new PaginatedResults<Favorite>();
 		queryResults.setResults(favorites);
 		long totalCount = 0;
 		try {
-			totalCount = simpleJdbcTemplate.queryForLong(COUNT_FAVORITES_SQL, params);		
+			totalCount = namedJdbcTemplate.queryForObject(COUNT_FAVORITES_SQL, params, Long.class);
 		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
@@ -169,10 +156,10 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		// get one page of favorites
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_FAVORITE_PRINCIPAL_ID, principalId);
-		params.addValue(COL_FAVORITE_NODE_ID, KeyFactory.stringToKey(entityId));		
+		params.addValue(COL_FAVORITE_NODE_ID, KeyFactory.stringToKey(entityId));
 		Favorite favorite = null;
 		try {
-			favorite = simpleJdbcTemplate.queryForObject(SELECT_FAVORITE_SQL, favoriteRowMapper, params); 
+			favorite = namedJdbcTemplate.queryForObject(SELECT_FAVORITE_SQL, params, favoriteRowMapper);
 			return favorite;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("No favorite found with: principalId="+principalId+", entityId="+entityId);
@@ -197,7 +184,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<EntityHeader> favoritesHeaders = null;
-		favoritesHeaders = simpleJdbcTemplate.query(SELECT_FAVORITES_HEADERS_SQL, new RowMapper<EntityHeader>() {
+		favoritesHeaders = namedJdbcTemplate.query(SELECT_FAVORITES_HEADERS_SQL, params, new RowMapper<EntityHeader>() {
 			@Override
 			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
 				EntityHeader header = new EntityHeader();
@@ -207,20 +194,20 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				return header;
-			}		
-		}, params);
-			
+			}
+		});
+
 		// return the page of objects, along with the total result count
 		PaginatedResults<EntityHeader> queryResults = new PaginatedResults<EntityHeader>();
 		queryResults.setResults(favoritesHeaders);
 		long totalCount = 0;
 		try {
-			totalCount = simpleJdbcTemplate.queryForLong(COUNT_FAVORITES_SQL, params);		
+			totalCount = namedJdbcTemplate.queryForObject(COUNT_FAVORITES_SQL, params, Long.class);
 		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
-		return queryResults;	
+		return queryResults;
 	}
 
 }

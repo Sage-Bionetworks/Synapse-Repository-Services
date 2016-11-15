@@ -95,6 +95,7 @@ public class SQLTranslatorUtilsTest {
 		assertFalse(SQLTranslatorUtils.isNumericType(ColumnType.LARGETEXT));
 		assertFalse(SQLTranslatorUtils.isNumericType(ColumnType.LINK));
 		assertFalse(SQLTranslatorUtils.isNumericType(ColumnType.STRING));
+		assertTrue(SQLTranslatorUtils.isNumericType(ColumnType.USERID));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

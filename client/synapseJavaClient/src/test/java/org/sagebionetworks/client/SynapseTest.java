@@ -26,6 +26,7 @@ import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.junit.Before;
 import org.junit.Test;
@@ -108,7 +109,11 @@ public class SynapseTest {
 		HeaderElement he = Mockito.mock(HeaderElement.class);
 		when(he.getName()).thenReturn(name);
 		when(he.getValue()).thenReturn(value);
+		NameValuePair nvp = Mockito.mock(NameValuePair.class);
+		when(nvp.getName()).thenReturn(name);
+		when(nvp.getValue()).thenReturn(value);
 		when(header.getElements()).thenReturn(new HeaderElement[]{he});
+		when(he.getParameters()).thenReturn(new NameValuePair[]{nvp});
 		return header;
 	}
 	

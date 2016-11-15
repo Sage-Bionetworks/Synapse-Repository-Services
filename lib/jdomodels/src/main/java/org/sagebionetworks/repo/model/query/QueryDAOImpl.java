@@ -42,14 +42,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class QueryDAOImpl implements QueryDAO {
 	
 	@Autowired
 	AccessControlListDAO accessControlListDAO;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private static final long MAX_BYTES_PER_QUERY = 
 			StackConfiguration.getMaximumBytesPerQueryResult();
@@ -111,7 +111,7 @@ public class QueryDAOImpl implements QueryDAO {
 		String fullQueryString = fullQuery.toString();
 		
 		// Execute the count query
-		long count = simpleJdbcTemplate.queryForLong(countQueryString, queryParams);
+		long count = namedJdbcTemplate.queryForObject(countQueryString, queryParams, Long.class);
 		if (count == 0) {
 			// no results
 			QueryTableResults results = new QueryTableResults();
@@ -123,8 +123,8 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		// Execute the full query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
-		List<Map<String, Object>> results = simpleJdbcTemplate.query(
-				fullQueryString, sizeLimitMapper, queryParams);
+		List<Map<String, Object>> results = namedJdbcTemplate.query(
+				fullQueryString, queryParams, sizeLimitMapper);
 		Long userId = userInfo.getId();
 		
 		// Log query stats
@@ -151,7 +151,7 @@ public class QueryDAOImpl implements QueryDAO {
 		args.addValue(ATTRIBUTE_PARAM, attribute);
 		args.addValue(SCOPE_PARAM, scopeId);
 		final Map<String,Boolean> map = new HashMap<String,Boolean>();
-		simpleJdbcTemplate.query(FIND_ATTRIBUTE_SQL, new RowMapper<Object>(){
+		namedJdbcTemplate.query(FIND_ATTRIBUTE_SQL, args, new RowMapper<Object>(){
 			@Override
 			public Object mapRow(ResultSet rs, int rowNum)
 					throws SQLException {
@@ -159,7 +159,7 @@ public class QueryDAOImpl implements QueryDAO {
 				if (rs.getString(DBBL_ATTR_NAME)!=null) map.put(DBBL_ATTR_NAME, true);
 				if (rs.getString(STRG_ATTR_NAME)!=null) map.put(STRG_ATTR_NAME, true);
 				return null;
-			}}, args);
+			}});
 		if (map.get(LONG_ATTR_NAME)!=null) return FieldType.LONG_ATTRIBUTE;
 		if (map.get(DBBL_ATTR_NAME)!=null) return FieldType.DOUBLE_ATTRIBUTE;
 		if (map.get(STRG_ATTR_NAME)!=null) return FieldType.STRING_ATTRIBUTE;

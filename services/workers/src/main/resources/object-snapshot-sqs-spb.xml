@@ -66,7 +66,7 @@
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
-	<bean id="objectQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="objectQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

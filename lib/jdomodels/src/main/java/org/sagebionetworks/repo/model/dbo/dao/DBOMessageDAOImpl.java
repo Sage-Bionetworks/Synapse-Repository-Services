@@ -32,15 +32,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -200,13 +199,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		MessageToUser bundle;
 		try {
-			bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
+			bundle = namedJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, params, messageRowMapper);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Message (" + messageId + ") not found");
 		}
 		
 		// Then get the recipients
-		List<DBOMessageRecipient> recipients = simpleJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, messageRecipientRowMapper, params);
+		List<DBOMessageRecipient> recipients = namedJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, params, messageRecipientRowMapper);
 		MessageUtils.copyDBOToDTO(recipients, bundle);
 		return bundle;
 	}
@@ -245,7 +244,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue(MESSAGE_ID_PARAM_NAME, info.getInReplyTo());
 			try {
-				Long rootMessage = simpleJdbcTemplate.queryForLong(SELECT_ROOT_MESSAGE_ID_BY_ID, params);
+				Long rootMessage = namedJdbcTemplate.queryForObject(SELECT_ROOT_MESSAGE_ID_BY_ID, params, Long.class);
 				info.setRootMessageId(rootMessage);
 			} catch (EmptyResultDataAccessException e) {
 				throw new IllegalArgumentException("Cannot reply to a message (" + info.getInReplyTo() + ") that does not exist");
@@ -273,7 +272,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		simpleJdbcTemplate.update(UPDATE_ETAG_OF_MESSAGE, params);
+		namedJdbcTemplate.update(UPDATE_ETAG_OF_MESSAGE, params);
 	}
 	
 	@Override
@@ -282,7 +281,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		params.addValue(MESSAGE_SENT_PARAM_NAME, true);
-		simpleJdbcTemplate.update(UPDATE_MESSAGE_SENT, params);
+		namedJdbcTemplate.update(UPDATE_MESSAGE_SENT, params);
 	}
 	
 	/**
@@ -299,7 +298,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageIds);
-		List<DBOMessageRecipient> recipients = simpleJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, messageRecipientRowMapper, params);
+		List<DBOMessageRecipient> recipients = namedJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, params, messageRecipientRowMapper);
 		MessageUtils.copyDBOToDTO(recipients, messages);
 	}
 
@@ -311,7 +310,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<MessageToUser> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		List<MessageToUser> messages = namedJdbcTemplate.query(sql, params, messageRowMapper);
 		
 		fillInMessageRecipients(messages);
 		return messages;
@@ -322,7 +321,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_CONVERSATION, params);
+		return namedJdbcTemplate.queryForObject(COUNT_MESSAGES_IN_CONVERSATION, params, Long.class);
 	}
 
 	@Override
@@ -333,7 +332,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
 		params.addValue(INBOX_FILTER_PARAM_NAME, convertFilterToString(included));
-		List<MessageBundle> bundles =  simpleJdbcTemplate.query(sql, messageBundleRowMapper, params);
+		List<MessageBundle> bundles =  namedJdbcTemplate.query(sql, params, messageBundleRowMapper);
 
 		List<MessageToUser> messages = new ArrayList<MessageToUser>();
 		for (MessageBundle bundle : bundles) {
@@ -348,7 +347,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
 		params.addValue(INBOX_FILTER_PARAM_NAME, convertFilterToString(included));
-		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_RECEIVED, params);
+		return namedJdbcTemplate.queryForObject(COUNT_MESSAGES_RECEIVED, params, Long.class);
 	}
 	
 	/**
@@ -369,7 +368,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<MessageToUser> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		List<MessageToUser> messages = namedJdbcTemplate.query(sql, params, messageRowMapper);
 		
 		fillInMessageRecipients(messages);
 		return messages;
@@ -379,7 +378,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public long getNumSentMessages(String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_SENT, params);
+		return namedJdbcTemplate.queryForObject(COUNT_MESSAGES_SENT, params, Long.class);
 	}
 
 	@Override
@@ -457,7 +456,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
 		params.addValue(TIMESTAMP_PARAM_NAME, new Date().getTime() - messageCreationInterval);
-		long messages = simpleJdbcTemplate.queryForLong(COUNT_RECENTLY_CREATED_MESSAGES, params);
+		long messages = namedJdbcTemplate.queryForObject(COUNT_RECENTLY_CREATED_MESSAGES, params, Long.class);
 		return messages < maxNumberOfNewMessages;
 	}
 	
@@ -470,7 +469,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, groupIds);
 		params.addValue(FILEHANDLE_PARAM_NAME, fileHandleId);
-		long messages = simpleJdbcTemplate.queryForLong(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params);
+		long messages = namedJdbcTemplate.queryForObject(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params, Long.class);
 		return messages > 0;
 	}
 

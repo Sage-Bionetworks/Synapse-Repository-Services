@@ -12,6 +12,11 @@
 	<import resource="classpath:shared-context.xml" />
 	<import resource="classpath:singleton-servlet.xml" />
 
+	<bean id="queueCleaner"
+		class="org.sagebionetworks.workers.util.aws.message.QueueCleaner">
+		<constructor-arg ref="awsSQSClient" />
+	</bean>
+
 	<bean id="testHelper"
 		class="org.sagebionetworks.repo.web.controller.ServletTestHelper"
 		scope="prototype" />

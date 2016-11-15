@@ -431,7 +431,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 */
 	private Long getRootWiki(Long ownerId, ObjectType ownerType) throws NotFoundException {
 		try{
-			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
+			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, Long.class, ownerId, ownerType.name());
 		}catch(DataAccessException e){
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
@@ -542,7 +542,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
 		Long root = getRootWiki(ownerId, ownerType);
 		try{
-			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, new Long(wikiId), root);
+			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, Long.class, new Long(wikiId), root);
 		}catch(DataAccessException e){
 			throw new NotFoundException("A wiki does not exist for id: "+wikiId);
 		}
@@ -735,14 +735,14 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return jdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_WIKIPAGES, Long.class);
 	}
 
 	private boolean doesExist(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
 			// Is this in the database.
-			jdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
+			jdbcTemplate.queryForObject(SQL_DOES_EXIST, Long.class, id);
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;
