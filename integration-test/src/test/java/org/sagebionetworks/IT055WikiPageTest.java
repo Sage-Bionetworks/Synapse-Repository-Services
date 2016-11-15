@@ -170,7 +170,8 @@ public class IT055WikiPageTest {
 		assertNotNull(postHistory);
 		assertNotNull(postHistory.getResults());
 		assertEquals(1, postHistory.getResults().size());
-		assertEquals(preHistory.getResults().get(1), postHistory.getResults().get(0));
+		// Version "0" was at index 1 in preHistory
+		assertEquals(preHistory.getResults().get(0), postHistory.getResults().get(0));
 		
 		// Delete the wiki
 		synapse.deleteWikiPage(key);
