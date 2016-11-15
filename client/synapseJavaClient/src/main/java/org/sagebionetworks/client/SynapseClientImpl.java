@@ -1928,7 +1928,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException {
-		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + requirementId + "/" + accessorId, getUserAgent());
+		String url = ACCESS_APPROVAL + "?requirementId=" + requirementId + "&accessorId=" + accessorId;
+		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
 	}
 
 	/**

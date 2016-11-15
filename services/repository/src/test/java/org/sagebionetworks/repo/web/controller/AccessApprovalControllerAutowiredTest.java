@@ -185,7 +185,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		// test getAccessApprovals for the entity
 		PaginatedResults<AccessApproval> results = servletTestHelper
 				.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userId);	
+				dispatchServlet, evaluation.getId(), userId);
 		List<AccessApproval> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -193,7 +193,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		servletTestHelper.deleteAccessApproval(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
 		results = servletTestHelper.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userId);	
+				dispatchServlet, evaluation.getId(), userId);
 		ars = results.getResults();
 		assertEquals(0, ars.size());
 	}

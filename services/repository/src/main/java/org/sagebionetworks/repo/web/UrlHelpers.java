@@ -459,8 +459,6 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
-	public static final String ACCESS_APPROVAL_ACCESS_REQUIREMENT_ID_ACCESSOR_ID =
-			ACCESS_APPROVAL + ACCESS_REQUIREMENT_ID + "/{accessorId}";
 	
 	/**
 	 * URL prefix for Users in a UserGroup
