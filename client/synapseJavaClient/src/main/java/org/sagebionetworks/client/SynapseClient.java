@@ -579,6 +579,8 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException;
+
 	public JSONObject getEntity(String uri) throws SynapseException;
 
 	public <T extends JSONEntity> T getEntity(String entityId,

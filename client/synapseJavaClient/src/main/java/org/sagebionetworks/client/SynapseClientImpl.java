@@ -1902,6 +1902,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
 			throws SynapseException {
@@ -1923,6 +1924,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteAccessApproval(Long approvalId)
 			throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + approvalId, getUserAgent());
+	}
+
+	@Override
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException {
+		String url = ACCESS_APPROVAL + "?requirementId=" + requirementId + "&accessorId=" + accessorId;
+		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
 	}
 
 	/**
