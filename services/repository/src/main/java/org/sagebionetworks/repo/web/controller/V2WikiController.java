@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -1511,7 +1512,7 @@ public class V2WikiController extends BaseController {
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
 	V2WikiPage deleteEntityWikiMarkdownVersions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -1519,8 +1520,9 @@ public class V2WikiController extends BaseController {
 			@RequestBody(required = true) WikiVersionsList toDelete,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
-		// Get the redirect url
-		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, ownerId, ObjectType.ENTITY, wikiId, toDelete.getVersionIds());
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId);
+		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
 	}
 	
 }

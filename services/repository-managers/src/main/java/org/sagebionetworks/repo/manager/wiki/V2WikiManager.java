@@ -184,7 +184,6 @@ public interface V2WikiManager {
 	 * @throws IllegalArgumentException
 	 * @throws UnauthorizedException
 	 */
-	V2WikiPage deleteWikiVersions(UserInfo user, String ownerId, ObjectType ownerType,
-			String wikiId, List<String> versionsToDelete)
+	V2WikiPage deleteWikiVersions(UserInfo user, WikiPageKey key, List<String> versionsToDelete)
 			throws IllegalArgumentException, UnauthorizedException;
 }

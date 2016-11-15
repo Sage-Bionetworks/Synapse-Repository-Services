@@ -148,10 +148,9 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public V2WikiPage deleteWikiVersions(Long userId, String ownerId,
-			ObjectType ownerType, String wikiId, List<String> versionsToDelete) {
+	public V2WikiPage deleteWikiVersions(Long userId, WikiPageKey key, List<String> versionsToDelete) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.deleteWikiVersions(user, ownerId, ownerType, wikiId, versionsToDelete);
+		return wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 	}
 
 }

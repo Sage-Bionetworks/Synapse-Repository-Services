@@ -431,21 +431,16 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 	@WriteTransaction
 	@Override
-	public V2WikiPage deleteWikiVersions(UserInfo user, String ownerId, ObjectType ownerType, String wikiId,
+	public V2WikiPage deleteWikiVersions(UserInfo user, WikiPageKey key,
 			List<String> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
 
 		if (user == null) throw new IllegalArgumentException("User cannot be null");
-		if (ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");
-		if (ownerType == null) throw new IllegalArgumentException("OwnerType cannot be null");
-		if (wikiId == null) throw new IllegalArgumentException("WikiId cannot be null");
+		if (key == null) throw new IllegalArgumentException("Key cannot be null");
 		if (versionsToDelete == null) throw new IllegalArgumentException("VersionsToDelete cannot be null");
 
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
 		validateUpdateAccess(user, key);
 
-		String etag = wikiPageDao.lockForUpdate(wikiId);
-		
-		V2WikiPage wiki = wikiPageDao.get(key, null);
+		String etag = wikiPageDao.lockForUpdate(key.getWikiPageId());
 		
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, Long.MAX_VALUE, 0L);
 		String currentVersion = history.get(0).getVersion();

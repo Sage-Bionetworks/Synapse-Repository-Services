@@ -1088,34 +1088,27 @@ public class V2WikiManagerTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullUser() throws Exception {
-		wikiManager.deleteWikiVersions(null, "123", ObjectType.ENTITY, "456", new LinkedList<String>());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "456");
+		wikiManager.deleteWikiVersions(null, key, new LinkedList<String>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteWikiVersionsNullOwnerId() throws Exception {
-		wikiManager.deleteWikiVersions(user, null, ObjectType.ENTITY, "456", new LinkedList<String>());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteWikiVersionsNullObjectType() throws Exception {
-		wikiManager.deleteWikiVersions(user, "123", null, "456", new LinkedList<String>());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteWikiVersionsNullWikiId() throws Exception {
-		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, null, new LinkedList<String>());
+	public void testDeleteWikiVersionsNullKey() throws Exception {
+		wikiManager.deleteWikiVersions(user, null, new LinkedList<String>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullVersionsToDelete() throws Exception {
-		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, "456", null);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "456");
+		wikiManager.deleteWikiVersions(user, key, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testDeleteWikiVersionsUnauthorized() throws Exception {
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "456");
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		wikiManager.deleteWikiVersions(user, "123", ObjectType.ENTITY, "456", new LinkedList<String>());
+		wikiManager.deleteWikiVersions(user, key, new LinkedList<String>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1130,7 +1123,8 @@ public class V2WikiManagerTest {
 		}
 		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
 		List<String> versionsToDelete = Arrays.asList("2");
-		wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
+		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -1145,7 +1139,8 @@ public class V2WikiManagerTest {
 		}
 		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
 		List<String> versionsToDelete = Arrays.asList("0", "1", "2");
-		wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
+		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 	}
 
 	@Test
@@ -1180,7 +1175,8 @@ public class V2WikiManagerTest {
 
 		// Call under test
 		List<String> versionsToDelete = Arrays.asList("1");
-		V2WikiPage updatedWiki = wikiManager.deleteWikiVersions(user, "123", ObjectType.EVALUATION, "345", versionsToDelete);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
+		V2WikiPage updatedWiki = wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 		assertNotNull(updatedWiki);
 		
 		ArgumentCaptor<String> etagCaptor = ArgumentCaptor.forClass(String.class);
