@@ -806,7 +806,7 @@ public class IT500SynapseJavaClient {
 		try {
 			adminSynapse.deleteAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
 			fail("Expecting IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
+		} catch (SynapseBadRequestException e) {
 			// The service is wired up.
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
