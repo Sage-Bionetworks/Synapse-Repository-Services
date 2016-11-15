@@ -13,7 +13,7 @@
 	
 	<bean id="bulkDownloadManager" class="org.sagebionetworks.file.worker.BulkDownloadManagerImpl" />
 
-	<bean id="fileBulkDownloadMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="fileBulkDownloadMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

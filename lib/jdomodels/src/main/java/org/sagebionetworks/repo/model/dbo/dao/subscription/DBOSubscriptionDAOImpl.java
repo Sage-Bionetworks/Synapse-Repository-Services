@@ -59,6 +59,8 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
+	private NamedParameterJdbcTemplate namedTemplate;
+	@Autowired
 	private IdGenerator idGenerator;
 	
 	private static final String SQL_GET_EMAIL_SUBSCRIBERS = "SELECT S."
@@ -217,10 +219,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		}
 		String query = getAllQuery(objectType);
 		String countQuery = getCountQuery(query);
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource parameters = new MapSqlParameterSource("projectIds", projectIds);
 		parameters.addValue("subscriberId", subscriberId);
-		results.setTotalNumberOfResults(namedTemplate.queryForLong(countQuery, parameters));
+		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
 		parameters.addValue("limit", limit);
 		parameters.addValue("offset", offset);
 		results.setResults(namedTemplate.query(query+LIMIT_OFFSET, parameters, ROW_MAPPER));
@@ -257,7 +258,6 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 			parameters.addValue("subscriberId", subscriberId);
 			parameters.addValue("objectType", objectType.name());
-			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			List<Subscription> subscriptions = namedTemplate.query(query, parameters, ROW_MAPPER);
 			results.setResults(subscriptions);
 			results.setTotalNumberOfResults((long) subscriptions.size());

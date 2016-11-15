@@ -1,0 +1,26 @@
+{
+	"description": "Request checksum for range of given type.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.migration.AsyncMigrationRequest"
+		}
+	],
+	"properties": {
+		"type": {
+			"description": "The migration type",
+			"type": "string"
+		},
+		"salt": {
+			"description": "Salt",
+			"type": "string"
+		},
+		"minId": {
+			"description": "Minimum id",
+			"type": "integer"
+		},
+		"maxId": {
+			"description": "Maximum id",
+			"type": "integer"
+		}
+	}
+}

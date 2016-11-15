@@ -1,12 +1,14 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,14 +26,6 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 	private AccessControlListDAO accessControlListDao;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
-
-	AclObjectRecordWriter(){}
-	
-	// for test only
-	AclObjectRecordWriter(AccessControlListDAO accessControlListDao, ObjectRecordDAO objectRecordDAO) {
-		this.accessControlListDao = accessControlListDao;
-		this.objectRecordDAO = objectRecordDAO;
-	}
 
 	/**
 	 * Build an AclRecord that wrap around AccessControlList object and contains
@@ -56,20 +50,32 @@ public class AclObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
-		if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST || message.getChangeType() == ChangeType.DELETE) {
-			throw new IllegalArgumentException();
-		}
-		try {
-			AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
-			if (!acl.getEtag().equals(message.getObjectEtag())) {
-				log.info("Ignoring old message.");
+	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
+		for (ChangeMessage message : messages) {
+			progressCallback.progressMade(null);
+			if (message.getObjectType() != ObjectType.ACCESS_CONTROL_LIST) {
+				throw new IllegalArgumentException();
 			}
-			AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
-			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
-			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-		} catch (NotFoundException e) {
-			log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
+			// skip delete messages
+			if (message.getChangeType() == ChangeType.DELETE) {
+				continue;
+			}
+			try {
+				AccessControlList acl = accessControlListDao.get(Long.parseLong(message.getObjectId()));
+				if (!acl.getEtag().equals(message.getObjectEtag())) {
+					log.info("Ignoring old message.");
+				}
+				AclRecord record = buildAclRecord(acl, accessControlListDao.getOwnerType(Long.parseLong(message.getObjectId())));
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
+				toWrite.add(objectRecord);
+			} catch (NotFoundException e) {
+				log.error("Cannot find acl for a " + message.getChangeType() + " message: " + message.toString()) ;
+			}
+		}
+		if (!toWrite.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 	}
 

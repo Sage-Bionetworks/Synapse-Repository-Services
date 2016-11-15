@@ -50,9 +50,10 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author brucehoff
@@ -61,10 +62,11 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Autowired
-	private DBOBasicDao basicDao;	
-
+	private DBOBasicDao basicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
@@ -291,7 +293,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, ids);
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_BY_IDS, TEAM_ROW_MAPPER, param);
+		List<DBOTeam> dbos = namedJdbcTemplate.query(SELECT_BY_IDS, param, TEAM_ROW_MAPPER);
 		
 		Map<String,Team> map = new HashMap<String,Team>();
 		for (DBOTeam dbo : dbos) {
@@ -321,7 +323,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, TEAM_ROW_MAPPER, param);
+		List<DBOTeam> dbos = namedJdbcTemplate.query(SELECT_PAGINATED, param, TEAM_ROW_MAPPER);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -329,7 +331,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SELECT_COUNT);
+		return jdbcTemplate.queryForObject(SELECT_COUNT, Long.class);
 	}
 
 	/* (non-Javadoc)
@@ -343,7 +345,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, TEAM_ROW_MAPPER, param);
+		List<DBOTeam> dbos = namedJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, param, TEAM_ROW_MAPPER);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -353,7 +355,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public long getCountForMember(String principalId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		return simpleJdbcTemplate.queryForLong(SELECT_FOR_MEMBER_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_FOR_MEMBER_COUNT, param, Long.class);
 	}
 
 	/* (non-Javadoc)
@@ -368,7 +370,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(COL_TEAM_ID, dto.getId());
 		DBOTeam dbo = null;
 		try{
-			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, TEAM_ROW_MAPPER, param);
+			dbo = namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, TEAM_ROW_MAPPER);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -415,7 +417,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	@Override
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
-		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, TEAM_MEMBER_PAIR_ROW_MAPPER);
+		List<TeamMemberPair> queryResults = namedJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, TEAM_MEMBER_PAIR_ROW_MAPPER);
 		Map<Long, Team> teamMap = new HashMap<Long, Team>();
 		Map<Long, Map<Long,TeamMember>> teamMemberMap = new HashMap<Long, Map<Long,TeamMember>>();
 		for (TeamMemberPair tmp : queryResults) {
@@ -429,7 +431,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			tms.put(Long.parseLong(tmp.getTeamMember().getMember().getOwnerId()), tmp.getTeamMember());
 		}
 		// second, get the team, member pairs for which the member is an administrator of the team
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS, TEAM_MEMBER_ID_ROW_MAPPER);
+		List<TeamMemberId> adminTeamMembers = namedJdbcTemplate.query(SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS, TEAM_MEMBER_ID_ROW_MAPPER);
 		for (TeamMemberId tmi : adminTeamMembers) {
 			// since the admin's are a subset of the entire <team,member> universe, we *must* find them in the map
 			Map<Long,TeamMember> members = teamMemberMap.get(tmi.getTeamId());
@@ -458,7 +460,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, TEAM_MEMBER_ROW_MAPPER, param);
+		List<TeamMember> teamMembers = namedJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, param, TEAM_MEMBER_ROW_MAPPER);
 		setAdminStatus(teamMembers);
 		return teamMembers;
 	}
@@ -476,8 +478,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);
-		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAMS, 
-				TEAM_MEMBER_ID_ROW_MAPPER, param);
+		List<TeamMemberId> adminTeamMembers = namedJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAMS, param,
+				TEAM_MEMBER_ID_ROW_MAPPER);
 		for (TeamMemberId tmi : adminTeamMembers) {
 			TeamMember tm = teamMemberMap.get(tmi);
 			if (tm!=null) tm.setIsAdmin(true);
@@ -494,8 +496,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamIds);
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalIds);
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAMS_GIVEN_MEMBER_IDS, 
-				TEAM_MEMBER_ROW_MAPPER, param);
+		List<TeamMember> teamMembers = namedJdbcTemplate.query(SELECT_MEMBERS_OF_TEAMS_GIVEN_MEMBER_IDS, param,
+				TEAM_MEMBER_ROW_MAPPER);
 		
 		setAdminStatus(teamMembers);
 		
@@ -518,7 +520,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		return simpleJdbcTemplate.query(SELECT_ADMIN_MEMBER_IDS, MEMBER_ID_ROW_MAPPER, param);
+		return namedJdbcTemplate.query(SELECT_ADMIN_MEMBER_IDS, param, MEMBER_ID_ROW_MAPPER);
 	}
 	
 	
@@ -527,12 +529,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, TEAM_MEMBER_ROW_MAPPER, param);
+		List<TeamMember> teamMembers = namedJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, param, TEAM_MEMBER_ROW_MAPPER);
 		if (teamMembers.size()==0) throw new NotFoundException("Could not find member "+principalId+" in team "+teamId);
 		if (teamMembers.size()>1) throw new DatastoreException("Expected one result but found "+teamMembers.size());
 		TeamMember theMember = teamMembers.get(0);
 		// now find if it's an admin
-		long adminCount = simpleJdbcTemplate.queryForLong(IS_MEMBER_AN_ADMIN, param);
+		long adminCount = namedJdbcTemplate.queryForObject(IS_MEMBER_AN_ADMIN, param, Long.class);
 		if (adminCount==1) theMember.setIsAdmin(true);
 		if (adminCount>1) throw new DatastoreException("Expected 0-1 but found "+adminCount);
 		return theMember;
@@ -542,7 +544,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public long getAdminMemberCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		return simpleJdbcTemplate.queryForLong(SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT, param, Long.class);
 
 	}
 
@@ -550,7 +552,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public long getMembersCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		return simpleJdbcTemplate.queryForLong(SELECT_MEMBERS_OF_TEAM_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_MEMBERS_OF_TEAM_COUNT, param, Long.class);
 	}
 
 }

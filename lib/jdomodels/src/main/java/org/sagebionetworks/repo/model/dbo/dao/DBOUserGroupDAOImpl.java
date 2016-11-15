@@ -34,8 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
@@ -52,12 +51,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	
 	private List<BootstrapPrincipal> bootstrapPrincipals;
 	
 	private static final String ID_PARAM_NAME = "id";
-	private static final String NAME_PARAM_NAME = "name";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
 	private static final String ETAG_PARAM_NAME = "etag";
 
@@ -73,9 +71,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-		
-	private static final String SELECT_ALL = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
 	
 	private static final String SELECT_ETAG_AND_LOCK_ROW_BY_ID = 
 			"SELECT "+SqlConstants.COL_USER_GROUP_E_TAG+" FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -106,7 +101,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, param, userGroupRowMapper);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
@@ -114,7 +109,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Override
 	public List<UserGroup> getAllPrincipals() {
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SQL_SELECT_ALL, userGroupRowMapper);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SQL_SELECT_ALL, userGroupRowMapper);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
@@ -134,7 +129,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, param, userGroupRowMapper);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
@@ -183,7 +178,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(ID_PARAM_NAME, id);
 		try{
-			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_USER_GROUPS, parameters);
+			long count = namedJdbcTemplate.queryForObject(SQL_COUNT_USER_GROUPS, parameters, Long.class);
 			return count > 0;
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
@@ -217,7 +212,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, ids);
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_MULTI_BY_PRINCIPAL_IDS, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_MULTI_BY_PRINCIPAL_IDS, param, userGroupRowMapper);
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 	}
@@ -286,14 +281,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_ETAG_AND_LOCK_ROW_BY_ID, 
+			return namedJdbcTemplate.queryForObject(SELECT_ETAG_AND_LOCK_ROW_BY_ID, param,
 				new RowMapper<String>() {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						return rs.getString(SqlConstants.COL_USER_GROUP_E_TAG);
 					}
-				}, param);
+				});
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Principal ID "+id+" not found in system.");
 		}
@@ -305,7 +300,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
-		simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
+		namedJdbcTemplate.update(UPDATE_ETAG_LIST, param);
 	}
 
 }

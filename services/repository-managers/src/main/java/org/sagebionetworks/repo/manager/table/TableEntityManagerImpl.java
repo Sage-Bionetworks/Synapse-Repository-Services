@@ -29,15 +29,16 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
-import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -67,7 +69,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class TableEntityManagerImpl implements TableEntityManager {
+public class TableEntityManagerImpl implements TableEntityManager, UploadRowProcessor {
 	
 	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
 
@@ -91,6 +93,8 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	TransactionTemplate readCommitedTransactionTemplate;
+	@Autowired
+	TableUploadManager tableUploadManager;
 	
 	/**
 	 * Injected via spring
@@ -113,7 +117,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Long> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Void> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
@@ -132,7 +136,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
-			PartialRowSet partial, ProgressCallback<Long> progressCallback)
+			PartialRowSet partial, ProgressCallback<Void> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
@@ -190,7 +194,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
-			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
+			RowReferenceSet results, ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
 		ValidateArgument.required(columns, "columns");
@@ -261,11 +265,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	 * @throws ReadOnlyException If the stack status is anything other than READ_WRITE
 	 */
 	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> columns, SparseChangeSet delta, RowReferenceSet results,
-			ProgressCallback<Long> progressCallback)
+			ProgressCallback<Void> progressCallback)
 			throws IOException, ReadOnlyException {
 		RowReferenceSet rrs = appendRowsToTable(user, columns, delta);
 		if(progressCallback != null){
-			progressCallback.progressMade(new Long(rrs.getRows().size()));
+			progressCallback.progressMade(null);
 		}
 		if(results != null){
 			results.setEtag(rrs.getEtag());
@@ -573,6 +577,11 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		if(change instanceof TableSchemaChangeRequest){
 			TableSchemaChangeRequest schemaChange = (TableSchemaChangeRequest) change;
 			return containsColumnUpdate(schemaChange.getChanges());
+		}else if(change instanceof UploadToTableRequest){
+			// might switch to true to support uniqueness constraints.
+			return false;
+		}else if(change instanceof AppendableRowSetRequest){
+			return false;
 		}else{
 			throw new IllegalArgumentException("Unknown change type: "+change.getClass().getName());
 		}
@@ -612,6 +621,10 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(change, "change");
 		if(change instanceof TableSchemaChangeRequest){
 			validateSchemaUpdateRequest(callback, userInfo, (TableSchemaChangeRequest)change, indexManager);
+		}else if(change instanceof UploadToTableRequest){
+			// nothing to validate
+		}else if(change instanceof AppendableRowSetRequest){
+			// nothing to validate
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
@@ -651,11 +664,73 @@ public class TableEntityManagerImpl implements TableEntityManager {
 		ValidateArgument.required(change, "change");
 		if(change instanceof TableSchemaChangeRequest){
 			return updateTableSchema(callback, userInfo, (TableSchemaChangeRequest)change);
+		}else if(change instanceof UploadToTableRequest){
+			return uploadToTable(callback, userInfo, (UploadToTableRequest)change);
+		}else if(change instanceof AppendableRowSetRequest){
+			return appendToTable(callback, userInfo, (AppendableRowSetRequest)change);
 		}else{
 			throw new IllegalArgumentException("Unknown request type: "+change.getClass().getName());
 		}
 	}
 	
+	/**
+	 * Append a rowset to a table from a transaction.
+	 * @param callback
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	TableUpdateResponse appendToTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, AppendableRowSetRequest request) {
+		ValidateArgument.required(request.getToAppend(), "AppendableRowSetRequest.toAppend");
+		try {
+			RowReferenceSet results = null;
+			if(request.getToAppend() instanceof PartialRowSet){
+				PartialRowSet partialRowSet = (PartialRowSet) request.getToAppend();
+				results =  appendPartialRows(userInfo, partialRowSet.getTableId(), partialRowSet, callback);
+			}else if(request.getToAppend() instanceof RowSet){
+				RowSet rowSet = (RowSet)request.getToAppend();
+				results = appendRows(userInfo, rowSet.getTableId(), rowSet, callback);
+			}else{
+				throw new IllegalArgumentException("Unknown RowSet type: "+request.getToAppend().getClass().getName());
+			}
+			RowReferenceSetResults  rrsr = new RowReferenceSetResults();
+			rrsr.setRowReferenceSet(results);
+			return rrsr;
+		} catch (DatastoreException e) {
+			throw new RuntimeException(e);
+		} catch (NotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+
+	/**
+	 * Upload the given file request to 
+	 * @param callback
+	 * @param userInfo
+	 * @param change
+	 * @return
+	 * @throws IOException 
+	 */
+	TableUpdateResponse uploadToTable(ProgressCallback<Void> callback,
+			UserInfo userInfo, UploadToTableRequest change) {
+		// upload the CSV to the table.
+		return tableUploadManager.uploadCSV(callback, userInfo, change, this);
+
+	}
+	
+	@Override
+	public String processRows(UserInfo user, String tableId,
+			List<ColumnModel> tableSchema, Iterator<SparseRowDto> rowStream,
+			String updateEtag, ProgressCallback<Void> progressCallback)
+			throws DatastoreException, NotFoundException, IOException {
+		return appendRowsAsStream(user, tableId, tableSchema, rowStream, updateEtag, null, progressCallback);
+	}
+
+
 	/**
 	 * Apply a validated schema change request.
 	 * 

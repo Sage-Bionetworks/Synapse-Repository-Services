@@ -38,6 +38,17 @@ public class ColumnTypeInfoTest {
 	}
 	
 	@Test
+	public void testParseUserId(){
+		Object dbValue = ColumnTypeInfo.USERID.parseValueForDB("123");
+		assertEquals(new Long(123),dbValue);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testParseUserIdBad(){
+		ColumnTypeInfo.USERID.parseValueForDB("foo");
+	}
+	
+	@Test
 	public void testParseDateLong(){
 		Object dbValue = ColumnTypeInfo.DATE.parseValueForDB("123");
 		assertEquals(new Long(123),dbValue);
@@ -170,6 +181,22 @@ public class ColumnTypeInfoTest {
 		String defaultValue = "123";
 		String sql = ColumnTypeInfo.FILEHANDLEID.toSql(inputSize, defaultValue);
 		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'FILEHANDLEID'", sql);
+	}
+	
+	@Test
+	public void testToSqlUserIdDefaultNull(){
+		Long inputSize = null;
+		String defaultValue = null;
+		String sql = ColumnTypeInfo.USERID.toSql(inputSize, defaultValue);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'USERID'", sql);
+	}
+	
+	@Test
+	public void testToSqlUserIdWithDefault(){
+		Long inputSize = null;
+		String defaultValue = "123";
+		String sql = ColumnTypeInfo.USERID.toSql(inputSize, defaultValue);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'USERID'", sql);
 	}
 	
 	@Test

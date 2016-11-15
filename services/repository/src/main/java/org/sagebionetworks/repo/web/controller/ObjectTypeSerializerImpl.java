@@ -15,7 +15,7 @@ import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
-import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 /**
  * Utility for serializing/deserializing objects using the same HttpMessageConverters
@@ -28,7 +28,7 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
-	MappingJacksonHttpMessageConverter jacksonConverter = new MappingJacksonHttpMessageConverter();
+	MappingJackson2HttpMessageConverter jacksonConverter = new MappingJackson2HttpMessageConverter();
 	JSONEntityHttpMessageConverter jsonEntityConverter = new JSONEntityHttpMessageConverter();
 	
 

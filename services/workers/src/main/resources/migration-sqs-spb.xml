@@ -10,8 +10,11 @@
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-
-	<bean id="tableAppendRowSetMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	
+	<bean id="requestProcessor" class="org.sagebionetworks.migration.worker.AsyncMigrationRequestProcessorImpl"
+		scope="singleton" />
+	
+	<bean id="migrationMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,17 +29,14 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean
-										class="org.sagebionetworks.table.worker.TableAppendRowSetWorker" />
+									<bean class="org.sagebionetworks.migration.worker.MigrationWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="tableAppendRowSet" />
-								<property name="semaphoreMaxLockCount" value="20" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="60" />
-								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[APPEND_ROW_SET_TO_TABLE]" />
+								<property name="semaphoreLockKey" value="migration" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
+								<property name="queueName" ref="stackConfiguration.asyncQueueName[MIGRATION]"/>
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
 							</bean>
 						</constructor-arg>
@@ -46,9 +46,9 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="256" />
-		<property name="repeatInterval" value="1897" />
+		<!-- We stagger the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="154" />
+		<property name="repeatInterval" value="5000" />
 	</bean>
 
 </beans>

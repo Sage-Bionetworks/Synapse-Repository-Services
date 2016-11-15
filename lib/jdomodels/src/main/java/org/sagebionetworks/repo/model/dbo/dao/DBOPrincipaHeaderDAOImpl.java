@@ -18,8 +18,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Sets;
@@ -27,7 +26,7 @@ import com.google.common.collect.Sets;
 public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -128,7 +127,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	public long delete(long principalId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		return simpleJdbcTemplate.update(DELETE_BY_ID, params);
+		return namedJdbcTemplate.update(DELETE_BY_ID, params);
 	}
 
 	@Override
@@ -159,7 +158,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		
-		return simpleJdbcTemplate.query(sql, rowMapper, params);
+		return namedJdbcTemplate.query(sql, params, rowMapper);
 	}
 	
 	@Override
@@ -187,7 +186,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		
-		return simpleJdbcTemplate.queryForLong(sql, params);
+		return namedJdbcTemplate.queryForObject(sql, params, Long.class);
 	}
 	
 	/**

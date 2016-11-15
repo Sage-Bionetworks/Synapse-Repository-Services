@@ -67,7 +67,7 @@ public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO
 
 	@Override
 	public long countReceipts(long userId) {
-		return jdbcTemplate.queryForLong(SQL_COUNT, userId);
+		return jdbcTemplate.queryForObject(SQL_COUNT, Long.class, userId);
 	}
 
 	@WriteTransactionReadCommitted

@@ -33,6 +33,10 @@
 		"hasUnmetAccessRequirement": {
 			"type": "boolean",
 			"description": "true if and only if  there is at least one unmet access requirement for the user on the team"
+		},
+		"canSendEmail": {
+			"type": "boolean",
+			"description": "true if and only if the user can send an email to the team"
 		}
 	}
 }

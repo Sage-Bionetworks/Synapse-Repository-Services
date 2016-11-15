@@ -1,4 +1,7 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.object.snapshot.worker.utils.CertifiedUserPassingRecordWriter.LIMIT;
 
 import java.io.IOException;
@@ -14,6 +17,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -36,6 +40,8 @@ public class CertifiedUserPassingRecordWriterTest {
 	private UserManager mockUserManager;
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDAO;
+	@Mock
+	private ProgressCallback<Void> mockCallback;
 	private CertifiedUserPassingRecordWriter writer;
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
@@ -50,18 +56,20 @@ public class CertifiedUserPassingRecordWriterTest {
 		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDAO);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test
 	public void deleteChangeMessage() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
+		verify(mockCallback).progressMade(null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.ENTITY, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
 
 	@Test
@@ -73,9 +81,10 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
-		Mockito.verifyNoMoreInteractions(mockObjectRecordDAO);
+		verifyZeroInteractions(mockObjectRecordDAO);
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -93,9 +102,10 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
-		Mockito.verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
+		verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
+		verify(mockCallback, times(3)).progressMade(null);
 	}
 
 	@Test
@@ -103,8 +113,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		PassingRecord passingRecord = new PassingRecord();
 		long timestamp = System.currentTimeMillis();
 		ObjectRecord record = ObjectRecordBuilderUtils.buildObjectRecord(passingRecord, timestamp);
-		List<ObjectRecord> orList = new ArrayList<ObjectRecord>();
-		orList.add(record);
 		PaginatedResults<PassingRecord> pageOne = new PaginatedResults<PassingRecord>();
 		pageOne.setTotalNumberOfResults(11);
 		pageOne.setResults(Arrays.asList(passingRecord));
@@ -113,8 +121,9 @@ public class CertifiedUserPassingRecordWriterTest {
 
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.CERTIFIED_USER_PASSING_RECORD, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
-		Mockito.verify(mockObjectRecordDAO, Mockito.times(2)).saveBatch(orList, record.getJsonClassName());
+		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
+		verify(mockCallback, times(4)).progressMade(null);
 	}
 }

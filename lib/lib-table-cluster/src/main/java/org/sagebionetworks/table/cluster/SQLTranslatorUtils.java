@@ -229,6 +229,7 @@ public class SQLTranslatorUtils {
 		case DOUBLE:
 		case DATE:
 		case FILEHANDLEID:
+		case USERID:
 			return true;
 		default:
 			return false;

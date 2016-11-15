@@ -1,6 +1,7 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,10 +11,13 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -36,47 +40,54 @@ import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 
 public class NodeObjectRecordWriterTest {
 
+	@Mock
 	private NodeDAO mockNodeDAO;
+	@Mock
+	private UserManager mockUserManager;
+	@Mock
+	private AccessRequirementManager mockAccessRequirementManager;
+	@Mock
+	private EntityPermissionsManager mockEntityPermissionManager;
+	@Mock
+	private QueryResults<AccessRequirement> mockArs;
+	@Mock
+	private UserEntityPermissions mockPermissions;
+	@Mock
+	private UserInfo mockUserInfo;
+	@Mock
+	private ObjectRecordDAO mockObjectRecordDao;
+	@Mock
+	private ProgressCallback<Void> mockCallback;
+
 	private NodeObjectRecordWriter writer;
 	private NodeRecord node;
-	private UserManager mockUserManager;
-	private AccessRequirementManager mockAccessRequirementManager;
-	private EntityPermissionsManager mockEntityPermissionManager;
-	private QueryResults<AccessRequirement> mockArs;
-	private UserEntityPermissions mockPermissions;
-	private UserInfo mockUserInfo;
-	private ObjectRecordDAO mockObjectRecordDao;
 
 	@Before
 	public void setup() {
-		mockNodeDAO = Mockito.mock(NodeDAO.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockAccessRequirementManager = Mockito.mock(AccessRequirementManager.class);
-		mockEntityPermissionManager = Mockito.mock(EntityPermissionsManager.class);
-		mockObjectRecordDao = Mockito.mock(ObjectRecordDAO.class);
-		writer = new NodeObjectRecordWriter(mockNodeDAO, mockUserManager,
-				mockAccessRequirementManager, mockEntityPermissionManager,
-				mockObjectRecordDao);
+		MockitoAnnotations.initMocks(this);
+		writer = new NodeObjectRecordWriter();
+		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
+		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(writer, "accessRequirementManager", mockAccessRequirementManager);
+		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityPermissionManager);
+		ReflectionTestUtils.setField(writer, "objectRecordDAO", mockObjectRecordDao);
 
 		node = new NodeRecord();
 		node.setId("123");
-		Mockito.when(mockNodeDAO.getNode("123")).thenReturn(node);
+		when(mockNodeDAO.getNode("123")).thenReturn(node);
 
-		mockUserInfo = Mockito.mock(UserInfo.class);
-		mockArs = Mockito.mock(QueryResults.class);
-		mockPermissions = Mockito.mock(UserEntityPermissions.class);
-
-		Mockito.when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
-		Mockito.when(mockAccessRequirementManager
+		when(mockAccessRequirementManager
 				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
 				.thenReturn(mockArs);
-		Mockito.when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
+		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
 	}
 
@@ -86,7 +97,8 @@ public class NodeObjectRecordWriterTest {
 		String nodeId = "123";
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(nodeId);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
@@ -97,16 +109,16 @@ public class NodeObjectRecordWriterTest {
 	public void invalidObjectType() throws IOException {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.TABLE, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 	}
 
 	@Test
 	public void notPublicTest() throws IOException {
 		// not restricted, not controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		Mockito.when(mockArs.getResults()).thenReturn(ars);
+		when(mockArs.getResults()).thenReturn(ars);
 		// not public
-		Mockito.when(mockPermissions.getCanPublicRead()).thenReturn(false);
+		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
@@ -117,18 +129,19 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
 
 	@Test
 	public void publicTest() throws IOException {
 		// not restricted, not controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		Mockito.when(mockArs.getResults()).thenReturn(ars);
+		when(mockArs.getResults()).thenReturn(ars);
 		// not public
-		Mockito.when(mockPermissions.getCanPublicRead()).thenReturn(true);
+		when(mockPermissions.getCanPublicRead()).thenReturn(true);
 
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
@@ -139,9 +152,10 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
 
 	@Test
@@ -149,9 +163,9 @@ public class NodeObjectRecordWriterTest {
 		// Restricted
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new PostMessageContentAccessRequirement());
-		Mockito.when(mockArs.getResults()).thenReturn(ars);
+		when(mockArs.getResults()).thenReturn(ars);
 		// not public
-		Mockito.when(mockPermissions.getCanPublicRead()).thenReturn(false);
+		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
@@ -162,9 +176,10 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
 
 	@Test
@@ -172,9 +187,9 @@ public class NodeObjectRecordWriterTest {
 		// controlled
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new ACTAccessRequirement());
-		Mockito.when(mockArs.getResults()).thenReturn(ars);
+		when(mockArs.getResults()).thenReturn(ars);
 		// not public
-		Mockito.when(mockPermissions.getCanPublicRead()).thenReturn(false);
+		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
@@ -185,9 +200,10 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(false);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
 
 	@Test
@@ -196,9 +212,9 @@ public class NodeObjectRecordWriterTest {
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		ars.add(new ACTAccessRequirement());
 		ars.add(new TermsOfUseAccessRequirement());
-		Mockito.when(mockArs.getResults()).thenReturn(ars);
+		when(mockArs.getResults()).thenReturn(ars);
 		// not public
-		Mockito.when(mockPermissions.getCanPublicRead()).thenReturn(true);
+		when(mockPermissions.getCanPublicRead()).thenReturn(true);
 
 		Long timestamp = System.currentTimeMillis();
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, "123", ObjectType.ENTITY, "etag", timestamp);
@@ -209,9 +225,10 @@ public class NodeObjectRecordWriterTest {
 		node.setIsRestricted(true);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
-		writer.buildAndWriteRecord(changeMessage);
-		Mockito.verify(mockNodeDAO).getNode(Mockito.eq("123"));
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
+		verify(mockCallback, times(2)).progressMade(null);
+		verify(mockNodeDAO).getNode(eq("123"));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
 
 	@Test
@@ -247,17 +264,18 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void testNodeInTrashCan() throws IOException {
 		EntityInTrashCanException exception = new EntityInTrashCanException("");
-		Mockito.when(mockPermissions.getCanPublicRead()).thenThrow(exception);
+		when(mockPermissions.getCanPublicRead()).thenThrow(exception);
 
 		Long timestamp = System.currentTimeMillis();
 		String nodeId = "123";
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, nodeId, ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 
-		writer.buildAndWriteRecord(changeMessage);
+		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(nodeId);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
-		Mockito.verify(mockObjectRecordDao).saveBatch(Mockito.eq(Arrays.asList(expected)), Mockito.eq(expected.getJsonClassName()));
+		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
+		verify(mockCallback, times(2)).progressMade(null);
 	}
 }

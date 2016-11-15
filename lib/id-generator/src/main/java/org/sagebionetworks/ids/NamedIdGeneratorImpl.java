@@ -15,7 +15,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 public class NamedIdGeneratorImpl implements NamedIdGenerator {
 	// Create table template
@@ -54,7 +53,7 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 		try{
 			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL, type.name()), name, now);
 			// Get the ID we just created.
-			return idGeneratorJdbcTemplate.queryForLong(String.format(GET_ID_SQL, type.name()));
+			return idGeneratorJdbcTemplate.queryForObject(String.format(GET_ID_SQL, type.name()), Long.class);
 		}catch(DuplicateKeyException e){
 			// When this occurs we already have a key for this name so return that
 			return idGeneratorJdbcTemplate.queryForObject(String.format("SELECT ID FROM %1$s WHERE NAME = ?", type.name()), new RowMapper<Long>(){
@@ -75,7 +74,7 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// First we need to determine if this name has already been assigned a number?
 		try{
-			Long namesId =  idGeneratorJdbcTemplate.queryForLong(String.format("SELECT ID FROM %1$s where NAME = ? FOR UPDATE", type.name()), name);
+			Long namesId =  idGeneratorJdbcTemplate.queryForObject(String.format("SELECT ID FROM %1$s where NAME = ? FOR UPDATE", type.name()), Long.class, name);
 			if(idToLock.equals(namesId)){
 				// This name is already assigned to the given ID so there is nothing to do.
 				return;

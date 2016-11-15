@@ -39,6 +39,8 @@ public class ByteSizeUtils {
 					size += Integer.SIZE;
 				}else if(Types.INTEGER == type){
 					size += Integer.SIZE;
+				}else if(Types.BOOLEAN == type){
+						size += 1;
 				}else if(Integer.MIN_VALUE == type){
 					// Need to use reflection for this case
 					if(value instanceof byte[]){
