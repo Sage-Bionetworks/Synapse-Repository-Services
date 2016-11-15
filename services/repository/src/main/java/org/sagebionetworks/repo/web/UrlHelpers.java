@@ -182,6 +182,7 @@ public class UrlHelpers {
 	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
 	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
 	public static final String ASYNCHRONOUS_JOB_CANCEL = ASYNCHRONOUS_JOB_ID + "/cancel";
+	public static final String ADMIN_ASYNCHRONOUS_JOB = ADMIN + ASYNCHRONOUS_JOB;
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
