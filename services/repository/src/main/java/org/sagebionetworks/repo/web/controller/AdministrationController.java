@@ -14,6 +14,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -326,4 +329,22 @@ public class AdministrationController extends BaseController {
 			throw t;
 		}
 	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param body
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, method = RequestMethod.POST)
+	public @ResponseBody
+	AsynchronousJobStatus launchNewJob(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AsynchronousAdminRequestBody body) throws NotFoundException {
+		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
+	}
+	
+
 }
