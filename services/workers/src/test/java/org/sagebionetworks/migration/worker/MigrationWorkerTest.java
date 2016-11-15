@@ -51,8 +51,6 @@ public class MigrationWorkerTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
-	@Mock
 	private MigrationManager mockMigrationManager;
 	
 	ExecutorService migrationExecutorService;
@@ -91,7 +89,7 @@ public class MigrationWorkerTest {
 		AsyncMigrationTypeCountResult expectedAsyncRes = new AsyncMigrationTypeCountResult();
 		expectedAsyncRes.setCount(expectedTypeCount);
 		
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -107,7 +105,7 @@ public class MigrationWorkerTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getMigrationTypeCount(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
 		
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -132,7 +130,7 @@ public class MigrationWorkerTest {
 		AsyncMigrationRangeChecksumResult expectedAsyncRes = new AsyncMigrationRangeChecksumResult();
 		expectedAsyncRes.setChecksum(expectedChecksum);
 		
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -151,7 +149,7 @@ public class MigrationWorkerTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getChecksumForIdRange(any(UserInfo.class), any(MigrationType.class), anyString(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -171,7 +169,7 @@ public class MigrationWorkerTest {
 		AsyncMigrationTypeChecksumResult expectedAsyncRes = new AsyncMigrationTypeChecksumResult();
 		expectedAsyncRes.setChecksum(expectedChecksum);
 		
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -187,7 +185,7 @@ public class MigrationWorkerTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getChecksumForType(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
 	
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mtcr, jobId);
+		migrationWorker.processRequest(userInfo, mtcr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -217,7 +215,7 @@ public class MigrationWorkerTest {
 		AsyncMigrationRowMetadataResult expectedAsyncRes = new AsyncMigrationRowMetadataResult();
 		expectedAsyncRes.setRowMetadata(expectedRowMetadataRes);;
 		
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mrmr, jobId);
+		migrationWorker.processRequest(userInfo, mrmr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
 		
@@ -237,7 +235,7 @@ public class MigrationWorkerTest {
 		Exception expectedException = new IllegalArgumentException("SomeException");
 		when(mockMigrationManager.getRowMetadataByRangeForType(any(UserInfo.class), any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mrmr, jobId);
+		migrationWorker.processRequest(userInfo, mrmr, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
@@ -287,7 +285,7 @@ public class MigrationWorkerTest {
 		AsyncMigrationInvalidRequest mri = new AsyncMigrationInvalidRequest();
 		Exception expectedException = new IllegalArgumentException("SomeException");
 	
-		migrationWorker.processAsyncMigrationRequest(mockProgressCallback, userInfo, mri, jobId);
+		migrationWorker.processRequest(userInfo, mri, jobId);
 		
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
 		
