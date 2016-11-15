@@ -24,10 +24,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -35,13 +34,9 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;	
+	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
-	private AccessApprovalDAO accessApprovalDAO;	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private EvaluationDAO evaluationDAO;
+	private AccessApprovalDAO accessApprovalDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
@@ -157,4 +152,19 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
+	@WriteTransaction
+	@Override
+	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
+			throws UnauthorizedException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(accessorId, "accessorId");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member may delete an access approval.");
+		}
+		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
+		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
+				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
+		accessApprovalDAO.delete(accessRequirementId, accessorId);
+	}
 }

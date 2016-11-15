@@ -1197,11 +1197,21 @@ public class ServletTestHelper {
 				response, AccessApproval.class);
 	}
 
-	public void deleteAccessApprovals(HttpServlet dispatchServlet,
+	public void deleteAccessApproval(HttpServlet dispatchServlet,
 			String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL + "/" + id, userId,
 				null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public void deleteAccessApprovals(HttpServlet dispatchServlet, Long userId,
+			String requirementId, String accessorId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL + "/" + requirementId + "/" + accessorId,
+				userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);

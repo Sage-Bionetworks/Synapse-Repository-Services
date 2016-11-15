@@ -13,16 +13,14 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@Autowired
-	AccessApprovalManager accessApprovalManager;	
+	AccessApprovalManager accessApprovalManager;
 	@Autowired
 	UserManager userManager;
 	@Autowired
@@ -62,10 +60,17 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@WriteTransaction
 	@Override
-	public void deleteAccessApprovals(Long userId, String approvalId) 
+	public void deleteAccessApproval(Long userId, String approvalId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessApprovalManager.deleteAccessApproval(userInfo, approvalId);
 	}
-	
+
+	@WriteTransaction
+	@Override
+	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId) 
+			throws UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		accessApprovalManager.deleteAccessApprovals(userInfo, accessRequirementId, accessorId);
+	}
 }

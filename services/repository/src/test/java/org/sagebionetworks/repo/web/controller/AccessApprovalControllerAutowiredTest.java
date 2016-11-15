@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,7 +156,16 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		assertEquals(1, ars.size());
 		
 		// test deletion
-		servletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userId);
+		servletTestHelper.deleteAccessApproval(dispatchServlet, ars.get(0).getId().toString(), userId);
+
+		// test deletion using access requirementId and accessorId
+		try {
+			servletTestHelper.deleteAccessApprovals(dispatchServlet, userId, entityAccessRequirement.getId().toString(), testUser.getId().toString());
+			fail("Expecting IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// The service is wired up.
+			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
+		}
 		
 		results = servletTestHelper.getEntityAccessApprovals(
 				dispatchServlet, entityId, userId);	
@@ -180,7 +190,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		assertEquals(1, ars.size());
 		
 		// test deletion
-		servletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userId);
+		servletTestHelper.deleteAccessApproval(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
 		results = servletTestHelper.getEvaluationAccessApprovals(
 				dispatchServlet, evaluation.getId(), userId);	

@@ -450,7 +450,8 @@ public class UrlHelpers {
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
-	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
+	private static final String ACCESS_REQUIREMENT_ID = "/{requirementId}";
+	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+ACCESS_REQUIREMENT_ID;
 	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 	
 	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
@@ -458,6 +459,8 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
+	public static final String ACCESS_APPROVAL_ACCESS_REQUIREMENT_ID_ACCESSOR_ID =
+			ACCESS_APPROVAL + ACCESS_REQUIREMENT_ID + "/{accessorId}";
 	
 	/**
 	 * URL prefix for Users in a UserGroup

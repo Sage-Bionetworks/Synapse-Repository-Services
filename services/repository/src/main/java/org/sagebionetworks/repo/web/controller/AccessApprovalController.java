@@ -160,10 +160,27 @@ public class AccessApprovalController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
-	public void deleteAccessApprovals(
+	public void deleteAccessApproval(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
+		serviceProvider.getAccessApprovalService().deleteAccessApproval(userId, approvalId);
 	}
-	
+
+	/**
+	 * Delete Access Approval. This service is only available to the ACT.
+	 * @param userId - The user who is making the request
+	 * @param accessRequirementId - The access requirement to look for
+	 * @param accessorId - The user whose access is being revoked
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_ACCESS_REQUIREMENT_ID_ACCESSOR_ID, method = RequestMethod.DELETE)
+	public void deleteAccessApprovals(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@PathVariable String accessorId)
+					throws UnauthorizedException, NotFoundException {
+		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, requirementId, accessorId);
+	}
 }
