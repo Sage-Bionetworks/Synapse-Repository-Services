@@ -12,6 +12,8 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class ValidatedQueryFacetColumn {
+	static final String NULL_VALUE_KEYWORD = "org.sagebionetworks.UNDEFINED_NULL_NOTSET";
+	
 	private String columnName;
 	private FacetType facetType;
 	private FacetColumnRequest facetColumnRequest;
@@ -124,8 +126,12 @@ public class ValidatedQueryFacetColumn {
 				builder.append(" OR ");
 			}
 			builder.append(columnName);
-			builder.append("=");
-			appendValueToStringBuilder(builder, value);
+			if(value.equals(NULL_VALUE_KEYWORD)){
+				builder.append(" IS NULL");
+			}else{
+				builder.append("=");
+				appendValueToStringBuilder(builder, value);
+			}
 		}
 		builder.append(")");
 		return builder.toString();
