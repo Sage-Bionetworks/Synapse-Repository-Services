@@ -4,8 +4,8 @@ import java.io.IOException;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
 
 public interface TableUploadManager {
 
@@ -19,6 +19,6 @@ public interface TableUploadManager {
 	 * @return
 	 * @throws IOException
 	 */
-	public UploadToTableResult uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor);
+	public TableUpdateResponse uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor);
 
 }

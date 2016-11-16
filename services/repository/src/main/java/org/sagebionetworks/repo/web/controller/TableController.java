@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
@@ -328,8 +326,9 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody TableUpdateTransactionRequest request)
 			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
+		ValidateArgument.required(id, "{id}");
+		ValidateArgument.required(request, "TableUpdateTransactionRequest");
+		request.setEntityId(id);
 		AsynchronousJobStatus job = serviceProvider
 				.getAsynchronousJobServices().startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
@@ -466,8 +465,7 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody AppendableRowSetRequest request)
 			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
+		ValidateArgument.required(id, "{id}");
 		ValidateArgument.required(request, "AppendableRowSetRequest");
 		request.setEntityId(id);
 		// wrap the job as a transaction
@@ -1112,8 +1110,7 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody UploadToTableRequest uploadRequest)
 			throws DatastoreException, NotFoundException, IOException {
-		if (id == null)
-			throw new IllegalArgumentException("{id} cannot be null");
+		ValidateArgument.required(id, "{id}");
 		ValidateArgument.required(uploadRequest, "UploadToTableRequest");
 		uploadRequest.setEntityId(id);
 		// wrap the job as a transaction

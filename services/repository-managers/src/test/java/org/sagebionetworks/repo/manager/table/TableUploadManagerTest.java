@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -27,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -108,26 +108,31 @@ public class TableUploadManagerTest {
 		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
 		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
 		rowsRead = new LinkedList<SparseRowDto>();
-		doAnswer(new Answer<String>(){
+		doAnswer(new Answer<TableUpdateResponse>(){
 			@Override
-			public String answer(InvocationOnMock invocation) throws Throwable {
+			public TableUpdateResponse answer(InvocationOnMock invocation) throws Throwable {
+				UploadToTableResult result = new UploadToTableResult();
 				int count = 0;
 				Iterator<SparseRowDto> it = (Iterator<SparseRowDto>) invocation.getArguments()[3];
 				while(it.hasNext()){
 					rowsRead.add(it.next());
 					count++;
 				}
-				return "etag"+count;
+				result.setEtag("etag"+count);
+				result.setRowsProcessed(new Long(count));
+				return result;
 			}}).when(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), eq(tableSchema), any(Iterator.class), eq(uploadRequest.getUpdateEtag()), eq(mockProgressCallback));
 	}
 	
 	@Test
 	public void testHappyCase() throws IOException{
 		// call under test;
-		UploadToTableResult results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
+		TableUpdateResponse results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
 		assertNotNull(results);
-		assertEquals("etag2", results.getEtag());
-		assertEquals(new Long(2), results.getRowsProcessed());
+		assertTrue(results instanceof UploadToTableResult);
+		UploadToTableResult uploadResult = (UploadToTableResult)results;
+		assertEquals("etag2", uploadResult.getEtag());
+		assertEquals(new Long(2), uploadResult.getRowsProcessed());
 		assertEquals(2, rowsRead.size());
 		verify(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), eq(tableSchema), any(Iterator.class), eq(uploadRequest.getUpdateEtag()), eq(mockProgressCallback));
 	}

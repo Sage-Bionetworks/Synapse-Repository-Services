@@ -85,6 +85,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -416,14 +417,18 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
+		assertNotNull(response);
+		assertTrue(response instanceof UploadToTableResult);
+		UploadToTableResult uploadToTableResult = (UploadToTableResult)response;
 		assertNotNull(results);
 		assertEquals(tableId, results.getTableId());
 		assertEquals(range.getEtag(), results.getEtag());
 		assertEquals(TableModelUtils.getSelectColumns(models),results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(10, results.getRows().size());
-		assertEquals(results.getEtag(), etag);
+		assertEquals(results.getEtag(), uploadToTableResult.getEtag());
+		assertEquals(new Long(10), uploadToTableResult.getRowsProcessed());
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockProgressCallback).progressMade(null);
@@ -460,10 +465,13 @@ public class TableEntityManagerTest {
 		// With this max, there should be three batches (4,8,2)
 		manager.setMaxBytesPerChangeSet(actualSizeFristRowBytes*3);
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
-		assertEquals(range.getEtag(), etag);
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(), "etag", results, mockProgressCallback);
+		assertNotNull(response);
+		assertTrue(response instanceof UploadToTableResult);
+		UploadToTableResult uploadToTableResult = (UploadToTableResult)response;
+		assertEquals(range.getEtag(), uploadToTableResult.getEtag());
 		assertEquals(tableId, results.getTableId());
-		assertEquals(etag, results.getEtag());
+		assertEquals(range.getEtag(), results.getEtag());
 		// All ten rows should be referenced
 		assertNotNull(results.getRows());
 		assertEquals(10, results.getRows().size());

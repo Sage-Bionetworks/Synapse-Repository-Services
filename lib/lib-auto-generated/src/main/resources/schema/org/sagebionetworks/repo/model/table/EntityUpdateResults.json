@@ -1,0 +1,17 @@
+{
+	"description": "A list of EntityUpdateResults",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.table.TableUpdateResponse"
+        }
+    ],
+	"properties": {
+		"requestedFiles": {
+			"type": "array",
+			"description": "Defines the files to get.",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.table.EntityUpdateResult"
+			}
+		}
+	}
+}

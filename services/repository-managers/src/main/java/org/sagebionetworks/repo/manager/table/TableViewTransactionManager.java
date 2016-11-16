@@ -9,6 +9,8 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityUpdateFailureCode;
+import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
@@ -23,8 +25,8 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
@@ -101,7 +103,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param change
 	 * @return
 	 */
-	UploadToTableResult applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
+	TableUpdateResponse applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
 			UploadToTableRequest change) {
 		return tableUploadManager.uploadCSV(progressCallback, user, change, this);
 	}
@@ -114,16 +116,16 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param change
 	 * @return
 	 */
-	RowReferenceSetResults applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
+	TableUpdateResponse applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
 			AppendableRowSetRequest change) {
 		ValidateArgument.required(change, "AppendableRowSetRequest");
 		ValidateArgument.required(change.getToAppend(), "AppendableRowSetRequest.toAppend");
 		ValidateArgument.required(change.getEntityId(), "AppendableRowSetRequest.entityId");
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(change.getEntityId());
 		if(change.getToAppend() instanceof PartialRowSet){
-			return applyRowChagne(progressCallback, user, currentSchema, (PartialRowSet)change.getToAppend());
+			return applyPartialRowSet(progressCallback, user, currentSchema, (PartialRowSet)change.getToAppend());
 		}else if(change.getToAppend() instanceof RowSet){
-			return applyRowChagne(progressCallback, user, currentSchema, (RowSet)change.getToAppend());
+			return applyRowSet(progressCallback, user, currentSchema, (RowSet)change.getToAppend());
 		}else{
 			throw new IllegalArgumentException("Unknown AppendableRowSet type: "+change.getToAppend().getClass().getName());
 		}
@@ -135,30 +137,24 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param progressCallback
 	 * @param user
 	 * @param currentSchema
-	 * @param toAppend
+	 * @param rowSet
 	 * @return
 	 */
-	RowReferenceSetResults applyRowChagne(
+	TableUpdateResponse applyRowSet(
 			ProgressCallback<Void> progressCallback, UserInfo user, List<ColumnModel> currentSchema,
-			RowSet toAppend) {
+			RowSet rowSet) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(currentSchema, "currentSchema");
-		ValidateArgument.required(toAppend, "RowSet");
-		ValidateArgument.required(toAppend.getTableId(), "RowSet.tableId");
+		ValidateArgument.required(rowSet, "RowSet");
+		ValidateArgument.required(rowSet.getTableId(), "RowSet.tableId");
 		
 		// Validate the request is under the max bytes per requested
-		TableModelUtils.validateRequestSize(currentSchema, toAppend, stackConfig.getTableMaxBytesPerRequest());
+		TableModelUtils.validateRequestSize(currentSchema, rowSet, stackConfig.getTableMaxBytesPerRequest());
 		// convert
-		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(toAppend, currentSchema);
+		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(rowSet, currentSchema);
 		SparseChangeSetDto dto = sparseChangeSet.writeToDto();
 		//process all rows.
-		processRows(user, toAppend.getTableId(), currentSchema, dto.getRows().iterator(), null, progressCallback);
-		
-		RowReferenceSet refSet = new RowReferenceSet();
-		refSet.setTableId(toAppend.getTableId());
-		RowReferenceSetResults results = new RowReferenceSetResults();
-		results.setRowReferenceSet(refSet);
-		return results;
+		return processRows(user, rowSet.getTableId(), currentSchema, dto.getRows().iterator(), null, progressCallback);
 	}
 
 	/**
@@ -170,7 +166,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param partialRowSet
 	 * @return
 	 */
-	RowReferenceSetResults applyRowChagne(
+	TableUpdateResponse applyPartialRowSet(
 			ProgressCallback<Void> progressCallback, UserInfo user, List<ColumnModel> currentSchema,
 			PartialRowSet partialRowSet) {
 		ValidateArgument.required("user", "UserInfo");
@@ -184,13 +180,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		// convert
 		SparseChangeSetDto dto = TableModelUtils.createSparseChangeSetFromPartialRowSet(null, partialRowSet);
 		//process all rows.
-		processRows(user, partialRowSet.getTableId(), currentSchema, dto.getRows().iterator(), null, progressCallback);
-		
-		RowReferenceSet refSet = new RowReferenceSet();
-		refSet.setTableId(partialRowSet.getTableId());
-		RowReferenceSetResults results = new RowReferenceSetResults();
-		results.setRowReferenceSet(refSet);
-		return results;
+		return processRows(user, partialRowSet.getTableId(), currentSchema, dto.getRows().iterator(), null, progressCallback);
 	}
 
 	/**
@@ -208,26 +198,24 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	}
 
 	@Override
-	public String processRows(UserInfo user, String tableId,
+	public TableUpdateResponse processRows(UserInfo user, String tableId,
 			List<ColumnModel> tableSchema, Iterator<SparseRowDto> rowStream,
 			String updateEtag, ProgressCallback<Void> progressCallback) {
-		RuntimeException firstException = null;
+		List<EntityUpdateResult> results = new LinkedList<EntityUpdateResult>();
 		// process all rows, each as a single transaction.
 		while(rowStream.hasNext()){
+			EntityUpdateResult result = new EntityUpdateResult();
 			try {
 				progressCallback.progressMade(null);
 				SparseRowDto row = rowStream.next();
 				tableViewManger.updateEntityInView(user, tableSchema, row);
-			} catch (Exception e) {
-				if(firstException != null){
-					firstException = new RuntimeException(e);
-				}
+			} catch (NotFoundException e) {
+				result.setFailureCode(EntityUpdateFailureCode.NOT_FOUND);
+			}catch (Exception e) {
+				ff
 			}
 		}
-		// Throw the first exception that occurred.
-		if(firstException != null){
-			throw firstException;
-		}
+
 		return null;
 	}
 

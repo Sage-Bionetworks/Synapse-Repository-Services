@@ -1,7 +1,14 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -17,11 +24,11 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -123,13 +130,12 @@ public class TableViewTransactionManagerTest {
 		when(mockTableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(schema);
 		
 		// setup 
-		doAnswer(new Answer<UploadToTableResult>(){
+		doAnswer(new Answer<TableUpdateResponse>(){
 			@Override
-			public UploadToTableResult answer(InvocationOnMock invocation)
+			public TableUpdateResponse answer(InvocationOnMock invocation)
 					throws Throwable {
 				UploadRowProcessor processor = (UploadRowProcessor) invocation.getArguments()[3];
-				processor.processRows(user, viewId, schema, sparseChangeSet.writeToDto().getRows().iterator(), null, mockProgressCallback);
-				return uploadToTableResult;
+				return processor.processRows(user, viewId, schema, sparseChangeSet.writeToDto().getRows().iterator(), null, mockProgressCallback);
 			}}).when(mockTableUploadManager).uploadCSV(any(ProgressCallback.class), any(UserInfo.class), any(UploadToTableRequest.class), any(UploadRowProcessor.class));
 	}
 	
@@ -225,5 +231,108 @@ public class TableViewTransactionManagerTest {
 		// call under test
 		manager.updateTableWithTransaction(mockProgressCallback, user, request);
 	}
+	
+	@Test
+	public void testApplyRowChangeParitalRowSet(){
+		appendAbleRowSetRequest.setToAppend(partialRowSet);
+		// call under test
+		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+		assertNotNull(result);
+		verify(mockTableManagerSupport).getColumnModelsForTable(viewId);
+	}
 
+	@Test
+	public void testApplyRowChangeRowSet(){
+		appendAbleRowSetRequest.setToAppend(rowSet);
+		// call under test
+		TableUpdateResponse result = manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+		assertNotNull(result);
+		verify(mockTableManagerSupport).getColumnModelsForTable(viewId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeUnknownType(){
+		appendAbleRowSetRequest.setToAppend(Mockito.mock(AppendableRowSet.class));
+		// call under test
+		manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeNullRequest(){
+		appendAbleRowSetRequest = null;
+		// call under test
+		manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeNullToAppend(){
+		appendAbleRowSetRequest.setToAppend(null);
+		// call under test
+		manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowChangeNullEntityId(){
+		appendAbleRowSetRequest.setEntityId(null);
+		// call under test
+		manager.applyRowChange(mockProgressCallback, user, appendAbleRowSetRequest);
+	}
+	
+	@Test
+	public void testApplyRowSet(){
+		// call under test
+		TableUpdateResponse results = manager.applyRowSet(mockProgressCallback, user, schema, rowSet);
+		assertNotNull(results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowSetOverSize(){
+		// setup a small size.
+		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(1);
+		// call under test
+		manager.applyRowSet(mockProgressCallback, user, schema, rowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowSetNullRowset(){
+		rowSet = null;
+		// call under test
+		manager.applyRowSet(mockProgressCallback, user, schema, rowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyRowSetNullTableId(){
+		rowSet.setTableId(null);
+		// call under test
+		manager.applyRowSet(mockProgressCallback, user, schema, rowSet);
+	}
+	
+	@Test
+	public void testApplyPartialRowSet(){
+		// call under test
+		TableUpdateResponse results = manager.applyPartialRowSet(mockProgressCallback, user, schema, partialRowSet);
+		assertNotNull(results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyPartialRowSetOverSize(){
+		// setup a small size.
+		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(1);
+		// call under test
+		manager.applyPartialRowSet(mockProgressCallback, user, schema, partialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyPartialRowSetNullRowset(){
+		partialRowSet = null;
+		// call under test
+		manager.applyPartialRowSet(mockProgressCallback, user, schema, partialRowSet);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testApplyPartialRowSetNullTableId(){
+		partialRowSet.setTableId(null);
+		// call under test
+		manager.applyPartialRowSet(mockProgressCallback, user, schema, partialRowSet);
+	}
 }

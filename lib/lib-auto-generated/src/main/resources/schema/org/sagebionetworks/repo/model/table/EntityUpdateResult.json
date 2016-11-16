@@ -1,0 +1,20 @@
+{
+	"description": "Result of a single Entity Update.",
+	"properties": {
+		"entityId":{
+			"type": "string",
+			"description": "The ID of the updated entity."
+		},
+		"failureCode": {
+			"type": "string",
+			"description": "If the Entity update failed, a failure code will be included.  Null if the update was successful",
+			"name": "EntityUpdateFailureCode",
+			"enum": [
+				"NOT_FOUND",
+				"UNAUTHORIZED",
+				"CONCURRENT_UPDATE",
+				"SERVER_UNAVAILABLE"
+			]
+		}
+	}
+}

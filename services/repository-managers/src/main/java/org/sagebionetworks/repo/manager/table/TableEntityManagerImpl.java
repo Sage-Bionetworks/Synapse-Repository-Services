@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -193,7 +194,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 
 	@WriteTransactionReadCommitted
 	@Override
-	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
+	public TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(tableId, "TableId");
@@ -209,10 +210,11 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		
 		List<SparseRowDto> batch = new LinkedList<SparseRowDto>();
 		int batchSizeBytes = 0;
-		int count = 0;
+		long rowCount = 0;
 		while(rowStream.hasNext()){
 			SparseRowDto row = rowStream.next();
 			batch.add(row);
+			rowCount++;
 			// batch using the actual size of the row.
 			batchSizeBytes += TableModelUtils.calculateActualRowSize(row);
 			if(batchSizeBytes >= maxBytesPerChangeSet){
@@ -220,12 +222,8 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 				SparseChangeSet delta = new SparseChangeSet(tableId, columns, batch, etag);
 				etag = appendBatchOfRowsToTable(user, columns, delta, results, progressCallback);
 				// Clear the batch
-				count += batch.size();
 				batch.clear();
 				batchSizeBytes = 0;
-				if(log.isTraceEnabled()){
-					log.trace("Appended: "+count+" rows to table: "+tableId);
-				}
 			}
 		}
 		// Send the last batch is there are any rows
@@ -236,7 +234,11 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		}
 		// The table has change so we must reset the state.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(tableId);
-		return etag;
+		// Done
+		UploadToTableResult result = new UploadToTableResult();
+		result.setRowsProcessed(rowCount);
+		result.setEtag(etag);
+		return result;
 	}
 
 	/**
@@ -716,7 +718,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	}
 	
 	@Override
-	public String processRows(UserInfo user, String tableId,
+	public TableUpdateResponse processRows(UserInfo user, String tableId,
 			List<ColumnModel> tableSchema, Iterator<SparseRowDto> rowStream,
 			String updateEtag, ProgressCallback<Void> progressCallback)
 			throws DatastoreException, NotFoundException, IOException {
