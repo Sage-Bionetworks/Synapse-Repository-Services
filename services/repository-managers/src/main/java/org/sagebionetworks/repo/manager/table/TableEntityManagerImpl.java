@@ -124,7 +124,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		ValidateArgument.required(delta, "RowSet");
 		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(currentSchema, delta.getRows().size());
+		TableModelUtils.validateRequestSize(currentSchema, delta, maxBytesPerRequest);
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
 		SparseChangeSet sparseChangeSet = TableModelUtils.createSparseChangeSet(delta, currentSchema);
@@ -143,7 +143,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		Validate.required(partial, "RowsToAppendOrUpdate");
 		List<ColumnModel> currentSchema = columModelManager.getColumnModelsForTable(user, tableId);
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(currentSchema, partial.getRows().size());
+		TableModelUtils.validateRequestSize(partial, maxBytesPerRequest);
 		TableModelUtils.validatePartialRowSet(partial, currentSchema);
 		
 		/*
@@ -425,13 +425,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			return results;
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
-		}
-	}
-	
-	private void validateRequestSize(List<ColumnModel> columns, int rowCount) {
-		// Validate the request is under the max bytes per requested
-		if (!TableModelUtils.isRequestWithinMaxBytePerRequest(columns, rowCount, this.maxBytesPerRequest)) {
-			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+this.maxBytesPerRequest+" bytes");
 		}
 	}
 

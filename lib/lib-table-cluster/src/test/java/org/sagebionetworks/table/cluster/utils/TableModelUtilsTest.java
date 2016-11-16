@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -1693,5 +1694,87 @@ public class TableModelUtilsTest {
 		wrapped.getResults().add(new RowReferenceSetResults());
 		// call under test
 		TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+	}
+	
+	@Test
+	public void testCalculatetPartialRowBytes(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("123", "45678");
+		values.put("9", null);
+		int expectedSize = ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*9;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
+	public void testCalculatePartialRowSetBytes(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("123", "45678");
+		values.put("9", null);
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row,row));
+		
+		int expectedSize = ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*9*2;
+		assertEquals(expectedSize, TableModelUtils.calculatePartialRowSetBytes(rowSet));
+	}
+	
+	@Test
+	public void testValidateRequestSizeUnder(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("1", "23");
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		int maxBytesPerRequest = TableModelUtils.calculatePartialRowSetBytes(rowSet)+1;
+		// call under test
+		TableModelUtils.validateRequestSize(rowSet, maxBytesPerRequest);
+	}
+	
+	@Test
+	public void testValidateRequestSizeOver(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("1", "23");
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		int maxBytesPerRequest = TableModelUtils.calculatePartialRowSetBytes(rowSet)-1;
+		try {
+			// call under test
+			TableModelUtils.validateRequestSize(rowSet, maxBytesPerRequest);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValiteRequestSizeRowSetUnder(){
+		RowSet set = new RowSet();
+		set.setRows(validRowSet.getRows());
+		int rowSize = TableModelUtils.calculateMaxRowSize(validModel);
+		int maxBytesPerRequest = rowSize * set.getRows().size() + 1;
+		TableModelUtils.validateRequestSize(validModel, set, maxBytesPerRequest);
+	}
+	
+	@Test
+	public void testValiteRequestSizeRowSetOver(){
+		RowSet set = new RowSet();
+		set.setRows(validRowSet.getRows());
+		int rowSize = TableModelUtils.calculateMaxRowSize(validModel);
+		int maxBytesPerRequest = rowSize * set.getRows().size() - 1;
+		try {
+			TableModelUtils.validateRequestSize(validModel, set, maxBytesPerRequest);
+			fail("Should have failed");
+		} catch (Exception e) {
+			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
+		}
 	}
 }

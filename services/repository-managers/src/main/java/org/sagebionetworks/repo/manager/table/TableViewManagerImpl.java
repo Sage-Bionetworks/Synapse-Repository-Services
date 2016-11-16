@@ -11,7 +11,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,5 +106,21 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public List<String> getTableSchema(String tableId){
 		return columModelManager.getColumnIdForTable(tableId);
+	}
+
+	/**
+	 * Update an Entity using data form a view.
+	 * 
+	 * NOTE: Each entity is updated in a separate transaction to prevent
+	 * locking the entity tables for long periods of time. This also prevents
+	 * deadlock.
+	 * 
+	 */
+	@RequiresNewReadCommitted
+	@Override
+	public void updateEntityInView(UserInfo user,
+			List<ColumnModel> tableSchema, SparseRowDto row) {
+		// not ready yet
+		throw new UnsupportedOperationException("Not supported yet");
 	}
 }
