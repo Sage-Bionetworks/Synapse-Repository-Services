@@ -1114,31 +1114,8 @@ public class V2WikiManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsCurrentVersion() throws Exception {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// Create 3 versions in history
-		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
-		for (int v = 2; v >= 0; v--) {
-			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
-			s.setVersion(String.valueOf(v));
-			expectedHistory.add(s);
-		}
-		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
+		when(mockWikiDao.getCurrentWikiVersion(anyString(), any(ObjectType.class), anyString())).thenReturn(2L);
 		List<String> versionsToDelete = Arrays.asList("2");
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
-		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteWikiVersionsAllVersions() throws Exception {
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// Create 3 versions in history
-		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
-		for (int v = 2; v >= 0; v--) {
-			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
-			s.setVersion(String.valueOf(v));
-			expectedHistory.add(s);
-		}
-		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
-		List<String> versionsToDelete = Arrays.asList("0", "1", "2");
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 	}
@@ -1146,14 +1123,8 @@ public class V2WikiManagerTest {
 	@Test
 	public void testDeleteWikiVersions() throws Exception {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// Create 3 versions in history
-		List<V2WikiHistorySnapshot> expectedHistory = new LinkedList<V2WikiHistorySnapshot>();
-		for (int v = 2; v >= 0; v--) {
-			V2WikiHistorySnapshot s = new V2WikiHistorySnapshot();
-			s.setVersion(String.valueOf(v));
-			expectedHistory.add(s);
-		}
-		when(mockWikiDao.getWikiHistory(eq(key), eq(Long.MAX_VALUE), eq(0L))).thenReturn(expectedHistory);
+		when(mockWikiDao.getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId())).thenReturn(2L);
+
 		// Setup wikiPage
 		V2WikiPage expectedWiki = new V2WikiPage();
 		expectedWiki.setId("345");

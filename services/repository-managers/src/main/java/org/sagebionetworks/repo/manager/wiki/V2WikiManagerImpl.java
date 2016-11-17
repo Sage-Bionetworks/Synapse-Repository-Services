@@ -442,14 +442,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 		String etag = wikiPageDao.lockForUpdate(key.getWikiPageId());
 		
-		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, Long.MAX_VALUE, 0L);
-		String currentVersion = history.get(0).getVersion();
-		if (versionsToDelete.contains(currentVersion)) {
+		Long currentVersion = wikiPageDao.getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
+		if (versionsToDelete.contains(currentVersion.toString())) {
 			throw new IllegalArgumentException("Cannot delete current version of a Wiki.");
-		}
-		List<String> versions = versionsFromHistory(history);
-		if (versionsToDelete.containsAll(versions)) {
-			throw new IllegalArgumentException("Cannot delete all the versions of a Wiki.");
 		}
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 		
@@ -459,12 +454,4 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		
 	}
 	
-	private List<String> versionsFromHistory(List<V2WikiHistorySnapshot> history) {
-		List<String> versions = new LinkedList<String>();
-		for (V2WikiHistorySnapshot s: history) {
-			versions.add(s.getVersion());
-		}
-		return versions;
-	}
-
 }
