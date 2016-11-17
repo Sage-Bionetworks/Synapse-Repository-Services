@@ -431,7 +431,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 	@WriteTransaction
 	@Override
-	public V2WikiPage deleteWikiVersions(UserInfo user, WikiPageKey key,
+	public void deleteWikiVersions(UserInfo user, WikiPageKey key,
 			List<String> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
 
 		if (user == null) throw new IllegalArgumentException("User cannot be null");
@@ -457,8 +457,6 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		String newEtag = UUID.randomUUID().toString();
 		wikiPageDao.updateWikiEtag(key, newEtag);
 		
-		return wikiPageDao.get(key, null);
-
 	}
 	
 	private List<String> versionsFromHistory(List<V2WikiHistorySnapshot> history) {

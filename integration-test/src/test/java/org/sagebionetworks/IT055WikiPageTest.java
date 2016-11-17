@@ -163,9 +163,11 @@ public class IT055WikiPageTest {
 		List<String> ids = Arrays.asList("0");
 		versionsToDelete.setVersionIds(ids);
 		
-		V2WikiPage pDeletedHistory = synapse.deleteV2WikiVersions(key, versionsToDelete);
+		synapse.deleteV2WikiVersions(key, versionsToDelete);
 		
-		assertFalse(preDeleteEtag.equals(pDeletedHistory.getEtag()));
+		String postDeleteEtag = synapse.getV2WikiPage(key).getEtag();
+		assertFalse(preDeleteEtag.equals(postDeleteEtag));
+
 		PaginatedResults<V2WikiHistorySnapshot> postHistory = synapse.getV2WikiHistory(key, 100L, 0L);
 		assertNotNull(postHistory);
 		assertNotNull(postHistory.getResults());

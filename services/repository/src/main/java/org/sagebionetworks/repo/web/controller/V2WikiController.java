@@ -1513,7 +1513,7 @@ public class V2WikiController extends BaseController {
 	
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
-	V2WikiPage deleteEntityWikiMarkdownVersions(
+	void deleteEntityWikiMarkdownVersions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody(required = true) WikiVersionsList toDelete,
@@ -1521,12 +1521,12 @@ public class V2WikiController extends BaseController {
 			NotFoundException, IOException {
 
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId);
-		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
 	}
 	
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
-	V2WikiPage deleteEvaluationWikiMarkdownVersions(
+	void deleteEvaluationWikiMarkdownVersions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody(required = true) WikiVersionsList toDelete,
@@ -1534,12 +1534,12 @@ public class V2WikiController extends BaseController {
 			NotFoundException, IOException {
 
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId);
-		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
 	}
 	
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
 	public @ResponseBody
-	V2WikiPage deleteAccessRequirementsWikiMarkdownVersions(
+	void deleteAccessRequirementsWikiMarkdownVersions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody(required = true) WikiVersionsList toDelete,
@@ -1547,7 +1547,7 @@ public class V2WikiController extends BaseController {
 			NotFoundException, IOException {
 
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId);
-		return serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getVersionIds());
 	}
 	
 }

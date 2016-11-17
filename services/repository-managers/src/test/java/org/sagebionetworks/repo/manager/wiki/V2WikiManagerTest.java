@@ -1173,11 +1173,10 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate(expectedWiki.getId())).thenReturn(expectedWiki.getEtag());
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdownOne.getId(), markdownOne.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
-		// Call under test
 		List<String> versionsToDelete = Arrays.asList("1");
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
-		V2WikiPage updatedWiki = wikiManager.deleteWikiVersions(user, key, versionsToDelete);
-		assertNotNull(updatedWiki);
+		// Call under test
+		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 		
 		ArgumentCaptor<String> etagCaptor = ArgumentCaptor.forClass(String.class);
 		verify(mockWikiDao).deleteWikiVersions(eq(key), eq(versionsToDelete));
