@@ -216,4 +216,15 @@ public interface V2WikiPageDao {
 	 * @param key
 	 */
 	public void updateWikiEtag(WikiPageKey key, String etag);
+
+	/**
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Long getCurrentWikiVersion(String ownerId, ObjectType ownerType,
+			String wikiId) throws NotFoundException;
 }

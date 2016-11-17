@@ -539,7 +539,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
+	@Override
+	public Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
 		Long root = getRootWiki(ownerId, ownerType);
 		try{
 			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, Long.class, new Long(wikiId), root);
