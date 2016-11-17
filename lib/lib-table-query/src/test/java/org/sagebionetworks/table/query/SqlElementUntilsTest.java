@@ -6,9 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.table.query.util.TableSqlProcessor;
 
 import com.google.common.collect.Lists;
 
@@ -43,7 +46,7 @@ public class SqlElementUntilsTest {
 		sort3.setDirection(SortDirection.DESC);
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY foo ASC, zoo ASC, zaa DESC, bar LIMIT 1", converted.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"foo\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1", converted.toString());
 	}
 
 	@Test
@@ -60,7 +63,7 @@ public class SqlElementUntilsTest {
 		sort3.setDirection(SortDirection.DESC);
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2, sort3));
 		assertNotNull(converted);
-		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, zoo ASC, zaa DESC, bar LIMIT 1",
+		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, \"zoo\" ASC, \"zaa\" DESC, bar LIMIT 1",
 				converted.toString());
 	}
 	
@@ -86,7 +89,7 @@ public class SqlElementUntilsTest {
 		sort2.setColumn("foo");
 		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1, sort2));
 		assertNotNull(converted);
-		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar DESC, foo ASC LIMIT 1", converted.toString());
+		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY \"bar\" DESC, \"foo\" ASC LIMIT 1", converted.toString());
 	}
 	
 	@Test
@@ -297,4 +300,34 @@ public class SqlElementUntilsTest {
 		String countSql = SqlElementUntils.createCountSql(model);
 		assertEquals("SELECT COUNT(DISTINCT foo) FROM syn123", countSql);
 	}
+	
+	@Test
+	public void testWrapInDoubleQuotes(){
+		String toWrap = "foo";
+		String result = SqlElementUntils.wrapInDoubleQuotes(toWrap);
+		assertEquals("\"foo\"", result);
+	}
+	
+	@Test
+	public void testCreateSortKeyWithKeywordInName(){
+		SortKey sortKey = SqlElementUntils.createSortKey("Date Approved/Rejected");
+		assertNotNull(sortKey);
+		assertEquals("\"Date Approved/Rejected\"", sortKey.toSql());
+	}
+	
+	@Test
+	public void testCreateSortKeySpace(){
+		SortKey sortKey = SqlElementUntils.createSortKey("First Name");
+		assertNotNull(sortKey);
+		assertEquals("\"First Name\"", sortKey.toSql());
+	}
+	
+	@Test
+	public void testCreateSortKeyFunction(){
+		// function should not be wrapped in quotes.
+		SortKey sortKey = SqlElementUntils.createSortKey("max(foo)");
+		assertNotNull(sortKey);
+		assertEquals("MAX(foo)", sortKey.toSql());
+	}
+	
 }

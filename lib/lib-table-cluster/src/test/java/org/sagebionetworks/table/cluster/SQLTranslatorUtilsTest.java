@@ -496,7 +496,7 @@ public class SQLTranslatorUtilsTest {
 		// call under test.
 		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
 		assertNotNull(results);
-		assertEquals("foo, \"has space\"", results.toSql());
+		assertEquals("\"foo\", \"has space\"", results.toSql());
 	}
 	
 	@Test
@@ -508,7 +508,7 @@ public class SQLTranslatorUtilsTest {
 		// call under test.
 		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(cm));
 		assertNotNull(results);
-		assertEquals("foo, \"has space\"", results.toSql());
+		assertEquals("\"5ormore\"", results.toSql());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

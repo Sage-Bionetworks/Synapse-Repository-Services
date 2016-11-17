@@ -113,13 +113,6 @@ public class TableSqlProcessorTest {
 	}
 	
 	@Test
-	public void testCreateSortKey(){
-		SortKey sortKey = TableSqlProcessor.createSortKey("Date Approved/Rejected");
-		assertNotNull(sortKey);
-		assertEquals("\"Date Approved/Rejected\"", sortKey.toSql());
-	}
-	
-	@Test
 	public void testGetSortingInfo() throws ParseException{
 		SortItem foo = new SortItem();
 		foo.setColumn("foo");

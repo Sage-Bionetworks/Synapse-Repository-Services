@@ -81,7 +81,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		String sql = translator.getModel().toString();
-		assertEquals("SELECT foo, \"has space\", bar, foo_bar, Foo, datetype, doubletype, inttype, \"has-hyphen\" FROM syn123", sql);
+		assertEquals("SELECT \"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"doubletype\", \"inttype\", \"has-hyphen\" FROM syn123", sql);
 		translator = new SqlQuery(sql, tableSchema);
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 	}
@@ -832,6 +832,6 @@ public class SQLQueryTest {
 		List<ColumnModel> schema = Lists.newArrayList(cm);
 		String sql = "select * from syn123";
 		SqlQuery query = new SqlQuery(sql, schema);
-		assertEquals("SELECT _C111_ FROM T123", query.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
 }
