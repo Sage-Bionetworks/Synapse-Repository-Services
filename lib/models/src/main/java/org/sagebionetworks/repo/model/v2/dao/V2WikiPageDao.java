@@ -205,10 +205,15 @@ public interface V2WikiPageDao {
 	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 
 	/**
-	 * Delete old versions of the Wiki markdown, keeping numVersionsToKeep versions
 	 * 
-	 * @param wikiPageId
-	 * @param numVersionsToKeep
+	 * @param key
+	 * @param versionsToDelete
 	 */
-	void deleteOldWikiVersions(String wikiPageId, Long numVersionsToKeep);
+	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete);
+	
+	/**
+	 * Update the Etag of a Wiki page
+	 * @param key
+	 */
+	public void updateWikiEtag(WikiPageKey key, String etag);
 }

@@ -53,8 +53,10 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -593,6 +595,16 @@ public class SynapseTest {
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testDeleteV2WikiVersionsNullKey() throws Exception {
+		synapse.deleteV2WikiVersions(null, new WikiVersionsList());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testDeleteV2WikiVersionsNullVersionsList() throws Exception {
+		WikiPageKey key = new WikiPageKey();
+		synapse.deleteV2WikiVersions(key, null);
+	}
 	
 	/*
 	 * Private methods
