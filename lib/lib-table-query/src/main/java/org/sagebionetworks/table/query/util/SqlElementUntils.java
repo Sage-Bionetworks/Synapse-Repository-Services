@@ -473,7 +473,7 @@ public class SqlElementUntils {
 				null, tableExpression.getPagination());
 	}
 
-	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) {
+	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) throws ParseException {
 		ValidateArgument.required(model, "QuerySpecification");
 		ValidateArgument.required(sortList, "sortList");
 		TableExpression currentTableExpression = model.getTableExpression();
@@ -660,8 +660,9 @@ public class SqlElementUntils {
 	 * 
 	 * @param columnName
 	 * @return
+	 * @throws ParseException 
 	 */
-	public static SortKey createSortKey(String columnName) {
+	public static SortKey createSortKey(String columnName) throws ParseException {
 		try {
 			/*
 			 * For aggregate functions we can use this ValueExpressionPrimary to
@@ -678,11 +679,7 @@ public class SqlElementUntils {
 			}
 		} catch (ParseException e) {
 			// the column will need to be in quotes.
-			try {
-				return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
-			} catch (ParseException e1) {
-				throw new RuntimeException(e1);
-			}
+			return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
 		}
 	}
 	
@@ -695,7 +692,7 @@ public class SqlElementUntils {
 		try {
 			return new TableQueryParser(wrapInDoubleQuotes(columnName)).derivedColumn();
 		} catch (ParseException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException(e);
 		}
 	}
 	
@@ -708,7 +705,7 @@ public class SqlElementUntils {
 		try {
 			return new TableQueryParser(columnName).derivedColumn();
 		} catch (ParseException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException(e);
 		}
 	}
 	

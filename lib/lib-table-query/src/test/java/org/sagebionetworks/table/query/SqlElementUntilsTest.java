@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -309,25 +310,38 @@ public class SqlElementUntilsTest {
 	}
 	
 	@Test
-	public void testCreateSortKeyWithKeywordInName(){
+	public void testCreateSortKeyWithKeywordInName() throws ParseException{
 		SortKey sortKey = SqlElementUntils.createSortKey("Date Approved/Rejected");
 		assertNotNull(sortKey);
 		assertEquals("\"Date Approved/Rejected\"", sortKey.toSql());
 	}
 	
 	@Test
-	public void testCreateSortKeySpace(){
+	public void testCreateSortKeySpace() throws ParseException{
 		SortKey sortKey = SqlElementUntils.createSortKey("First Name");
 		assertNotNull(sortKey);
 		assertEquals("\"First Name\"", sortKey.toSql());
 	}
 	
 	@Test
-	public void testCreateSortKeyFunction(){
+	public void testCreateSortKeyFunction() throws ParseException{
 		// function should not be wrapped in quotes.
 		SortKey sortKey = SqlElementUntils.createSortKey("max(foo)");
 		assertNotNull(sortKey);
 		assertEquals("MAX(foo)", sortKey.toSql());
 	}
+	
+	@Test
+	public void testCreateDoubleQuotedDerivedColumn(){
+		DerivedColumn dr = SqlElementUntils.createDoubleQuotedDerivedColumn("foo");
+		assertEquals("\"foo\"", dr.toSql());
+	}
+	
+	@Test
+	public void testCreateNonQuotedDerivedColumn(){
+		DerivedColumn dr = SqlElementUntils.createNonQuotedDerivedColumn("ROW_ID");
+		assertEquals("ROW_ID", dr.toSql());
+	}
+	
 	
 }
