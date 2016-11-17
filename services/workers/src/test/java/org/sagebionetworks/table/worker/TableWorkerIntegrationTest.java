@@ -1809,6 +1809,27 @@ public class TableWorkerIntegrationTest {
 		
 	}
 	
+	@Test
+	public void testPLFM_4161() throws Exception{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema = Lists.newArrayList(cm);
+		createTableWithSchema();
+		// Apply a rowset with all columns
+		List<String> rowOneValues = Lists.newArrayList("123");
+		addRowToTable(schema, rowOneValues);
+		
+		// Wait for the table and check the results.
+		String sql = "select * from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		List<Row> queryRows = queryResult.getQueryResults().getRows();
+		assertEquals(2, queryRows.size());
+		assertEquals(rowOneValues, queryRows.get(0).getValues());
+		assertEquals(Lists.newArrayList("false", null), queryRows.get(1).getValues());
+	}
+	
 	/**
 	 * Stolen from testLimitOffset()
 	 */

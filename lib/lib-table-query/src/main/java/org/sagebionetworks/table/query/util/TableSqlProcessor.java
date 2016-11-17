@@ -77,7 +77,7 @@ public class TableSqlProcessor {
 	 * @param columnName
 	 * @return
 	 */
-	private static SortKey createSortKey(String columnName) {
+	static SortKey createSortKey(String columnName) {
 		try {
 			/*
 			 * For aggregate functions we can use this ValueExpressionPrimary to
@@ -90,14 +90,28 @@ public class TableSqlProcessor {
 				return new SortKey(primary);
 			} else {
 				// Put non-aggregate column names in quotes.
-				StringBuilder builder = new StringBuilder();
-				builder.append("\"");
-				builder.append(columnName);
-				builder.append("\"");
-				return new TableQueryParser(builder.toString()).sortKey();
+				return createQuotedSortKey(columnName);
 			}
 		} catch (ParseException e) {
-			throw new RuntimeException(e);
+			// the column will need to be in quotes.
+			return createQuotedSortKey(columnName);
+		}
+	}
+	
+	/**
+	 * Create a quoted sort key.
+	 * @param columnName
+	 * @return
+	 */
+	public static SortKey createQuotedSortKey(String columnName){
+		StringBuilder builder = new StringBuilder();
+		builder.append("\"");
+		builder.append(columnName);
+		builder.append("\"");
+		try {
+			return new TableQueryParser(builder.toString()).sortKey();
+		} catch (ParseException e1) {
+			throw new RuntimeException(e1);
 		}
 	}
 

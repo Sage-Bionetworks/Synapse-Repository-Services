@@ -63,6 +63,18 @@ public class SqlElementUntilsTest {
 		assertEquals("SELECT \"foo-bar\", bar FROM syn123 WHERE \"foo-bar\" = 1 ORDER BY \"foo-bar\" ASC, zoo ASC, zaa DESC, bar LIMIT 1",
 				converted.toString());
 	}
+	
+	@Test
+	public void testConvertToSortedPLFM_4118() throws ParseException {
+		QuerySpecification model = TableQueryParser
+				.parserQuery("select * from syn123");
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("First Name");
+		QuerySpecification converted = SqlElementUntils.convertToSortedQuery(model, Lists.newArrayList(sort1));
+		assertNotNull(converted);
+		assertEquals("SELECT * FROM syn123 ORDER BY \"First Name\" ASC",
+				converted.toString());
+	}
 
 	@Test
 	public void testReplaceSorted() throws ParseException {

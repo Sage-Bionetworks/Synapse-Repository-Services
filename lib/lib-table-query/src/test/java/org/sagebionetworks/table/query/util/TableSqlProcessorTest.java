@@ -1,8 +1,6 @@
 package org.sagebionetworks.table.query.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -94,6 +92,31 @@ public class TableSqlProcessorTest {
 		// call under test.
 		String results = TableSqlProcessor.toggleSort(sql, "b");
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testToggleSortPLFM_4118() throws ParseException{
+		String sql = "select * from syn123";
+		String expected = "SELECT * FROM syn123 ORDER BY \"Date Approved/Rejected\" ASC";
+		// call under test.
+		String results = TableSqlProcessor.toggleSort(sql, "Date Approved/Rejected");
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testToggleSortPLFM_4118Count() throws ParseException{
+		String sql = "select * from syn123";
+		String expected = "SELECT * FROM syn123 ORDER BY COUNT(\"Date Approved/Rejected\") ASC";
+		// call under test.
+		String results = TableSqlProcessor.toggleSort(sql, "count(\"Date Approved/Rejected\")");
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testCreateSortKey(){
+		SortKey sortKey = TableSqlProcessor.createSortKey("Date Approved/Rejected");
+		assertNotNull(sortKey);
+		assertEquals("\"Date Approved/Rejected\"", sortKey.toSql());
 	}
 	
 	@Test

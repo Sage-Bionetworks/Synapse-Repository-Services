@@ -822,4 +822,16 @@ public class SQLQueryTest {
 		assertEquals(overideOffset, copy.overrideOffset);
 		assertEquals(overideLimit, copy.overrideLimit);
 	}
+	
+	@Test
+	public void testPLFM_4161() throws ParseException{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		List<ColumnModel> schema = Lists.newArrayList(cm);
+		String sql = "select * from syn123";
+		SqlQuery query = new SqlQuery(sql, schema);
+		assertEquals("SELECT _C111_ FROM T123", query.getOutputSQL());
+	}
 }
