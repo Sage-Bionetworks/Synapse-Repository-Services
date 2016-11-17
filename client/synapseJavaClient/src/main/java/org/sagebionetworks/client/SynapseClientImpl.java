@@ -4208,10 +4208,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String messageBody) throws SynapseException {
-		if (message.getFileHandleId() != null)
-			throw new IllegalArgumentException(
-					"Expected null fileHandleId but found "
-							+ message.getFileHandleId());
 		String fileHandleId = uploadToFileHandle(
 				messageBody.getBytes(MESSAGE_CHARSET),
 				STRING_MESSAGE_CONTENT_TYPE);
@@ -4232,10 +4228,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String entityId, String messageBody) throws SynapseException {
-		if (message.getFileHandleId() != null)
-			throw new IllegalArgumentException(
-					"Expected null fileHandleId but found "
-							+ message.getFileHandleId());
 		String fileHandleId = uploadToFileHandle(
 				messageBody.getBytes(MESSAGE_CHARSET),
 				STRING_MESSAGE_CONTENT_TYPE);
