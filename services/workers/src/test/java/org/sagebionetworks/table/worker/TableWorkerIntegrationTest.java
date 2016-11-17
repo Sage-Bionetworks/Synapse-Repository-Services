@@ -1825,9 +1825,7 @@ public class TableWorkerIntegrationTest {
 		String sql = "select * from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
 		List<Row> queryRows = queryResult.getQueryResults().getRows();
-		assertEquals(2, queryRows.size());
-		assertEquals(rowOneValues, queryRows.get(0).getValues());
-		assertEquals(Lists.newArrayList("false", null), queryRows.get(1).getValues());
+		assertEquals(1, queryRows.size());
 	}
 	
 	/**
