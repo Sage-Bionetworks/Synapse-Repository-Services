@@ -6,11 +6,13 @@ import java.lang.reflect.Constructor;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -346,5 +348,22 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	
+	/**
+	 * 
+	 * @param userId
+	 * @param jobId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String jobId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
+		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
+	}
 
 }
