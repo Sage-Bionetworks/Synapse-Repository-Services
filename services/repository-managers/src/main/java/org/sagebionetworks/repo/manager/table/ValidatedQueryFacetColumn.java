@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -12,6 +14,7 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class ValidatedQueryFacetColumn {
+	
 	private String columnName;
 	private FacetType facetType;
 	private FacetColumnRequest facetColumnRequest;
@@ -124,8 +127,12 @@ public class ValidatedQueryFacetColumn {
 				builder.append(" OR ");
 			}
 			builder.append(columnName);
-			builder.append("=");
-			appendValueToStringBuilder(builder, value);
+			if(value.equals(NULL_VALUE_KEYWORD)){
+				builder.append(" IS NULL");
+			}else{
+				builder.append("=");
+				appendValueToStringBuilder(builder, value);
+			}
 		}
 		builder.append(")");
 		return builder.toString();

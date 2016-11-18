@@ -233,5 +233,5 @@ public class TableConstants {
 	
 	public final static String ANNOTATION_REPLICATION_GET = "SELECT * FROM "+TableConstants.ANNOTATION_REPLICATION_TABLE+" WHERE "+TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID+" = ?";
 
-	
+	public static final String NULL_VALUE_KEYWORD = "org.sagebionetworks.UNDEFINED_NULL_NOTSET";
 }

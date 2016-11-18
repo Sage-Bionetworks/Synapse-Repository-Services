@@ -83,6 +83,14 @@ public class ValidatedQueryFacetColumnTest {
 	}
 	
 	@Test
+	public void testEnumerationSearchConditionStringOneValueIsNullKeyword(){
+		String value = ValidatedQueryFacetColumn.NULL_VALUE_KEYWORD;
+		facetValues.setFacetValues(Sets.newHashSet(value));
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
+		assertEquals("(" + columnName + " IS NULL)", validatedQueryFacetColumn.getSearchConditionString());
+	}
+	
+	@Test
 	public void testEnumerationSearchConditionStringTwoValues(){
 		String value1 = "hello";
 		String value2 = "world";
@@ -91,6 +99,17 @@ public class ValidatedQueryFacetColumnTest {
 
 		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals("(" + columnName + "=" + value1 + " OR " + columnName + "=" + value2 + ")", validatedQueryFacetColumn.getSearchConditionString());
+	}
+	
+	@Test
+	public void testEnumerationSearchConditionStringTwoValuesWithOneBeingNullKeyword(){
+		String value1 = ValidatedQueryFacetColumn.NULL_VALUE_KEYWORD;
+		String value2 = "world";
+		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
+
+
+		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
+		assertEquals("(" + columnName + " IS NULL OR " + columnName + "=" + value2 + ")", validatedQueryFacetColumn.getSearchConditionString());
 	}
 	
 	@Test
