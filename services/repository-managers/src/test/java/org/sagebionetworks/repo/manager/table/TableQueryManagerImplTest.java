@@ -778,7 +778,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		SqlQuery result = manager.createQuery("select * from "+tableId, sortList);
 		assertNotNull(result);
-		assertEquals("SELECT i0, i1, i2, i3, i4, i5, i6, i7, i8, i9 FROM syn123", result.getModel().toSql());
+		assertEquals("SELECT \"i0\", \"i1\", \"i2\", \"i3\", \"i4\", \"i5\", \"i6\", \"i7\", \"i8\", \"i9\" FROM syn123", result.getModel().toSql());
 	}
 	
 	@Test
@@ -790,7 +790,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		SqlQuery result = manager.createQuery("select i2, i0 from "+tableId, sortList);
 		assertNotNull(result);
-		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY i0 DESC", result.getModel().toSql());
+		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY \"i0\" DESC", result.getModel().toSql());
 	}
 	
 	@Test
