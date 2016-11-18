@@ -153,6 +153,7 @@ public class IT055WikiPageTest {
 		assertEquals(1, tree.getResults().size());
 		assertEquals(1, tree.getTotalNumberOfResults());
 		
+/*
 		PaginatedResults<V2WikiHistorySnapshot> preHistory = synapse.getV2WikiHistory(key, 100L, 0L);
 		assertNotNull(preHistory);
 		assertNotNull(preHistory.getResults());
@@ -174,7 +175,7 @@ public class IT055WikiPageTest {
 		assertEquals(1, postHistory.getResults().size());
 		// Version "0" was at index 1 in preHistory
 		assertEquals(preHistory.getResults().get(0), postHistory.getResults().get(0));
-		
+*/		
 		// Delete the wiki
 		synapse.deleteWikiPage(key);
 		// Now try to get it
