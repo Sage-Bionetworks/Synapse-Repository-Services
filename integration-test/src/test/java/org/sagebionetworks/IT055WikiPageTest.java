@@ -27,6 +27,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -159,9 +160,9 @@ public class IT055WikiPageTest {
 		assertEquals(2, preHistory.getResults().size());
 		
 		String preDeleteEtag = wiki.getEtag();
-		WikiVersionsList versionsToDelete = new WikiVersionsList();
-		List<String> ids = Arrays.asList("0");
-		versionsToDelete.setVersionIds(ids);
+		IdList versionsToDelete = new IdList();
+		List<Long> ids = Arrays.asList(0L);
+		versionsToDelete.setList(ids);
 		
 		synapse.deleteV2WikiVersions(key, versionsToDelete);
 		

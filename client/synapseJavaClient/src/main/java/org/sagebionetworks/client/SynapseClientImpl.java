@@ -3623,7 +3623,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void deleteV2WikiVersions(WikiPageKey key, WikiVersionsList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null");
 		}
