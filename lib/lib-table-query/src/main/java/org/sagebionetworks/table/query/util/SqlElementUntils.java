@@ -63,10 +63,6 @@ import com.google.common.collect.Maps;
  *
  */
 public class SqlElementUntils {
-
-	// it so happens that javas definition of word characters matches exactly with sqls non-escapable characters
-	// [0-9a-zA-z_])
-	private static final java.util.regex.Pattern NON_ESCAPABLE_COLUMN_NAME_CHARACTERS = java.util.regex.Pattern.compile("\\W");
 	
 	/**
 	 * Create a value expression from an input SQL.
@@ -417,16 +413,6 @@ public class SqlElementUntils {
 	public static GroupingColumnReferenceList createGroupingColumnReferenceList(String sql) throws ParseException {
 		return new TableQueryParser(sql).groupingColumnReferenceList();
 	}
-
-	/**
-	 * Create a SortKey from the passed SQL.
-	 * @param sql
-	 * @return
-	 * @throws ParseException 
-	 */
-	public static SortKey createSortKey(String sql) throws ParseException {
-		return new TableQueryParser(sql).sortKey();
-	}
 	
 	/**
 	 * Create a SortSpecification from the passed SQL. 
@@ -487,7 +473,7 @@ public class SqlElementUntils {
 				null, tableExpression.getPagination());
 	}
 
-	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) {
+	public static QuerySpecification convertToSortedQuery(QuerySpecification model, List<SortItem> sortList) throws ParseException {
 		ValidateArgument.required(model, "QuerySpecification");
 		ValidateArgument.required(sortList, "sortList");
 		TableExpression currentTableExpression = model.getTableExpression();
@@ -513,8 +499,7 @@ public class SqlElementUntils {
 			OrderingSpecification direction = sortItem.getDirection() == SortDirection.DESC ? OrderingSpecification.DESC
 					: OrderingSpecification.ASC;
 			originalSortSpecifications.remove(sortItem.getColumn());
-			sortSpecifications.add(new SortSpecification(new SortKey(new ValueExpressionPrimary(new ColumnReference(new ColumnName(
-					new Identifier(createActualIdentifier(sortItem.getColumn()))), null))), direction));
+			sortSpecifications.add(new SortSpecification(createSortKey(sortItem.getColumn()), direction));
 		}
 		sortSpecifications.addAll(originalSortSpecifications.values());
 		orderByClause = new OrderByClause(new SortSpecificationList(sortSpecifications));
@@ -524,14 +509,6 @@ public class SqlElementUntils {
 				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), orderByClause,
 				currentTableExpression.getPagination());
 		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
-	}
-
-	public static ActualIdentifier createActualIdentifier(String columnName) {
-		if (NON_ESCAPABLE_COLUMN_NAME_CHARACTERS.matcher(columnName).find()) {
-			return new ActualIdentifier(null, columnName);
-		} else {
-			return new ActualIdentifier(columnName, null);
-		}
 	}
 
 	/**
@@ -675,6 +652,74 @@ public class SqlElementUntils {
 			builder.append(dc.getValueExpression().toSql());
 			isFirst = false;
 		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Create delimited sort key from a column name.
+	 * 
+	 * @param columnName
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static SortKey createSortKey(String columnName) throws ParseException {
+		try {
+			/*
+			 * For aggregate functions we can use this ValueExpressionPrimary to
+			 * create the SortKey. For non-aggregate functions the name must be
+			 * bracketed in quotes.
+			 */
+			ValueExpressionPrimary primary = new TableQueryParser(columnName)
+					.valueExpressionPrimary();
+			if (primary.hasAnyAggregateElements()) {
+				return new SortKey(primary);
+			} else {
+				// Put non-aggregate column names in quotes.
+				return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
+			}
+		} catch (ParseException e) {
+			// the column will need to be in quotes.
+			return new TableQueryParser(wrapInDoubleQuotes(columnName)).sortKey();
+		}
+	}
+	
+	/**
+	 * Create an unconditionally double quoted derived column
+	 * @param columnName
+	 * @return
+	 */
+	public static DerivedColumn createDoubleQuotedDerivedColumn(String columnName){
+		try {
+			return new TableQueryParser(wrapInDoubleQuotes(columnName)).derivedColumn();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
+	 * Create a non-quoted derived column.
+	 * @param columnName
+	 * @return
+	 */
+	public static DerivedColumn createNonQuotedDerivedColumn(String columnName){
+		try {
+			return new TableQueryParser(columnName).derivedColumn();
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
+	 * Wrap the given string in double quotes.
+	 * 
+	 * @param toWrap
+	 * @return
+	 */
+	public static String wrapInDoubleQuotes(String toWrap){
+		StringBuilder builder = new StringBuilder();
+		builder.append("\"");
+		builder.append(toWrap);
+		builder.append("\"");
 		return builder.toString();
 	}
 }

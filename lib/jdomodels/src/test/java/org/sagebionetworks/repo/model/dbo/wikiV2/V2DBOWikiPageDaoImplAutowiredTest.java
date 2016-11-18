@@ -872,8 +872,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullWikiId() throws Exception {
-		List<String> versionsToDelete = new LinkedList<String>();
-		versionsToDelete.add("123");
+		List<Long> versionsToDelete = new LinkedList<Long>();
+		versionsToDelete.add(123L);
 		wikiPageDao.deleteWikiVersions(null, versionsToDelete);
 	}
 	
@@ -883,38 +883,12 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		wikiPageDao.deleteWikiVersions(key, null);
 	}
 	
-	@Test
+	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsEmptyVersions() throws Exception {
-		// Create a new wiki page
-		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn192";
-		ObjectType ownerType = ObjectType.ENTITY;
-		page.setTitle("Title");
-		page.setCreatedBy(creatorUserGroupId);
-		page.setModifiedBy(creatorUserGroupId);
-		page.setMarkdownFileHandleId(markdownOne.getId());
-		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
-		List<String> fileIds = new ArrayList<String>();
-		
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, fileIds);
-		assertNotNull(clone);
-		
-		V2WikiPage clone2 = createVersions(clone, ownerId, ownerType, 1);
+		WikiPageKey key = new WikiPageKey();
+		List<Long> versionsToDelete = new LinkedList<Long>();
 
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
-		toDelete.add(key);
-		
-		List<V2WikiHistorySnapshot> hPre = wikiPageDao.getWikiHistory(key, 10L, 0L);
-		assertEquals(2, hPre.size());
-		
-		List<String> versionsToDelete = new LinkedList<String>();
-		// Should be a no-op
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
-
-		List<V2WikiHistorySnapshot> hPost = wikiPageDao.getWikiHistory(key, 10L, 0L);
-		assertEquals(2, hPost.size());
-		assertEquals(hPre, hPost);
-
 	}
 	
 	@Test
@@ -939,8 +913,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		assertEquals(5, wikiPageDao.getWikiHistory(key, 10L, 0L).size());
 		
-		List<String> versionsToDelete = new LinkedList<String>();
-		versionsToDelete.add("0");
+		List<Long> versionsToDelete = new LinkedList<Long>();
+		versionsToDelete.add(0L);
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, 10L, 0L);
@@ -972,8 +946,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		assertEquals(5, wikiPageDao.getWikiHistory(key, 10L, 0L).size());
 		
-		List<String> versionsToDelete = new LinkedList<String>();
-		versionsToDelete.add("4");
+		List<Long> versionsToDelete = new LinkedList<Long>();
+		versionsToDelete.add(4L);
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, 10L, 0L);
@@ -1005,8 +979,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		List<V2WikiHistorySnapshot> historyBefore = wikiPageDao.getWikiHistory(key, 10L, 0L);
 		assertEquals(5, historyBefore.size());
 		
-		List<String> versionsToDelete = new LinkedList<String>();
-		versionsToDelete.add("5");
+		List<Long> versionsToDelete = new LinkedList<Long>();
+		versionsToDelete.add(5L);
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 
 		List<V2WikiHistorySnapshot> historyAfter = wikiPageDao.getWikiHistory(key, 10L, 0L);
@@ -1035,8 +1009,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		assertEquals(5, wikiPageDao.getWikiHistory(key, 10L, 0L).size());
 		
-		List<String> versionsToDelete = new LinkedList<String>();
-		versionsToDelete.addAll(Arrays.asList("0", "1", "2", "3", "4"));
+		List<Long> versionsToDelete = new LinkedList<Long>();
+		versionsToDelete.addAll(Arrays.asList(0L, 1L, 2L, 3L, 4L));
 		
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 

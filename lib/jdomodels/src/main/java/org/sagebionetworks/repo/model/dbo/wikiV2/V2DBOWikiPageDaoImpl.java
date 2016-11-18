@@ -540,7 +540,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
+	@Override
+	public Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
 		Long root = getRootWiki(ownerId, ownerType);
 		try{
 			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, Long.class, new Long(wikiId), root);
@@ -782,7 +783,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@WriteTransaction
 	@Override
-	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete) {
+	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete) {
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null.");
 		}
@@ -790,7 +791,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			throw new IllegalArgumentException("VersionsToDelete cannot be null.");
 		}
 		if (versionsToDelete.size() == 0) {
-			return; // Nothing to do
+			throw new IllegalArgumentException("VersionsToDelete cannot be empty.");
 		}
 		String wikiId = key.getWikiPageId();
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);

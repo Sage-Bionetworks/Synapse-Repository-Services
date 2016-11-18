@@ -45,6 +45,7 @@ import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetQuantifier;
+import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
@@ -245,7 +246,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(schema, "schema");
 		List<DerivedColumn> columns = new ArrayList<DerivedColumn>(schema.size());
 		for(ColumnModel cm: schema){
-			columns.add(createDerivedColumn(cm.getName()));
+			columns.add(SqlElementUntils.createDoubleQuotedDerivedColumn(cm.getName()));
 		}
 		return new SelectList(columns);
 	}
@@ -259,8 +260,8 @@ public class SQLTranslatorUtils {
 	public static SelectList addRowIdAndVersionToSelect(SelectList selectList){
 		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
 		selectColumns.addAll(selectList.getColumns());
-		selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_ID));
-		selectColumns.add(SQLTranslatorUtils.createDerivedColumn(ROW_VERSION));
+		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_ID));
+		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_VERSION));
 		return new SelectList(selectColumns);
 	}
 	
@@ -289,17 +290,7 @@ public class SQLTranslatorUtils {
 		return row;
 	}
 	
-
-	public static DerivedColumn createDerivedColumn(String columnName) {
-		return new DerivedColumn(new ValueExpression(new StringValueExpression(new CharacterValueExpression(new CharacterFactor(
-				new CharacterPrimary(new ValueExpressionPrimary(new ColumnReference(null, new ColumnName(new Identifier(
-						SqlElementUntils.createActualIdentifier(columnName)))))))))), null);
-	}
-
-	public static DerivedColumn createDerivedColumn(MysqlFunction mysqlFunction) {
-		return new DerivedColumn(new ValueExpression(new NumericValueExpression(new Term(new Factor(new NumericPrimary(
-				new NumericValueFunction(mysqlFunction)))))), null);
-	}
+	
 
 	/**
 	 * Translate this query into a form that can be executed against the actual table index.

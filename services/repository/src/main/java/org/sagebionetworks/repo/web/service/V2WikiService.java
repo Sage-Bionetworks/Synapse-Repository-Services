@@ -189,5 +189,5 @@ public interface V2WikiService {
 	 * @param ownerType
 	 * @param wikiPage
 	 */
-	V2WikiPage deleteWikiVersions(Long userId, WikiPageKey key, List<String> versionsToDelete);
+	void deleteWikiVersions(Long userId, WikiPageKey key, List<Long> versionsToDelete);
 }

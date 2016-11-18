@@ -209,7 +209,7 @@ public interface V2WikiPageDao {
 	 * @param key
 	 * @param versionsToDelete
 	 */
-	public void deleteWikiVersions(WikiPageKey key, List<String> versionsToDelete);
+	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete);
 	
 	/**
 	 * Update the Etag of a Wiki page
@@ -223,4 +223,15 @@ public interface V2WikiPageDao {
 	 * @return
 	 */
 	public Long getNumberOfVersions(WikiPageKey key);
+
+	/**
+	 * Return the current version of a Wiki
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Long getCurrentWikiVersion(String ownerId, ObjectType ownerType,
+			String wikiId) throws NotFoundException;
 }

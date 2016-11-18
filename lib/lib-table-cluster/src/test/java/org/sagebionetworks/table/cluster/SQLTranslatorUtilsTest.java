@@ -496,7 +496,19 @@ public class SQLTranslatorUtilsTest {
 		// call under test.
 		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(columnFoo, columnHasSpace));
 		assertNotNull(results);
-		assertEquals("foo, \"has space\"", results.toSql());
+		assertEquals("\"foo\", \"has space\"", results.toSql());
+	}
+	
+	@Test
+	public void testCreateSelectListFromSchemaPLFM_4161(){
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		// call under test.
+		SelectList results = SQLTranslatorUtils.createSelectListFromSchema(Lists.newArrayList(cm));
+		assertNotNull(results);
+		assertEquals("\"5ormore\"", results.toSql());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

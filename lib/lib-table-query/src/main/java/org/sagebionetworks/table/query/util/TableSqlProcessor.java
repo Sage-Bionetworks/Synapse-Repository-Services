@@ -48,7 +48,7 @@ public class TableSqlProcessor {
 		OrderByClause obc = model.getTableExpression().getOrderByClause();
 		OrderByClause newCluase = new OrderByClause(new SortSpecificationList());
 		// This will be the sort key for the column
-		SortKey columnNameKey = createSortKey(columnName);
+		SortKey columnNameKey = SqlElementUntils.createSortKey(columnName);
 		// Is this sort column already in the list?
 		OrderingSpecification currentOrder = getCurrentDirection(obc,
 				columnNameKey);
@@ -69,36 +69,6 @@ public class TableSqlProcessor {
 		addAllSortColumns(obc, newCluase, newSortSpec);
 		// Create the new sql
 		return createSQL(model, selectList, newCluase);
-	}
-
-	/**
-	 * Create delimited sort key from a column name.
-	 * 
-	 * @param columnName
-	 * @return
-	 */
-	private static SortKey createSortKey(String columnName) {
-		try {
-			/*
-			 * For aggregate functions we can use this ValueExpressionPrimary to
-			 * create the SortKey. For non-aggregate functions the name must be
-			 * bracketed in quotes.
-			 */
-			ValueExpressionPrimary primary = new TableQueryParser(columnName)
-					.valueExpressionPrimary();
-			if (primary.hasAnyAggregateElements()) {
-				return new SortKey(primary);
-			} else {
-				// Put non-aggregate column names in quotes.
-				StringBuilder builder = new StringBuilder();
-				builder.append("\"");
-				builder.append(columnName);
-				builder.append("\"");
-				return new TableQueryParser(builder.toString()).sortKey();
-			}
-		} catch (ParseException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	/**
