@@ -467,6 +467,22 @@ public class ColumnModelManagerTest {
 		columnModelManager.validateSchemaSize(scheamIds);
 	}
 	
+	@Test
+	public void testValidateSchemaMaxColumns(){
+		List<String> scheamIds = Lists.newArrayList();
+		List<ColumnModel> schema = Lists.newArrayList();
+		int numberOfColumns = ColumnModelManagerImpl.MY_SQL_MAX_COLUMNS_PER_TABLE;
+		for(int i=0; i<numberOfColumns; i++){
+			ColumnModel cm = TableModelTestUtils.createColumn((long)i, "c"+i, ColumnType.BOOLEAN);
+			cm.setMaximumSize(1L);
+			schema.add(cm);
+			scheamIds.add(""+cm.getId());
+		}
+		when(mockColumnModelDAO.getColumnModel(scheamIds, false)).thenReturn(schema);
+		List<ColumnModel> l = columnModelManager.validateSchemaSize(scheamIds);
+		assertNotNull(l);
+	}
+	
 	
 	/**
 	 * See PLFM-3619.  This schema should be just under the limit.
