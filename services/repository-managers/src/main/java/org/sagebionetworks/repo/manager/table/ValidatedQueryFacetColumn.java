@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -12,7 +14,6 @@ import org.sagebionetworks.util.ValidateArgument;
  *
  */
 public class ValidatedQueryFacetColumn {
-	static final String NULL_VALUE_KEYWORD = "org.sagebionetworks.UNDEFINED_NULL_NOTSET";
 	
 	private String columnName;
 	private FacetType facetType;

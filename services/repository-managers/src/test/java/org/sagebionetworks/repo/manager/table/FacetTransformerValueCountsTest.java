@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,6 +119,30 @@ public class FacetTransformerValueCountsTest {
 	public void testTranslateToResultWrongHeaders(){
 		rowSet.setHeaders(new ArrayList<SelectColumn>());
 		facetTransformer.translateToResult(rowSet);
+	}
+	
+	@Test 
+	public void testTranslateToResultNullValueColumn(){
+		Long row1Count = 42L;
+		rowSet.setHeaders(correctSelectList);
+		Row row1 = new Row();
+		//the value column is null
+		row1.setValues(Lists.newArrayList(null, row1Count.toString()));
+	
+		rowSet.setRows(Lists.newArrayList(row1));
+		FacetColumnResultValues result = (FacetColumnResultValues) facetTransformer.translateToResult(rowSet);
+
+		assertEquals(columnName, result.getColumnName());
+		assertEquals(FacetType.enumeration, result.getFacetType());
+
+		List<FacetColumnResultValueCount> valueCounts = result.getFacetValues();
+		assertEquals(1, valueCounts.size());
+		
+		FacetColumnResultValueCount valueCount1 = valueCounts.get(0);
+		assertEquals(NULL_VALUE_KEYWORD, valueCount1.getValue());
+		assertEquals(row1Count, valueCount1.getCount());
+		assertFalse(valueCount1.getIsSelected());
+
 	}
 	
 	@Test 
