@@ -205,7 +205,7 @@ public interface V2WikiPageDao {
 	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 
 	/**
-	 * 
+	 * Delete the versions of a Wiki page specified in a list of versions
 	 * @param key
 	 * @param versionsToDelete
 	 */
@@ -216,4 +216,11 @@ public interface V2WikiPageDao {
 	 * @param key
 	 */
 	public void updateWikiEtag(WikiPageKey key, String etag);
+	
+	/**
+	 * Return the number of versions of a Wiki page
+	 * @param key
+	 * @return
+	 */
+	public Long getNumberOfVersions(WikiPageKey key);
 }
