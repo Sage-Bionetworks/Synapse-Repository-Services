@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -186,7 +187,6 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -802,7 +802,7 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
-	public V2WikiPage deleteV2WikiVersions(WikiPageKey key, WikiVersionsList versionsToDelete) throws SynapseException, JSONObjectAdapterException;
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
 		ObjectType ownerType) throws SynapseException,

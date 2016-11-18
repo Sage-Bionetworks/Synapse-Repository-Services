@@ -240,7 +240,6 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -3630,7 +3629,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public V2WikiPage deleteV2WikiVersions(WikiPageKey key, WikiVersionsList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null");
 		}
@@ -3641,7 +3640,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String postJSON = EntityFactory.createJSONStringForEntity(versionsToDelete);
 		JSONObject jsonObject = getSharedClientConnection().putJson(repoEndpoint,
 			uri, postJSON, getUserAgent());
-		return EntityFactory.createEntityFromJSONObject(jsonObject, V2WikiPage.class);
+		EntityFactory.createEntityFromJSONObject(jsonObject, V2WikiPage.class);
 	}
 
 	/**

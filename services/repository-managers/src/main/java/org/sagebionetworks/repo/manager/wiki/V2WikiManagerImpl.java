@@ -431,8 +431,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 	@WriteTransaction
 	@Override
-	public V2WikiPage deleteWikiVersions(UserInfo user, WikiPageKey key,
-			List<String> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
+	public void deleteWikiVersions(UserInfo user, WikiPageKey key,
+			List<Long> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
 
 		if (user == null) throw new IllegalArgumentException("User cannot be null");
 		if (key == null) throw new IllegalArgumentException("Key cannot be null");
@@ -442,14 +442,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 		String etag = wikiPageDao.lockForUpdate(key.getWikiPageId());
 		
-		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, Long.MAX_VALUE, 0L);
-		String currentVersion = history.get(0).getVersion();
+		Long currentVersion = wikiPageDao.getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
 		if (versionsToDelete.contains(currentVersion)) {
 			throw new IllegalArgumentException("Cannot delete current version of a Wiki.");
-		}
-		List<String> versions = versionsFromHistory(history);
-		if (versionsToDelete.containsAll(versions)) {
-			throw new IllegalArgumentException("Cannot delete all the versions of a Wiki.");
 		}
 		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 		
@@ -457,16 +452,6 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		String newEtag = UUID.randomUUID().toString();
 		wikiPageDao.updateWikiEtag(key, newEtag);
 		
-		return wikiPageDao.get(key, null);
-
 	}
 	
-	private List<String> versionsFromHistory(List<V2WikiHistorySnapshot> history) {
-		List<String> versions = new LinkedList<String>();
-		for (V2WikiHistorySnapshot s: history) {
-			versions.add(s.getVersion());
-		}
-		return versions;
-	}
-
 }

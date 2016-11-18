@@ -27,6 +27,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
@@ -159,13 +159,15 @@ public class IT055WikiPageTest {
 		assertEquals(2, preHistory.getResults().size());
 		
 		String preDeleteEtag = wiki.getEtag();
-		WikiVersionsList versionsToDelete = new WikiVersionsList();
-		List<String> ids = Arrays.asList("0");
-		versionsToDelete.setVersionIds(ids);
+		IdList versionsToDelete = new IdList();
+		List<Long> ids = Arrays.asList(0L);
+		versionsToDelete.setList(ids);
 		
-		V2WikiPage pDeletedHistory = synapse.deleteV2WikiVersions(key, versionsToDelete);
+		synapse.deleteV2WikiVersions(key, versionsToDelete);
 		
-		assertFalse(preDeleteEtag.equals(pDeletedHistory.getEtag()));
+		String postDeleteEtag = synapse.getV2WikiPage(key).getEtag();
+		assertFalse(preDeleteEtag.equals(postDeleteEtag));
+
 		PaginatedResults<V2WikiHistorySnapshot> postHistory = synapse.getV2WikiHistory(key, 100L, 0L);
 		assertNotNull(postHistory);
 		assertNotNull(postHistory.getResults());
