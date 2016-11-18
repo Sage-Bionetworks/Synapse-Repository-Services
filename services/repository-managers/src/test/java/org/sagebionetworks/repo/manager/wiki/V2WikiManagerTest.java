@@ -1089,12 +1089,12 @@ public class V2WikiManagerTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullUser() throws Exception {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "456");
-		wikiManager.deleteWikiVersions(null, key, new LinkedList<String>());
+		wikiManager.deleteWikiVersions(null, key, new LinkedList<Long>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullKey() throws Exception {
-		wikiManager.deleteWikiVersions(user, null, new LinkedList<String>());
+		wikiManager.deleteWikiVersions(user, null, new LinkedList<Long>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1108,14 +1108,14 @@ public class V2WikiManagerTest {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "456");
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		wikiManager.deleteWikiVersions(user, key, new LinkedList<String>());
+		wikiManager.deleteWikiVersions(user, key, new LinkedList<Long>());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsCurrentVersion() throws Exception {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockWikiDao.getCurrentWikiVersion(anyString(), any(ObjectType.class), anyString())).thenReturn(2L);
-		List<String> versionsToDelete = Arrays.asList("2");
+		List<Long> versionsToDelete = Arrays.asList(2L);
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
 	}
@@ -1144,7 +1144,7 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate(expectedWiki.getId())).thenReturn(expectedWiki.getEtag());
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdownOne.getId(), markdownOne.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
-		List<String> versionsToDelete = Arrays.asList("1");
+		List<Long> versionsToDelete = Arrays.asList(1L);
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		// Call under test
 		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
