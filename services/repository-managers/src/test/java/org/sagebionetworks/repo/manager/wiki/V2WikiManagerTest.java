@@ -173,6 +173,8 @@ public class V2WikiManagerTest {
 		// setup allow
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockWikiDao.getNumberOfVersions(any(WikiPageKey.class))).thenReturn(999L); // If 999, can create 1000th
+		
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
 		List<String> newIds = new ArrayList<String>();
@@ -243,6 +245,14 @@ public class V2WikiManagerTest {
 	    newIds.add(one.getId());
 		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
 	    verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);   
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testUpdateTooManyVersions() {
+		// setup allow
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockWikiDao.getNumberOfVersions(any(WikiPageKey.class))).thenReturn(1000L); // If 1000, cannot create 1001th
+		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, new V2WikiPage());
 	}
 	
 	@Test (expected=UnauthorizedException.class)

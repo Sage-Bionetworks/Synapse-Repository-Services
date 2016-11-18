@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
@@ -965,6 +966,44 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		String etag2 = clone2.getEtag();
 		assertNotNull(etag2);
 		assertFalse(etag1.equals(etag2));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetNumberOfVersionsNullWikiKey() {
+		wikiPageDao.getNumberOfVersions(null);
+	}
+	
+	@Test
+	public void testGetNumberOfVersions() {
+		// Create a new wiki page
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> fileIds = new ArrayList<String>();
+		
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, fileIds);
+		assertNotNull(clone);
+		V2WikiPage clone2 = createVersions(clone, ownerId, ownerType, 4);
+		WikiPageKey key1 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone2.getId());
+		toDelete.add(key1);
+		
+		// Create another page to check that query does filter on id
+		page.setTitle("title2");
+		page.setMarkdownFileHandleId(markdownTwo.getId());
+		V2WikiPage clone3 = wikiPageDao.create(page, fileNameMap, "syn193", ObjectType.ENTITY, fileIds);
+		assertNotNull(clone3);
+		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone3.getId());
+		toDelete.add(key2);
+		
+		Long numVersions = wikiPageDao.getNumberOfVersions(key1);
+		
+		assertTrue(numVersions == 5);
+		
 	}
 	
 	// Just create versions with modified page title
