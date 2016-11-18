@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
@@ -74,7 +75,8 @@ public class MigrationWorker implements MessageDrivenRunner {
 			callWithAutoProgress(progressCallback, new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
-					processRequest(user, mReq, jobId);
+					AsynchronousResponseBody resp = processRequest(user, mReq, jobId);
+					asynchJobStatusManager.setComplete(jobId, resp);
 					return null;
 				}
 			});
@@ -85,53 +87,71 @@ public class MigrationWorker implements MessageDrivenRunner {
 		}
 	}
 	
-	protected void processRequest(final UserInfo user, final AsyncMigrationRequest mReq, final String jobId) throws DatastoreException, NotFoundException, IOException {
+	protected AsynchronousResponseBody processRequest(final UserInfo user, final AsyncMigrationRequest mReq, final String jobId) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousResponseBody response;
 		if (mReq instanceof AsyncMigrationTypeCountRequest) {
-			AsyncMigrationTypeCountRequest mtcr = (AsyncMigrationTypeCountRequest)mReq;
-			String t = mtcr.getType();
-			MigrationType mt = MigrationType.valueOf(t);
-			MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, mt);
-			AsyncMigrationTypeCountResult res = new AsyncMigrationTypeCountResult();
-			res.setCount(mtc);
-			asynchJobStatusManager.setComplete(jobId, res);
-			return;
+			response = processAsyncMigrationTypeCountRequest(user, mReq);
 		} else if (mReq instanceof AsyncMigrationTypeChecksumRequest) {
-			AsyncMigrationTypeChecksumRequest mtcReq = (AsyncMigrationTypeChecksumRequest)mReq;
-			String t = mtcReq.getType();
-			MigrationType mt = MigrationType.valueOf(t);
-			MigrationTypeChecksum mtc = migrationManager.getChecksumForType(user, mt);
-			AsyncMigrationTypeChecksumResult res = new AsyncMigrationTypeChecksumResult();
-			res.setChecksum(mtc);
-			asynchJobStatusManager.setComplete(jobId, res);
-			return;
+			response = processAsyncMigrationTypeChecksumRequest(user, mReq);
 		} else if (mReq instanceof AsyncMigrationRangeChecksumRequest) {
-			AsyncMigrationRangeChecksumRequest mrcReq = (AsyncMigrationRangeChecksumRequest)mReq;
-			String t = mrcReq.getType();
-			MigrationType mt = MigrationType.valueOf(t);
-			String salt = mrcReq.getSalt();
-			long minId = mrcReq.getMinId();
-			long maxId = mrcReq.getMaxId();
-			MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(user, mt, salt, minId, maxId);
-			AsyncMigrationRangeChecksumResult res = new AsyncMigrationRangeChecksumResult();
-			res.setChecksum(mrc);
-			asynchJobStatusManager.setComplete(jobId, res);
-			return;
-		} if (mReq instanceof AsyncMigrationRowMetadataRequest) {
-			AsyncMigrationRowMetadataRequest mrmReq = (AsyncMigrationRowMetadataRequest)mReq;
-			String t = mrmReq.getType();
-			MigrationType mt = MigrationType.valueOf(t);
-			Long minId = mrmReq.getMinId();
-			Long maxId = mrmReq.getMaxId();
-			Long limit = mrmReq.getLimit();
-			Long offset = mrmReq.getOffset();
-			RowMetadataResult rmr = migrationManager.getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
-			AsyncMigrationRowMetadataResult res = new AsyncMigrationRowMetadataResult();
-			res.setRowMetadata(rmr);
-			asynchJobStatusManager.setComplete(jobId, res);
-			return;
+			response = processAsyncMigrationRangeChecksumRequest(user, mReq);
+		} else if (mReq instanceof AsyncMigrationRowMetadataRequest) {
+			response = processAsyncMigrationRowMetadataRequest(user, mReq);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
+		return response;
+	}
+
+	protected AsyncMigrationTypeCountResult processAsyncMigrationTypeCountRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq) {
+		AsyncMigrationTypeCountRequest mtcr = (AsyncMigrationTypeCountRequest)mReq;
+		String t = mtcr.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		MigrationTypeCount mtc = migrationManager.getMigrationTypeCount(user, mt);
+		AsyncMigrationTypeCountResult res = new AsyncMigrationTypeCountResult();
+		res.setCount(mtc);
+		return res;
+	}
+
+	protected AsyncMigrationTypeChecksumResult processAsyncMigrationTypeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq) {
+		AsyncMigrationTypeChecksumRequest mtcReq = (AsyncMigrationTypeChecksumRequest)mReq;
+		String t = mtcReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		MigrationTypeChecksum mtc = migrationManager.getChecksumForType(user, mt);
+		AsyncMigrationTypeChecksumResult res = new AsyncMigrationTypeChecksumResult();
+		res.setChecksum(mtc);
+		return res;
+	}
+
+	protected AsyncMigrationRangeChecksumResult processAsyncMigrationRangeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq) {
+		AsyncMigrationRangeChecksumRequest mrcReq = (AsyncMigrationRangeChecksumRequest)mReq;
+		String t = mrcReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		String salt = mrcReq.getSalt();
+		long minId = mrcReq.getMinId();
+		long maxId = mrcReq.getMaxId();
+		MigrationRangeChecksum mrc = migrationManager.getChecksumForIdRange(user, mt, salt, minId, maxId);
+		AsyncMigrationRangeChecksumResult res = new AsyncMigrationRangeChecksumResult();
+		res.setChecksum(mrc);
+		return res;
+	}
+
+	protected AsyncMigrationRowMetadataResult processAsyncMigrationRowMetadataRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq) {
+		AsyncMigrationRowMetadataRequest mrmReq = (AsyncMigrationRowMetadataRequest)mReq;
+		String t = mrmReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		Long minId = mrmReq.getMinId();
+		Long maxId = mrmReq.getMaxId();
+		Long limit = mrmReq.getLimit();
+		Long offset = mrmReq.getOffset();
+		RowMetadataResult rmr = migrationManager.getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
+		AsyncMigrationRowMetadataResult res = new AsyncMigrationRowMetadataResult();
+		res.setRowMetadata(rmr);
+		return res;
 	}
 
 	private <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
