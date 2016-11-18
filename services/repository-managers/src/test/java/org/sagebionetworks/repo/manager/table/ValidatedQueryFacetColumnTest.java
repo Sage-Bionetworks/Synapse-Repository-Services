@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.TableConstants;
 
 import com.google.common.collect.Sets;
 
@@ -84,7 +85,7 @@ public class ValidatedQueryFacetColumnTest {
 	
 	@Test
 	public void testEnumerationSearchConditionStringOneValueIsNullKeyword(){
-		String value = ValidatedQueryFacetColumn.NULL_VALUE_KEYWORD;
+		String value = TableConstants.NULL_VALUE_KEYWORD;
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		ValidatedQueryFacetColumn validatedQueryFacetColumn = new ValidatedQueryFacetColumn(columnName, FacetType.enumeration, facetValues);
 		assertEquals("(" + columnName + " IS NULL)", validatedQueryFacetColumn.getSearchConditionString());
@@ -103,7 +104,7 @@ public class ValidatedQueryFacetColumnTest {
 	
 	@Test
 	public void testEnumerationSearchConditionStringTwoValuesWithOneBeingNullKeyword(){
-		String value1 = ValidatedQueryFacetColumn.NULL_VALUE_KEYWORD;
+		String value1 = TableConstants.NULL_VALUE_KEYWORD;
 		String value2 = "world";
 		facetValues.setFacetValues(Sets.newHashSet(value1, value2));
 
