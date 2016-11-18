@@ -186,6 +186,7 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -579,6 +580,8 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException;
+
 	public JSONObject getEntity(String uri) throws SynapseException;
 
 	public <T extends JSONEntity> T getEntity(String entityId,
@@ -798,6 +801,8 @@ public interface SynapseClient extends BaseClient {
 			String fileName, Long version, File target) throws SynapseException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
+	
+	public V2WikiPage deleteV2WikiVersions(WikiPageKey key, WikiVersionsList versionsToDelete) throws SynapseException, JSONObjectAdapterException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
 		ObjectType ownerType) throws SynapseException,

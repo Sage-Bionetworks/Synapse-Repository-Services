@@ -240,6 +240,7 @@ import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiVersionsList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -1902,6 +1903,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
 			throws SynapseException {
@@ -1923,6 +1925,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteAccessApproval(Long approvalId)
 			throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + approvalId, getUserAgent());
+	}
+
+	@Override
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException {
+		String url = ACCESS_APPROVAL + "?requirementId=" + requirementId + "&accessorId=" + accessorId;
+		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
 	}
 
 	/**
@@ -3619,6 +3627,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = createV2WikiURL(key);
 		getSharedClientConnection()
 				.deleteUri(repoEndpoint, uri, getUserAgent());
+	}
+	
+	@Override
+	public V2WikiPage deleteV2WikiVersions(WikiPageKey key, WikiVersionsList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null");
+		}
+		if (versionsToDelete == null) {
+			throw new IllegalArgumentException("VersionsToDelete cannot be null");
+		}
+		String uri = createV2WikiURL(key) + "/markdown/deleteversion";
+		String postJSON = EntityFactory.createJSONStringForEntity(versionsToDelete);
+		JSONObject jsonObject = getSharedClientConnection().putJson(repoEndpoint,
+			uri, postJSON, getUserAgent());
+		return EntityFactory.createEntityFromJSONObject(jsonObject, V2WikiPage.class);
 	}
 
 	/**

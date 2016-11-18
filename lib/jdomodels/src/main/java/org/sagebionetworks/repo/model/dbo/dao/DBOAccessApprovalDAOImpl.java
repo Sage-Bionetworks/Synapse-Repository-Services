@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -64,6 +65,11 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	COL_ACCESS_APPROVAL_ETAG+
 	" from "+TABLE_ACCESS_APPROVAL+" where "+COL_ACCESS_APPROVAL_ID+
 	"=:"+COL_ACCESS_APPROVAL_ID+" for update";
+
+	private static final String DELETE_ACCESS_APPROVAL = "DELETE"
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -182,7 +188,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Override
 	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
-		MapSqlParameterSource params = new MapSqlParameterSource();		
+		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_FOR_REQUIREMENT_SQL, params, rowMapper);
 		for (DBOAccessApproval dbo : dbos) {
@@ -193,5 +199,15 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+
+	@Override
+	public void delete(String accessRequirementId, String accessorId) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(accessorId, "accessorId");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
+		namedJdbcTemplate.update(DELETE_ACCESS_APPROVAL, params);
 	}
 }

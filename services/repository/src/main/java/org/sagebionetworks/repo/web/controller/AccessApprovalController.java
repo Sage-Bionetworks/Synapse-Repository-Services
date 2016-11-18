@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -91,6 +92,7 @@ public class AccessApprovalController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -159,10 +161,27 @@ public class AccessApprovalController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
-	public void deleteAccessApprovals(
+	public void deleteAccessApproval(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
+		serviceProvider.getAccessApprovalService().deleteAccessApproval(userId, approvalId);
 	}
-	
+
+	/**
+	 * Delete Access Approval. This service is only available to the ACT.
+	 * @param userId - The user who is making the request
+	 * @param accessRequirementId - The access requirement to look for
+	 * @param accessorId - The user whose access is being revoked
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.DELETE)
+	public void deleteAccessApprovals(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.ACCESS_REQUIREMENT_ID_PARAM, required = true) String requirementId,
+			@RequestParam(value = ServiceConstants.ACCESSOR_ID_PARAM, required = true) String accessorId)
+					throws UnauthorizedException, NotFoundException {
+		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, requirementId, accessorId);
+	}
 }

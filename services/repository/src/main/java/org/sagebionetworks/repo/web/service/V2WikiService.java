@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -179,4 +181,13 @@ public interface V2WikiService {
 	 * @throws NotFoundException
 	 */
 	V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws NotFoundException;
+	
+	/**
+	 * Delete 
+	 * @param userId
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiPage
+	 */
+	V2WikiPage deleteWikiVersions(Long userId, WikiPageKey key, List<String> versionsToDelete);
 }

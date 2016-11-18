@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.wiki;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -172,4 +174,16 @@ public interface V2WikiManager {
 	 */
 	WikiPageKey getRootWikiKey(UserInfo user, String ownerId, ObjectType type) throws NotFoundException;
 	
+	/**
+	 * 
+	 * @param user
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiId
+	 * @param versionsToDelete
+	 * @throws IllegalArgumentException
+	 * @throws UnauthorizedException
+	 */
+	V2WikiPage deleteWikiVersions(UserInfo user, WikiPageKey key, List<String> versionsToDelete)
+			throws IllegalArgumentException, UnauthorizedException;
 }

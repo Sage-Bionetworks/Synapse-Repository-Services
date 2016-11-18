@@ -450,7 +450,8 @@ public class UrlHelpers {
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
-	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
+	private static final String ACCESS_REQUIREMENT_ID = "/{requirementId}";
+	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+ACCESS_REQUIREMENT_ID;
 	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 	
 	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
@@ -697,6 +698,7 @@ public class UrlHelpers {
 	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
 	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
 	public static final String MARKDOWN_V2 = "/markdown";
+	public static final String MARKDOWN_V2_VERSION_DELETE = "/deleteversion";
 	// Entity
 	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
 	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
@@ -709,6 +711,7 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = ENTITY_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
@@ -720,6 +723,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
 	// Access Requirement
 	public static final String ACCESS_REQUIREMENT_OWNER_ID_V2 = "/access_requirement/{ownerId}";
 	public static final String ACCESS_REQUIREMENT_WIKI_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_V2;
@@ -731,6 +735,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WIKI_HISTORY_V2 = ACCESS_REQUIREMENT_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
 	
 	// Tables
 	public static final String COLUMN = "/column";

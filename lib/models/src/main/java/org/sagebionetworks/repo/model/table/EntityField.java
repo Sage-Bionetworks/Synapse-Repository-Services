@@ -21,22 +21,23 @@ import java.util.List;
  */
 public enum EntityField {
 	
-	id					(ENTITY_REPLICATION_COL_ID, 			ColumnType.ENTITYID, 		null),
-	name				(ENTITY_REPLICATION_COL_NAME,			ColumnType.STRING,			256L),
-	createdOn			(ENTITY_REPLICATION_COL_CRATED_ON, 		ColumnType.DATE,			null),
-	createdBy			(ENTITY_REPLICATION_COL_CRATED_BY, 		ColumnType.INTEGER,			null),
-	etag				(ENTITY_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L),
-	currentVersion		(ENTITY_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null),
-	parentId			(ENTITY_REPLICATION_COL_PARENT_ID, 		ColumnType.ENTITYID,		null),
-	benefactorId		(ENTITY_REPLICATION_COL_BENEFACTOR_ID, 	ColumnType.ENTITYID,		null),
-	projectId			(ENTITY_REPLICATION_COL_PROJECT_ID, 	ColumnType.ENTITYID,		null),
-	modifiedOn			(ENTITY_REPLICATION_COL_MODIFIED_ON,	ColumnType.DATE,			null),
-	modifiedBy			(ENTITY_REPLICATION_COL_MODIFIED_BY,	ColumnType.INTEGER,			null),
-	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null);
+	id					(ENTITY_REPLICATION_COL_ID, 			ColumnType.ENTITYID, 		null,	null),
+	name				(ENTITY_REPLICATION_COL_NAME,			ColumnType.STRING,			256L,	null),
+	createdOn			(ENTITY_REPLICATION_COL_CRATED_ON, 		ColumnType.DATE,			null,	FacetType.range),
+	createdBy			(ENTITY_REPLICATION_COL_CRATED_BY, 		ColumnType.USERID,			null,	FacetType.enumeration),
+	etag				(ENTITY_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L,	null),
+	currentVersion		(ENTITY_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null,	null),
+	parentId			(ENTITY_REPLICATION_COL_PARENT_ID, 		ColumnType.ENTITYID,		null,	FacetType.enumeration),
+	benefactorId		(ENTITY_REPLICATION_COL_BENEFACTOR_ID, 	ColumnType.ENTITYID,		null,	null),
+	projectId			(ENTITY_REPLICATION_COL_PROJECT_ID, 	ColumnType.ENTITYID,		null,	FacetType.enumeration),
+	modifiedOn			(ENTITY_REPLICATION_COL_MODIFIED_ON,	ColumnType.DATE,			null,	FacetType.range),
+	modifiedBy			(ENTITY_REPLICATION_COL_MODIFIED_BY,	ColumnType.USERID,			null,	FacetType.enumeration),
+	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null,	null);
 	
 	String databaseColumnName;
 	ColumnType type;
 	Long size;
+	FacetType facetType;
 	
 	/**
 	 * Defines each enum value.
@@ -45,11 +46,13 @@ public enum EntityField {
 	 * @param databaseTableName
 	 * @param type
 	 * @param size
+	 * @param facetType
 	 */
-	private EntityField(String columnName, ColumnType type, Long size){
+	private EntityField(String columnName, ColumnType type, Long size, FacetType facetType){
 		this.databaseColumnName = columnName;
 		this.type = type;
 		this.size = size;
+		this.facetType = facetType;
 	}
 	
 	/**
@@ -61,6 +64,7 @@ public enum EntityField {
 		cm.setName(name());
 		cm.setColumnType(this.type);
 		cm.setMaximumSize(this.size);
+		cm.setFacetType(this.facetType);
 		return cm;
 	}
 
