@@ -37,6 +37,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	public static final String CANCEL_REQUESTED = "cancelRequested";
 	public static final String CANCEL_CONTROL = "cancelControl";
 	private static final String BUNDLE_ENTITY_FIELD = "entity";	
+	private static final boolean SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE = false;
 
 	@Autowired
 	private AnnotationsDAO annotationsDAO;	
@@ -162,7 +163,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			Map<String, StringAnnotation> stringAnnoMap) throws JSONObjectAdapterException {
 		// owner ID (the Submission ID)
 		LongAnnotation ownerIdAnno = new LongAnnotation();
-		ownerIdAnno.setIsPrivate(false);
+		ownerIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		ownerIdAnno.setKey(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
 		if (submission.getId() != null) {
 			ownerIdAnno.setValue(KeyFactory.stringToKey(submission.getId()));
@@ -171,7 +172,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 		// ownerParent ID (the Evaluation ID)
 		LongAnnotation ownerParentIdAnno = new LongAnnotation();
-		ownerParentIdAnno.setIsPrivate(false);
+		ownerParentIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		ownerParentIdAnno.setKey(DBOConstants.PARAM_ANNOTATION_SCOPE_ID);
 		if (submission.getEvaluationId() != null) {
 			ownerParentIdAnno.setValue(KeyFactory.stringToKey(submission.getEvaluationId()));
@@ -180,7 +181,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 		// creator userId
 		LongAnnotation creatorIdAnno = new LongAnnotation();
-		creatorIdAnno.setIsPrivate(true);
+		creatorIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		creatorIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_USER_ID);
 		if (submission.getUserId() != null) {
 			creatorIdAnno.setValue(KeyFactory.stringToKey(submission.getUserId()));
@@ -189,35 +190,35 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 		// submitterAlias
 		StringAnnotation submitterAnno = new StringAnnotation();
-		submitterAnno.setIsPrivate(true);
+		submitterAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		submitterAnno.setKey(DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS);
 		submitterAnno.setValue(submission.getSubmitterAlias());
 		insertAnnotation(submitterAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// entityId
 		StringAnnotation entityIdAnno = new StringAnnotation();
-		entityIdAnno.setIsPrivate(false);
+		entityIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		entityIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_ID);
 		entityIdAnno.setValue(submission.getEntityId());
 		insertAnnotation(entityIdAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// entity version
 		LongAnnotation versionAnno = new LongAnnotation();
-		versionAnno.setIsPrivate(false);
+		versionAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		versionAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION);
 		versionAnno.setValue(submission.getVersionNumber());
 		insertAnnotation(versionAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// name
 		StringAnnotation nameAnno = new StringAnnotation();
-		nameAnno.setIsPrivate(true);
+		nameAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		nameAnno.setKey(DBOConstants.PARAM_SUBMISSION_NAME);
 		nameAnno.setValue(submission.getName());
 		insertAnnotation(nameAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// createdOn
 		LongAnnotation createdOnAnno = new LongAnnotation();
-		createdOnAnno.setIsPrivate(true);
+		createdOnAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		createdOnAnno.setKey(DBOConstants.PARAM_SUBMISSION_CREATED_ON);
 		if (submission.getCreatedOn() != null) {
 			createdOnAnno.setValue(submission.getCreatedOn().getTime());
@@ -226,7 +227,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 		// modifiedOn
 		LongAnnotation modifiedOnAnno = new LongAnnotation();
-		modifiedOnAnno.setIsPrivate(false);
+		modifiedOnAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		modifiedOnAnno.setKey(DBOConstants.PARAM_SUBSTATUS_MODIFIED_ON);
 		if (subStatus.getModifiedOn() != null) {
 			modifiedOnAnno.setValue(subStatus.getModifiedOn().getTime());
@@ -235,7 +236,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 		// status
 		StringAnnotation statusAnno = new StringAnnotation();
-		statusAnno.setIsPrivate(false);
+		statusAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		statusAnno.setKey(DBOConstants.PARAM_SUBSTATUS_STATUS);
 		if (subStatus.getStatus() != null) {
 			statusAnno.setValue(subStatus.getStatus().toString());
@@ -244,7 +245,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 		// teamId
 		LongAnnotation teamAnno = new LongAnnotation();
-		teamAnno.setIsPrivate(true);
+		teamAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
 		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
 		insertAnnotation(teamAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
@@ -253,7 +254,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		String dockerRepositoryName = getDockerRepositoryNameFromSubmission(submission);
 		if (!StringUtils.isEmpty(dockerRepositoryName)) {
 			StringAnnotation repoNameAnno = new StringAnnotation();
-			repoNameAnno.setIsPrivate(true);
+			repoNameAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 			repoNameAnno.setKey(REPOSITORY_NAME);
 			repoNameAnno.setValue(dockerRepositoryName);
 			insertAnnotation(repoNameAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
@@ -262,7 +263,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		// Docker Digest
 		if (!StringUtils.isEmpty(submission.getDockerDigest())) {
 			StringAnnotation digestAnno = new StringAnnotation();
-			digestAnno.setIsPrivate(true);
+			digestAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 			digestAnno.setKey(DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST);
 			digestAnno.setValue(submission.getDockerDigest());
 			insertAnnotation(digestAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
@@ -274,7 +275,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			canCancel = Boolean.TRUE;
 		}
 		StringAnnotation canCancelAnno = new StringAnnotation();
-		canCancelAnno.setIsPrivate(false);
+		canCancelAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		canCancelAnno.setKey(CAN_CANCEL);
 		canCancelAnno.setValue(canCancel.toString());
 		insertAnnotation(canCancelAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
@@ -285,7 +286,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			cancelRequested = Boolean.TRUE;
 		}
 		StringAnnotation cancelRequestedAnno = new StringAnnotation();
-		cancelRequestedAnno.setIsPrivate(false);
+		cancelRequestedAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		cancelRequestedAnno.setKey(CANCEL_REQUESTED);
 		cancelRequestedAnno.setValue(cancelRequested.toString());
 		insertAnnotation(cancelRequestedAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
@@ -297,7 +298,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		cancelControl.setSubmissionId(submission.getId());
 		cancelControl.setUserId(submission.getUserId());
 		StringAnnotation cancelControlAnno = new StringAnnotation();
-		cancelControlAnno.setIsPrivate(false);
+		cancelControlAnno.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
 		cancelControlAnno.setKey(CANCEL_CONTROL);
 		cancelControlAnno.setValue(EntityFactory.createJSONStringForEntity(cancelControl));
 		insertAnnotation(cancelControlAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
