@@ -5,20 +5,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.util.EntityUtils;
-import org.sagebionetworks.utils.HttpClientHelper;
-import org.sagebionetworks.utils.HttpClientHelperException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.http.client.HttpResponseException;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 public class MarkdownClient {
 
-	@Autowired
-	private MarkdownHttpClientProvider markdownHttpClientProvider;
-	private HttpClient httpClient;
+	private SimpleHttpClient simpleHttpClient;
 	private String markdownServiceEndpoint;
 	private static final Map<String, String> DEFAULT_REQUEST_HEADERS;
 
@@ -30,10 +26,9 @@ public class MarkdownClient {
 	}
 
 	public void _init() {
-		if (markdownHttpClientProvider == null) {
-			throw new RuntimeException("MarkdownHttpClientProvider is null in MarkdownClient._init()");
+		if (simpleHttpClient == null) {
+			simpleHttpClient = new SimpleHttpClientImpl(null);
 		}
-		this.httpClient = markdownHttpClientProvider.getHttpClient();
 	}
 
 	/**
@@ -45,19 +40,18 @@ public class MarkdownClient {
 	 * @return
 	 * @throws ClientProtocolException 
 	 * @throws IOException
-	 * @throws HttpClientHelperException 
 	 */
-	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException, HttpClientHelperException {
-		String url = markdownServiceEndpoint+MARKDOWN_TO_HTML;
-		HttpResponse response = HttpClientHelper.performRequest(httpClient, url, "POST", requestContent, DEFAULT_REQUEST_HEADERS);
-		int statusCode = response.getStatusLine().getStatusCode();
-		HttpEntity responseEntity = response.getEntity();
-		String result = EntityUtils.toString(responseEntity);
-		if (statusCode == 200) {
-			return result;
+	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException {
+		String uri = markdownServiceEndpoint+MARKDOWN_TO_HTML;
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(uri);
+		request.setHeaders(DEFAULT_REQUEST_HEADERS);
+		SimpleHttpResponse response = simpleHttpClient.post(request , requestContent);
+		if (response.getStatusCode() == 200) {
+			return response.getContent();
 		} else {
 			String message = "Fail to request markdown conversion for request: "+requestContent;
-			throw new HttpClientHelperException(message, statusCode, result);
+			throw new HttpResponseException(response.getStatusCode(), message);
 		}
 	}
 

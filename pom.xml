@@ -498,7 +498,7 @@
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-markdown</artifactId>
 				<version>${project.version}</version>
-			</dependency>			
+			</dependency>
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -529,6 +529,11 @@
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>csv-utilities</artifactId>
 				<version>1.0.3</version>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>simple-http-client</artifactId>
+				<version>0.0.1</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>

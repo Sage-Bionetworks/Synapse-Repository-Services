@@ -3,11 +3,11 @@ package org.sagebionetworks.markdown;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
+import org.apache.http.client.HttpResponseException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MarkdownDaoImplTest {
@@ -28,11 +28,11 @@ public class MarkdownDaoImplTest {
 		dao.convertMarkdown(null, null);
 	}
 
-	@Test (expected = HttpClientHelperException.class)
+	@Test (expected = HttpResponseException.class)
 	public void testConvertMarkdownWithNullResponse() throws Exception {
 		String rawMarkdown = "## a heading";
 		String request = "{\"markdown\":\"## a heading\"}";
-		when(mockMarkdownClient.requestMarkdownConversion(request)).thenThrow(new HttpClientHelperException("",500,""));
+		when(mockMarkdownClient.requestMarkdownConversion(request)).thenThrow(new HttpResponseException(500,""));
 		dao.convertMarkdown(rawMarkdown, null);
 	}
 
