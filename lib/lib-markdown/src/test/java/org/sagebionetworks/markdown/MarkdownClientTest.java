@@ -41,7 +41,7 @@ public class MarkdownClientTest {
 		try {
 			markdownClient.requestMarkdownConversion(request);
 			fail("expecting exception");
-		} catch (HttpResponseException e) {
+		} catch (MarkdownClientException e) {
 			verify(mockHttpClient).post(any(SimpleHttpRequest.class), eq(request));
 			assertEquals(500, e.getStatusCode());
 			assertEquals("Fail to request markdown conversion for request: "+request, e.getMessage());

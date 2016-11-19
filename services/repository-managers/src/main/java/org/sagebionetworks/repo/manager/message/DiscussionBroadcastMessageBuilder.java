@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -75,7 +76,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	}
 
 	@Override
-	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		// build the email body
 		String body = buildRawBodyForSubscriber(subscriber);
 		return new SendRawEmailRequestBuilder()
@@ -87,7 +88,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	}
 
 	@Override
-	public SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		// build the email body
 		String body = buildRawBodyForNonSubscriber(user);
 		return new SendRawEmailRequestBuilder()

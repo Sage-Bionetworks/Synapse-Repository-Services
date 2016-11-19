@@ -40,8 +40,9 @@ public class MarkdownClient {
 	 * @return
 	 * @throws ClientProtocolException 
 	 * @throws IOException
+	 * @throws MarkdownClientException 
 	 */
-	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException {
+	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException, MarkdownClientException {
 		String uri = markdownServiceEndpoint+MARKDOWN_TO_HTML;
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri);
@@ -51,7 +52,7 @@ public class MarkdownClient {
 			return response.getContent();
 		} else {
 			String message = "Fail to request markdown conversion for request: "+requestContent;
-			throw new HttpResponseException(response.getStatusCode(), message);
+			throw new MarkdownClientException(response.getStatusCode(), message);
 		}
 	}
 

@@ -28,7 +28,7 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	}
 
 	@Override
-	public String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException {
+	public String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException, MarkdownClientException {
 		ValidateArgument.required(rawMarkdown, "rawMarkdown");
 		JSONObject request = new JSONObject();
 		request.put(MARKDOWN, rawMarkdown);

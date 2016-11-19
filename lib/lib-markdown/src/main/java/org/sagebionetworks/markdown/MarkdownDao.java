@@ -21,6 +21,7 @@ public interface MarkdownDao {
 	 * @throws IOException 
 	 * @throws ClientProtocolException
 	 * @throws JSONException 
+	 * @throws MarkdownClientException 
 	 */
-	String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException;
+	String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException, MarkdownClientException;
 }
