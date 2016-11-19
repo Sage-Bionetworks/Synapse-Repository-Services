@@ -3638,9 +3638,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		String uri = createV2WikiURL(key) + "/markdown/deleteversion";
 		String postJSON = EntityFactory.createJSONStringForEntity(versionsToDelete);
-		JSONObject jsonObject = getSharedClientConnection().putJson(repoEndpoint,
-			uri, postJSON, getUserAgent());
-		EntityFactory.createEntityFromJSONObject(jsonObject, V2WikiPage.class);
+		getSharedClientConnection().putJson(repoEndpoint, uri, postJSON, getUserAgent());
 	}
 
 	/**
