@@ -4,13 +4,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.BroadcastMessageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -39,8 +39,8 @@ public class BroadcastMessageWorker implements ChangeMessageDrivenRunner{
 		log.info("broadcasting "+message.getChangeType()+" "+message.getObjectType());
 		try {
 			broadcastManager.broadcastMessage(admin, progressCallback, message);
-		} catch (HttpClientHelperException e) {
-			log.error("Fail to broadcast message. Reason: "+e.getMessage()+". Status: "+e.getHttpStatus()+". Response: "+e.getResponse());
+		} catch (MarkdownClientException e) {
+			log.error("Fail to broadcast message. Reason: "+e.getMessage()+". Status: "+e.getStatusCode());
 			throw new RecoverableMessageException();
 		} catch (Exception e) {
 			log.error("Fail to broadcast message. "+e.getMessage());

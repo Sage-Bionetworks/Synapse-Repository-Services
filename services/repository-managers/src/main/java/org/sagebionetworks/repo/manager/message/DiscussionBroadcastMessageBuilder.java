@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 

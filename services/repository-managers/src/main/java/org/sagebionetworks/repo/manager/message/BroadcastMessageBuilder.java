@@ -9,7 +9,6 @@ import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -37,7 +36,8 @@ public interface BroadcastMessageBuilder {
 	 * @throws ClientProtocolException 
 	 * @throws MarkdownClientException 
 	 */
-	SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException, MarkdownClientException;
+	SendRawEmailRequest buildEmailForSubscriber(Subscriber subscriber)
+			throws ClientProtocolException, JSONException, IOException, MarkdownClientException;
 
 	/**
 	 * Build an email request for a given subscriber.
@@ -50,7 +50,7 @@ public interface BroadcastMessageBuilder {
 	 * @throws MarkdownClientException 
 	 */
 	SendRawEmailRequest buildEmailForNonSubscriber(UserNotificationInfo user)
-			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException, MarkdownClientException;
+			throws ClientProtocolException, JSONException, IOException, MarkdownClientException;
 
 	/**
 	 * 
