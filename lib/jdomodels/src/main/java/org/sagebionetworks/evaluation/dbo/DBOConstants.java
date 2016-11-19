@@ -33,6 +33,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_CREATED_ON 			= "createdOn";
 	public static final String PARAM_SUBMISSION_TEAM_ID 			= "teamId";
 	public static final String PARAM_SUBMISSION_DOCKER_DIGEST 		= "dockerDigest";
+	public static final String PARAM_SUBMISSION_SUBMITTER_ID		= "submitterId";
 		
 	// SubmissionStatus
 	public static final String PARAM_SUBSTATUS_ID 					= "id";

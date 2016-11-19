@@ -302,6 +302,20 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		cancelControlAnno.setKey(CANCEL_CONTROL);
 		cancelControlAnno.setValue(EntityFactory.createJSONStringForEntity(cancelControl));
 		insertAnnotation(cancelControlAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		
+		//TODO: test
+		// submitterId - will be teamId if the user is submitting for a team or the userId if individual
+		LongAnnotation submitterId = new LongAnnotation();
+		submitterId.setIsPrivate(SYSTEM_GENERATED_ANNOTATION_ARE_PRIVATE);
+		submitterId.setKey(DBOConstants.PARAM_SUBMISSION_SUBMITTER_ID);
+		Long subId = null; 
+		if(submission.getTeamId() != null){
+			subId = KeyFactory.stringToKey(submission.getUserId());
+		}else if(submission.getTeamId() != null){
+			subId = Long.parseLong(submission.getTeamId());
+		}
+		submitterId.setValue(subId);
+		insertAnnotation(submitterId, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 	}
 	
 	public static String getDockerRepositoryNameFromSubmission(Submission submission) {
