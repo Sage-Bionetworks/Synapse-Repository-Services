@@ -19,12 +19,14 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
@@ -52,9 +54,12 @@ public class MigrationWorkerTest {
 	private UserManager mockUserManager;
 	@Mock
 	private MigrationManager mockMigrationManager;
+	@Mock
+	private ProgressCallback mockCallback;
 	
 	ExecutorService migrationExecutorService;
 	MigrationWorker migrationWorker;
+	UserInfo user;
 	
 
 	@Before
@@ -66,179 +71,67 @@ public class MigrationWorkerTest {
 		ReflectionTestUtils.setField(migrationWorker, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(migrationWorker, "migrationExecutorService", migrationExecutorService);
 		ReflectionTestUtils.setField(migrationWorker, "migrationManager", mockMigrationManager);
-		
+		user = new UserInfo(true);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 	}
-
-	@Test
-	public void testProcessAsyncMigrationTypeCountRequestOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationTypeCountRequest mtcr = new AsyncMigrationTypeCountRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		MigrationTypeCount expectedTypeCount = new MigrationTypeCount();
-		expectedTypeCount.setType(MigrationType.ACCESS_APPROVAL);
-		expectedTypeCount.setCount(100L);
-		expectedTypeCount.setMinid(1L);
-		expectedTypeCount.setMaxid(199L);
-		when(mockMigrationManager.getMigrationTypeCount(eq(userInfo), eq(MigrationType.valueOf(mtcr.getType())))).thenReturn(expectedTypeCount);
-		AsyncMigrationTypeCountResult expectedAsyncRes = new AsyncMigrationTypeCountResult();
-		expectedAsyncRes.setCount(expectedTypeCount);
-		
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
-		
-		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
-		
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testProcessAsyncMigrationTypeCountRequestNotOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationTypeCountRequest mtcr = new AsyncMigrationTypeCountRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		Exception expectedException = new IllegalArgumentException("SomeException");
-		when(mockMigrationManager.getMigrationTypeCount(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
-		
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
-		
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
-		
-	}
-
-	@Test
-	public void testProcessAsyncMigrationRangeChecksumRequestOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationRangeChecksumRequest mtcr = new AsyncMigrationRangeChecksumRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		mtcr.setMinId(0L);
-		mtcr.setMaxId(100L);
-		mtcr.setSalt("abcd");
-		MigrationRangeChecksum expectedChecksum = new MigrationRangeChecksum();
-		expectedChecksum.setChecksum("checksum");
-		expectedChecksum.setMinid(0L);
-		expectedChecksum.setMaxid(100L);
-		expectedChecksum.setType(MigrationType.ACCESS_APPROVAL);
-		when(mockMigrationManager.getChecksumForIdRange(eq(userInfo), eq(MigrationType.ACCESS_APPROVAL), eq("abcd"), eq(0L), eq(100L))).thenReturn(expectedChecksum);
-		AsyncMigrationRangeChecksumResult expectedAsyncRes = new AsyncMigrationRangeChecksumResult();
-		expectedAsyncRes.setChecksum(expectedChecksum);
-		
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
-		
-		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
-		
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testProcessAsyncMigrationRangeChecksumRequestNotOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationRangeChecksumRequest mtcr = new AsyncMigrationRangeChecksumRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		mtcr.setMinId(0L);
-		mtcr.setMaxId(100L);
-		mtcr.setSalt("abcd");
-		Exception expectedException = new IllegalArgumentException("SomeException");
-		when(mockMigrationManager.getChecksumForIdRange(any(UserInfo.class), any(MigrationType.class), anyString(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
-		
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
-		
-	}
-
 	@Test
-	public void testProcessAsyncMigrationTypeChecksumRequestOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationTypeChecksumRequest mtcr = new AsyncMigrationTypeChecksumRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		MigrationTypeChecksum expectedChecksum = new MigrationTypeChecksum();
-		expectedChecksum.setChecksum("checksum");
-		expectedChecksum.setType(MigrationType.ACCESS_APPROVAL);
-		when(mockMigrationManager.getChecksumForType(eq(userInfo), eq(MigrationType.ACCESS_APPROVAL))).thenReturn(expectedChecksum);
-		AsyncMigrationTypeChecksumResult expectedAsyncRes = new AsyncMigrationTypeChecksumResult();
-		expectedAsyncRes.setChecksum(expectedChecksum);
+	public void testProcessAsyncMigrationTypeCountRequest() throws Throwable {
+		AsyncMigrationTypeCountRequest mReq = new AsyncMigrationTypeCountRequest();
+		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
 		
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
+		migrationWorker.processAsyncMigrationRequest(mockCallback, user, mReq, "JOBID");
 		
-		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
-		
+		verify(mockMigrationManager).processAsyncMigrationTypeCountRequest(user, mReq);
+		verify(mockAsynchJobStatusManager).setComplete(eq("JOBID"), any(AsynchronousResponseBody.class));
 	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testProcessAsyncMigrationTypeChecksumRequestNotOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationTypeChecksumRequest mtcr = new AsyncMigrationTypeChecksumRequest();
-		mtcr.setType(MigrationType.ACCESS_APPROVAL.name());
-		Exception expectedException = new IllegalArgumentException("SomeException");
-		when(mockMigrationManager.getChecksumForType(any(UserInfo.class), any(MigrationType.class))).thenThrow(expectedException);
 	
-		migrationWorker.processRequest(userInfo, mtcr, jobId);
+	@Test(expected=Exception.class)
+	public void testProcessAsyncMigrationTypeCountRequestFailed() throws Throwable {
+		AsyncMigrationTypeCountRequest mReq = new AsyncMigrationTypeCountRequest();
+		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
+		when(mockMigrationManager.processAsyncMigrationTypeCountRequest(user, mReq)).thenThrow(new Exception("AnException"));
 		
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
+		migrationWorker.processAsyncMigrationRequest(mockCallback, user, mReq, "JOBID");
 		
+		verify(mockMigrationManager).processAsyncMigrationTypeCountRequest(user, mReq);
+		verify(mockAsynchJobStatusManager).setJobFailed(eq("JOBID"), any(Exception.class));
 	}
-
+	
 	@Test
-	public void testProcessAsyncMigrationRowMetadataRequestOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationRowMetadataRequest mrmr = new AsyncMigrationRowMetadataRequest();
-		mrmr.setType(MigrationType.ACCESS_APPROVAL.name());
-		mrmr.setMinId(0L);
-		mrmr.setMaxId(100L);
-		mrmr.setLimit(100L);
-		mrmr.setOffset(0L);
-		RowMetadata rowMetadata = new RowMetadata();
-		rowMetadata.setEtag("etag");
-		rowMetadata.setId(200L);
-		rowMetadata.setParentId(100L);
-		List<RowMetadata> rowMetadataList = new LinkedList<RowMetadata>();
-		rowMetadataList.add(rowMetadata);
-		RowMetadataResult expectedRowMetadataRes = new RowMetadataResult();
-		expectedRowMetadataRes.setTotalCount(1L);
-		expectedRowMetadataRes.setList(rowMetadataList);
-		when(mockMigrationManager.getRowMetadataByRangeForType(userInfo, MigrationType.ACCESS_APPROVAL, 0L, 100L, 100L, 0L)).thenReturn(expectedRowMetadataRes);
-		AsyncMigrationRowMetadataResult expectedAsyncRes = new AsyncMigrationRowMetadataResult();
-		expectedAsyncRes.setRowMetadata(expectedRowMetadataRes);;
+	public void testProcessAsyncMigrationTypeChecksumRequest() throws Throwable {
+		AsyncMigrationTypeChecksumRequest mReq = new AsyncMigrationTypeChecksumRequest();
+		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
 		
-		migrationWorker.processRequest(userInfo, mrmr, jobId);
+		migrationWorker.processAsyncMigrationRequest(mockCallback, user, mReq, "JOBID");
 		
-		verify(mockAsynchJobStatusManager).setComplete(jobId, expectedAsyncRes);
-		
+		verify(mockMigrationManager).processAsyncMigrationTypeChecksumRequest(user, mReq);
+		verify(mockAsynchJobStatusManager).setComplete(eq("JOBID"), any(AsynchronousResponseBody.class));
 	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testProcessAsyncMigrationRowMetadataRequestNotOK() throws Throwable {
-		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
-		AsyncMigrationRowMetadataRequest mrmr = new AsyncMigrationRowMetadataRequest();
-		mrmr.setType(MigrationType.ACCESS_APPROVAL.name());
-		mrmr.setMinId(0L);
-		mrmr.setMaxId(100L);
-		mrmr.setLimit(100L);
-		mrmr.setOffset(0L);
-		Exception expectedException = new IllegalArgumentException("SomeException");
-		when(mockMigrationManager.getRowMetadataByRangeForType(any(UserInfo.class), any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(expectedException);
 	
-		migrationWorker.processRequest(userInfo, mrmr, jobId);
+	@Test
+	public void testProcessAsyncMigrationRangeCountRequest() throws Throwable {
+		AsyncMigrationRangeChecksumRequest mReq = new AsyncMigrationRangeChecksumRequest();
+		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
 		
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
+		migrationWorker.processAsyncMigrationRequest(mockCallback, user, mReq, "JOBID");
 		
+		verify(mockMigrationManager).processAsyncMigrationRangeChecksumRequest(user, mReq);
+		verify(mockAsynchJobStatusManager).setComplete(eq("JOBID"), any(AsynchronousResponseBody.class));
+	}
+	
+	@Test
+	public void testProcessAsyncMigrationRowMetatdaRequest() throws Throwable {
+		AsyncMigrationRowMetadataRequest mReq = new AsyncMigrationRowMetadataRequest();
+		mReq.setType(MigrationType.ACCESS_APPROVAL.name());
+		
+		migrationWorker.processAsyncMigrationRequest(mockCallback, user, mReq, "JOBID");
+		
+		verify(mockMigrationManager).processAsyncMigrationRowMetadataRequest(user, mReq);
+		verify(mockAsynchJobStatusManager).setComplete(eq("JOBID"), any(AsynchronousResponseBody.class));
 	}
 
 	private class AsyncMigrationInvalidRequest implements AsyncMigrationRequest {
@@ -285,9 +178,9 @@ public class MigrationWorkerTest {
 		AsyncMigrationInvalidRequest mri = new AsyncMigrationInvalidRequest();
 		Exception expectedException = new IllegalArgumentException("SomeException");
 	
-		migrationWorker.processRequest(userInfo, mri, jobId);
+		migrationWorker.processAsyncMigrationRequest(mockCallback, userInfo, mri, jobId);
 		
+		verifyZeroInteractions(mockMigrationManager);
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, eq(expectedException));
-		
 	}
 }
