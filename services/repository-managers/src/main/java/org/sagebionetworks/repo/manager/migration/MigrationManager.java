@@ -5,6 +5,11 @@ import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -125,6 +130,18 @@ public interface MigrationManager {
 	public RowMetadataResult getRowMetadataByRangeForType(UserInfo user, MigrationType type, long minId, long maxId, long limit, long offset);
 	
 	public MigrationTypeCount getMigrationTypeCount(UserInfo user, MigrationType type);
+	
+	public AsyncMigrationTypeCountResult processAsyncMigrationTypeCountRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq);
+	
+	public AsyncMigrationTypeChecksumResult processAsyncMigrationTypeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq);
+	
+	public AsyncMigrationRangeChecksumResult processAsyncMigrationRangeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq);
+	
+	public AsyncMigrationRowMetadataResult processAsyncMigrationRowMetadataRequest(
+			final UserInfo user, final AsyncMigrationRequest mReq);
 	
 	
 }
