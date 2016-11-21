@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 
-	<bean id="messageToUserQueueMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="messageToUserQueueMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

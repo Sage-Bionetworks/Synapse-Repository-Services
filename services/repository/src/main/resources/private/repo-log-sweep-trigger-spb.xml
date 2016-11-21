@@ -29,7 +29,7 @@
 		<property name="concurrent" value="false" />
 	</bean>
 
-	<bean id="repoLogSweeperTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="repoLogSweeperTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
 		<property name="jobDetail" ref="repoLogSweeperJobDetails" />
 		<!-- build cache immediately -->
 		<property name="startDelay" value="91" />

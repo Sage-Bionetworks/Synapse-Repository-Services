@@ -45,7 +45,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 * This determines the maximum schema size for a table.
 	 */
 	public static final int MY_SQL_MAX_BYTES_PER_ROW = 64000;
-	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 4095;
+	public static final int MY_SQL_MAX_COLUMNS_PER_TABLE = 152;
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
@@ -76,14 +76,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@WriteTransaction
 	@Override
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException{
-		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		// Must login to create a column model.
-		if(authorizationManager.isAnonymousUser(user)){
-			throw new UnauthorizedException("You must login to create a ColumnModel");
-		}
-		validateColumnModel(columnModel);
-		// Pass it along to the DAO.
-		return columnModelDao.createColumnModel(columnModel);
+		ValidateArgument.required(columnModel, "columnModel");
+		List<ColumnModel> results = createColumnModels(user, Lists.newArrayList(columnModel));
+		return results.get(0);
 	}
 	
 	@WriteTransaction
@@ -136,8 +131,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 			case INTEGER:
 			case STRING:
 				break;
-			//booleans and userids can only be faceted by enumeration
+			//booleans, userIds, and entityIds can only be faceted by enumeration
 			case USERID:
+			case ENTITYID:
 			case BOOLEAN:
 				if(facetType != FacetType.enumeration)
 					throw new IllegalArgumentException("Boolean columns can only be enumeration faceted");

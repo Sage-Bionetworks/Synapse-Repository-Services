@@ -41,4 +41,14 @@ public interface AccessApprovalManager {
 	 *  delete an access approval
 	 */
 	public void deleteAccessApproval(UserInfo userInfo, String AccessApprovalId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Delete all access approvals that gives accessorId access to subject(s) that requires access requirement accessRequirementId
+	 * 
+	 * @param userInfo - the user who making the request
+	 * @param accessRequirementId - the target access requirement
+	 * @param accessorId - the user whose access is being revoked
+	 * @throws UnauthorizedException - if the user is not an admin or an ACT member
+	 */
+	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
 }

@@ -205,10 +205,33 @@ public interface V2WikiPageDao {
 	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
 
 	/**
-	 * Delete old versions of the Wiki markdown, keeping numVersionsToKeep versions
-	 * 
-	 * @param wikiPageId
-	 * @param numVersionsToKeep
+	 * Delete the versions of a Wiki page specified in a list of versions
+	 * @param key
+	 * @param versionsToDelete
 	 */
-	void deleteOldWikiVersions(String wikiPageId, Long numVersionsToKeep);
+	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete);
+	
+	/**
+	 * Update the Etag of a Wiki page
+	 * @param key
+	 */
+	public void updateWikiEtag(WikiPageKey key, String etag);
+	
+	/**
+	 * Return the number of versions of a Wiki page
+	 * @param key
+	 * @return
+	 */
+	public Long getNumberOfVersions(WikiPageKey key);
+
+	/**
+	 * Return the current version of a Wiki
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Long getCurrentWikiVersion(String ownerId, ObjectType ownerType,
+			String wikiId) throws NotFoundException;
 }

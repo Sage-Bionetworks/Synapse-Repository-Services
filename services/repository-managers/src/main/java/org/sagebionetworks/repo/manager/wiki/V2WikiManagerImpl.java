@@ -47,6 +47,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	
 	static private Log log = LogFactory.getLog(V2WikiManagerImpl.class);
 	
+	private static final Long MAX_NUMBER_WIKI_VERSIONS = 1000L;
+	
 	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an onwerId: '%2$s' of type: '%3$s'";
 	
 	private static final String USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE = "Only the creator of a FileHandle id: '%1$s' is authorized to assgin it to an object";
@@ -238,6 +240,14 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.UPDATE).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
+		
+		// Check if too many versions
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId());
+		Long numVersions = wikiPageDao.getNumberOfVersions(key);
+		if (numVersions >= MAX_NUMBER_WIKI_VERSIONS) {
+			throw new IllegalArgumentException("Cannot create more than " + MAX_NUMBER_WIKI_VERSIONS + " versions of a Wiki page");
+		}
+		
 		// Before we can update the Wiki we need to lock.
 		String currentEtag = wikiPageDao.lockForUpdate(wikiPage.getId());
 		if(!currentEtag.equals(wikiPage.getEtag())){
@@ -429,4 +439,29 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return key;
 	}
 
+	@WriteTransaction
+	@Override
+	public void deleteWikiVersions(UserInfo user, WikiPageKey key,
+			List<Long> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
+
+		if (user == null) throw new IllegalArgumentException("User cannot be null");
+		if (key == null) throw new IllegalArgumentException("Key cannot be null");
+		if (versionsToDelete == null) throw new IllegalArgumentException("VersionsToDelete cannot be null");
+
+		validateUpdateAccess(user, key);
+
+		String etag = wikiPageDao.lockForUpdate(key.getWikiPageId());
+		
+		Long currentVersion = wikiPageDao.getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
+		if (versionsToDelete.contains(currentVersion)) {
+			throw new IllegalArgumentException("Cannot delete current version of a Wiki.");
+		}
+		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
+		
+		// Update the etag of the page
+		String newEtag = UUID.randomUUID().toString();
+		wikiPageDao.updateWikiEtag(key, newEtag);
+		
+	}
+	
 }

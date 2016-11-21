@@ -14,8 +14,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
  * This class creates domain unique ids using a MySql sequence via AUTO_INCREMENT of a primary key.
@@ -73,7 +71,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 				
 			}});
 		// Get the ID we just created.
-		return idGeneratorJdbcTemplate.queryForLong(String.format(GET_ID_SQL, type.name()));
+		return idGeneratorJdbcTemplate.queryForObject(String.format(GET_ID_SQL, type.name()), Long.class);
 	}
 	
 	@NewWriteTransaction
@@ -81,7 +79,12 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	public void reserveId(final Long idToLock, TYPE type) {
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
 		// First check if this value is greater than the last value
-		Long max = idGeneratorJdbcTemplate.queryForLong(String.format(MAX_ID, type.name()));
+		long max = 0L;
+		try {
+			max = idGeneratorJdbcTemplate.queryForObject(String.format(MAX_ID, type.name()), Long.class);
+		} catch (NullPointerException e) {
+			// max = 0
+		}
 		if(idToLock > max){
 			final long now = System.currentTimeMillis();
 			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL_INCREMENT, type.name()), new PreparedStatementSetter(){

@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -579,6 +580,8 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException;
+
 	public JSONObject getEntity(String uri) throws SynapseException;
 
 	public <T extends JSONEntity> T getEntity(String entityId,
@@ -798,6 +801,8 @@ public interface SynapseClient extends BaseClient {
 			String fileName, Long version, File target) throws SynapseException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
+	
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
 		ObjectType ownerType) throws SynapseException,
