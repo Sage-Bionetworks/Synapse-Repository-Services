@@ -151,7 +151,7 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpcore</artifactId>
-			<version>4.2.3</version>
+			<version>4.4.4</version>
 		</dependency>
 
 		<dependency>
@@ -183,7 +183,7 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
-			<version>0.6.0</version>
+			<version>0.7.0</version>
 		</dependency>
 
 		<!-- jsonwebtoken seems to need this JSON library -->
@@ -196,21 +196,20 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.51</version>
+			<version>1.55</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>1.54</version>
+			<version>1.55</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-ext-jdk15on</artifactId>
-			<version>1.54</version>
+			<version>1.55</version>
 		</dependency>
-		
 	</dependencies>
 
 	<build>

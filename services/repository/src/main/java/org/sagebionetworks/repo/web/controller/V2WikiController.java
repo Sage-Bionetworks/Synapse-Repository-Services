@@ -7,8 +7,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -1508,4 +1510,44 @@ public class V2WikiController extends BaseController {
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
+	
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	void deleteEntityWikiMarkdownVersions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody(required = true) IdList toDelete,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId);
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
+	}
+	
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	void deleteEvaluationWikiMarkdownVersions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody(required = true) IdList toDelete,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId);
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
+	}
+	
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
+	public @ResponseBody
+	void deleteAccessRequirementsWikiMarkdownVersions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody(required = true) IdList toDelete,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId);
+		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
+	}
+	
 }

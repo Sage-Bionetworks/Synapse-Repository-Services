@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- This is the trigger used to fire this worker -->
-	<bean id="logCollateWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="logCollateWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

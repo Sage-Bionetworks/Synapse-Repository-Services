@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.filter;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ public class ThrottleRulesCacheAutowiredTest {
 	private ThrottleRulesCache throttleRulesCache;
 	
 	//test to make sure the scheduler is correctly wired to update the cache
+	@Ignore //PLFM-4156
 	@Test(timeout = 10 * 1000)
 	public void testSchedulerUpdate(){
 		while(true){

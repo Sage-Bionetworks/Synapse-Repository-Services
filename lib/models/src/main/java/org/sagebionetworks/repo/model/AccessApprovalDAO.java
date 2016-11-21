@@ -65,4 +65,12 @@ public interface AccessApprovalDAO {
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
+	/**
+	 * delete all access approval that approves accessorId to access requirementId
+	 * 
+	 * @param accessRequirementId
+	 * @param accessorId
+	 */
+	public void delete(String accessRequirementId, String accessorId);
+
 }

@@ -30,13 +30,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 
 public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -104,7 +103,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_DIRECT_MEMBERS_OF_GROUP, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_DIRECT_MEMBERS_OF_GROUP, param, userGroupRowMapper);
 		
 		UserGroupUtils.copyDboToDto(dbos, members);
 		return members;
@@ -143,7 +142,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			params[i].addValue(GROUP_ID_PARAM_NAME, groupId);
 			params[i].addValue(MEMBER_ID_PARAM_NAME, sortedMemberIds.get(i));
 		}
-		simpleJdbcTemplate.batchUpdate(INSERT_NEW_MEMBERS_OF_GROUP, params);
+		namedJdbcTemplate.batchUpdate(INSERT_NEW_MEMBERS_OF_GROUP, params);
 		
 		// Update the etag on the parent group
 		userGroupDAO.touch(Long.parseLong(groupId));
@@ -168,7 +167,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			params[i].addValue(GROUP_ID_PARAM_NAME, groupId);
 			params[i].addValue(MEMBER_ID_PARAM_NAME, sortedMemberIds.get(i));
 		}
-		simpleJdbcTemplate.batchUpdate(DELETE_MEMBERS_OF_GROUP, params);
+		namedJdbcTemplate.batchUpdate(DELETE_MEMBERS_OF_GROUP, params);
 		
 		// Update the etag on the parent group
 		userGroupDAO.touch(Long.parseLong(groupId));
@@ -181,7 +180,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_DIRECT_PARENTS_OF_GROUP, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_DIRECT_PARENTS_OF_GROUP, param, userGroupRowMapper);
 		
 		UserGroupUtils.copyDboToDto(dbos, members);
 		return members;

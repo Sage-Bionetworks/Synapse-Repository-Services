@@ -488,4 +488,8 @@
 			</map>
 		</property>
 	</bean>
+
+	<bean id="tableUploadManager"
+		class="org.sagebionetworks.repo.manager.table.TableUploadManagerImpl"
+		scope="singleton" />
 </beans>

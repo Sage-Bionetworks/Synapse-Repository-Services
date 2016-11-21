@@ -5,7 +5,9 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -13,27 +15,28 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DBOUserProfileDAOImplChangeMessageTest {
 	private DBOUserProfileDAOImpl dao;
+	@Mock
 	private DBOBasicDao mockBasicDao;
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
-	private SimpleJdbcTemplate mockSimpleJdbcTemplate;
+	@Mock
+	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
 	private DBOUserProfile jdo;
 	private UserProfile dto;
 
 	@Before
 	public void before() {
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		mockBasicDao = Mockito.mock(DBOBasicDao.class);
-		mockSimpleJdbcTemplate = Mockito.mock(SimpleJdbcTemplate.class);
+		MockitoAnnotations.initMocks(this);
 		dao = new DBOUserProfileDAOImpl();
 		ReflectionTestUtils.setField(dao, "transactionalMessenger", mockTransactionalMessenger);
 		ReflectionTestUtils.setField(dao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(dao, "simpleJdbcTemplate", mockSimpleJdbcTemplate);
+		ReflectionTestUtils.setField(dao, "namedJdbcTemplate", mockNamedJdbcTemplate);
 		jdo = new DBOUserProfile();
 		dto = new UserProfile();
 		dto.setEtag("etag");
@@ -41,9 +44,8 @@ public class DBOUserProfileDAOImplChangeMessageTest {
 		UserProfileUtils.copyDtoToDbo(dto, jdo);
 		Mockito.when(mockBasicDao.createNew(jdo)).thenReturn(jdo);
 		Mockito.when(mockBasicDao.update(jdo)).thenReturn(true);
-		Mockito.when(mockSimpleJdbcTemplate.queryForObject(Mockito.anyString(),
-				(RowMapper) Mockito.any(), (SqlParameterSource) Mockito.any()))
-				.thenReturn(jdo);
+		Mockito.when(mockNamedJdbcTemplate.queryForObject(Mockito.anyString(),
+				(SqlParameterSource) Mockito.any(), (RowMapper) Mockito.any())).thenReturn(jdo);
 	}
 
 	@Test

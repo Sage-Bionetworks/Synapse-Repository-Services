@@ -1902,6 +1902,36 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Deprecated
+	@Override
+	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
+			throws SynapseException {
+		String uri = ENTITY + "/" + entityId + "/" + ACCESS_APPROVAL;
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<AccessApproval> results =
+				new PaginatedResults<AccessApproval>(AccessApproval.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void deleteAccessApproval(Long approvalId)
+			throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_APPROVAL + "/" + approvalId, getUserAgent());
+	}
+
+	@Override
+	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException {
+		String url = ACCESS_APPROVAL + "?requirementId=" + requirementId + "&accessorId=" + accessorId;
+		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
+	}
+
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
@@ -3597,6 +3627,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection()
 				.deleteUri(repoEndpoint, uri, getUserAgent());
 	}
+	
+	@Override
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null");
+		}
+		if (versionsToDelete == null) {
+			throw new IllegalArgumentException("VersionsToDelete cannot be null");
+		}
+		String uri = createV2WikiURL(key) + "/markdown/deleteversion";
+		String postJSON = EntityFactory.createJSONStringForEntity(versionsToDelete);
+		getSharedClientConnection().putJson(repoEndpoint, uri, postJSON, getUserAgent());
+	}
 
 	/**
 	 * Get the WikiHeader tree for a given owner object.
@@ -4162,10 +4205,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String messageBody) throws SynapseException {
-		if (message.getFileHandleId() != null)
-			throw new IllegalArgumentException(
-					"Expected null fileHandleId but found "
-							+ message.getFileHandleId());
 		String fileHandleId = uploadToFileHandle(
 				messageBody.getBytes(MESSAGE_CHARSET),
 				STRING_MESSAGE_CONTENT_TYPE);
@@ -4186,10 +4225,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String entityId, String messageBody) throws SynapseException {
-		if (message.getFileHandleId() != null)
-			throw new IllegalArgumentException(
-					"Expected null fileHandleId but found "
-							+ message.getFileHandleId());
 		String fileHandleId = uploadToFileHandle(
 				messageBody.getBytes(MESSAGE_CHARSET),
 				STRING_MESSAGE_CONTENT_TYPE);

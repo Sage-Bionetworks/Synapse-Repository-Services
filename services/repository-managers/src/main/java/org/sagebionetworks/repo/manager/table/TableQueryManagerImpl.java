@@ -499,13 +499,18 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param maxBytesPerPage
 	 * @return
 	 * @throws EmptyResultException
+	 * @throws ParseException 
 	 */
 	public SqlQuery createQuery(String sql, List<SortItem> sortList, Long overrideOffset, Long overrideLimit, Long maxBytesPerPage) throws EmptyResultException {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		if (sortList != null && !sortList.isEmpty()) {
 			// change the query to use the sort list
-			model = SqlElementUntils.convertToSortedQuery(model, sortList);
+			try {
+				model = SqlElementUntils.convertToSortedQuery(model, sortList);
+			} catch (ParseException e) {
+				throw new IllegalArgumentException(e);
+			}
 		}
 
 		String tableId = model.getTableName();

@@ -13,7 +13,8 @@ import java.util.Date;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,8 +25,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -36,20 +37,21 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class DBOTeamDAOImplUnitTest {
 	
 	DBOTeamDAOImpl teamDao;
+	@Mock
 	TransactionalMessenger mockTransactionalMessenger;
-	SimpleJdbcTemplate mockSimpleJdbcTemplate;
+	@Mock
+	NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	@Mock
 	DBOBasicDao mockBasicDao;
 	Team team;
 	
 	@Before
 	public void before(){
-		mockBasicDao = Mockito.mock(DBOBasicDao.class);
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		mockSimpleJdbcTemplate = Mockito.mock(SimpleJdbcTemplate.class);
+		MockitoAnnotations.initMocks(this);
 		teamDao = new DBOTeamDAOImpl();
 		ReflectionTestUtils.setField(teamDao, "basicDao", mockBasicDao);
 		ReflectionTestUtils.setField(teamDao, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(teamDao, "simpleJdbcTemplate", mockSimpleJdbcTemplate);
+		ReflectionTestUtils.setField(teamDao, "namedJdbcTemplate", mockNamedJdbcTemplate);
 		team = new Team();
 		team.setId("345");
 		team.setEtag("etag");
@@ -65,7 +67,7 @@ public class DBOTeamDAOImplUnitTest {
 		dbo.setId(Long.parseLong(team.getId()));
 		dbo.setEtag(team.getEtag());
 		TeamUtils.copyDtoToDbo(team, dbo);
-		when(mockSimpleJdbcTemplate.queryForObject(anyString(), any(RowMapper.class), any(SqlParameterSource.class))).thenReturn(dbo);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
 		when(mockBasicDao.update(any(DatabaseObject.class))).thenReturn(true);
 	}
 

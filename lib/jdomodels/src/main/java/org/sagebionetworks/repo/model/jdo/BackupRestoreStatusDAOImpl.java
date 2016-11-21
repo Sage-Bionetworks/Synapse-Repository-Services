@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
  * Implementation of the BackupRestoreStatusDAO. Note: Since a
@@ -24,8 +23,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
  */
 public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 
-	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -34,6 +33,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -304,5 +304,33 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// Delete it
 		accessApprovalDAO.delete(id);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteAccessApprovalWithNullAccessRequirementId() {
+		accessApprovalDAO.delete(null, "1");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteAccessApprovalWithNullAccessorId() {
+		accessApprovalDAO.delete("1", null);
+	}
+
+	@Test
+	public void testDeleteAccessApprovalWithNotExistingAccessApproval() {
+		accessApprovalDAO.delete("-1", "-1");
+	}
+
+	@Test
+	public void testDeleteAccessApprovalWithExistingAccessApproval() {
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		accessApprovalDAO.delete(accessRequirement.getId().toString(), individualGroup.getId());
+		try {
+			accessApprovalDAO.get(accessApproval.getId().toString());
+			fail("Expecting a NotFoundException");
+		} catch (NotFoundException e) {
+			// make sure that the exception is thrown here and not before this call
+		}
 	}
 }

@@ -12,6 +12,7 @@
 	<aop:aspectj-autoproxy />
 	
 	<bean id="migrationMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

@@ -279,4 +279,8 @@ public class ServiceConstants {
 	public static final String DAYS_IN_TRASH_CAN_PARAM = "daysInTrash";
 	
 	public static final String DEFAULT_DAYS_IN_TRASH_CAN = "30";
+
+	public static final String ACCESS_REQUIREMENT_ID_PARAM = "requirementId";
+
+	public static final String ACCESSOR_ID_PARAM = "accessorId";
 }
