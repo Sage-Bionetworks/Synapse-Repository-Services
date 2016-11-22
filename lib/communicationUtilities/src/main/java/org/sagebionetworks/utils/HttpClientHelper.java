@@ -64,7 +64,7 @@ public class HttpClientHelper {
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 
 	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
-	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
+	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 300000;
 
 	// Note: Having this 'password' in plaintext is OK because (1) it's a well
 	// known default for key stores,
@@ -81,12 +81,13 @@ public class HttpClientHelper {
 	public static HttpClient createNewClient(boolean verifySSLCertificates) {
 		try {
 			ThreadSafeClientConnManager connectionManager = createClientConnectionManager(verifySSLCertificates);
-			HttpParams clientParams = new BasicHttpParams();
+			HttpClient c = new DecompressingHttpClient(new DefaultHttpClient(connectionManager));
+			HttpParams clientParams = c.getParams();
 			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
 					DEFAULT_CONNECT_TIMEOUT_MSEC);
 			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 					DEFAULT_SOCKET_TIMEOUT_MSEC);
-			return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, clientParams));
+			return c;
 		} catch (KeyStoreException e) {
 			throw new RuntimeException(e);
 		} catch (KeyManagementException e) {
