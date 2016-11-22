@@ -10,13 +10,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -152,9 +152,9 @@ public class DiscussionBroadcastMessageBuilderTest {
 				+ "joined&text=Join&requestOpenText=Your request to join this team has been sent%2E}"));
 	}
 	
-	@Test (expected = HttpClientHelperException.class)
+	@Test (expected = MarkdownClientException.class)
 	public void testBuildEmailForSubscriberFailure() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenThrow(new HttpClientHelperException("", 500, ""));
+		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenThrow(new MarkdownClientException(500, ""));
 		builder.buildEmailForSubscriber(subscriber);
 	}
 	

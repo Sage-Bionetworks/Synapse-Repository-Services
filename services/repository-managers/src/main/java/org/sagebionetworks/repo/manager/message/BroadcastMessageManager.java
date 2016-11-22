@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -22,13 +23,13 @@ public interface BroadcastMessageManager {
 	 * 
 	 * @param user - admin user
 	 * @param changeMessage
-	 * @throws HttpClientHelperException 
 	 * @throws IOException 
 	 * @throws JSONException 
 	 * @throws ClientProtocolException 
+	 * @throws MarkdownClientException 
 	 */
 	public void broadcastMessage(UserInfo user,
 			ProgressCallback<Void> progressCallback,
-			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException;
+			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException, MarkdownClientException;
 
 }

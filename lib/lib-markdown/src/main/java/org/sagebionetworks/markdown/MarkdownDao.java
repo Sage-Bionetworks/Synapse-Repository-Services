@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Abstract for interacting with Markdown Server: http://markdownit.prod.sagebase.org
@@ -19,10 +18,10 @@ public interface MarkdownDao {
 	 * @param rawMarkdown
 	 * @param outputType
 	 * @return
-	 * @throws JSONException 
-	 * @throws HttpClientHelperException 
 	 * @throws IOException 
-	 * @throws ClientProtocolException 
+	 * @throws ClientProtocolException
+	 * @throws JSONException 
+	 * @throws MarkdownClientException 
 	 */
-	String convertMarkdown(String rawMarkdown, String outputType) throws JSONException, ClientProtocolException, IOException, HttpClientHelperException;
+	String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException, MarkdownClientException;
 }
