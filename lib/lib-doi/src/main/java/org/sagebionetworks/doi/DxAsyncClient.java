@@ -63,8 +63,7 @@ public class DxAsyncClient {
 			public void run() {
 				try {
 					long start = System.currentTimeMillis();
-					String location;
-					location = resolveWithRetries(doi);
+					String location = resolveWithRetries(doi);
 					long totalTime = System.currentTimeMillis() - start;
 					if (location == null) {
 						callback.onError(ezidDoi, new RuntimeException(

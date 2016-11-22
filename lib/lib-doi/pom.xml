@@ -32,7 +32,6 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>${org.json.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
