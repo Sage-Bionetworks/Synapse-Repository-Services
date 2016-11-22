@@ -3,7 +3,6 @@ package org.sagebionetworks.markdown;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
-import org.apache.http.client.HttpResponseException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -28,11 +27,11 @@ public class MarkdownDaoImplTest {
 		dao.convertMarkdown(null, null);
 	}
 
-	@Test (expected = HttpResponseException.class)
+	@Test (expected = MarkdownClientException.class)
 	public void testConvertMarkdownWithNullResponse() throws Exception {
 		String rawMarkdown = "## a heading";
 		String request = "{\"markdown\":\"## a heading\"}";
-		when(mockMarkdownClient.requestMarkdownConversion(request)).thenThrow(new HttpResponseException(500,""));
+		when(mockMarkdownClient.requestMarkdownConversion(request)).thenThrow(new MarkdownClientException(500,""));
 		dao.convertMarkdown(rawMarkdown, null);
 	}
 
