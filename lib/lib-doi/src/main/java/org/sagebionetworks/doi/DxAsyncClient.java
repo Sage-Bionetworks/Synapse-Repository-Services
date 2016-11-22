@@ -73,14 +73,8 @@ public class DxAsyncClient {
 					} else {
 						callback.onSuccess(ezidDoi);
 					}
-				} catch (InterruptedException e) {
+				} catch (InterruptedException | IOException e) {
 					callback.onError(ezidDoi, e);
-				} catch (ClientProtocolException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
 			}
 		});
