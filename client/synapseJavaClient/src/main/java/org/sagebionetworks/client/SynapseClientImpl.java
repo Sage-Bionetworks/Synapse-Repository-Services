@@ -2629,7 +2629,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param calls
 	 * @throws SynapseException
 	 */
-	private <T extends JSONEntity> T asymmetricalPost(String endpoint,
+	protected <T extends JSONEntity> T asymmetricalPost(String endpoint,
 			String url, JSONEntity requestBody, Class<? extends T> returnClass,
 			SharedClientConnection.ErrorHandler errorHandler)
 			throws SynapseException {
@@ -3871,8 +3871,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	@Override
-	public AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
+	private AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
 		JSONObject responseBody = getSharedClientConnection().getJson(
 				endpoint, url, getUserAgent(),
 				new SharedClientConnection.ErrorHandler() {

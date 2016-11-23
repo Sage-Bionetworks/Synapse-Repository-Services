@@ -2904,7 +2904,4 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void requestToCancelSubmission(String submissionId) throws SynapseException;
 
-	AsynchronousResponseBody getAsynchJobResponse(String url,
-			Class<? extends AsynchronousResponseBody> clazz, String endpoint)
-			throws SynapseException;
 }
