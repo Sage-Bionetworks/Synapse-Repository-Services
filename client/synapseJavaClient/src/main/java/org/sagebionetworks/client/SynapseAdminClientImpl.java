@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
@@ -13,6 +14,9 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -71,6 +75,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES = ADMIN+"/messages/createOrUpdate";
 	
 	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
+	
+	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
+	private static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN_ASYNCHRONOUS_JOB + "/id";
 	
 	public SynapseAdminClientImpl() {
 		super();
@@ -441,6 +448,25 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		} catch (SynapseServerException e) {
 			return e.getStatusCode();
 		}
+	}
+
+	@Override
+	public AsynchronousJobStatus startAdminAsynchronousJob(
+			AsynchronousAdminRequestBody jobBody) throws SynapseException {
+		if (jobBody == null)
+			throw new IllegalArgumentException("JobBody cannot be null");
+		String url = ADMIN_ASYNCHRONOUS_JOB;
+		return asymmetricalPost(getRepoEndpoint(), url, jobBody,
+				AsynchronousJobStatus.class, null);
+	}
+
+	@Override
+	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId)
+			throws JSONObjectAdapterException, SynapseException {
+		if (jobId == null)
+			throw new IllegalArgumentException("JobId cannot be null");
+		String url = ADMIN_ASYNCHRONOUS_JOB_ID + "/" + jobId;
+		return getJSONEntity(url, AsynchronousJobStatus.class);
 	}
 
 }

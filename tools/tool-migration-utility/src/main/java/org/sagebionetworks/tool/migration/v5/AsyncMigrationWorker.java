@@ -8,6 +8,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -36,9 +37,13 @@ public class AsyncMigrationWorker implements Callable<AsyncMigrationResponse> {
 	
 	@Override
 	public AsyncMigrationResponse call() throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsynchronousJobStatus status = client.startAsynchronousJob(request);
+		AsynchronousJobStatus status = client.startAdminAsynchronousJob(request);
 		status = waitForJobToComplete(status.getJobId());
-		return (AsyncMigrationResponse)status.getResponseBody();
+		AsynchronousResponseBody resp = status.getResponseBody();
+		if (! (resp instanceof AsyncMigrationResponse)) {
+			throw new AsyncMigrationException("Response from job " + status.getJobId() + " should be AsyncMigrationResponse!");
+		}
+		return (AsyncMigrationResponse)resp;
 	}
 	
 	private AsynchronousJobStatus waitForJobToComplete(String jobId) throws InterruptedException, JSONObjectAdapterException, SynapseException {
@@ -50,7 +55,7 @@ public class AsyncMigrationWorker implements Callable<AsyncMigrationResponse> {
 				logger.debug("Timeout waiting for job to complete");
 				throw new InterruptedException("Timed out waiting for the job " + jobId + " to complete");
 			}
-			status = client.getAsynchronousJobStatus(jobId);
+			status = client.getAdminAsynchronousJobStatus(jobId);
 			AsynchJobState state = status.getJobState();
 			if (state == AsynchJobState.FAILED) {
 				logger.debug("Job " + jobId + " failed.");

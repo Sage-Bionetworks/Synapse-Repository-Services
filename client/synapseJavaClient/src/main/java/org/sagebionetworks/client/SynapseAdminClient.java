@@ -6,6 +6,9 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -276,4 +279,23 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException;
+	
+	/**
+	 * Start a new Asynchronous Job
+	 * @param jobBody
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public AsynchronousJobStatus startAdminAsynchronousJob(AsynchronousAdminRequestBody jobBody)
+			throws SynapseException;
+
+	/**
+	 * Get the status of an Asynchronous Job from its ID.
+	 * @param jobId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException;
+
 }
