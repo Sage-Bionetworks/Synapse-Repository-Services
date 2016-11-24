@@ -1,6 +1,8 @@
 package org.sagebionetworks.tool.migration.v5.utils;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -10,9 +12,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
+import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 
 public class ToolMigrationUtilsTest {
 	

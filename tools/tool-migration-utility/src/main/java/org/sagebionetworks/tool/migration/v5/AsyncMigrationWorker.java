@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.v3.DaemonFailedException;
 import org.sagebionetworks.tool.progress.BasicProgress;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.DefaultClock;

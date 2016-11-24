@@ -19,6 +19,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -29,14 +32,13 @@ import org.sagebionetworks.tool.migration.v3.SynapseClientFactory;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
 import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
 import org.sagebionetworks.tool.migration.v4.CreateUpdateWorker;
-import org.sagebionetworks.tool.migration.v5.DeltaBuilder;
 import org.sagebionetworks.tool.migration.v4.DeltaCounts;
 import org.sagebionetworks.tool.migration.v4.DeltaData;
-import org.sagebionetworks.tool.migration.v5.delta.DeltaFinder;
 import org.sagebionetworks.tool.migration.v4.delta.DeltaRanges;
 import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
-import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
+import org.sagebionetworks.tool.migration.v5.delta.DeltaFinder;
+import org.sagebionetworks.tool.migration.v5.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
@@ -145,9 +147,9 @@ public class MigrationClient {
 		SynapseAdminClient destination = factory.createNewDestinationClient();
 		
 		// Get the counts for all type from both the source and destination
-		List<MigrationTypeCount> startSourceCounts = ToolMigrationUtils.getTypeCounts(source);
+		List<MigrationTypeCount> startSourceCounts = getTypeCounts(source);
 		// Should only contain the types for which we can get a count
-		List<MigrationTypeCount> startDestCounts = ToolMigrationUtils.getTypeCounts(destination);
+		List<MigrationTypeCount> startDestCounts = getTypeCounts(destination);
 		// 
 		Set<MigrationType> destTypesToKeep = ToolMigrationUtils.getTypesFromTypeCounts(startDestCounts);
 		startSourceCounts = ToolMigrationUtils.filterSourceByDestination(startSourceCounts, destTypesToKeep);
@@ -175,9 +177,9 @@ public class MigrationClient {
 		migrateAll(batchSize, timeoutMS, retryDenominator, typesToMigrateMetadata);
 		
 		// Print the final counts
-		List<MigrationTypeCount> endSourceCounts = ToolMigrationUtils.getTypeCounts(source);
+		List<MigrationTypeCount> endSourceCounts = getTypeCounts(source);
 		endSourceCounts = ToolMigrationUtils.filterSourceByDestination(endSourceCounts, destTypesToKeep);
-		List<MigrationTypeCount> endDestCounts = ToolMigrationUtils.getTypeCounts(destination);
+		List<MigrationTypeCount> endDestCounts = getTypeCounts(destination);
 		log.info("Ending diffs in  counts:");
 		printDiffsInCounts(endSourceCounts, endDestCounts);
 		
@@ -427,6 +429,30 @@ public class MigrationClient {
 		}
 
 	}
-
+	
+	protected List<MigrationTypeCount> getTypeCounts(SynapseAdminClient conn) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		List<MigrationTypeCount> typeCounts = new LinkedList<MigrationTypeCount>();
+		List<MigrationType> types = conn.getMigrationTypes().getList();
+		for (MigrationType t: types) {
+			try {
+				MigrationTypeCount c = getTypeCount(conn, t);
+				typeCounts.add(c);
+			} catch (org.sagebionetworks.client.exceptions.SynapseBadRequestException e) {
+				// Unsupported types not added to list 
+			}
+		}
+		return typeCounts;
+	}
+	
+	protected MigrationTypeCount getTypeCount(SynapseAdminClient conn, MigrationType type) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		AsyncMigrationTypeCountRequest req = new AsyncMigrationTypeCountRequest();
+		req.setType(type.name());
+		BasicProgress progress = new BasicProgress();
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
+		AsyncMigrationResponse resp = worker.call();
+		AsyncMigrationTypeCountResult res = (AsyncMigrationTypeCountResult)resp;
+		return res.getCount();
+	}
+	
 }
 
