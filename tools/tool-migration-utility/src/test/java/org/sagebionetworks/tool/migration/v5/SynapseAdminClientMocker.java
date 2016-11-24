@@ -3,7 +3,6 @@ package org.sagebionetworks.tool.migration.v5;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,14 +14,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
@@ -33,13 +31,15 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -53,10 +53,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.tool.migration.v3.SynapseAdminClientMockState;
-import org.sagebionetworks.util.Closer;
 
-import com.google.common.io.Closeables;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -78,6 +75,7 @@ public class SynapseAdminClientMocker {
 		status.setStatus(StatusEnum.READ_WRITE);
 		state.statusHistory = new Stack<StackStatus>();
 		state.statusHistory.push(status);
+		final ListIterator<AsynchJobState> itJobStates = state.asyncJobStates.listIterator();
 		
 		SynapseAdminClient client = mock(SynapseAdminClient.class);
 		
@@ -485,16 +483,37 @@ public class SynapseAdminClientMocker {
 			
 		});
 		
-		when(client.startAdminAsynchronousJob(any(AsynchronousAdminRequestBody.class))).thenAnswer(new Answer<AsyncMigrationResponse>() {
+		when(client.startAdminAsynchronousJob(any(AsynchronousAdminRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 
 			@Override
-			public AsyncMigrationResponse answer(InvocationOnMock invocation) throws Throwable {
+			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
 				AsynchronousAdminRequestBody requestBody = (AsynchronousAdminRequestBody) invocation.getArguments()[0];
-				
-				return null;
+				AsyncMigrationResponse response = null;
+				AsynchronousJobStatus jobStatus = new AsynchronousJobStatus();
+				jobStatus.setJobId("1");
+				jobStatus.setRequestBody(requestBody);
+				jobStatus.setResponseBody(response);
+				jobStatus.setJobState(itJobStates.next());
+				return jobStatus;
 			}
 			
-		})
+		});
+		
+		when(client.getAdminAsynchronousJobStatus(anyString())).thenAnswer(new Answer<AsynchronousJobStatus>() {
+
+			@Override
+			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
+				String jobId = (String) invocation.getArguments()[0];
+				AsyncMigrationResponse response = null;
+				AsynchronousJobStatus jobStatus = new AsynchronousJobStatus();
+				jobStatus.setJobId(jobId);
+				jobStatus.setRequestBody(null);
+				jobStatus.setResponseBody(response);
+				jobStatus.setJobState(itJobStates.next());
+				return jobStatus;
+			}
+			
+		});
 
 		return client;
 	}

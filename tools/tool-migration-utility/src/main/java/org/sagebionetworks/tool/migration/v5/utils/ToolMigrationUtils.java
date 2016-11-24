@@ -7,28 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
-import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
-import org.sagebionetworks.tool.migration.v5.AsyncMigrationWorker;
-import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class ToolMigrationUtils {
 	
@@ -64,57 +46,6 @@ public class ToolMigrationUtils {
 			}
 		}
 		return tc;
-	}
-	
-	public static List<MigrationTypeCount> getTypeCounts(SynapseAdminClient conn) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		List<MigrationTypeCount> typeCounts = new LinkedList<MigrationTypeCount>();
-		List<MigrationType> types = conn.getMigrationTypes().getList();
-		for (MigrationType t: types) {
-			try {
-				MigrationTypeCount c = getTypeCount(conn, t);
-				typeCounts.add(c);
-			} catch (org.sagebionetworks.client.exceptions.SynapseBadRequestException e) {
-				// Unsupported types not added to list 
-			}
-		}
-		return typeCounts;
-	}
-	
-	public static MigrationTypeCount getTypeCount(SynapseAdminClient conn, MigrationType type) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationTypeCountRequest req = new AsyncMigrationTypeCountRequest();
-		req.setType(type.name());
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationTypeCountResult res = (AsyncMigrationTypeCountResult)resp;
-		return res.getCount();
-	}
-	
-	public static MigrationRangeChecksum getChecksumForIdRange(SynapseAdminClient conn, MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
-		req.setType(type.name());
-		req.setSalt(salt);
-		req.setMinId(minId);
-		req.setMaxId(maxId);
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationRangeChecksumResult res = (AsyncMigrationRangeChecksumResult)resp;
-		return res.getChecksum();
-	}
-	
-	public static List<RowMetadata> getRowMetadataByRange(SynapseAdminClient conn, MigrationType type, Long minId, Long maxId, Long batchSize, Long offset) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationRowMetadataRequest req = new AsyncMigrationRowMetadataRequest();
-		req.setType(type.name());
-		req.setMinId(minId);
-		req.setMaxId(maxId);
-		req.setLimit(batchSize);
-		req.setOffset(offset);
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationRowMetadataResult res = (AsyncMigrationRowMetadataResult)resp;
-		return res.getRowMetadata().getList();
 	}
 	
 	//	Temporary hacks to get the lists in sync

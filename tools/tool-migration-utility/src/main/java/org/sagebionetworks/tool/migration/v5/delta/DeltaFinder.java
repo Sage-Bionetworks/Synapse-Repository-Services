@@ -7,13 +7,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.v4.delta.DeltaRanges;
 import org.sagebionetworks.tool.migration.v4.delta.IdRange;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
-import org.sagebionetworks.tool.migration.v5.utils.ToolMigrationUtils;
+import org.sagebionetworks.tool.migration.v5.AsyncMigrationWorker;
+import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class DeltaFinder {
 
@@ -111,8 +115,8 @@ public class DeltaFinder {
 	
 	private List<IdRange> findUpdDeltaRanges(SynapseAdminClient srcClient, SynapseAdminClient destClient, MigrationType type, String salt, long minId, long maxId, long batchSize) throws SynapseException, JSONObjectAdapterException, InterruptedException {
 		List<IdRange> l = new LinkedList<IdRange>();
-		MigrationRangeChecksum srcCrc32 = ToolMigrationUtils.getChecksumForIdRange(srcClient, type, salt, minId, maxId);
-		MigrationRangeChecksum destCrc32 = ToolMigrationUtils.getChecksumForIdRange(destClient, type, salt, minId, maxId);
+		MigrationRangeChecksum srcCrc32 = getChecksumForIdRange(srcClient, type, salt, minId, maxId);
+		MigrationRangeChecksum destCrc32 = getChecksumForIdRange(destClient, type, salt, minId, maxId);
 		//log.info("Computed range checksums from " + minId + " to " + maxId + ": (" + srcCrc32.getChecksum() + ", " + destCrc32.getChecksum() + ").");
 		if (srcCrc32.equals(destCrc32)) {
 			return l;
@@ -133,4 +137,16 @@ public class DeltaFinder {
 		}
 	}
 	
+	protected MigrationRangeChecksum getChecksumForIdRange(SynapseAdminClient conn, MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
+		req.setType(type.name());
+		req.setSalt(salt);
+		req.setMinId(minId);
+		req.setMaxId(maxId);
+		BasicProgress progress = new BasicProgress();
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
+		AsyncMigrationResponse resp = worker.call();
+		AsyncMigrationRangeChecksumResult res = (AsyncMigrationRangeChecksumResult)resp;
+		return res.getChecksum();
+	}
 }

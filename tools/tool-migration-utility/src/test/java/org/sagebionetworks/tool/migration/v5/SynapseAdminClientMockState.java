@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.migration.v5;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -9,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -42,4 +42,5 @@ public class SynapseAdminClientMockState {
 	
 	public long statusSequence = 0L;
 	
+	public List<AsynchJobState> asyncJobStates = new LinkedList<AsynchJobState>();
 }

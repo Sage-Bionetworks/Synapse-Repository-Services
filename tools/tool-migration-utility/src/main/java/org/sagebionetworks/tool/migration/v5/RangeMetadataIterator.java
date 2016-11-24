@@ -2,17 +2,17 @@ package org.sagebionetworks.tool.migration.v5;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.v5.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class RangeMetadataIterator implements Iterator<RowMetadata> {
@@ -60,19 +60,19 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 */
 	private List<RowMetadata> getNextPageWithBackupoff(MigrationType type, long minId, long maxId, long batchSize, long offset) {
 		try {
-			return ToolMigrationUtils.getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
+			return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
 		} catch (Exception e) {
 			// When there is a failure wait and try again.
 			try {
 				logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" will attempt again in one second", e);
 				Thread.sleep(1000);
-				return ToolMigrationUtils.getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
+				return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
 			} catch (Exception e1) {
 				// Try one last time
 				try {
 					logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" for a second time.  Will attempt again in ten seconds", e);
 					Thread.sleep(10000);
-					return ToolMigrationUtils.getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
+					return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
 				} catch (Exception e2) {
 					throw new RuntimeException("Failed to get a page of metadata from "+client.getRepoEndpoint(), e);
 				}
@@ -134,4 +134,17 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		new UnsupportedOperationException("Not supported");
 	}
 
+	protected List<RowMetadata> getRowMetadataByRange(SynapseAdminClient conn, MigrationType type, Long minId, Long maxId, Long batchSize, Long offset) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		AsyncMigrationRowMetadataRequest req = new AsyncMigrationRowMetadataRequest();
+		req.setType(type.name());
+		req.setMinId(minId);
+		req.setMaxId(maxId);
+		req.setLimit(batchSize);
+		req.setOffset(offset);
+		BasicProgress progress = new BasicProgress();
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
+		AsyncMigrationResponse resp = worker.call();
+		AsyncMigrationRowMetadataResult res = (AsyncMigrationRowMetadataResult)resp;
+		return res.getRowMetadata().getList();
+	}
 }
