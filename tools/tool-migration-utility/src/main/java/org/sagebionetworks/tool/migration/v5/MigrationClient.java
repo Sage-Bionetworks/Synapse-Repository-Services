@@ -38,7 +38,7 @@ import org.sagebionetworks.tool.migration.v4.delta.DeltaRanges;
 import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.migration.v5.delta.DeltaFinder;
-import org.sagebionetworks.tool.migration.v5.utils.ToolMigrationUtils;
+import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
