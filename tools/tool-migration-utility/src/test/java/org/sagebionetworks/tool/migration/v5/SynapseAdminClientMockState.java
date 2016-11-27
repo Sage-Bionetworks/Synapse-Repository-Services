@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -42,5 +43,9 @@ public class SynapseAdminClientMockState {
 	
 	public long statusSequence = 0L;
 	
-	public List<AsynchJobState> asyncJobStates = new LinkedList<AsynchJobState>();
+	public AsynchJobState asyncJobState = AsynchJobState.COMPLETE;
+	
+	public int curJobId = 0;
+	
+	public Stack<AsynchronousJobStatus> curJobStatus = new Stack<AsynchronousJobStatus>();
 }

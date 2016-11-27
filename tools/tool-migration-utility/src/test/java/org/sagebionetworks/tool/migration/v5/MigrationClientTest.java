@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,11 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.tool.migration.v3.SynapseAdminClientMockState;
+import org.sagebionetworks.tool.migration.v5.SynapseAdminClientMockState;
 import org.sagebionetworks.tool.migration.v3.SynapseClientFactory;
 
 /**
@@ -118,7 +121,6 @@ public class MigrationClientTest {
 		// No messages should have been played on the source
 		assertEquals(0, mockSource.replayChangeNumbersHistory.size());
 	}
-	
 	
 	/**
 	 * Helper to build up lists of metadata
