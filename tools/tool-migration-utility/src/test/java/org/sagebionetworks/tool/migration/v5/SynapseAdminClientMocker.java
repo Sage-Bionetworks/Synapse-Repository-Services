@@ -40,7 +40,13 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -67,15 +73,13 @@ public class SynapseAdminClientMocker {
 	 * All data for the stack is passed into the mock as a reference
 	 * So changes due to method calls can be retrieved by the test by keeping a reference to the parameters
 	 */
-	public static SynapseAdminClient createMock(final SynapseAdminClientMockState state)
-			throws Exception {
+	public static SynapseAdminClient createMock(final SynapseAdminClientMockState state) throws Exception {
 		// Start with a status of read/write
 		StackStatus status = new StackStatus();
 		status.setCurrentMessage("Synapse is read for read/write");
 		status.setStatus(StatusEnum.READ_WRITE);
 		state.statusHistory = new Stack<StackStatus>();
 		state.statusHistory.push(status);
-		final ListIterator<AsynchJobState> itJobStates = state.asyncJobStates.listIterator();
 		
 		SynapseAdminClient client = mock(SynapseAdminClient.class);
 		
@@ -168,11 +172,11 @@ public class SynapseAdminClientMocker {
 		});
 		
 		when(client.getTypeCount(any(MigrationType.class))).thenAnswer(new Answer<MigrationTypeCount>() {
+			
 			@Override
 			public MigrationTypeCount answer(InvocationOnMock invocation) throws Throwable {
 				MigrationType t = (MigrationType) invocation.getArguments()[0];
 				List<RowMetadata> l = state.metadata.get(t);
-				
 				MigrationTypeCount tc = new MigrationTypeCount();
 				tc.setType(t);
 				tc.setCount((long) l.size());
@@ -489,11 +493,100 @@ public class SynapseAdminClientMocker {
 			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
 				AsynchronousAdminRequestBody requestBody = (AsynchronousAdminRequestBody) invocation.getArguments()[0];
 				AsyncMigrationResponse response = null;
+				if (requestBody instanceof AsyncMigrationTypeCountRequest) {
+					AsyncMigrationTypeCountRequest req = (AsyncMigrationTypeCountRequest) requestBody;
+					MigrationType t = MigrationType.valueOf(req.getType());
+					List<RowMetadata> l = state.metadata.get(t);
+					MigrationTypeCount tc = new MigrationTypeCount();
+					tc.setType(t);
+					tc.setCount((long) l.size());
+					long minId = Long.MAX_VALUE;
+					long maxId = 0L;
+					for (RowMetadata md: l) {
+						long id = md.getId();
+						if (id < minId) {
+							minId = id;
+						}
+						if (id > maxId) {
+							maxId = id;
+						}
+					}
+					tc.setMinid(minId);
+					tc.setMaxid(maxId);
+					AsyncMigrationTypeCountResult result = new AsyncMigrationTypeCountResult();
+					result.setCount(tc);
+					response = result;
+				}
+				if (requestBody instanceof AsyncMigrationRangeChecksumRequest) {
+					AsyncMigrationRangeChecksumRequest req = (AsyncMigrationRangeChecksumRequest) requestBody;
+					MigrationType t = MigrationType.valueOf(req.getType());
+					Long minId = req.getMinId();
+					Long maxId = req.getMaxId();
+
+					CRC32 crc = new CRC32();
+					List<RowMetadata> allRowMetadata = state.metadata.get(t);
+					for (RowMetadata rm: allRowMetadata) {
+						if ((rm.getId() < minId) || (rm.getId() > maxId)) {
+							continue;
+						}
+						String s = rm.getId().toString() + (rm.getEtag() == null ? "" : "@" + rm.getEtag());
+						crc.update(s.getBytes());
+					}
+					MigrationRangeChecksum checksum = new MigrationRangeChecksum();
+					checksum.setChecksum(crc.toString());
+					checksum.setType(t);
+					checksum.setMinid(minId);
+					checksum.setMaxid(maxId);
+					
+					AsyncMigrationRangeChecksumResult result = new AsyncMigrationRangeChecksumResult();
+					result.setChecksum(checksum);
+					response = result;
+				}
+				if (requestBody instanceof AsyncMigrationRowMetadataRequest) {
+					AsyncMigrationRowMetadataRequest req = (AsyncMigrationRowMetadataRequest) requestBody;
+					MigrationType t = MigrationType.valueOf(req.getType());
+					Long minId = req.getMinId();
+					Long maxId = req.getMaxId();
+					Long limit = req.getLimit();
+					Long offset = req.getOffset();
+					
+					if (t == null)
+						throw new IllegalArgumentException("Type cannot be null");
+					
+					// All the values
+					List<RowMetadata> list = state.metadata.get(t);
+					// Subset on (minId, maxId)
+					List<RowMetadata> subset = new LinkedList<RowMetadata>();
+					for (RowMetadata r: list) {
+						if ((r.getId() >= minId) && (r.getId() <= maxId)) {
+							subset.add(r);
+						}
+					}
+					// Only return at offset for limit
+					RowMetadataResult res = new RowMetadataResult();
+					res.setTotalCount(new Long(list.size()));
+					
+					List<RowMetadata> resultList = new LinkedList<RowMetadata>();
+					long idx = 0;
+					for (RowMetadata rm: subset) {
+						if ((idx >= offset) && (idx < offset+limit)) {
+							resultList.add(rm);
+						}
+						idx++;
+					}
+					
+					res.setList(resultList);
+					AsyncMigrationRowMetadataResult result = new AsyncMigrationRowMetadataResult();
+					result.setRowMetadata(res);
+					response = result;
+				}
+				
 				AsynchronousJobStatus jobStatus = new AsynchronousJobStatus();
-				jobStatus.setJobId("1");
+				jobStatus.setJobId(Integer.toString((state.curJobId++)));
 				jobStatus.setRequestBody(requestBody);
 				jobStatus.setResponseBody(response);
-				jobStatus.setJobState(itJobStates.next());
+				jobStatus.setJobState(state.asyncJobState);
+				state.curJobStatus.push(jobStatus);
 				return jobStatus;
 			}
 			
@@ -505,11 +598,9 @@ public class SynapseAdminClientMocker {
 			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
 				String jobId = (String) invocation.getArguments()[0];
 				AsyncMigrationResponse response = null;
-				AsynchronousJobStatus jobStatus = new AsynchronousJobStatus();
-				jobStatus.setJobId(jobId);
-				jobStatus.setRequestBody(null);
-				jobStatus.setResponseBody(response);
-				jobStatus.setJobState(itJobStates.next());
+				response = new AsyncMigrationTypeCountResult();
+				AsynchronousJobStatus jobStatus = state.curJobStatus.pop();
+				jobStatus.setJobState(state.asyncJobState);
 				return jobStatus;
 			}
 			
@@ -517,7 +608,7 @@ public class SynapseAdminClientMocker {
 
 		return client;
 	}
-
+	
 	/**
 	 * Create a clone of a JSONEntity.
 	 */
