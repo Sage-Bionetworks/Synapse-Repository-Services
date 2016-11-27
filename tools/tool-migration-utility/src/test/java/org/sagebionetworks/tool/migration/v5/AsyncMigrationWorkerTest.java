@@ -44,7 +44,7 @@ public class AsyncMigrationWorkerTest {
 		MockitoAnnotations.initMocks(this);
 		AsynchronousJobStatus expectedStartStatus = new AsynchronousJobStatus();
 		expectedStartStatus.setJobId("jobId");
-		when(mockClient.startAsynchronousJob(request)).thenReturn(expectedStartStatus);
+		when(mockClient.startAdminAsynchronousJob(request)).thenReturn(expectedStartStatus);
 	}
 
 	@After
@@ -73,7 +73,7 @@ public class AsyncMigrationWorkerTest {
 		AsynchronousJobStatus jobStatus1 = new AsynchronousJobStatus();
 		jobStatus1.setJobId("jobId");
 		jobStatus1.setJobState(AsynchJobState.FAILED);
-		when(mockClient.getAsynchronousJobStatus("jobId")).thenReturn(jobStatus1);
+		when(mockClient.getAdminAsynchronousJobStatus("jobId")).thenReturn(jobStatus1);
 		
 		worker = new AsyncMigrationWorker(mockClient, request, 10000L, mockProgress);
 		Whitebox.setInternalState(worker, "clock", mockClock);
@@ -96,7 +96,7 @@ public class AsyncMigrationWorkerTest {
 		jobStatus1.setProgressMessage("Completed...");
 		jobStatus1.setJobState(AsynchJobState.COMPLETE);
 		jobStatus1.setResponseBody(response);
-		when(mockClient.getAsynchronousJobStatus("jobId")).thenReturn(jobStatus1);
+		when(mockClient.getAdminAsynchronousJobStatus("jobId")).thenReturn(jobStatus1);
 
 		worker = new AsyncMigrationWorker(mockClient, request, 3000L, mockProgress);
 		Whitebox.setInternalState(worker, "clock", mockClock);
@@ -126,7 +126,7 @@ public class AsyncMigrationWorkerTest {
 		jobStatus2.setProgressTotal(100L);
 		jobStatus2.setJobState(AsynchJobState.COMPLETE);
 		jobStatus2.setResponseBody(response);
-		when(mockClient.getAsynchronousJobStatus("jobId")).thenReturn(jobStatus1, jobStatus2);
+		when(mockClient.getAdminAsynchronousJobStatus("jobId")).thenReturn(jobStatus1, jobStatus2);
 		
 		worker = new AsyncMigrationWorker(mockClient, request, 3000L, mockProgress);
 		Whitebox.setInternalState(worker, "clock", mockClock);
@@ -162,7 +162,7 @@ public class AsyncMigrationWorkerTest {
 		jobStatus3.setProgressTotal(100L);
 		jobStatus3.setJobState(AsynchJobState.COMPLETE);
 		jobStatus3.setResponseBody(response);
-		when(mockClient.getAsynchronousJobStatus("jobId")).thenReturn(jobStatus1, jobStatus2, jobStatus3);
+		when(mockClient.getAdminAsynchronousJobStatus("jobId")).thenReturn(jobStatus1, jobStatus2, jobStatus3);
 		
 		worker = new AsyncMigrationWorker(mockClient, request, 3000L, mockProgress);
 		Whitebox.setInternalState(worker, "clock", mockClock);
