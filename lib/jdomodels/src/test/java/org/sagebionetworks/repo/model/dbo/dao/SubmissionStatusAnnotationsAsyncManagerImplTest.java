@@ -6,7 +6,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.*;
+import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.CANCEL_CONTROL;
+import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.CANCEL_REQUESTED;
+import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.CAN_CANCEL;
+import static org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl.SYSTEM_GENERATED_ANNO_IS_PRIVATE;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -126,105 +129,105 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		// owner ID (the Submission ID)
 		LongAnnotation ownerIdAnno = new LongAnnotation();
-		ownerIdAnno.setIsPrivate(false);
+		ownerIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		ownerIdAnno.setKey(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
 		ownerIdAnno.setValue(KeyFactory.stringToKey(submission.getId()));
 		annos.getLongAnnos().add(ownerIdAnno);
 		
 		// ownerParent ID (the Evaluation ID)
 		LongAnnotation ownerParentIdAnno = new LongAnnotation();
-		ownerParentIdAnno.setIsPrivate(false);
+		ownerParentIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		ownerParentIdAnno.setKey(DBOConstants.PARAM_ANNOTATION_SCOPE_ID);
 		ownerParentIdAnno.setValue(KeyFactory.stringToKey(submission.getEvaluationId()));
 		annos.getLongAnnos().add(ownerParentIdAnno);
 		
 		// creator userId
 		LongAnnotation creatorIdAnno = new LongAnnotation();
-		creatorIdAnno.setIsPrivate(true);
+		creatorIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		creatorIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_USER_ID);
 		creatorIdAnno.setValue(KeyFactory.stringToKey(submission.getUserId()));
 		annos.getLongAnnos().add(creatorIdAnno);
 		
 		// submitterAlias
 		StringAnnotation submitterAnno = new StringAnnotation();
-		submitterAnno.setIsPrivate(true);
+		submitterAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		submitterAnno.setKey(DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS);
 		submitterAnno.setValue(submission.getSubmitterAlias());
 		annos.getStringAnnos().add(submitterAnno);
 		
 		// entityId
 		StringAnnotation entityIdAnno = new StringAnnotation();
-		entityIdAnno.setIsPrivate(false);
+		entityIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		entityIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_ID);
 		entityIdAnno.setValue(submission.getEntityId());
 		annos.getStringAnnos().add(entityIdAnno);
 		
 		// entity version
 		LongAnnotation versionAnno = new LongAnnotation();
-		versionAnno.setIsPrivate(false);
+		versionAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		versionAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION);
 		versionAnno.setValue(submission.getVersionNumber());
 		annos.getLongAnnos().add(versionAnno);
 		
 		// name
 		StringAnnotation nameAnno = new StringAnnotation();
-		nameAnno.setIsPrivate(true);
+		nameAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		nameAnno.setKey(DBOConstants.PARAM_SUBMISSION_NAME);
 		nameAnno.setValue(submission.getName());
 		annos.getStringAnnos().add(nameAnno);
 		
 		// createdOn
 		LongAnnotation createdOnAnno = new LongAnnotation();
-		createdOnAnno.setIsPrivate(true);
+		createdOnAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		createdOnAnno.setKey(DBOConstants.PARAM_SUBMISSION_CREATED_ON);
 		createdOnAnno.setValue(submission.getCreatedOn().getTime());
 		annos.getLongAnnos().add(createdOnAnno);
 		
 		// modifiedOn
 		LongAnnotation modifiedOnAnno = new LongAnnotation();
-		modifiedOnAnno.setIsPrivate(false);
+		modifiedOnAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		modifiedOnAnno.setKey(DBOConstants.PARAM_SUBSTATUS_MODIFIED_ON);
 		modifiedOnAnno.setValue(subStatus.getModifiedOn().getTime());
 		annos.getLongAnnos().add(modifiedOnAnno);
 		
 		// status
 		StringAnnotation statusAnno = new StringAnnotation();
-		statusAnno.setIsPrivate(false);
+		statusAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		statusAnno.setKey(DBOConstants.PARAM_SUBSTATUS_STATUS);
 		statusAnno.setValue(subStatus.getStatus().toString());
 		annos.getStringAnnos().add(statusAnno);
 		
 		// submission Team ID
 		LongAnnotation teamAnno = new LongAnnotation();
-		teamAnno.setIsPrivate(true);
+		teamAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		teamAnno.setKey(DBOConstants.PARAM_SUBMISSION_TEAM_ID);
 		teamAnno.setValue(submission.getTeamId()==null?null:Long.parseLong(submission.getTeamId()));
 		annos.getLongAnnos().add(teamAnno);
 		
 		// repository name 
 		StringAnnotation repoNameAnno = new StringAnnotation();
-		repoNameAnno.setIsPrivate(true);
+		repoNameAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		repoNameAnno.setKey(SubmissionStatusAnnotationsAsyncManagerImpl.REPOSITORY_NAME);
 		repoNameAnno.setValue(DOCKER_REPO_NAME);
 		annos.getStringAnnos().add(repoNameAnno);
 
 		// docker digest
 		StringAnnotation digestAnno = new StringAnnotation();
-		digestAnno.setIsPrivate(true);
+		digestAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		digestAnno.setKey(DBOConstants.PARAM_SUBMISSION_DOCKER_DIGEST);
 		digestAnno.setValue(DOCKER_DIGEST);
 		annos.getStringAnnos().add(digestAnno);
 
 		// canCancel
 		StringAnnotation canCancelAnno = new StringAnnotation();
-		canCancelAnno.setIsPrivate(false);
+		canCancelAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		canCancelAnno.setKey(CAN_CANCEL);
 		canCancelAnno.setValue(Boolean.FALSE.toString());
 		annos.getStringAnnos().add(canCancelAnno);
 
 		// cancelRequested
 		StringAnnotation cancelRequestedAnno = new StringAnnotation();
-		cancelRequestedAnno.setIsPrivate(false);
+		cancelRequestedAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		cancelRequestedAnno.setKey(CANCEL_REQUESTED);
 		cancelRequestedAnno.setValue(Boolean.FALSE.toString());
 		annos.getStringAnnos().add(cancelRequestedAnno);
@@ -236,10 +239,17 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		cancelControl.setSubmissionId(submission.getId());
 		cancelControl.setUserId(submission.getUserId());
 		StringAnnotation cancelControlAnno = new StringAnnotation();
-		cancelControlAnno.setIsPrivate(false);
+		cancelControlAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		cancelControlAnno.setKey(CANCEL_CONTROL);
 		cancelControlAnno.setValue(EntityFactory.createJSONStringForEntity(cancelControl));
 		annos.getStringAnnos().add(cancelControlAnno);
+		
+		// submitterId
+		LongAnnotation submitterIdAnno = new LongAnnotation();
+		submitterIdAnno.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
+		submitterIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_SUBMITTER_ID);
+		submitterIdAnno.setValue(submission.getTeamId() == null ? Long.parseLong(submission.getTeamId()) : KeyFactory.stringToKey(submission.getUserId()));
+		annos.getLongAnnos().add(submitterIdAnno);
 	}
 	
 	@Test
