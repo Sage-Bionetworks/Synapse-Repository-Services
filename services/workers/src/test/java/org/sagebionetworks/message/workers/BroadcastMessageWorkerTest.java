@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.BroadcastMessageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -15,7 +16,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -52,7 +52,7 @@ public class BroadcastMessageWorkerTest {
 		ChangeMessage fakeMessage = new ChangeMessage();
 		fakeMessage.setChangeType(ChangeType.CREATE);
 		fakeMessage.setObjectType(ObjectType.THREAD);
-		doThrow(new HttpClientHelperException("", 500, ""))
+		doThrow(new MarkdownClientException(500, ""))
 				.when(mockBroadcastManager).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
 		worker.run(mockCallback, fakeMessage);
 	}
