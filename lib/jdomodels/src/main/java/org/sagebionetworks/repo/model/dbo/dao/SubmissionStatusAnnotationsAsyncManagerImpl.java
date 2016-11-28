@@ -307,12 +307,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		LongAnnotation submitterId = new LongAnnotation();
 		submitterId.setIsPrivate(SYSTEM_GENERATED_ANNO_IS_PRIVATE);
 		submitterId.setKey(DBOConstants.PARAM_SUBMISSION_SUBMITTER_ID);
-		Long subId = null; 
-		if(submission.getTeamId() != null){
-			subId = KeyFactory.stringToKey(submission.getUserId());
-		}else if(submission.getTeamId() != null){
-			subId = Long.parseLong(submission.getTeamId());
-		}
+		Long subId = StringUtils.isEmpty(submission.getTeamId()) ?
+				Long.parseLong(submission.getUserId()) : Long.parseLong(submission.getTeamId());
 		submitterId.setValue(subId);
 		insertAnnotation(submitterId, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 	}
