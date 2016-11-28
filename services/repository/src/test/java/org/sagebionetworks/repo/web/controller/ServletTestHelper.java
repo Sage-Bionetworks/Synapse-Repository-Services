@@ -1443,7 +1443,38 @@ public class ServletTestHelper {
 			return null;
 		}
 	}
+	
+	/**
+	 * Admin Async Jobs
+	 */
+	public AsynchronousJobStatus startAdminAsynchJob(DispatcherServlet instance, Long userId, AsynchronousRequestBody body) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB, userId, body);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if(response.getStatus() == 201){
+			return EntityFactory.createEntityFromJSONString(reponseString, AsynchronousJobStatus.class);
+		}else{
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
+	}
 
+	public AsynchronousJobStatus getAdminAsynchJobStatus(DispatcherServlet instance, Long userId, String jobId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ADMIN_ASYNCHRONOUS_JOB+"/"+jobId, userId, null);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if(response.getStatus() == 200){
+			return EntityFactory.createEntityFromJSONString(reponseString, AsynchronousJobStatus.class);
+		}else{
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
+	}
+	
 	public void deleteTableRows(DispatcherServlet instance, RowSelection rows, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
 				+ UrlHelpers.TABLE + "/deleteRows", userId, rows);

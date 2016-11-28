@@ -77,7 +77,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
 	
 	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
-	private static final String ADMIN_ASYNCHRONOUS_JOB_ID = ADMIN_ASYNCHRONOUS_JOB + "/id";
 	
 	public SynapseAdminClientImpl() {
 		super();
@@ -465,7 +464,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			throws JSONObjectAdapterException, SynapseException {
 		if (jobId == null)
 			throw new IllegalArgumentException("JobId cannot be null");
-		String url = ADMIN_ASYNCHRONOUS_JOB_ID + "/" + jobId;
+		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
 		return getJSONEntity(url, AsynchronousJobStatus.class);
 	}
 
