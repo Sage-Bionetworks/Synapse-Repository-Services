@@ -10,14 +10,7 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
-	<!-- Create the CloudSearchHttpClientProvider -->
-	<bean id="cloudSearchHttpClientProvider"
-		class="org.sagebionetworks.search.CloudSearchHttpClientProvider"
-		init-method="_init"
-		scope="singleton">
-	</bean>
-	
+
 	<bean id="cloudSearchClient"
 		class="org.sagebionetworks.search.CloudSearchClient"
 		init-method="_init"

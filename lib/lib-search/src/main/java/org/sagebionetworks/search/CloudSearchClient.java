@@ -1,20 +1,17 @@
 package org.sagebionetworks.search;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.utils.HttpClientHelper;
-import org.sagebionetworks.utils.HttpClientHelperException;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.annotation.PostConstruct;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 /**
  * CloudSearch does not yet provide a Java SDK. This is the bare minimum needed
@@ -35,11 +32,9 @@ public class CloudSearchClient {
 		SEND_DOCUMENTS_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
 	}
 
-	@Autowired
-	CloudSearchHttpClientProvider cloudSearchHttpClientProvider;
 	private final long MAX_BACKOFF_MS = 6400L;
 	
-	private HttpClient httpClient;
+	private SimpleHttpClient httpClient;
 	private String searchServiceEndpoint;
 	private String documentServiceEndpoint;
 
@@ -52,18 +47,7 @@ public class CloudSearchClient {
 	}
 	
 	public void _init() {
-		if (cloudSearchHttpClientProvider == null) {
-			throw new RuntimeException("ClouSearchHttpClientProvider is null in CloudSearchClient._init()");
-		}
-	
-		this.httpClient = cloudSearchHttpClientProvider.getHttpClient();
-	}
-
-	// For unit test
-	public CloudSearchClient(CloudSearchHttpClientProvider httpClientProvider, String searchServiceEndpoint, String documentServiceEndpoint) {
-		this.httpClient = httpClientProvider.getHttpClient();
-		this.searchServiceEndpoint = searchServiceEndpoint;
-		this.documentServiceEndpoint = documentServiceEndpoint;
+		this.httpClient = new SimpleHttpClientImpl(null);
 	}
 	
 	public void setSearchServiceEndpoint(String endpoint) {
@@ -83,46 +67,42 @@ public class CloudSearchClient {
 	}
 
 	public void sendDocuments(String documents) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
-		HttpClientHelper.postContent(httpClient, documentServiceEndpoint,
-				documents, SEND_DOCUMENTS_REQUEST_HEADERS);
+			IOException {
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setHeaders(SEND_DOCUMENTS_REQUEST_HEADERS);
+		request.setUri(documentServiceEndpoint);
+		httpClient.post(request, documents);
 	}
 
-	public void sendDocuments(InputStream stream, long length) throws ClientProtocolException, IOException, HttpClientHelperException {
-		HttpClientHelper.postStream(httpClient, documentServiceEndpoint,
-				stream, length, SEND_DOCUMENTS_REQUEST_HEADERS);
-	}
-
-	public String performSearch(String searchQuery) throws ClientProtocolException, IOException, HttpClientHelperException {
-		String url = searchServiceEndpoint + "?" + searchQuery;
-		String s = null;
+	public String performSearch(String searchQuery) throws ClientProtocolException, IOException, CloudSearchClientException {
+		String uri = searchServiceEndpoint + "?" + searchQuery;
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(uri);
+		SimpleHttpResponse response;
 		long backoffMs = 100L;
-		HttpClientHelperException e = null;
 		do {
-			try {
-				s = HttpClientHelper.getContent(httpClient, url);
-			} catch (HttpClientHelperException e1) {
-				e = e1;
-				if (e1.getHttpStatus() == 507) {
-					try {
-						Thread.sleep(backoffMs);
-					} catch (InterruptedException e2) {
-						// Continue
-					}
-				} else {
-					// rethrow
-					logger.error("performSearch(): Exception rethrown (url="+(url==null?"null":url)+")");
-					throw(e1);
+			response = httpClient.get(request);
+			if (response.getStatusCode() == 200) {
+				return response.getContent();
+			}
+			if (response.getStatusCode() == 507) {
+				try {
+					Thread.sleep(backoffMs);
+				} catch (InterruptedException e) {
+					// Continue
 				}
+			} else {
+				// rethrow
+				logger.error("performSearch(): Exception rethrown (url="+(uri==null?"null":uri)+")");
+				throw(new CloudSearchClientException(response.getStatusCode(), "Fail to perform search."));
 			}
 			backoffMs *= 2;
-		} while ((s == null) && (backoffMs < MAX_BACKOFF_MS));
+		} while (backoffMs < MAX_BACKOFF_MS);
 		// If we're past the max backoff, throw the last 507 we got
 		if (backoffMs >= MAX_BACKOFF_MS) {
-			logger.error("performSearch(): Backoff exceeded (url="+(url==null?"null":url)+")");
-			throw(e);
+			logger.error("performSearch(): Backoff exceeded (url="+(uri==null?"null":uri)+")");
+			throw(new CloudSearchClientException(response.getStatusCode(), "Fail to perform search."));
 		}
-		return s;
+		return response.getContent();
 	}
-	
 }

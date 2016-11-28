@@ -20,9 +20,9 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -69,8 +69,8 @@ public class SearchServiceImpl implements SearchService {
 	@Override
 	public @ResponseBody
 	SearchResults proxySearch(Long userId, SearchQuery searchQuery) 
-			throws ClientProtocolException,	IOException, HttpClientHelperException,
-			DatastoreException, NotFoundException, ServiceUnavailableException {
+			throws ClientProtocolException,	IOException, DatastoreException,
+			NotFoundException, ServiceUnavailableException, CloudSearchClientException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return proxySearch(userInfo, searchQuery);
 	}
@@ -82,11 +82,11 @@ public class SearchServiceImpl implements SearchService {
 	 * @throws UnsupportedEncodingException
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
 	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws UnsupportedEncodingException,
-			ClientProtocolException, IOException, HttpClientHelperException, ServiceUnavailableException {
+			ClientProtocolException, IOException, ServiceUnavailableException, CloudSearchClientException {
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null && searchQuery.getReturnFields().contains(SearchConstants.FIELD_PATH)){
 			includePath = true;

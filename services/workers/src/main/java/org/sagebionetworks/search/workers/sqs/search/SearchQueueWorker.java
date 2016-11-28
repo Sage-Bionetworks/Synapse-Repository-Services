@@ -18,8 +18,8 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -123,7 +123,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 
 	private Document getDocFromMessage(ChangeMessage changeMessage)
 			throws ClientProtocolException, DatastoreException, IOException,
-			HttpClientHelperException, ServiceUnavailableException {
+			ServiceUnavailableException, CloudSearchClientException {
 		// We want to ignore this message if a document with this ID and Etag
 		// already exists in the search index.
 		if (!searchDao.doesDocumentExist(changeMessage.getObjectId(),

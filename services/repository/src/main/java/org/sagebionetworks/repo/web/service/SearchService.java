@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.utils.HttpClientHelperException;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 public interface SearchService {
@@ -20,13 +20,13 @@ public interface SearchService {
 	 * @return search results from CloudSearch
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException, HttpClientHelperException,
-			DatastoreException, NotFoundException, ServiceUnavailableException;
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException,
+			DatastoreException, NotFoundException, ServiceUnavailableException, CloudSearchClientException;
 
 }
