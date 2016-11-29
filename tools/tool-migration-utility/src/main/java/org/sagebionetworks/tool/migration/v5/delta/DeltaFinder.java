@@ -7,9 +7,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -145,8 +144,8 @@ public class DeltaFinder {
 		req.setMaxId(maxId);
 		BasicProgress progress = new BasicProgress();
 		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationRangeChecksumResult res = (AsyncMigrationRangeChecksumResult)resp;
-		return res.getChecksum();
+		AdminResponse resp = worker.call();
+		MigrationRangeChecksum res = (MigrationRangeChecksum)resp;
+		return res;
 	}
 }

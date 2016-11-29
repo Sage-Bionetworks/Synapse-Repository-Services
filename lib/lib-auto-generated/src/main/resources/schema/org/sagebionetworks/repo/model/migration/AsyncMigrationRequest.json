@@ -1,9 +1,14 @@
 {
 	"description": "Async Migration requests will implement this type of AsynchronousRequestBody",
-	"type": "interface",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody"
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
 		}
-	]
+	],
+	"properties": {
+		"adminRequest": {
+			"description": "The actual request",
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	}
 }

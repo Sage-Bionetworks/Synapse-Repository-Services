@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
@@ -32,21 +31,18 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -487,11 +483,12 @@ public class SynapseAdminClientMocker {
 			
 		});
 		
-		when(client.startAdminAsynchronousJob(any(AsynchronousAdminRequestBody.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
+		when(client.startAdminAsynchronousJob(any(AsyncMigrationRequest.class))).thenAnswer(new Answer<AsynchronousJobStatus>() {
 
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
-				AsynchronousAdminRequestBody requestBody = (AsynchronousAdminRequestBody) invocation.getArguments()[0];
+				AsyncMigrationRequest migReq = (AsyncMigrationRequest) invocation.getArguments()[0];
+				AdminRequest requestBody = migReq.getAdminRequest();
 				AsyncMigrationResponse response = null;
 				if (requestBody instanceof AsyncMigrationTypeCountRequest) {
 					AsyncMigrationTypeCountRequest req = (AsyncMigrationTypeCountRequest) requestBody;
@@ -513,8 +510,8 @@ public class SynapseAdminClientMocker {
 					}
 					tc.setMinid(minId);
 					tc.setMaxid(maxId);
-					AsyncMigrationTypeCountResult result = new AsyncMigrationTypeCountResult();
-					result.setCount(tc);
+					AsyncMigrationResponse result = new AsyncMigrationResponse();
+					result.setAdminResponse(tc);;
 					response = result;
 				}
 				if (requestBody instanceof AsyncMigrationRangeChecksumRequest) {
@@ -538,8 +535,8 @@ public class SynapseAdminClientMocker {
 					checksum.setMinid(minId);
 					checksum.setMaxid(maxId);
 					
-					AsyncMigrationRangeChecksumResult result = new AsyncMigrationRangeChecksumResult();
-					result.setChecksum(checksum);
+					AsyncMigrationResponse result = new AsyncMigrationResponse();
+					result.setAdminResponse(checksum);
 					response = result;
 				}
 				if (requestBody instanceof AsyncMigrationRowMetadataRequest) {
@@ -576,14 +573,14 @@ public class SynapseAdminClientMocker {
 					}
 					
 					res.setList(resultList);
-					AsyncMigrationRowMetadataResult result = new AsyncMigrationRowMetadataResult();
-					result.setRowMetadata(res);
+					AsyncMigrationResponse result = new AsyncMigrationResponse();
+					result.setAdminResponse(res);
 					response = result;
 				}
 				
 				AsynchronousJobStatus jobStatus = new AsynchronousJobStatus();
 				jobStatus.setJobId(Integer.toString((state.curJobId++)));
-				jobStatus.setRequestBody(requestBody);
+				jobStatus.setRequestBody(migReq);
 				jobStatus.setResponseBody(response);
 				jobStatus.setJobState(state.asyncJobState);
 				state.curJobStatus.push(jobStatus);
@@ -596,9 +593,6 @@ public class SynapseAdminClientMocker {
 
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation) throws Throwable {
-				String jobId = (String) invocation.getArguments()[0];
-				AsyncMigrationResponse response = null;
-				response = new AsyncMigrationTypeCountResult();
 				AsynchronousJobStatus jobStatus = state.curJobStatus.pop();
 				jobStatus.setJobState(state.asyncJobState);
 				return jobStatus;

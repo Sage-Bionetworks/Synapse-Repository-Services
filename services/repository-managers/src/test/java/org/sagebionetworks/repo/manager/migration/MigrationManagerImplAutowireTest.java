@@ -45,13 +45,9 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -278,15 +274,14 @@ public class MigrationManagerImplAutowireTest {
 		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
 		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
 		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
-		AsyncMigrationTypeCountResult expectedAsyncMigrationTypeCountResult = new AsyncMigrationTypeCountResult();
-		expectedAsyncMigrationTypeCountResult.setCount(expectedCount);
+		
 		AsyncMigrationTypeCountRequest asyncMigrationTypeCountRequest = new AsyncMigrationTypeCountRequest();
 		asyncMigrationTypeCountRequest.setType(MigrationType.FILE_HANDLE.name());
 		
-		AsyncMigrationTypeCountResult amtcRes = migrationManager.processAsyncMigrationTypeCountRequest(adminUser, asyncMigrationTypeCountRequest);
+		MigrationTypeCount amtcRes = migrationManager.processAsyncMigrationTypeCountRequest(adminUser, asyncMigrationTypeCountRequest);
 		
 		assertNotNull(amtcRes);
-		assertEquals(expectedAsyncMigrationTypeCountResult, amtcRes);
+		assertEquals(expectedCount, amtcRes);
 	}
 	
 	@Test
@@ -308,23 +303,20 @@ public class MigrationManagerImplAutowireTest {
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		String salt = "salt";
 		MigrationRangeChecksum expectedRangeChecksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, salt, 0L, max);
-		AsyncMigrationRangeChecksumResult expectedAsyncMigrationRangeChecksumResult = new AsyncMigrationRangeChecksumResult();
-		expectedAsyncMigrationRangeChecksumResult.setChecksum(expectedRangeChecksum);
+		MigrationRangeChecksum expectedAsyncMigrationRangeChecksumResult = new MigrationRangeChecksum();
 		AsyncMigrationRangeChecksumRequest asyncMigrationRangeChecksumRequest = new AsyncMigrationRangeChecksumRequest();
 		asyncMigrationRangeChecksumRequest.setMaxId(max);
 		asyncMigrationRangeChecksumRequest.setMinId(0L);
 		asyncMigrationRangeChecksumRequest.setSalt("salt");
 		asyncMigrationRangeChecksumRequest.setType(MigrationType.FILE_HANDLE.name());
 		
-		AsyncMigrationRangeChecksumResult acrcRes = migrationManager.processAsyncMigrationRangeChecksumRequest(adminUser, asyncMigrationRangeChecksumRequest);
+		MigrationRangeChecksum acrcRes = migrationManager.processAsyncMigrationRangeChecksumRequest(adminUser, asyncMigrationRangeChecksumRequest);
 
 		assertNotNull(acrcRes);
-		assertNotNull(acrcRes.getChecksum());
-		MigrationRangeChecksum c = acrcRes.getChecksum();
-		assertTrue(c.getChecksum().contains("%"));
-		assertEquals(MigrationType.FILE_HANDLE, c.getType());
-		assertEquals(0L, c.getMinid().longValue());
-		assertEquals(max, c.getMaxid().longValue());
+		assertTrue(acrcRes.getChecksum().contains("%"));
+		assertEquals(MigrationType.FILE_HANDLE, acrcRes.getType());
+		assertEquals(0L, acrcRes.getMinid().longValue());
+		assertEquals(max, acrcRes.getMaxid().longValue());
 		
 	}
 	
@@ -348,18 +340,15 @@ public class MigrationManagerImplAutowireTest {
 			setStackStatus(StatusEnum.READ_ONLY);
 			
 			MigrationTypeChecksum expectedMtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
-			AsyncMigrationTypeChecksumResult expectedAsyncMtcRes = new AsyncMigrationTypeChecksumResult();
-			expectedAsyncMtcRes.setChecksum(expectedMtc);
+			MigrationTypeChecksum expectedAsyncMtcRes = new MigrationTypeChecksum();
 			AsyncMigrationTypeChecksumRequest amtcReq = new AsyncMigrationTypeChecksumRequest();
 			amtcReq.setType(MigrationType.FILE_HANDLE.name());
 			
-			AsyncMigrationTypeChecksumResult amtcRes = migrationManager.processAsyncMigrationTypeChecksumRequest(adminUser, amtcReq);
+			MigrationTypeChecksum amtcRes = migrationManager.processAsyncMigrationTypeChecksumRequest(adminUser, amtcReq);
 			
 			assertNotNull(amtcRes);
-			assertNotNull(amtcRes.getChecksum());
-			MigrationTypeChecksum c = amtcRes.getChecksum();
-			assertEquals(MigrationType.FILE_HANDLE, c.getType());
-			assertEquals(expectedMtc.getChecksum(), c.getChecksum());
+			assertEquals(MigrationType.FILE_HANDLE, amtcRes.getType());
+			assertEquals(expectedMtc.getChecksum(), amtcRes.getChecksum());
 		} finally {
 			setStackStatus(StatusEnum.READ_WRITE);
 		}
@@ -408,8 +397,6 @@ public class MigrationManagerImplAutowireTest {
 		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
 		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		RowMetadataResult expectedRowMetadaResult = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId, maxId - startId + 1, 0);
-		AsyncMigrationRowMetadataResult eArmRes = new AsyncMigrationRowMetadataResult();
-		eArmRes.setRowMetadata(expectedRowMetadaResult);
 		AsyncMigrationRowMetadataRequest amrmReq = new AsyncMigrationRowMetadataRequest();
 		amrmReq.setLimit(maxId - startId + 1);
 		amrmReq.setMaxId(maxId);
@@ -417,15 +404,13 @@ public class MigrationManagerImplAutowireTest {
 		amrmReq.setOffset(0L);
 		amrmReq.setType(MigrationType.FILE_HANDLE.name());
 		
-		AsyncMigrationRowMetadataResult amrmRes = migrationManager.processAsyncMigrationRowMetadataRequest(adminUser, amrmReq);
+		RowMetadataResult amrmRes = migrationManager.processAsyncMigrationRowMetadataRequest(adminUser, amrmReq);
 		
 		assertNotNull(amrmRes);
-		assertNotNull(amrmRes.getRowMetadata());
-		RowMetadataResult r = amrmRes.getRowMetadata();
-		assertEquals(new Long(startCount+2), r.getTotalCount());
-		assertNotNull(r.getList());
-		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + r.getList());
-		assertEquals(2, r.getList().size());
+		assertEquals(new Long(startCount+2), amrmRes.getTotalCount());
+		assertNotNull(amrmRes.getList());
+		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + amrmRes.getList());
+		assertEquals(2, amrmRes.getList().size());
 	}
 	
 	@Test

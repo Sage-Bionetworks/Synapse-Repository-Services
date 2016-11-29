@@ -7,11 +7,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
@@ -143,8 +143,8 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		req.setOffset(offset);
 		BasicProgress progress = new BasicProgress();
 		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationRowMetadataResult res = (AsyncMigrationRowMetadataResult)resp;
-		return res.getRowMetadata().getList();
+		AdminResponse resp = worker.call();
+		RowMetadataResult res = (RowMetadataResult)resp;
+		return res.getList();
 	}
 }
