@@ -13,10 +13,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -27,7 +26,7 @@ public class AsynchronousJobServicesImplTest {
 	@Mock
 	private AsynchJobStatusManager mockAsynchJobStatusManager;
 	@Mock
-	private AsynchronousAdminRequestBody mockAdminRequest;
+	private AsyncMigrationRequest mockAdminRequest;
 	@Mock
 	private AsynchronousRequestBody mockRequest;
 	
@@ -60,7 +59,6 @@ public class AsynchronousJobServicesImplTest {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(true);
 		expectedUser.setId(123L);
-		AsynchronousRequestBody body = new AsyncMigrationTypeCountRequest();
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");
@@ -74,7 +72,6 @@ public class AsynchronousJobServicesImplTest {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(true);
 		expectedUser.setId(123L);
-		AsynchronousRequestBody body = new AsyncMigrationTypeCountRequest();
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");
@@ -88,7 +85,6 @@ public class AsynchronousJobServicesImplTest {
 		Long userId = 123L;
 		UserInfo expectedUser = new UserInfo(false);
 		expectedUser.setId(123L);
-		AsynchronousRequestBody body = new AsyncMigrationTypeCountRequest();
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");

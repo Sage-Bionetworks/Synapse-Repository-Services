@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -18,14 +16,10 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -35,10 +29,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 /**
@@ -444,57 +436,41 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 	
 	@Override
-	public AsyncMigrationTypeCountResult processAsyncMigrationTypeCountRequest(
-			final UserInfo user, final AsyncMigrationRequest mReq) {
-		AsyncMigrationTypeCountRequest mtcr = (AsyncMigrationTypeCountRequest)mReq;
-		String t = mtcr.getType();
+	public MigrationTypeCount processAsyncMigrationTypeCountRequest(
+			final UserInfo user, final AsyncMigrationTypeCountRequest mReq) {
+		String t = mReq.getType();
 		MigrationType mt = MigrationType.valueOf(t);
-		MigrationTypeCount mtc = getMigrationTypeCount(user, mt);
-		AsyncMigrationTypeCountResult res = new AsyncMigrationTypeCountResult();
-		res.setCount(mtc);
-		return res;
+		return getMigrationTypeCount(user, mt);
 	}
 
 	@Override
-	public AsyncMigrationTypeChecksumResult processAsyncMigrationTypeChecksumRequest(
-			final UserInfo user, final AsyncMigrationRequest mReq) {
-		AsyncMigrationTypeChecksumRequest mtcReq = (AsyncMigrationTypeChecksumRequest)mReq;
-		String t = mtcReq.getType();
+	public MigrationTypeChecksum processAsyncMigrationTypeChecksumRequest(
+			final UserInfo user, final AsyncMigrationTypeChecksumRequest mReq) {
+		String t = mReq.getType();
 		MigrationType mt = MigrationType.valueOf(t);
-		MigrationTypeChecksum mtc = getChecksumForType(user, mt);
-		AsyncMigrationTypeChecksumResult res = new AsyncMigrationTypeChecksumResult();
-		res.setChecksum(mtc);
-		return res;
+		return getChecksumForType(user, mt);
 	}
 
 	@Override
-	public AsyncMigrationRangeChecksumResult processAsyncMigrationRangeChecksumRequest(
-			final UserInfo user, final AsyncMigrationRequest mReq) {
-		AsyncMigrationRangeChecksumRequest mrcReq = (AsyncMigrationRangeChecksumRequest)mReq;
-		String t = mrcReq.getType();
+	public MigrationRangeChecksum processAsyncMigrationRangeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRangeChecksumRequest mReq) {
+		String t = mReq.getType();
 		MigrationType mt = MigrationType.valueOf(t);
-		String salt = mrcReq.getSalt();
-		long minId = mrcReq.getMinId();
-		long maxId = mrcReq.getMaxId();
-		MigrationRangeChecksum mrc = getChecksumForIdRange(user, mt, salt, minId, maxId);
-		AsyncMigrationRangeChecksumResult res = new AsyncMigrationRangeChecksumResult();
-		res.setChecksum(mrc);
-		return res;
+		String salt = mReq.getSalt();
+		long minId = mReq.getMinId();
+		long maxId = mReq.getMaxId();
+		return getChecksumForIdRange(user, mt, salt, minId, maxId);
 	}
 
 	@Override
-	public AsyncMigrationRowMetadataResult processAsyncMigrationRowMetadataRequest(
-			final UserInfo user, final AsyncMigrationRequest mReq) {
-		AsyncMigrationRowMetadataRequest mrmReq = (AsyncMigrationRowMetadataRequest)mReq;
-		String t = mrmReq.getType();
+	public RowMetadataResult processAsyncMigrationRowMetadataRequest(
+			final UserInfo user, final AsyncMigrationRowMetadataRequest mReq) {
+		String t = mReq.getType();
 		MigrationType mt = MigrationType.valueOf(t);
-		Long minId = mrmReq.getMinId();
-		Long maxId = mrmReq.getMaxId();
-		Long limit = mrmReq.getLimit();
-		Long offset = mrmReq.getOffset();
-		RowMetadataResult rmr = getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
-		AsyncMigrationRowMetadataResult res = new AsyncMigrationRowMetadataResult();
-		res.setRowMetadata(rmr);
-		return res;
+		Long minId = mReq.getMinId();
+		Long maxId = mReq.getMaxId();
+		Long limit = mReq.getLimit();
+		Long offset = mReq.getOffset();
+		return getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
 	}
 }

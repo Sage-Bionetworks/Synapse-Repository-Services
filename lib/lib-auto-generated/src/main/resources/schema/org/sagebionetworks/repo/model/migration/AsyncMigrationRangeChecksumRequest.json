@@ -2,7 +2,7 @@
 	"description": "Request checksum for range of given type.",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.migration.AsyncMigrationRequest"
+			"$ref":"org.sagebionetworks.repo.model.migration.AdminRequest"
 		}
 	],
 	"properties": {

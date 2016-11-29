@@ -9,6 +9,8 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -16,17 +18,17 @@ import org.sagebionetworks.tool.progress.BasicProgress;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.DefaultClock;
 
-public class AsyncMigrationWorker implements Callable<AsyncMigrationResponse> {
+public class AsyncMigrationWorker implements Callable<AdminResponse> {
 
 	static private Log logger = LogFactory.getLog(AsyncMigrationWorker.class);
 
 	private SynapseAdminClient client;
-	private AsyncMigrationRequest request;
+	private AdminRequest request;
 	private BasicProgress progress;
 	long timeoutMs;
 	private Clock clock;
 
-	public AsyncMigrationWorker(SynapseAdminClient client, AsyncMigrationRequest request, long timeoutMs, BasicProgress progress) {
+	public AsyncMigrationWorker(SynapseAdminClient client, AdminRequest request, long timeoutMs, BasicProgress progress) {
 		this.client = client;
 		this.request = request;
 		this.timeoutMs = timeoutMs;
@@ -35,14 +37,16 @@ public class AsyncMigrationWorker implements Callable<AsyncMigrationResponse> {
 	}
 	
 	@Override
-	public AsyncMigrationResponse call() throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsynchronousJobStatus status = client.startAdminAsynchronousJob(request);
+	public AdminResponse call() throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		AsyncMigrationRequest migRequest = new AsyncMigrationRequest();
+		migRequest.setAdminRequest(request);
+		AsynchronousJobStatus status = client.startAdminAsynchronousJob(migRequest);
 		status = waitForJobToComplete(status.getJobId());
 		AsynchronousResponseBody resp = status.getResponseBody();
 		if (! (resp instanceof AsyncMigrationResponse)) {
 			throw new AsyncMigrationException("Response from job " + status.getJobId() + " should be AsyncMigrationResponse!");
 		}
-		return (AsyncMigrationResponse)resp;
+		return ((AsyncMigrationResponse)resp).getAdminResponse();
 	}
 	
 	private AsynchronousJobStatus waitForJobToComplete(String jobId) throws InterruptedException, JSONObjectAdapterException, SynapseException {
@@ -60,13 +64,10 @@ public class AsyncMigrationWorker implements Callable<AsyncMigrationResponse> {
 				logger.debug("Job " + jobId + " failed.");
 				throw new WorkerFailedException("Failed: " + status.getErrorDetails() + " message:" + status.getErrorMessage());
 			}
-			if (state == AsynchJobState.PROCESSING) {
-				progress.setCurrent(status.getProgressCurrent());
-				progress.setTotal(status.getProgressTotal());
-			}
 			if (state == AsynchJobState.COMPLETE) {
 				break;
 			}
+			logger.debug("Waiting for job " + request.getClass().getName());
 			clock.sleep(2000L);
 		}
 		return status;

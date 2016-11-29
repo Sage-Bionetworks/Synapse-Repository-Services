@@ -19,9 +19,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -36,9 +35,9 @@ import org.sagebionetworks.tool.migration.v4.DeltaCounts;
 import org.sagebionetworks.tool.migration.v4.DeltaData;
 import org.sagebionetworks.tool.migration.v4.delta.DeltaRanges;
 import org.sagebionetworks.tool.migration.v4.utils.MigrationTypeCountDiff;
+import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.migration.v5.delta.DeltaFinder;
-import org.sagebionetworks.tool.migration.v4.utils.ToolMigrationUtils;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 /**
@@ -449,9 +448,9 @@ public class MigrationClient {
 		req.setType(type.name());
 		BasicProgress progress = new BasicProgress();
 		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AsyncMigrationResponse resp = worker.call();
-		AsyncMigrationTypeCountResult res = (AsyncMigrationTypeCountResult)resp;
-		return res.getCount();
+		AdminResponse resp = worker.call();
+		MigrationTypeCount res = (MigrationTypeCount)resp;
+		return res;
 	}
 	
 }
