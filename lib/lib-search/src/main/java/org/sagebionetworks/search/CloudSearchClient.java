@@ -89,7 +89,7 @@ public class CloudSearchClient {
 				try {
 					Thread.sleep(backoffMs);
 				} catch (InterruptedException e) {
-					// Continue
+					throw new RuntimeException();
 				}
 			} else {
 				// rethrow
@@ -99,12 +99,8 @@ public class CloudSearchClient {
 			}
 			backoffMs *= 2;
 		} while (backoffMs < MAX_BACKOFF_MS);
-		// If we're past the max backoff, throw the last 507 we got
-		if (backoffMs >= MAX_BACKOFF_MS) {
-			logger.error("performSearch(): Backoff exceeded (url="+(uri==null?"null":uri)+")");
-			throw(new CloudSearchClientException(response.getStatusCode(), "Fail to perform search."
-					+ " Reason: "+response.getStatusReason()+". Content: "+response.getContent()));
-		}
-		return response.getContent();
+		logger.error("performSearch(): Backoff exceeded (url="+(uri==null?"null":uri)+")");
+		throw(new CloudSearchClientException(response.getStatusCode(), "Fail to perform search."
+				+ " Reason: "+response.getStatusReason()+". Content: "+response.getContent()));
 	}
 }
