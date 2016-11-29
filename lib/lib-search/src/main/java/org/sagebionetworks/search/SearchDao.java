@@ -8,7 +8,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Abstraction for interacting with the search index.
@@ -30,48 +29,44 @@ public interface SearchDao {
 	 * Create a new search document.
 	 * 
 	 * @param toCreate
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
 	 */
-	void createOrUpdateSearchDocument(Document toCreate) throws ClientProtocolException, IOException, HttpClientHelperException,
+	void createOrUpdateSearchDocument(Document toCreate) throws ClientProtocolException, IOException,
 			ServiceUnavailableException;
 	 
 	 /**
 	 * Create or update a batch of search documents
 	 * 
 	 * @param batch
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
 	 */
-	void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException,
+	void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException,
 			ServiceUnavailableException;
 	 
 	 /**
 	 * Delete a document using its id.
 	 * 
 	 * @param documentId
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
 	 */
-	void deleteDocument(String docIdToDelete) throws ClientProtocolException, IOException, HttpClientHelperException,
+	void deleteDocument(String docIdToDelete) throws ClientProtocolException, IOException,
 			ServiceUnavailableException;
 	 
 	 /**
 	 * Delete all documents with the passed set of document ids.
 	 * 
 	 * @param docIdsToDelete
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
 	 */
-	void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException, HttpClientHelperException,
+	void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException,
 			ServiceUnavailableException;
 	 
 	 /**
@@ -79,13 +74,13 @@ public interface SearchDao {
 	 * 
 	 * @param search
 	 * @return
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
-	SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException;
+	SearchResults executeSearch(String search) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException;
 	 
 	 /**
 	 * The unprocessed form of the search
@@ -94,11 +89,11 @@ public interface SearchDao {
 	 * @return
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
-	String executeRawSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException;
+	String executeRawSearch(String search) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException;
 	 
 	 /**
 	 * Does a document already exist with the given id and etag?
@@ -106,13 +101,13 @@ public interface SearchDao {
 	 * @param id
 	 * @param etag
 	 * @return
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
-	boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException;
+	boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException;
 	 
 	 /**
 	 * List all documents in the search index.
@@ -120,25 +115,25 @@ public interface SearchDao {
 	 * @param limit
 	 * @param offset
 	 * @return
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
-	SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException;
+	SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException;
 	 
 	 /**
 	 * Clear all data in the search index.
 	 * 
-	 * @throws HttpClientHelperException
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 * @throws InterruptedException
 	 * @throws ServiceUnavailableException
+	 * @throws CloudSearchClientException 
 	 */
-	void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException,
-			ServiceUnavailableException;
+	void deleteAllDocuments() throws ClientProtocolException, IOException, InterruptedException,
+			ServiceUnavailableException, CloudSearchClientException;
 	 
 	/**
 	 * Is the search feature enabled?

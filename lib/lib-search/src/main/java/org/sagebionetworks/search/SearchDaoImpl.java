@@ -3,9 +3,7 @@ package org.sagebionetworks.search;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClient;
@@ -117,7 +114,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 	
 	@Override
-	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException, HttpClientHelperException,
+	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
 		validateSearchEnabled();
 		if(document == null) throw new IllegalArgumentException("Document cannot be null");
@@ -125,26 +122,21 @@ public class SearchDaoImpl implements SearchDao {
 		list.add(document);
 		createOrUpdateSearchDocument(list);
 	}
-	
+
 	@Override
-	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException,
+	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
 		CloudSearchClient searchClient = validateSearchAvailable();
-		// Cleanup they data
-		byte[] bytes = cleanSearchDocuments(batch);
-		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-		// Pass along to the client
-		searchClient.sendDocuments(in, bytes.length);
+		searchClient.sendDocuments(cleanSearchDocuments(batch));
 	}
 	
 	/**
 	 * Remove any character that is not compatible with cloud search.
 	 * @param document
 	 * @return
-	 * @throws UnsupportedEncodingException
 	 * @throws JSONObjectAdapterException
 	 */
-	static byte[] cleanSearchDocuments(List<Document> documents) {
+	static String cleanSearchDocuments(List<Document> documents) {
 		String serializedDocument;
 		try {
 			StringBuilder builder = new StringBuilder();
@@ -167,13 +159,8 @@ public class SearchDaoImpl implements SearchDao {
 				count++;
 			}
 			builder.append("]");
-//			log.warn(builder.toString());
-			// AwesomeSearch expects UTF-8
-			return builder.toString().getBytes("UTF-8");
+			return builder.toString();
 		} catch (JSONObjectAdapterException e) {
-			// Convert to runtime
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
 			// Convert to runtime
 			throw new RuntimeException(e);
 		}
@@ -197,7 +184,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteDocument(String documentId) throws ClientProtocolException, IOException, HttpClientHelperException,
+	public void deleteDocument(String documentId) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
 		validateSearchEnabled();
 		// This is just a batch delete of size one.
@@ -207,7 +194,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException, HttpClientHelperException,
+	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
 		CloudSearchClient searchClient = validateSearchAvailable();
 		DateTime now = DateTime.now();
@@ -231,8 +218,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException {
+	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException {
 		CloudSearchClient searchClient = validateSearchAvailable();
 		String results = searchClient.performSearch(search);
 		try {
@@ -244,15 +231,15 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public String executeRawSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException {
+	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException {
 		CloudSearchClient searchClient = validateSearchAvailable();
 		return searchClient.performSearch(search);
 	}
 
 	@Override
-	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException {
+	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException {
 		validateSearchEnabled();
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
@@ -261,16 +248,16 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException,
-			ServiceUnavailableException {
+	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
+			ServiceUnavailableException, CloudSearchClientException {
 		validateSearchEnabled();
 		String query = String.format(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE, limit, offset);
 		return executeSearch(query);
 	}
 
 	@Override
-	public void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException,
-			ServiceUnavailableException {
+	public void deleteAllDocuments() throws ClientProtocolException, IOException, InterruptedException,
+			ServiceUnavailableException, CloudSearchClientException {
 		validateSearchEnabled();
 		// Keep deleting as long as there are documents
 		SearchResults sr = null;
