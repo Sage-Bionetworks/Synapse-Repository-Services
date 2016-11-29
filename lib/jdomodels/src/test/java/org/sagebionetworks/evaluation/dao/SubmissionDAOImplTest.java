@@ -743,9 +743,14 @@ public class SubmissionDAOImplTest {
     	assertEquals(true, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
 			Long.parseLong(userId2), startDateIncl, endDateExcl, statuses));
     	
+    	//user1 no longer has any team submissions
     	submissionDAO.delete(SUBMISSION_2_ID);
        	assertEquals(false, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
     			Long.parseLong(userId), startDateIncl, endDateExcl, statuses));
+       	
+       	//user2 still has contributed to submission3
+       	assertEquals(true, submissionDAO.hasContributedToTeamSubmission(Long.parseLong(evalId), 
+    			Long.parseLong(userId2), startDateIncl, endDateExcl, statuses));
     }
 
     @Test(expected=IllegalArgumentException.class)

@@ -62,6 +62,7 @@ public class SubmissionEligibilityManagerImpl implements
 
 	// unless a submission is marked INVALID or REJECTED we count it toward
 	// the submitter's quota
+	// statuses not in the enum: INVALID, REJECTED
 	public static final Set<SubmissionStatusEnum> STATUSES_COUNTED_TOWARD_QUOTA = 
 			new HashSet<SubmissionStatusEnum>(Arrays.asList(new SubmissionStatusEnum[]{
 					OPEN,
@@ -216,7 +217,7 @@ public class SubmissionEligibilityManagerImpl implements
 		}
 		TeamSubmissionEligibility tse = getTeamSubmissionEligibility(evaluation, teamId);
 		if (seHash!=computeTeamSubmissionEligibilityHash(tse)) 
-			return new AuthorizationStatus(false, "Submissions or Team composition have changed.  Please try again.");
+			return new AuthorizationStatus(false, "Submissions or Team composition have changed.  Please try again." + seHash + "," + computeTeamSubmissionEligibilityHash(tse));
 
 		if (!tse.getTeamEligibility().getIsEligible()) {
 			return new AuthorizationStatus(false, "The specified Team is ineligible to submit to the specified Evaluation at this time.");			
@@ -266,7 +267,7 @@ public class SubmissionEligibilityManagerImpl implements
 				// skip this check
 			}
 		}
-		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
+	//	if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");

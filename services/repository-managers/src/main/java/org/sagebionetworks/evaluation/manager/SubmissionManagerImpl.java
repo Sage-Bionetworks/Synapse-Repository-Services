@@ -218,9 +218,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			scs.add(scWithDate);
 		}
 		submission.setContributors(scs);
-		
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
+		//TODO:
+		AuthorizationStatus temp = checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(temp
+				);
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
