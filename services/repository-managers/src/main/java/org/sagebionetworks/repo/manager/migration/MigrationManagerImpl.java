@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -17,6 +15,11 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -26,10 +29,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 /**
@@ -433,5 +434,43 @@ public class MigrationManagerImpl implements MigrationManager {
 		MigrationTypeCount mtc = migratableTableDao.getMigrationTypeCount(type);
 		return mtc;
 	}
+	
+	@Override
+	public MigrationTypeCount processAsyncMigrationTypeCountRequest(
+			final UserInfo user, final AsyncMigrationTypeCountRequest mReq) {
+		String t = mReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		return getMigrationTypeCount(user, mt);
+	}
 
+	@Override
+	public MigrationTypeChecksum processAsyncMigrationTypeChecksumRequest(
+			final UserInfo user, final AsyncMigrationTypeChecksumRequest mReq) {
+		String t = mReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		return getChecksumForType(user, mt);
+	}
+
+	@Override
+	public MigrationRangeChecksum processAsyncMigrationRangeChecksumRequest(
+			final UserInfo user, final AsyncMigrationRangeChecksumRequest mReq) {
+		String t = mReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		String salt = mReq.getSalt();
+		long minId = mReq.getMinId();
+		long maxId = mReq.getMaxId();
+		return getChecksumForIdRange(user, mt, salt, minId, maxId);
+	}
+
+	@Override
+	public RowMetadataResult processAsyncMigrationRowMetadataRequest(
+			final UserInfo user, final AsyncMigrationRowMetadataRequest mReq) {
+		String t = mReq.getType();
+		MigrationType mt = MigrationType.valueOf(t);
+		Long minId = mReq.getMinId();
+		Long maxId = mReq.getMaxId();
+		Long limit = mReq.getLimit();
+		Long offset = mReq.getOffset();
+		return getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
+	}
 }

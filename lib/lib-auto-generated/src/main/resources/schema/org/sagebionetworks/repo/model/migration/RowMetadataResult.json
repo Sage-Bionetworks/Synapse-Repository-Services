@@ -1,5 +1,10 @@
 {
 	"description": "List of RowMetadata ",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
 	"properties": {
 		"list": {
 			"type": "array",

@@ -2,7 +2,7 @@
 	"description": "Request count for migration type.",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.migration.AsyncMigrationRequest"
+			"$ref":"org.sagebionetworks.repo.model.migration.AdminRequest"
 		}
 	],
 	"properties": {

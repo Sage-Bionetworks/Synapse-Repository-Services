@@ -1,0 +1,9 @@
+{
+	"description": "Abstraction for Admin response",
+	"type": "interface",
+	"properties": {
+		"concreteType":{
+			"type": "string"
+		}
+	}
+}

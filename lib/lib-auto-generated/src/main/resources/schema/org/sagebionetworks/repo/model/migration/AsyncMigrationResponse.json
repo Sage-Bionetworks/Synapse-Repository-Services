@@ -1,9 +1,14 @@
 {
-	"description": "Async migration responses will implement this type of AsynchronousResponseBody",
-	"type": "interface",
+	"description": "Async Migration response will implement this type of AsynchronousResponseBody",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
 		}
-	]
+	],
+	"properties": {
+		"adminResponse": {
+			"description": "The actual response",
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	}
 }

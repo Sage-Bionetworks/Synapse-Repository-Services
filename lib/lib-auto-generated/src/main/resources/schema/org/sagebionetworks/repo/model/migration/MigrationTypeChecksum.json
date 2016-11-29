@@ -1,5 +1,10 @@
 {
 	"description": "Table checksum (CHECKSUM TABLE) for migration type 'type'",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
 	"properties": {
 		"type": {
 			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
