@@ -220,7 +220,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setContributors(scs);
 		
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-								checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
+				checkSubmissionEligibility(userInfo, submission, submissionEligibilityHash, now));
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
