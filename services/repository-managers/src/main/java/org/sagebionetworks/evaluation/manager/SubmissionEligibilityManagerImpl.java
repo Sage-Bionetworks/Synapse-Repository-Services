@@ -62,6 +62,7 @@ public class SubmissionEligibilityManagerImpl implements
 
 	// unless a submission is marked INVALID or REJECTED we count it toward
 	// the submitter's quota
+	// statuses not in the enum: INVALID, REJECTED
 	public static final Set<SubmissionStatusEnum> STATUSES_COUNTED_TOWARD_QUOTA = 
 			new HashSet<SubmissionStatusEnum>(Arrays.asList(new SubmissionStatusEnum[]{
 					OPEN,
@@ -266,7 +267,6 @@ public class SubmissionEligibilityManagerImpl implements
 				// skip this check
 			}
 		}
-		if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");
