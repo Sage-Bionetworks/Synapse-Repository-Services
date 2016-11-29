@@ -1,18 +1,17 @@
 package org.sagebionetworks.doi;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 /**
  * Asynchronous client to the DOI name resolution service. This is to
@@ -20,18 +19,20 @@ import org.apache.http.util.EntityUtils;
  */
 public class DxAsyncClient {
 
+	public static final String DOI_API_HANDLES_URL = "http://doi.org/api/handles/";
+	public static final String URL_PARAM = "?type=URL";
+	private static final String VALUES = "values";
+	private static final String DATA = "data";
+	private static final String VALUE = "value";
+
 	public DxAsyncClient() {
-		HttpClient httpClient = new DefaultHttpClient();
-		httpClient.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
-		this.httpClient = new RetryableHttpClient(httpClient);
+		this.simpleHttpClient = new SimpleHttpClientImpl(null);
 		delay = 4 * 60 * 1000; // 4 minutes
 		decay = 1 * 60 * 1000; // 1 minute
 	}
 
 	DxAsyncClient(long delay, long decay) {
-		HttpClient httpClient = new DefaultHttpClient();
-		httpClient.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
-		this.httpClient = new RetryableHttpClient(httpClient);
+		this.simpleHttpClient = new SimpleHttpClientImpl(null);
 		this.delay = delay;
 		this.decay = decay;
 	}
@@ -71,14 +72,14 @@ public class DxAsyncClient {
 					} else {
 						callback.onSuccess(ezidDoi);
 					}
-				} catch (InterruptedException e) {
+				} catch (InterruptedException | IOException e) {
 					callback.onError(ezidDoi, e);
 				}
 			}
 		});
 	}
 
-	private String resolveWithRetries(String doi) throws InterruptedException {
+	private String resolveWithRetries(String doi) throws InterruptedException, ClientProtocolException, IOException {
 		String location = null;
 		long delay = this.delay;
 		while (location == null && delay > 0) {
@@ -93,36 +94,43 @@ public class DxAsyncClient {
 	 * Resolves the DOI to the location of the object.
 	 *
 	 * @return The location of the DOI or null if the DOI does not resolve
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 * @throws JSONException 
 	 */
-	private String resolve(String doi) {
+	private String resolve(String doi) throws ClientProtocolException, IOException {
 
-		URI uri = URI.create(EzidConstants.DX_URL + doi);
-		HttpGet get = new HttpGet(uri);
-		HttpResponse response = httpClient.executeWithRetry(get);
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(DOI_API_HANDLES_URL + doi + URL_PARAM);
+		SimpleHttpResponse response = simpleHttpClient.get(request);
 
-		try {
-			// Consume the response to close the connection
-			EntityUtils.toString(response.getEntity());
-		} catch (IOException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-
-		final int status = response.getStatusLine().getStatusCode();
-		if (status == HttpStatus.SC_SEE_OTHER) {
-			// Success
-			Header header = response.getFirstHeader("Location");
-			String location = header.getValue();
+		final int status = response.getStatusCode();
+		if (status == HttpStatus.SC_OK) {
+			String location = getLocation(response.getContent());
 			return location;
 		}
 
 		return null;
 	}
 
+	public static String getLocation(String content) {
+		if (content == null) {
+			return null;
+		}
+		try {
+			JSONObject response = new JSONObject(content);
+			return response.getJSONArray(VALUES).getJSONObject(0)
+					.getJSONObject(DATA).getString(VALUE);
+		} catch (JSONException e) {
+			return null;
+		}
+	}
+
 	// If the thread pool is to have more than 1 thread,
 	// the blocking client must also use a pool of connections.
 	// The blocking client currently uses SingleClientConnManager.
 	private final ExecutorService executor = Executors.newFixedThreadPool(1);
-	private final RetryableHttpClient httpClient;
+	private final SimpleHttpClient simpleHttpClient;
 	private final long delay;
 	private final long decay;
 }

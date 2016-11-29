@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MarkdownDaoImpl implements MarkdownDao{
@@ -29,7 +28,9 @@ public class MarkdownDaoImpl implements MarkdownDao{
 
 	@Override
 	public String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException, MarkdownClientException {
-		ValidateArgument.required(rawMarkdown, "rawMarkdown");
+		if (rawMarkdown == null) {
+			throw new IllegalArgumentException("rawMarkdown cannot be null");
+		}
 		JSONObject request = new JSONObject();
 		request.put(MARKDOWN, rawMarkdown);
 		request.put(BASE_URL, synapseBaseUrl);

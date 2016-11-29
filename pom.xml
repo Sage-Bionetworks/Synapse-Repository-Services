@@ -604,6 +604,11 @@
 				<artifactId>pivot-wtk-terra</artifactId>
 				<version>${org.apache.pivot.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>${org.json.version}</version>
+			</dependency>
 
 		</dependencies>
 	</dependencyManagement>
@@ -822,13 +827,13 @@
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.11</schema-to-pojo.version>
-		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.11.45</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
+		<org.json.version>20090211</org.json.version>
 	</properties>
 
 	<distributionManagement>
