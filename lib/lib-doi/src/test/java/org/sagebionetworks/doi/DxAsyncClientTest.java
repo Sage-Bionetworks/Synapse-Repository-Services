@@ -1,5 +1,6 @@
 package org.sagebionetworks.doi;
 
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.mock;
@@ -7,14 +8,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.StringEntity;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DxAsyncClientTest {
@@ -31,19 +30,26 @@ public class DxAsyncClientTest {
 		ezidDoi.setMetadata(metadata);
 
 		// Mock 303 -- 303 See Other is the expected redirect response
-		HttpResponse mockResponse = mock(HttpResponse.class);
-		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
-		StatusLine mockStatusLine = mock(StatusLine.class);
-		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_SEE_OTHER);
-		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
-		Header mockHeader = mock(Header.class);
-		when(mockHeader.getValue()).thenReturn("syn111");
-		when(mockResponse.getFirstHeader("Location")).thenReturn(mockHeader);
-		RetryableHttpClient mockClient = mock(RetryableHttpClient.class);
-		when(mockClient.executeWithRetry(any(HttpGet.class))).thenReturn(mockResponse);
+		SimpleHttpResponse mockResponse = mock(SimpleHttpResponse.class);
+		when(mockResponse.getContent()).thenReturn("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\","
+					+ "\"values\": ["
+						+ "{"
+							+ "\"index\": 1,"
+							+ "\"type\": \"URL\","
+							+ "\"data\": { \"format\": \"string\", \"value\": \"http://www.doi.org/index.html\" },"
+							+ "\"ttl\": 86400,"
+							+ "\"timestamp\": \"2004-09-10T19:49:59Z\""
+						+ "}"
+					+ "]"
+				+ "}");
+		when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		SimpleHttpClient mockClient = mock(SimpleHttpClient.class);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
 		DxAsyncClient dxClient = new DxAsyncClient();
-		ReflectionTestUtils.setField(dxClient, "httpClient", mockClient);
+		ReflectionTestUtils.setField(dxClient, "simpleHttpClient", mockClient);
 		ReflectionTestUtils.setField(dxClient, "delay", 100L);
 		ReflectionTestUtils.setField(dxClient, "decay", 30L);
 
@@ -65,16 +71,14 @@ public class DxAsyncClientTest {
 		ezidDoi.setMetadata(metadata);
 
 		// Mock 404
-		HttpResponse mockResponse = mock(HttpResponse.class);
-		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
-		StatusLine mockStatusLine = mock(StatusLine.class);
-		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_NOT_FOUND);
-		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
-		RetryableHttpClient mockClient = mock(RetryableHttpClient.class);
-		when(mockClient.executeWithRetry(any(HttpGet.class))).thenReturn(mockResponse);
+		SimpleHttpResponse mockResponse = mock(SimpleHttpResponse.class);
+		when(mockResponse.getContent()).thenReturn("response body");
+		when(mockResponse.getStatusCode()).thenReturn(HttpStatus.SC_NOT_FOUND);
+		SimpleHttpClient mockClient = mock(SimpleHttpClient.class);
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 
 		DxAsyncClient dxClient = new DxAsyncClient();
-		ReflectionTestUtils.setField(dxClient, "httpClient", mockClient);
+		ReflectionTestUtils.setField(dxClient, "simpleHttpClient", mockClient);
 		ReflectionTestUtils.setField(dxClient, "delay", 100L);
 		ReflectionTestUtils.setField(dxClient, "decay", 30L);
 
@@ -82,7 +86,7 @@ public class DxAsyncClientTest {
 		dxClient.resolve(ezidDoi, callback);
 		Thread.sleep(1000L);
 		verify(callback).onError(same(ezidDoi), any(RuntimeException.class));
-		verify(mockClient, times(4)).executeWithRetry(any(HttpGet.class));
+		verify(mockClient, times(4)).get(any(SimpleHttpRequest.class));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -125,5 +129,84 @@ public class DxAsyncClientTest {
 			@Override
 			public void onError(EzidDoi ezidDoi, Exception e) {}
 		});
+	}
+
+	@Test
+	public void testGetLocationWithNull() {
+		assertNull(DxAsyncClient.getLocation(null));
+	}
+
+	@Test
+	public void testGetLocationWithEmptyJsonObject() {
+		assertNull(DxAsyncClient.getLocation("{}"));
+	}
+
+	@Test
+	public void testGetLocationWithoutValues() {
+		assertNull(DxAsyncClient.getLocation("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\""
+				+ "}"));
+	}
+
+	@Test
+	public void testGetLocationWithEmptyValues() {
+		assertNull(DxAsyncClient.getLocation("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\","
+					+ "\"values\": ["
+					+ "]"
+				+ "}"));
+	}
+
+	@Test
+	public void testGetLocationWithoutData() {
+		assertNull(DxAsyncClient.getLocation("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\","
+					+ "\"values\": ["
+						+ "{"
+							+ "\"index\": 1,"
+							+ "\"type\": \"URL\","
+							+ "\"ttl\": 86400,"
+							+ "\"timestamp\": \"2004-09-10T19:49:59Z\""
+						+ "}"
+					+ "]"
+				+ "}"));
+	}
+
+	@Test
+	public void testGetLocationWithoutURL() {
+		assertNull(DxAsyncClient.getLocation("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\","
+					+ "\"values\": ["
+						+ "{"
+							+ "\"index\": 1,"
+							+ "\"type\": \"URL\","
+							+ "\"data\": { \"format\": \"string\"},"
+							+ "\"ttl\": 86400,"
+							+ "\"timestamp\": \"2004-09-10T19:49:59Z\""
+						+ "}"
+					+ "]"
+				+ "}"));
+	}
+
+	@Test
+	public void testGetLocationSuccess() {
+		assertEquals("http://www.doi.org/index.html",
+				DxAsyncClient.getLocation("{"
+					+ "\"responseCode\": 1,"
+					+ "\"handle\": \"10.1000/1\","
+					+ "\"values\": ["
+						+ "{"
+							+ "\"index\": 1,"
+							+ "\"type\": \"URL\","
+							+ "\"data\": { \"format\": \"string\", \"value\": \"http://www.doi.org/index.html\" },"
+							+ "\"ttl\": 86400,"
+							+ "\"timestamp\": \"2004-09-10T19:49:59Z\""
+						+ "}"
+					+ "]"
+				+ "}"));
 	}
 }
