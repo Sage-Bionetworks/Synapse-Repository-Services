@@ -144,8 +144,6 @@ public class AsyncMigrationWorkerTest {
 		
 		assertNotNull(resp);
 		
-		verify(mockProgress, times(1)).setCurrent(50L);
-		verify(mockProgress, times(1)).setTotal(100L);
 		verify(mockClock, times(1)).sleep(2000L);
 	}
 	
@@ -180,9 +178,6 @@ public class AsyncMigrationWorkerTest {
 		
 		assertNotNull(resp);
 		
-		verify(mockProgress, times(1)).setCurrent(40L);
-		verify(mockProgress, times(1)).setCurrent(80L);
-		verify(mockProgress, times(2)).setTotal(100L);
 		verify(mockClock, times(2)).sleep(2000L);
 	}
 	
