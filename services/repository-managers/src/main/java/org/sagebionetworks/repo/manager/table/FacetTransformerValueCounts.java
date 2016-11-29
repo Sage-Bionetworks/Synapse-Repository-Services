@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -88,6 +90,10 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		for(Row row : rowSet.getRows()){
 			List<String> rowValues  = row.getValues();
 			String value = rowValues.get(0);
+			if(value == null){
+				//for counts of unset values
+				value = NULL_VALUE_KEYWORD;
+			}
 			FacetColumnResultValueCount valCount = new FacetColumnResultValueCount();
 			valCount.setValue(value);
 			valCount.setIsSelected(selectedValues != null && selectedValues.contains(value));

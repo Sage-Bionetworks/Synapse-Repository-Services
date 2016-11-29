@@ -26,6 +26,7 @@ import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -52,6 +54,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -106,7 +109,11 @@ public class SynapseTest {
 		HeaderElement he = Mockito.mock(HeaderElement.class);
 		when(he.getName()).thenReturn(name);
 		when(he.getValue()).thenReturn(value);
+		NameValuePair nvp = Mockito.mock(NameValuePair.class);
+		when(nvp.getName()).thenReturn(name);
+		when(nvp.getValue()).thenReturn(value);
 		when(header.getElements()).thenReturn(new HeaderElement[]{he});
+		when(he.getParameters()).thenReturn(new NameValuePair[]{nvp});
 		return header;
 	}
 	
@@ -588,6 +595,16 @@ public class SynapseTest {
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testDeleteV2WikiVersionsNullKey() throws Exception {
+		synapse.deleteV2WikiVersions(null, new IdList());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testDeleteV2WikiVersionsNullVersionsList() throws Exception {
+		WikiPageKey key = new WikiPageKey();
+		synapse.deleteV2WikiVersions(key, null);
+	}
 	
 	/*
 	 * Private methods

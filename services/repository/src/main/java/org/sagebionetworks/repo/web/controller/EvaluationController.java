@@ -1199,12 +1199,15 @@ public class EvaluationController extends BaseController {
 	 * Filtering on 'myAnnotaton==null' is allowed, but will only return entries having 'myAnnotation' explicitly set to null,
 	 * and not entries which simply have no annotation called 'myAnnotation'.
 	 * <p/>
-	 * While privacy levels for user defined annotations are set by the user, for system-defined fields the privacy level is fixed as follows:  
+	 * While privacy levels for user defined annotations are set by the user, the privacy level of system-defined fields are always public.
 	 * <br/>
-	 * The fields userId, name, createdOn, submitterAlias, repositoryName and dockerDigest are private.
+	 * The following fields are system-defined: 
 	 * <br/>
-	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, status, canCancel, cancelRequested, 
+	 * userId, teamId, submitterId, name, createdOn, submitterAlias, repositoryName, dockerDigest, objectId, scopeId, entityId, versionNumber, modifiedOn, status, canCancel, cancelRequested, 
 	 * and <a href="${org.sagebionetworks.evaluation.model.CancelControl}">CancelControl</a> are public.
+	 * 
+	 * The submitterId field will be equal to either the userId, if the submission is for an individual, or the teamId, if the submission is on behalf of a team. 
+	 * 
 	 * <p/>
 	 * The query is to be URL encoded in the submitted request.
 	 * 

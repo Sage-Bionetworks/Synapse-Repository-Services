@@ -6,7 +6,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class MarkdownDaoImpl implements MarkdownDao{
@@ -29,7 +28,7 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	}
 
 	@Override
-	public String convertMarkdown(String rawMarkdown, String outputType) throws JSONException, ClientProtocolException, IOException, HttpClientHelperException {
+	public String convertMarkdown(String rawMarkdown, String outputType) throws ClientProtocolException, IOException, JSONException, MarkdownClientException {
 		ValidateArgument.required(rawMarkdown, "rawMarkdown");
 		JSONObject request = new JSONObject();
 		request.put(MARKDOWN, rawMarkdown);

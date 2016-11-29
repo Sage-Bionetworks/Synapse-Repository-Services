@@ -26,7 +26,9 @@ public interface AccessApprovalService {
 			RestrictableObjectDescriptor subjectId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void deleteAccessApprovals(Long userId, String approvalId)
+	public void deleteAccessApproval(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId);
 
 }

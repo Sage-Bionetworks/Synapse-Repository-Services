@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -57,7 +56,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	public static final int MIN_SECRET_KEY_CHARS = 36;
 
-	private static final String EXTERNAL_S3_HELP = "https://www.synapse.org/#!Help:ExternalS3Buckets for more information on how to create a new external s3 upload destination";
+	private static final String EXTERNAL_S3_HELP = "http://docs.synapse.org/articles/custom_storage_location.html for more information on how to create a new external s3 upload destination";
 
 	static private Logger log = LogManager.getLogger(ProjectSettingsManagerImpl.class);
 
@@ -81,9 +80,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 
 	@Autowired
 	private UserProfileManager userProfileManager;
-
-	@Autowired
-	private UserManager userManager;
 
 	@Override
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {

@@ -34,7 +34,7 @@ public class ConnectionFactoryImplTest {
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection("123");
 		assertNotNull(indexDao);
 		// Validate that we can use the connection to run a basic query.
-		long one = indexDao.getConnection().queryForLong("SELECT 1");
+		long one = indexDao.getConnection().queryForObject("SELECT 1", Long.class);
 		assertEquals(1L, one);
 	}
 }

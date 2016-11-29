@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -40,7 +41,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -269,9 +269,9 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
-	@Test (expected = HttpClientHelperException.class)
+	@Test (expected = MarkdownClientException.class)
 	public void testBroadcastFailToBuildMessage() throws Exception{
-		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new HttpClientHelperException("", 500, ""));
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenThrow(new MarkdownClientException(500, ""));
 		manager.broadcastMessage(mockUser, mockCallback, change);
 	}
 	

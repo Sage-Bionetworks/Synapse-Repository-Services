@@ -57,7 +57,7 @@ public class ObjectRecordQueueAutowireTest {
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
 	}
 	
-	@Test (timeout=1000*30)
+	@Test (timeout=1000*60*2)
 	public void testPushAndFire() throws InterruptedException, IOException{
 		// push this record to the queue.
 		objectRecordQueue.pushObjectRecordBatch(batch);

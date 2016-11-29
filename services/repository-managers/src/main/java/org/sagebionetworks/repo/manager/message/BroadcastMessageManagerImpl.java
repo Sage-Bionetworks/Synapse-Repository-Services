@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
@@ -28,7 +29,6 @@ import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -74,7 +74,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	AuthorizationManager authManager;
 
 	@Override
-	public void broadcastMessage(UserInfo user,	ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+	public void broadcastMessage(UserInfo user,	ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");
@@ -142,7 +142,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	public void sendMessageToNonSubscribers(ProgressCallback<Void> progressCallback,
 			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds,
 			Topic topic)
-			throws ClientProtocolException, JSONException, IOException, HttpClientHelperException {
+			throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		Set<String> mentionedUserIds = builder.getRelatedUsers();
 		if (mentionedUserIds.isEmpty()) {
 			return;

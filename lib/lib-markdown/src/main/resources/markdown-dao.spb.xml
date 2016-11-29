@@ -4,13 +4,6 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
 	<import resource="classpath:stack-configuration.spb.xml" />
-
-	<!-- Create the MarkdownHttpClientProvider -->
-	<bean id="markdownHttpClientProvider"
-		class="org.sagebionetworks.markdown.MarkdownHttpClientProvider"
-		init-method="_init"
-		scope="singleton">
-	</bean>
 	
 	<bean id="markdownClient"
 		class="org.sagebionetworks.markdown.MarkdownClient"
