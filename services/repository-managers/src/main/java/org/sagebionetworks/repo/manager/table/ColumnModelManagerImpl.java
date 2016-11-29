@@ -186,7 +186,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> validateSchemaSize(List<String> columnIds) {
 		List<ColumnModel> schema = null;
 		if(columnIds != null && !columnIds.isEmpty()){
-			if(columnIds.size() >= MY_SQL_MAX_COLUMNS_PER_TABLE){
+			if(columnIds.size() > MY_SQL_MAX_COLUMNS_PER_TABLE){
 				throw new IllegalArgumentException("Too many columns. The limit is "+MY_SQL_MAX_COLUMNS_PER_TABLE+" columns per table");
 			}
 			// fetch the columns

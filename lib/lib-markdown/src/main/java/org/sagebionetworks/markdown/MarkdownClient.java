@@ -26,7 +26,7 @@ public class MarkdownClient {
 
 	public void _init() {
 		if (simpleHttpClient == null) {
-			simpleHttpClient = new SimpleHttpClientImpl(null);
+			simpleHttpClient = new SimpleHttpClientImpl();
 		}
 	}
 

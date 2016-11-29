@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
@@ -714,7 +715,23 @@ public abstract class BaseController {
 	@ExceptionHandler(HttpClientHelperException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleExceptionHttpClientHelperExceptio(HttpClientHelperException ex, HttpServletRequest request) {
+	ErrorResponse handleHttpClientHelperException(HttpClientHelperException ex, HttpServletRequest request) {
+		// Convert to a IllegalArgumentException
+		String message = "Unknown";
+		if (ex.getMessage() != null) {
+			int index = ex.getMessage().indexOf("\"message\":");
+			if (index > 0) {
+				message = ex.getMessage().substring(index, ex.getMessage().length());
+			}
+		}
+		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
+		return handleException(ds, request, true);
+	}
+
+	@ExceptionHandler(CloudSearchClientException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleCloudSearchClientException(CloudSearchClientException ex, HttpServletRequest request) {
 		// Convert to a IllegalArgumentException
 		String message = "Unknown";
 		if (ex.getMessage() != null) {

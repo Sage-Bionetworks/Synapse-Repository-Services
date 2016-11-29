@@ -26,13 +26,13 @@ public class DxAsyncClient {
 	private static final String VALUE = "value";
 
 	public DxAsyncClient() {
-		this.simpleHttpClient = new SimpleHttpClientImpl(null);
+		this.simpleHttpClient = new SimpleHttpClientImpl();
 		delay = 4 * 60 * 1000; // 4 minutes
 		decay = 1 * 60 * 1000; // 1 minute
 	}
 
 	DxAsyncClient(long delay, long decay) {
-		this.simpleHttpClient = new SimpleHttpClientImpl(null);
+		this.simpleHttpClient = new SimpleHttpClientImpl();
 		this.delay = delay;
 		this.decay = decay;
 	}
