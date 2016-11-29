@@ -47,7 +47,7 @@ public class CloudSearchClient {
 	}
 	
 	public void _init() {
-		this.httpClient = new SimpleHttpClientImpl(null);
+		this.httpClient = new SimpleHttpClientImpl();
 	}
 	
 	public void setSearchServiceEndpoint(String endpoint) {
