@@ -217,7 +217,7 @@ public class SubmissionEligibilityManagerImpl implements
 		}
 		TeamSubmissionEligibility tse = getTeamSubmissionEligibility(evaluation, teamId);
 		if (seHash!=computeTeamSubmissionEligibilityHash(tse)) 
-			return new AuthorizationStatus(false, "Submissions or Team composition have changed.  Please try again." + seHash + "," + computeTeamSubmissionEligibilityHash(tse));
+			return new AuthorizationStatus(false, "Submissions or Team composition have changed.  Please try again.");
 
 		if (!tse.getTeamEligibility().getIsEligible()) {
 			return new AuthorizationStatus(false, "The specified Team is ineligible to submit to the specified Evaluation at this time.");			
@@ -267,7 +267,6 @@ public class SubmissionEligibilityManagerImpl implements
 				// skip this check
 			}
 		}
-	//	if (quota==null) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!SubmissionQuotaUtil.isSubmissionAllowed(evaluation, now)) {
 			return new AuthorizationStatus(false, 
 				"It is currently outside of the time range allowed for submissions.");
