@@ -35,8 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 /**
@@ -50,7 +49,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
@@ -176,7 +175,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED, rowMapper, param);
+		return namedJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED, param, rowMapper);
 	}
 	
 	@Override
@@ -188,7 +187,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED, membershipRequestRowMapper, param);
+		return namedJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED, param, membershipRequestRowMapper);
 	}
 
 	@Override
@@ -197,7 +196,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_REQUESTS_BY_TEAM_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -221,7 +220,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_COUNT, param, Long.class);
 	}
 
 	@Override
@@ -233,7 +232,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, membershipRqstSubmissionRowMapper, param);
+		return namedJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, param, membershipRqstSubmissionRowMapper);
 	}
 
 	@Override
@@ -242,7 +241,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT, param);
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT, param, Long.class);
 	}
 
 
@@ -253,7 +252,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
-		simpleJdbcTemplate.update(DELETE_REQUESTS_BY_TEAM_AND_REQUESTER, param);
+		namedJdbcTemplate.update(DELETE_REQUESTS_BY_TEAM_AND_REQUESTER, param);
 	}
 
 }

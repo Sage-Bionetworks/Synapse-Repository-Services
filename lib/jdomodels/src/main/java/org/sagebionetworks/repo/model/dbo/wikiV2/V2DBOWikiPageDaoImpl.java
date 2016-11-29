@@ -69,6 +69,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -119,22 +122,20 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION = "SELECT * FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ? AND "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" = ?";
 	private static final String SQL_GET_RESERVATION_OF_ATTACHMENT_IDS = "SELECT "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ?";
 	private static final String SQL_GET_WIKI_HISTORY = "SELECT WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_ON+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_BY+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM WHERE WM."+V2_COL_WIKI_MARKDOWN_ID+" = ? ORDER BY "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" DESC LIMIT ?, ?";
+	private static final String SQL_COUNT_WIKI_HISTORY = "SELECT COUNT(*) FROM " + V2_TABLE_WIKI_MARKDOWN + " WM WHERE WM." + V2_COL_WIKI_MARKDOWN_ID + " = ?";
 	private static final String SQL_GET_MARKDOWN_IDS = "SELECT DISTINCT "+V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
 	private static final String SQL_GET_CONTENT_FOR_VERSION = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", "+V2_COL_WIKI_MARKDOWN_TITLE+", "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+", "+V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ? AND "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" = ?";
 	private static final String SQL_GET_ALL_WIKI_MARKDOWN_ATTACHMENT_LIST = 
 			"SELECT "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST
 			+" FROM "+V2_TABLE_WIKI_MARKDOWN
 			+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
-	private static final String SQL_DELETE_OLD_WIKI_VERSIONS = 
-		"DELETE m " +
-		"FROM " + V2_TABLE_WIKI_MARKDOWN  + " m " +
-		"left join (SELECT " + V2_COL_WIKI_MARKDOWN_ID + ", " + V2_COL_WIKI_MARKDOWN_VERSION +
-			" from " + V2_TABLE_WIKI_MARKDOWN +
-			" where " + V2_COL_WIKI_MARKDOWN_ID + " = ?" +
-			" order by " + V2_COL_WIKI_MARKDOWN_VERSION + " desc limit ?) f " +
-			" on f." + V2_COL_WIKI_MARKDOWN_VERSION + " = m." + V2_COL_WIKI_MARKDOWN_VERSION +
-			" and f." + V2_COL_WIKI_MARKDOWN_ID + " = m." + V2_COL_WIKI_MARKDOWN_ID +
-			" where m." + V2_COL_WIKI_MARKDOWN_ID + " = ? and f." + V2_COL_WIKI_MARKDOWN_VERSION + " is null" ;
+	private static final String SQL_DELETE_WIKI_VERSIONS =
+			"DELETE FROM " + V2_TABLE_WIKI_MARKDOWN +
+				" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId AND " +
+				V2_COL_WIKI_MARKDOWN_VERSION + " IN (:versions)";
+	private static final String SQL_UPDATE_WIKI_ETAG = 
+			"UPDATE " + V2_TABLE_WIKI_PAGE + " SET " + V2_COL_WIKI_ETAG + " = ? " +
+			"WHERE " + V2_COL_WIKI_ID + " = ?";
 
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
@@ -431,7 +432,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 */
 	private Long getRootWiki(Long ownerId, ObjectType ownerType) throws NotFoundException {
 		try{
-			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
+			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, Long.class, ownerId, ownerType.name());
 		}catch(DataAccessException e){
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
@@ -539,10 +540,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
+	@Override
+	public Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
 		Long root = getRootWiki(ownerId, ownerType);
 		try{
-			return jdbcTemplate.queryForLong(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, new Long(wikiId), root);
+			return jdbcTemplate.queryForObject(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, Long.class, new Long(wikiId), root);
 		}catch(DataAccessException e){
 			throw new NotFoundException("A wiki does not exist for id: "+wikiId);
 		}
@@ -735,14 +737,14 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return jdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
+		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_WIKIPAGES, Long.class);
 	}
 
 	private boolean doesExist(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
 			// Is this in the database.
-			jdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
+			jdbcTemplate.queryForObject(SQL_DOES_EXIST, Long.class, id);
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;
@@ -778,18 +780,53 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}
 		return allAttachments;
 	}
-	
+
 	@WriteTransaction
 	@Override
-	public void deleteOldWikiVersions(String wikiPageId, Long numVersionsToKeep) {
-		ValidateArgument.required(wikiPageId, "wikiPageId");
-		ValidateArgument.required(numVersionsToKeep, "numVersionsToKeep");
+	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete) {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null.");
+		}
+		if (versionsToDelete == null) {
+			throw new IllegalArgumentException("VersionsToDelete cannot be null.");
+		}
+		if (versionsToDelete.size() == 0) {
+			throw new IllegalArgumentException("VersionsToDelete cannot be empty.");
+		}
+		String wikiId = key.getWikiPageId();
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("wikiPageId", wikiId);
+		params.addValue("versions", versionsToDelete);
 		try {
-			// Delete the wiki using both the root and the id
-			Long wikiId = new Long(wikiPageId);
-			jdbcTemplate.update(SQL_DELETE_OLD_WIKI_VERSIONS, wikiId, numVersionsToKeep, wikiId);
-		} catch (NotFoundException e){
-			// Nothing to do if the wiki does not exist.
+			namedTemplate.update(SQL_DELETE_WIKI_VERSIONS, params);
+		} catch (NotFoundException e) {
+			// Nothing to do if none found
 		}
 	}
+
+	@WriteTransaction
+	@Override
+	public void updateWikiEtag(WikiPageKey key, String etag) {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null.");
+		}
+		if (etag == null) {
+			throw new IllegalArgumentException("Etag cannot be null.");
+		}
+		String wikiId = key.getWikiPageId();
+		int ra = jdbcTemplate.update(SQL_UPDATE_WIKI_ETAG, etag, wikiId);
+		return;
+	}
+
+	@Override
+	public Long getNumberOfVersions(WikiPageKey key) {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null");
+		}
+		String wikiId = key.getWikiPageId();
+		Long numVersions = jdbcTemplate.queryForObject(SQL_COUNT_WIKI_HISTORY, Long.class, wikiId);
+		return numVersions;
+	}
+	
 }

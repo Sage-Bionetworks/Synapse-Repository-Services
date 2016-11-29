@@ -174,7 +174,7 @@ public class TableWorkerIntegrationTest {
 	List<String> headers;
 	private String tableId;
 	
-	ProgressCallback<Long> mockPprogressCallback;
+	ProgressCallback<Void> mockPprogressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
 
 	private List<UserInfo> users;
@@ -1807,6 +1807,25 @@ public class TableWorkerIntegrationTest {
 		assertEquals(expectedMin, Long.parseLong(facetRange.getColumnMin()));
 		assertEquals(expectedMax, Long.parseLong(facetRange.getColumnMax()));
 		
+	}
+	
+	@Test
+	public void testPLFM_4161() throws Exception{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema = Lists.newArrayList(cm);
+		createTableWithSchema();
+		// Apply a rowset with all columns
+		List<String> rowOneValues = Lists.newArrayList("123");
+		addRowToTable(schema, rowOneValues);
+		
+		// Wait for the table and check the results.
+		String sql = "select * from " + tableId;
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		List<Row> queryRows = queryResult.getQueryResults().getRows();
+		assertEquals(1, queryRows.size());
 	}
 	
 	/**

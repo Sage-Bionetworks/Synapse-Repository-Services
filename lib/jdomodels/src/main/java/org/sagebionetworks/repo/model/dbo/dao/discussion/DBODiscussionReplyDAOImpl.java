@@ -249,7 +249,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	@Override
 	public long getReplyCount(long threadId, DiscussionFilter filter) {
 		String query = SQL_SELECT_REPLY_COUNT;
-		return jdbcTemplate.queryForLong(addCondition(query, filter), threadId);
+		return jdbcTemplate.queryForObject(addCondition(query, filter), Long.class, threadId);
 	}
 
 	@WriteTransactionReadCommitted

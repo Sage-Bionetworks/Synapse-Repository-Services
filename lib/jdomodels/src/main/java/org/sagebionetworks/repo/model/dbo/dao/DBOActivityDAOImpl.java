@@ -34,11 +34,10 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * @author dburdick
@@ -53,7 +52,10 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;	
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_ACTIVITY_ETAG+" FROM "+TABLE_ACTIVITY+" WHERE ID = ?";
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
@@ -67,19 +69,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 																SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE + SQL_OFFSET_AND_LIMIT; 
 	private static final String SQL_GET_NODES_FOR_ACTIVITY_COUNT = "SELECT COUNT(r." + COL_REVISION_OWNER_NODE + ")" + SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE;
 
-		
-	private static final String ACTIVITY_NOT_FOUND = "Activity with id '%1$s' could not be found."; 
-
-	
-	public DBOActivityDAOImpl() { }
-	
-	public DBOActivityDAOImpl(TransactionalMessenger transactionalMessenger, DBOBasicDao basicDao,
-			SimpleJdbcTemplate simpleJdbcTemplate) {
-		super();
-		this.transactionalMessenger = transactionalMessenger;
-		this.basicDao = basicDao;
-		this.simpleJdbcTemplate = simpleJdbcTemplate;
-	}
+	private static final String ACTIVITY_NOT_FOUND = "Activity with id '%1$s' could not be found.";
 
 	@WriteTransaction
 	@Override
@@ -91,14 +81,14 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
-		basicDao.createNew(dbo);				
-		return dbo.getIdString();		
+		basicDao.createNew(dbo);
+		return dbo.getIdString();
 	}
 
 	@WriteTransaction
 	@Override
 	public Activity update(Activity dto) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {		
+			InvalidModelException,NotFoundException, ConflictingUpdateException {
 		DBOActivity dbo = getDBO(dto.getId());
 		ActivityUtils.copyDtoToDbo(dto, dbo);
 		
@@ -111,19 +101,19 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 	
 	@Override
-	public Activity get(String id) throws DatastoreException, NotFoundException {				
+	public Activity get(String id) throws DatastoreException, NotFoundException {
 		DBOActivity dbo = getDBO(id);		
 		return ActivityUtils.copyDboToDto(dbo);
 	}
 	
 	@WriteTransaction
 	@Override
-	public void delete(String id) throws DatastoreException {				
+	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOActivity.class, param);
 	}
-			
+
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(DBOActivity.class);
@@ -156,7 +146,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(COL_ACTIVITY_ID, id);
 		try{
-			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_ACTIVITY_ID, parameters);
+			long count = namedJdbcTemplate.queryForObject(SQL_COUNT_ACTIVITY_ID, parameters, Long.class);
 			return count > 0;
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
@@ -175,7 +165,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<Reference> generatedBy = null;
-		generatedBy = simpleJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, new RowMapper<Reference>() {
+		generatedBy = namedJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, params, new RowMapper<Reference>() {
 			@Override
 			public Reference mapRow(ResultSet rs, int rowNum) throws SQLException {
 				Reference ref = new Reference();
@@ -186,24 +176,22 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 				ref.setTargetId(KeyFactory.keyToString(targetId));
 				ref.setTargetVersionNumber(versionNumber);
 				return ref;
-			}		
-		}, params);
+			}
+		});
 			
 		// return the page of objects, along with the total result count
 		PaginatedResults<Reference> queryResults = new PaginatedResults<Reference>();
 		queryResults.setResults(generatedBy);
 		long totalCount = 0;
 		try {
-			totalCount = simpleJdbcTemplate.queryForLong(SQL_GET_NODES_FOR_ACTIVITY_COUNT, params);		
+			totalCount = namedJdbcTemplate.queryForObject(SQL_GET_NODES_FOR_ACTIVITY_COUNT, params, Long.class);
 		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
-		return queryResults;	
+		return queryResults;
 	}
 
-
-	
 	/*
 	 * Private Methods
 	 */
@@ -221,6 +209,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	private String lockActivity(String id) {
 		// Create a Select for update query
-		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
+		return jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
 }

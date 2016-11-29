@@ -178,19 +178,26 @@ public class ColumnModelUtils {
 				break;
 			case ENTITYID:
 			case FILEHANDLEID:
+			case USERID:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
 				if (defaultValue != null) {
-					throw new IllegalArgumentException("Columns of type ENTITYID and FILEHANDLEID cannot have default values: "
+					throw new IllegalArgumentException("Columns of type ENTITYID, FILEHANDLEID, and USERID cannot have default values: "
 							+ defaultValue);
 				}
 				break;
-			default:
+			case BOOLEAN:
+			case DATE:
+			case LARGETEXT:
+			case INTEGER:
+			case DOUBLE:
 				if (StringUtils.isEmpty(defaultValue)) {
 					defaultValue = null;
 				}
 				break;
+			default:
+				throw new IllegalArgumentException("Unexpected ColumnType " + clone.getColumnType());
 			}
 			// The ID is not part of the normalized form.
 			clone.setId(null);

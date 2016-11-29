@@ -21,7 +21,7 @@
 	</bean>
 
 	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
-	<bean id="cloudwatchTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="cloudwatchTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
     	<property name="jobDetail" ref="methodInvoking" />
     	<property name="startDelay" value="0" />
     	<property name="repeatInterval" ref="stackConfiguration.cloudWatchTriggerTime" />

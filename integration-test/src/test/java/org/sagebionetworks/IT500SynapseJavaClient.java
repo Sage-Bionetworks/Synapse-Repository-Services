@@ -25,11 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -39,6 +34,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -106,9 +102,6 @@ import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.sagebionetworks.util.SerializationUtils;
-import org.springframework.http.HttpStatus;
-
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -805,6 +798,18 @@ public class IT500SynapseJavaClient {
 		
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		assertNotNull(adminSynapse.getEntityAccessApproval(layer.getId()));
+
+		adminSynapse.deleteAccessApproval(created.getId());
+
+		try {
+			adminSynapse.deleteAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
+			fail("Expecting IllegalArgumentException");
+		} catch (SynapseBadRequestException e) {
+			// The service is wired up.
+			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
+		}
 	}
 
 	@Test
@@ -1503,6 +1508,7 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
+	@Ignore // See PLFM-4131.
 	@Test
 	public void testMembershipInvitationAndAcceptanceViaNotification() throws Exception {
 		// create a Team

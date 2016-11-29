@@ -3,12 +3,14 @@ package org.sagebionetworks.object.snapshot.worker.utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -52,41 +54,58 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecord(ChangeMessage message) throws IOException {
-		if (message.getObjectType() != ObjectType.PRINCIPAL || message.getChangeType() == ChangeType.DELETE) {
-			throw new IllegalArgumentException();
-		}
-		Long principalId = Long.parseLong(message.getObjectId());
-		UserGroup userGroup = null;
-		try {
-			userGroup = userGroupDAO.get(principalId);
-			ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
-			objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
-
-			if(userGroup.getIsIndividual()){
-				// User
-				try {
-					UserProfile profile = userProfileManager.getUserProfile(message.getObjectId());
-					profile.setSummary(null);
-					ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
-					objectRecordDAO.saveBatch(Arrays.asList(upRecord), upRecord.getJsonClassName());
-				} catch (NotFoundException e) {
-					log.warn("UserProfile not found: "+principalId);
-				}
-			} else {
-				// Group
-				captureAllMembers(message.getObjectId(), message.getTimestamp().getTime());
-				try {
-					Team team = teamDAO.get(message.getObjectId());
-					ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
-					objectRecordDAO.saveBatch(Arrays.asList(teamRecord), teamRecord.getJsonClassName());
-				} catch (NotFoundException e) {
-					log.warn("Team not found: "+principalId);
-				}
+	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+		List<ObjectRecord> groups = new LinkedList<ObjectRecord>();
+		List<ObjectRecord> individuals = new LinkedList<ObjectRecord>();
+		for (ChangeMessage message : messages) {
+			progressCallback.progressMade(null);
+			if (message.getObjectType() != ObjectType.PRINCIPAL) {
+				throw new IllegalArgumentException();
 			}
+			// skip delete messages
+			if (message.getChangeType() == ChangeType.DELETE) {
+				continue;
+			}
+			Long principalId = Long.parseLong(message.getObjectId());
+			UserGroup userGroup = null;
+			try {
+				userGroup = userGroupDAO.get(principalId);
+				ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(userGroup, message.getTimestamp().getTime());
+				objectRecordDAO.saveBatch(Arrays.asList(objectRecord), objectRecord.getJsonClassName());
 
-		} catch (NotFoundException e) {
-			log.warn("Principal not found: "+principalId);
+				if(userGroup.getIsIndividual()){
+					// User
+					try {
+						UserProfile profile = userProfileManager.getUserProfile(message.getObjectId());
+						profile.setSummary(null);
+						ObjectRecord upRecord = ObjectRecordBuilderUtils.buildObjectRecord(profile, message.getTimestamp().getTime());
+						individuals.add(upRecord);
+					} catch (NotFoundException e) {
+						log.warn("UserProfile not found: "+principalId);
+					}
+				} else {
+					// Group
+					captureAllMembers(message.getObjectId(), message.getTimestamp().getTime());
+					try {
+						Team team = teamDAO.get(message.getObjectId());
+						ObjectRecord teamRecord = ObjectRecordBuilderUtils.buildObjectRecord(team, message.getTimestamp().getTime());
+						groups.add(teamRecord);
+					} catch (NotFoundException e) {
+						log.warn("Team not found: "+principalId);
+					}
+				}
+
+			} catch (NotFoundException e) {
+				log.warn("Principal not found: "+principalId);
+			}
+		}
+		if (!groups.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(groups, groups.get(0).getJsonClassName());
+		}
+		if (!individuals.isEmpty()) {
+			progressCallback.progressMade(null);
+			objectRecordDAO.saveBatch(individuals, individuals.get(0).getJsonClassName());
 		}
 	}
 

@@ -44,6 +44,10 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -128,7 +132,7 @@ public class MigrationManagerImplAutowireTest {
 	private String tableId;
 	private String[] projectIds = new String[3];
 	StackConfiguration stackConfig;
-	ProgressCallback<Long> mockProgressCallback;
+	ProgressCallback<Void> mockProgressCallback;
 	ProgressCallback<Void> mockProgressCallbackVoid;
 	private long startId;
 
@@ -264,6 +268,23 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testProcessAsyncMigrationTypeCount() {
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		
+		AsyncMigrationTypeCountRequest asyncMigrationTypeCountRequest = new AsyncMigrationTypeCountRequest();
+		asyncMigrationTypeCountRequest.setType(MigrationType.FILE_HANDLE.name());
+		
+		MigrationTypeCount amtcRes = migrationManager.processAsyncMigrationTypeCountRequest(adminUser, asyncMigrationTypeCountRequest);
+		
+		assertNotNull(amtcRes);
+		assertEquals(expectedCount, amtcRes);
+	}
+	
+	@Test
 	public void testGetChecksumForIdRange() {
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		String salt = "salt";
@@ -278,24 +299,69 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testProcessAsyncChecksumForRange() {
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		String salt = "salt";
+		MigrationRangeChecksum expectedRangeChecksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, salt, 0L, max);
+		MigrationRangeChecksum expectedAsyncMigrationRangeChecksumResult = new MigrationRangeChecksum();
+		AsyncMigrationRangeChecksumRequest asyncMigrationRangeChecksumRequest = new AsyncMigrationRangeChecksumRequest();
+		asyncMigrationRangeChecksumRequest.setMaxId(max);
+		asyncMigrationRangeChecksumRequest.setMinId(0L);
+		asyncMigrationRangeChecksumRequest.setSalt("salt");
+		asyncMigrationRangeChecksumRequest.setType(MigrationType.FILE_HANDLE.name());
+		
+		MigrationRangeChecksum acrcRes = migrationManager.processAsyncMigrationRangeChecksumRequest(adminUser, asyncMigrationRangeChecksumRequest);
+
+		assertNotNull(acrcRes);
+		assertTrue(acrcRes.getChecksum().contains("%"));
+		assertEquals(MigrationType.FILE_HANDLE, acrcRes.getType());
+		assertEquals(0L, acrcRes.getMinid().longValue());
+		assertEquals(max, acrcRes.getMaxid().longValue());
+		
+	}
+	
+	@Test
 	public void testGetChecksumForType() {
 		try {
-			StackStatus sStatus = new StackStatus();
-			sStatus.setStatus(StatusEnum.READ_ONLY);
-			sStatus.setCurrentMessage("Stack in read-only mode");
-			stackStatusDao.updateStatus(sStatus);
+			setStackStatus(StatusEnum.READ_ONLY);
+			
 			MigrationTypeChecksum mtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
 			assertNotNull(mtc);
 			assertNotNull(mtc.getChecksum());
 			assertEquals(MigrationType.FILE_HANDLE, mtc.getType());
 		} finally {
-			StackStatus sStatus = new StackStatus();
-			sStatus.setStatus(StatusEnum.READ_WRITE);
-			sStatus.setCurrentMessage("Stack in read/write mode");
-			stackStatusDao.updateStatus(sStatus);
+			setStackStatus(StatusEnum.READ_WRITE);
 		}
 	}
+	
+	@Test
+	public void testProcessAsyncChecksumForType() {
+		try {
+			setStackStatus(StatusEnum.READ_ONLY);
+			
+			MigrationTypeChecksum expectedMtc = migrationManager.getChecksumForType(adminUser, MigrationType.FILE_HANDLE);
+			MigrationTypeChecksum expectedAsyncMtcRes = new MigrationTypeChecksum();
+			AsyncMigrationTypeChecksumRequest amtcReq = new AsyncMigrationTypeChecksumRequest();
+			amtcReq.setType(MigrationType.FILE_HANDLE.name());
+			
+			MigrationTypeChecksum amtcRes = migrationManager.processAsyncMigrationTypeChecksumRequest(adminUser, amtcReq);
+			
+			assertNotNull(amtcRes);
+			assertEquals(MigrationType.FILE_HANDLE, amtcRes.getType());
+			assertEquals(expectedMtc.getChecksum(), amtcRes.getChecksum());
+		} finally {
+			setStackStatus(StatusEnum.READ_WRITE);
+		}
+	}
+	
+	private void setStackStatus(StatusEnum s) {
+		StackStatus sStatus = new StackStatus();
+		sStatus.setStatus(s);
+		sStatus.setCurrentMessage("Stack in " + s.name() + " mode");
+		stackStatusDao.updateStatus(sStatus);
+	}
  	
+	// Deprecated?
 	@Test
 	public void testListRowMetadata(){
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
@@ -324,6 +390,27 @@ public class MigrationManagerImplAutowireTest {
 		assertNotNull(result.getList());
 		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + result.getList());
 		assertEquals(2, result.getList().size());
+	}
+	
+	@Test
+	public void testProcessAsyncRowMetadataByRange() {
+		long minId = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult expectedRowMetadaResult = migrationManager.getRowMetadataByRangeForType(adminUser, MigrationType.FILE_HANDLE, startId, maxId, maxId - startId + 1, 0);
+		AsyncMigrationRowMetadataRequest amrmReq = new AsyncMigrationRowMetadataRequest();
+		amrmReq.setLimit(maxId - startId + 1);
+		amrmReq.setMaxId(maxId);
+		amrmReq.setMinId(startId);
+		amrmReq.setOffset(0L);
+		amrmReq.setType(MigrationType.FILE_HANDLE.name());
+		
+		RowMetadataResult amrmRes = migrationManager.processAsyncMigrationRowMetadataRequest(adminUser, amrmReq);
+		
+		assertNotNull(amrmRes);
+		assertEquals(new Long(startCount+2), amrmRes.getTotalCount());
+		assertNotNull(amrmRes.getList());
+		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + amrmRes.getList());
+		assertEquals(2, amrmRes.getList().size());
 	}
 	
 	@Test

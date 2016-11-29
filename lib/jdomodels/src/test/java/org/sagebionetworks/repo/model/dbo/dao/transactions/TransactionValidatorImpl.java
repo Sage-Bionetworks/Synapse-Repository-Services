@@ -13,8 +13,7 @@ import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * This is a simple DAO like object used to test the transaction settings.
@@ -27,7 +26,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	private static final String INSERT_INTO_TRANS_TEST_ID_NAME_VALUES = "INSERT INTO "+TRANS_TEST+" (ID, NAME) VALUES(?,?) ON DUPLICATE KEY UPDATE NAME = ?";
 	private static final String SELECT_NAME = "SELECT NAME FROM "+TRANS_TEST+" WHERE ID = ?";
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	StackConfiguration stackConfiguration;
 
@@ -38,7 +37,7 @@ public class TransactionValidatorImpl implements TransactionValidator {
 	@Override
 	public String setString(Long id, String value, Throwable toThrow)throws Throwable {
 		// Insert
-		simpleJdbcTemplate.update(INSERT_INTO_TRANS_TEST_ID_NAME_VALUES, id, value, value);
+		jdbcTemplate.update(INSERT_INTO_TRANS_TEST_ID_NAME_VALUES, id, value, value);
 		// Now throw the exception
 		if(toThrow != null){
 			throw toThrow;
@@ -76,13 +75,13 @@ public class TransactionValidatorImpl implements TransactionValidator {
 
 	@Override
 	public void setStringNoTransaction(Long id, String value) {
-		simpleJdbcTemplate.update(INSERT_INTO_TRANS_TEST_ID_NAME_VALUES, id, value, value);
+		jdbcTemplate.update(INSERT_INTO_TRANS_TEST_ID_NAME_VALUES, id, value, value);
 	}
 
 	@Override
 	public String getString(Long id) {
 		// get the current value
-		return simpleJdbcTemplate.queryForObject(SELECT_NAME, String.class, id);
+		return jdbcTemplate.queryForObject(SELECT_NAME, String.class, id);
 	}
 	
 	/**
@@ -95,10 +94,10 @@ public class TransactionValidatorImpl implements TransactionValidator {
 		String schema = DDLUtilsImpl.getSchemaFromConnectionString(url);
 		String tableName = TRANS_TEST;
 		String sql = String.format(DDLUtilsImpl.TABLE_EXISTS_SQL_FORMAT, tableName, schema);
-		List<Map<String, Object>> list = simpleJdbcTemplate.queryForList(sql);
+		List<Map<String, Object>> list = jdbcTemplate.queryForList(sql);
 		if(list.size() < 1){
 			String tableDDL = DDLUtilsImpl.loadSchemaSql("schema/TransactionTest-ddl.sql");
-			simpleJdbcTemplate.update(tableDDL);
+			jdbcTemplate.update(tableDDL);
 		}
 	}
 

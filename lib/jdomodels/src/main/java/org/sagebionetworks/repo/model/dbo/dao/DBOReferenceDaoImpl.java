@@ -33,9 +33,10 @@ import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * Implementation of the DBOReferenceDao.
@@ -63,9 +64,11 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 			+ REFERENCE_TARGET_NODE_BIND_VAR;
 	private static final String REFERRER_SELECT_SQL_WHERE_WITH_REVISION = " AND " + TABLE_REFERENCE + "."
 			+ COL_REFERENCE_TARGET_REVISION_NUMBER + " = :" + REFERENCE_TARGET_REVISION_NO_BIND_VAR;
-	
+
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	
@@ -92,7 +95,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	@Override
 	public Reference getReference(Long ownerId) {
 		if(ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");
-		List<Reference> results = simpleJdbcTemplate.query(SELECT_SQL, new RowMapper<Reference>() {
+		List<Reference> results = jdbcTemplate.query(SELECT_SQL, new RowMapper<Reference>() {
 			@Override
 			public Reference mapRow(ResultSet rs, int rowNum) throws SQLException {
 				// Create the reference
@@ -147,7 +150,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				+ whereClause.toString() + paging;
 		String countQuery = "SELECT COUNT(*) FROM " + REFERRER_SELECT_SQL_FROM_TABLE + " WHERE " + whereClause.toString();
 		
-		simpleJdbcTemplate.query(fullQuery, new RowMapper<EntityHeader>() {
+		namedJdbcTemplate.query(fullQuery, fullParameters, new RowMapper<EntityHeader>() {
 			@Override
 			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
 				EntityHeader referrer = new EntityHeader();
@@ -157,10 +160,10 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				results.add(referrer);
 				return referrer;
 			}
-		}, fullParameters);
+		});
 		QueryResults<EntityHeader> ehqr = new QueryResults<EntityHeader>();
 		ehqr.setResults(results);
-		ehqr.setTotalNumberOfResults(simpleJdbcTemplate.queryForLong(countQuery, baseParameters));
+		ehqr.setTotalNumberOfResults(namedJdbcTemplate.queryForObject(countQuery, baseParameters, Long.class));
 		return ehqr;
 	}
 	
@@ -173,7 +176,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	 */
 	private void deleteWithoutGapLockFromTable(Long ownerId){
 		// First get all IDs for rows that belong to the passed owner.
-		List<Long> idsToDelete = simpleJdbcTemplate.query(SQL_IDS_FOR_DELETE, new RowMapper<Long>(){
+		List<Long> idsToDelete = jdbcTemplate.query(SQL_IDS_FOR_DELETE, new RowMapper<Long>(){
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getLong("ID");
@@ -183,7 +186,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		for(int i=0; i<idsToDelete.size(); i++){
 			params[i] = new MapSqlParameterSource(ID_PARAM, idsToDelete.get(i));
 		}
-		simpleJdbcTemplate.batchUpdate(SQL_DELETE_BATCH_BY_PRIMARY_KEY, params);
+		namedJdbcTemplate.batchUpdate(SQL_DELETE_BATCH_BY_PRIMARY_KEY, params);
 	}
 
 }
