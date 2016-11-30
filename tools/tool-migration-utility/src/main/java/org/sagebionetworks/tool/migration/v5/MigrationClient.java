@@ -436,7 +436,7 @@ public class MigrationClient {
 			try {
 				MigrationTypeCount c = getTypeCount(conn, t);
 				typeCounts.add(c);
-			} catch (org.sagebionetworks.client.exceptions.SynapseBadRequestException e) {
+			} catch (WorkerFailedException e) {
 				// Unsupported types not added to list 
 			}
 		}
