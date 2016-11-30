@@ -28,7 +28,7 @@
 								<property name="runner">
 									<bean class="org.sagebionetworks.migration.worker.MigrationWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="migration" />
+								<property name="semaphoreLockKey" value="migration2" />
 								<property name="semaphoreMaxLockCount" value="1" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
 								<property name="queueName" ref="stackConfiguration.asyncQueueName[MIGRATION]"/>
