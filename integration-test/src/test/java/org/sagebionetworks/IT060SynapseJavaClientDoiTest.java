@@ -32,7 +32,7 @@ public class IT060SynapseJavaClientDoiTest {
 	private static Long userToDelete;
 
 	/** Max wait time for the DOI status to turn green */
-	private static final long MAX_WAIT = 12000; // 12 seconds
+	private static final long MAX_WAIT = 30000; // 30 seconds
 	private static final long PAUSE = 2000;     // Pause between waits is 2 seconds
 
 	private static Entity entity;
