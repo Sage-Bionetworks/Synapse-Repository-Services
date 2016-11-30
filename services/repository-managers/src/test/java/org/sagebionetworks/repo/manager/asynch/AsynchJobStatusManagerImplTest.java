@@ -252,33 +252,22 @@ public class AsynchJobStatusManagerImplTest {
 	}
 
 	/**
-	 * Cannot set complete when in read-only or down
+	 * Can set complete when in read-only or down
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
-	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteReadOnlyMode() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
-		UploadToTableResult body = new UploadToTableResult();
-		body.setRowsProcessed(101L);
-		body.setEtag("etag");
-		manager.setComplete("456", body);
-	}
-	
-	/**
-	 * Cannot set complete when in read-only or down
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 */
-	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteDownMode() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
-		UploadToTableResult body = new UploadToTableResult();
-		body.setRowsProcessed(101L);
-		body.setEtag("etag");
-		manager.setComplete("456", body);
+	@Test 
+	public void testSetCompleteAnyMode() throws Exception{
+		int jobId = 456;
+		for(StatusEnum mode: StatusEnum.values()){
+			when(mockStackStatusDao.getCurrentStatus()).thenReturn(mode);
+			UploadToTableResult body = new UploadToTableResult();
+			body.setRowsProcessed(101L);
+			body.setEtag("etag");
+			manager.setComplete(Integer.toString(jobId++), body);
+		}
+
 	}
 	
 	@Test
