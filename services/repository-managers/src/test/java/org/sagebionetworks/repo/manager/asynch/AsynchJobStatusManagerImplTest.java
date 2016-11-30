@@ -259,13 +259,12 @@ public class AsynchJobStatusManagerImplTest {
 	 */
 	@Test 
 	public void testSetCompleteAnyMode() throws Exception{
-		int jobId = 456;
 		for(StatusEnum mode: StatusEnum.values()){
 			when(mockStackStatusDao.getCurrentStatus()).thenReturn(mode);
 			UploadToTableResult body = new UploadToTableResult();
 			body.setRowsProcessed(101L);
 			body.setEtag("etag");
-			manager.setComplete(Integer.toString(jobId++), body);
+			manager.setComplete("456", body);
 		}
 
 	}
