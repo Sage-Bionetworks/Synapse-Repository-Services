@@ -943,9 +943,9 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String actual = synapseOne.getFileTemporaryUrlForSubmissionFileHandle(sub1.getId(), fileHandle.getId()).toString();
 		
 		// trim time-sensitive params from URL (PLFM-2019)
-		String expires = "Expires";
-		expected = expected.substring(0, expected.indexOf(expires));
-		actual = actual.substring(0, actual.indexOf(expires));
+		String timeSensitiveParameterStart = "&X-Amz-Date";
+		expected = expected.substring(0, expected.indexOf(timeSensitiveParameterStart));
+		actual = actual.substring(0, actual.indexOf(timeSensitiveParameterStart));
 		
 		assertEquals("invalid URL returned", expected, actual);
 	}
