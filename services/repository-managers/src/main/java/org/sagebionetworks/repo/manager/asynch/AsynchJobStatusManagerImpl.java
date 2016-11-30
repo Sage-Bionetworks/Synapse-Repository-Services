@@ -181,8 +181,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException, IOException {
-		// Job can only be completed if the stack is in read-write mode.
-		checkStackReadWrite();
 		/*
 		 *  For a cacheable requests we need to calculate a request hash.
 		 *  This hash can be used to find jobs that already match an existing request.
