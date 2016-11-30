@@ -185,6 +185,54 @@ public class CSVUtilsTest {
 		assertEquals(new Long(in.length()), back.getMaximumSize());
 		assertEquals(cm, back);
 	}
+	
+	/**
+	 * If the current is a short string, the type must remain a string but longer.
+	 */
+	@Test
+	public void testCheckTypeShortStringLong() {
+		String in = "X";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		// Given an integer that is longer
+		String longer = "15";
+		ColumnModel back = CSVUtils.checkType(longer, cm);
+		assertEquals(ColumnType.STRING, back.getColumnType());
+		assertEquals(new Long(2), cm.getMaximumSize());
+		// this type the size should not shrink
+		assertEquals(new Long(longer), back.getMaximumSize());
+		assertEquals(cm, back);
+	}
+	
+	@Test
+	public void testCheckTypeLongIntegerToString() {
+		String in = "123456789";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		// Given an integer that is longer
+		String longer = "X";
+		ColumnModel back = CSVUtils.checkType(longer, cm);
+		assertEquals(ColumnType.STRING, back.getColumnType());
+		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(cm, back);
+	}
+	
+	@Test
+	public void testCheckTypeBooleanToShortString() {
+		String in = "true";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.BOOLEAN, cm.getColumnType());
+		// Given an integer that is longer
+		String longer = "X";
+		ColumnModel back = CSVUtils.checkType(longer, cm);
+		assertEquals(ColumnType.STRING, back.getColumnType());
+		assertEquals(new Long(in.length()), cm.getMaximumSize());
+		assertEquals(cm, back);
+	}
 
 	@Test
 	public void checkTypeNull() {
