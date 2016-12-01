@@ -1,0 +1,9 @@
+{
+	"description": "Jobs that are read-only will implement this type of AsynchronousRequestBody",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	]
+}
