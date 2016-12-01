@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -23,6 +25,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,6 +44,8 @@ public class MigrationWorkerAutowiredTest {
 	SemaphoreManager semphoreManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	StackStatusDao stackStatusDao;
 
 	private UserInfo adminUserInfo;
 
@@ -52,6 +58,16 @@ public class MigrationWorkerAutowiredTest {
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
 						.getPrincipalId());
+		StackStatus status = new StackStatus();
+		status.setStatus(StatusEnum.READ_ONLY);
+		stackStatusDao.updateStatus(status);
+	}
+	
+	@After
+	public void after() throws Exception {
+		StackStatus status = new StackStatus();
+		status.setStatus(StatusEnum.READ_WRITE);
+		stackStatusDao.updateStatus(status);
 	}
 
 	@Test
