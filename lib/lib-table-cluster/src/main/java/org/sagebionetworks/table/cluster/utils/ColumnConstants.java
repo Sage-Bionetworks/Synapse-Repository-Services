@@ -85,4 +85,10 @@ public class ColumnConstants {
 	public static final String CHARACTER_SET_UTF8_COLLATE_UTF8_GENERAL_CI = "CHARACTER SET utf8 COLLATE utf8_general_ci";
 	
 	public static final int MAX_MYSQL_VARCHAR_INDEX_LENGTH = 255;
+	
+	/**
+	 * The maximum number of characters allowed for string columns.
+	 */
+	public static final Long MAX_ALLOWED_STRING_SIZE = 1000L;
+	
 }

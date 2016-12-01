@@ -103,11 +103,14 @@ public class UploadPreviewBuilder {
 			} else {
 				List<String> values = new ArrayList<String>();
 				for (int i = 0; i < header.length; i++) {
-					String thisValue = rowValues[i];
+					String thisValue = null;
+					if(i < rowValues.length){
+						thisValue = rowValues[i];
+					}
 					if (TableConstants.ROW_ID.equals(header[i])) {
-						row.setRowId(Long.parseLong(thisValue));
+						row.setRowId(parseAsLong(thisValue));
 					} else if (TableConstants.ROW_VERSION.equals(header[i])) {
-						row.setVersionNumber(Long.parseLong(thisValue));
+						row.setVersionNumber(parseAsLong(thisValue));
 					} else {
 						values.add(thisValue);
 					}
@@ -117,6 +120,23 @@ public class UploadPreviewBuilder {
 			rows.add(row);
 		}
 		return rows;
+	}
+	
+	/**
+	 * Parse the given string as a long.
+	 * Returns null if the value is null or if the value is not a number.
+	 * @param value
+	 * @return
+	 */
+	public static Long parseAsLong(String value){
+		if(value == null){
+			return null;
+		}
+		try {
+			return Long.parseLong(value);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	/**
@@ -130,6 +150,10 @@ public class UploadPreviewBuilder {
 			// Filter out ROW_ID and ROW_VERSION
 			if (!TableConstants.isReservedColumnName(cm.getName())) {
 				suggestedColumns.add(cm);
+			}
+			// Only STRINGS should keep the max size
+			if(!ColumnType.STRING.equals(cm.getColumnType())){
+				cm.setMaximumSize(null);
 			}
 		}
 		return suggestedColumns;

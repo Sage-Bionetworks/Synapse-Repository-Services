@@ -4,8 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.StringReader;
+import java.util.Arrays;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -13,12 +15,12 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.table.cluster.utils.CSVUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtilsTest {
+	
 
 	@Test
 	public void isFirstLineHeaderNull() {
@@ -155,6 +157,46 @@ public class CSVUtilsTest {
 		ColumnModel back = CSVUtils.checkType(in, cm);
 		assertEquals(cm, back);
 	}
+	
+	@Test
+	public void testCheckTypeStringUnderLimit(){
+		String stringUnderLimit = createStringOfSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue());
+		ColumnModel cm = CSVUtils.checkType(stringUnderLimit, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(stringUnderLimit.length()), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testCheckTypeLargeText(){
+		String stringOverLimit = createStringOfSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()+1);
+		ColumnModel cm = CSVUtils.checkType(stringOverLimit, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.LARGETEXT, cm.getColumnType());
+		assertEquals(new Long(stringOverLimit.length()), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testCheckTypeLargeTextOverLimit(){
+		String stringOverLimit = createStringOfSize((int)ColumnConstants.MAX_LARGE_TEXT_CHARACTERS+1);
+		try {
+			ColumnModel cm = CSVUtils.checkType(stringOverLimit, null);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(CSVUtils.ERROR_CELLS_EXCEED_MAX, e.getMessage());
+		}
+	}
+	
+	/**
+	 * Helper to create a string of the given size.
+	 * @param size
+	 * @return
+	 */
+	public static String createStringOfSize(int size){
+		char[] chars = new char[size];
+		Arrays.fill(chars, 'a');
+		return new String(chars);
+	}
 
 	@Test
 	public void testCheckTypeStringLonger() {
@@ -200,10 +242,7 @@ public class CSVUtilsTest {
 		String longer = "15";
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
-		assertEquals(new Long(2), cm.getMaximumSize());
-		// this type the size should not shrink
-		assertEquals(new Long(longer), back.getMaximumSize());
-		assertEquals(cm, back);
+		assertEquals(new Long(2), back.getMaximumSize());
 	}
 	
 	@Test
@@ -217,7 +256,6 @@ public class CSVUtilsTest {
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
 		assertEquals(new Long(in.length()), cm.getMaximumSize());
-		assertEquals(cm, back);
 	}
 	
 	@Test
@@ -231,7 +269,6 @@ public class CSVUtilsTest {
 		ColumnModel back = CSVUtils.checkType(longer, cm);
 		assertEquals(ColumnType.STRING, back.getColumnType());
 		assertEquals(new Long(in.length()), cm.getMaximumSize());
-		assertEquals(cm, back);
 	}
 
 	@Test

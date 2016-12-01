@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -16,7 +17,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -24,15 +24,8 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.TableConstants;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
-
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-
-import com.google.common.collect.Lists;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -228,6 +221,11 @@ public class UploadPreviewBuilderTest {
 		// call under test
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		Row row = result.getSampleRows().get(1);
+		assertNull(row.getRowId());
+		assertNull(row.getVersionNumber());
 	}
 	
 	@Test
@@ -249,6 +247,11 @@ public class UploadPreviewBuilderTest {
 		// call under test
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		Row row = result.getSampleRows().get(1);
+		assertNull(row.getRowId());
+		assertNull(row.getVersionNumber());
 	}
 	
 	@Test
@@ -270,6 +273,23 @@ public class UploadPreviewBuilderTest {
 		// call under test
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
+		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		// one
+		Row row = result.getSampleRows().get(0);
+		assertEquals(new Long(1),row.getRowId());
+		assertEquals(new Long(0), row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertNull(row.getValues().get(0));
+		assertNull(row.getValues().get(1));
+		// two
+		row = result.getSampleRows().get(1);
+		assertEquals(new Long(2),row.getRowId());
+		assertEquals(new Long(1), row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertEquals("a1",row.getValues().get(0));
+		assertEquals("6",row.getValues().get(1));
 	}
 	
 	@Test
@@ -667,7 +687,7 @@ public class UploadPreviewBuilderTest {
 		ColumnModel cm = result.getSuggestedColumns().get(0);
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals("mixed", cm.getName());
-		assertEquals(new Long(8), cm.getMaximumSize());
+		assertEquals(new Long(7), cm.getMaximumSize());
 	}
 	
 	@Test
@@ -725,6 +745,13 @@ public class UploadPreviewBuilderTest {
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals("mixed", cm.getName());
 		assertEquals(new Long(4), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testParseAsLong(){
+		assertEquals(null, UploadPreviewBuilder.parseAsLong(null));
+		assertEquals(null, UploadPreviewBuilder.parseAsLong(""));
+		assertEquals(new Long(123), UploadPreviewBuilder.parseAsLong("123"));
 	}
 	
 	public static List<String> getColumnNames(List<ColumnModel> models){
