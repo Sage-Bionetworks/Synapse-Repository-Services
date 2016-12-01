@@ -62,13 +62,13 @@ public class AsyncMigrationWorker implements Callable<AdminResponse> {
 			AsynchJobState state = status.getJobState();
 			if (state == AsynchJobState.FAILED) {
 				logger.debug("Job " + jobId + " failed.");
-				throw new WorkerFailedException("Failed: " + status.getErrorDetails() + " message:" + status.getErrorMessage());
+				throw new WorkerFailedException("Failed:\n" + status.getErrorDetails() + "\n\nmessage:\n" + status.getErrorMessage());
 			}
 			if (state == AsynchJobState.COMPLETE) {
 				break;
 			}
 			logger.debug("Waiting for job " + request.getClass().getName());
-			clock.sleep(2000L);
+			clock.sleep(1000L);
 		}
 		return status;
 	}

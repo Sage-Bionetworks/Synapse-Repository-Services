@@ -447,7 +447,7 @@ public class MigrationClient {
 		AsyncMigrationTypeCountRequest req = new AsyncMigrationTypeCountRequest();
 		req.setType(type.name());
 		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 900000, progress);
 		AdminResponse resp = worker.call();
 		MigrationTypeCount res = (MigrationTypeCount)resp;
 		return res;
