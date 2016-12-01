@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import com.google.common.collect.Lists;
@@ -168,9 +169,9 @@ public class ColumnModelUtils {
 				if(clone.getMaximumSize() == null){
 					// Use the default value
 					clone.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
-				}else if(clone.getMaximumSize() > TableModelUtils.MAX_ALLOWED_STRING_SIZE){
+				}else if(clone.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
 					// The max is beyond the allowed size
-					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+TableModelUtils.MAX_ALLOWED_STRING_SIZE);
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
 				} else if (clone.getMaximumSize() < 1) {
 					// The max is beyond the allowed size
 					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING must be greater than 0");

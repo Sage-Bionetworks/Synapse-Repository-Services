@@ -83,11 +83,6 @@ public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
-
-	/**
-	 * The maximum allowed value for the number characters for a string.
-	 */
-	public static final Long MAX_ALLOWED_STRING_SIZE = 1000L;
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -340,6 +335,13 @@ public class TableModelUtils {
 	}
 
 
+	/**
+	 * Validate that the given value conforms to the given ColumnModel.
+	 * 
+	 * @param value
+	 * @param cm
+	 * @return
+	 */
 	public static String validateValue(String value, ColumnModel cm) {
 		switch (cm.getColumnType()) {
 		case BOOLEAN:
@@ -394,6 +396,9 @@ public class TableModelUtils {
 		case STRING:
 			if (cm.getMaximumSize() == null)
 				throw new IllegalArgumentException("String columns must have a maximum size");
+			if (cm.getMaximumSize() > ColumnConstants.MAX_ALLOWED_STRING_SIZE){
+				throw new IllegalArgumentException("Exceeds the maximum number of character: "+ColumnConstants.MAX_ALLOWED_STRING_SIZE);
+			}
 			if (value.length() > cm.getMaximumSize()) {
 				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
 						+ " characters. Consider using a FileHandle to store large strings.");
@@ -927,7 +932,7 @@ public class TableModelUtils {
 				size += 64;
 			}else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
@@ -949,7 +954,7 @@ public class TableModelUtils {
 				size += calculateMaxSizeForType(column.getColumnType(), column.getMaximumSize());
 			}else{
 				// Since the size is unknown, the max allowed size is used.
-				size += calculateMaxSizeForType(scm.getColumnType(), MAX_ALLOWED_STRING_SIZE);
+				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE);
 			}
 		}
 		return size;
