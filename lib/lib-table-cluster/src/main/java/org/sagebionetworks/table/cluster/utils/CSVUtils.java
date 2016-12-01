@@ -12,10 +12,11 @@ import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
 	
+	public static final String ERROR_CELLS_EXCEED_MAX = "One or more cell value exceeds the maxiumn number of characters: "+ColumnConstants.MAX_LARGE_TEXT_CHARACTERS;
 	/**
 	 * When searching for a type this setups the order we check for.  Not all types are included.
 	 */
-	public static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING};
+	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.LARGETEXT};
 
 	/**
 	 * Create CSVReader with the correct parameters using the provided parameters or default values.
@@ -103,45 +104,60 @@ public class CSVUtils {
 		}
 	}
 	
+
 	/**
-	 * Check the type of the given value.  If the current type is null then determine the type.
-	 * If the type does not match then return a type that does match.
+	 * Check if the given value is compatible with the given columnType.
+	 * If not, a ColumnModel that is compatible will be found and returned.
+	 * 
+	 * @param value If null, then the currentType will be returned.
+	 * @param currentType If null, then a compatible type will be returned.
+	 * @return
 	 */
-	public static ColumnModel checkType(String value, ColumnModel currentType){
+	public static ColumnModel checkType(String value, ColumnModel currentType) {
 		// We can tell nothing from null or empty cells.
 		if(value == null || "".equals(value.trim())){
 			return currentType;
 		}
+		long currentMaxSize = 0;
 		if(currentType != null){
+			currentMaxSize = currentType.getMaximumSize();
+		}
+		// The current type determines where lookup starts.
+		int startIndex = findIndexOf(currentType);
+		// Try each type in order
+		for(int i=startIndex; i<typesToCheck.length; i++){
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(typesToCheck[i]);
+			long maxSize = Math.max(value.length(), currentMaxSize);
+			cm.setMaximumSize(maxSize);
 			try {
-				TableModelUtils.validateValue(value, currentType);
-				// type is the same
-				return currentType;
+				TableModelUtils.validateValue(value, cm);
+				// We have a match.
+				return cm;
 			} catch (IllegalArgumentException e) {
-				// That type will not work so go fish
-				return checkType(value, null);
-			}
-		}else{
-			// Try each type in order
-			for(ColumnType testType: typesToCheck){
-				ColumnModel cm = new ColumnModel();
-				cm.setColumnType(testType);
-				if(testType.equals(ColumnType.STRING)){
-					cm.setMaximumSize(new Long(value.length()));
-				}
-				try {
-					TableModelUtils.validateValue(value, cm);
-					// We have a match.
-					return cm;
-				} catch (IllegalArgumentException e) {
-					// That type will not work so go fish
-					// try another
-					continue;
-				}
+				// This type will not work so try the next.
+				continue;
 			}
 		}
 		// We failed to match a type
-		throw new IllegalArgumentException("Failed to match a cell value to a ColumnType. Value: "+value);
+		throw new IllegalArgumentException(ERROR_CELLS_EXCEED_MAX);
+	}
+	
+	/**
+	 * Find the index of the given ColumnModel from the typesToCheck.
+	 * @param currentType
+	 * @return
+	 */
+	static int findIndexOf(ColumnModel currentType){
+		if(currentType == null){
+			return 0;
+		}
+		for(int i=0; i<typesToCheck.length; i++){
+			if(typesToCheck[i].equals(currentType.getColumnType())){
+				return i;
+			}
+		}
+		throw new IllegalArgumentException("Unkown ColumnType: "+currentType.getColumnType());
 	}
 
 	/**

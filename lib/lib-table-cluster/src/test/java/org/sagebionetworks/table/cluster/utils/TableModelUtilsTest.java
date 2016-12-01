@@ -531,9 +531,7 @@ public class TableModelUtilsTest {
 	public void testValidateLargTextColumnTooBig() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.LARGETEXT);
-		char[] chars = new char[(int) (ColumnConstants.MAX_LARGE_TEXT_CHARACTERS+1)];
-		Arrays.fill(chars, 'a');
-		String valueTooBig = new String(chars);
+		String valueTooBig = createStringOfSize((int) (ColumnConstants.MAX_LARGE_TEXT_CHARACTERS+1));
 		// call under test
 		try {
 			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
@@ -541,6 +539,32 @@ public class TableModelUtilsTest {
 		} catch (IllegalArgumentException e) {
 			assertEquals("Value at [0,0] was not a valid LARGETEXT. Exceeds the maximum number of characters: 349525", e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testValidateStringTooBig() {
+		int sizeTooLarge = (int) (ColumnConstants.MAX_ALLOWED_STRING_SIZE+1);
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(new Long(sizeTooLarge));
+		String valueTooBig = createStringOfSize(sizeTooLarge);
+		// call under test
+		try {
+			TableModelUtils.validateRowValue(valueTooBig, cm, 0, 0);
+			fail("should fail");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [0,0] was not a valid STRING. Exceeds the maximum number of character: 1000", e.getMessage());
+		}
+	}
+	/**
+	 * Helper to create a string of the given size.
+	 * @param size
+	 * @return
+	 */
+	public static String createStringOfSize(int size){
+		char[] chars = new char[size];
+		Arrays.fill(chars, 'a');
+		return new String(chars);
 	}
 
 	@Test
@@ -1012,7 +1036,7 @@ public class TableModelUtilsTest {
 		// part of the size is from the select that matches the schema
 		int expectedSize = TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, columnOne.getMaximumSize());
 		// the other part of the size does not match the schema so the max allowed string size should be used.
-		expectedSize += TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, TableModelUtils.MAX_ALLOWED_STRING_SIZE);
+		expectedSize += TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, ColumnConstants.MAX_ALLOWED_STRING_SIZE);
 		assertEquals(expectedSize, maxSize);
 	}
 	

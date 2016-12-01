@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -15,30 +16,27 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.TableConstants;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
-
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 
 public class UploadPreviewBuilderTest {
 	
+	@Mock
 	ProgressCallback<Integer> mockProgressCallback;
 	
 	@Before
 	public void before(){
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+		MockitoAnnotations.initMocks(this);
 	}
 	
 	@Test
@@ -202,6 +200,118 @@ public class UploadPreviewBuilderTest {
 		assertEquals(new Long(2), result.getRowsScanned());
 		assertEquals(expectedRows, result.getSampleRows());
 		assertEquals(expectedSchema, result.getSuggestedColumns());
+	}
+	
+	@Test
+	public void testPLFM_3887_MissingRowID() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {ROW_ID, ROW_VERSION, "s", "i" });
+		input.add(new String[] { "1", "0", "a2", "7" });
+		input.add(new String[] { "", "", "a1", "6", });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		Row row = result.getSampleRows().get(1);
+		assertNull(row.getRowId());
+		assertNull(row.getVersionNumber());
+	}
+	
+	@Test
+	public void testPLFM_3887_NullRowId() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {ROW_ID, ROW_VERSION, "s", "i" });
+		input.add(new String[] { "1", "0", "a2", "7" });
+		input.add(new String[] { null, null, "a1", "6", });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		Row row = result.getSampleRows().get(1);
+		assertNull(row.getRowId());
+		assertNull(row.getVersionNumber());
+	}
+	
+	@Test
+	public void testPLFM_3887_DeleteRow() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {ROW_ID, ROW_VERSION, "s", "i" });
+		input.add(new String[] { "1", "0"});
+		input.add(new String[] { "2", "1", "a1", "6", });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result);
+		assertNotNull(result.getSampleRows());
+		assertEquals(2, result.getSampleRows().size());
+		// one
+		Row row = result.getSampleRows().get(0);
+		assertEquals(new Long(1),row.getRowId());
+		assertEquals(new Long(0), row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertNull(row.getValues().get(0));
+		assertNull(row.getValues().get(1));
+		// two
+		row = result.getSampleRows().get(1);
+		assertEquals(new Long(2),row.getRowId());
+		assertEquals(new Long(1), row.getVersionNumber());
+		assertNotNull(row.getValues());
+		assertEquals("a1",row.getValues().get(0));
+		assertEquals("6",row.getValues().get(1));
+	}
+	
+	@Test
+	public void testPLFM_3887_SparseRows() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {"a","b","c"});
+		input.add(new String[] { "1", "2", "3"});
+		input.add(new String[] { "4", "5", null});
+		input.add(new String[] { "6", "7"});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
 	}
 	
 	@Test
@@ -462,6 +572,186 @@ public class UploadPreviewBuilderTest {
 	public void testProcessHeaderUnderscoreLeft(){
 		// default when there would be nothing but underscores.
 		assertEquals("col", UploadPreviewBuilder.processHeader("#_&_#"));
+	}
+	
+	@Test
+	public void testPLFM_4165() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {"NCBI_Build","Chromosome"});
+		input.add(new String[] { "GRCh37", "13"});
+		input.add(new String[] { "GRCh37", "X"});
+		input.add(new String[] { "GRCh37", "15"});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(2, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("NCBI_Build", cm.getName());
+		assertEquals(new Long(6), cm.getMaximumSize());
+		// two
+		cm = result.getSuggestedColumns().get(1);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("Chromosome", cm.getName());
+		assertEquals(new Long(2), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testBooleanToString() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] {"mixed"});
+		input.add(new String[] { "true"});
+		input.add(new String[] { "X",});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(1, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("mixed", cm.getName());
+		assertEquals(new Long(4), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testStringToBoolean() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] {"mixed"});
+		input.add(new String[] { "X"});
+		input.add(new String[] { "true",});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(1, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("mixed", cm.getName());
+		assertEquals(new Long(4), cm.getMaximumSize());
+	}
+	
+	
+	@Test
+	public void testDoubleToString() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] {"mixed"});
+		input.add(new String[] { "123.456"});
+		input.add(new String[] { "X",});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(1, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("mixed", cm.getName());
+		assertEquals(new Long(7), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testIntegerToDoubleToString() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] {"mixed"});
+		input.add(new String[] { "123456"});
+		input.add(new String[] { "2.1",});
+		input.add(new String[] { "X",});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(1, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("mixed", cm.getName());
+		assertEquals(new Long(6), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testAllToString() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] {"mixed"});
+		input.add(new String[] { "true"});
+		input.add(new String[] { "1",});
+		input.add(new String[] { "2.1",});
+		input.add(new String[] { "X",});
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		// call under test
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(1, result.getSuggestedColumns().size());
+		// one
+		ColumnModel cm = result.getSuggestedColumns().get(0);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals("mixed", cm.getName());
+		assertEquals(new Long(4), cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testParseAsLong(){
+		assertEquals(null, UploadPreviewBuilder.parseAsLong(null));
+		assertEquals(null, UploadPreviewBuilder.parseAsLong(""));
+		assertEquals(new Long(123), UploadPreviewBuilder.parseAsLong("123"));
 	}
 	
 	public static List<String> getColumnNames(List<ColumnModel> models){
