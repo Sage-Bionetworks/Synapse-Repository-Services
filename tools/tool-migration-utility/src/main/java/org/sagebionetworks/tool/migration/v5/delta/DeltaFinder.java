@@ -136,16 +136,22 @@ public class DeltaFinder {
 		}
 	}
 	
-	protected MigrationRangeChecksum getChecksumForIdRange(SynapseAdminClient conn, MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
-		req.setType(type.name());
-		req.setSalt(salt);
-		req.setMinId(minId);
-		req.setMaxId(maxId);
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AdminResponse resp = worker.call();
-		MigrationRangeChecksum res = (MigrationRangeChecksum)resp;
-		return res;
+	public MigrationRangeChecksum getChecksumForIdRange(SynapseAdminClient conn, MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		MigrationRangeChecksum res = null;
+		try {
+			res = conn.getChecksumForIdRange(type, salt, minId, maxId);
+			return res;
+		} catch (SynapseException e) {
+			AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
+			req.setType(type.name());
+			req.setSalt(salt);
+			req.setMinId(minId);
+			req.setMaxId(maxId);
+			BasicProgress progress = new BasicProgress();
+			AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 900000, progress);
+			AdminResponse resp = worker.call();
+			res = (MigrationRangeChecksum)resp;
+			return res;
+		}
 	}
 }

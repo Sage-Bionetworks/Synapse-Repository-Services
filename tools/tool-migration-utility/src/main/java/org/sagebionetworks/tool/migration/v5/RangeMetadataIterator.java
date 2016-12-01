@@ -62,21 +62,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 		try {
 			return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
 		} catch (Exception e) {
-			// When there is a failure wait and try again.
-			try {
-				logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" will attempt again in one second", e);
-				Thread.sleep(1000);
-				return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
-			} catch (Exception e1) {
-				// Try one last time
-				try {
-					logger.warn("Failed to get a page of metadata from client: "+client.getRepoEndpoint()+" for a second time.  Will attempt again in ten seconds", e);
-					Thread.sleep(10000);
-					return getRowMetadataByRange(client, type, minId, maxId, batchSize, offset);
-				} catch (Exception e2) {
-					throw new RuntimeException("Failed to get a page of metadata from "+client.getRepoEndpoint(), e);
-				}
-			}
+			throw new RuntimeException("Failed to get a page of metadata from "+client.getRepoEndpoint(), e);
 		} 
 	}
 
@@ -135,16 +121,22 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	}
 
 	protected List<RowMetadata> getRowMetadataByRange(SynapseAdminClient conn, MigrationType type, Long minId, Long maxId, Long batchSize, Long offset) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationRowMetadataRequest req = new AsyncMigrationRowMetadataRequest();
-		req.setType(type.name());
-		req.setMinId(minId);
-		req.setMaxId(maxId);
-		req.setLimit(batchSize);
-		req.setOffset(offset);
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 600000, progress);
-		AdminResponse resp = worker.call();
-		RowMetadataResult res = (RowMetadataResult)resp;
-		return res.getList();
+		RowMetadataResult res = null;
+		try {
+			res = conn.getRowMetadataByRange(type, minId, maxId, batchSize, offset);
+			return res.getList();
+		} catch (SynapseException e) {
+			AsyncMigrationRowMetadataRequest req = new AsyncMigrationRowMetadataRequest();
+			req.setType(type.name());
+			req.setMinId(minId);
+			req.setMaxId(maxId);
+			req.setLimit(batchSize);
+			req.setOffset(offset);
+			BasicProgress progress = new BasicProgress();
+			AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 900000, progress);
+			AdminResponse resp = worker.call();
+			res = (RowMetadataResult)resp;
+			return res.getList();
+		}
 	}
 }

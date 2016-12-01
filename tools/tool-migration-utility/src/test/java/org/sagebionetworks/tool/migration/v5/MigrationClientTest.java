@@ -11,8 +11,20 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.verify;
+
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -120,6 +132,26 @@ public class MigrationClientTest {
 		
 		// No messages should have been played on the source
 		assertEquals(0, mockSource.replayChangeNumbersHistory.size());
+	}
+	
+	@Test
+	public void testGetTypeCountRetryAsync() throws Exception {
+		SynapseAdminClient mockConn = Mockito.mock(SynapseAdminClient.class);
+		MigrationType t = MigrationType.values()[0];
+		SynapseException e = new SynapseServerException(503);
+		when(mockConn.getTypeCount(any(MigrationType.class))).thenThrow(e);
+		AsynchronousJobStatus expectedStatus = Mockito.mock(AsynchronousJobStatus.class);;
+		when(expectedStatus.getJobId()).thenReturn("1");
+		when(expectedStatus.getJobState()).thenReturn(AsynchJobState.COMPLETE);
+		AsyncMigrationResponse resp = Mockito.mock(AsyncMigrationResponse.class);
+		when(expectedStatus.getResponseBody()).thenReturn(resp);
+		when(mockConn.startAdminAsynchronousJob(any(AsyncMigrationRequest.class))).thenReturn(expectedStatus);
+		when(mockConn.getAdminAsynchronousJobStatus(anyString())).thenReturn(expectedStatus);
+		
+		// Call under test
+		migrationClient.getTypeCount(mockConn, t);
+		
+		verify(mockConn).startAdminAsynchronousJob(any(AsyncMigrationRequest.class));
 	}
 	
 	/**

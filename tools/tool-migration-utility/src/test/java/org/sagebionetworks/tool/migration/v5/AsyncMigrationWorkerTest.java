@@ -48,6 +48,7 @@ public class AsyncMigrationWorkerTest {
 		MockitoAnnotations.initMocks(this);
 		AsynchronousJobStatus expectedStartStatus = new AsynchronousJobStatus();
 		expectedStartStatus.setJobId("jobId");
+		expectedStartStatus.setJobState(AsynchJobState.PROCESSING);
 		migReq = new AsyncMigrationRequest();
 		migReq.setAdminRequest(request);
 		migResp = new AsyncMigrationResponse();
@@ -144,41 +145,7 @@ public class AsyncMigrationWorkerTest {
 		
 		assertNotNull(resp);
 		
-		verify(mockClock, times(1)).sleep(2000L);
-	}
-	
-	@Test
-	public void testLoop() throws Exception {
-		when(mockClock.currentTimeMillis()).thenReturn(1000L, 2000L, 3000L, 4000L, 5000L, 6000L);
-		AsynchronousJobStatus jobStatus1 = new AsynchronousJobStatus();
-		jobStatus1.setJobId("jobId");
-		jobStatus1.setProgressCurrent(40L);
-		jobStatus1.setProgressTotal(100L);
-		jobStatus1.setProgressMessage("Progressing...");
-		jobStatus1.setJobState(AsynchJobState.PROCESSING);
-		AsynchronousJobStatus jobStatus2 = new AsynchronousJobStatus();
-		jobStatus2.setJobId("jobId");
-		jobStatus2.setProgressCurrent(80L);
-		jobStatus2.setProgressTotal(100L);
-		jobStatus2.setProgressMessage("Progressing...");
-		jobStatus2.setJobState(AsynchJobState.PROCESSING);
-		AsynchronousJobStatus jobStatus3 = new AsynchronousJobStatus();
-		jobStatus3.setJobId("jobId");
-		jobStatus3.setProgressCurrent(100L);
-		jobStatus3.setProgressTotal(100L);
-		jobStatus3.setJobState(AsynchJobState.COMPLETE);
-		jobStatus3.setResponseBody(migResp);
-		when(mockClient.getAdminAsynchronousJobStatus("jobId")).thenReturn(jobStatus1, jobStatus2, jobStatus3);
-		
-		worker = new AsyncMigrationWorker(mockClient, request, 3000L, mockProgress);
-		Whitebox.setInternalState(worker, "clock", mockClock);
-		
-		// Call under test
-		AdminResponse resp = worker.call();
-		
-		assertNotNull(resp);
-		
-		verify(mockClock, times(2)).sleep(2000L);
+		verify(mockClock, times(1)).sleep(1000L);
 	}
 	
 }
