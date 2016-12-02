@@ -444,12 +444,17 @@ public class MigrationClient {
 	}
 	
 	protected MigrationTypeCount getTypeCount(SynapseAdminClient conn, MigrationType type) throws SynapseException, InterruptedException, JSONObjectAdapterException {
-		AsyncMigrationTypeCountRequest req = new AsyncMigrationTypeCountRequest();
-		req.setType(type.name());
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 900000, progress);
-		AdminResponse resp = worker.call();
-		MigrationTypeCount res = (MigrationTypeCount)resp;
+		MigrationTypeCount res = null;
+		try {
+			res = conn.getTypeCount(type);
+		} catch (SynapseException e) {
+			AsyncMigrationTypeCountRequest req = new AsyncMigrationTypeCountRequest();
+			req.setType(type.name());
+			BasicProgress progress = new BasicProgress();
+			AsyncMigrationWorker worker = new AsyncMigrationWorker(conn, req, 900000, progress);
+			AdminResponse resp = worker.call();
+			res = (MigrationTypeCount)resp;
+		}
 		return res;
 	}
 	

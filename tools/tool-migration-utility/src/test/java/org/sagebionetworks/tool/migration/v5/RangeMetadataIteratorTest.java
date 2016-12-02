@@ -1,6 +1,11 @@
 package org.sagebionetworks.tool.migration.v5;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -10,8 +15,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class RangeMetadataIteratorTest {
@@ -174,6 +186,30 @@ public class RangeMetadataIteratorTest {
 		BasicProgress progress = new BasicProgress();
 		RangeMetadataIterator iterator = new RangeMetadataIterator(type, stubSynapse, 5, 60 , 64, progress);
 		RowMetadata row = iterator.next();
+	}
+	
+	@Test
+	public void testGetRowMetadataRetryAsync() throws Exception {
+		SynapseAdminClient mockConn = Mockito.mock(SynapseAdminClient.class);
+		MigrationType t = MigrationType.values()[0];
+		SynapseException e = new SynapseServerException(503);
+		when(mockConn.getRowMetadataByRange(any(MigrationType.class), anyLong(), anyLong(), anyLong(), anyLong())).thenThrow(e);
+		AsynchronousJobStatus expectedStatus = Mockito.mock(AsynchronousJobStatus.class);;
+		when(expectedStatus.getJobId()).thenReturn("1");
+		when(expectedStatus.getJobState()).thenReturn(AsynchJobState.COMPLETE);
+		AsyncMigrationResponse resp = Mockito.mock(AsyncMigrationResponse.class);
+		RowMetadataResult res = Mockito.mock(RowMetadataResult.class);
+		when(expectedStatus.getResponseBody()).thenReturn(resp);
+		when(resp.getAdminResponse()).thenReturn(res);
+		when(mockConn.startAdminAsynchronousJob(any(AsyncMigrationRequest.class))).thenReturn(expectedStatus);
+		when(mockConn.getAdminAsynchronousJobStatus(anyString())).thenReturn(expectedStatus);
+		
+		BasicProgress progress = new BasicProgress();
+		RangeMetadataIterator iterator = new RangeMetadataIterator(MigrationType.values()[0], mockConn, 5, 60 , 64, progress);
+		// Call under test
+		iterator.getRowMetadataByRange(mockConn, t, 0L, 100L, 100L, 0L);
+		
+		verify(mockConn).startAdminAsynchronousJob(any(AsyncMigrationRequest.class));
 	}
 	
 }
