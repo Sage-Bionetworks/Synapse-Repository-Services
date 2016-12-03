@@ -20,8 +20,10 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -194,12 +196,12 @@ public class MigrationClient {
 			SynapseAdminClient destination,
 			List<TypeToMigrateMetadata> typesToMigrateMetadata)
 			throws SynapseException, JSONObjectAdapterException,
-			RuntimeException {
+			RuntimeException, InterruptedException {
 		log.info("Final migration, checking table checksums");
 		boolean isChecksumDiff = false;
 		for (TypeToMigrateMetadata t: typesToMigrateMetadata) {
-			String srcTableChecksum = doChecksumForTypeWithOneRetry(source, t.getType());
-			String destTableChecksum = doChecksumForTypeWithOneRetry(destination, t.getType());
+			String srcTableChecksum = doAsyncChecksumForType(source, t.getType());
+			String destTableChecksum = doAsyncChecksumForType(destination, t.getType());
 			StringBuilder sb = new StringBuilder();
 			sb.append("Migration type: ");
 			sb.append(t.getType());
@@ -228,6 +230,18 @@ public class MigrationClient {
 				throw e;
 			}
 		}
+		return checksum;
+	}
+	
+	public String doAsyncChecksumForType(SynapseAdminClient client, MigrationType t) throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		String checksum = null;
+		AsyncMigrationTypeChecksumRequest req = new AsyncMigrationTypeChecksumRequest();
+		req.setType(t.name());
+		BasicProgress progress = new BasicProgress();
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(client, req, 900000, progress);
+		AdminResponse resp = worker.call();
+		MigrationTypeChecksum res = (MigrationTypeChecksum)resp;
+		checksum = res.getChecksum();
 		return checksum;
 	}
 
