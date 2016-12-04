@@ -1,44 +1,51 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.tool.migration.v5.AsyncMigrationWorker;
+import org.sagebionetworks.tool.progress.BasicProgress;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.DefaultClock;
 
 
 public class IT102MigrationTest {
 
 	private static SynapseAdminClient adminSynapse;
 	private Project project;
+	private static final long ASYNC_MIGRATION_MAX_WAIT_MS = 20000;
 	
 	private List<Entity> toDelete;
 
@@ -154,19 +161,33 @@ public class IT102MigrationTest {
 	@Test
 	public void testChecksumForIdRange() throws SynapseException, JSONObjectAdapterException {
 		Long minId = Long.parseLong(project.getId().substring(3));
-		Project p = null;
-		Folder f = null;
-		p = new Project();
-		p.setName("projectIT102-1");
-		p = adminSynapse.createEntity(p);
-		Long maxId = Long.parseLong(p.getId().substring(3));
+		Long maxId = Long.parseLong(project.getId().substring(3));
 		String salt = "SALT";
 		MigrationRangeChecksum checksum1 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, salt, minId, maxId);
 		assertNotNull(checksum1);
-		adminSynapse.deleteEntity(p);
-		MigrationRangeChecksum checksum2 = adminSynapse.getChecksumForIdRange(MigrationType.NODE, salt, minId, maxId);
-		assertNotNull(checksum2);
-		assertFalse(checksum1.equals(checksum2));
 	}
 	
+	@Test
+	public void testChecksumForIdRangeAsync() throws Exception {
+		Long minId = Long.parseLong(project.getId().substring(3));
+		Long maxId = Long.parseLong(project.getId().substring(3));
+		String salt = "SALT";
+		AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
+		req.setMinId(minId);
+		req.setMaxId(maxId);
+		req.setSalt(salt);
+		req.setType(MigrationType.NODE.name());
+		AsyncMigrationRequest migReq = new AsyncMigrationRequest();
+		migReq.setAdminRequest(req);
+		
+		// Checksum before
+		AsynchronousJobStatus jobStatus = adminSynapse.startAdminAsynchronousJob(migReq);
+		Clock clock = new DefaultClock();
+		
+		BasicProgress progress = new BasicProgress();
+		AsyncMigrationWorker worker = new AsyncMigrationWorker(adminSynapse, req, ASYNC_MIGRATION_MAX_WAIT_MS, progress);
+		MigrationRangeChecksum checksum1 = (MigrationRangeChecksum) worker.call();
+		assertNotNull(checksum1);
+	}
+
 }

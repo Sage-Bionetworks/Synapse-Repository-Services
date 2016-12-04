@@ -2903,4 +2903,5 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public void requestToCancelSubmission(String submissionId) throws SynapseException;
+
 }

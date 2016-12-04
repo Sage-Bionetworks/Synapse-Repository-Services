@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -14,16 +13,14 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -344,7 +341,7 @@ public class AdministrationController extends BaseController {
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AsynchronousAdminRequestBody body) throws NotFoundException {
+			@RequestBody AsyncMigrationRequest body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	

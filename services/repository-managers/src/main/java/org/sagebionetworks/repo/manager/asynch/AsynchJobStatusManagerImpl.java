@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
+import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -57,7 +58,16 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus lookupJobStatus(String jobId)
 			throws DatastoreException, NotFoundException {
 		// Get the status
-		return asynchJobStatusDao.getJobStatus(jobId);
+		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
+		
+		// If a job is running and the stack is not in READ-WRITE mode then the job is failed.
+		if(AsynchJobState.PROCESSING.equals(status.getJobState())){
+			if (! (status.getRequestBody() instanceof ReadOnlyRequestBody)) {
+				// Since the job is processing check the state of the stack.
+				checkStackReadWrite();
+			}
+		}
+		return status;
 	}
 	
 	@Override
@@ -68,11 +78,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Only the user that started a job can read it
 		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
-		}
-		// If a job is running and the stack is not in READ-WRITE mode then the job is failed.
-		if(AsynchJobState.PROCESSING.equals(status.getJobState())){
-			// Since the job is processing check the state of the stack.
-			checkStackReadWrite();
 		}
 		return status;
 	}
@@ -181,13 +186,11 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public String setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException, IOException {
-		// Job can only be completed if the stack is in read-write mode.
-		checkStackReadWrite();
 		/*
 		 *  For a cacheable requests we need to calculate a request hash.
 		 *  This hash can be used to find jobs that already match an existing request.
 		 */
-		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
+		AsynchronousJobStatus status = lookupJobStatus(jobId);
 		String requestHash = null;
 		if(status.getRequestBody() instanceof CacheableRequestBody){
 			CacheableRequestBody request = (CacheableRequestBody) status.getRequestBody();

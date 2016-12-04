@@ -2629,7 +2629,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param calls
 	 * @throws SynapseException
 	 */
-	private <T extends JSONEntity> T asymmetricalPost(String endpoint,
+	protected <T extends JSONEntity> T asymmetricalPost(String endpoint,
 			String url, JSONEntity requestBody, Class<? extends T> returnClass,
 			SharedClientConnection.ErrorHandler errorHandler)
 			throws SynapseException {
