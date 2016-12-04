@@ -247,14 +247,6 @@ public class V2WikiManagerTest {
 	    verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);   
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testUpdateTooManyVersions() {
-		// setup allow
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockWikiDao.getNumberOfVersions(any(WikiPageKey.class))).thenReturn(1000L); // If 1000, cannot create 1001th
-		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, new V2WikiPage());
-	}
-	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
