@@ -15,21 +15,14 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountResult;
-import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -75,8 +68,10 @@ public class MigrationWorker implements MessageDrivenRunner {
 			callWithAutoProgress(progressCallback, new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
-					AsynchronousResponseBody resp = processRequest(user, mReq, jobId);
-					asynchJobStatusManager.setComplete(jobId, resp);
+					AdminResponse resp = processRequest(user, mReq.getAdminRequest(), jobId);
+					AsyncMigrationResponse mResp = new AsyncMigrationResponse();
+					mResp.setAdminResponse(resp);
+					asynchJobStatusManager.setComplete(jobId, mResp);
 					return null;
 				}
 			});
@@ -87,15 +82,15 @@ public class MigrationWorker implements MessageDrivenRunner {
 		}
 	}
 	
-	private AsynchronousResponseBody processRequest(final UserInfo user, final AsyncMigrationRequest mReq, final String jobId) throws DatastoreException, NotFoundException, IOException {
-		if (mReq instanceof AsyncMigrationTypeCountRequest) {
-			return migrationManager.processAsyncMigrationTypeCountRequest(user, mReq);
-		} else if (mReq instanceof AsyncMigrationTypeChecksumRequest) {
-			return migrationManager.processAsyncMigrationTypeChecksumRequest(user, mReq);
-		} else if (mReq instanceof AsyncMigrationRangeChecksumRequest) {
-			return migrationManager.processAsyncMigrationRangeChecksumRequest(user, mReq);
-		} else if (mReq instanceof AsyncMigrationRowMetadataRequest) {
-			return migrationManager.processAsyncMigrationRowMetadataRequest(user, mReq);
+	AdminResponse processRequest(final UserInfo user, final AdminRequest req, final String jobId) throws DatastoreException, NotFoundException, IOException {
+		if (req instanceof AsyncMigrationTypeCountRequest) {
+			return migrationManager.processAsyncMigrationTypeCountRequest(user, (AsyncMigrationTypeCountRequest)req);
+		} else if (req instanceof AsyncMigrationTypeChecksumRequest) {
+			return migrationManager.processAsyncMigrationTypeChecksumRequest(user, (AsyncMigrationTypeChecksumRequest)req);
+		} else if (req instanceof AsyncMigrationRangeChecksumRequest) {
+			return migrationManager.processAsyncMigrationRangeChecksumRequest(user, (AsyncMigrationRangeChecksumRequest)req);
+		} else if (req instanceof AsyncMigrationRowMetadataRequest) {
+			return migrationManager.processAsyncMigrationRowMetadataRequest(user, (AsyncMigrationRowMetadataRequest)req);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

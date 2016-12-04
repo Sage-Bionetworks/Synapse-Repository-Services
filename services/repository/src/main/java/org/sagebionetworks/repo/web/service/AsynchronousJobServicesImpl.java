@@ -7,9 +7,9 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -35,7 +35,7 @@ public class AsynchronousJobServicesImpl implements AsynchronousJobServices {
 			throw new IllegalArgumentException("Body cannot be null");
 		}
 		UserInfo user = userManager.getUserInfo(userId);
-		if ((body instanceof AsynchronousAdminRequestBody) && (! user.isAdmin())) {
+		if ((body instanceof AsyncMigrationRequest) && (! user.isAdmin())) {
 			throw new UnauthorizedException("Only an administrator may start this job.");
 		}
 		return asynchJobStatusManager.startJob(user, body);

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -152,6 +153,54 @@ public class AsynchJobStatusManagerImplTest {
 		assertNotNull(status);
 	}
 	
+	@Test
+	public void testLookupStatusReadOnlyJob() {
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		status.setRequestBody(Mockito.mock(ReadOnlyRequestBody.class));
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
+		
+		// call under test
+		manager.lookupJobStatus("8888");
+		// Status should not be looked up for RO jobs
+		verify(mockStackStatusDao, never()).getCurrentStatus();
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testLookupStatusWriteJobProcessing() {
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		status.setRequestBody(Mockito.mock(AsynchronousRequestBody.class));
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		
+		// call under test
+		manager.lookupJobStatus("8888");
+	}
+	
+	@Test
+	public void testLookupStatusWriteJobComplete() {
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("8888");
+		status.setRequestBody(Mockito.mock(AsynchronousRequestBody.class));
+		status.setJobState(AsynchJobState.COMPLETE);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		
+		// call under test
+		manager.lookupJobStatus("8888");
+		verify(mockStackStatusDao, never()).getCurrentStatus();
+	}
+	
 	/**
 	 * Should be able to get a completed job while in read-only mode.
 	 * @throws DatastoreException
@@ -252,33 +301,21 @@ public class AsynchJobStatusManagerImplTest {
 	}
 
 	/**
-	 * Cannot set complete when in read-only or down
+	 * Can set complete when in read-only or down
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
-	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteReadOnlyMode() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
-		UploadToTableResult body = new UploadToTableResult();
-		body.setRowsProcessed(101L);
-		body.setEtag("etag");
-		manager.setComplete("456", body);
-	}
-	
-	/**
-	 * Cannot set complete when in read-only or down
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException 
-	 */
-	@Test (expected=IllegalStateException.class)
-	public void testSetCompleteDownMode() throws Exception{
-		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
-		UploadToTableResult body = new UploadToTableResult();
-		body.setRowsProcessed(101L);
-		body.setEtag("etag");
-		manager.setComplete("456", body);
+	@Test 
+	public void testSetCompleteAnyMode() throws Exception{
+		for(StatusEnum mode: StatusEnum.values()){
+			when(mockStackStatusDao.getCurrentStatus()).thenReturn(mode);
+			UploadToTableResult body = new UploadToTableResult();
+			body.setRowsProcessed(101L);
+			body.setEtag("etag");
+			manager.setComplete("456", body);
+		}
+
 	}
 	
 	@Test
