@@ -3,14 +3,11 @@ package org.sagebionetworks.repo.model;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.sagebionetworks.gwt.client.schema.adapter.GwtAdapterFactory;
-import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.junit.client.GWTTestCase;
 
 
