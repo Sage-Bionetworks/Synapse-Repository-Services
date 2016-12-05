@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 public class TableEntityTransactionManager implements TableTransactionManager {
 	
-	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000;
+	private static final int EXCLUSIVE_LOCK_TIMEOUT_MS = 5*1000*60;
 	
 	@Autowired
 	TableManagerSupport tableManagerSupport;
