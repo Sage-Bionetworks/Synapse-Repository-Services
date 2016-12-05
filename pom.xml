@@ -820,7 +820,7 @@
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.3.11</schema-to-pojo.version>
+		<schema-to-pojo.version>0.3.12</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.45</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.2</org.apache.httpcomponents.version>
