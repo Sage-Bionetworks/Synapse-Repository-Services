@@ -2193,28 +2193,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public FileHandleResults createFileHandles(List<File> files,
-			String parentEntityId) throws SynapseException {
-		if (files == null)
-			throw new IllegalArgumentException("File list cannot be null");
-		try {
-			List<FileHandle> list = new LinkedList<FileHandle>();
-			for (File file : files) {
-				// We need to determine the content type of the file
-				String contentType = guessContentTypeFromStream(file);
-				FileHandle handle = createFileHandle(file, contentType,
-						parentEntityId);
-				list.add(handle);
-			}
-			FileHandleResults results = new FileHandleResults();
-			results.setList(list);
-			return results;
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Override
 	public URL getFileHandleTemporaryUrl(String fileHandleId)
 			throws IOException, SynapseException {
 		String uri = getFileHandleTemporaryURI(fileHandleId, false);
@@ -7276,12 +7254,5 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void setUserIpAddress(String ipAddress) {
 		getSharedClientConnection().setUserIp(ipAddress);
-	}
-
-	@Override
-	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId)
-			throws SynapseException, IOException {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

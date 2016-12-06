@@ -609,16 +609,6 @@ public interface SynapseClient extends BaseClient {
 
 	public JSONObject query(String query) throws SynapseException;
 
-	/**
-	 * Upload each file to Synapse creating a file handle for each.
-	 */
-	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException;
-
-	/**
-	 * The high-level API for uploading a file to Synapse.
-	 */
-	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException;
-
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException;
 
