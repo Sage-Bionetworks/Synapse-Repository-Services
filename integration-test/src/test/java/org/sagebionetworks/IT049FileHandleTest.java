@@ -13,9 +13,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -41,7 +39,6 @@ import org.sagebionetworks.repo.model.file.FileDownloadSummary;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -51,7 +48,6 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -74,7 +70,6 @@ public class IT049FileHandleTest {
 	private static Long userToDelete;
 	private static AmazonS3Client s3Client;
 	
-	private static final String LARGE_FILE_PATH_PROP_KEY = "org.sagebionetworks.test.large.file.path";
 	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	private static final String FILE_NAME = "LittleImage.png";
 
@@ -132,15 +127,8 @@ public class IT049FileHandleTest {
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
-		// Create the image
-		List<File> list = new LinkedList<File>();
-		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list, project.getId());
-		assertNotNull(results);
-		// We should have one image on the list
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		S3FileHandle handle = (S3FileHandle) results.getList().get(0);
+
+		S3FileHandle handle = synapse.multipartUpload(imageFile, null, false, false);
 		toDelete.add(handle);
 		System.out.println(handle);
 		assertEquals("image/png", handle.getContentType());
@@ -186,36 +174,6 @@ public class IT049FileHandleTest {
 		}
 		try{
 			synapse.getRawFileHandle(handle.getPreviewId());
-			fail("The handle should be deleted.");
-		}catch(SynapseNotFoundException e){
-			// expected.
-		}
-	}
-	
-	@Test
-	public void testSingleFileRoundTrip() throws SynapseException, IOException, InterruptedException{
-		assertNotNull(imageFile);
-		assertTrue(imageFile.exists());
-		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
-		// Create the image
-		String myContentType = "test/content-type";
-		FileHandle result = synapse.createFileHandle(imageFile, myContentType, project.getId());
-		assertNotNull(result);
-		S3FileHandle handle = (S3FileHandle) result;
-		toDelete.add(handle);
-		System.out.println(handle);
-		assertEquals(myContentType, handle.getContentType());
-		assertEquals(FILE_NAME, handle.getFileName());
-		assertEquals(new Long(imageFile.length()), handle.getContentSize());
-		assertEquals(expectedMD5, handle.getContentMd5());
-		
-		//preview will not be created for our test content type
-
-		// Now delete the root file handle.
-		synapse.deleteFileHandle(handle.getId());
-		// The main handle and the preview should get deleted.
-		try{
-			synapse.getRawFileHandle(handle.getId());
 			fail("The handle should be deleted.");
 		}catch(SynapseNotFoundException e){
 			// expected.
@@ -304,42 +262,6 @@ public class IT049FileHandleTest {
 		assertNull(synapse.getProjectSetting(project.getId(), ProjectSettingsType.upload));
 	}
 
-	@Test
-	public void testExternalUploadDestinationUploadAndModifyRoundTrip() throws Exception {
-		String baseKey = "test-" + UUID.randomUUID();
-
-		// we need to create a authentication object
-		String username = synapse.getUserSessionData().getProfile().getUserName();
-		S3TestUtils.createObjectFromString(StackConfiguration.singleton().getExternalS3TestBucketName(), baseKey + "owner.txt", username,
-				s3Client);
-
-		// create setting
-		ExternalS3StorageLocationSetting externalS3Destination = new ExternalS3StorageLocationSetting();
-		externalS3Destination.setUploadType(UploadType.S3);
-		externalS3Destination.setEndpointUrl(null);
-		externalS3Destination.setBucket(StackConfiguration.singleton().getExternalS3TestBucketName());
-		externalS3Destination.setBaseKey(baseKey);
-		externalS3Destination.setBanner("warning, at institute");
-		externalS3Destination.setDescription("not in synapse, this is");
-		externalS3Destination = synapse.createStorageLocationSetting(externalS3Destination);
-
-		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
-		projectSetting.setProjectId(project.getId());
-		projectSetting.setSettingsType(ProjectSettingsType.upload);
-		projectSetting.setLocations(Lists.newArrayList(externalS3Destination.getStorageLocationId()));
-		synapse.createProjectSetting(projectSetting);
-
-		String myContentType = "test/content-type";
-		FileHandle result = synapse.createFileHandle(imageFile, myContentType, project.getId());
-		toDelete.add(result);
-
-		assertEquals(S3FileHandle.class, result.getClass());
-		assertEquals(externalS3Destination.getStorageLocationId(), result.getStorageLocationId());
-
-		File tmpFile = File.createTempFile(imageFile.getName(), ".tmp");
-		synapse.downloadFromFileHandleTemporaryUrl(result.getId(), tmpFile);
-	}
-	
 	@Test
 	public void testProxyFileHandleRoundTrip() throws SynapseException, JSONObjectAdapterException, IOException{
 		ProxyStorageLocationSettings storageLocation = new ProxyStorageLocationSettings();
@@ -443,38 +365,6 @@ public class IT049FileHandleTest {
 		toDelete.add(clone);
 	}
 
-	/**
-	 * This test uploads files that are too large to include in the build.
-	 * To run this test, set the property to point to a large file: org.sagebionetworks.test.large.file.path=<path to large file>
-	 * @throws IOException 
-	 * @throws SynapseException 
-	 */
-	@Test
-	public void testLargeFileUplaod() throws SynapseException, IOException{
-		String largeFileName = System.getProperty(LARGE_FILE_PATH_PROP_KEY);
-		if(largeFileName != null){
-			// Run the test
-			File largeFile = new File(largeFileName);
-			assertTrue(largeFile.exists());
-			System.out.println("Attempting to upload a file of size: "+largeFile.length());
-			float fileSize = largeFile.length();
-			float bytesPerMB = (float) Math.pow(2, 20);
-			float fileSizeMB = fileSize/bytesPerMB;
-			System.out.println(String.format("Attempting to upload file: %1$s of size %2$.2f",  largeFile.getName(), fileSizeMB));
-			String contentType = SynapseClientImpl.guessContentTypeFromStream(largeFile);
-			long start = System.currentTimeMillis();
-			FileHandle handle = synapse.createFileHandle(largeFile, contentType, project.getId());
-			long elapse = System.currentTimeMillis()-start;
-			float elapseSecs = elapse/1000;
-			float mbPerSec = fileSizeMB/elapseSecs;
-			System.out.println(String.format("Upload file: %1$s of size %2$.2f in %3$.2f secs with rate %4$.2f MB/Sec",  largeFile.getName(), fileSizeMB, elapseSecs, mbPerSec));
-			assertNotNull(handle);
-			toDelete.add(handle);
-		}else{
-			System.out.println("The property: '"+LARGE_FILE_PATH_PROP_KEY+"' was not set.  The testLargeFileUplaod() test was not run");
-		}
-	}
-	
 	/**
 	 * This test just ensures the web-services are setup correctly.
 	 * @throws SynapseException 

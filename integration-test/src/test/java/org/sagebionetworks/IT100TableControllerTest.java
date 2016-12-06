@@ -437,7 +437,7 @@ public class IT100TableControllerTest {
 		writer.write("a temporary string");
 		writer.close();
 
-		FileHandle fileHandle = synapse.createFileHandle(tempFile, "text/plain", table.getId());
+		FileHandle fileHandle = synapse.multipartUpload(tempFile, null, false, false);
 		assertTrue(fileHandle instanceof S3FileHandle);
 
 		// Append some rows

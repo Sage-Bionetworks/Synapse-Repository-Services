@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -160,7 +161,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			FileWriter writer = new FileWriter(dataSourceFile);
 			writer.write("Hello world!");
 			writer.close();
-			FileHandle fileHandle = synapseOne.createFileHandle(dataSourceFile, "text/plain", project.getId());
+			FileHandle fileHandle = synapseOne.multipartUpload(dataSourceFile, null, false, false);
 			fileEntity = new FileEntity();
 			fileEntity.setParentId(project.getId());
 			fileEntity.setDataFileHandleId(fileHandle.getId());
@@ -940,19 +941,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals("invalid URL returned", expected, actual);
 	}
 
-	private FileEntity createTestFileEntity(Entity parent) throws SynapseException {
+	private FileEntity createTestFileEntity(Entity parent) throws SynapseException, FileNotFoundException, IOException {
 		// create a FileHandle
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		File imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
-		List<File> list = new LinkedList<File>();
-		list.add(imageFile);
-		FileHandleResults results = synapseOne.createFileHandles(list, parent.getId());
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		fileHandle = (S3FileHandle) results.getList().get(0);
+		fileHandle = synapseOne.multipartUpload(imageFile, null, false, false);
 		
 		// create a FileEntity
 		FileEntity file = new FileEntity();

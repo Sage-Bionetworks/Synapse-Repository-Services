@@ -17,19 +17,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -249,8 +245,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final Logger log = LogManager
 			.getLogger(SynapseClientImpl.class.getName());
 
-	private static final long MAX_UPLOAD_DAEMON_MS = 60 * 1000;
-
 	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
 	private static final String DEFAULT_AUTH_ENDPOINT = SharedClientConnection.DEFAULT_AUTH_ENDPOINT;
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
@@ -403,11 +397,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	protected static final String FILE_BULK = FILE+"/bulk";
 
-	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
-	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
-	private static final String START_COMPLETE_UPLOAD_DAEMON = "/startCompleteUploadDaemon";
-	private static final String COMPLETE_UPLOAD_DAEMON_STATUS = "/completeUploadDaemonStatus";
-
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
@@ -446,10 +435,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
-
-	private static final long MAX_BACKOFF_MILLIS = 5 * 60 * 1000L; // five
-																	// minutes
-
 	/**
 	 * The character encoding to use with strings which are the body of email
 	 * messages
@@ -528,18 +513,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected String repoEndpoint;
 	protected String authEndpoint;
 	protected String fileEndpoint;
-
-	/**
-	 * The maximum number of threads that should be used to upload asynchronous
-	 * file chunks.
-	 */
-	private static final int MAX_NUMBER_OF_THREADS = 2;
-
-	/**
-	 * This thread pool is used for asynchronous file chunk uploads.
-	 */
-	private ExecutorService fileUplaodthreadPool = Executors
-			.newFixedThreadPool(MAX_NUMBER_OF_THREADS);
 
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3
@@ -3673,9 +3646,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
-	private static final ContentType STRING_MESSAGE_CONTENT_TYPE = ContentType
-			.create("text/plain", MESSAGE_CHARSET);
 
 	/**
 	 * Convenience function to upload a simple string message body, then send

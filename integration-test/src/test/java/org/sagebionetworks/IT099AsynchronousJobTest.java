@@ -160,7 +160,7 @@ public class IT099AsynchronousJobTest {
 			}
 
 			// Now upload this CSV as a file handle
-			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
+			FileHandle fileHandle = synapse.multipartUpload(temp, null, false, false);
 			filesToDelete.add(fileHandle);
 			// Get a file preview
 			UploadToTablePreviewRequest previewRequest = new UploadToTablePreviewRequest();
@@ -298,7 +298,7 @@ public class IT099AsynchronousJobTest {
 			}
 			
 			// Now upload this CSV as a file handle
-			fileHandle = synapse.createFileHandle(tempUpdate, "text/csv", project.getId());
+			fileHandle = synapse.multipartUpload(tempUpdate, null, false, false);
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
 			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), downloadResult.getEtag(),
@@ -404,7 +404,7 @@ public class IT099AsynchronousJobTest {
 			}
 
 			// Now upload this CSV as a file handle
-			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
+			FileHandle fileHandle = synapse.multipartUpload(temp, null, false, false);
 			filesToDelete.add(fileHandle);
 			
 			// We now have enough to apply the data to the table
