@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -33,7 +34,7 @@ public interface UploadRowProcessor {
 	 * @throws DatastoreException 
 	 * 
 	 */
-	String processRows(UserInfo user, String tableId,
+	TableUpdateResponse processRows(UserInfo user, String tableId,
 			List<ColumnModel> tableSchema, Iterator<SparseRowDto> rowStream,
 			String updateEtag,
 			ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException;

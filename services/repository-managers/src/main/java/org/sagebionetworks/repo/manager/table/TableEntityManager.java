@@ -96,7 +96,7 @@ public interface TableEntityManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
+	TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
 			RowReferenceSet results, ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**

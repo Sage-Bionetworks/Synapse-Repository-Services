@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -32,11 +33,19 @@ import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RawRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 
@@ -1630,4 +1639,183 @@ public class TableModelUtilsTest {
 
 	}
 	
+	@Test
+	public void testWrapInTransactionRequest(){
+		UploadToTableRequest toWrap = new UploadToTableRequest();
+		toWrap.setEntityId("syn123");
+		// call under test.
+		TableUpdateTransactionRequest result = TableModelUtils.wrapInTransactionRequest(toWrap);
+		assertNotNull(result);
+		assertEquals(toWrap.getEntityId(), result.getEntityId());
+		assertNotNull(result.getChanges());
+		assertEquals(1, result.getChanges().size());
+		assertEquals(toWrap, result.getChanges().get(0));
+	}
+	@Test (expected=IllegalArgumentException.class)
+	public void testWrapInTransactionRequestNull(){
+		UploadToTableRequest toWrap =null;
+		//call under test
+		TableModelUtils.wrapInTransactionRequest(toWrap);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testWrapInTransactionRequestNullEntityId(){
+		UploadToTableRequest toWrap = new UploadToTableRequest();
+		toWrap.setEntityId(null);
+		//call under test
+		TableModelUtils.wrapInTransactionRequest(toWrap);
+	}
+	
+	@Test
+	public void testExtractResponseFromTransaction(){
+		TableUpdateTransactionResponse wrapped = new TableUpdateTransactionResponse();
+		UploadToTableResult body = new UploadToTableResult();
+		body.setEtag("123");
+		wrapped.setResults(new LinkedList<TableUpdateResponse>());
+		wrapped.getResults().add(body);
+		// call under test
+		UploadToTableResult result = TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+		assertEquals(body, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractResponseFromTransactionTooMany(){
+		TableUpdateTransactionResponse wrapped = new TableUpdateTransactionResponse();
+		UploadToTableResult body = new UploadToTableResult();
+		body.setEtag("123");
+		wrapped.setResults(new LinkedList<TableUpdateResponse>());
+		wrapped.getResults().add(body);
+		wrapped.getResults().add(body);
+		// call under test
+		TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+	}
+	
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractResponseFromTransactionNullList(){
+		TableUpdateTransactionResponse wrapped = new TableUpdateTransactionResponse();
+		UploadToTableResult body = new UploadToTableResult();
+		body.setEtag("123");
+		wrapped.setResults(null);
+		// call under test
+		TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractResponseFromTransactionEmptyList(){
+		TableUpdateTransactionResponse wrapped = new TableUpdateTransactionResponse();
+		UploadToTableResult body = new UploadToTableResult();
+		body.setEtag("123");
+		wrapped.setResults(new LinkedList<TableUpdateResponse>());
+		// call under test
+		TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExtractResponseFromTransactionWrongType(){
+		TableUpdateTransactionResponse wrapped = new TableUpdateTransactionResponse();
+		wrapped.setResults(new LinkedList<TableUpdateResponse>());
+		wrapped.getResults().add(new RowReferenceSetResults());
+		// call under test
+		TableModelUtils.extractResponseFromTransaction(wrapped, UploadToTableResult.class);
+	}
+	
+	@Test
+	public void testCalculatetPartialRowBytes(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("123", "45678");
+		values.put("9", null);
+		int expectedSize = ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*9;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
+	public void testCalculatetPartialRowBytesEmpty(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		int expectedSize = 0;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
+	public void testCalculatetPartialRowBytesNull(){
+		PartialRow row = new PartialRow();
+		row.setValues(null);
+		int expectedSize = 0;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
+	public void testCalculatePartialRowSetBytes(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("123", "45678");
+		values.put("9", null);
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row,row));
+		
+		int expectedSize = ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*9*2;
+		assertEquals(expectedSize, TableModelUtils.calculatePartialRowSetBytes(rowSet));
+	}
+	
+	@Test
+	public void testValidateRequestSizeUnder(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("1", "23");
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		int maxBytesPerRequest = TableModelUtils.calculatePartialRowSetBytes(rowSet)+1;
+		// call under test
+		TableModelUtils.validateRequestSize(rowSet, maxBytesPerRequest);
+	}
+	
+	@Test
+	public void testValidateRequestSizeOver(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		values.put("1", "23");
+		
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		int maxBytesPerRequest = TableModelUtils.calculatePartialRowSetBytes(rowSet)-1;
+		try {
+			// call under test
+			TableModelUtils.validateRequestSize(rowSet, maxBytesPerRequest);
+			fail("Should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testValiteRequestSizeRowSetUnder(){
+		RowSet set = new RowSet();
+		set.setRows(validRowSet.getRows());
+		int rowSize = TableModelUtils.calculateMaxRowSize(validModel);
+		int maxBytesPerRequest = rowSize * set.getRows().size() + 1;
+		TableModelUtils.validateRequestSize(validModel, set, maxBytesPerRequest);
+	}
+	
+	@Test
+	public void testValiteRequestSizeRowSetOver(){
+		RowSet set = new RowSet();
+		set.setRows(validRowSet.getRows());
+		int rowSize = TableModelUtils.calculateMaxRowSize(validModel);
+		int maxBytesPerRequest = rowSize * set.getRows().size() - 1;
+		try {
+			TableModelUtils.validateRequestSize(validModel, set, maxBytesPerRequest);
+			fail("Should have failed");
+		} catch (Exception e) {
+			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
+		}
+	}
 }

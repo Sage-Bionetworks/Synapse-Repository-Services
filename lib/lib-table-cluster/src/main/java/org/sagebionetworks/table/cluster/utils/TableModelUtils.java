@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -80,6 +81,8 @@ public class TableModelUtils {
 	};
 	
 	private static final String PARTIAL_ROW_KEY_NOT_A_VALID = "PartialRow.value.key: '%s' is not a valid column ID for row ID: %s";
+	
+	public static final String EXCEEDS_MAX_SIZE_TEMPLATE = "Request exceeds the maximum number of bytes per request.  Maximum : %1$s bytes";
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
@@ -1027,6 +1030,67 @@ public class TableModelUtils {
 		int maxBytesPerRow = calculateMaxRowSize(columns);
 		int neededBytes = rowCount*maxBytesPerRow;
 		return neededBytes <= maxBytesPerRequest;
+	}
+	
+	/**
+	 * Validate the given RowSet is within the maximum number of bytes.
+	 * 
+	 * @param columns
+	 * @param rowSet
+	 * @param maxBytesPerRequest
+	 */
+	public static void validateRequestSize(List<ColumnModel> columns, RowSet rowSet, int maxBytesPerRequest){
+		// Validate the request is under the max bytes per requested
+		if (!TableModelUtils.isRequestWithinMaxBytePerRequest(columns, rowSet.getRows().size(), maxBytesPerRequest)) {
+			throw new IllegalArgumentException(String.format(EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest));
+		}
+	}
+	
+	/**
+	 * Validate the given PartialRowSet is within the maximum number of bytes.
+	 * @param rowSet
+	 * @param maxBytesPerRequest
+	 */
+	public static void validateRequestSize(PartialRowSet rowSet, int maxBytesPerRequest){
+		// count the characters in the request
+		int totalSizeBytes = calculatePartialRowSetBytes(rowSet);
+		if(totalSizeBytes >  maxBytesPerRequest){
+			throw new IllegalArgumentException(String.format(EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest));
+		}
+	}
+	
+	/**
+	 * Calculate the number of bytes used by the given PartialRowSet.
+	 * 
+	 * @param rowSet
+	 * @return
+	 */
+	public static int calculatePartialRowSetBytes(PartialRowSet rowSet){
+		int totalSizeBytes = 0;
+		for(PartialRow row: rowSet.getRows()){
+			totalSizeBytes += calculatetPartialRowBytes(row);
+		}
+		return totalSizeBytes;
+	}
+	
+	/**
+	 * Calculate the number of bytes used for the given PartialRow.
+	 * @param row
+	 * @return
+	 */
+	public static int calculatetPartialRowBytes(PartialRow row){
+		int charCount = 0;
+		if(row.getValues() == null){
+			return charCount;
+		}
+		for(String key: row.getValues().keySet()){
+			charCount += key.length();
+			String value = row.getValues().get(key);
+			if(value != null){
+				charCount += value.length();
+			}
+		}
+		return ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*charCount;
 	}
 	
 	/**

@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewType;
 
 /**
@@ -60,6 +60,16 @@ public interface TableViewManager {
 	 * @return
 	 */
 	public List<String> getTableSchema(String tableId);
+
+	/**
+	 * Update a single entity in a view using the passed row and schema.
+	 * 
+	 * @param user
+	 * @param tableSchema
+	 * @param row
+	 */
+	public void updateEntityInView(UserInfo user,
+			List<ColumnModel> tableSchema, SparseRowDto row);
 
 
 }

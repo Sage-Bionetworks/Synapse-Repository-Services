@@ -11,8 +11,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,7 +31,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 	private AmazonS3Client s3Client;
 
 	@Override
-	public UploadToTableResult uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor) {
+	public TableUpdateResponse uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor) {
 		CSVReader reader = null;
 		try{
 			// Get the filehandle
@@ -47,13 +47,8 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(request.getCsvTableDescriptor());
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, request.getColumnIds());
 			// Append the data to the table
-			String etag = rowProcessor.processRows(user, request.getTableId(),
+			return rowProcessor.processRows(user, request.getTableId(),
 					tableSchema, iterator, request.getUpdateEtag(), progressCallback);
-			// Done
-			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(iterator.getRowsRead());
-			result.setEtag(etag);
-			return result;
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
