@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -20,14 +19,12 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -70,7 +67,11 @@ public class IT990AuthenticationController {
 	
 	@Before
 	public void setup() throws Exception {
-		synapse.login(username, PASSWORD);
+		LoginRequest request = new LoginRequest();
+		request.setAuthenticationReceipt(null);
+		request.setUsername(username);
+		request.setPassword(PASSWORD);
+		synapse.login(request );
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
@@ -89,34 +90,6 @@ public class IT990AuthenticationController {
 		assertNotNull(response.getAuthenticationReceipt());
 	}
 
-	@Test
-	public void testLogin() throws Exception {
-		synapse.login(username, PASSWORD);
-		assertNotNull(synapse.getCurrentSessionToken());
-	}
-	
-	@Test(expected = SynapseUnauthorizedException.class)
-	public void testLogin_BadCredentials() throws Exception {
-		synapse.login(username, "incorrectPassword");
-	}
-	
-	@Test
-	public void testLogin_NoTermsOfUse() throws Exception {
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
-		Session session = synapse.login(username, PASSWORD);
-		assertFalse(session.getAcceptsTermsOfUse());
-		try {
-			synapse.revalidateSession();
-		} catch (SynapseTermsOfUseException e) { }
-		
-		// The session token can't be used to do much though
-		try {
-			synapse.getMyProfile();
-			fail();
-		} catch (SynapseForbiddenException e) { }
-	}
-	
-	
 	@Test
 	public void testRevalidate() throws Exception {
 		synapse.revalidateSession();
@@ -156,57 +129,14 @@ public class IT990AuthenticationController {
 	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
 		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
-		
-		// Session token should be invalid
-		try {
-			synapse.getMyProfile();
-			fail();
-		} catch (SynapseUnauthorizedException e) { }
-		
-		synapse.logout();
-		synapse.login(username, testNewPassword);
-		
-		// Restore original password
-		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
 	}
-	
-	@Test
-	public void testChangePassword_NoToU() throws Exception {
-		String testNewPassword = "newPassword";
-		
-		// Reject the terms
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
-		
-		// Password change should still work
-		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
-		synapse.logout();
-		synapse.login(username, testNewPassword);
-		
-		// Restore original password
-		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
-		
-		// Accept the terms again (cleanup)
-		synapse.login(username, PASSWORD);
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
-	}
-	
+
 	@Test
 	public void testSignTermsViaSessionToken() throws Exception {
 		String sessionToken = synapse.getCurrentSessionToken();
 		
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
-		
-		// Now I can't do authenticated requests
-		Session session = synapse.login(username, PASSWORD);
-		assertFalse(session.getAcceptsTermsOfUse());
-		
-		// Accept the terms
-		synapse.signTermsOfUse(sessionToken, true);
-		
-		session = synapse.login(username, PASSWORD);
-		assertEquals(sessionToken, synapse.getCurrentSessionToken());
-		assertTrue(session.getAcceptsTermsOfUse());
 	}
 	
 	@Test
@@ -235,22 +165,6 @@ public class IT990AuthenticationController {
 		
 		// Should work
 		synapse.getMyProfile();
-		
-		// This should make subsequent API key calls fail
-		synapse.login(username, PASSWORD);
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
-		
-		synapse.logout();
-		synapse.setUserName(username);
-		synapse.setApiKey(apikey);
-		try {
-			synapse.getMyProfile();
-			fail();
-		} catch (SynapseForbiddenException e) { }
-
-		// Clean up
-		synapse.login(username, PASSWORD);
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
 	@Test

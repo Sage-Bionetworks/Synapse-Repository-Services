@@ -17,12 +17,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -55,7 +53,6 @@ import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
@@ -64,12 +61,10 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.TimedAssert;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
 public class IT049FileHandleTest {
@@ -228,37 +223,6 @@ public class IT049FileHandleTest {
 	}
 	
 	@Test
-	public void testSingleFileDeprecatedRoundTrip() throws SynapseException, IOException, InterruptedException {
-		assertNotNull(imageFile);
-		assertTrue(imageFile.exists());
-		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
-		// Create the image
-		String myContentType = "test/content-type";
-		@SuppressWarnings("deprecation")
-		FileHandle result = synapse.createFileHandle(imageFile, myContentType);
-		assertNotNull(result);
-		S3FileHandle handle = (S3FileHandle) result;
-		toDelete.add(handle);
-		System.out.println(handle);
-		assertEquals(myContentType, handle.getContentType());
-		assertEquals(FILE_NAME, handle.getFileName());
-		assertEquals(new Long(imageFile.length()), handle.getContentSize());
-		assertEquals(expectedMD5, handle.getContentMd5());
-
-		// preview will not be created for our test content type
-
-		// Now delete the root file handle.
-		synapse.deleteFileHandle(handle.getId());
-		// The main handle and the preview should get deleted.
-		try {
-			synapse.getRawFileHandle(handle.getId());
-			fail("The handle should be deleted.");
-		} catch (SynapseNotFoundException e) {
-			// expected.
-		}
-	}
-	
-	@Test
 	public void testExternalRoundTrip() throws JSONObjectAdapterException, SynapseException{
 		ExternalFileHandle efh = new ExternalFileHandle();
 		efh.setContentType("text/plain");
@@ -374,27 +338,6 @@ public class IT049FileHandleTest {
 
 		File tmpFile = File.createTempFile(imageFile.getName(), ".tmp");
 		synapse.downloadFromFileHandleTemporaryUrl(result.getId(), tmpFile);
-
-		FileHandle result2 = synapse.createFileHandle(imageFile, myContentType, false, project.getId(), result.getStorageLocationId());
-		toDelete.add(result2);
-
-
-		assertEquals(S3FileHandle.class, result2.getClass());
-		assertEquals(externalS3Destination.getStorageLocationId(), result2.getStorageLocationId());
-		assertTrue(result2 instanceof S3FileHandle);
-		S3FileHandle result2S3 = (S3FileHandle) result2;
-		
-		// Create an external file handle using the external location.
-		S3FileHandle externalS3 = new S3FileHandle();
-		externalS3.setBucketName(result2S3.getBucketName());
-		externalS3.setKey(result2S3.getKey());
-		externalS3.setFileName(result2S3.getFileName());
-		externalS3.setStorageLocationId(result.getStorageLocationId());
-		externalS3.setContentMd5(result2S3.getContentMd5());
-		// create it
-		externalS3 = synapse.createExternalS3FileHandle(externalS3);
-		assertNotNull(externalS3);
-		assertNotNull(externalS3.getId());
 	}
 	
 	@Test

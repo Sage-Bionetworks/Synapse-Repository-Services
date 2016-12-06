@@ -14,7 +14,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -91,7 +89,6 @@ import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.Operator;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
@@ -102,6 +99,7 @@ import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.sagebionetworks.util.SerializationUtils;
+
 import com.google.common.collect.Sets;
 
 /**
@@ -324,10 +322,8 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientCRUD() throws Exception {
-		String fileHandleId = synapseOne.uploadToFileHandle("File contents".getBytes("UTF-8"), ContentType.TEXT_PLAIN, project.getId());
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandleId);
 
 		file = synapseOne.createEntity(file);
 		
@@ -799,8 +795,6 @@ public class IT500SynapseJavaClient {
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
-		assertNotNull(adminSynapse.getEntityAccessApproval(layer.getId()));
-
 		adminSynapse.deleteAccessApproval(created.getId());
 
 		try {
@@ -849,12 +843,6 @@ public class IT500SynapseJavaClient {
 
 		// Get the profile to update.
 		UserProfile profile = synapseOne.getMyProfile();
-		byte[] contents = org.apache.commons.io.FileUtils.readFileToByteArray(originalFile);
-		ContentType contentType = ContentType.create("image/png");
-		// upload the image as a file handle.
-		String fileHandleId = synapseOne.uploadToFileHandle(contents, contentType);
-		// update the profile with the handle.
-		profile.setProfilePicureFileHandleId(fileHandleId);
 		synapseOne.updateMyProfile(profile);
 		profile = synapseOne.getMyProfile();
 		// Make sure we can get a pre-signed url the image and its preview.
@@ -1073,11 +1061,6 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
-		handlesToDelete.add(fileHandle.getId());
-		
-		// update the Team with the icon
-		createdTeam.setIcon(fileHandle.getId());
 		Team updatedTeam = synapseOne.updateTeam(createdTeam);
 		// get the icon url
 		URL url = synapseOne.getTeamIcon(updatedTeam.getId());
@@ -1757,15 +1740,6 @@ public class IT500SynapseJavaClient {
 				
 		// finally, the requester should NOT have been notified that the admin added her to the team
 		assertFalse(EmailValidationUtil.doesFileExist(requesterNotification, 60000L));
-	}
-
-	@Test
-	public void testStringUploadToS3() throws Exception {
-		String content = "This is my test string.";
-		String fileHandleId = synapseOne.uploadToFileHandle(content.getBytes("UTF-8"), 
-			ContentType.create("text/plain", Charset.forName("UTF-8")));
-		assertNotNull(fileHandleId);
-		handlesToDelete.add(fileHandleId);
 	}
 	
 	@Test

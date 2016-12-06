@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.Assert;
-
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
@@ -52,6 +50,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -85,7 +84,10 @@ public class SynapseTest {
 		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider));
 		// mock the session token returned when logging in
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
-		synapse.login("foo", "bar");
+		LoginRequest request = new LoginRequest();
+		request.setUsername("foo");
+		request.setPassword("bar");
+		synapse.login(request);
 	}
 	
 	@Test
@@ -94,7 +96,7 @@ public class SynapseTest {
 
 		connection.setDomain(DomainType.SYNAPSE);
 		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
+		assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -589,10 +591,6 @@ public class SynapseTest {
 		});
 		String response = EntityFactory.createJSONStringForEntity(new Session());
 		configureMockHttpResponse(200, response);
-		
-		// One variation of the parameters that can be passed in
-		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&domain=SYNAPSE"));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

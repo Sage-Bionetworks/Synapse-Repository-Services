@@ -733,17 +733,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval2 = synapseOne.createEvaluation(eval2);
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
-		
-		// paginated evaluations
-		eval1 = synapseOne.getEvaluation(eval1.getId());
-		eval2 = synapseOne.getEvaluation(eval2.getId());
-		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationsPaginated(0, 10);
-		assertEquals(initialEvaluationCount + 2, evals.getTotalNumberOfResults());
-		Set<Evaluation> evalSet = new HashSet<Evaluation>();
-		evalSet.addAll(evals.getResults());
-		assertTrue(evalSet.contains(eval1));
-		assertTrue(evalSet.contains(eval2));
-			}
+	}
 	
 	@Test
 	public void testSubmissionsPaginated() throws SynapseException {
