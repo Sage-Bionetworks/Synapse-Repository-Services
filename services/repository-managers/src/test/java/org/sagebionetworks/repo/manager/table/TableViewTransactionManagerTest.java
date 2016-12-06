@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,12 +24,17 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityUpdateFailureCode;
+import org.sagebionetworks.repo.model.table.EntityUpdateResult;
+import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -40,6 +47,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -75,6 +83,7 @@ public class TableViewTransactionManagerTest {
 	AppendableRowSetRequest appendAbleRowSetRequest;
 	UploadToTableRequest uploadToTableRequest;
 	UploadToTableResult uploadToTableResult;
+	SparseRowDto sparseRow;
 	
 	@Before
 	public void before(){
@@ -116,6 +125,8 @@ public class TableViewTransactionManagerTest {
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
 		
 		sparseChangeSet = TableModelUtils.createSparseChangeSet(rowSet, schema);
+		sparseRow = sparseChangeSet.writeToDto().getRows().get(0);
+		sparseRow.setRowId(123l);
 		
 		appendAbleRowSetRequest = new AppendableRowSetRequest();
 		appendAbleRowSetRequest.setEntityId(viewId);
@@ -334,5 +345,81 @@ public class TableViewTransactionManagerTest {
 		partialRowSet.setTableId(null);
 		// call under test
 		manager.applyPartialRowSet(mockProgressCallback, user, schema, partialRowSet);
+	}
+	
+	@Test
+	public void testProcessRows(){
+		// call under test
+		TableUpdateResponse response =  manager.processRows(user,"tableId", schema, sparseChangeSet.writeToDto().getRows().iterator(), "etag", mockProgressCallback);
+		assertNotNull(response);
+		assertTrue(response instanceof EntityUpdateResults);
+		EntityUpdateResults result = (EntityUpdateResults)response;
+		assertNotNull(result.getRequestedFiles());
+		assertEquals(2, result.getRequestedFiles().size());
+	}
+	
+	@Test
+	public void testProcessRow(){
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFailureMessage());
+	}
+	
+	@Test
+	public void testProcessRowNotFound(){
+		doThrow(new NotFoundException("not")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertEquals(EntityUpdateFailureCode.NOT_FOUND, result.getFailureCode());
+		assertNull(result.getFailureMessage());
+	}
+	
+	@Test
+	public void testProcessRowConflict(){
+		doThrow(new ConflictingUpdateException("conflict")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertEquals(EntityUpdateFailureCode.CONCURRENT_UPDATE, result.getFailureCode());
+		assertNull(result.getFailureMessage());
+	}
+	
+	@Test
+	public void testProcessRowUnauthorized(){
+		doThrow(new UnauthorizedException("unathorized")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertEquals(EntityUpdateFailureCode.UNAUTHORIZED, result.getFailureCode());
+		assertNull(result.getFailureMessage());
+	}
+	
+	@Test
+	public void testProcessRowIllegalArgument(){
+		doThrow(new IllegalArgumentException("illegal")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertEquals(EntityUpdateFailureCode.ILLEGAL_ARGUMENT, result.getFailureCode());
+		assertNull(result.getFailureMessage());
+	}
+	
+	@Test
+	public void testProcessRowUnknown(){
+		doThrow(new RuntimeException("unknown")).when(mockTableViewManger).updateEntityInView(user, schema, sparseRow);
+		// call under test
+		EntityUpdateResult result = manager.processRow(user, schema, sparseRow, mockProgressCallback);
+		assertNotNull(result);
+		assertEquals("syn123",result.getEntityId());
+		assertEquals(EntityUpdateFailureCode.UNKNOWN, result.getFailureCode());
+		assertEquals("unknown", result.getFailureMessage());
 	}
 }

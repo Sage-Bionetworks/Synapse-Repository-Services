@@ -1708,6 +1708,23 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCalculatetPartialRowBytesEmpty(){
+		PartialRow row = new PartialRow();
+		Map<String, String> values = new HashMap<>();
+		row.setValues(values);
+		int expectedSize = 0;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
+	public void testCalculatetPartialRowBytesNull(){
+		PartialRow row = new PartialRow();
+		row.setValues(null);
+		int expectedSize = 0;
+		assertEquals(expectedSize, TableModelUtils.calculatetPartialRowBytes(row));
+	}
+	
+	@Test
 	public void testCalculatePartialRowSetBytes(){
 		PartialRow row = new PartialRow();
 		Map<String, String> values = new HashMap<>();

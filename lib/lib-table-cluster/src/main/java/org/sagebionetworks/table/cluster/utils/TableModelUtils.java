@@ -1075,6 +1075,9 @@ public class TableModelUtils {
 	 */
 	public static int calculatetPartialRowBytes(PartialRow row){
 		int charCount = 0;
+		if(row.getValues() == null){
+			return charCount;
+		}
 		for(String key: row.getValues().keySet()){
 			charCount += key.length();
 			String value = row.getValues().get(key);

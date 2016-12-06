@@ -5,6 +5,10 @@
 			"type": "string",
 			"description": "The ID of the updated entity."
 		},
+		"failureMessage":{
+			"type": "string",
+			"description": "Failure message for unknown errors."
+		},
 		"failureCode": {
 			"type": "string",
 			"description": "If the Entity update failed, a failure code will be included.  Null if the update was successful",
@@ -13,7 +17,8 @@
 				"NOT_FOUND",
 				"UNAUTHORIZED",
 				"CONCURRENT_UPDATE",
-				"SERVER_UNAVAILABLE"
+				"ILLEGAL_ARGUMENT",
+				"UNKNOWN"
 			]
 		}
 	}

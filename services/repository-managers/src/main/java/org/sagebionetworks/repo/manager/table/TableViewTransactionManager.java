@@ -6,14 +6,16 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityUpdateFailureCode;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
+import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -204,19 +206,45 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		List<EntityUpdateResult> results = new LinkedList<EntityUpdateResult>();
 		// process all rows, each as a single transaction.
 		while(rowStream.hasNext()){
-			EntityUpdateResult result = new EntityUpdateResult();
-			try {
-				progressCallback.progressMade(null);
-				SparseRowDto row = rowStream.next();
-				tableViewManger.updateEntityInView(user, tableSchema, row);
-			} catch (NotFoundException e) {
-				result.setFailureCode(EntityUpdateFailureCode.NOT_FOUND);
-			}catch (Exception e) {
-				ff
-			}
+			EntityUpdateResult result = processRow(user, tableSchema,
+					rowStream.next(), progressCallback);
+			results.add(result);
 		}
+		EntityUpdateResults response = new EntityUpdateResults();
+		response.setRequestedFiles(results);
+		return response;
+	}
 
-		return null;
+	/**
+	 * Process a row.
+	 * 
+	 * @param user
+	 * @param tableSchema
+	 * @param row
+	 * @param progressCallback
+	 * @return
+	 */
+	EntityUpdateResult processRow(UserInfo user,
+			List<ColumnModel> tableSchema, SparseRowDto row,
+			ProgressCallback<Void> progressCallback) {
+		EntityUpdateResult result = new EntityUpdateResult();
+		try {
+			progressCallback.progressMade(null);
+			result.setEntityId(KeyFactory.keyToString(row.getRowId()));
+			tableViewManger.updateEntityInView(user, tableSchema, row);
+		} catch (NotFoundException e) {
+			result.setFailureCode(EntityUpdateFailureCode.NOT_FOUND);
+		}catch (ConflictingUpdateException e) {
+			result.setFailureCode(EntityUpdateFailureCode.CONCURRENT_UPDATE);
+		}catch (UnauthorizedException e) {
+			result.setFailureCode(EntityUpdateFailureCode.UNAUTHORIZED);
+		}catch (IllegalArgumentException e) {
+			result.setFailureCode(EntityUpdateFailureCode.ILLEGAL_ARGUMENT);
+		}catch (Exception e) {
+			result.setFailureCode(EntityUpdateFailureCode.UNKNOWN);
+			result.setFailureMessage(e.getMessage());
+		}
+		return result;
 	}
 
 }

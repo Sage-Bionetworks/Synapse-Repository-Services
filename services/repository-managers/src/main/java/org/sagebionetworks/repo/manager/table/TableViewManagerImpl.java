@@ -115,6 +115,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	 * locking the entity tables for long periods of time. This also prevents
 	 * deadlock.
 	 * 
+	 * @return The EntityId.
+	 * 
 	 */
 	@RequiresNewReadCommitted
 	@Override
