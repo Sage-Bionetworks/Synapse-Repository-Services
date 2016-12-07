@@ -409,7 +409,7 @@ public class TableViewTransactionManagerTest {
 		assertNotNull(result);
 		assertEquals("syn123",result.getEntityId());
 		assertEquals(EntityUpdateFailureCode.ILLEGAL_ARGUMENT, result.getFailureCode());
-		assertNull(result.getFailureMessage());
+		assertEquals("illegal", result.getFailureMessage());
 	}
 	
 	@Test

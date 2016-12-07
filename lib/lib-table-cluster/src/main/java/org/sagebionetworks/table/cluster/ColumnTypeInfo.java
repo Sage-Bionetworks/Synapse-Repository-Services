@@ -4,6 +4,8 @@ import static org.sagebionetworks.table.cluster.utils.ColumnConstants.CHARACTER_
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.ValueParser;
+import org.sagebionetworks.repo.model.table.ValueParsers;
 
 /**
  * Mapping of ColumnType to database information.
@@ -13,7 +15,7 @@ public enum ColumnTypeInfo {
 	
 	INTEGER		(ColumnType.INTEGER, 		MySqlColumnType.BIGINT,		ValueParsers.LONG_PARSER,		20L),
 	FILEHANDLEID(ColumnType.FILEHANDLEID,	MySqlColumnType.BIGINT, 	ValueParsers.LONG_PARSER,		20L),
-	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		ValueParsers.DATE_PARSER,		20L),
+	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		ValueParsers.DATE_TO_LONG_PARSER,		20L),
 	ENTITYID	(ColumnType.ENTITYID,		MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		44L),
 	LINK		(ColumnType.LINK,			MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		null),
 	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		null),

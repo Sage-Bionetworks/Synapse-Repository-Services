@@ -22,13 +22,13 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -53,7 +53,7 @@ public class JDOSecondaryPropertyUtils {
 	public static Annotations mergeAnnotations(NamedAnnotations dto){
 		Annotations merged = new Annotations();
 		if(dto != null){
-			Iterator<String> it = dto.nameIterator();
+			Iterator<AnnotationNameSpace> it = dto.nameIterator();
 			while(it.hasNext()){
 				Annotations toMerge = dto.getAnnotationsForName(it.next());
 				merged.addAll(toMerge);

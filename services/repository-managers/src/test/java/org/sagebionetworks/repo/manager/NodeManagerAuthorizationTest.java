@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -432,7 +433,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Should fail
-		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations, NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations, AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

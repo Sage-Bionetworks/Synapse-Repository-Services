@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -253,6 +255,13 @@ public class TableViewManagerImplTest {
 		when(columnModelManager.getColumnIdForTable(viewId)).thenReturn(schema);
 		List<String> retrievedSchema = manager.getTableSchema(viewId);
 		assertEquals(schema, retrievedSchema);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsFromValues(){
+		Annotations annos = new Annotations();
+		Map<String, String> values = new HashMap<>();
+		TableViewManagerImpl.updateAnnotationsFromValues(additional, tableSchema, values)
 	}
 
 }

@@ -17,6 +17,7 @@ import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -486,7 +487,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, String namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
@@ -501,11 +502,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NamedAnnotations namedAnnos = nodeDao.getAnnotations(nodeId);
 		// Replace a single namespace
 		namedAnnos.put(namespace, updated);
-		
 		nodeDao.updateAnnotations(nodeId, namedAnnos);
-		if(log.isDebugEnabled()){
-			log.debug("username "+userName+" updated Annotations for node: "+updated.getId());
-		}
 		namedAnnos = getAnnotations(userInfo, nodeId);
 		return namedAnnos.getAnnotationsForName(namespace);
 	}
@@ -513,7 +510,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void validateAnnotations(NamedAnnotations updatedAnnos) throws DatastoreException, InvalidModelException {
 		if(updatedAnnos == null) throw new IllegalArgumentException("NamedAnnotations cannot be null");
 		// Validate all of the annotations
-		Iterator<String> it = updatedAnnos.nameIterator();
+		Iterator<AnnotationNameSpace> it = updatedAnnos.nameIterator();
 		while(it.hasNext()){
 			validateAnnotations(updatedAnnos.getAnnotationsForName(it.next()));
 		}

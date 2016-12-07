@@ -2,12 +2,18 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -15,11 +21,13 @@ import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
+	private static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000;
 	public static final String MAX_CONTAINER_MESSAGE = "The provided view scope includes: %1$S containers which exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW;
 	
@@ -31,6 +39,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	TableManagerSupport tableManagerSupport;
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	@Autowired
+	NodeManager nodeManager;
 	
 	/*
 	 * (non-Javadoc)
@@ -122,7 +132,59 @@ public class TableViewManagerImpl implements TableViewManager {
 	@Override
 	public void updateEntityInView(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row) {
-		// not ready yet
-		throw new UnsupportedOperationException("Not supported yet");
+		ValidateArgument.required(row, "SparseRowDto");
+		ValidateArgument.required(row.getRowId(), "row.rowId");
+		if(row.getValues() == null || row.getValues().isEmpty()){
+			// nothing to do for this row.
+			return;
+		}
+		String entityId = KeyFactory.keyToString(row.getRowId());
+		Map<String, String> values = row.getValues();
+		String etag = values.get(EntityField.etag.name());
+		if(etag == null){
+			throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
+		}
+		// Lookup the etag
+		NamedAnnotations annotations = nodeManager.getAnnotations(user, entityId);
+		Annotations additional = annotations.getAdditionalAnnotations();
+		additional.setEtag(etag);
+		boolean updated = updateAnnotationsFromValues(additional, tableSchema, values);
+		if(updated){
+			// save the changes.
+			nodeManager.updateAnnotations(user, entityId, additional, AnnotationNameSpace.ADDITIONAL);
+		}
+	}
+	
+	/**
+	 * Update the passed Annotations using the given schema and values map.
+	 * 
+	 * @param additional
+	 * @param tableSchema
+	 * @param values
+	 * @return
+	 */
+	public static boolean updateAnnotationsFromValues(Annotations additional, List<ColumnModel> tableSchema, Map<String, String> values){
+		boolean updated = false;
+		// process each column of the view
+		for(ColumnModel column: tableSchema){
+			EntityField matchedField = EntityField.findMatch(column);
+			// Ignore all entity fields.
+			if(matchedField == null){
+				// is this column included in the row?
+				if(values.containsKey(column.getName())){
+					updated = true;
+					// Match the column type to an annotation type.
+					AnnotationType type = SQLUtils.translateColumnType(column.getColumnType());
+					String value = values.get(column.getName());
+					if(value == null){
+						additional.deleteAnnotation(column.getName());
+					}else{
+						Object objectValue = type.parseValue(value);
+						additional.replaceAnnotation(column.getName(), objectValue);
+					}
+				}
+			}
+		}
+		return updated;
 	}
 }

@@ -13,25 +13,16 @@ import java.util.Map;
  */
 public class NamedAnnotations {
 	
-	/**
-	 * The direct fields of an entity are stored in the primary name-space.
-	 */
-	public static final String NAME_SPACE_PRIMARY 		= "PRIMARY";
-	/**
-	 * All additional annotations belong to this name-space.
-	 */
-	public static final String NAME_SPACE_ADDITIONAL 	= "ADDITIONAL";
-	
 	private String id; // for its parent entity
 	private String etag;
 	private Date creationDate;
 	private Long createdBy;
-	private Map<String, Annotations> map;
+	private Map<AnnotationNameSpace, Annotations> map;
 	
 	public NamedAnnotations(){
-		map = new HashMap<String, Annotations>();
-		map.put(NAME_SPACE_PRIMARY, new Annotations());
-		map.put(NAME_SPACE_ADDITIONAL, new Annotations());
+		map = new HashMap<AnnotationNameSpace, Annotations>();
+		map.put(AnnotationNameSpace.PRIMARY, new Annotations());
+		map.put(AnnotationNameSpace.ADDITIONAL, new Annotations());
 	}
 	
 	/**
@@ -39,7 +30,7 @@ public class NamedAnnotations {
 	 * @param name
 	 * @return
 	 */
-	public Annotations getAnnotationsForName(String name){
+	public Annotations getAnnotationsForName(AnnotationNameSpace name){
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		Annotations annos = map.get(name);
 		if(annos == null){
@@ -67,7 +58,7 @@ public class NamedAnnotations {
 		}
 	}
 	
-	public Iterator<String> nameIterator(){
+	public Iterator<AnnotationNameSpace> nameIterator(){
 		return map.keySet().iterator();
 	}
 	
@@ -76,7 +67,7 @@ public class NamedAnnotations {
 	 * @return
 	 */
 	public Annotations getPrimaryAnnotations(){
-		return getAnnotationsForName(NAME_SPACE_PRIMARY);
+		return getAnnotationsForName(AnnotationNameSpace.PRIMARY);
 	}
 	
 	/**
@@ -84,7 +75,7 @@ public class NamedAnnotations {
 	 * @return
 	 */
 	public Annotations getAdditionalAnnotations(){
-		return getAnnotationsForName(NAME_SPACE_ADDITIONAL);
+		return getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
 	}
 
 	public String getId() {
@@ -123,16 +114,16 @@ public class NamedAnnotations {
 	 * Put all annotations from the passed map.
 	 * @param toAdd
 	 */
-	public void putAll(Map<String, Annotations> toAdd) {
+	public void putAll(Map<AnnotationNameSpace, Annotations> toAdd) {
 		if(toAdd != null){
 			map.putAll(toAdd);
 		}
 	}
 	
-	public void put(String name, Annotations annos){
-		if(name == null) throw new IllegalArgumentException("Name cannot be null");
+	public void put(AnnotationNameSpace nameSpace, Annotations annos){
+		if(nameSpace == null) throw new IllegalArgumentException("Name cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
-		map.put(name, annos);
+		map.put(nameSpace, annos);
 	}
 	
 	
@@ -140,7 +131,7 @@ public class NamedAnnotations {
 	 * Get a read only copy of the map
 	 * @return
 	 */
-	public Map<String, Annotations> getMap(){
+	public Map<AnnotationNameSpace, Annotations> getMap(){
 		return Collections.unmodifiableMap(map);
 	}
 

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -290,7 +291,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Add some values
 		annos.addAnnotation("longKey", new Long(1));
 		// Now update the node
-		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(updated);
 		assertNotNull(updated.getEtag());
 		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
@@ -319,11 +320,11 @@ public class NodeManagerImplAutoWiredTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "should take");
 		String startingEtag = annos.getEtag();
-		nodeManager.updateAnnotations(userInfo, id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		// Try it again without changing the eTag
 		annos.setEtag(startingEtag);
 		annos.addAnnotation("stringKey", "should not take");
-		nodeManager.updateAnnotations(userInfo, id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	@Test
@@ -351,7 +352,7 @@ public class NodeManagerImplAutoWiredTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		String firstVersionValue = "Value on the first version.";
 		annos.addAnnotation("stringKey", firstVersionValue);
-		nodeManager.updateAnnotations(userInfo, id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		nodeManager.updateAnnotations(userInfo, id, annos, AnnotationNameSpace.ADDITIONAL);
 		
 		// In a typical new version scenario we will update a the node and annotations at the same
 		// times as creating a new version.

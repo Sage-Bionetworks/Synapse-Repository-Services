@@ -240,6 +240,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 			result.setFailureCode(EntityUpdateFailureCode.UNAUTHORIZED);
 		}catch (IllegalArgumentException e) {
 			result.setFailureCode(EntityUpdateFailureCode.ILLEGAL_ARGUMENT);
+			result.setFailureMessage(e.getMessage());
 		}catch (Exception e) {
 			result.setFailureCode(EntityUpdateFailureCode.UNKNOWN);
 			result.setFailureMessage(e.getMessage());

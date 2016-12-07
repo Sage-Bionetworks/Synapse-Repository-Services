@@ -19,6 +19,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
@@ -191,7 +192,7 @@ public class JDOSecondaryPropertyUtilsTest {
 		// First generate the random annotations to be used to create the compresssed blob fil.
 		Annotations annos = RandomAnnotationsUtil.generateRandom(seed, count);
 		NamedAnnotations named = new NamedAnnotations();
-		named.put("newType", annos);
+		named.put(AnnotationNameSpace.ADDITIONAL, annos);
 
 		// Now create the output file
 		File outputFile = new File("src/test/resources/"+name);
