@@ -86,7 +86,7 @@ public class IT055WikiPageTest {
 		assertTrue(imageFile.exists());
 		imageFileMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 
-		fileHandle = synapse.multipartUpload(imageFile, null, false, false);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		handlesToDelete.add(fileHandle.getId());
 	}
 

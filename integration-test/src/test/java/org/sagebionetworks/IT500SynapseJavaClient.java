@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -89,6 +90,8 @@ import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.Operator;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
@@ -322,8 +325,12 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testJavaClientCRUD() throws Exception {
+		byte[] content = "File contents".getBytes("UTF-8");
+		String fileHandleId = synapseOne.multipartUpload(new ByteArrayInputStream(content),
+				(long) content.length, "content", "text/plain", null, false, false).getId();
 		FileEntity file = new FileEntity();
 		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandleId);
 
 		file = synapseOne.createEntity(file);
 		
@@ -843,6 +850,8 @@ public class IT500SynapseJavaClient {
 
 		// Get the profile to update.
 		UserProfile profile = synapseOne.getMyProfile();
+		S3FileHandle fileHandle = synapseOne.multipartUpload(originalFile, null, true, false);
+		profile.setProfilePicureFileHandleId(fileHandle.getId());
 		synapseOne.updateMyProfile(profile);
 		profile = synapseOne.getMyProfile();
 		// Make sure we can get a pre-signed url the image and its preview.
@@ -1061,6 +1070,11 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
+		FileHandle fileHandle = synapseOne.multipartUpload(file, null, true, false);
+		handlesToDelete.add(fileHandle.getId());
+
+		// update the Team with the icon
+		createdTeam.setIcon(fileHandle.getId());
 		Team updatedTeam = synapseOne.updateTeam(createdTeam);
 		// get the icon url
 		URL url = synapseOne.getTeamIcon(updatedTeam.getId());

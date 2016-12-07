@@ -128,7 +128,7 @@ public class IT049FileHandleTest {
 		assertTrue(imageFile.exists());
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 
-		S3FileHandle handle = synapse.multipartUpload(imageFile, null, false, false);
+		S3FileHandle handle = synapse.multipartUpload(imageFile, null, true, false);
 		toDelete.add(handle);
 		System.out.println(handle);
 		assertEquals("image/png", handle.getContentType());

@@ -3667,7 +3667,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			byte[] messageByteArray = toUpload.getBytes("UTF-8");
 			return multipartUpload(new ByteArrayInputStream(messageByteArray),
-					(long) messageByteArray.length, "content", "text/plain", null, false, false).getId();
+					(long) messageByteArray.length, "content", "text/plain; charset=UTF-8", null, false, false).getId();
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseClientException(e);
 		}

@@ -96,7 +96,7 @@ public class IT054FileEntityTest {
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
 
-		fileHandle = synapse.multipartUpload(imageFile, null, false, false);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		fileHandlesToDelete.add(fileHandle.getId());
 		baseKey = UUID.randomUUID().toString() + '/';
 	}

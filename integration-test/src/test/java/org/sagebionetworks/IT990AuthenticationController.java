@@ -42,6 +42,7 @@ public class IT990AuthenticationController {
 	private static String email;
 	private static String username;
 	private static final String PASSWORD = "password";
+	private static String receipt = null;
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -68,10 +69,10 @@ public class IT990AuthenticationController {
 	@Before
 	public void setup() throws Exception {
 		LoginRequest request = new LoginRequest();
-		request.setAuthenticationReceipt(null);
 		request.setUsername(username);
 		request.setPassword(PASSWORD);
-		synapse.login(request );
+		request.setAuthenticationReceipt(receipt);
+		receipt = synapse.login(request).getAuthenticationReceipt();
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
@@ -129,6 +130,11 @@ public class IT990AuthenticationController {
 	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
 		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		LoginRequest request = new LoginRequest();
+		request.setUsername(username);
+		request.setPassword(testNewPassword);
+		synapse.login(request);
+		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
 	}
 
 	@Test

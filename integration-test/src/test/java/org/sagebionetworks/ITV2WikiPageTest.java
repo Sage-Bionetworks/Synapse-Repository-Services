@@ -112,8 +112,8 @@ public class ITV2WikiPageTest {
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		fileHandle = synapse.multipartUpload(imageFile, null, false, false);
-		fileHandleTwo = synapse.multipartUpload(imageFileTwo, null, false, false);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
+		fileHandleTwo = synapse.multipartUpload(imageFileTwo, null, true, false);
 		markdownHandle = synapse.multipartUpload(markdownFile, null, false, false);
 		
 		// create the access requirement
