@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,22 +17,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -39,9 +33,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -146,11 +138,6 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -159,13 +146,9 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.S3UploadDestination;
-import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.TempFileProviderImpl;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -218,7 +201,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -247,7 +229,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
@@ -263,8 +244,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final Logger log = LogManager
 			.getLogger(SynapseClientImpl.class.getName());
-
-	private static final long MAX_UPLOAD_DAEMON_MS = 60 * 1000;
 
 	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
 	private static final String DEFAULT_AUTH_ENDPOINT = SharedClientConnection.DEFAULT_AUTH_ENDPOINT;
@@ -418,11 +397,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	protected static final String FILE_BULK = FILE+"/bulk";
 
-	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
-	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
-	private static final String START_COMPLETE_UPLOAD_DAEMON = "/startCompleteUploadDaemon";
-	private static final String COMPLETE_UPLOAD_DAEMON_STATUS = "/completeUploadDaemonStatus";
-
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
@@ -461,10 +435,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
-
-	private static final long MAX_BACKOFF_MILLIS = 5 * 60 * 1000L; // five
-																	// minutes
-
 	/**
 	 * The character encoding to use with strings which are the body of email
 	 * messages
@@ -543,18 +513,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected String repoEndpoint;
 	protected String authEndpoint;
 	protected String fileEndpoint;
-
-	/**
-	 * The maximum number of threads that should be used to upload asynchronous
-	 * file chunks.
-	 */
-	private static final int MAX_NUMBER_OF_THREADS = 2;
-
-	/**
-	 * This thread pool is used for asynchronous file chunk uploads.
-	 */
-	private ExecutorService fileUplaodthreadPool = Executors
-			.newFixedThreadPool(MAX_NUMBER_OF_THREADS);
 
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3
@@ -762,14 +720,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void setApiKey(String apiKey) {
 		getSharedClientConnection().setApiKey(apiKey);
-	}
-
-	@Deprecated
-	@Override
-	public Session login(String username, String password)
-			throws SynapseException {
-		return getSharedClientConnection().login(username, password,
-				getUserAgent());
 	}
 
 	@Override
@@ -2216,50 +2166,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	@Deprecated
-	public FileHandleResults createFileHandles(List<File> files)
-			throws SynapseException {
-		if (files == null)
-			throw new IllegalArgumentException("File list cannot be null");
-		try {
-			List<FileHandle> list = new LinkedList<FileHandle>();
-			for (File file : files) {
-				// We need to determine the content type of the file
-				String contentType = guessContentTypeFromStream(file);
-				S3FileHandle handle = createFileHandle(file, contentType);
-				list.add(handle);
-			}
-			FileHandleResults results = new FileHandleResults();
-			results.setList(list);
-			return results;
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Override
-	public FileHandleResults createFileHandles(List<File> files,
-			String parentEntityId) throws SynapseException {
-		if (files == null)
-			throw new IllegalArgumentException("File list cannot be null");
-		try {
-			List<FileHandle> list = new LinkedList<FileHandle>();
-			for (File file : files) {
-				// We need to determine the content type of the file
-				String contentType = guessContentTypeFromStream(file);
-				FileHandle handle = createFileHandle(file, contentType,
-						parentEntityId);
-				list.add(handle);
-			}
-			FileHandleResults results = new FileHandleResults();
-			results.setList(list);
-			return results;
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Override
 	public URL getFileHandleTemporaryUrl(String fileHandleId)
 			throws IOException, SynapseException {
 		String uri = getFileHandleTemporaryURI(fileHandleId, false);
@@ -2281,240 +2187,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				destinationFile, getUserAgent());
 	}
 
-	@Override
-	@Deprecated
-	public S3FileHandle createFileHandle(File temp, String contentType)
-			throws SynapseException, IOException {
-		return createFileHandleUsingChunkedUpload(temp, contentType, null, null);
-	}
-
-	@Override
-	@Deprecated
-	public S3FileHandle createFileHandle(File temp, String contentType,
-			Boolean shouldPreviewBeCreated) throws SynapseException,
-			IOException {
-		return createFileHandleUsingChunkedUpload(temp, contentType,
-				shouldPreviewBeCreated, null);
-	}
-
-	@Override
-	public FileHandle createFileHandle(File temp, String contentType,
-			String parentEntityId) throws SynapseException, IOException {
-		return createFileHandle(temp, contentType, null, parentEntityId);
-	}
-
-	@Override
-	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
-			throws SynapseException, IOException {
-		UploadDestination uploadDestination = getDefaultUploadDestination(parentEntityId);
-		return createFileHandle(temp, contentType, shouldPreviewBeCreated, uploadDestination.getStorageLocationId(),
-				uploadDestination.getUploadType());
-	}
-
-	@Override
-	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId,
-			Long storageLocationId) throws SynapseException, IOException {
-		UploadDestination uploadDestination = getUploadDestination(parentEntityId, storageLocationId);
-		return createFileHandle(temp, contentType, shouldPreviewBeCreated, storageLocationId, uploadDestination.getUploadType());
-	}
-
-	private FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, Long storageLocationId,
-			UploadType uploadType) throws SynapseException, IOException {
-		if (storageLocationId == null) {
-			// default to S3
-			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, null);
-		}
-
-		switch (uploadType) {
-		case HTTPS:
-		case SFTP:
-			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
-		case S3:
-			return createFileHandleUsingChunkedUpload(temp, contentType, shouldPreviewBeCreated, storageLocationId);
-		default:
-			throw new NotImplementedException(uploadType.name() + " uploads not implemented yet");
-		}
-	}
-
-	private S3FileHandle createFileHandleUsingChunkedUpload(File temp, String contentType, Boolean shouldPreviewBeCreated,
-			Long storageLocationId) throws SynapseException,
-			IOException {
-		if (temp == null) {
-			throw new IllegalArgumentException("File cannot be null");
-		}
-		if (contentType == null) {
-			throw new IllegalArgumentException("Content type cannot be null");
-		}
-
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setStorageLocationId(storageLocationId);
-		ccftr.setContentType(contentType);
-		ccftr.setFileName(temp.getName());
-		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(temp);
-		ccftr.setContentMD5(md5);
-		// Start the upload
-		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
-		// Now break the file into part as needed
-		List<File> fileChunks = FileUtils.chunkFile(temp,
-				MINIMUM_CHUNK_SIZE_BYTES);
-		try {
-			// Upload all of the parts.
-			List<Long> partNumbers = uploadChunks(fileChunks, token);
-
-			// We can now complete the upload
-			CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
-			cacr.setChunkedFileToken(token);
-			cacr.setChunkNumbers(partNumbers);
-			cacr.setShouldPreviewBeGenerated(shouldPreviewBeCreated);
-
-			// Start the daemon
-			UploadDaemonStatus status = startUploadDeamon(cacr);
-			// Wait for it to complete
-			long start = System.currentTimeMillis();
-			while (State.COMPLETED != status.getState()) {
-				// Check for failure
-				if (State.FAILED == status.getState()) {
-					throw new SynapseClientException("Upload failed: "
-							+ status.getErrorMessage());
-				}
-				log.debug("Waiting for upload daemon: " + status.toString());
-				Thread.sleep(1000);
-				status = getCompleteUploadDaemonStatus(status.getDaemonId());
-				if (System.currentTimeMillis() - start > MAX_UPLOAD_DAEMON_MS) {
-					throw new SynapseClientException(
-							"Timed out waiting for upload daemon: "
-									+ status.toString());
-				}
-			}
-			// Complete the upload
-			return (S3FileHandle) getRawFileHandle(status.getFileHandleId());
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		} finally {
-			// Delete any tmep files created by this method. The original file
-			// will not be deleted.
-			FileUtils.deleteAllFilesExcludingException(temp, fileChunks);
-		}
-	}
-
-	/**
-	 * Upload all of the passed file chunks.
-	 * 
-	 * @param fileChunks
-	 * @param token
-	 * @return
-	 * @throws ExecutionException
-	 * @throws InterruptedException
-	 */
-	private List<Long> uploadChunks(List<File> fileChunks,
-			ChunkedFileToken token) throws SynapseException {
-		try {
-			List<Long> results = new LinkedList<Long>();
-			// The future list
-			List<Future<Long>> futureList = new ArrayList<Future<Long>>();
-			// For each chunk create a worker and add it to the thread pool
-			long chunkNumber = 1;
-			for (File file : fileChunks) {
-				// create a worker for each chunk
-				ChunkRequest request = new ChunkRequest();
-				request.setChunkedFileToken(token);
-				request.setChunkNumber(chunkNumber);
-				FileChunkUploadWorker worker = new FileChunkUploadWorker(this,
-						request, file);
-				// Add this the the thread pool
-				Future<Long> future = fileUplaodthreadPool.submit(worker);
-				futureList.add(future);
-				chunkNumber++;
-			}
-			// Get all of the results
-			for (Future<Long> future : futureList) {
-				Long partNumber = future.get();
-				results.add(partNumber);
-			}
-			return results;
-		} catch (Exception e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	/**
-	 * <P>
-	 * This is a low-level API call for uploading large files. We recomend using
-	 * the high-level API call for uploading files
-	 * {@link #createFileHandle(File, String)}.
-	 * </P>
-	 * This is the first step in the low-level API used to upload large files to
-	 * Synapse. The resulting {@link ChunkedFileToken} is required for all
-	 * subsequent steps. Large file upload is exectued as follows:
-	 * <ol>
-	 * <li>{@link #createChunkedFileUploadToken(CreateChunkedFileTokenRequest)}</li>
-	 * <li>{@link #createChunkedPresignedUrl(ChunkRequest)}</li>
-	 * <li>{@link #addChunkToFile(ChunkRequest)}</li>
-	 * <li>{@link #completeChunkFileUpload(CompleteChunkedFileRequest)}</li>
-	 * </ol>
-	 * Steps 2 & 3 are repated in for each file chunk. Note: All chunks can be
-	 * sent asynchronously.
-	 * 
-	 * @param ccftr
-	 * @return The @link {@link ChunkedFileToken} is required for all subsequent
-	 *         steps.
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 */
-	@Override
-	public ChunkedFileToken createChunkedFileUploadToken(
-			CreateChunkedFileTokenRequest ccftr) throws SynapseException {
-		if (ccftr == null)
-			throw new IllegalArgumentException(
-					"CreateChunkedFileTokenRequest cannot be null");
-		if (ccftr.getFileName() == null)
-			throw new IllegalArgumentException("FileName cannot be null");
-		if (ccftr.getContentType() == null)
-			throw new IllegalArgumentException("ContentType cannot be null");
-		String url = CREATE_CHUNKED_FILE_UPLOAD_TOKEN;
-		return asymmetricalPost(getFileEndpoint(), url, ccftr,
-				ChunkedFileToken.class, null);
-	}
-
-	/**
-	 * <P>
-	 * This is a low-level API call for uploading large files. We recomend using
-	 * the high-level API call for uploading files
-	 * {@link #createFileHandle(File, String)}.
-	 * </P>
-	 * The second step in the low-level API used to upload large files to
-	 * Synapse. This method is used to get a pre-signed URL that can be used to
-	 * PUT the data of a single chunk to S3.
-	 * 
-	 * @param chunkRequest
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 */
-	@Override
-	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest)
-			throws SynapseException {
-		try {
-			if (chunkRequest == null) {
-				throw new IllegalArgumentException(
-						"ChunkRequest cannot be null");
-			}
-			String uri = CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL;
-			String data = EntityFactory.createJSONStringForEntity(chunkRequest);
-			String responseBody = getSharedClientConnection().postStringDirect(
-					getFileEndpoint(), uri, data, getUserAgent());
-			return new URL(responseBody);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-	
 	/**
 	 * Put the contents of the passed file to the passed URL.
 	 * 
@@ -2527,42 +2199,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException {
 		return getHttpClientHelper().putFileToURL(url, file, contentType);
-	}
-
-	/**
-	 * Start a daemon that will asycnrhounsously complete the multi-part upload.
-	 * 
-	 * @param cacr
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
-			throws SynapseException {
-		String url = START_COMPLETE_UPLOAD_DAEMON;
-		return asymmetricalPost(getFileEndpoint(), url, cacr,
-				UploadDaemonStatus.class, null);
-	}
-
-	/**
-	 * Get the status of daemon used to complete the multi-part upload.
-	 * 
-	 * @param daemonId
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	@Override
-	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId)
-			throws SynapseException {
-		String url = COMPLETE_UPLOAD_DAEMON_STATUS + "/" + daemonId;
-		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
-		try {
-			return EntityFactory.createEntityFromJSONObject(json,
-					UploadDaemonStatus.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	/**
@@ -3901,60 +3537,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Update a dataset, layer, preview, annotations, etc...
-	 * 
-	 * This convenience method first grabs a copy of the currently stored
-	 * entity, then overwrites fields from the entity passed in on top of the
-	 * stored entity we retrieved and then PUTs the entity. This essentially
-	 * does a partial update from the point of view of the user of this API.
-	 * 
-	 * Note that users of this API may want to inspect what they are overwriting
-	 * before they do so. Another approach would be to do a GET, display the
-	 * field to the user, allow them to edit the fields, and then do a PUT.
-	 * 
-	 * @param defaultEndpoint
-	 * @param uri
-	 * @param entity
-	 * @return the updated entity
-	 * @throws SynapseException
-	 */
-	@SuppressWarnings("unchecked")
-	@Deprecated
-	public JSONObject updateSynapseEntity(String uri, JSONObject entity)
-			throws SynapseException {
-
-		JSONObject storedEntity = getSharedClientConnection().getJson(
-				repoEndpoint, uri, getUserAgent());
-
-		boolean isAnnotation = uri.endsWith(ANNOTATION_URI_SUFFIX);
-		try {
-			Iterator<String> keyIter = entity.keys();
-			while (keyIter.hasNext()) {
-				String key = keyIter.next();
-				if (isAnnotation) {
-					// Annotations need to go one level deeper
-					JSONObject storedAnnotations = storedEntity
-							.getJSONObject(key);
-					JSONObject entityAnnotations = entity.getJSONObject(key);
-					Iterator<String> annotationIter = entity.getJSONObject(key)
-							.keys();
-					while (annotationIter.hasNext()) {
-						String annotationKey = annotationIter.next();
-						storedAnnotations.put(annotationKey,
-								entityAnnotations.get(annotationKey));
-					}
-				} else {
-					storedEntity.put(key, entity.get(key));
-				}
-			}
-			return getSharedClientConnection().putJson(repoEndpoint, uri,
-					storedEntity.toString(), getUserAgent());
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	/**
 	 * Perform a query
 	 * 
 	 * @param query
@@ -4065,134 +3647,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.client.SynapseClient#uploadToFileHandle(byte[], org.apache.http.entity.ContentType, java.lang.String)
-	 */
-	@Override
-	public String uploadToFileHandle(byte[] content, ContentType contentType,
-			String parentEntityId) throws SynapseException {
-		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
-		if (uploadDestinations.isEmpty()) {
-			// default to S3
-			return uploadToS3FileHandle(content, contentType, null);
-		}
-
-		UploadDestination uploadDestination = uploadDestinations.get(0);
-		switch (uploadDestination.getUploadType()) {
-		case HTTPS:
-		case SFTP:
-			throw new NotImplementedException(
-					"SFTP and HTTPS uploads not implemented yet");
-		case S3:
-			return uploadToS3FileHandle(content, contentType,
-					(S3UploadDestination) uploadDestination);
-		default:
-			throw new NotImplementedException(uploadDestination.getUploadType()
-					.name() + " uploads not implemented yet");
-		}
-	}
-
-	/**
-	 * uploads a String to S3 using the chunked file upload service
-	 * 
-	 * @param content
-	 *            the content to upload. Strings in memory should not be large,
-	 *            so we limit to the size of one 'chunk'
-	 * @param contentType
-	 *            should include the character encoding, e.g.
-	 *            "text/plain; charset=utf-8"
-	 */
-	@Override
-	public String uploadToFileHandle(byte[] content, ContentType contentType)
-			throws SynapseException {
-		return uploadToS3FileHandle(content, contentType, null);
-	}
-
-	/**
-	 * uploads a String to S3 using the chunked file upload service
-	 * 
-	 * @param content
-	 *            the content to upload. Strings in memory should not be large,
-	 *            so we limit to the size of one 'chunk'
-	 * @param contentType
-	 *            should include the character encoding, e.g.
-	 *            "text/plain; charset=utf-8"
-	 */
-	private String uploadToS3FileHandle(byte[] content,
-			ContentType contentType, UploadDestination uploadDestination)
-			throws SynapseClientException, SynapseException {
-		if (content == null || content.length == 0)
-			throw new IllegalArgumentException("Missing content.");
-
-		if (content.length >= MINIMUM_CHUNK_SIZE_BYTES)
-			throw new IllegalArgumentException("String must be less than "
-					+ MINIMUM_CHUNK_SIZE_BYTES + " bytes.");
-
-		String contentMD5 = null;
-		try {
-			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setFileName("content");
-		ccftr.setContentType(contentType.toString());
-		ccftr.setContentMD5(contentMD5);
-		ccftr.setUploadDestination(uploadDestination);
-		ccftr.setStorageLocationId(uploadDestination == null ? null : uploadDestination.getStorageLocationId());
-		// Start the upload
-		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
-
-		// because of the restriction on string length there will be exactly one
-		// chunk
-		List<Long> chunkNumbers = new ArrayList<Long>();
-		long currentChunkNumber = 1;
-		chunkNumbers.add(currentChunkNumber);
-		ChunkRequest request = new ChunkRequest();
-		request.setChunkedFileToken(token);
-		request.setChunkNumber((long) currentChunkNumber);
-		URL presignedURL = createChunkedPresignedUrl(request);
-		getHttpClientHelper().putBytesToURL(presignedURL, content,
-				contentType.toString());
-
-		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
-		cacr.setChunkedFileToken(token);
-		cacr.setChunkNumbers(chunkNumbers);
-		UploadDaemonStatus status = startUploadDeamon(cacr);
-		State state = status.getState();
-		if (state.equals(State.FAILED))
-			throw new IllegalStateException("Message creation failed: "
-					+ status.getErrorMessage());
-
-		long backOffMillis = 100L; // initially just 1/10 sec, but will
-									// exponentially increase
-		while (state.equals(State.PROCESSING)
-				&& backOffMillis <= MAX_BACKOFF_MILLIS) {
-			try {
-				Thread.sleep(backOffMillis);
-			} catch (InterruptedException e) {
-				// continue
-			}
-			status = getCompleteUploadDaemonStatus(status.getDaemonId());
-			state = status.getState();
-			if (state.equals(State.FAILED))
-				throw new IllegalStateException("Message creation failed: "
-						+ status.getErrorMessage());
-			backOffMillis *= 2; // exponential backoff
-		}
-
-		if (!state.equals(State.COMPLETED))
-			throw new IllegalStateException("Message creation failed: "
-					+ status.getErrorMessage());
-
-		return status.getFileHandleId();
-	}
-
-	private static final ContentType STRING_MESSAGE_CONTENT_TYPE = ContentType
-			.create("text/plain", MESSAGE_CHARSET);
-
 	/**
 	 * Convenience function to upload a simple string message body, then send
 	 * message using resultant fileHandleId
@@ -4205,11 +3659,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String messageBody) throws SynapseException {
-		String fileHandleId = uploadToFileHandle(
-				messageBody.getBytes(MESSAGE_CHARSET),
-				STRING_MESSAGE_CONTENT_TYPE);
-		message.setFileHandleId(fileHandleId);
+		message.setFileHandleId(uploadStringToS3(messageBody));
 		return sendMessage(message);
+	}
+
+	private String uploadStringToS3(String toUpload) throws SynapseException {
+		try {
+			byte[] messageByteArray = toUpload.getBytes("UTF-8");
+			return multipartUpload(new ByteArrayInputStream(messageByteArray),
+					(long) messageByteArray.length, "content", "text/plain; charset=UTF-8", null, false, false).getId();
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	/**
@@ -4225,10 +3686,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public MessageToUser sendStringMessage(MessageToUser message,
 			String entityId, String messageBody) throws SynapseException {
-		String fileHandleId = uploadToFileHandle(
-				messageBody.getBytes(MESSAGE_CHARSET),
-				STRING_MESSAGE_CONTENT_TYPE);
-		message.setFileHandleId(fileHandleId);
+		message.setFileHandleId(uploadStringToS3(messageBody));
 		return sendMessage(message, entityId);
 	}
 
@@ -4694,25 +4152,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			int offset, int limit) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + id + EVALUATION_URI_PATH + "?"
 				+ OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(
-				Evaluation.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
-	@Deprecated
-	@Override
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset,
-			int limit) throws SynapseException {
-		String url = EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset
-				+ "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(
@@ -5905,26 +5344,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
-	@Deprecated
-	@Override
-	public RowSet getRowsFromTable(RowReferenceSet toGet)
-			throws SynapseException, SynapseTableUnavailableException {
-		if (toGet == null)
-			throw new IllegalArgumentException("RowReferenceSet cannot be null");
-		if (toGet.getTableId() == null)
-			throw new IllegalArgumentException(
-					"RowReferenceSet.tableId cannot be null");
-		String uri = ENTITY + "/" + toGet.getTableId() + TABLE + "/getRows";
-		try {
-			String jsonBody = EntityFactory.createJSONStringForEntity(toGet);
-			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint,
-					uri, jsonBody, getUserAgent(), null);
-			return EntityFactory.createEntityFromJSONObject(obj, RowSet.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-
 	@Override
 	public TableFileHandleResults getFileHandlesFromTable(
 			RowReferenceSet fileHandlesToFind) throws SynapseException {
@@ -6048,12 +5467,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			SynapseResultNotReadyException {
 		return (DownloadFromTableResult) getAsyncResult(
 				AsynchJobType.TableCSVDownload, asyncJobToken, tableId);
-	}
-
-	@Override
-	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
-			CsvTableDescriptor csvDescriptor) throws SynapseException {
-		return uploadCsvToTableAsyncStart(tableId, fileHandleId, etag, linesToSkip, csvDescriptor, null);
 	}
 
 	@Override
@@ -6799,45 +6212,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
-	@Deprecated
-	@Override
-	public Session passThroughOpenIDParameters(String queryString)
-			throws SynapseException {
-		return passThroughOpenIDParameters(queryString, false);
-	}
-
-	@Deprecated
-	@Override
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary) throws SynapseException {
-		return passThroughOpenIDParameters(queryString, createUserIfNecessary,
-				DomainType.SYNAPSE);
-	}
-
-	@Deprecated
-	@Override
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary, DomainType domain)
-			throws SynapseException {
-		try {
-			URIBuilder builder = new URIBuilder();
-			builder.setPath("/openIdCallback");
-			builder.setQuery(queryString);
-			builder.setParameter("org.sagebionetworks.createUserIfNecessary",
-					createUserIfNecessary.toString());
-
-			Map<String, String> parameters = domainToParameterMap(domain);
-
-			JSONObject session = getSharedClientConnection().postJson(
-					authEndpoint, builder.toString(), "", getUserAgent(),
-					parameters);
-			return EntityFactory.createEntityFromJSONObject(session,
-					Session.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-	
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.client.SynapseClient#getOAuth2AuthenticationUrl(org.sagebionetworks.repo.model.oauth.OAuthUrlRequest)

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -108,10 +107,6 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -120,7 +115,6 @@ import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -168,7 +162,6 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
@@ -323,12 +316,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
-
-	/**
-	 * Log into Synapse
-	 */
-	public Session login(String username, String password)
-			throws SynapseException;
 
 	/**
 	 * Log into Synapse
@@ -622,62 +609,7 @@ public interface SynapseClient extends BaseClient {
 
 	public JSONObject query(String query) throws SynapseException;
 
-	/**
-	 * Upload each file to Synapse creating a file handle for each.
-	 */
-	@Deprecated
-	public FileHandleResults createFileHandles(List<File> files)
-			throws SynapseException;
-
-	/**
-	 * The high-level API for uploading a file to Synapse.
-	 */
-	@Deprecated
-	public S3FileHandle createFileHandle(File temp, String contentType)
-			throws SynapseException, IOException;
-
-	/**
-	 * See {@link #createFileHandle(File, String)}
-	 * @param shouldPreviewBeCreated Default true
-	 */
-	@Deprecated
-	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
-			throws SynapseException, IOException;
-
-	/**
-	 * Upload each file to Synapse creating a file handle for each.
-	 */
-	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException;
-
-	/**
-	 * The high-level API for uploading a file to Synapse.
-	 */
-	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException;
-
-	/**
-	 * See {@link #createFileHandle(File, String)}
-	 * 
-	 * @param shouldPreviewBeCreated Default true
-	 */
-	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
-			throws SynapseException, IOException;
-
-	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId,
-			Long storageLocationId) throws SynapseException, IOException;
-
-	public ChunkedFileToken createChunkedFileUploadToken(
-			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
-
-	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest)
-			throws SynapseException;
-
 	public String putFileToURL(URL url, File file, String contentType)
-			throws SynapseException;
-
-	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
-			throws SynapseException;
-
-	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId)
 			throws SynapseException;
 
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
@@ -814,11 +746,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
-	
-
-	
-	@Deprecated
-	public File downloadFromSynapse(String path, String md5, File destinationFile) throws SynapseException;
 
 	/**
 	 * Download the File attachment for an entity, following redirects as needed.
@@ -863,29 +790,6 @@ public interface SynapseClient extends BaseClient {
 	public String getSynapseTermsOfUse() throws SynapseException;
 	
 	public String getTermsOfUse(DomainType domain) throws SynapseException;
-	
-	/**
-	 * Uploads a String to the default upload location, if S3 using the chunked file upload service Note: Strings in
-	 * memory should not be large, so we limit the length of the byte array for the passed in string to be the size of
-	 * one 'chunk'
-	 * 
-	 * @param content the byte array to upload.
-	 * 
-	 * @param contentType This will become the contentType field of the resulting S3FileHandle if not specified, this
-	 *        method uses "text/plain"
-	 * 
-	 */ 
-	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException;
-
-	/**
-	 * Upload a file to Synapse. This is for uploading files that are not related to entities.
-	 * To upload a file for a FileEntity use @see org.sagebionetworks.client.SynapseClient#uploadToFileHandle(byte[], org.apache.http.entity.ContentType, java.lang.String)
-	 * @param content
-	 * @param contentType
-	 * @return
-	 * @throws SynapseException
-	 */
-	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -1020,9 +924,6 @@ public interface SynapseClient extends BaseClient {
 
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException;
-
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit)
-			throws SynapseException;
 
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
@@ -1207,17 +1108,6 @@ public interface SynapseClient extends BaseClient {
 	public RowReferenceSet deleteRowsFromTable(RowSelection toDelete) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
-	 * Get specific rows from table entity.
-	 * 
-	 * @param toGet
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException
-	 */
-	@Deprecated
-	public RowSet getRowsFromTable(RowReferenceSet toGet) throws SynapseException, SynapseTableUnavailableException;
-
-	/**
 	 * Get the file handles for the requested file handle columns for the rows.
 	 * 
 	 * @param fileHandlesToFind rows set for the rows and columns for which file handles need to be returned
@@ -1398,12 +1288,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
 			CsvTableDescriptor csvDescriptor, List<String> columnIds) throws SynapseException;
-
-	/**
-	 * @Deprecated
-	 */
-	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
-			CsvTableDescriptor csvDescriptor) throws SynapseException;
 
 	/**
 	 * get the result of a csv upload
@@ -1850,32 +1734,6 @@ public interface SynapseClient extends BaseClient {
 	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
-	/**
-	 * Performs OpenID authentication using the set of parameters from an OpenID provider
-	 * @return A session token if the authentication passes
-	 */
-	@Deprecated
-	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
-	
-	/**
-	 * See {@link #passThroughOpenIDParameters(String)}
-	 * 
-	 * @param createUserIfNecessary
-	 *            Whether a user should be created if the user does not already
-	 *            exist
-	 */
-	@Deprecated
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary) throws SynapseException;
-
-	/**
-	 * @param domain Which client did the user access to authenticate via a third party provider (Synapse or Other)?
-	 */
-	@Deprecated
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary, DomainType domain)
-			throws SynapseException;
 	
 	/**
 	 * The first step in OAuth authentication involves sending the user to

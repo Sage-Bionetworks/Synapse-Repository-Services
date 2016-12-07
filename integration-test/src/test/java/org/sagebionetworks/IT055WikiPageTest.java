@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
-import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -87,14 +86,7 @@ public class IT055WikiPageTest {
 		assertTrue(imageFile.exists());
 		imageFileMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 
-		// Create the image file handle
-		List<File> list = new LinkedList<File>();
-		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list, project.getId());
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		fileHandle = (S3FileHandle) results.getList().get(0);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		handlesToDelete.add(fileHandle.getId());
 	}
 

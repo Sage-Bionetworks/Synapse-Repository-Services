@@ -112,13 +112,9 @@ public class ITV2WikiPageTest {
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		FileHandleResults results = synapse.createFileHandles(list, project.getId());
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(3, results.getList().size());
-		fileHandle = (S3FileHandle) results.getList().get(0);
-		fileHandleTwo = (S3FileHandle) results.getList().get(1);
-		markdownHandle = (S3FileHandle) results.getList().get(2);
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
+		fileHandleTwo = synapse.multipartUpload(imageFileTwo, null, true, false);
+		markdownHandle = synapse.multipartUpload(markdownFile, null, false, false);
 		
 		// create the access requirement
 		accessRequirement = new TermsOfUseAccessRequirement();

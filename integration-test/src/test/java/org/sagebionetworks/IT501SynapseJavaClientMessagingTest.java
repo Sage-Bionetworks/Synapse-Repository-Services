@@ -95,8 +95,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 		}
 		project = synapseOne.createEntity(new Project());
-
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false, project.getId());
+		oneToRuleThemAll = synapseOne.multipartUpload(file, null, false, false);
 	}
 	
 	@SuppressWarnings("serial")

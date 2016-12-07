@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -84,7 +85,7 @@ public class IT054FileEntityTest {
 	}
 	
 	@Before
-	public void before() throws SynapseException {
+	public void before() throws SynapseException, FileNotFoundException, IOException {
 		adminSynapse.clearAllLocks();
 		// Create a project, this will own the file entity
 		project = new Project();
@@ -94,14 +95,8 @@ public class IT054FileEntityTest {
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
-		// Create the image file handle
-		List<File> list = new LinkedList<File>();
-		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list, project.getId());
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		fileHandle = (S3FileHandle) results.getList().get(0);
+
+		fileHandle = synapse.multipartUpload(imageFile, null, true, false);
 		fileHandlesToDelete.add(fileHandle.getId());
 		baseKey = UUID.randomUUID().toString() + '/';
 	}

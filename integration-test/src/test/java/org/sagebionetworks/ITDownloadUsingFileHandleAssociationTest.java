@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class ITDownloadUsingFileHandleAssociationTest {
 	}
 
 	@Before
-	public void before() throws SynapseException {
+	public void before() throws SynapseException, FileNotFoundException, IOException {
 		adminSynapse.clearAllLocks();
 		// Create a project, this will own the file entity
 		project = new Project();
@@ -70,14 +71,9 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource(MARKDOWN_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		markdownFile = new File(markdownUrl.getFile().replaceAll("%20", " "));
-		// Create the image file handle
-		List<File> list = new LinkedList<File>();
-		list.add(imageFile);
-		list.add(markdownFile);
-		FileHandleResults results = synapse.createFileHandles(list, project.getId());
-
-		fileHandle = (S3FileHandle) results.getList().get(0);
-		markdownHandle = (S3FileHandle) results.getList().get(1);
+		
+		fileHandle = synapse.multipartUpload(imageFile, null, false, false);
+		markdownHandle = synapse.multipartUpload(markdownFile, null, false, false);
 		fileHandlesToDelete.add(fileHandle.getId());
 		fileHandlesToDelete.add(markdownHandle.getId());
 	}

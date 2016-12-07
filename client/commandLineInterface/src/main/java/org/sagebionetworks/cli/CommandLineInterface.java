@@ -16,6 +16,7 @@ import org.apache.commons.cli.PosixParser;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
 
 /**
  * This allows for command line arguments to Java-based synapse tools with a
@@ -192,8 +193,10 @@ public class CommandLineInterface {
 			synapse.setUserName(properties.getProperty("username"));
 			synapse.setApiKey(properties.getProperty("hmac"));
 		} else {
-			synapse.login(properties.getProperty("username"), properties
-					.getProperty("password"));
+			LoginRequest request = new LoginRequest();
+			request.setUsername(properties.getProperty("username"));
+			request.setPassword(properties.getProperty("password"));
+			synapse.login(request);
 		}
 		return synapse;
 	}
