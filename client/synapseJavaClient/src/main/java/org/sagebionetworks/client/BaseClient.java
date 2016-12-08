@@ -35,5 +35,6 @@ public interface BaseClient {
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	public SharedClientConnection getSharedClientConnection();
 }
