@@ -8,7 +8,8 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
@@ -16,12 +17,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class CloudSearchClientTest {
 
+	@Mock
 	SimpleHttpClient mockHttpClient;
+	@Mock
+	SimpleHttpResponse mockResponse;
 	CloudSearchClient cloudSearchClient;
 
 	@Before
 	public void before() {
-		mockHttpClient = Mockito.mock(SimpleHttpClient.class);
+		MockitoAnnotations.initMocks(this);
 		cloudSearchClient = new CloudSearchClient("https://svc.endpoint.com", "https://doc.endpoint.com");
 		ReflectionTestUtils.setField(cloudSearchClient, "httpClient", mockHttpClient);
 	}
@@ -29,19 +33,17 @@ public class CloudSearchClientTest {
 	
 	@Test
 	public void testPLFM2968NoError() throws Exception {
-		SimpleHttpResponse resp = new SimpleHttpResponse();
-		resp.setStatusCode(200);
-		resp.setContent("s");
-		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(resp);
-		assertEquals(resp.getContent(), cloudSearchClient.performSearch("aQuery"));
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		when(mockResponse.getContent()).thenReturn("s");
+		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		assertEquals(mockResponse.getContent(), cloudSearchClient.performSearch("aQuery"));
 		verify(mockHttpClient).get(any(SimpleHttpRequest.class));
 	}
 	
 	@Test
 	public void testPLFM2968NoRecover() throws Exception {
-		SimpleHttpResponse resp = new SimpleHttpResponse();
-		resp.setStatusCode(507);
-		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(resp);
+		when(mockResponse.getStatusCode()).thenReturn(507);
+		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		try {
 			cloudSearchClient.performSearch("aQuery");
 		} catch (CloudSearchClientException e) {
@@ -53,9 +55,8 @@ public class CloudSearchClientTest {
 
 	@Test
 	public void testPLFM3777() throws Exception {
-		SimpleHttpResponse resp = new SimpleHttpResponse();
-		resp.setStatusCode(504);
-		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(resp);
+		when(mockResponse.getStatusCode()).thenReturn(504);
+		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		try {
 			cloudSearchClient.performSearch("aQuery");
 		} catch (CloudSearchClientException e) {
