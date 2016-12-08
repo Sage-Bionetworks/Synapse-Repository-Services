@@ -26,16 +26,6 @@ public class DeprecatedBaseClientImpl implements BaseClient {
 	}
 
 	/**
-	 * get the shared client connection for reuse in a synapse client
-	 * 
-	 * @return
-	 */
-	@Override
-	public SharedClientConnection getSharedClientConnection() {
-		return sharedClientConnection;
-	}
-
-	/**
 	 * Each request includes the 'User-Agent' header. This is set to:
 	 * 'User-Agent':'Synapse-Java-Client/<version_number>' Addition User-Agent information can be appended to this
 	 * string by calling this method.

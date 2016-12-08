@@ -367,7 +367,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	protected String getStringDirect(String endpoint, String uri)
-			throws IOException, SynapseException {
+			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
@@ -390,6 +390,19 @@ public class BaseClientImpl implements BaseClient {
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	/**
+	 * 
+	 * @param endpoint
+	 * @param uri
+	 * @return
+	 * @throws SynapseException
+	 */
+	protected int getStatusCode(String endpoint, String uri) throws SynapseException {
+		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
+		return response.getStatusCode();
 	}
 
 	/**
@@ -829,12 +842,6 @@ public class BaseClientImpl implements BaseClient {
 
 	protected String getUserAgent() {
 		return this.userAgent;
-	}
-
-	//TODO: remove this from the interface
-	@Override
-	public SharedClientConnection getSharedClientConnection() {
-		return null;
 	}
 
 	// for test

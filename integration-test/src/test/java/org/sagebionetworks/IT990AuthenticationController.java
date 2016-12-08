@@ -19,7 +19,6 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -91,20 +90,6 @@ public class IT990AuthenticationController {
 		assertNotNull(response.getAuthenticationReceipt());
 	}
 
-	@Test
-	public void testRevalidate() throws Exception {
-		synapse.revalidateSession();
-		assertNotNull(synapse.getCurrentSessionToken());
-		
-		synapse.getMyProfile();
-	}
-	
-	@Test(expected=SynapseUnauthorizedException.class)
-	public void testRevalidate_BadToken() throws Exception {
-		synapse.setSessionToken("invalid-session-token");
-		synapse.revalidateSession();
-	}
-	
 	@Test
 	public void testLoginThenLogout() throws Exception {
 		synapse.logout();

@@ -1,10 +1,8 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import org.sagebionetworks.client.HttpClientProvider;
-import org.sagebionetworks.client.HttpClientProviderImpl;
-import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 
@@ -45,10 +43,10 @@ public class SynapseClientFactoryImpl implements SynapseClientFactory {
 	 * @throws SynapseException 
 	 */
 	private static SynapseAdminClientImpl createNewConnection(SynapseConnectionInfo info) throws SynapseException{
-		HttpClientProvider provider = new HttpClientProviderImpl();
-		provider.setGlobalConnectionTimeout(1000*60); 		// 	1 	min
-		provider.setGlobalSocketTimeout(1000*60*10);		//  10 mins
-		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl(provider);
+		SimpleHttpClientConfig config = new SimpleHttpClientConfig();
+		config.setConnectTimeoutMs(1000*60);
+		config.setSocketTimeoutMs(1000*60*10);
+		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl(config);
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
 		synapse.setUserName(info.getUserName());

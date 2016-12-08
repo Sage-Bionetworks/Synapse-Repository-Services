@@ -339,11 +339,6 @@ public interface SynapseClient extends BaseClient {
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
-	 * Refreshes the cached session token so that it can be used for another 24 hours
-	 */
-	public boolean revalidateSession() throws SynapseException;
-	
-	/**
 	 * Create a new Entity.
 	 * 
 	 * @return the newly created entity
@@ -406,10 +401,6 @@ public interface SynapseClient extends BaseClient {
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;
-
-	public void setRequestProfile(boolean request);
-
-	public JSONObject getProfileData();
 
 	public String getUserName();
 

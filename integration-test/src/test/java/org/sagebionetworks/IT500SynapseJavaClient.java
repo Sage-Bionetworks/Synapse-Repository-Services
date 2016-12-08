@@ -235,7 +235,6 @@ public class IT500SynapseJavaClient {
 				adminSynapse.deleteTeam(id);
 			} catch (SynapseNotFoundException e) {}
 		}
-		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(true);
 	}
 	
 	@AfterClass
@@ -1843,7 +1842,6 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testReturnCodes() throws Exception {
-		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
 		for (TestEntry test : ExceptionHandlers.testEntries) {
 			for (ExceptionType exception : test.exceptions) {
 				String exceptionClassName = exception.concreteClassName != null ? exception.concreteClassName : exception.name;

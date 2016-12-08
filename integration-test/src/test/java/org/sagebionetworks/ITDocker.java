@@ -13,17 +13,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -41,6 +37,10 @@ import org.sagebionetworks.repo.model.docker.RegistryEventActor;
 import org.sagebionetworks.repo.model.docker.RegistryEventRequest;
 import org.sagebionetworks.repo.model.docker.RegistryEventTarget;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 public class ITDocker {
 	private static final String SCOPE_PARAM = "scope";
@@ -60,7 +60,7 @@ public class ITDocker {
 
 	private String projectId;
 
-	private SharedClientConnection conn;
+	private static SimpleHttpClient simpleClient;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -78,14 +78,11 @@ public class ITDocker {
 		password = UUID.randomUUID().toString();
 		userToDelete = SynapseClientHelper
 				.createUser(adminSynapse, synapseOne, username, password);
+		simpleClient = new SimpleHttpClientImpl();
 	}
 
 	@Before
 	public void before() throws Exception {
-		// get the underlying SharedClientConnection so we can add the basic
-		// authentication header
-		conn = synapseOne.getSharedClientConnection();
-
 		Project project = new Project();
 		project = synapseOne.createEntity(project);
 		projectId = project.getId();
@@ -124,18 +121,12 @@ public class ITDocker {
 		String urlString = StackConfiguration.getDockerServiceEndpoint() + DOCKER_AUTHORIZATION;
 		urlString += "?" + SERVICE_PARAM + "=" + URLEncoder.encode(service, "UTF-8");
 		urlString += "&" + SCOPE_PARAM + "=" + URLEncoder.encode(scope, "UTF-8");
-		HttpResponse response = conn.performRequest(urlString, "GET", null,
-				requestHeaders);
 		
-		HttpEntity httpEntity = response.getEntity();
-		try {
-			assertNotNull(EntityUtils.toString(httpEntity));
-
-			assertEquals(HttpStatus.SC_OK, response.getStatusLine()
-					.getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(urlString);
+		SimpleHttpResponse response = simpleClient.get(request);
+		assertNotNull(response.getContent());
+		assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 	}
 
 	private static DockerCommit createCommit(String tag, String digest) {
@@ -219,10 +210,11 @@ public class ITDocker {
 				RegistryEventAction.push,  host,  userToDelete,  repositoryPath,  tag,  digest);
 		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
-		conn.performRequest(url.toString(), "POST",
-				EntityFactory.createJSONStringForEntity(registryEvents),
-				requestHeaders);
-
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(url.toString());
+		request.setHeaders(requestHeaders);
+		String body = EntityFactory.createJSONStringForEntity(registryEvents);
+		simpleClient.post(request, body);
 		// check that repo was created
 		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
 		Long count = queryResult.getLong("totalNumberOfResults");
@@ -241,17 +233,12 @@ public class ITDocker {
 		DockerRegistryEventList registryEvents = new DockerRegistryEventList();
 		URL url = new URL(StackConfiguration.getDockerRegistryListenerEndpoint() + 
 				DOCKER_REGISTRY_EVENTS);
-		HttpResponse response = conn.performRequest(url.toString(), "POST",
-				EntityFactory.createJSONStringForEntity(registryEvents),
-				requestHeaders);
-		
-		HttpEntity httpEntity = response.getEntity();
-		try {
-			assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
-		} finally {
-			EntityUtils.consumeQuietly(httpEntity);
-		}
-		
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(url.toString());
+		request.setHeaders(requestHeaders);
+		String body = EntityFactory.createJSONStringForEntity(registryEvents);
+		SimpleHttpResponse response = simpleClient.post(request, body);
+		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
 		Long count = queryResult.getLong("totalNumberOfResults");
 		assertEquals(new Long(0), count);
