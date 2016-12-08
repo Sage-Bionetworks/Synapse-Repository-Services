@@ -2,6 +2,7 @@ package org.sagebionetworks.client;
 
 import static org.junit.Assert.*;
 import static org.sagebionetworks.client.ClientUtils.*;
+import static org.sagebionetworks.client.Method.*;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -116,11 +117,16 @@ public class ClientUtilsTest {
 		ClientUtils.throwException(429, response);
 	}
 
-	@Test (expected = SynapseServerException.class)
+	@Test
 	public void testThrowServerException() throws Exception{
 		JSONObject response = new JSONObject();
 		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(500, response);
+		try {
+			ClientUtils.throwException(500, response);
+			fail("expect exception");
+		} catch (SynapseServerException e) {
+			assertEquals("[\"test\"]", e.getMessage());
+		}
 	}
 
 	@Test
@@ -146,11 +152,15 @@ public class ClientUtilsTest {
 	}
 
 
-	@Test (expected = SynapseBadRequestException.class)
+	@Test
 	public void testConvertResponseBodyToJSONAndThrowExceptionFor300() throws Exception{
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\"}");
 		when(mockResponse.getStatusCode()).thenReturn(400);
-		ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+		try {
+			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+		} catch (SynapseBadRequestException e) {
+			assertEquals("some reason", e.getMessage());
+		}
 	}
 
 	@Test
@@ -177,24 +187,6 @@ public class ClientUtilsTest {
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
 		assertEquals(Charset.defaultCharset(),
 				ClientUtils.getCharacterSetFromResponse(mockResponse));
-	}
-
-	@Test
-	public void testGetChararcterSetFromContentTypeHeaderForNull() {
-		assertNull(ClientUtils.getCharacterSetFromContentTypeHeader(null));
-	}
-
-	@Test
-	public void testGetChararcterSetFromContentTypeHeaderForEmptyCharset() {
-		when(mockHeader.getValue()).thenReturn("text/plain");
-		assertNull(ClientUtils.getCharacterSetFromContentTypeHeader(mockHeader));
-	}
-
-	@Test
-	public void testGetChararcterSetFromContentTypeHeader() {
-		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		assertEquals(Charset.defaultCharset(),
-				ClientUtils.getCharacterSetFromContentTypeHeader(mockHeader));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -224,12 +216,12 @@ public class ClientUtilsTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testPerformRequestWithNullClient() throws Exception{
-		ClientUtils.performRequest(null, "requestUrl", "requestMethod", null, null);
+		ClientUtils.performRequest(null, "requestUrl", GET, null, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testPerformRequestWithNullURL() throws Exception{
-		ClientUtils.performRequest(mockClient, null, "requestMethod", null, null);
+		ClientUtils.performRequest(mockClient, null, GET, null, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -239,15 +231,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformGETRequest() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "GET", null, null);
-		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setUri("requestUrl");
-		verify(mockClient).get(request);
-	}
-
-	@Test
-	public void testPerformGETRequestLowerCase() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "get", null, null);
+		ClientUtils.performRequest(mockClient, "requestUrl", GET, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).get(request);
@@ -257,7 +241,7 @@ public class ClientUtilsTest {
 	public void testPerformGETRequestWithHeaders() throws Exception{
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "text/plain");
-		ClientUtils.performRequest(mockClient, "requestUrl", "GET", null, headers );
+		ClientUtils.performRequest(mockClient, "requestUrl", GET, null, headers );
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		request.setHeaders(headers);
@@ -266,7 +250,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformPOSTRequest() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "POST", null, null);
+		ClientUtils.performRequest(mockClient, "requestUrl", POST, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).post(request, null);
@@ -274,7 +258,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformPOSTRequestWithRequestBody() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "POST", "body", null);
+		ClientUtils.performRequest(mockClient, "requestUrl", POST, "body", null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).post(request, "body");
@@ -282,7 +266,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformPUTRequest() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "PUT", null, null);
+		ClientUtils.performRequest(mockClient, "requestUrl", PUT, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).put(request, null);
@@ -290,7 +274,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformPUTRequestWithRequestBody() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "PUT", "body", null);
+		ClientUtils.performRequest(mockClient, "requestUrl", PUT, "body", null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).put(request, "body");
@@ -298,14 +282,9 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testPerformDELETERequest() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "DELETE", null, null);
+		ClientUtils.performRequest(mockClient, "requestUrl", DELETE, null, null);
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri("requestUrl");
 		verify(mockClient).delete(request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testPerformTRACERequest() throws Exception{
-		ClientUtils.performRequest(mockClient, "requestUrl", "TRACE", null, null);
 	}
 }
