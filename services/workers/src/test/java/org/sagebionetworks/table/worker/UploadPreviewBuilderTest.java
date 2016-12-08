@@ -387,6 +387,12 @@ public class UploadPreviewBuilderTest {
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
 		assertEquals(new Long(3), result.getRowsScanned());
+		assertNotNull(result.getSuggestedColumns());
+		assertEquals(3, result.getSuggestedColumns().size());
+		ColumnModel third = result.getSuggestedColumns().get(2);
+		assertEquals("C", third.getName());
+		assertEquals(ColumnType.STRING, third.getColumnType());
+		assertEquals(new Long(50), third.getMaximumSize());
 	}
 	
 
