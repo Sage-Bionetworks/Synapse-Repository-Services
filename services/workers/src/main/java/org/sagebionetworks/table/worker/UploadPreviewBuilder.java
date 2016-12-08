@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -151,10 +152,6 @@ public class UploadPreviewBuilder {
 			if (!TableConstants.isReservedColumnName(cm.getName())) {
 				suggestedColumns.add(cm);
 			}
-			// Only STRINGS should keep the max size
-			if(!ColumnType.STRING.equals(cm.getColumnType())){
-				cm.setMaximumSize(null);
-			}
 		}
 		return suggestedColumns;
 	}
@@ -200,6 +197,11 @@ public class UploadPreviewBuilder {
 			if (schema[i] == null) {
 				schema[i] = new ColumnModel();
 				schema[i].setColumnType(ColumnType.STRING);
+				schema[i].setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
+			}
+			// Only STRINGS should keep the max size
+			if(!ColumnType.STRING.equals(schema[i].getColumnType())){
+				schema[i].setMaximumSize(null);
 			}
 			/*
 			 * Start each column with a default name. These names will be
