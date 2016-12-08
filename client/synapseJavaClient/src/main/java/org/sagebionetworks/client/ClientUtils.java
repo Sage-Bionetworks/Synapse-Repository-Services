@@ -209,7 +209,7 @@ public class ClientUtils {
 	 * @throws ClientProtocolException 
 	 */
 	public static SimpleHttpResponse performRequest(SimpleHttpClient simpleHttpClient,
-			String requestUrl, String requestMethod, String requestContent,
+			String requestUrl, Method requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
 		ValidateArgument.required(simpleHttpClient, "simpleHttpClient");
 		ValidateArgument.required(requestUrl, "requestUrl");
@@ -218,14 +218,14 @@ public class ClientUtils {
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(requestUrl);
 		request.setHeaders(requestHeaders);
-		switch (requestMethod.toUpperCase()) {
-			case "GET":
+		switch (requestMethod) {
+			case GET:
 				return simpleHttpClient.get(request);
-			case "POST":
+			case POST:
 				return simpleHttpClient.post(request, requestContent);
-			case "PUT":
+			case PUT:
 				return simpleHttpClient.put(request, requestContent);
-			case "DELETE":
+			case DELETE:
 				return simpleHttpClient.delete(request);
 			default: 
 				throw new IllegalArgumentException("Unsupported method: "+requestMethod);

@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.sagebionetworks.client.BaseClientImpl.*;
+import static org.sagebionetworks.client.Method.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
@@ -36,6 +38,8 @@ public class BaseClientImplTest {
 	SimpleHttpResponse mockResponse;
 	@Mock
 	File mockFile;
+	@Mock
+	Header mockHeader;
 
 	BaseClientImpl baseClient;
 
@@ -198,6 +202,8 @@ public class BaseClientImplTest {
 		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
+		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
+		when(mockResponse.getFirstHeader("Content-Type")).thenReturn(mockHeader);
 		try {
 			baseClient.downloadZippedFileToString("https://repo-prod.prod.sagebase.org", "/fileToDownload");
 			fail("should throw a FileNotFoundException");
@@ -402,22 +408,22 @@ public class BaseClientImplTest {
 
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testAsymmetricalPutWithNullEndpoint() throws Exception {
-		baseClient.asymmetricalPut(null, "url", null);
+	public void testVoidPutWithNullEndpoint() throws Exception {
+		baseClient.voidPut(null, "url", null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testAsymmetricalPutWithNullURL() throws Exception {
-		baseClient.asymmetricalPut("endpoint", null, null);
+	public void testVoidPutWithNullURL() throws Exception {
+		baseClient.voidPut("endpoint", null, null);
 	}
 
 	@Test
-	public void testAsymmetricalPut() throws Exception {
+	public void testVoidPut() throws Exception {
 		when(mockClient.put(any(SimpleHttpRequest.class), anyString()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
-		baseClient.asymmetricalPut("https://repo-prod.prod.sagebase.org", "/entityId", null);
+		baseClient.voidPut("https://repo-prod.prod.sagebase.org", "/entityId", null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).put(captor.capture(), anyString());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
@@ -458,22 +464,22 @@ public class BaseClientImplTest {
 
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testAsymmetricalPostWithNullEndpoint() throws Exception {
-		baseClient.asymmetricalPost(null, "url", null, null);
+	public void testVoidPostWithNullEndpoint() throws Exception {
+		baseClient.voidPost(null, "url", null, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testAsymmetricalPostWithNullURL() throws Exception {
-		baseClient.asymmetricalPost("endpoint", null, null, null);
+	public void testVoidPostWithNullURL() throws Exception {
+		baseClient.voidPost("endpoint", null, null, null);
 	}
 
 	@Test
-	public void testAsymmetricalPost() throws Exception {
+	public void testVoidPost() throws Exception {
 		when(mockClient.post(any(SimpleHttpRequest.class), anyString()))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		when(mockResponse.getContent()).thenReturn("{\"id\":\"0\"}");
-		baseClient.asymmetricalPost("https://repo-prod.prod.sagebase.org", "/entityId", null, null);
+		baseClient.voidPost("https://repo-prod.prod.sagebase.org", "/entityId", null, null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
@@ -709,7 +715,7 @@ public class BaseClientImplTest {
 
 	@Test (expected = SynapseClientException.class)
 	public void testPerformRequestWithRetryWithNullURL() throws Exception {
-		baseClient.performRequestWithRetry(null, "GET", null, null);
+		baseClient.performRequestWithRetry(null, GET, null, null);
 	}
 
 	@Test (expected = SynapseClientException.class)
@@ -725,7 +731,7 @@ public class BaseClientImplTest {
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		assertEquals(mockResponse, baseClient.performRequestWithRetry(
 				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
-				"GET", null, null));
+				GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
 
@@ -735,7 +741,7 @@ public class BaseClientImplTest {
 		when(mockResponse.getStatusCode()).thenReturn(500);
 		assertEquals(mockResponse, baseClient.performRequestWithRetry(
 				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
-				"GET", null, null));
+				GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
 
@@ -746,7 +752,7 @@ public class BaseClientImplTest {
 		try {
 			baseClient.performRequestWithRetry(
 					"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
-					"GET", null, null);
+					GET, null, null);
 			fail("expect SynapseServerException");
 		} catch (SynapseServerException e) {
 			// as expected

@@ -1,5 +1,7 @@
 package org.sagebionetworks.client;
 
+import static org.sagebionetworks.client.Method.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -52,17 +54,15 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for REST APIs
  */
 public class BaseClientImpl implements BaseClient {
+	private static final String CONTENT_TYPE = "Content-Type";
+	private static final String ACCEPT = "Accept";
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
+	private static final String APPLICATION_JSON_CHARSET_UTF8 = "application/json; charset="+SYNAPSE_ENCODING_CHARSET;
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
-	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
-	private static final String GET_METHOD = "GET";
-	private static final String POST_METHOD = "POST";
-	private static final String PUT_METHOD = "PUT";
-	private static final String DELETE_METHOD = "DELETE";
 
 	private SimpleHttpClient simpleHttpClient;
 
@@ -70,8 +70,6 @@ public class BaseClientImpl implements BaseClient {
 	private String authEndpoint;
 	private Map<String, String> defaultGETDELETEHeaders;
 	private Map<String, String> defaultPOSTPUTHeaders;
-	private JSONObject profileData;
-	private boolean requestProfile;
 	private String username;
 	private String apiKey;
 
@@ -85,11 +83,10 @@ public class BaseClientImpl implements BaseClient {
 
 		this.authEndpoint = DEFAULT_AUTH_ENDPOINT;
 		this.defaultGETDELETEHeaders = new HashMap<String, String>();
-		this.defaultGETDELETEHeaders.put("Accept", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
+		this.defaultGETDELETEHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
 		this.defaultPOSTPUTHeaders = new HashMap<String, String>();
 		this.defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
-		this.defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
-		this.requestProfile = false;
+		this.defaultPOSTPUTHeaders.put(CONTENT_TYPE, APPLICATION_JSON_CHARSET_UTF8);
 	}
 
 	/**
@@ -144,7 +141,7 @@ public class BaseClientImpl implements BaseClient {
 		if (currentSessionToken==null) throw new 
 			SynapseClientException("You must log in before revalidating the session.");
 		session.setSessionToken(currentSessionToken);
-		asymmetricalPut(authEndpoint, "/session", session);
+		voidPut(authEndpoint, "/session", session);
 	}
 
 	/**
@@ -197,6 +194,8 @@ public class BaseClientImpl implements BaseClient {
 	/**
 	 * Download the file at the given URL.
 	 * 
+	 * @deprecated - should only being used for downloading wiki markdown,
+	 *  and should be removed when a new way of getting markdown is implemented.
 	 * @category Upload & Download
 	 * @param endpoint
 	 * @param uri
@@ -206,6 +205,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws FileNotFoundException
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	protected String downloadZippedFileToString(String endpoint, String uri)
 			throws ClientProtocolException, IOException, FileNotFoundException, SynapseException {
 		ValidateArgument.required(endpoint, "endpoint");
@@ -295,7 +295,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected JSONObject getJson(String endpoint, String uri) throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
-				endpoint, uri, GET_METHOD, null, defaultGETDELETEHeaders, null);
+				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
@@ -313,7 +313,7 @@ public class BaseClientImpl implements BaseClient {
 	protected JSONObject postJson(String endpoint, String uri, String jsonString,
 			Map<String, String> parameters) throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint, uri,
-				POST_METHOD, jsonString, defaultPOSTPUTHeaders, parameters);
+				POST, jsonString, defaultPOSTPUTHeaders, parameters);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
@@ -339,7 +339,7 @@ public class BaseClientImpl implements BaseClient {
 	protected JSONObject putJson(String endpoint, String uri, String jsonToPut)
 			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint, uri,
-				PUT_METHOD, jsonToPut, defaultPOSTPUTHeaders, null);
+				PUT, jsonToPut, defaultPOSTPUTHeaders, null);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
@@ -369,7 +369,7 @@ public class BaseClientImpl implements BaseClient {
 	protected String getStringDirect(String endpoint, String uri)
 			throws IOException, SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
-				endpoint, uri, GET_METHOD, null, defaultGETDELETEHeaders, null);
+				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 		return response.getContent();
 	}
@@ -403,7 +403,7 @@ public class BaseClientImpl implements BaseClient {
 	protected String postStringDirect(String endpoint, String uri, String data)
 			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
-				endpoint, uri, POST_METHOD, data, defaultPOSTPUTHeaders, null);
+				endpoint, uri, POST, data, defaultPOSTPUTHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 		return response.getContent();
 	}
@@ -427,7 +427,7 @@ public class BaseClientImpl implements BaseClient {
 	protected void deleteUri(String endpoint, String uri, Map<String, String> parameters)
 			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
-				endpoint, uri, DELETE_METHOD, null, defaultGETDELETEHeaders, parameters);
+				endpoint, uri, DELETE, null, defaultGETDELETEHeaders, parameters);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 	}
 
@@ -465,7 +465,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @param requestBody
 	 * @throws SynapseException
 	 */
-	protected void asymmetricalPut(String endpoint, String url, JSONEntity requestBody) throws SynapseException {
+	protected void voidPut(String endpoint, String url, JSONEntity requestBody) throws SynapseException {
 		try {
 			String jsonString = null;
 			if(requestBody != null){
@@ -513,7 +513,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @param errorHandler
 	 * @throws SynapseException
 	 */
-	protected void asymmetricalPost(String endpoint, String url, JSONEntity requestBody,
+	protected void voidPost(String endpoint, String url, JSONEntity requestBody,
 			Map<String, String> params) throws SynapseException {
 		try {
 			String jsonString = null;
@@ -670,7 +670,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	protected SimpleHttpResponse signAndDispatchSynapseRequest(String endpoint,
-			String uri, String requestMethod, String requestContent,
+			String uri, Method requestMethod, String requestContent,
 			Map<String, String> requestHeaders, Map<String, String> parameters)
 					throws SynapseException {
 		Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
@@ -695,15 +695,9 @@ public class BaseClientImpl implements BaseClient {
 	 * @return
 	 */
 	protected SimpleHttpResponse dispatchSynapseRequest(String endpoint, String uri,
-			String requestMethod, String requestContent,
+			Method requestMethod, String requestContent,
 			Map<String, String> requestHeaders, Map<String, String> parameters)
 					throws SynapseException {
-		if (requestProfile && !requestMethod.equals("DELETE")) {
-			requestHeaders.put(REQUEST_PROFILE_DATA, "true");
-		} else {
-			if (requestHeaders.containsKey(REQUEST_PROFILE_DATA))
-				requestHeaders.remove(REQUEST_PROFILE_DATA);
-		}
 
 		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
@@ -722,7 +716,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @return
 	 */
 	protected SimpleHttpResponse performRequestWithRetry(final String requestUrl,
-			final String requestMethod, final String requestContent,
+			final Method requestMethod, final String requestContent,
 			final Map<String, String> requestHeaders) throws SynapseException{
 		try {
 			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<SimpleHttpResponse>() {
@@ -783,29 +777,6 @@ public class BaseClientImpl implements BaseClient {
 		}
 		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
-	}
-
-	/**
-	 * @param request
-	 */
-	protected void setRequestProfile(boolean requestProfile) {
-		this.requestProfile = requestProfile;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	protected JSONObject getProfileData() {
-		return this.profileData;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	protected void setProfileData(JSONObject profileData) {
-		this.profileData = profileData;
 	}
 
 	/**
