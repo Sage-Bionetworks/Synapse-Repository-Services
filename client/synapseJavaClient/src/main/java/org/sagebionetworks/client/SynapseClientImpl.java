@@ -236,7 +236,7 @@ import com.google.common.collect.Maps;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
+public class SynapseClientImpl extends DeprecatedBaseClientImpl implements SynapseClient {
 
 	public static final String SYNPASE_JAVA_CLIENT = "Synpase-Java-Client/";
 

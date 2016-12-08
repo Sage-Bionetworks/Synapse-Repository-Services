@@ -33,6 +33,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>simple-http-client</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpmime</artifactId>
 		</dependency>
