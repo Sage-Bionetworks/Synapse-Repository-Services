@@ -179,24 +179,6 @@ public class ClientUtilsTest {
 				ClientUtils.getCharacterSetFromResponse(mockResponse));
 	}
 
-	@Test
-	public void testGetChararcterSetFromContentTypeHeaderForNull() {
-		assertNull(ClientUtils.getCharacterSetFromContentTypeHeader(null));
-	}
-
-	@Test
-	public void testGetChararcterSetFromContentTypeHeaderForEmptyCharset() {
-		when(mockHeader.getValue()).thenReturn("text/plain");
-		assertNull(ClientUtils.getCharacterSetFromContentTypeHeader(mockHeader));
-	}
-
-	@Test
-	public void testGetChararcterSetFromContentTypeHeader() {
-		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		assertEquals(Charset.defaultCharset(),
-				ClientUtils.getCharacterSetFromContentTypeHeader(mockHeader));
-	}
-
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateRequestUrlWithNullEndpoint() throws Exception{
 		ClientUtils.createRequestUrl(null, "uri", null);

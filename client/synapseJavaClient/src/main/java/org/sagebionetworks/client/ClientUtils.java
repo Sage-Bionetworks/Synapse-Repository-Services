@@ -153,18 +153,6 @@ public class ClientUtils {
 	public static Charset getCharacterSetFromResponse(SimpleHttpResponse response) {
 		ValidateArgument.required(response, "response");
 		Header contentTypeHeader = response.getFirstHeader(HttpHeaders.CONTENT_TYPE);
-		return getCharacterSetFromContentTypeHeader(contentTypeHeader);
-	}
-
-	/**
-	 * 
-	 * @param contentTypeHeader
-	 * @return
-	 */
-	public static Charset getCharacterSetFromContentTypeHeader(Header contentTypeHeader) {
-		if (contentTypeHeader == null) {
-			return null;
-		}
 		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
 		return contentType.getCharset();
 	}
