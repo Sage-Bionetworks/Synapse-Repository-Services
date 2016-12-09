@@ -428,13 +428,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException {
-		String url = ADMIN + "/exception?exception=" + exceptionClassName + "&inTransaction=" + inTransaction + "&inBeforeCommit="
-				+ inBeforeCommit;
-		return getStatusCode(repoEndpoint, url);
-	}
-
-	@Override
 	public AsynchronousJobStatus startAdminAsynchronousJob(
 			AsyncMigrationRequest migReq) throws SynapseException {
 		if (migReq == null)

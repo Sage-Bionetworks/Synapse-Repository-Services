@@ -400,19 +400,6 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	/**
-	 * 
-	 * @param endpoint
-	 * @param uri
-	 * @return
-	 * @throws SynapseException
-	 */
-	protected int getStatusCode(String endpoint, String uri) throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(
-				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
-		return response.getStatusCode();
-	}
-
-	/**
 	 * @category String Requests
 	 * @param endpoint
 	 * @param uri
