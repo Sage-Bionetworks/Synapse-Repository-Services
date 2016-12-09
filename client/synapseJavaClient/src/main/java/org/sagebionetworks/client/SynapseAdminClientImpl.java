@@ -8,7 +8,6 @@ import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
@@ -432,11 +431,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException {
 		String url = ADMIN + "/exception?exception=" + exceptionClassName + "&inTransaction=" + inTransaction + "&inBeforeCommit="
 				+ inBeforeCommit;
-		int code = getStatusCode(repoEndpoint, url);
-		if (ClientUtils.is200sStatusCode(code)){
-			throw new SynapseServerException(code);
-		};
-		return -1;
+		return getStatusCode(repoEndpoint, url);
 	}
 
 	@Override

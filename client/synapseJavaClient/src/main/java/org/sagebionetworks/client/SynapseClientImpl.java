@@ -1260,24 +1260,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public UserProfile getMyProfile() throws SynapseException {
-		String uri = USER_PROFILE_PATH;
-		JSONObject json = getEntity(uri);
-		return initializeFromJSONObject(json, UserProfile.class);
+		return getJSONEntity(repoEndpoint, USER_PROFILE_PATH, UserProfile.class);
 	}
 
 	@Override
-	public void updateMyProfile(UserProfile userProfile)
-			throws SynapseException {
-		try {
-			String uri = USER_PROFILE_PATH;
-			super.putJson(
-					repoEndpoint,
-					uri,
-					EntityFactory.createJSONObjectForEntity(userProfile)
-							.toString());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+	public void updateMyProfile(UserProfile userProfile) throws SynapseException {
+		voidPut(repoEndpoint, USER_PROFILE_PATH, userProfile);
 	}
 
 	@Override
@@ -3397,7 +3385,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	private AsynchronousResponseBody getAsynchJobResponse(String url, Class<? extends AsynchronousResponseBody> clazz, String endpoint) throws SynapseException {
-		return getJSONEntity(endpoint, url, AsynchronousResponseBody.class);
+		JSONObject jsonObject = getJson(endpoint, url);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObject, AsynchronousResponseBody.class);
+		} catch (JSONObjectAdapterException e) {
+			try {
+				AsynchronousJobStatus status = EntityFactory.createEntityFromJSONObject(jsonObject, AsynchronousJobStatus.class);
+				throw new SynapseResultNotReadyException(status);
+			} catch (JSONObjectAdapterException e2) {
+				throw new SynapseClientException(e2.getMessage(), e2);
+			}
+		}
 	}
 
 	/**

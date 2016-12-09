@@ -136,10 +136,15 @@ public class ClientUtilsTest {
 	}
 
 
-	@Test (expected = SynapseBadRequestException.class)
+	@Test
 	public void testCheckStatusCodeAndThrowExceptionFor400() throws Exception{
 		when(mockResponse.getStatusCode()).thenReturn(400);
-		ClientUtils.checkStatusCodeAndThrowException(mockResponse);
+		when(mockResponse.getContent()).thenReturn("some reason");
+		try {
+			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
+		} catch (SynapseBadRequestException e) {
+			assertEquals("[\"some reason\"]", e.getMessage());
+		}
 	}
 
 	@Test

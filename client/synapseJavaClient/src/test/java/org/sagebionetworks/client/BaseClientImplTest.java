@@ -166,12 +166,6 @@ public class BaseClientImplTest {
 				null, "contentType");
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testPutFileToURLWithNullContentType() throws Exception {
-		baseClient.putFileToURL(new URL("https://repo-prod.prod.sagebase.org"),
-				mockFile, null);
-	}
-
 	@Test
 	public void testPutFileToURL() throws Exception {
 		when(mockClient.putFile(any(SimpleHttpRequest.class), any(File.class)))

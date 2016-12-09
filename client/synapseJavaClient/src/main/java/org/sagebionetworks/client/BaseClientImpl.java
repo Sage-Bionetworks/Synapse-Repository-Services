@@ -26,7 +26,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -141,7 +143,11 @@ public class BaseClientImpl implements BaseClient {
 		if (currentSessionToken==null) throw new 
 			SynapseClientException("You must log in before revalidating the session.");
 		session.setSessionToken(currentSessionToken);
-		voidPut(authEndpoint, "/session", session);
+		try {
+			voidPut(authEndpoint, "/session", session);
+		} catch (SynapseForbiddenException e) {
+			throw new SynapseTermsOfUseException(e.getMessage());
+		}
 	}
 
 	/**
@@ -169,12 +175,13 @@ public class BaseClientImpl implements BaseClient {
 	protected String putFileToURL(URL url, File file, String contentType) throws SynapseException {
 		ValidateArgument.required(url, "url");
 		ValidateArgument.required(file, "file");
-		ValidateArgument.required(contentType, "contentType");
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());
-		Map<String, String> headers = new HashMap<String, String>();
-		headers.put(HTTP.CONTENT_TYPE, contentType);
-		request.setHeaders(headers);
+		if (contentType != null) {
+			Map<String, String> headers = new HashMap<String, String>();
+			headers.put(HTTP.CONTENT_TYPE, contentType);
+			request.setHeaders(headers);
+		}
 		try {
 			SimpleHttpResponse response = simpleHttpClient.putFile(request, file);
 			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {

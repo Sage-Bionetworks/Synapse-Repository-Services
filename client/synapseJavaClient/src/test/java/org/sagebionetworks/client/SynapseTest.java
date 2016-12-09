@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -67,16 +66,17 @@ public class SynapseTest {
 		MockitoAnnotations.initMocks(this);
 		synapse = new SynapseClientImpl();
 		synapse.setSimpleHttpClient(mockClient);
-		// mock the session token returned when logging in
+
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockClient.put(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		LoginRequest request = new LoginRequest();
 		request.setUsername("foo");
 		request.setPassword("bar");
 		synapse.login(request);
-		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockClient.put(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
-		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
