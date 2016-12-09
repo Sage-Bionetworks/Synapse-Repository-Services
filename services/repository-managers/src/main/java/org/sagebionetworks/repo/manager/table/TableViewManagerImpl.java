@@ -27,7 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableViewManagerImpl implements TableViewManager {
 	
-	private static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
+	public static final String ETG_COLUMN_MISSING = "The view schema must include '"+EntityField.etag.name()+"' column.";
+	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000;
 	public static final String MAX_CONTAINER_MESSAGE = "The provided view scope includes: %1$S containers which exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW;
 	
@@ -140,11 +141,12 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 		String entityId = KeyFactory.keyToString(row.getRowId());
 		Map<String, String> values = row.getValues();
-		String etag = values.get(EntityField.etag.name());
+		ColumnModel etagColumn = getEtagColumn(tableSchema);
+		String etag = values.get(etagColumn.getId());
 		if(etag == null){
 			throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
 		}
-		// Lookup the etag
+		// Get the current annotations for this entity.
 		NamedAnnotations annotations = nodeManager.getAnnotations(user, entityId);
 		Annotations additional = annotations.getAdditionalAnnotations();
 		additional.setEtag(etag);
@@ -153,6 +155,20 @@ public class TableViewManagerImpl implements TableViewManager {
 			// save the changes.
 			nodeManager.updateAnnotations(user, entityId, additional, AnnotationNameSpace.ADDITIONAL);
 		}
+	}
+	
+	/**
+	 * Lookup the etag column from the given schema.
+	 * @param schema
+	 * @return
+	 */
+	public static ColumnModel getEtagColumn(List<ColumnModel> schema){
+		for(ColumnModel cm: schema){
+			if(EntityField.etag.name().equals(cm.getName())){
+				return cm;
+			}
+		}
+		throw new IllegalArgumentException(ETG_COLUMN_MISSING);
 	}
 	
 	/**
@@ -171,11 +187,11 @@ public class TableViewManagerImpl implements TableViewManager {
 			// Ignore all entity fields.
 			if(matchedField == null){
 				// is this column included in the row?
-				if(values.containsKey(column.getName())){
+				if(values.containsKey(column.getId())){
 					updated = true;
 					// Match the column type to an annotation type.
 					AnnotationType type = SQLUtils.translateColumnType(column.getColumnType());
-					String value = values.get(column.getName());
+					String value = values.get(column.getId());
 					if(value == null){
 						additional.deleteAnnotation(column.getName());
 					}else{

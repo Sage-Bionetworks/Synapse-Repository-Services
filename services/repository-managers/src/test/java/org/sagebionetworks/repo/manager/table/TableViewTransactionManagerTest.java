@@ -354,8 +354,8 @@ public class TableViewTransactionManagerTest {
 		assertNotNull(response);
 		assertTrue(response instanceof EntityUpdateResults);
 		EntityUpdateResults result = (EntityUpdateResults)response;
-		assertNotNull(result.getRequestedFiles());
-		assertEquals(2, result.getRequestedFiles().size());
+		assertNotNull(result.getUpdateResults());
+		assertEquals(2, result.getUpdateResults().size());
 	}
 	
 	@Test

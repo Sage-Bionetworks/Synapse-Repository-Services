@@ -491,7 +491,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getId().toString();
 		// This is no longer called from a create PLFM-325
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 		authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));

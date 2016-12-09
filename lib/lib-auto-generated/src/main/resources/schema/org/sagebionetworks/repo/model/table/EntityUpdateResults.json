@@ -6,7 +6,7 @@
         }
     ],
 	"properties": {
-		"requestedFiles": {
+		"updateResults": {
 			"type": "array",
 			"description": "Defines the files to get.",
 			"items": {

@@ -211,7 +211,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 			results.add(result);
 		}
 		EntityUpdateResults response = new EntityUpdateResults();
-		response.setRequestedFiles(results);
+		response.setUpdateResults(results);
 		return response;
 	}
 

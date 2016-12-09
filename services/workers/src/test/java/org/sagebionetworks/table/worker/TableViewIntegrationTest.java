@@ -1,13 +1,12 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.sql.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -24,11 +23,13 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -44,17 +45,24 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.EntityUpdateResult;
+import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -87,6 +95,8 @@ public class TableViewIntegrationTest {
 	@Autowired
 	private TableManagerSupport tableManagerSupport;
 	@Autowired
+	private ColumnModelManager columnModelManager;
+	@Autowired
 	private TableViewManager tableViewMangaer;
 	@Autowired
 	private TableQueryManager tableQueryManger;
@@ -116,6 +126,9 @@ public class TableViewIntegrationTest {
 	String fileViewId;
 	EntityView entityView;
 	List<ColumnModel> defaultSchema;
+	
+	ColumnModel etagColumn;
+	ColumnModel anno1Column;
 	
 	@Before
 	public void before(){
@@ -165,8 +178,18 @@ public class TableViewIntegrationTest {
 		}
 		
 		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file);
+		// add an annotation column
+		anno1Column = new ColumnModel();
+		anno1Column.setColumnType(ColumnType.INTEGER);
+		anno1Column.setName("foo");
+		anno1Column = columnModelManager.createColumnModel(adminUserInfo, anno1Column);
+		defaultSchema.add(anno1Column);
+		
 		defaultColumnIds = new LinkedList<String>();
 		for(ColumnModel cm: defaultSchema){
+			if(EntityField.etag.name().equals(cm.getName())){
+				etagColumn = cm;
+			}
 			defaultColumnIds.add(cm.getId());
 		}
 		
@@ -324,6 +347,54 @@ public class TableViewIntegrationTest {
 		assertEquals(fileId, row.getRowId());
 		String etag = row.getValues().get(0);
 		assertEquals(file.getEtag(), etag);
+	}
+	
+	@Test
+	public void testUpdateAnnotationsWithPartialRowSet() throws Exception {
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		waitForEntityReplication(fileViewId, file.getId());
+		
+		Map<String, String> rowValues = new HashMap<String, String>();
+		rowValues.put(anno1Column.getId(), "123456789");
+		rowValues.put(etagColumn.getId(), file.getEtag());
+		PartialRow row = new PartialRow();
+		row.setRowId(fileId);
+		row.setValues(rowValues);
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		rowSet.setTableId(file.getId());
+		
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(fileViewId);
+		appendRequest.setToAppend(rowSet);
+		
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		List<TableUpdateRequest> changes = new LinkedList<TableUpdateRequest>();
+		changes.add(appendRequest);
+		transactionRequest.setChanges(changes);
+		transactionRequest.setEntityId(fileViewId);
+		//  start the job to update the table
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse rep = response.getResults().get(0);
+		assertTrue(rep instanceof EntityUpdateResults);
+		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
+		assertNotNull(updateResults.getUpdateResults());
+		assertEquals(1, updateResults.getUpdateResults().size());
+		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
+		assertNotNull(eur);
+		assertEquals(file.getId(), eur.getEntityId());
+		System.out.println(eur.getFailureMessage());
+		assertNull(eur.getFailureCode());
+		assertNull(eur.getFailureMessage());
+		
+		// is the annotation changed?
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
 	}
 	
 	/**
