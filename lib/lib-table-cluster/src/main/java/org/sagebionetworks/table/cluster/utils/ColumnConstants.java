@@ -91,4 +91,9 @@ public class ColumnConstants {
 	 */
 	public static final Long MAX_ALLOWED_STRING_SIZE = 1000L;
 	
+	/**
+	 * The default maximum number of characters for string columns.
+	 */
+	public static final Long DEFAULT_STRING_SIZE = 50L;
+	
 }
