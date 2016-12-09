@@ -11,7 +11,6 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -49,14 +48,12 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -80,9 +77,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
-	
-	@Autowired
-	private ObjectTypeSerializer objectTypeSerializer;
 	
 	@Autowired
 	private EntityManager entityManager;
@@ -147,11 +141,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@WriteTransaction
 	@Override
-	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
+	public UserProfile updateUserProfile(Long userId, UserProfile userProfile) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
-		return userProfileManager.updateUserProfile(userInfo, entity);
+		return userProfileManager.updateUserProfile(userInfo, userProfile);
 	}
 	
 	@Override

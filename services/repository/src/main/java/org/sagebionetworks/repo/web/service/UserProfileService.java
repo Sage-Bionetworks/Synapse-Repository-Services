@@ -6,10 +6,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -26,9 +22,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
 
 /**
@@ -109,11 +103,11 @@ public interface UserProfileService {
 	/**
 	 * Get a user profile
 	 * @param userId - The user that is making the request.
-	 * @param request
+	 * @param userProfile
 	 * @return The updated UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
+	public UserProfile updateUserProfile(Long userId, UserProfile userProfile) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
 
 	/**
