@@ -28,10 +28,10 @@
 								<property name="runner">
 									<bean class="org.sagebionetworks.table.worker.TableTransactionWorker"/>
 								</property>
-								<property name="semaphoreLockKey" value="tableQueryWorker" />
-								<property name="semaphoreMaxLockCount" value="4" />
+								<property name="semaphoreLockKey" value="tableTransactionWorker" />
+								<property name="semaphoreMaxLockCount" value="8" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="10" />
+									value="300" />
 								<property name="queueName"
 									ref="stackConfiguration.asyncQueueName[TABLE_UPDATE_TRANSACTION]" />
 								<property name="gate">
