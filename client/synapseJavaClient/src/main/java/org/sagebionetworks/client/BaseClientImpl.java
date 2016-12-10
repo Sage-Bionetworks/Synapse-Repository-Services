@@ -175,13 +175,12 @@ public class BaseClientImpl implements BaseClient {
 	protected String putFileToURL(URL url, File file, String contentType) throws SynapseException {
 		ValidateArgument.required(url, "url");
 		ValidateArgument.required(file, "file");
+		ValidateArgument.required(contentType, "contentType");
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(url.toString());
-		if (contentType != null) {
-			Map<String, String> headers = new HashMap<String, String>();
-			headers.put(HTTP.CONTENT_TYPE, contentType);
-			request.setHeaders(headers);
-		}
+		Map<String, String> headers = new HashMap<String, String>();
+		headers.put(HTTP.CONTENT_TYPE, contentType);
+		request.setHeaders(headers);
 		try {
 			SimpleHttpResponse response = simpleHttpClient.putFile(request, file);
 			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {

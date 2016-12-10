@@ -262,7 +262,7 @@ public class MultipartUploadTest {
 
 		List<PartData> partDataList = createTestPartList(1);
 		// call under test.
-		MultipartUpload.uploadMissingParts(mockClient, status, partDataList);
+		MultipartUpload.uploadMissingParts(mockClient, status, partDataList, contentType);
 
 		ArgumentCaptor<BatchPresignedUploadUrlRequest> captureBatch = ArgumentCaptor
 				.forClass(BatchPresignedUploadUrlRequest.class);
@@ -291,7 +291,7 @@ public class MultipartUploadTest {
 
 		List<PartData> partDataList = createTestPartList(4);
 		// call under test.
-		MultipartUpload.uploadMissingParts(mockClient, status, partDataList);
+		MultipartUpload.uploadMissingParts(mockClient, status, partDataList, contentType);
 
 		verify(mockClient, times(2)).getMultipartPresignedUrlBatch(
 				any(BatchPresignedUploadUrlRequest.class));

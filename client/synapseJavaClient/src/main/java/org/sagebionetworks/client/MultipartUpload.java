@@ -91,7 +91,7 @@ public class MultipartUpload {
 				return (S3FileHandle) client.getRawFileHandle(status.getResultFileHandleId());
 			}
 			// Add only the parts that are needed
-			uploadMissingParts(client, status, partDataList);
+			uploadMissingParts(client, status, partDataList, request.getContentType());
 			// Complete the file upload
 			status = client.completeMultipartUpload(status.getUploadId());
 			return (S3FileHandle) client.getRawFileHandle(status.getResultFileHandleId());
@@ -107,7 +107,9 @@ public class MultipartUpload {
 	 * @param partDataList
 	 * @throws SynapseException 
 	 */
-	public static void uploadMissingParts(final SynapseClient client, final MultipartUploadStatus status, final List<PartData> partDataList) throws SynapseException{
+	public static void uploadMissingParts(final SynapseClient client,
+			final MultipartUploadStatus status, final List<PartData> partDataList,
+			final String contentType) throws SynapseException{
 		char[] partStateArray = status.getPartsState().toCharArray();
 		for(int i=0; i<partStateArray.length; i++){
 			char state = partStateArray[i];
@@ -124,7 +126,7 @@ public class MultipartUpload {
 				try {
 					url = new URL(batchResponse.getPartPresignedUrls().get(0).getUploadPresignedUrl());
 					// upload the part to the url
-					client.putFileToURL(url, partData.getPartFile(), null);
+					client.putFileToURL(url, partData.getPartFile(), contentType);
 					// Add the part to the upload
 					client.addPartToMultipartUpload(status.getUploadId(), partData.getPartNumber(), partData.getPartMD5Hex());
 				} catch (MalformedURLException e) {
