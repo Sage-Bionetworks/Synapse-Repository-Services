@@ -190,7 +190,7 @@ public class CommandLineInterface {
 		}
 
 		if (properties.containsKey("hmac")) {
-			synapse.setUserName(properties.getProperty("username"));
+			synapse.setUsername(properties.getProperty("username"));
 			synapse.setApiKey(properties.getProperty("hmac"));
 		} else {
 			LoginRequest request = new LoginRequest();

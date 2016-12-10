@@ -40,7 +40,7 @@ public class IT502SynapseJavaClientAccountTest {
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
@@ -105,7 +105,7 @@ public class IT502SynapseJavaClientAccountTest {
 		SynapseClientImpl sc = new SynapseClientImpl();
 		sc.setSessionToken(session.getSessionToken());
 		SynapseClientHelper.setEndpoints(sc);
-		sc.setUserName(username);
+		sc.setUsername(username);
 		sc.signTermsOfUse(session.getSessionToken(), true);
 		UserProfile up = sc.getMyProfile();
 		user2ToDelete = Long.parseLong(up.getOwnerId());

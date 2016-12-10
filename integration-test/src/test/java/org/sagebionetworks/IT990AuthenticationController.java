@@ -48,7 +48,7 @@ public class IT990AuthenticationController {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		// Don't use the SynapseClientHelper here, since we need something different
@@ -151,7 +151,7 @@ public class IT990AuthenticationController {
 		
 		// Use the API key
 		synapse.logout();
-		synapse.setUserName(username);
+		synapse.setUsername(username);
 		synapse.setApiKey(apikey);
 		
 		// Should work
