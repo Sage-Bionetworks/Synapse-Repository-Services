@@ -69,7 +69,7 @@ public class CloudSearchClient {
 	public void sendDocuments(String documents) throws ClientProtocolException,
 			IOException {
 		SimpleHttpRequest request = new SimpleHttpRequest();
-		request.setHeaders(SEND_DOCUMENTS_REQUEST_HEADERS);
+		request.setHeaders(new HashMap<String, String>(SEND_DOCUMENTS_REQUEST_HEADERS));
 		request.setUri(documentServiceEndpoint);
 		httpClient.post(request, documents);
 	}
