@@ -29,12 +29,4 @@ public interface BaseClient {
 	 * @return the session token
 	 */
 	public String getCurrentSessionToken();
-
-	/**
-	 * get the shared client connection for reuse in another client
-	 * 
-	 * @return
-	 */
-	@Deprecated
-	public SharedClientConnection getSharedClientConnection();
 }

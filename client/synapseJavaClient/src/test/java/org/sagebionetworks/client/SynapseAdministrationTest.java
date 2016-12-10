@@ -1,53 +1,12 @@
 package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.when;
 
-import java.util.Map;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.entity.StringEntity;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 
 public class SynapseAdministrationTest {
-	HttpClientProvider mockProvider = null;
-	HttpResponse mockResponse;
-	
-	SynapseAdminClientImpl synapse;
-	
-	@Before
-	public void before() throws Exception{
-		// The mock provider
-		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseAdminClientImpl(mockProvider);
-	}
-	
-	@Test
-	public void testGetCurrentChangeNumber() throws Exception {
-		FireMessagesResult expectedRes = new FireMessagesResult();
-		expectedRes.setNextChangeNumber(-1L);
-		String expectedJSONResult = EntityFactory.createJSONStringForEntity(expectedRes);
-		StringEntity responseEntity = new StringEntity(expectedJSONResult);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		StatusLine statusLine = Mockito.mock(StatusLine.class);
-		when(statusLine.getStatusCode()).thenReturn(200);
-		when(mockResponse.getStatusLine()).thenReturn(statusLine);
-		FireMessagesResult res = synapse.getCurrentChangeNumber();
-		assertNotNull(res);
-		assertEquals(expectedRes, res);
-	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testBuildListMessagesURLNullStartNumber(){

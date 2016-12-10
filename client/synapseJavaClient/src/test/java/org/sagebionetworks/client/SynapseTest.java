@@ -4,33 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.http.Header;
-import org.apache.http.HeaderElement;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.StatusLine;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -38,7 +23,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -51,7 +35,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -61,6 +44,9 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 /**
  * Unit test for Synapse.
@@ -68,21 +54,24 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  *
  */
 public class SynapseTest {
-	
-	HttpClientProvider mockProvider;
-	HttpResponse mockResponse;
+	@Mock
+	SimpleHttpResponse mockResponse;
+	@Mock
+	SimpleHttpClient mockClient;
 	
 	SynapseClientImpl synapse;
 	
-	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception{
-		// The mock provider
-		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider));
-		// mock the session token returned when logging in
+		MockitoAnnotations.initMocks(this);
+		synapse = new SynapseClientImpl();
+		synapse.setSimpleHttpClient(mockClient);
+
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockClient.put(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+		when(mockClient.post(any(SimpleHttpRequest.class), anyString())).thenReturn(mockResponse);
+
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
 		LoginRequest request = new LoginRequest();
 		request.setUsername("foo");
@@ -90,62 +79,14 @@ public class SynapseTest {
 		synapse.login(request);
 	}
 	
-	@Test
-	public void testOriginatingClient() throws Exception {
-		SharedClientConnection connection = synapse.getSharedClientConnection();
-
-		connection.setDomain(DomainType.SYNAPSE);
-		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", null);
-		assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?domain=SYNAPSE", url);
-	}
-	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNullEntity() throws Exception{
 		synapse.createEntity(null);
 	}
 	
-	private static Header mockHeader(final String name, final String value) {
-		Header header = Mockito.mock(Header.class);
-		when(header.getName()).thenReturn(name);
-		when(header.getValue()).thenReturn(value);
-		HeaderElement he = Mockito.mock(HeaderElement.class);
-		when(he.getName()).thenReturn(name);
-		when(he.getValue()).thenReturn(value);
-		NameValuePair nvp = Mockito.mock(NameValuePair.class);
-		when(nvp.getName()).thenReturn(name);
-		when(nvp.getValue()).thenReturn(value);
-		when(header.getElements()).thenReturn(new HeaderElement[]{he});
-		when(he.getParameters()).thenReturn(new NameValuePair[]{nvp});
-		return header;
-	}
-	
 	private void configureMockHttpResponse(final int statusCode, final String responseBody) {
-		StatusLine statusLine = Mockito.mock(StatusLine.class);
-		when(statusLine.getStatusCode()).thenReturn(statusCode);
-		when(mockResponse.getStatusLine()).thenReturn(statusLine);
-		
-		HttpEntity entity = new HttpEntity() {
-			@Override
-			public boolean isRepeatable() {return false;}
-			@Override
-			public boolean isChunked() {return false;}
-			@Override
-			public long getContentLength() {return responseBody.getBytes().length;}
-			@Override
-			public Header getContentType() {return mockHeader("ContentType", "text/plain");}
-			@Override
-			public Header getContentEncoding() {return mockHeader("ContentEncoding", "application/json");}
-			@Override
-			public InputStream getContent() throws IOException, IllegalStateException 
-					{return new ByteArrayInputStream(responseBody.getBytes());}
-			@Override
-			public void writeTo(OutputStream outstream) throws IOException {}
-			@Override
-			public boolean isStreaming() {return false;}
-			@Override
-			public void consumeContent() throws IOException {}
-		};
-		when(mockResponse.getEntity()).thenReturn(entity);
+		when(mockResponse.getStatusCode()).thenReturn(statusCode);
+		when(mockResponse.getContent()).thenReturn(responseBody);
 	}
 	
 	@Test (expected=SynapseTermsOfUseException.class)
@@ -419,8 +360,8 @@ public class SynapseTest {
 	public void testDeleteActivity() throws Exception {
 		String id = "123";
 		configureMockHttpResponse(204, "");
-		synapse.deleteActivity(id);		
-		verify(mockResponse, times(4)).getEntity();
+		synapse.deleteActivity(id);
+		verify(mockResponse, times(4)).getStatusCode();
 	}		
 	
 	@Test
@@ -446,7 +387,7 @@ public class SynapseTest {
 		String entityId = "syn456";
 		Activity clone = synapse.getActivityForEntityVersion(entityId, 1L); 
 		assertNotNull(clone);
-		assertEquals(act, clone);		
+		assertEquals(act, clone);
 	}
 
 	@Test
@@ -471,43 +412,38 @@ public class SynapseTest {
 		
 		String entityId = "syn456";
 		synapse.deleteGeneratedByForEntity(entityId); 
-		verify(mockResponse, atLeast(1)).getEntity();
+		verify(mockResponse, atLeast(1)).getStatusCode();
 	}
 	
 	@Test
-	public void testUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
+	public void testUserAgent() throws Exception{
 		// The user agent 
 		SynapseVersionInfo info = new SynapseVersionInfo();
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
-		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Make a call and ensure 
 		synapse.getVersionInfo();
-		// Validate that the User-Agent was sent
-		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
-		String value = sentHeaders.get("User-Agent");
+		ArgumentCaptor<SimpleHttpRequest> requestCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).get(requestCaptor.capture());
+		String value = requestCaptor.getValue().getHeaders().get("User-Agent");
 		assertNotNull(value);
 		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
  	}
 	
 	@Test
-	public void testAppendUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
+	public void testAppendUserAgent() throws Exception{
 		// The user agent 
 		SynapseVersionInfo info = new SynapseVersionInfo();
 		info.setVersion("someversion");
 		configureMockHttpResponse(200, EntityFactory.createJSONStringForEntity(info));
-		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(new SharedClientConnection(stubProvider));
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);
 		// Make a call and ensure 
 		synapse.getVersionInfo();
-		// Validate that the User-Agent was sent
-		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
-		String value = sentHeaders.get("User-Agent");
-		System.out.println(value);
+		ArgumentCaptor<SimpleHttpRequest> requestCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).get(requestCaptor.capture());
+		String value = requestCaptor.getValue().getHeaders().get("User-Agent");
 		assertNotNull(value);
 		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
 		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
@@ -568,29 +504,6 @@ public class SynapseTest {
 	public void testEndpointForTypeFile(){
 		synapse.setFileEndpoint("file-endpoint");
 		assertEquals("file-endpoint", synapse.getEndpointForType(RestEndpointType.file));
-	}
-	
-	/**
-	 * Used to check URLs for {@link #testBuildOpenIDUrl()}
-	 */
-	private String expectedURL;
-	
-	@SuppressWarnings("unchecked")
-	@Test
-	public void testBuildOpenIDUrl() throws Exception {
-		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class), (Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
-
-			@Override
-			public HttpResponse answer(
-					InvocationOnMock invocation) throws Throwable {
-				String url = (String) invocation.getArguments()[0];
-				expectedURL = url;
-				return mockResponse;
-			}
-			
-		});
-		String response = EntityFactory.createJSONStringForEntity(new Session());
-		configureMockHttpResponse(200, response);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

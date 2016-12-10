@@ -98,9 +98,6 @@ import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.util.ModelConstants;
-import org.sagebionetworks.repo.web.controller.ExceptionHandlers;
-import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
-import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
 import org.sagebionetworks.util.SerializationUtils;
 
 import com.google.common.collect.Sets;
@@ -235,7 +232,6 @@ public class IT500SynapseJavaClient {
 				adminSynapse.deleteTeam(id);
 			} catch (SynapseNotFoundException e) {}
 		}
-		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(true);
 	}
 	
 	@AfterClass
@@ -1838,29 +1834,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, results.getEntities().size());
 		EntityQueryResult projectResult = results.getEntities().get(0);
 		assertEquals(project.getId(), projectResult.getId());
-	}
-
-
-	@Test
-	public void testReturnCodes() throws Exception {
-		adminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
-		for (TestEntry test : ExceptionHandlers.testEntries) {
-			for (ExceptionType exception : test.exceptions) {
-				String exceptionClassName = exception.concreteClassName != null ? exception.concreteClassName : exception.name;
-
-				int result = adminSynapse.throwException(exceptionClassName, true, false);
-				assertEquals("in transaction: " + exceptionClassName, test.statusCode, result);
-
-				// this test can only handle runtime exceptions, non-runtime exceptions will return
-				if (exception.isRuntimeException) {
-					result = adminSynapse.throwException(exceptionClassName, true, true);
-					assertEquals("after transaction: " + exceptionClassName, test.statusCode, result);
-				}
-
-				result = adminSynapse.throwException(exceptionClassName, false, false);
-				assertEquals("no transaction: " + exceptionClassName, test.statusCode, result);
-			}
-		}
 	}
 	
 	@Test

@@ -270,16 +270,6 @@ public interface SynapseAdminClient extends SynapseClient {
 			throws SynapseException ;
 
 	/**
-	 * Force the server to throw a specific exception and return the status code
-	 * 
-	 * @param exception
-	 * @param inTransaction
-	 * @param inBeforeCommit
-	 * @throws SynapseException
-	 */
-	public int throwException(String exceptionClassName, boolean inTransaction, boolean inBeforeCommit) throws SynapseException;
-	
-	/**
 	 * Start a new Asynchronous Job
 	 * @param jobBody
 	 * @return

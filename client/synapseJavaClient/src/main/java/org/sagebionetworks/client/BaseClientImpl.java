@@ -26,7 +26,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -141,7 +143,11 @@ public class BaseClientImpl implements BaseClient {
 		if (currentSessionToken==null) throw new 
 			SynapseClientException("You must log in before revalidating the session.");
 		session.setSessionToken(currentSessionToken);
-		voidPut(authEndpoint, "/session", session);
+		try {
+			voidPut(authEndpoint, "/session", session);
+		} catch (SynapseForbiddenException e) {
+			throw new SynapseTermsOfUseException(e.getMessage());
+		}
 	}
 
 	/**
@@ -367,7 +373,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	protected String getStringDirect(String endpoint, String uri)
-			throws IOException, SynapseException {
+			throws SynapseException {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
@@ -829,12 +835,6 @@ public class BaseClientImpl implements BaseClient {
 
 	protected String getUserAgent() {
 		return this.userAgent;
-	}
-
-	//TODO: remove this from the interface
-	@Override
-	public SharedClientConnection getSharedClientConnection() {
-		return null;
 	}
 
 	// for test

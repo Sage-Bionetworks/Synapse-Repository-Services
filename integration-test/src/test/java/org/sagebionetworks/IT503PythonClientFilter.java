@@ -9,17 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -32,16 +27,20 @@ import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.simpleHttpClient.Header;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 
 
 public class IT503PythonClientFilter {
+	private static SimpleHttpClient simpleClient;
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static Long user1ToDelete;
-
-	private static String oneId;
 
 	private Project project;
 	
@@ -57,11 +56,9 @@ public class IT503PythonClientFilter {
 		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
-		oneId = synapseOne.getMyProfile().getOwnerId();
-		
+		simpleClient = new SimpleHttpClientImpl();
 	}
 	
-	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
 	}
@@ -93,7 +90,6 @@ public class IT503PythonClientFilter {
 		project = synapseOne.createEntity(project);
 		
 		// get the underlying SharedClientConnection so we can 'roll our own' request
-		SharedClientConnection conn = synapseOne.getSharedClientConnection();
 		String endpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		String uri = "/entity/"+project.getId();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -104,30 +100,34 @@ public class IT503PythonClientFilter {
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		requestHeaders.put("sessionToken", sessionToken);
-		HttpResponse response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(endpoint+uri);
+		request.setHeaders(requestHeaders);
+		SimpleHttpResponse response = simpleClient.get(request);
 		String body = checkNoCharEncoding(response, 200);
 		assertTrue(body.length()>0);
 
 		// test user agent string with dev tag
 		requestHeaders.put("User-Agent", "synapseclient/1.0.dev1 python-requests/2.4.0 cpython/2.7.6");
-		response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
+		request.setHeaders(requestHeaders);
+		response = simpleClient.get(request);
 		body = checkNoCharEncoding(response, 200);
 		assertTrue(body.length()>0);
 
 		// test unparsable synapse client version number
 		requestHeaders.put("User-Agent", "synapseclient/1.unparsable.junk python-requests/2.4.0 cpython/2.7.6");
-		response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
-		assertEquals(200, response.getStatusLine().getStatusCode());
+		request.setHeaders(requestHeaders);
+		response = simpleClient.get(request);
+		assertEquals(200, response.getStatusCode());
 	}
 	
-	private String checkNoCharEncoding(HttpResponse response, int expectedStatus) throws Exception {
-		HttpEntity responseEntity = response.getEntity();
-		int statusCode = response.getStatusLine().getStatusCode();
+	private String checkNoCharEncoding(SimpleHttpResponse response, int expectedStatus) throws Exception {
+		int statusCode = response.getStatusCode();
 		// check that the response header does not have a character encoding
-		Header contentTypeHeader = responseEntity.getContentType();
+		Header contentTypeHeader = response.getFirstHeader("Content-Type");
 		String contentTypeString = contentTypeHeader.getValue();
 		ContentType contentType = ContentType.parse(contentTypeString);
-		String responseBody = IOUtils.toString(responseEntity.getContent(), "ISO-8859-1");
+		String responseBody = response.getContent();
 		System.out.println(responseBody);
 		assertEquals(expectedStatus, statusCode);
 		assertNull("Content-Type: "+contentTypeString, contentType.getCharset());
@@ -136,8 +136,6 @@ public class IT503PythonClientFilter {
 	
 	@Test
 	public void testFileServices() throws Exception {
-		// get the underlying SharedClientConnection so we can 'roll our own' request
-		SharedClientConnection conn = synapseOne.getSharedClientConnection();
 		String endpoint = StackConfiguration.getFileServiceEndpoint();
 		String uri = "/createChunkedFileUploadToken";
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -165,7 +163,10 @@ public class IT503PythonClientFilter {
 		ccftr.setContentMD5(contentMD5);
 
 		String requestBody = EntityFactory.createJSONStringForEntity(ccftr);
-		HttpResponse response = conn.performRequest(endpoint+uri, "POST", requestBody, requestHeaders);
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(endpoint+uri);
+		request.setHeaders(requestHeaders);
+		SimpleHttpResponse response = simpleClient.post(request, requestBody);
 		String body = checkNoCharEncoding(response, 201);
 		assertTrue(body.length()>0);
 		ChunkedFileToken token = EntityFactory.createEntityFromJSONString(body, ChunkedFileToken.class);
@@ -176,7 +177,8 @@ public class IT503PythonClientFilter {
 
 		requestBody = EntityFactory.createJSONStringForEntity(chunkRequest);
 		uri = "/createChunkedFileUploadChunkURL";
-		response = conn.performRequest(endpoint+uri, "POST", requestBody, requestHeaders);
+		request.setUri(endpoint+uri);
+		response = simpleClient.post(request, requestBody);
 		body = checkNoCharEncoding(response, 201);
 		assertTrue(body.length()>0);
 	}

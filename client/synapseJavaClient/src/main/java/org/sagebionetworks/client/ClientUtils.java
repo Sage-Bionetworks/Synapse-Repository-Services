@@ -64,7 +64,13 @@ public class ClientUtils {
 		if (is200sStatusCode(response.getStatusCode())) {
 			return;
 		}
-		throwException(response.getStatusCode(), convertStringToJSONObject(response.getContent()));
+		try {
+			JSONObject reason = new JSONObject();
+			reason.append(ERROR_REASON_TAG, response.getContent());
+			throwException(response.getStatusCode(), reason);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 
 	/**
