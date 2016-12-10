@@ -8,7 +8,7 @@
 	"properties": {
 		"updateResults": {
 			"type": "array",
-			"description": "Defines the files to get.",
+			"description": "List of Results",
 			"items": {
 				"$ref":"org.sagebionetworks.repo.model.table.EntityUpdateResult"
 			}
