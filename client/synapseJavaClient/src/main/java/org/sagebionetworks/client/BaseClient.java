@@ -1,5 +1,8 @@
 package org.sagebionetworks.client;
 
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.LoginResponse;
 
 /**
  * Abstraction for Synapse.
@@ -29,4 +32,59 @@ public interface BaseClient {
 	 * @return the session token
 	 */
 	public String getCurrentSessionToken();
+
+	/**
+	 * Get the endpoint of the repository service
+	 */
+	public String getRepoEndpoint();
+
+	/**
+	 * The repository endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/repo/v1"
+	 */
+	public void setRepositoryEndpoint(String repoEndpoint);
+
+	/**
+	 * The authorization endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/auth/v1"
+	 */
+	public void setAuthEndpoint(String authEndpoint);
+
+	/**
+	 * Get the endpoint of the authorization service
+	 */
+	public String getAuthEndpoint();
+
+	/**
+	 * The file endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/file/v1"
+	 */
+	public void setFileEndpoint(String fileEndpoint);
+
+	/**
+	 * Get the endpoint of the file service
+	 */
+	public String getFileEndpoint();
+
+	public String getUserName();
+
+	public void setUsername(String userName);
+
+	public String getApiKey();
+
+	public void setApiKey(String apiKey);
+
+	/**
+	 * Log into Synapse
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse login(LoginRequest request) throws SynapseException;
+
+	/**
+	 * Log out of Synapse
+	 */
+	public void logout() throws SynapseException;
 }

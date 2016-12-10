@@ -72,8 +72,6 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.auth.LoginRequest;
-import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -268,39 +266,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public String getNotificationEmail() throws SynapseException;
 
-	/**
-	 * Get the endpoint of the repository service
-	 */
-	public String getRepoEndpoint();
-
-	/**
-	 * The repository endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/repo/v1"
-	 */
-	public void setRepositoryEndpoint(String repoEndpoint);
-
-	/**
-	 * The authorization endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/auth/v1"
-	 */
-	public void setAuthEndpoint(String authEndpoint);
-
-	/**
-	 * Get the endpoint of the authorization service
-	 */
-	public String getAuthEndpoint();
-
-	/**
-	 * The file endpoint includes the host and version. For example:
-	 * "https://repo-prod.prod.sagebase.org/file/v1"
-	 */
-	public void setFileEndpoint(String fileEndpoint);
-
-	/**
-	 * Get the endpoint of the file service
-	 */
-	public String getFileEndpoint();
-
 	public Entity getEntityById(String entityId) throws SynapseException;
 
 	public <T extends Entity> T putEntity(T entity) throws SynapseException;
@@ -316,20 +281,6 @@ public interface SynapseClient extends BaseClient {
 	
 	public void downloadWikiAttachment(WikiPageKey properKey,
 			String fileName, File target) throws SynapseException;
-
-	/**
-	 * Log into Synapse
-	 * 
-	 * @param request
-	 * @return
-	 * @throws SynapseException
-	 */
-	LoginResponse login(LoginRequest request) throws SynapseException;
-
-	/**
-	 * Log out of Synapse
-	 */
-	public void logout() throws SynapseException;
 
 	/**
 	 * Returns a Session and UserProfile object
@@ -401,14 +352,6 @@ public interface SynapseClient extends BaseClient {
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;
-
-	public String getUserName();
-
-	public void setUserName(String userName);
-
-	public String getApiKey();
-
-	public void setApiKey(String apiKey);
 
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException;

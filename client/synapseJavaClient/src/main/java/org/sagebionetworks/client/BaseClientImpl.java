@@ -56,24 +56,32 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for REST APIs
  */
 public class BaseClientImpl implements BaseClient {
-	private static final String CONTENT_TYPE = "Content-Type";
-	private static final String ACCEPT = "Accept";
+	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
+	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
+
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 	private static final String APPLICATION_JSON_CHARSET_UTF8 = "application/json; charset="+SYNAPSE_ENCODING_CHARSET;
-	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
-	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+
+	private static final String CONTENT_TYPE = "Content-Type";
+	private static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
 	private static final String USER_AGENT = "User-Agent";
 
+	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
+
 	private SimpleHttpClient simpleHttpClient;
 
 	private String userAgent;
-	private String authEndpoint;
-	private Map<String, String> defaultGETDELETEHeaders;
-	private Map<String, String> defaultPOSTPUTHeaders;
 	private String username;
 	private String apiKey;
+	private String repoEndpoint;
+	private String authEndpoint;
+	private String fileEndpoint;
+
+	private Map<String, String> defaultGETDELETEHeaders;
+	private Map<String, String> defaultPOSTPUTHeaders;
 
 	public BaseClientImpl(String userAgent) {
 		this(userAgent, null);
@@ -84,6 +92,8 @@ public class BaseClientImpl implements BaseClient {
 		this.simpleHttpClient = new SimpleHttpClientImpl(config);
 
 		this.authEndpoint = DEFAULT_AUTH_ENDPOINT;
+		this.repoEndpoint = DEFAULT_REPO_ENDPOINT;
+		this.fileEndpoint = DEFAULT_FILE_ENDPOINT;
 		this.defaultGETDELETEHeaders = new HashMap<String, String>();
 		this.defaultGETDELETEHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
 		this.defaultPOSTPUTHeaders = new HashMap<String, String>();
@@ -113,7 +123,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	protected LoginResponse login(LoginRequest request) throws SynapseException {
+	public LoginResponse login(LoginRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getUsername(), "LoginRequest.username");
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
@@ -127,10 +137,102 @@ public class BaseClientImpl implements BaseClient {
 	 * @category Authentication
 	 * @throws SynapseException
 	 */
-	protected void logout() throws SynapseException {
+	public void logout() throws SynapseException {
 		deleteUri(authEndpoint, "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+	}
+
+	//================================================================================
+	// Setters and Getters
+	//================================================================================
+	
+	/**
+	 * Authenticate the synapse client with an existing session token
+	 * 
+	 */
+	@Override
+	public void setSessionToken(String sessionToken) {
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+	}
+
+	/**
+	 * Get the current session token used by this client.
+	 * 
+	 * @return the session token
+	 */
+	@Override
+	public String getCurrentSessionToken() {
+		return this.defaultPOSTPUTHeaders.get(SESSION_TOKEN_HEADER);
+	}
+
+	@Override
+	public String getRepoEndpoint() {
+		return this.repoEndpoint;
+	}
+
+	@Override
+	public void setRepositoryEndpoint(String repoEndpoint) {
+		this.repoEndpoint = repoEndpoint;
+	}
+
+	@Override
+	public void setAuthEndpoint(String authEndpoint) {
+		this.authEndpoint = authEndpoint;
+	}
+
+	@Override
+	public String getAuthEndpoint() {
+		return authEndpoint;
+	}
+
+	@Override
+	public void setFileEndpoint(String fileEndpoint) {
+		this.fileEndpoint = fileEndpoint;
+	}
+
+	@Override
+	public String getFileEndpoint() {
+		return this.fileEndpoint;
+	}
+
+	@Override
+	public String getUserName() {
+		return this.username;
+	}
+
+	@Override
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	@Override
+	public String getApiKey() {
+		return this.apiKey;
+	}
+
+	@Override
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
+
+	protected String getUserAgent() {
+		return this.userAgent;
+	}
+
+	/**
+	 * 
+	 * @param ipAddress
+	 */
+	protected void setUserIp(String ipAddress){
+		ValidateArgument.required(ipAddress, "ipAddress");
+		//verify that it is a proper IP address
+		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
+			throw new IllegalArgumentException("The provided ipAddress:" + ipAddress + " is not a standard IP address.");
+		}
+		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 	}
 
 	/**
@@ -745,96 +847,6 @@ public class BaseClientImpl implements BaseClient {
 		} catch (Exception e) {
 			throw new SynapseClientException("Failed to perform request.", e);
 		}
-	}
-
-	//================================================================================
-	// Setters and Getters
-	//================================================================================
-
-	/**
-	 * Authenticate the synapse client with an existing session token
-	 * 
-	 */
-	@Override
-	public void setSessionToken(String sessionToken) {
-		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-	}
-
-	/**
-	 * Get the current session token used by this client.
-	 * 
-	 * @return the session token
-	 */
-	@Override
-	public String getCurrentSessionToken() {
-		return this.defaultPOSTPUTHeaders.get(SESSION_TOKEN_HEADER);
-	}
-
-	/**
-	 * 
-	 * @param ipAddress
-	 */
-	protected void setUserIp(String ipAddress){
-		ValidateArgument.required(ipAddress, "ipAddress");
-		//verify that it is a proper IP address
-		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
-			throw new IllegalArgumentException("The provided ipAddress:" + ipAddress + " is not a standard IP address.");
-		}
-		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
-		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
-	}
-
-	/**
-	 * @param authEndpoint
-	 *            the authEndpoint to set
-	 */
-	protected void setAuthEndpoint(String authEndpoint) {
-		this.authEndpoint = authEndpoint;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	protected String getAuthEndpoint() {
-		return this.authEndpoint;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	protected String getUsername() {
-		return this.username;
-	}
-
-	/**
-	 * 
-	 * @param username
-	 */
-	protected void setUsername(String username) {
-		this.username = username;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	protected String getApiKey() {
-		return this.apiKey;
-	}
-
-	/**
-	 * 
-	 * @param apiKey
-	 */
-	protected void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
-	}
-
-	protected String getUserAgent() {
-		return this.userAgent;
 	}
 
 	// for test

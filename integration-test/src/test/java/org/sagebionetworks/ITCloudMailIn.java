@@ -58,7 +58,7 @@ public class ITCloudMailIn {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse
-		.setUserName(StackConfiguration.getMigrationAdminUsername());
+		.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();

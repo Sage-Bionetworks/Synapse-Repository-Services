@@ -46,7 +46,7 @@ public class IT060SynapseJavaClientDoiTest {
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();

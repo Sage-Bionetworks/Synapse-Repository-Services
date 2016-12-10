@@ -69,7 +69,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Create 2 users
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);

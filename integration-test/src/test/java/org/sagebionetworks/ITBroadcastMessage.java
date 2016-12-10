@@ -44,7 +44,7 @@ public class ITBroadcastMessage {
 	public static void beforeClass() throws Exception {
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
-		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setUsername(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
@@ -53,9 +53,9 @@ public class ITBroadcastMessage {
 		userToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapseOne));
 		userToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapseTwo));
 		synapseOne.updateMyProfile(synapseOne.getMyProfile());
-		synapseOne.setUserName("test1");
+		synapseOne.setUsername("test1");
 		synapseTwo.updateMyProfile(synapseTwo.getMyProfile());
-		synapseTwo.setUserName("test2");
+		synapseTwo.setUsername("test2");
 	}
 
 	@AfterClass
