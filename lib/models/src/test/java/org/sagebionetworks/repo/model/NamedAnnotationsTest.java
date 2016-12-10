@@ -15,11 +15,11 @@ public class NamedAnnotationsTest {
 	@Test
 	public void testConstructor(){
 		NamedAnnotations named = new NamedAnnotations();
-		Map<String, Annotations> map = named.getMap();
+		Map<AnnotationNameSpace, Annotations> map = named.getMap();
 		assertNotNull(map);
 		assertEquals(2, map.size());
-		assertNotNull(map.get(NamedAnnotations.NAME_SPACE_PRIMARY));
-		assertNotNull(map.get(NamedAnnotations.NAME_SPACE_ADDITIONAL));
+		assertNotNull(map.get(AnnotationNameSpace.PRIMARY));
+		assertNotNull(map.get(AnnotationNameSpace.ADDITIONAL));
 	}
 	
 	@Test
@@ -28,7 +28,7 @@ public class NamedAnnotationsTest {
 		assertNull(named.getEtag());
 		assertNull(named.getId());
 		assertNull(named.getCreationDate());
-		Annotations anno = named.getAnnotationsForName(NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		Annotations anno = named.getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(anno);
 		// Now make sure the values get passed on the get
 		named.setId("12");
@@ -38,35 +38,24 @@ public class NamedAnnotationsTest {
 		Date now = new Date();
 		named.setCreationDate(now);
 		assertEquals(now, named.getCreationDate());
-		anno = named.getAnnotationsForName(NamedAnnotations.NAME_SPACE_ADDITIONAL);
+		anno = named.getAnnotationsForName(AnnotationNameSpace.ADDITIONAL);
 		assertNotNull(anno);
 		assertEquals(named.getId(), anno.getId());
 		assertEquals(named.getEtag(), anno.getEtag());
 		assertEquals(named.getCreationDate(), anno.getCreationDate());
 	}
 	
-	@Test
-	public void testGetAnnotationsForName2(){
-		NamedAnnotations named = new NamedAnnotations();
-		String newNamespace= "newNameSpace";
-		Annotations anno = named.getAnnotationsForName(newNamespace);
-		assertNotNull(anno);
-		anno.addAnnotation("stringKey", "SomeString");
-		anno = named.getAnnotationsForName(newNamespace);
-		assertNotNull(anno);
-		assertEquals("SomeString", anno.getSingleValue("stringKey"));
-	}
 	
 	@Test
 	public void testIterator(){
 		NamedAnnotations named = new NamedAnnotations();
-		Iterator<String> it = named.nameIterator();
+		Iterator<AnnotationNameSpace> it = named.nameIterator();
 		assertNotNull(it);
-		Set<String> expected = new HashSet<String>();
-		expected.add(NamedAnnotations.NAME_SPACE_ADDITIONAL);
-		expected.add(NamedAnnotations.NAME_SPACE_PRIMARY);
+		Set<AnnotationNameSpace> expected = new HashSet<AnnotationNameSpace>();
+		expected.add(AnnotationNameSpace.ADDITIONAL);
+		expected.add(AnnotationNameSpace.PRIMARY);
 		while(it.hasNext()){
-			String name = it.next();
+			AnnotationNameSpace name = it.next();
 			assertTrue(expected.contains(name));
 			expected.remove(name);
 		}

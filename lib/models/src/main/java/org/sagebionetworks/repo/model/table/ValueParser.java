@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.cluster;
+package org.sagebionetworks.repo.model.table;
 
 /**
  * Abstraction for a parsers that convert from a String to

@@ -7,7 +7,7 @@
 		},
 		"failureMessage":{
 			"type": "string",
-			"description": "Failure message for unknown errors."
+			"description": "Failure message for unknown and illegal errors."
 		},
 		"failureCode": {
 			"type": "string",

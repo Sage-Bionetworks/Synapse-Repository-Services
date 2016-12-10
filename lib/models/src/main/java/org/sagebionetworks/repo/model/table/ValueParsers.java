@@ -1,4 +1,6 @@
-package org.sagebionetworks.table.cluster;
+package org.sagebionetworks.repo.model.table;
+
+import java.sql.Date;
 
 import org.sagebionetworks.util.TimeUtils;
 
@@ -24,7 +26,7 @@ public class ValueParsers {
 	/**
 	 * Parser for dates
 	 */
-	public static final ValueParser DATE_PARSER = new ValueParser() {
+	public static final ValueParser DATE_TO_LONG_PARSER = new ValueParser() {
 
 		@Override
 		public Object parseValue(String value) throws IllegalArgumentException {
@@ -37,6 +39,18 @@ public class ValueParsers {
 			} catch (NumberFormatException e) {
 				return TimeUtils.parseSqlDate(value);
 			}
+		}
+	};
+	
+	/**
+	 * Parser for dates
+	 */
+	public static final ValueParser DATE_PARSER = new ValueParser() {
+
+		@Override
+		public Object parseValue(String value) throws IllegalArgumentException {
+			Long dateValue = (Long) DATE_TO_LONG_PARSER.parseValue(value);
+			return new Date(dateValue);
 		}
 	};
 

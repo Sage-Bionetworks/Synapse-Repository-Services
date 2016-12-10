@@ -9,6 +9,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -311,7 +312,7 @@ public class EntityManagerImpl implements EntityManager {
 		cloneAnnotations(updated, updatedClone);
 		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
 		nodeManager.updateAnnotations(userInfo, entityId, updatedClone,
-				NamedAnnotations.NAME_SPACE_ADDITIONAL);
+				AnnotationNameSpace.ADDITIONAL);
 	}
 	
 	public static void cloneAnnotations(Annotations src, Annotations dst) {
