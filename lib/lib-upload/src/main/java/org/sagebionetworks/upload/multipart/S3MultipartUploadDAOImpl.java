@@ -69,10 +69,15 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 	 */
 	@Override
 	public URL createPreSignedPutUrl(String bucket, String partKey, String contentType) {
+		long expiration = System.currentTimeMillis()+ PRE_SIGNED_URL_EXPIRATION_MS;
 		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
 				bucket, partKey).withMethod(HttpMethod.PUT).withExpiration(
-				new Date(System.currentTimeMillis()
-						+ PRE_SIGNED_URL_EXPIRATION_MS));
+				new Date(expiration));
+		/*
+		 * Adding 'Expires' to the signed url is a hack we were forced to 
+		 * add due to SYNPY-409 (see also PLFM-4183)
+		 */
+		request.addRequestParameter("Expires", ""+expiration);
 		if(contentType != null){
 			request.setContentType(contentType);
 		}
