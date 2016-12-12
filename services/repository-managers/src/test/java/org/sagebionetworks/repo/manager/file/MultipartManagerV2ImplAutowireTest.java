@@ -124,13 +124,16 @@ public class MultipartManagerV2ImplAutowireTest {
 		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
 	}
 	
+	/**
+	 * Validation added for SYNPY-409 & PLFM-4183
+	 */
 	void validateUrl(String preSignedUrl) throws MalformedURLException {
 		URL url = new URL(preSignedUrl);
 		Map<String, String> map = Splitter.on('&').trimResults().withKeyValueSeparator("=").split(url.getQuery());
 		String expiresString = map.get("Expires");
 		assertNotNull("Expected the hacked 'Expires' parameter to be added to the URL for PLFM-4183", expiresString);
 		long expires = Long.parseLong(expiresString);
-		assertTrue("The hacked 'Expire' parameter should not be expired", System.currentTimeMillis() < expires);
+		assertTrue("The hacked 'Expires' parameter should not be expired", (System.currentTimeMillis()/1000) < expires);
 	}
 
 	@Test
