@@ -3429,9 +3429,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		ValidateArgument.required(etag, "etag");
-		ValidateArgument.requirement(sub.getTeamId()!=null,
+		ValidateArgument.requirement(sub.getTeamId()==null,
 				"For an individual submission Team ID must be null.");
-		ValidateArgument.requirement(sub.getContributors()!=null && !sub.getContributors().isEmpty(),
+		ValidateArgument.requirement(sub.getContributors()==null || sub.getContributors().isEmpty(),
 				"For an individual submission, contributors may not be specified.");
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "=" + etag;
 		if (challengeEndpoint!=null && notificationUnsubscribeEndpoint!=null) {
@@ -3458,9 +3458,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String challengeEndpoint, String notificationUnsubscribeEndpoint)
 			throws SynapseException {
 		ValidateArgument.required(etag, "etag");
-		ValidateArgument.requirement(submissionEligibilityHash==null,
+		ValidateArgument.requirement(submissionEligibilityHash!=null,
 				"For a Team submission 'submissionEligibilityHash' is required.");
-		ValidateArgument.requirement(sub.getTeamId()==null,
+		ValidateArgument.requirement(sub.getTeamId()!=null,
 				"For a Team submission Team ID is required.");
 
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "="

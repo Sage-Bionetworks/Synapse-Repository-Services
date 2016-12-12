@@ -574,12 +574,14 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	protected void voidPut(String endpoint, String url, JSONEntity requestBody) throws SynapseException {
+		String jsonString = null;
 		try {
-			String jsonString = null;
 			if(requestBody != null){
 				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			putJson(endpoint, url, jsonString);
+			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+					url, PUT, jsonString, defaultPOSTPUTHeaders, null);
+			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -628,7 +630,9 @@ public class BaseClientImpl implements BaseClient {
 			if (requestBody != null) {
 				EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			postJson(endpoint, url, jsonString, params);
+			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+					url, POST, jsonString, defaultPOSTPUTHeaders, params);
+			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
