@@ -1470,7 +1470,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public String putFileToURL(URL url, File file, String contentType) throws SynapseException {
-		return putFileToURL(url, file, contentType);
+		return super.putFileToURL(url, file, contentType);
 	}
 
 	/**
@@ -3474,10 +3474,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException {
-
 		ValidateArgument.required(md5, "md5");
 		String url = ENTITY + "/md5/" + md5;
-		return getListOfJSONEntity(getRepoEndpoint(), url, EntityHeader.class);
+		return getPaginatedResults(getRepoEndpoint(), url, EntityHeader.class).getResults();
 	}
 
 	@Override

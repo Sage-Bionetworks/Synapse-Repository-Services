@@ -642,6 +642,9 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(returnClass, "returnClass");
 		try {
 			JSONObject jsonObject = getJson(endpoint, uri);
+			if (jsonObject == null) {
+				return null;
+			}
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, returnClass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
