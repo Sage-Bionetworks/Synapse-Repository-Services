@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPut;
@@ -34,6 +37,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -105,6 +109,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		String contentType = null;
 		// step two get pre-signed URLs for the parts
 		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
+		validateUrl(preSignedUrl);
 		// step three put the part to the URL
 		putBytesToURL(preSignedUrl, fileDataBytes, contentType);
 		// step four add the part to the upload
@@ -119,6 +124,18 @@ public class MultipartManagerV2ImplAutowireTest {
 		fileHandlesToDelete.add(finalStatus.getResultFileHandleId());
 	}
 	
+	/**
+	 * Validation added for SYNPY-409 & PLFM-4183
+	 */
+	void validateUrl(String preSignedUrl) throws MalformedURLException {
+		URL url = new URL(preSignedUrl);
+		Map<String, String> map = Splitter.on('&').trimResults().withKeyValueSeparator("=").split(url.getQuery());
+		String expiresString = map.get("Expires");
+		assertNotNull("Expected the hacked 'Expires' parameter to be added to the URL for PLFM-4183", expiresString);
+		long expires = Long.parseLong(expiresString);
+		assertTrue("The hacked 'Expires' parameter should not be expired", (System.currentTimeMillis()/1000) < expires);
+	}
+
 	@Test
 	public void testMultipartUploadWithContentType() throws Exception {
 		// step one start the upload.
