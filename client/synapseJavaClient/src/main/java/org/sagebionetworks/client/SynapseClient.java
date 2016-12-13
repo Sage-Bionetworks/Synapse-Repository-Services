@@ -296,9 +296,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public <T extends Entity> T createEntity(T entity) throws SynapseException;
 
-	public JSONObject createJSONObject(String uri, JSONObject entity)
-			throws SynapseException;
-
 	public SearchResults search(SearchQuery searchQuery)
 			throws SynapseException, UnsupportedEncodingException,
 			JSONObjectAdapterException;
@@ -354,9 +351,6 @@ public interface SynapseClient extends BaseClient {
 			SynapseException;
 
 	public <T extends Entity> T createEntity(T entity, String activityId)
-			throws SynapseException;
-
-	public <T extends JSONEntity> T createJSONEntity(String uri, T entity)
 			throws SynapseException;
 
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
