@@ -995,29 +995,11 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, result.get("totalNumberOfResults"));
 		assertEquals(dataset.getId(), ((JSONObject)result.getJSONArray("results").get(0)).get("entity.id"));
 	}
-	
-	@Test
-	public void testGetAllUserAndGroupIds() throws SynapseException{
-		HashSet<String> expected = new HashSet<String>();
-		// Get all the users
-		PaginatedResults<UserProfile> pr = synapseOne.getUsers(0, Integer.MAX_VALUE);
-		for(UserProfile up : pr.getResults()){
-			expected.add(up.getOwnerId());
-		}
-		PaginatedResults<UserGroup> groupPr = synapseOne.getGroups(0, Integer.MAX_VALUE);
-		for(UserGroup ug : groupPr.getResults()){
-			expected.add(ug.getId());
-		}
-		Set<String> results = synapseOne.getAllUserAndGroupIds();
-		assertNotNull(results);
-		assertEquals(expected.size(), results.size());
-		assertEquals(expected,results);
-		
-	}
+
 	@Test
 	public void testRetrieveApiKey() throws SynapseException {
 		String apiKey = synapseOne.retrieveApiKey();
-		assertNotNull(apiKey);		
+		assertNotNull(apiKey);
 	}
 
 	@Test

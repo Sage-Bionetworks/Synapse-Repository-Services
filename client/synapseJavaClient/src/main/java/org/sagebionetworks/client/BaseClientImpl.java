@@ -217,15 +217,22 @@ public class BaseClientImpl implements BaseClient {
 		this.apiKey = apiKey;
 	}
 
-	protected String getUserAgent() {
-		return this.userAgent;
+	/**
+	 * @category Authentication
+	 * @throws SynapseException
+	 */
+	@Override
+	public void invalidateApiKey() throws SynapseException {
+		deleteUri(authEndpoint, "/secretKey");
+		this.apiKey = null;
 	}
 
 	/**
 	 * 
 	 * @param ipAddress
 	 */
-	protected void setUserIp(String ipAddress){
+	@Override
+	public void setUserIpAddress(String ipAddress){
 		ValidateArgument.required(ipAddress, "ipAddress");
 		//verify that it is a proper IP address
 		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
@@ -233,6 +240,10 @@ public class BaseClientImpl implements BaseClient {
 		}
 		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+	}
+
+	protected String getUserAgent() {
+		return this.userAgent;
 	}
 
 	/**
@@ -252,14 +263,7 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
-	/**
-	 * @category Authentication
-	 * @throws SynapseException
-	 */
-	protected void invalidateApiKey() throws SynapseException {
-		deleteUri(authEndpoint, "/secretKey");
-		this.apiKey = null;
-	}
+	
 
 	//================================================================================
 	// Upload & Download related helping functions
@@ -423,15 +427,6 @@ public class BaseClientImpl implements BaseClient {
 		SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint, uri,
 				POST, jsonString, defaultPOSTPUTHeaders, parameters);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
-	}
-
-	/**
-	 * Call Create on any URI
-	 * 
-	 * @category JSONObject Requests
-	 */
-	protected JSONObject postUri(String endpoint, String uri) throws SynapseException {
-		return postJson(endpoint, uri, null, null);
 	}
 
 	/**
