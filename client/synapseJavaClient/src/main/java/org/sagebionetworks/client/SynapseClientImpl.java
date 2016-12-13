@@ -1231,6 +1231,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		deleteUri(getRepoEndpoint(), url);
 	}
 
+	@Override
+	public JSONObject getEntity(String uri) throws SynapseException {
+		return getJson(getRepoEndpoint(), uri);
+	}
+
 	/**
 	 * Get an entity given an Entity ID and the class of the Entity.
 	 * 

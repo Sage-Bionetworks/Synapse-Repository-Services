@@ -628,7 +628,7 @@ public class BaseClientImpl implements BaseClient {
 		try {
 			String jsonString = null;
 			if (requestBody != null) {
-				EntityFactory.createJSONStringForEntity(requestBody);
+				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
 			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
 					url, POST, jsonString, defaultPOSTPUTHeaders, params);
@@ -789,7 +789,7 @@ public class BaseClientImpl implements BaseClient {
 		modHeaders.put(USER_AGENT, userAgent);
 		if (apiKey!=null) {
 			addDigitalSignature(endpoint + uri, modHeaders);
-		} 
+		}
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
 	}
 
