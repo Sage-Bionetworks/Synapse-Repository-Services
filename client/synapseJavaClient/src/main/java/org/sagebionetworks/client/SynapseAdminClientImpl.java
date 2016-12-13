@@ -34,6 +34,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Java Client API for Synapse Administrative REST APIs
@@ -102,7 +103,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public BackupRestoreStatus getDaemonStatus(String daemonId)
 			throws SynapseException, JSONObjectAdapterException {
-		return getJSONEntity(DAEMON + "/" + daemonId, BackupRestoreStatus.class);
+		String url = DAEMON + "/" + daemonId;
+		return getJSONEntity(getRepoEndpoint(), url, BackupRestoreStatus.class);
 	}
 
 	@Override
@@ -134,7 +136,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
 		// Build up the URL
 		String url = buildListMessagesURL(startChangeNumber, type, limit);
-		return getJSONEntity(url, ChangeMessages.class);
+		return getJSONEntity(getRepoEndpoint(), url, ChangeMessages.class);
 	}
 	
 	// New migration client methods
@@ -418,13 +420,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
-			throws SynapseException {
-		try {
-			return doCreateJSONEntity(ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch, ChangeMessages.class);
 	}
 
 	@Override
@@ -440,10 +437,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId)
 			throws JSONObjectAdapterException, SynapseException {
-		if (jobId == null)
-			throw new IllegalArgumentException("JobId cannot be null");
+		ValidateArgument.required(jobId, "jobId");
 		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
-		return getJSONEntity(url, AsynchronousJobStatus.class);
+		return getJSONEntity(getRepoEndpoint(), url, AsynchronousJobStatus.class);
 	}
 
 }
