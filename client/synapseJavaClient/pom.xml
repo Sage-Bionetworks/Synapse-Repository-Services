@@ -34,24 +34,18 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>simple-http-client</artifactId>
+			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpmime</artifactId>
-		</dependency>
-		
-		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-securityUtilities</artifactId>
+			<artifactId>simple-http-client</artifactId>
 		</dependency>
 
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>${org.json.version}</version>
 		</dependency>
 
 		<dependency>
@@ -64,11 +58,6 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
 
 	</dependencies>
