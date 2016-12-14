@@ -1,8 +1,13 @@
 package org.sagebionetworks.table.query.util;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
+
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
@@ -10,12 +15,15 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OrderingSpecification;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.table.query.model.WhereClause;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
@@ -180,5 +188,129 @@ public class TableSqlProcessor {
 		}
 		return results;
 	}
+	
+	/**
+	 * Appends a WHERE clause that is based on the selected facets
+	 * @param basicSql must be a very basic SQL i.e. SELECT * FROM (tableId) <ORDER BY ...> 
+	 * @param selectedFacets
+	 * @return the passed in sql query with its where clause's search condition ANDed with the effective search condition of the list of facets
+	 * @throws ParseException 
+	 */
+	public static String generateSqlWithFacets(String basicSql, List<FacetColumnRequest> selectedFacets) throws ParseException{
+		ValidateArgument.required(basicSql, "basicSql");
+		ValidateArgument.required(selectedFacets, "selectedFacets");
+		QuerySpecification model = TableQueryParser.parserQuery(basicSql);
+		TableExpression tableExpression = model.getTableExpression();
+		SelectList selectList =  model.getSelectList();
+		
+		//check to make sure the sql query is basic
+		if( selectList.getColumns() != null || tableExpression.getWhereClause() != null || tableExpression.getGroupByClause() != null){
+			throw new IllegalArgumentException("basicSql was not a basic query. Allowed format: SELECT * FROM (tableId) <ORDER BY ...> ");
+		}
+		
+		//generate the new search condition based on facets
+		StringBuilder newSearchConditionBuilder = new StringBuilder();
+		for(FacetColumnRequest facet : selectedFacets){
+			if(newSearchConditionBuilder.length() > 0){
+				newSearchConditionBuilder.append(" AND ");
+			}
+			newSearchConditionBuilder.append(createFacetSearchConditionString(facet));
+		}
+		
+		//add the new where clause to the sql
+		if(newSearchConditionBuilder.length() > 0){
+			SearchCondition facetSearchCondition = SqlElementUntils.createSearchCondition(newSearchConditionBuilder.toString());
+			tableExpression.replaceWhere(new WhereClause(facetSearchCondition));
+		}
+		return model.toSql();
+	}
+	
+	/**
+	 * Creates the search condition for a FacetColumnRequest
+	 * @param facetColumnRequest
+	 * @return the search condition string
+	 */
+	public static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest){
+		if (facetColumnRequest == null){
+			return null;
+		}
+		
+		if (facetColumnRequest instanceof FacetColumnValuesRequest){
+			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
+		}else if (facetColumnRequest instanceof FacetColumnRangeRequest){
+			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest);
+		}else{
+			throw new IllegalArgumentException("Unexpected instance of FacetColumnRequest");
+		}
+		
+	}
+	
+	private static String createRangeSearchCondition(FacetColumnRangeRequest facetRange){
+		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
+									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
+			return null;
+		}
+		String min = facetRange.getMin();
+		String max = facetRange.getMax();
+		
+		StringBuilder builder = new StringBuilder("(");
+		
+		//at this point we know at least one value is not null and is not empty string
+		builder.append(facetRange.getColumnName());
+		if(min == null){ //only max exists
+			builder.append("<=");
+			appendValueToStringBuilder(builder, max);
+		}else if (max == null){ //only min exists
+			builder.append(">=");
+			appendValueToStringBuilder(builder, min);
+		}else{
+			builder.append(" BETWEEN ");
+			appendValueToStringBuilder(builder, min);
+			builder.append(" AND ");
+			appendValueToStringBuilder(builder, max);
+		}
+		
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	private static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
+		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
+			return null;
+		}
+		
+		StringBuilder builder = new StringBuilder("(");
+		int initialSize = builder.length();
+		for(String value : facetValues.getFacetValues()){
+			if(builder.length() > initialSize){
+				builder.append(" OR ");
+			}
+			builder.append(facetValues.getColumnName());
+			if(value.equals(NULL_VALUE_KEYWORD)){
+				builder.append(" IS NULL");
+			}else{
+				builder.append("=");
+				appendValueToStringBuilder(builder, value);
+			}
+		}
+		builder.append(")");
+		return builder.toString();
+	}
+	
+	/**
+	 * Appends a value to the string builder
+	 * and places single quotes (') around it if the string contains spaces
+	 */ 
+	private static void appendValueToStringBuilder(StringBuilder builder, String value){
+		boolean containsSpaces = value.contains(" ");
+		if(containsSpaces){
+			builder.append("'");
+		}
+		builder.append(value);
+		if(containsSpaces){
+			builder.append("'");
+		}
+	}
+	
 
 }
