@@ -125,6 +125,13 @@ public class DBOColumnModelImplTest {
 	}
 	
 	@Test
+	public void testGetListEmpty() throws DatastoreException, NotFoundException{
+		List<ColumnModel> list = columnModelDao.getColumnModel(new LinkedList<String>(), false);
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
+	}
+	
+	@Test
 	public void testGetListInOrder() throws DatastoreException, NotFoundException {
 		// Get the list
 		List<String> ids = Lists.newArrayList(two.getId(), three.getId(), one.getId());

@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -242,6 +243,9 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
+		if(ids.isEmpty()){
+			return new LinkedList<ColumnModel>();
+		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 		String sql = keepOrder ? SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER : SQL_SELECT_COLUMNS_FOR_IDS;
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);

@@ -483,6 +483,12 @@ public class ColumnModelManagerTest {
 		assertNotNull(l);
 	}
 	
+	@Test
+	public void testValidateSchemaMaxColumnsEmpty(){
+		List<ColumnModel> results = columnModelManager.validateSchemaSize(new LinkedList<String>());
+		assertNotNull(results);
+	}
+	
 	
 	/**
 	 * See PLFM-3619.  This schema should be just under the limit.
@@ -553,6 +559,14 @@ public class ColumnModelManagerTest {
 		// call under test.
 		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
 		assertEquals(expectedNewSchemaIds, results);
+	}
+	
+	@Test
+	public void testCalculateNewSchemaIdsAndValidatePLFM_4188(){
+		changes = TableModelTestUtils.createAllDeleteColumnChange();
+		// call under test.
+		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+		assertEquals(new LinkedList<String>(), results);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
