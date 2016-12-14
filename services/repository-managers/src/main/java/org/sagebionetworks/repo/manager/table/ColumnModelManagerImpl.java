@@ -184,18 +184,25 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	 */
 	@Override
 	public List<ColumnModel> validateSchemaSize(List<String> columnIds) {
-		List<ColumnModel> schema = null;
-		if(columnIds != null && !columnIds.isEmpty()){
-			if(columnIds.size() > MY_SQL_MAX_COLUMNS_PER_TABLE){
-				throw new IllegalArgumentException("Too many columns. The limit is "+MY_SQL_MAX_COLUMNS_PER_TABLE+" columns per table");
-			}
-			// fetch the columns
-			schema = columnModelDao.getColumnModel(columnIds, false);
-			// Calculate the max row size for this schema.
-			int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
-			if(shemaSize > MY_SQL_MAX_BYTES_PER_ROW){
-				throw new IllegalArgumentException("Too much data per column. The maximum size for a row is about "+MY_SQL_MAX_BYTES_PER_ROW+" bytes. The size for the given columns would be "+shemaSize+" bytes");
-			}
+		if (columnIds == null || columnIds.isEmpty()) {
+			return new LinkedList<ColumnModel>();
+		}
+		if (columnIds.size() > MY_SQL_MAX_COLUMNS_PER_TABLE) {
+			throw new IllegalArgumentException(
+					"Too many columns. The limit is "
+							+ MY_SQL_MAX_COLUMNS_PER_TABLE
+							+ " columns per table");
+		}
+		// fetch the columns
+		List<ColumnModel> schema = columnModelDao.getColumnModel(columnIds,
+				false);
+		// Calculate the max row size for this schema.
+		int shemaSize = TableModelUtils.calculateMaxRowSize(schema);
+		if (shemaSize > MY_SQL_MAX_BYTES_PER_ROW) {
+			throw new IllegalArgumentException("Too much data per column. The maximum size for a row is about "
+							+ MY_SQL_MAX_BYTES_PER_ROW
+							+ " bytes. The size for the given columns would be "
+							+ shemaSize + " bytes");
 		}
 		return schema;
 	}

@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -99,6 +100,8 @@ import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -160,6 +163,8 @@ public class TableWorkerIntegrationTest {
 	SemaphoreManager semphoreManager;
 	@Autowired
 	FileHandleManager fileHandleManager;
+	@Autowired
+	TableManagerSupport tableManagerSupport;
 	
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -285,7 +290,6 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag for the last applied change set should be set for the status and the results", referenceSet.getEtag(),
 				queryResult.getQueryResults().getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag", referenceSet.getEtag(), queryResult.getQueryResults().getEtag());
-
 	}
 	
 	/**
@@ -1826,6 +1830,54 @@ public class TableWorkerIntegrationTest {
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
 		List<Row> queryRows = queryResult.getQueryResults().getRows();
 		assertEquals(1, queryRows.size());
+	}
+	
+	@Test
+	public void testPLFM_4186() throws Exception {
+		// Create one column of each type
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// Add null rows
+		rows.addAll(TableModelTestUtils.createNullRows(schema, 2));
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		long start = System.currentTimeMillis();
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
+		
+		// delete the table schema
+		tableEntityManager.deleteTable(tableId);
+		String localTableId = tableId;
+		// Get the table status
+		TableStatus status = waitForTableProcessing(localTableId);
+		assertNotNull(status);
+		assertEquals(TableState.AVAILABLE, status.getState());
+	}
+	
+	/**
+	 * Wait for tables status to change from processing.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public TableStatus waitForTableProcessing(String tableId) throws InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			TableStatus status = tableManagerSupport.getTableStatusOrCreateIfNotExists(tableId);
+			if(TableState.PROCESSING.equals(status.getState())){
+				assertTrue("Timed out waiting for table status to change.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				System.out.println("Waiting for table status to be available...");
+				Thread.sleep(1000);
+			}else{
+				return status;
+			}
+		}
 	}
 	
 	/**

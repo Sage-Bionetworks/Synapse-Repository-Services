@@ -158,6 +158,27 @@ public class TableTransactionWorkerIntegrationTest {
 		assertNotNull(changeResponse.getSchema());
 		assertEquals(1, changeResponse.getSchema().size());
 		assertEquals(intColumn, changeResponse.getSchema().get(0));
+		
+		// remove the columns (see PLFM-4188)
+		ColumnChange remove = new ColumnChange();
+		remove.setOldColumnId(intColumn.getId());
+		remove.setNewColumnId(null);
+		changes = Lists.newArrayList(remove);
+		request = new TableSchemaChangeRequest();
+		request.setEntityId(entityId);
+		request.setChanges(changes);
+		
+		updates = new LinkedList<TableUpdateRequest>();
+		updates.add(request);
+		transaction = new TableUpdateTransactionRequest();
+		transaction.setEntityId(entityId);
+		transaction.setChanges(updates);
+	
+		// wait for the change to complete
+		response = startAndWaitForJob(adminUserInfo, transaction, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
 	}
 	
 	/**
