@@ -3,8 +3,8 @@ package org.sagebionetworks.tool.migration.v5.delta;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
@@ -20,7 +20,7 @@ import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class DeltaFinder {
 
-	static private Log logger = LogFactory.getLog(DeltaFinder.class);
+	static private Logger logger = LogManager.getLogger(DeltaFinder.class);
 
 	private SynapseAdminClient sourceClient;
 	private SynapseAdminClient destinationClient;

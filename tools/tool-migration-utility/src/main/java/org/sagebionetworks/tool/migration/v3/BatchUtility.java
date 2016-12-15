@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Utility for re-trying failed batches with sub-batches.
@@ -14,7 +16,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class BatchUtility {
 	
-	static private Log log = LogFactory.getLog(BatchUtility.class);
+	static private Logger log = LogManager.getLogger(BatchUtility.class);
 	
 	/**
 	 * Attempt to execute a batch of IDs.  If DaemonFailedException occur, then re-try with a sub-batch.

@@ -7,6 +7,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
@@ -26,7 +28,7 @@ import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	
-	static private Log log = LogFactory.getLog(CreateUpdateWorker.class);
+	static private Logger log = LogManager.getLogger(CreateUpdateWorker.class);
 
 	// Restore takes takes up 75% of the time
 	private static final float RESTORE_FRACTION = 75.0f/100.0f;

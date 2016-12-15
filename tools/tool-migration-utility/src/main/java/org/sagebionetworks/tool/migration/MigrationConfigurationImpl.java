@@ -7,8 +7,8 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Provides configuration information 
@@ -20,7 +20,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class MigrationConfigurationImpl implements Configuration {
 	
-	static private Log log = LogFactory.getLog(MigrationConfigurationImpl.class);
+	static private Logger log = LogManager.getLogger(MigrationConfigurationImpl.class);
 	private final String CONFIGUATION_TEMPLATE_PROPERTIES = "configuation-template.properties";
 	
 	/**

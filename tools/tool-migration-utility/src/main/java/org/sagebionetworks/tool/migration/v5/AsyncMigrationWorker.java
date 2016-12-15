@@ -2,8 +2,8 @@ package org.sagebionetworks.tool.migration.v5;
 
 import java.util.concurrent.Callable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -20,7 +20,7 @@ import org.sagebionetworks.util.DefaultClock;
 
 public class AsyncMigrationWorker implements Callable<AdminResponse> {
 
-	static private Log logger = LogFactory.getLog(AsyncMigrationWorker.class);
+	static private Logger logger = LogManager.getLogger(AsyncMigrationWorker.class);
 
 	private SynapseAdminClient client;
 	private AdminRequest request;
