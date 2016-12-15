@@ -25,9 +25,9 @@ import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.util.StringUtils;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
@@ -204,6 +204,7 @@ public class TableSqlProcessor {
 		ValidateArgument.required(basicSql, "basicSql");
 		ValidateArgument.required(selectedFacets, "selectedFacets");
 		ValidateArgument.required(schema, "schema");
+		ValidateArgument.requirement(schema.size() >= selectedFacets.size(), "The schema must have at least as many columns as the selected facets");
 		
 		QuerySpecification model = TableQueryParser.parserQuery(basicSql);
 		TableExpression tableExpression = model.getTableExpression();
@@ -214,7 +215,7 @@ public class TableSqlProcessor {
 			throw new IllegalArgumentException("basicSql was not a basic query. Allowed format: SELECT * FROM (tableId) <ORDER BY ...> ");
 		}
 		
-		//create a map from columnModel to schema
+		//create a map from column name to columnModel
 		Map<String, ColumnType> columnTypeMap = new HashMap<>();
 		for(ColumnModel cm : schema){
 			columnTypeMap.put(cm.getName(), cm.getColumnType());
@@ -261,8 +262,7 @@ public class TableSqlProcessor {
 	}
 	
 	static String createRangeSearchCondition(FacetColumnRangeRequest facetRange, ColumnType columnType){
-		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
-									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
+		if( facetRange == null || ( StringUtils.isEmpty( facetRange.getMin() ) && StringUtils.isEmpty( facetRange.getMax() ) ) ){
 			return null;
 		}
 		String min = facetRange.getMin();
@@ -317,7 +317,7 @@ public class TableSqlProcessor {
 	 * and places single quotes (') around it if the column type is String
 	 */ 
 	static void appendValueToStringBuilder(StringBuilder builder, String value, ColumnType columnType){
-		boolean isStringType = columnType.equals(ColumnType.STRING);
+		boolean isStringType = ColumnType.STRING.equals(columnType);
 		if(isStringType){
 			builder.append("'");
 		}
