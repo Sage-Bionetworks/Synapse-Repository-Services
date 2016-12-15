@@ -589,6 +589,26 @@ public class TableModelTestUtils {
 	}
 	
 	/**
+	 * Create a column change request to delete all columns.
+	 * @return
+	 */
+	public static List<ColumnChange> createAllDeleteColumnChange(){
+		ColumnChange one = new ColumnChange();
+		one.setOldColumnId("111");
+		one.setNewColumnId(null);
+		
+		ColumnChange two = new ColumnChange();
+		two.setOldColumnId("222");
+		two.setNewColumnId(null);
+		
+		ColumnChange three = new ColumnChange();
+		three.setOldColumnId("333");
+		three.setNewColumnId(null);
+		
+		return  Lists.newArrayList(one, two, three);
+	}
+	
+	/**
 	 * Create columns to match the given changes.
 	 * @param changes
 	 * @return

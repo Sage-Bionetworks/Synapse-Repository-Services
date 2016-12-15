@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DataAccessException;
@@ -77,14 +78,17 @@ import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
+	/**
+	 * The MD5 used for tables with no schema.
+	 */
+	public static final String EMPTY_SCHEMA_MD5 = TableModelUtils.createSchemaMD5Hex(new LinkedList<String>());
+	
 	private static final String KEY_NAME = "Key_name";
 	private static final String COLUMN_NAME = "Column_name";
 	private static final String SHOW_INDEXES_FROM = "SHOW INDEXES FROM ";
 	private static final String KEY = "Key";
 	private static final String SQL_SHOW_COLUMNS = "SHOW FULL COLUMNS FROM ";
 	private static final String FIELD = "Field";
-	private static final String TYPE = "Type";
-	private static final Pattern VARCHAR = Pattern.compile("varchar\\((\\d+)\\)");
 
 	private final DataSourceTransactionManager transactionManager;
 	private final TransactionTemplate writeTransactionTemplate;
@@ -229,7 +233,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return template.queryForObject(sql, new SingleColumnRowMapper<String>());
 		} catch (Exception e) {
 			// Spring throws this when the table is empty
-			return "DEFAULT";
+			return EMPTY_SCHEMA_MD5;
 		}
 	}
 
