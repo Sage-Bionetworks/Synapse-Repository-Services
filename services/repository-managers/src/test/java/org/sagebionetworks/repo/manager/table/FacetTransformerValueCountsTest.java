@@ -55,7 +55,7 @@ public class FacetTransformerValueCountsTest {
 		valuesRequest.setColumnName(columnName);
 		selectedValuesSet = Sets.newHashSet(selectedValue);
 		valuesRequest.setFacetValues(selectedValuesSet);
-		facets.add(new ValidatedQueryFacetColumn("i0", FacetType.enumeration, valuesRequest));
+		facets.add(new ValidatedQueryFacetColumn(schema.get(0), valuesRequest));//use column "i0"
 
 		originalSearchCondition = "i0 LIKE 'asdf%'";
 		originalQuery = new SqlQuery("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema);
@@ -97,8 +97,8 @@ public class FacetTransformerValueCountsTest {
 		+ FacetTransformerValueCounts.VALUE_ALIAS
 		+ ", COUNT(*) AS " 
 		+ FacetTransformerValueCounts.COUNT_ALIAS 
-		+ " FROM syn123 WHERE ( "+originalSearchCondition
-		+ " ) GROUP BY " + columnName 
+		+ " FROM syn123 WHERE "+originalSearchCondition
+		+ " GROUP BY " + columnName 
 		+ " LIMIT " + FacetTransformerValueCounts.MAX_NUM_FACET_CATEGORIES;
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
 		

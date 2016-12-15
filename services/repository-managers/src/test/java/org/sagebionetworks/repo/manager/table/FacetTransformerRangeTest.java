@@ -47,7 +47,7 @@ public class FacetTransformerRangeTest {
 		rangeRequest.setColumnName(columnName);
 		rangeRequest.setMin(selectedMin);
 		rangeRequest.setMax(selectedMax);
-		facets.add(new ValidatedQueryFacetColumn("i2", FacetType.range, rangeRequest));
+		facets.add(new ValidatedQueryFacetColumn(schema.get(2), rangeRequest)); //use column "i2"
 		selectedMin = "12";
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
