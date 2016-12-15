@@ -292,7 +292,7 @@ public class FacetModelTest {
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
 				facetSchema);
 
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, rangeRequest));
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnModel, rangeRequest));
 
 		SqlQuery modifiedQuery = FacetModel.generateFacetFilteredQuery(query, validatedQueryFacetColumns);
 		String expectedTransformedQuery = "SELECT _C890_, _C098_, ROW_ID, ROW_VERSION FROM T123"
@@ -322,8 +322,8 @@ public class FacetModelTest {
 	
 	@Test
 	public void testGenerateFacetQueryTransformers(){
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, rangeRequest));
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName2, FacetType.enumeration, valuesRequest));
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnModel, rangeRequest));
+		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnModel2, valuesRequest));
 		
 		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(simpleQuery, validatedQueryFacetColumns);
 		//just check for the correct item types.  

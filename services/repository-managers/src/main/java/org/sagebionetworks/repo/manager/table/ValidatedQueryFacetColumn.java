@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -16,6 +18,7 @@ public class ValidatedQueryFacetColumn {
 	
 	private String columnName;
 	private FacetType facetType;
+	private ColumnType columnType;
 	private FacetColumnRequest facetColumnRequest;
 	private String searchConditionString;
 	
@@ -28,25 +31,29 @@ public class ValidatedQueryFacetColumn {
 	 * @param facetRange 
 	 * 
 	 */
-	public ValidatedQueryFacetColumn(String columnName, FacetType facetType, FacetColumnRequest facetColumnRequest){
-		ValidateArgument.required(columnName, "columnName");
-		ValidateArgument.required(facetType, "facetType");
+	public ValidatedQueryFacetColumn(ColumnModel columnModel, FacetColumnRequest facetColumnRequest){
+		//TODO: is it better to take in ColumnModel instead of ColumnType and FacetType??
+		ValidateArgument.required(columnModel, "columnModel");
+		ValidateArgument.required(columnModel.getName(), "columnModel.name");
+		ValidateArgument.required(columnModel.getFacetType(), "columnModel.facetType");
+		ValidateArgument.required(columnModel.getColumnType(), "columnModel.columnType");
 		
 		//checks to make sure that useless parameters are not passed in
 		if(facetColumnRequest != null){
-			if(FacetType.enumeration.equals(facetType) && !(facetColumnRequest instanceof FacetColumnValuesRequest)){
+			if(FacetType.enumeration.equals(columnModel.getFacetType()) && !(facetColumnRequest instanceof FacetColumnValuesRequest)){
 				throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnValuesRequest");
 			}
-			if(FacetType.range.equals(facetType) && !(facetColumnRequest instanceof FacetColumnRangeRequest)){
+			if(FacetType.range.equals(columnModel.getFacetType()) && !(facetColumnRequest instanceof FacetColumnRangeRequest)){
 				throw new IllegalArgumentException("facetColumnRequest was not an instance of FacetColumnRangeRequest");
 			}
 		}
 		
 		
-		this.columnName = columnName;
-		this.facetType = facetType;
+		this.columnName = columnModel.getName();
+		this.facetType = columnModel.getFacetType();
+		this.columnType = columnModel.getColumnType();
 		this.facetColumnRequest = facetColumnRequest;
-		this.searchConditionString = TableSqlProcessor.createFacetSearchConditionString(facetColumnRequest);
+		this.searchConditionString = TableSqlProcessor.createFacetSearchConditionString(facetColumnRequest, this.columnType);
 	}
 
 	public String getColumnName() {

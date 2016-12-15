@@ -118,7 +118,7 @@ public class FacetModel {
 			
 			//if it is a faceted column and user either wants returned facets or they have applied a filter to the facet
 			if (returnFacets || facetColumnRequest != null ){
-				validatedFacetsList.add(new ValidatedQueryFacetColumn(columnModel.getName(), columnModel.getFacetType(), facetColumnRequest));
+				validatedFacetsList.add(new ValidatedQueryFacetColumn(columnModel, facetColumnRequest));
 			}
 		}
 	}

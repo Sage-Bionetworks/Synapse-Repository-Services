@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -26,6 +27,8 @@ public class TableSqlProcessorTest {
 	FacetColumnRangeRequest facetRange;
 	String basicSql;
 	List<FacetColumnRequest> selectedFacets;
+	
+	StringBuilder stringBuilder;
 	@Before
 	public void setUp(){
 		columnName = "someColumn";
@@ -36,6 +39,8 @@ public class TableSqlProcessorTest {
 		
 		basicSql = "SELECT * FROM syn123 ORDER BY asdf DESC";
 		selectedFacets = new ArrayList<>();
+		
+		stringBuilder = new StringBuilder();
 	}
 	
 	@Test
@@ -266,5 +271,25 @@ public class TableSqlProcessorTest {
 		facetRange.setMax(max);
 		String searchConditionString = TableSqlProcessor.createFacetSearchConditionString(facetRange);
 		assertEquals("(" + columnName + " BETWEEN " + min + " AND " + max + ")", searchConditionString);
+	}
+	
+	//////////////////////////////////////
+	// appendValueToStringBuilder() Tests
+	//////////////////////////////////////
+	
+	@Test
+	public void testAppendValueToStringBuilderStringType(){
+		String value = "value asdf 48109-8)(_*()*)(7^*&%$%W$%#%$^^%$%^=";
+		String expectedResult = "'"+value+"'";
+		TableSqlProcessor.appendValueToStringBuilder(stringBuilder, value, ColumnType.STRING);
+		assertEquals(expectedResult, stringBuilder.toString());
+	}
+	
+	@Test
+	public void testAppendValueToStringBuilderNonStringType(){
+		String value = "682349708";
+		String expectedResult = value;
+		TableSqlProcessor.appendValueToStringBuilder(stringBuilder, value, ColumnType.INTEGER);
+		assertEquals(expectedResult, stringBuilder.toString());
 	}
 }

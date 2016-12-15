@@ -2,9 +2,13 @@ package org.sagebionetworks.table.query.util;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
@@ -196,9 +200,11 @@ public class TableSqlProcessor {
 	 * @return the passed in sql query with its where clause's search condition ANDed with the effective search condition of the list of facets
 	 * @throws ParseException 
 	 */
-	public static String generateSqlWithFacets(String basicSql, List<FacetColumnRequest> selectedFacets) throws ParseException{
+	public static String generateSqlWithFacets(String basicSql, List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema) throws ParseException{
 		ValidateArgument.required(basicSql, "basicSql");
 		ValidateArgument.required(selectedFacets, "selectedFacets");
+		ValidateArgument.required(schema, "schema");
+		
 		QuerySpecification model = TableQueryParser.parserQuery(basicSql);
 		TableExpression tableExpression = model.getTableExpression();
 		SelectList selectList =  model.getSelectList();
@@ -208,13 +214,20 @@ public class TableSqlProcessor {
 			throw new IllegalArgumentException("basicSql was not a basic query. Allowed format: SELECT * FROM (tableId) <ORDER BY ...> ");
 		}
 		
+		//create a map from columnModel to schema
+		Map<String, ColumnType> columnTypeMap = new HashMap<>();
+		for(ColumnModel cm : schema){
+			columnTypeMap.put(cm.getName(), cm.getColumnType());
+		}
+		
+		
 		//generate the new search condition based on facets
 		StringBuilder newSearchConditionBuilder = new StringBuilder();
 		for(FacetColumnRequest facet : selectedFacets){
 			if(newSearchConditionBuilder.length() > 0){
 				newSearchConditionBuilder.append(" AND ");
 			}
-			newSearchConditionBuilder.append(createFacetSearchConditionString(facet));
+			newSearchConditionBuilder.append(createFacetSearchConditionString(facet, columnTypeMap.get(facet.getColumnName())));
 		}
 		
 		//add the new where clause to the sql
@@ -230,22 +243,24 @@ public class TableSqlProcessor {
 	 * @param facetColumnRequest
 	 * @return the search condition string
 	 */
-	public static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest){
+	public static String createFacetSearchConditionString(FacetColumnRequest facetColumnRequest, ColumnType columnType){
+		ValidateArgument.required(columnType, "columnType");
+		
 		if (facetColumnRequest == null){
 			return null;
 		}
 		
 		if (facetColumnRequest instanceof FacetColumnValuesRequest){
-			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest);
+			return createEnumerationSearchCondition((FacetColumnValuesRequest) facetColumnRequest, columnType);
 		}else if (facetColumnRequest instanceof FacetColumnRangeRequest){
-			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest);
+			return createRangeSearchCondition((FacetColumnRangeRequest) facetColumnRequest, columnType);
 		}else{
 			throw new IllegalArgumentException("Unexpected instance of FacetColumnRequest");
 		}
 		
 	}
 	
-	private static String createRangeSearchCondition(FacetColumnRangeRequest facetRange){
+	static String createRangeSearchCondition(FacetColumnRangeRequest facetRange, ColumnType columnType){
 		if(facetRange == null || ( (facetRange.getMin() == null || facetRange.getMin().equals(""))
 									&& (facetRange.getMax() == null || facetRange.getMax().equals("")) ) ){
 			return null;
@@ -259,22 +274,22 @@ public class TableSqlProcessor {
 		builder.append(facetRange.getColumnName());
 		if(min == null){ //only max exists
 			builder.append("<=");
-			appendValueToStringBuilder(builder, max);
+			appendValueToStringBuilder(builder, max, columnType);
 		}else if (max == null){ //only min exists
 			builder.append(">=");
-			appendValueToStringBuilder(builder, min);
+			appendValueToStringBuilder(builder, min, columnType);
 		}else{
 			builder.append(" BETWEEN ");
-			appendValueToStringBuilder(builder, min);
+			appendValueToStringBuilder(builder, min, columnType);
 			builder.append(" AND ");
-			appendValueToStringBuilder(builder, max);
+			appendValueToStringBuilder(builder, max, columnType);
 		}
 		
 		builder.append(")");
 		return builder.toString();
 	}
 	
-	private static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues){
+	static String createEnumerationSearchCondition(FacetColumnValuesRequest facetValues, ColumnType columnType){
 		if(facetValues == null || facetValues.getFacetValues() == null|| facetValues.getFacetValues().isEmpty()){
 			return null;
 		}
@@ -290,7 +305,7 @@ public class TableSqlProcessor {
 				builder.append(" IS NULL");
 			}else{
 				builder.append("=");
-				appendValueToStringBuilder(builder, value);
+				appendValueToStringBuilder(builder, value, columnType);
 			}
 		}
 		builder.append(")");
@@ -299,15 +314,15 @@ public class TableSqlProcessor {
 	
 	/**
 	 * Appends a value to the string builder
-	 * and places single quotes (') around it if the string contains spaces
+	 * and places single quotes (') around it if the column type is String
 	 */ 
-	private static void appendValueToStringBuilder(StringBuilder builder, String value){
-		boolean containsSpaces = value.contains(" ");
-		if(containsSpaces){
+	static void appendValueToStringBuilder(StringBuilder builder, String value, ColumnType columnType){
+		boolean isStringType = columnType.equals(ColumnType.STRING);
+		if(isStringType){
 			builder.append("'");
 		}
 		builder.append(value);
-		if(containsSpaces){
+		if(isStringType){
 			builder.append("'");
 		}
 	}
