@@ -307,6 +307,11 @@
 				<version>${org.apache.httpcomponents.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>commons-net</groupId>
+				<artifactId>commons-net</artifactId>
+				<version>3.0.1</version>
+			</dependency>
+			<dependency>
 				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
 				<groupId>org.jsoup</groupId>
 				<artifactId>jsoup</artifactId>
@@ -527,7 +532,7 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>simple-http-client</artifactId>
-				<version>0.0.6</version>
+				<version>0.0.7</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.gwt</groupId>
@@ -602,6 +607,11 @@
 				<groupId>org.json</groupId>
 				<artifactId>json</artifactId>
 				<version>${org.json.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.mail</groupId>
+				<artifactId>mail</artifactId>
+				<version>1.4</version>
 			</dependency>
 
 		</dependencies>

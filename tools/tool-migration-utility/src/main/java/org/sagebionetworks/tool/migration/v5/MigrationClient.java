@@ -15,8 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
@@ -48,7 +48,7 @@ import org.sagebionetworks.tool.progress.BasicProgress;
  */
 public class MigrationClient {
 	
-	static private Log log = LogFactory.getLog(MigrationClient.class);
+	static private Logger log = LogManager.getLogger(MigrationClient.class);
 
 	SynapseClientFactory factory;
 	ExecutorService threadPool;

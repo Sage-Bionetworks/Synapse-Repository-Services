@@ -1,10 +1,6 @@
 package org.sagebionetworks.tool.migration.v4;
 
 import java.util.List;
-import java.util.concurrent.Future;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -15,11 +11,7 @@ import org.sagebionetworks.tool.migration.v4.delta.IdRange;
 import org.sagebionetworks.tool.migration.v4.utils.TypeToMigrateMetadata;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
-import com.google.common.collect.Ranges;
-
 public class DeltaBuilder {
-	
-	static private Log logger = LogFactory.getLog(DeltaBuilder.class);
 
 	private RowWriter<RowMetadata> toCreate;
 	private RowWriter<RowMetadata> toUpdate;

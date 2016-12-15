@@ -3,17 +3,17 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.*;
 
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ByteArrayEntity;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -29,14 +29,17 @@ import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.Md5Utils;
+import com.amazonaws.util.StringInputStream;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
@@ -51,12 +54,9 @@ public class MultipartManagerV2ImplAutowireTest {
 	private FileHandleDao fileHandleDao;
 
 	@Autowired
-	private AmazonS3Client s3Client;
-
-	@Autowired
 	public UserManager userManager;
 
-	HttpClient httpClient;
+	static SimpleHttpClient simpleHttpClient;
 
 	private UserInfo adminUserInfo;
 	private List<String> fileHandlesToDelete;
@@ -66,10 +66,14 @@ public class MultipartManagerV2ImplAutowireTest {
 	byte[] fileDataBytes;
 	String fileMD5Hex;
 
+	@BeforeClass
+	public static void beforeClass() {
+		simpleHttpClient = new SimpleHttpClientImpl();
+	}
+
 	@Before
 	public void before() throws Exception {		
 		// used to put data to a pre-signed url.
-		httpClient = DefaultHttpClientSingleton.getInstance();
 		fileHandlesToDelete = new LinkedList<String>();
 		adminUserInfo = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
@@ -111,7 +115,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		validateUrl(preSignedUrl);
 		// step three put the part to the URL
-		putBytesToURL(preSignedUrl, fileDataBytes, contentType);
+		putStringToURL(preSignedUrl, fileDataString, contentType);
 		// step four add the part to the upload
 		addPart(status.getUploadId());
 		// Step five complete the upload
@@ -144,7 +148,7 @@ public class MultipartManagerV2ImplAutowireTest {
 		// step two get pre-signed URLs for the parts
 		String preSignedUrl = getPresignedURLForPart(status.getUploadId(), contentType);
 		// step three put the part to the URL
-		putBytesToURL(preSignedUrl, fileDataBytes, contentType);
+		putStringToURL(preSignedUrl, fileDataString, contentType);
 		// step four add the part to the upload
 		addPart(status.getUploadId());
 		// Step five complete the upload
@@ -194,18 +198,21 @@ public class MultipartManagerV2ImplAutowireTest {
 	/**
 	 * PUT the given types to the given URL.
 	 * @param url
-	 * @param bytes
+	 * @param toUpload
+	 * @param contentType
 	 * @throws Exception
 	 */
-	private void putBytesToURL(String url, byte[] bytes, String contentType) throws Exception{
-		// PUT the data to the url.
-		HttpPut put = new HttpPut(url);
-		ByteArrayEntity byteArrayEntity = new ByteArrayEntity(bytes);
-		put.setEntity(byteArrayEntity);
+	private void putStringToURL(String url, String toUpload, String contentType) throws Exception{
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(url);
 		if(contentType != null){
-			put.setHeader("Content-Type", contentType);
+			Map<String, String> headers = new HashMap<String, String>();
+			headers.put("Content-Type", contentType);
+			request.setHeaders(headers);
 		}
-		httpClient.execute(put);
+		InputStream toPut = new StringInputStream(toUpload);
+		SimpleHttpResponse response = simpleHttpClient.putToURL(request, toPut, toUpload.getBytes("UTF-8").length);
+		assertEquals(200, response.getStatusCode());
 	}
 	
 	/**

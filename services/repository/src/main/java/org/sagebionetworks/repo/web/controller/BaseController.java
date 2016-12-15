@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.CloudSearchClientException;
-import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -709,23 +708,6 @@ public abstract class BaseController {
 			throw new RuntimeException(e);
 		}
 		return baos.toString();
-	}
-	
-	// TODO:  The status code in 'ex' should dictate the response status, it should not be assumed to be BAD_REQUEST
-	@ExceptionHandler(HttpClientHelperException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public @ResponseBody
-	ErrorResponse handleHttpClientHelperException(HttpClientHelperException ex, HttpServletRequest request) {
-		// Convert to a IllegalArgumentException
-		String message = "Unknown";
-		if (ex.getMessage() != null) {
-			int index = ex.getMessage().indexOf("\"message\":");
-			if (index > 0) {
-				message = ex.getMessage().substring(index, ex.getMessage().length());
-			}
-		}
-		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
-		return handleException(ds, request, true);
 	}
 
 	@ExceptionHandler(CloudSearchClientException.class)

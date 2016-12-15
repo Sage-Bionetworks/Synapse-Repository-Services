@@ -3,8 +3,8 @@ package org.sagebionetworks.tool.migration.v5;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.AdminResponse;
@@ -17,7 +17,7 @@ import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	
-	static private Log logger = LogFactory.getLog(RangeMetadataIterator.class);
+	static private Logger log = LogManager.getLogger(RangeMetadataIterator.class);
 	
 	final MigrationType type;
 	final SynapseAdminClient client;
@@ -105,7 +105,7 @@ public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	 * @return
 	 */
 	private Iterator<RowMetadata> fetchNextPage() {
-		logger.info("Getting data for type: " + type + " , fetching rows at offset " + offset + ".");
+		log.info("Getting data for type: " + type + " , fetching rows at offset " + offset + ".");
 		List<RowMetadata> page = this.getNextPageWithBackupoff(type, minId, maxId, batchSize, offset);
 		offset += batchSize;
 		if (page.size() < batchSize) {

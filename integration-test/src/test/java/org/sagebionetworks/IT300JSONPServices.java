@@ -28,7 +28,10 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 
 /**
  * Tests for JSONP supported methods.
@@ -40,6 +43,7 @@ public class IT300JSONPServices {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
+	private static SimpleHttpClient simpleHttpClient;
 	
 	private Team teamToDelete = null;
 	
@@ -53,6 +57,7 @@ public class IT300JSONPServices {
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 	@Before
 	public void before() throws SynapseException{
@@ -79,11 +84,13 @@ public class IT300JSONPServices {
 		String callbackName = "parseMe";
 		urlBuilder.append("/teams"+"?callback="); 
 		urlBuilder.append(callbackName);
-		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
+		
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(urlBuilder.toString());
+		SimpleHttpResponse response = simpleHttpClient.get(request);
 		assertNotNull(response);
-		assertEquals(200, response.getStatusLine().getStatusCode());
-		assertNotNull(response.getEntity());
-		String responseBody = EntityUtils.toString(response.getEntity());
+		assertEquals(200, response.getStatusCode());
+		String responseBody = response.getContent();
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
 		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
@@ -116,11 +123,12 @@ public class IT300JSONPServices {
 		String teamId = makeATeam();
 		urlBuilder.append("/teamMembers/"+teamId+"?callback="); 
 		urlBuilder.append(callbackName);
-		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
+		SimpleHttpRequest request = new SimpleHttpRequest();
+		request.setUri(urlBuilder.toString());
+		SimpleHttpResponse response = simpleHttpClient.get(request);
 		assertNotNull(response);
-		assertEquals(200, response.getStatusLine().getStatusCode());
-		assertNotNull(response.getEntity());
-		String responseBody = EntityUtils.toString(response.getEntity());
+		assertEquals(200, response.getStatusCode());
+		String responseBody = response.getContent();
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
 		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
