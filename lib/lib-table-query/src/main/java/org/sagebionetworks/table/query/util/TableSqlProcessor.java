@@ -19,7 +19,6 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.OrderingSpecification;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
@@ -27,7 +26,7 @@ import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
