@@ -16,6 +16,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
+import org.sagebionetworks.table.query.util.TableSqlProcessor;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -151,7 +152,7 @@ public class FacetModel {
 				String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(validatedFacets, null);
 				
 				StringBuilder builder = new StringBuilder();
-				FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
+				TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
 				
 				// create the new where if necessary
 				if(builder.length() > 0){

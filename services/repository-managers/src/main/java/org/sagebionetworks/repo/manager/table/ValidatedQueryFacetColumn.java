@@ -32,12 +32,11 @@ public class ValidatedQueryFacetColumn {
 	 * 
 	 */
 	public ValidatedQueryFacetColumn(ColumnModel columnModel, FacetColumnRequest facetColumnRequest){
-		//TODO: is it better to take in ColumnModel instead of ColumnType and FacetType??
 		ValidateArgument.required(columnModel, "columnModel");
 		ValidateArgument.required(columnModel.getName(), "columnModel.name");
 		ValidateArgument.required(columnModel.getFacetType(), "columnModel.facetType");
 		ValidateArgument.required(columnModel.getColumnType(), "columnModel.columnType");
-		
+		ValidateArgument.requirement(facetColumnRequest == null  || columnModel.getName().equals(facetColumnRequest.getColumnName()), "names of the columns must match");
 		//checks to make sure that useless parameters are not passed in
 		if(facetColumnRequest != null){
 			if(FacetType.enumeration.equals(columnModel.getFacetType()) && !(facetColumnRequest instanceof FacetColumnValuesRequest)){

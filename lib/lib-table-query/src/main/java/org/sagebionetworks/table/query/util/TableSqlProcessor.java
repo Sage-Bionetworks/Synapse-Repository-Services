@@ -230,11 +230,14 @@ public class TableSqlProcessor {
 			}
 			newSearchConditionBuilder.append(createFacetSearchConditionString(facet, columnTypeMap.get(facet.getColumnName())));
 		}
+		String facetSearchConditionString = newSearchConditionBuilder.toString();
 		
+		
+		StringBuilder whereClausebuilder = new StringBuilder();
+		appendFacetWhereClauseToStringBuilderIfNecessary(whereClausebuilder, facetSearchConditionString, null);
 		//add the new where clause to the sql
 		if(newSearchConditionBuilder.length() > 0){
-			SearchCondition facetSearchCondition = SqlElementUntils.createSearchCondition(newSearchConditionBuilder.toString());
-			tableExpression.replaceWhere(new WhereClause(facetSearchCondition));
+			tableExpression.replaceWhere(new TableQueryParser(whereClausebuilder.toString()).whereClause());
 		}
 		return model.toSql();
 	}
@@ -324,6 +327,40 @@ public class TableSqlProcessor {
 		builder.append(value);
 		if(isStringType){
 			builder.append("'");
+		}
+	}
+	
+	/**
+	 * Appends a WHERE clause to the String Builder if necessary
+	 * @param builder StringBuilder to append to
+	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
+	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
+	 */
+	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
+			WhereClause originalWhereClause) {
+		ValidateArgument.required(builder, "builder");
+		
+		if(facetSearchConditionString != null || originalWhereClause != null){
+			builder.append(" WHERE ");
+			if(originalWhereClause != null){
+				if(facetSearchConditionString != null){
+					builder.append("(");
+				}
+				builder.append(originalWhereClause.getSearchCondition().toSql());
+				if(facetSearchConditionString != null){
+					builder.append(")");
+				}
+			}
+			if(facetSearchConditionString != null){
+				if(originalWhereClause != null){
+					builder.append(" AND ");
+					builder.append("(");
+				}
+				builder.append(facetSearchConditionString);
+				if(originalWhereClause != null){
+					builder.append(")");
+				}
+			}
 		}
 	}
 	

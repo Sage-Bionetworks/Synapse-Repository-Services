@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.model.WhereClause;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -38,8 +39,11 @@ public class TableSqlProcessorTest {
 	List<ColumnModel> schema;
 	
 	StringBuilder stringBuilder;
+	
+	WhereClause whereClause;
+	String facetSearchConditionString;
 	@Before
-	public void setUp(){
+	public void setUp() throws ParseException{
 		stringColumnName = "stringColumn";
 		intColumnName = "integerColumn";
 		tableId = "syn123";
@@ -64,6 +68,10 @@ public class TableSqlProcessorTest {
 		selectedFacets = new ArrayList<>();
 		stringBuilder = new StringBuilder();
 		schema = Lists.newArrayList(stringColumnModel, intColumnModel);
+		
+		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
+		facetSearchConditionString = "(tabs > spaces)";
+		stringBuilder = new StringBuilder();
 	}
 	
 	@Test
@@ -396,4 +404,37 @@ public class TableSqlProcessorTest {
 		TableSqlProcessor.appendValueToStringBuilder(stringBuilder, value, ColumnType.INTEGER);
 		assertEquals(expectedResult, stringBuilder.toString());
 	}
+	
+	////////////////////////////////////////////////////////////
+	// appendFacetWhereClauseToStringBuilderIfNecessary() tests
+	////////////////////////////////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullBuilder(){
+		TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(null, facetSearchConditionString, whereClause);
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionStringNullWhereClause(){
+		TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, null);
+		assertEquals(0, stringBuilder.length());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
+		TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
+		assertEquals(" WHERE "+ facetSearchConditionString , stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
+		TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
+		assertEquals(" WHERE "+ whereClause.getSearchCondition().toSql(), stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
+		TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
+		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
+	}
+	
 }

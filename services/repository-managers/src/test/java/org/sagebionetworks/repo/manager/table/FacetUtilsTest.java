@@ -67,10 +67,6 @@ public class FacetUtilsTest {
 	public void setUp() throws ParseException{
 		facetColumnName = "asdf";
 
-		
-		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
-		facetSearchConditionString = "(tabs > spaces)";
-		stringBuilder = new StringBuilder();
 		simpleModel = TableQueryParser.parserQuery("select * from syn123 where i like 'trains'");
 		columnName = "burrito";
 		
@@ -102,38 +98,6 @@ public class FacetUtilsTest {
 		requestedFacetColumns = new HashSet<>();
 	}
 
-	////////////////////////////////////////////////////////////
-	// appendFacetWhereClauseToStringBuilderIfNecessary() tests
-	////////////////////////////////////////////////////////////
-	@Test (expected = IllegalArgumentException.class)
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullBuilder(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(null, facetSearchConditionString, whereClause);
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionStringNullWhereClause(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, null);
-		assertEquals(0, stringBuilder.length());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
-		assertEquals(" WHERE ("+ facetSearchConditionString + ")", stringBuilder.toString());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
-		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ")", stringBuilder.toString());
-	}
-	
-	@Test
-	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
-		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
-		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
-	}
-	
 	/////////////////////////////////////////////
 	// concatFacetSearchConditionStrings() Tests
 	/////////////////////////////////////////////

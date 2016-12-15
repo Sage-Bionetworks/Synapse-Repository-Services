@@ -58,6 +58,12 @@ public class ValidatedQueryFacetColumnTest {
 		new ValidatedQueryFacetColumn(columnModel, facetValues);
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testConstructorNonmatchingColumnNames(){
+		columnModel.setName("wrongName");
+		new ValidatedQueryFacetColumn(columnModel, facetValues);
+	}	
+	
 	@Test (expected = IllegalArgumentException.class)
 	public void testConstructorWrongParameterForEnumeration(){
 		columnModel.setFacetType(FacetType.enumeration);

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetUtils {
@@ -40,33 +39,5 @@ public class FacetUtils {
 		
 		builder.append(")");
 		return builder.toString();
-	}
-	
-	/**
-	 * Appends a WHERE clause to the String Builder if necessary
-	 * @param builder StringBuilder to append to
-	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
-	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
-	 */
-	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
-			WhereClause originalWhereClause) {
-		ValidateArgument.required(builder, "builder");
-		
-		if(facetSearchConditionString != null || originalWhereClause != null){
-			builder.append(" WHERE ");
-			if(originalWhereClause != null){
-				builder.append("(");
-				builder.append(originalWhereClause.getSearchCondition().toSql());
-				builder.append(")");
-			}
-			if(facetSearchConditionString != null){
-				if(originalWhereClause != null){
-					builder.append(" AND ");
-				}
-				builder.append("(");
-				builder.append(facetSearchConditionString);
-				builder.append(")");
-			}
-		}
 	}
 }
