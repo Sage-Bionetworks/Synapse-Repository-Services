@@ -211,8 +211,8 @@ public class TableSqlProcessor {
 		SelectList selectList =  model.getSelectList();
 		
 		//check to make sure the sql query is basic
-		if( selectList.getColumns() != null || tableExpression.getWhereClause() != null || tableExpression.getGroupByClause() != null){
-			throw new IllegalArgumentException("basicSql was not a basic query. Allowed format: SELECT * FROM (tableId) <ORDER BY ...> ");
+		if( selectList.getColumns() != null || tableExpression.getGroupByClause() != null){
+			throw new IllegalArgumentException("basicSql was not a basic query");
 		}
 		
 		//create a map from column name to columnModel

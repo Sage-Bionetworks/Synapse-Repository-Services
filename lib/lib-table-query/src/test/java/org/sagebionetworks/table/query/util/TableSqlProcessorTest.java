@@ -212,11 +212,6 @@ public class TableSqlProcessorTest {
 	}
 	
 	@Test (expected= IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNonBasicSqlWhere() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets("SELECT * FROM " + tableId + " WHERE asdf = 123", selectedFacets, schema);
-	}
-	
-	@Test (expected= IllegalArgumentException.class)
 	public void testGenerateSqlWithFacetsNonBasicSqlGroupBy() throws ParseException{
 		TableSqlProcessor.generateSqlWithFacets("SELECT * FROM " + tableId + " GROUP BY asdf", selectedFacets, schema);
 	}
