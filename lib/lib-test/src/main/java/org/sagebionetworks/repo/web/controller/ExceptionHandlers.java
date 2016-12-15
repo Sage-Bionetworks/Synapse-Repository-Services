@@ -69,7 +69,6 @@ public class ExceptionHandlers {
 				new ExceptionType("org.sagebionetworks.schema.adapter.JSONObjectAdapterException", false),
 				new ExceptionType(EOFException.class.getName(), false),
 				new ExceptionType("org.sagebionetworks.repo.queryparser.ParseException", false),
-				new ExceptionType("org.sagebionetworks.utils.HttpClientHelperException", false),
 				new ExceptionType("org.sagebionetworks.search.CloudSearchClientException", false)),
 		new TestEntry(406,
 				new ExceptionType("org.springframework.web.HttpMediaTypeNotAcceptableException", false)),
