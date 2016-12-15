@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +56,6 @@ public class MultipartManagerV2ImplAutowireTest {
 	@Autowired
 	public UserManager userManager;
 
-	@Autowired
 	SimpleHttpClient simpleHttpClient;
 
 	private UserInfo adminUserInfo;
@@ -64,6 +65,11 @@ public class MultipartManagerV2ImplAutowireTest {
 	String fileDataString;
 	byte[] fileDataBytes;
 	String fileMD5Hex;
+
+	@BeforeClass
+	public void beforeClass() {
+		simpleHttpClient = new SimpleHttpClientImpl();
+	}
 
 	@Before
 	public void before() throws Exception {		
