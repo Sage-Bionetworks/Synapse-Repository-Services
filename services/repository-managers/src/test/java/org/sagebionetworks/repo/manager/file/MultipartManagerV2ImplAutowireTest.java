@@ -56,7 +56,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	@Autowired
 	public UserManager userManager;
 
-	SimpleHttpClient simpleHttpClient;
+	static SimpleHttpClient simpleHttpClient;
 
 	private UserInfo adminUserInfo;
 	private List<String> fileHandlesToDelete;
@@ -67,7 +67,7 @@ public class MultipartManagerV2ImplAutowireTest {
 	String fileMD5Hex;
 
 	@BeforeClass
-	public void beforeClass() {
+	public static void beforeClass() {
 		simpleHttpClient = new SimpleHttpClientImpl();
 	}
 
