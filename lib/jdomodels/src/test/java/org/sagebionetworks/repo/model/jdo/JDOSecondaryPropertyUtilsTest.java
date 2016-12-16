@@ -6,6 +6,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
@@ -429,4 +431,14 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(expected, results);
 	}
 
+	@Test
+	public void testPLFM_4189() throws IOException{
+		String fileName = "CompressedAnnotationsPLFM_4189.xml.gz";
+		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", in);
+		byte[] bytes = IOUtils.toByteArray(in);
+		NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+		Annotations primary = named.getPrimaryAnnotations();
+		assertEquals("docker.synapse.org/syn4224222/dm-python-example", primary.getSingleValue("repositoryName"));
+	}
 }

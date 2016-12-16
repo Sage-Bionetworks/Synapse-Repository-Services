@@ -15,11 +15,11 @@ public class NamedAnnotationsTest {
 	@Test
 	public void testConstructor(){
 		NamedAnnotations named = new NamedAnnotations();
-		Map<AnnotationNameSpace, Annotations> map = named.getMap();
+		Map<String, Annotations> map = named.getMap();
 		assertNotNull(map);
 		assertEquals(2, map.size());
-		assertNotNull(map.get(AnnotationNameSpace.PRIMARY));
-		assertNotNull(map.get(AnnotationNameSpace.ADDITIONAL));
+		assertNotNull(map.get(AnnotationNameSpace.PRIMARY.name()));
+		assertNotNull(map.get(AnnotationNameSpace.ADDITIONAL.name()));
 	}
 	
 	@Test
