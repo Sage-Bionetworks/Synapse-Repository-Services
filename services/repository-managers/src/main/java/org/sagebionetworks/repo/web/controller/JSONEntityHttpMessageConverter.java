@@ -31,6 +31,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 
 public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
+	private static final String UTF_8 = "UTF-8";
 	private static final String CONCRETE_TYPE = "concreteType";
 	private static final String ENTITY_TYPE = "entityType";
 	private List<MediaType> supportedMedia;
@@ -90,7 +91,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
 	
 	// This is the character set used by Synapse if the client does not specify one
-	private static final Charset SYNAPSE_DEFAULT_CHARSET = Charset.forName("UTF-8");
+	private static final Charset SYNAPSE_DEFAULT_CHARSET = Charset.forName(UTF_8);
 
 	@Override
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
@@ -140,7 +141,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		if(in == null) throw new IllegalArgumentException("No content to map to Object due to end of input");
 		try {
 			if(charSet == null){
-				charSet = Charset.defaultCharset();
+				charSet = Charset.forName(UTF_8);
 			}
 			BufferedInputStream bufferd = new BufferedInputStream(in);
 			byte[] buffer = new byte[1024];
@@ -187,7 +188,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public static long writeToStream(String toWrite, OutputStream out,	Charset charSet) throws IOException {
 		try {
 			if(charSet == null){
-				charSet = Charset.defaultCharset();
+				charSet = Charset.forName(UTF_8);
 			}
 			BufferedOutputStream bufferd = new BufferedOutputStream(out);
 			byte[] bytes = toWrite.getBytes(charSet);
