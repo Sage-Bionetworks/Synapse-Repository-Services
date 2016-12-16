@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for the Synapse Administration client.
@@ -36,10 +35,9 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Update the current stack status.
 	 * @param updated
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public StackStatus updateCurrentStackStatus(StackStatus updated) throws JSONObjectAdapterException, SynapseException;
+	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException;
 	
 	/**
 	 * Get one page of metatdata for the given MigrationType
@@ -49,9 +47,8 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param offset
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException;
+	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException;
 	
 	/**
 	 * 
@@ -60,42 +57,37 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param maxId
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException;
+	public RowMetadataResult getRowMetadataByRange(MigrationType type, Long minId, Long maxId, Long limit, Long offset) throws SynapseException;
 	
 	/**
 	 * Get the counts for all types
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException;
+	public MigrationTypeCounts getTypeCounts() throws SynapseException;
 	
 	/**
 	 * Get the counts for one type
 	 * @param type
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException, JSONObjectAdapterException;
+	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException;
 	
 	/**
 	 * Get the primary migration types
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public MigrationTypeList getPrimaryTypes() throws SynapseException, JSONObjectAdapterException;
+	public MigrationTypeList getPrimaryTypes() throws SynapseException;
 	
 	/**
 	 * Get the list of migration types
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public MigrationTypeList getMigrationTypes() throws SynapseException, JSONObjectAdapterException;
+	public MigrationTypeList getMigrationTypes() throws SynapseException;
 	
 	/**
 	 * Delete a list of IDs
@@ -103,54 +95,48 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param migrationType
 	 * @param ids
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException;
+	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException;
 	
 	/**
 	 * Start a backup daemon task
 	 * @param migrationType
 	 * @param ids
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException;
+	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws SynapseException;
 	
 	/**
 	 * Start a restore daemon task
 	 * @param migrationType
 	 * @param req
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws JSONObjectAdapterException, SynapseException;
+	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws SynapseException;
 	
 	/**
 	 * Get the status of a daemon backup/restore task
 	 * @param daemonId
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException;
+	public BackupRestoreStatus getStatus(String daemonId) throws SynapseException;
 	
 	/**
 	 * Get checksum for migration type and range of ids
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public MigrationRangeChecksum getChecksumForIdRange(MigrationType type, String salt, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException;
+	public MigrationRangeChecksum getChecksumForIdRange(MigrationType type, String salt, Long minId, Long maxId) throws SynapseException;
 	
 
 	/**
 	 * Get checksum for migration type and range of ids
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public MigrationTypeChecksum getChecksumForType(MigrationType type) throws SynapseException, JSONObjectAdapterException;
+	public MigrationTypeChecksum getChecksumForType(MigrationType type) throws SynapseException;
 	
 
 	/**
@@ -159,17 +145,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param limit - Limit the number of change messages fired.
 	 * @return The last change number fired.
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException;
+	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException;
 
 	/**
 	 * Get the current change number.
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException;
+	public FireMessagesResult getCurrentChangeNumber() throws SynapseException;
 	
 	/**
 	 * Creates a user with the specified state
@@ -177,13 +161,13 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * 
 	 * @return The ID of the user
 	 */
-	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException;
+	public long createUser(NewIntegrationTestUser user) throws SynapseException;
 	
 	
 	/**
 	 * Deletes a user by ID
 	 */
-	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException;
+	public void deleteUser(Long id) throws SynapseException;
 
 	/**
 	 * Clears the specified dynamo table.
@@ -216,7 +200,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException;
 	
 	public BackupRestoreStatus getDaemonStatus(String daemonId)
-			throws SynapseException, JSONObjectAdapterException;
+			throws SynapseException;
 
 	/**
 	 * List change messages.
@@ -225,7 +209,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param limit - (optional) limit the number of messages to fetch.
 	 */
 	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type,
-			Long limit) throws SynapseException, JSONObjectAdapterException;
+			Long limit) throws SynapseException;
 
 	/**
 	 * List change messages.
@@ -236,16 +220,15 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public PublishResults publishChangeMessages(String queueName,
 			Long startChangeNumber, ObjectType type, Long limit)
-			throws SynapseException, JSONObjectAdapterException;
+			throws SynapseException;
 
 	/**
 	 * Force a rebuild of a table's caches and indices
 	 * 
 	 * @param tableId
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
-	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException;
+	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException;
 
 	/**
 	 * Clear all semaphore locks.
@@ -283,8 +266,7 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param jobId
 	 * @return
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException;
+	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
 
 }

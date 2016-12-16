@@ -8,7 +8,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * The Broadcast manager is responsible for sending an email to users subscribed to certain events.
@@ -30,6 +29,6 @@ public interface BroadcastMessageManager {
 	 */
 	public void broadcastMessage(UserInfo user,
 			ProgressCallback<Void> progressCallback,
-			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, HttpClientHelperException, MarkdownClientException;
+			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException;
 
 }

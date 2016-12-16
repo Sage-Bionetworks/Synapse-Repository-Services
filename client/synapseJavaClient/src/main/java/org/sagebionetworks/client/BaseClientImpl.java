@@ -217,15 +217,22 @@ public class BaseClientImpl implements BaseClient {
 		this.apiKey = apiKey;
 	}
 
-	protected String getUserAgent() {
-		return this.userAgent;
+	/**
+	 * @category Authentication
+	 * @throws SynapseException
+	 */
+	@Override
+	public void invalidateApiKey() throws SynapseException {
+		deleteUri(authEndpoint, "/secretKey");
+		this.apiKey = null;
 	}
 
 	/**
 	 * 
 	 * @param ipAddress
 	 */
-	protected void setUserIp(String ipAddress){
+	@Override
+	public void setUserIpAddress(String ipAddress){
 		ValidateArgument.required(ipAddress, "ipAddress");
 		//verify that it is a proper IP address
 		if( !( InetAddressUtils.isIPv4Address(ipAddress) || InetAddressUtils.isIPv6Address(ipAddress) ) ){
@@ -233,6 +240,10 @@ public class BaseClientImpl implements BaseClient {
 		}
 		defaultGETDELETEHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
 		defaultPOSTPUTHeaders.put(X_FORWARDED_FOR_HEADER, ipAddress);
+	}
+
+	protected String getUserAgent() {
+		return this.userAgent;
 	}
 
 	/**
@@ -252,14 +263,7 @@ public class BaseClientImpl implements BaseClient {
 		}
 	}
 
-	/**
-	 * @category Authentication
-	 * @throws SynapseException
-	 */
-	protected void invalidateApiKey() throws SynapseException {
-		deleteUri(authEndpoint, "/secretKey");
-		this.apiKey = null;
-	}
+	
 
 	//================================================================================
 	// Upload & Download related helping functions
@@ -426,15 +430,6 @@ public class BaseClientImpl implements BaseClient {
 	}
 
 	/**
-	 * Call Create on any URI
-	 * 
-	 * @category JSONObject Requests
-	 */
-	protected JSONObject postUri(String endpoint, String uri) throws SynapseException {
-		return postJson(endpoint, uri, null, null);
-	}
-
-	/**
 	 * Update any JSONObject
 	 * 
 	 * @category JSONObject Requests
@@ -574,12 +569,14 @@ public class BaseClientImpl implements BaseClient {
 	 * @throws SynapseException
 	 */
 	protected void voidPut(String endpoint, String url, JSONEntity requestBody) throws SynapseException {
+		String jsonString = null;
 		try {
-			String jsonString = null;
 			if(requestBody != null){
 				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			putJson(endpoint, url, jsonString);
+			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+					url, PUT, jsonString, defaultPOSTPUTHeaders, null);
+			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -626,9 +623,11 @@ public class BaseClientImpl implements BaseClient {
 		try {
 			String jsonString = null;
 			if (requestBody != null) {
-				EntityFactory.createJSONStringForEntity(requestBody);
+				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			postJson(endpoint, url, jsonString, params);
+			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+					url, POST, jsonString, defaultPOSTPUTHeaders, params);
+			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -643,6 +642,9 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(returnClass, "returnClass");
 		try {
 			JSONObject jsonObject = getJson(endpoint, uri);
+			if (jsonObject == null) {
+				return null;
+			}
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, returnClass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
@@ -785,7 +787,7 @@ public class BaseClientImpl implements BaseClient {
 		modHeaders.put(USER_AGENT, userAgent);
 		if (apiKey!=null) {
 			addDigitalSignature(endpoint + uri, modHeaders);
-		} 
+		}
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
 	}
 

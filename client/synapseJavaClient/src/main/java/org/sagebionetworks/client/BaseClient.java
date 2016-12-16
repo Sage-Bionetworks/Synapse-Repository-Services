@@ -73,6 +73,12 @@ public interface BaseClient {
 	public String getApiKey();
 
 	public void setApiKey(String apiKey);
+	
+	/**
+	 * Sets the ip address of the user that this client is performing actions for.
+	 * @param ipAddress
+	 */
+	public void setUserIpAddress(String ipAddress);
 
 	/**
 	 * Log into Synapse
@@ -87,4 +93,6 @@ public interface BaseClient {
 	 * Log out of Synapse
 	 */
 	public void logout() throws SynapseException;
+
+	public void invalidateApiKey() throws SynapseException;
 }

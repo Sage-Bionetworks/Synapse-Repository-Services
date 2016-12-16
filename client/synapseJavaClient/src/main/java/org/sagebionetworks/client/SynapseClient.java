@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
@@ -180,7 +179,6 @@ import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for Synapse.
@@ -194,7 +192,7 @@ public interface SynapseClient extends BaseClient {
 	 * Get the current status of the stack
 	 */
 	public StackStatus getCurrentStackStatus() 
-			throws SynapseException, JSONObjectAdapterException;
+			throws SynapseException;
 	
 	/**
 	 * Is the passed alias available and valid?
@@ -296,12 +294,8 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public <T extends Entity> T createEntity(T entity) throws SynapseException;
 
-	public JSONObject createJSONObject(String uri, JSONObject entity)
-			throws SynapseException;
-
 	public SearchResults search(SearchQuery searchQuery)
-			throws SynapseException, UnsupportedEncodingException,
-			JSONObjectAdapterException;
+			throws SynapseException, UnsupportedEncodingException;
 
 	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId)
 			throws ClientProtocolException, MalformedURLException, IOException, SynapseException;
@@ -320,8 +314,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get a WikiPage using its key
 	 */
-	public WikiPage getWikiPage(WikiPageKey properKey)
-			throws JSONObjectAdapterException, SynapseException;
+	public WikiPage getWikiPage(WikiPageKey properKey) throws SynapseException;
 	
 	/**
 	 * Get a specific version of a wikig page.
@@ -329,9 +322,8 @@ public interface SynapseClient extends BaseClient {
 	 * @param versionNumber
 	 * @return
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public WikiPage getWikiPageForVersion(WikiPageKey properKey, Long versionNumber) throws JSONObjectAdapterException, SynapseException;
+	public WikiPage getWikiPageForVersion(WikiPageKey properKey, Long versionNumber) throws SynapseException;
 	
 	/**
 	 * Get the WikiPageKey for the root wiki given an ownerId and ownerType.
@@ -340,9 +332,8 @@ public interface SynapseClient extends BaseClient {
 	 * @param ownerType
 	 * @return
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public WikiPageKey getRootWikiPageKey(String ownerId, ObjectType ownerType) throws JSONObjectAdapterException, SynapseException;
+	public WikiPageKey getRootWikiPageKey(String ownerId, ObjectType ownerType) throws SynapseException;
 	
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
@@ -350,13 +341,9 @@ public interface SynapseClient extends BaseClient {
 			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
-			WikiPage toUpdate) throws JSONObjectAdapterException,
-			SynapseException;
+			WikiPage toUpdate) throws SynapseException;
 
 	public <T extends Entity> T createEntity(T entity, String activityId)
-			throws SynapseException;
-
-	public <T extends JSONEntity> T createJSONEntity(String uri, T entity)
 			throws SynapseException;
 
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
@@ -547,27 +534,25 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 	
 	/**
 	 * Create a new ProxyFileHandle. Note: ProxyFileHandle.storageLocationsId
 	 * must be set to reference a valid ProxyStorageLocationSettings.
 	 * @param handle
 	 * @return
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
 	ProxyFileHandle createExternalProxyFileHandle(ProxyFileHandle handle)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 	
 	/**
 	 * Create an S3FileHandle using a pre-configured ExternalS3StorageLocationSetting ID.
 	 * @param handle
 	 * @return
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws JSONObjectAdapterException, SynapseException;
+	public S3FileHandle createExternalS3FileHandle(S3FileHandle handle) throws SynapseException;
 	
 	/**
 	 * Create a new file handle with optionally a new name and a new content type
@@ -577,10 +562,9 @@ public interface SynapseClient extends BaseClient {
 	 * @param contentType
 	 * @return
 	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
 	 */
 	public S3FileHandle createS3FileHandleCopy(String originalFileHandleId, String name, String contentType)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 
 	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
 
@@ -589,54 +573,48 @@ public interface SynapseClient extends BaseClient {
 	public void clearPreview(String fileHandleId) throws SynapseException;
 
 	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
-			WikiPage toCreate) throws JSONObjectAdapterException,
-			SynapseException;
+			WikiPage toCreate) throws SynapseException;
 
 	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 
 	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
-			ObjectType ownerType) throws SynapseException,
-			JSONObjectAdapterException;
+			ObjectType ownerType) throws SynapseException;
 
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 
 	public FileHandleResults getEntityFileHandlesForVersion(String entityId,
-			Long versionNumber) throws JSONObjectAdapterException,
-			SynapseException;
+			Long versionNumber) throws SynapseException;
 
 	public V2WikiPage createV2WikiPage(String ownerId, ObjectType ownerType,
-			V2WikiPage toCreate) throws JSONObjectAdapterException,
-			SynapseException;
+			V2WikiPage toCreate) throws SynapseException;
 
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 
 	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
-			throws JSONObjectAdapterException, SynapseException;
+			throws SynapseException;
 	
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
-			V2WikiPage toUpdate) throws JSONObjectAdapterException,
-			SynapseException;
+			V2WikiPage toUpdate) throws SynapseException;
 	
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-			String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
-			SynapseException;
+			String wikiId, Long versionToRestore) throws SynapseException;
 	
 	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
-		throws JSONObjectAdapterException, SynapseException;
+		throws SynapseException;
 
 	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
-		throws JSONObjectAdapterException, SynapseException;
+		throws SynapseException;
 
 	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
-		throws JSONObjectAdapterException, SynapseException;
+		throws SynapseException;
 	
 	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
@@ -668,18 +646,17 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
-	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException, JSONObjectAdapterException;
+	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
-		ObjectType ownerType) throws SynapseException,
-		JSONObjectAdapterException;
+		ObjectType ownerType) throws SynapseException;
 	
-	V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException, JSONObjectAdapterException;
+	V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException;
 	
-	V2WikiOrderHint updateV2WikiOrderHint(V2WikiOrderHint toUpdate) throws JSONObjectAdapterException, SynapseException;
+	V2WikiOrderHint updateV2WikiOrderHint(V2WikiOrderHint toUpdate) throws SynapseException;
 	
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
-		throws JSONObjectAdapterException, SynapseException;
+		throws SynapseException;
 
 	/**
 	 * Download the File attachment for an entity, following redirects as needed.
@@ -826,10 +803,7 @@ public interface SynapseClient extends BaseClient {
 
 	public Long getChildCount(String entityId) throws SynapseException;
 
-	public SynapseVersionInfo getVersionInfo() throws SynapseException,
-			JSONObjectAdapterException;
-
-	public Set<String> getAllUserAndGroupIds() throws SynapseException;
+	public SynapseVersionInfo getVersionInfo() throws SynapseException;
 
 	public Activity getActivityForEntity(String entityId) throws SynapseException;
 
@@ -1020,8 +994,6 @@ public interface SynapseClient extends BaseClient {
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
 	public String retrieveApiKey() throws SynapseException;
-
-	public void invalidateApiKey() throws SynapseException;
 	
 	public AccessControlList updateEvaluationAcl(AccessControlList acl)
 			throws SynapseException;
@@ -1802,9 +1774,8 @@ public interface SynapseClient extends BaseClient {
 	 * @param jobId
 	 * @return
 	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException;
+	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws SynapseException;
 
 	/**
 	 * Get a Temporary URL that can be used to download a FileHandle.  Only the creator of a FileHandle can use this method.
@@ -2681,12 +2652,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public BatchFileHandleCopyResult copyFileHandles(BatchFileHandleCopyRequest request) throws SynapseException;
-	
-	/**
-	 * Sets the ip address of the user that this client is performing actions for.
-	 * @param ipAddress
-	 */
-	public void setUserIpAddress(String ipAddress);
 
 	/**
 	 * Make a request to cancel a submission.

@@ -502,6 +502,19 @@ public class BaseClientImplTest {
 	}
 
 	@Test
+	public void testGetJSONEntityWithNullJSONObject() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		when(mockResponse.getContent()).thenReturn("");
+		assertNull(baseClient.getJSONEntity("https://repo-prod.prod.sagebase.org",
+						"/entityId", EntityId.class));
+		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
+		verify(mockClient).get(captor.capture());
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+				captor.getValue().getUri());
+	}
+
+	@Test
 	public void testGetJSONEntity() throws Exception {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);

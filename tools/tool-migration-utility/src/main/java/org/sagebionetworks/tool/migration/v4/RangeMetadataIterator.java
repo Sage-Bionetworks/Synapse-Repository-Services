@@ -2,21 +2,17 @@ package org.sagebionetworks.tool.migration.v4;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.progress.BasicProgress;
 
 public class RangeMetadataIterator implements Iterator<RowMetadata> {
 	
-	static private Log logger = LogFactory.getLog(RangeMetadataIterator.class);
+	static private Logger logger = LogManager.getLogger(RangeMetadataIterator.class);
 	
 	final MigrationType type;
 	final SynapseAdminClient client;

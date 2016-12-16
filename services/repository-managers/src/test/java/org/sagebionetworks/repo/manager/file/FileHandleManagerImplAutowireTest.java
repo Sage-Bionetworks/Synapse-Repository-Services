@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,34 +8,18 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.Charset;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -45,9 +28,7 @@ import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
-import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -61,16 +42,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
-import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
-import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.State;
-import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
@@ -80,14 +53,10 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.utils.ContentTypeUtil;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -145,7 +114,7 @@ public class FileHandleManagerImplAutowireTest {
 	private String uploadFolder;
 
 	private String projectName;
-	
+
 	@Before
 	public void before() throws Exception{
 		NewUser user = new NewUser();
@@ -257,131 +226,6 @@ public class FileHandleManagerImplAutowireTest {
 		assertEquals("*", rule.getAllowedHeaders().get(0));
 	}
 	
-	@Test
-	public void testChunckedFileUpload() throws Exception {
-		String fileBody = "This is the body of the file!!!!!";
-		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
-		String md5 = TransferUtils.createMD5(fileBodyBytes);
-		// First create a chunked file token
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		String fileName = "foo.bar";
-		ccftr.setFileName(fileName);
-		ccftr.setContentType("text/plain");
-		ccftr.setContentMD5(md5);
-		ChunkedFileToken token = fileUploadManager.createChunkedFileUploadToken(userInfo, ccftr);
-		assertNotNull(token);
-		assertNotNull(token.getKey());
-		assertNotNull(token.getUploadId());
-		assertNotNull(md5, token.getContentMD5());
-		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
-		// Now create a pre-signed URL for the first part
-		ChunkRequest cpr = new ChunkRequest();
-		cpr.setChunkedFileToken(token);
-		cpr.setChunkNumber(1l);
-		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
-		assertNotNull(preSigned);
-		String urlString = preSigned.toString();
-		// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
-		// both file upload and download.
-		assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
-		String text = putStringToPresignedURL(fileBody, ccftr, preSigned);
-		System.out.println(text);
-	
-		// Make sure we can get the pre-signed url again if we need to.
-		preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
-		assertNotNull(preSigned);
-		
-		// Next add the part
-		ChunkResult part = fileUploadManager.addChunkToFile(userInfo, cpr);
-		
-		// We need a lsit of parts
-		List<ChunkResult> partList = new LinkedList<ChunkResult>();
-		partList.add(part);
-		CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();
-		ccfr.setChunkedFileToken(token);
-		ccfr.setChunkResults(partList);
-		// We are now read to create our file handle from the parts
-		S3FileHandle multiPartHandle = fileUploadManager.completeChunkFileUpload(userInfo, ccfr);
-		assertNotNull(multiPartHandle);
-		toDelete.add(multiPartHandle);
-		System.out.println(multiPartHandle);
-		assertNotNull(multiPartHandle.getBucketName());
-		assertNotNull(multiPartHandle.getKey());
-		assertNotNull(multiPartHandle.getContentSize());
-		assertNotNull(multiPartHandle.getContentType());
-		assertNotNull(multiPartHandle.getCreatedOn());
-		assertNotNull(multiPartHandle.getCreatedBy());
-		assertEquals(md5, multiPartHandle.getContentMd5());
-		// Delete the file
-		s3Client.deleteObject(multiPartHandle.getBucketName(), multiPartHandle.getKey());
-		
-	}
-	
-	@Test
-	public void testChunckedFileUploadAsynch() throws Exception{
-		String fileBody = "This is the body of the file!!!!!";
-		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
-		String md5 = TransferUtils.createMD5(fileBodyBytes);
-		// First create a chunked file token
-		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		String fileName = "foo.bar";
-		ccftr.setFileName(fileName);
-		ccftr.setContentType("text/plain");
-		ccftr.setContentMD5(md5);
-		ChunkedFileToken token = fileUploadManager.createChunkedFileUploadToken(userInfo, ccftr);
-		assertNotNull(token);
-		assertNotNull(token.getKey());
-		assertNotNull(token.getUploadId());
-		assertNotNull(md5, token.getContentMD5());
-		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
-		// Now create a pre-signed URL for the first part
-		ChunkRequest cpr = new ChunkRequest();
-		cpr.setChunkedFileToken(token);
-		cpr.setChunkNumber(1l);
-		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
-		assertNotNull(preSigned);
-		// Use the URL to upload a part.
-		String text = putStringToPresignedURL(fileBody, ccftr, preSigned);
-		System.out.println(text);
-			
-		// Start the asynch multi-part complete.
-		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
-		cacr.setChunkedFileToken(token);
-		cacr.setChunkNumbers(new LinkedList<Long>());
-		cacr.getChunkNumbers().add(1l);
-		UploadDaemonStatus daemonStatus = fileUploadManager.startUploadDeamon(userInfo, cacr);
-		assertNotNull(daemonStatus);
-		assertEquals(State.PROCESSING, daemonStatus.getState());
-		assertEquals(null, daemonStatus.getFileHandleId());
-		System.out.println(daemonStatus.toString());
-		// Wait for the daemon to finish
-		daemonStatus = waitForUploadDaemon(daemonStatus);
-		assertNotNull(daemonStatus);
-		System.out.println(daemonStatus.toString());
-		assertEquals(State.COMPLETED, daemonStatus.getState());
-		assertEquals(100, daemonStatus.getPercentComplete(), 0.0001);
-		assertEquals(userInfo.getId().toString(), daemonStatus.getStartedBy());
-		assertEquals(null, daemonStatus.getErrorMessage());
-		assertNotNull(daemonStatus.getFileHandleId());
-		// Get the file handle
-		S3FileHandle multiPartHandle = (S3FileHandle) fileUploadManager.getRawFileHandle(userInfo, daemonStatus.getFileHandleId());
-		assertNotNull(multiPartHandle);
-		toDelete.add(multiPartHandle);
-		System.out.println(multiPartHandle);
-		assertNotNull(multiPartHandle.getBucketName());
-		assertNotNull(multiPartHandle.getKey());
-		assertNotNull(multiPartHandle.getContentSize());
-		assertNotNull(multiPartHandle.getContentType());
-		assertNotNull(multiPartHandle.getCreatedOn());
-		assertNotNull(multiPartHandle.getCreatedBy());
-		assertEquals(md5, multiPartHandle.getContentMd5());
-		// Delete the file
-		s3Client.deleteObject(multiPartHandle.getBucketName(), multiPartHandle.getKey());
-		
-	}
-
 	@Test
 	public void testExternalUploadDestinationOld() throws Exception {
 		final String URL = "sftp://www.sftpsite.com/base/basefolder";
@@ -639,50 +483,6 @@ public class FileHandleManagerImplAutowireTest {
 		}
 	}
 
-	/**
-	 * Helper to wait for an upload deamon to finish.
-	 * @param daemonStatus
-	 * @return
-	 * @throws InterruptedException
-	 * @throws NotFoundException
-	 */
-	private UploadDaemonStatus waitForUploadDaemon(UploadDaemonStatus daemonStatus)
-			throws InterruptedException, NotFoundException {
-		// Wait for the daemon status
-		long start = System.currentTimeMillis();
-		while(State.COMPLETED != daemonStatus.getState()){
-			assertFalse("Upload daemon failed: "+daemonStatus.getErrorMessage(), State.FAILED == daemonStatus.getState());
-			System.out.println("Waiting for upload daemon to complete multi-part upload...");
-			Thread.sleep(1000);
-			assertTrue("Timed out waiting for upload to finish",System.currentTimeMillis() - start < MAX_UPLOAD_WORKER_TIME_MS);
-			daemonStatus = fileUploadManager.getUploadDaemonStatus(userInfo, daemonStatus.getDaemonId());
-		}
-		return daemonStatus;
-	}
-
-	/**
-	 * PUT a string to pre-siged URL.
-	 * @param fileBody
-	 * @param ccftr
-	 * @param preSigned
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 */
-	private String putStringToPresignedURL(String fileBody,	CreateChunkedFileTokenRequest ccftr, URL preSigned)
-			throws UnsupportedEncodingException, IOException,
-			ClientProtocolException {
-		HttpPut httppost = new HttpPut(preSigned.toString());
-		StringEntity entity = new StringEntity(fileBody, "UTF-8");
-		entity.setContentType(ccftr.getContentType());
-		httppost.setEntity(entity);
-		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
-		String text = EntityUtils.toString(response.getEntity());
-		assertEquals(200, response.getStatusLine().getStatusCode());
-		return text;
-	}
-	
 	private void addAcl(String projectId, Long principalId) throws Exception {
 		AccessControlList acl = accessControlListDAO.get(projectId, ObjectType.ENTITY);
 		Set<ACCESS_TYPE> accessTypes = Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.UPLOAD);

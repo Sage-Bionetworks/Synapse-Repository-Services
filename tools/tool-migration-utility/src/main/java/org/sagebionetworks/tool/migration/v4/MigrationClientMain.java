@@ -1,9 +1,6 @@
 package org.sagebionetworks.tool.migration.v4;
 
 import java.io.IOException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.MigrationConfigurationImpl;
@@ -16,8 +13,6 @@ import org.sagebionetworks.tool.migration.v3.SynapseClientFactoryImpl;
  *
  */
 public class MigrationClientMain {
-
-	static private Log log = LogFactory.getLog(MigrationClientMain.class);
 	/**
 	 * The main entry for for the V3 migration client.
 	 * @param args

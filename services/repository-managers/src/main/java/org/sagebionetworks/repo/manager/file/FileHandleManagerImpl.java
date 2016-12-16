@@ -514,6 +514,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return this.multipartManager.createChunkedFileUploadToken(ccftr, ccftr.getStorageLocationId(), userId);
 	}
 
+	@Deprecated
 	@Override
 	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr) throws DatastoreException, NotFoundException {
 		if (cpr == null)

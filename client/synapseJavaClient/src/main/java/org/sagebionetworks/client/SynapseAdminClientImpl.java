@@ -5,7 +5,6 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -29,11 +28,8 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Java Client API for Synapse Administrative REST APIs
@@ -87,212 +83,131 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	/**
 	 * @param updated
 	 * @return status
-	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public StackStatus updateCurrentStackStatus(StackStatus updated)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory
-				.createJSONObjectForEntity(updated);
-		jsonObject = super.putJson(getRepoEndpoint(), STACK_STATUS, jsonObject.toString());
-		return EntityFactory.createEntityFromJSONObject(jsonObject,
-				StackStatus.class);
+	public StackStatus updateCurrentStackStatus(StackStatus updated) throws SynapseException {
+		return putJSONEntity(getRepoEndpoint(), STACK_STATUS, updated, StackStatus.class);
 	}
 
 	@Override
-	public BackupRestoreStatus getDaemonStatus(String daemonId)
-			throws SynapseException, JSONObjectAdapterException {
-		return getJSONEntity(DAEMON + "/" + daemonId, BackupRestoreStatus.class);
+	public BackupRestoreStatus getDaemonStatus(String daemonId) throws SynapseException {
+		String url = DAEMON + "/" + daemonId;
+		return getJSONEntity(getRepoEndpoint(), url, BackupRestoreStatus.class);
 	}
 
 	@Override
 	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
 		String url = ADMIN_TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+		return getPaginatedResults(getRepoEndpoint(), url, TrashedEntity.class);
 	}
 
 	@Override
 	public void purgeTrash() throws SynapseException {
-		super.putJson(getRepoEndpoint(), ADMIN_TRASHCAN_PURGE, null);
+		putUri(getRepoEndpoint(), ADMIN_TRASHCAN_PURGE);
 	}
 	
 	@Override
 	public void purgeTrashLeaves(long numDaysInTrash, long limit) throws SynapseException {
 		String uri = ADMIN_TRASHCAN_PURGE_LEAVES + "?" + DAYS_IN_TRASH_PARAM + "=" + numDaysInTrash + "&" + LIMIT + "=" + limit;
-		super.putUri(getRepoEndpoint(), uri);
+		putUri(getRepoEndpoint(), uri);
 	}
 	
 	@Override
-	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
+	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type, Long limit) throws SynapseException{
 		// Build up the URL
 		String url = buildListMessagesURL(startChangeNumber, type, limit);
-		return getJSONEntity(url, ChangeMessages.class);
+		return getJSONEntity(getRepoEndpoint(), url, ChangeMessages.class);
 	}
 	
 	// New migration client methods
 	
-	public MigrationTypeList getPrimaryTypes() throws SynapseException, JSONObjectAdapterException {
-		String uri = MIGRATION_PRIMARY;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeList mtl = new MigrationTypeList();
-		mtl.initializeFromJSONObject(adapter);
-		return mtl;
+	public MigrationTypeList getPrimaryTypes() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), MIGRATION_PRIMARY, MigrationTypeList.class);
 	}
 	
-	public MigrationTypeList getMigrationTypes() throws SynapseException, JSONObjectAdapterException {
-		String uri = MIGRATION_TYPES;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeList mtl = new MigrationTypeList();
-		mtl.initializeFromJSONObject(adapter);
-		return mtl;
+	public MigrationTypeList getMigrationTypes() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), MIGRATION_TYPES, MigrationTypeList.class);
 	}
 	
-	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException {
-		String uri = MIGRATION_COUNTS;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeCounts mtc = new MigrationTypeCounts();
-		mtc.initializeFromJSONObject(adapter);
-		return mtc;
+	public MigrationTypeCounts getTypeCounts() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), MIGRATION_COUNTS, MigrationTypeCounts.class);
 	}
 	
-	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException, JSONObjectAdapterException {
+	public MigrationTypeCount getTypeCount(MigrationType type) throws SynapseException {
 		String uri = MIGRATION_COUNT + "?type=" + type.name() ;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeCount mtc = new MigrationTypeCount();
-		mtc.initializeFromJSONObject(adapter);
-		return mtc;
+		return getJSONEntity(getRepoEndpoint(), uri, MigrationTypeCount.class);
 	}
 	
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
+	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException {
 		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		RowMetadataResult results = new RowMetadataResult(); 
-		results.initializeFromJSONObject(adapter);
-		return results;
+		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
 	}
 	
-	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
+	public RowMetadataResult getRowMetadataByRange(MigrationType migrationType, Long minId, Long maxId, Long limit, Long offset) throws SynapseException {
 		String uri = MIGRATION_ROWS_BY_RANGE + "?type=" + migrationType.name() + "&minId=" + minId + "&maxId=" + maxId + "&limit=" + limit + "&offset=" + offset;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		RowMetadataResult results = new RowMetadataResult(); 
-		results.initializeFromJSONObject(adapter);
-		return results;
+		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
 	}
 	
-	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws SynapseException {
 		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
-		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		RowMetadataResult result = new RowMetadataResult();
-		result.initializeFromJSONObject(adapter);
-		return result;
+		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
 	}
 	
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws SynapseException {
 		String uri = MIGRATION_BACKUP + "?type=" + migrationType.name();
-		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
-		JSONObject jsonObj = super.postJson(getRepoEndpoint(), uri, jsonStr, null);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		BackupRestoreStatus brStatus = new BackupRestoreStatus();
-		brStatus.initializeFromJSONObject(adapter);
-		return brStatus;
+		return postJSONEntity(getRepoEndpoint(), uri, ids, BackupRestoreStatus.class);
 	}
 	
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws JSONObjectAdapterException, SynapseException {
+	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws SynapseException {
 		String uri = MIGRATION_RESTORE + "?type=" + migrationType.name();
-		String jsonStr = EntityFactory.createJSONStringForEntity(req);
-		JSONObject jsonObj = super.postJson(getRepoEndpoint(), uri, jsonStr, null);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		BackupRestoreStatus brStatus = new BackupRestoreStatus();
-		brStatus.initializeFromJSONObject(adapter);
-		return brStatus;
+		return postJSONEntity(getRepoEndpoint(), uri, req, BackupRestoreStatus.class);
 	}
 	
-	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException {
+	public BackupRestoreStatus getStatus(String daemonId) throws SynapseException {
 		String uri = MIGRATION_STATUS + "?daemonId=" + daemonId;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		BackupRestoreStatus brStatus = new BackupRestoreStatus();
-		brStatus.initializeFromJSONObject(adapter);
-		return brStatus;
+		return getJSONEntity(getRepoEndpoint(), uri, BackupRestoreStatus.class);
 	}
 	
-	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws SynapseException {
 		String uri = MIGRATION_DELETE + "?type=" + migrationType.name();
-		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
-		JSONObject jsonObj = super.putJson(getRepoEndpoint(), uri, jsonStr);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeCount mtc = new MigrationTypeCount();
-		mtc.initializeFromJSONObject(adapter);
-		return mtc;
+		return putJSONEntity(getRepoEndpoint(), uri, ids, MigrationTypeCount.class);
 	}
 
 	@Override
-	public MigrationRangeChecksum getChecksumForIdRange(MigrationType migrationType, String salt, Long minId, Long maxId) throws SynapseException, JSONObjectAdapterException {
+	public MigrationRangeChecksum getChecksumForIdRange(MigrationType migrationType, String salt, Long minId, Long maxId) throws SynapseException {
 		if (migrationType == null || minId == null || maxId == null) {
 			throw new IllegalArgumentException("Arguments type, minId and maxId cannot be null");
 		}
 		String uri = MIGRATION_RANGE_CHECKSUM + "?migrationType=" + migrationType.name() + "&salt=" + salt + "&minId=" + minId + "&maxId=" + maxId;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationRangeChecksum mrc = new MigrationRangeChecksum();
-		mrc.initializeFromJSONObject(adapter);
-		return mrc;
+		return getJSONEntity(getRepoEndpoint(), uri,  MigrationRangeChecksum.class);
 	}
 	
 	@Override
-	public MigrationTypeChecksum getChecksumForType(MigrationType migrationType) throws SynapseException, JSONObjectAdapterException {
+	public MigrationTypeChecksum getChecksumForType(MigrationType migrationType) throws SynapseException {
 		if (migrationType == null) {
 			throw new IllegalArgumentException("Arguments type cannot be null");
 		}
 		String uri = MIGRATION_TYPE_CHECKSUM + "?migrationType=" + migrationType.name();
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeChecksum mtc = new MigrationTypeChecksum();
-		mtc.initializeFromJSONObject(adapter);
-		return mtc;
+		return getJSONEntity(getRepoEndpoint(), uri,  MigrationTypeChecksum.class);
 	}
 	
 	@Override
-	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException {
+	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException {
 		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
 		String uri = ADMIN_FIRE_MESSAGES + "?startChangeNumber=" + startChangeNumber;
 		if (limit != null){
 			uri = uri + "&limit=" + limit;
 		}
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		FireMessagesResult res = new FireMessagesResult();
-		res.initializeFromJSONObject(adapter);
-		return res;
+		return getJSONEntity(getRepoEndpoint(), uri, FireMessagesResult.class);
 	}
 	
 	/**
 	 * Return current change message number
 	 */
 	@Override
-	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException {
+	public FireMessagesResult getCurrentChangeNumber() throws SynapseException {
 		String uri = ADMIN_GET_CURRENT_CHANGE_NUM;
-		JSONObject jsonObj = super.getJson(getRepoEndpoint(), uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		FireMessagesResult res = new FireMessagesResult();
-		res.initializeFromJSONObject(adapter);
-		return res;
+		return getJSONEntity(getRepoEndpoint(), uri, FireMessagesResult.class);
 	}
 
 	/**
@@ -318,11 +233,10 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 	
 	@Override
-	public PublishResults publishChangeMessages(String queueName, Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
+	public PublishResults publishChangeMessages(String queueName, Long startChangeNumber, ObjectType type, Long limit) throws SynapseException{
 		// Build up the URL
 		String url = buildPublishMessagesURL(queueName, startChangeNumber, type, limit);
-		JSONObject json = super.postJson(getRepoEndpoint(), url, null, null);
-		return EntityFactory.createEntityFromJSONObject(json, PublishResults.class);
+		return postJSONEntity(getRepoEndpoint(), url, null, PublishResults.class);
 	}
 	
 	/**
@@ -351,7 +265,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 	@Override
 	public void clearDoi() throws SynapseException {
-		super.deleteUri(getRepoEndpoint(), ADMIN_DOI_CLEAR);
+		deleteUri(getRepoEndpoint(), ADMIN_DOI_CLEAR);
 	}
 
 	@Override
@@ -379,52 +293,44 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException {
+	public long createUser(NewIntegrationTestUser user) throws SynapseException {
 		if(user.getEmail() == null) throw new IllegalArgumentException("New users must have an email");
 		if(user.getUsername() == null) throw new IllegalArgumentException("New users must have a username");
-		JSONObject json = super.postJson(getRepoEndpoint(), ADMIN_USER,
-				EntityFactory.createJSONStringForEntity(user), null);
-		
-		EntityId id = EntityFactory.createEntityFromJSONObject(json, EntityId.class);
+		EntityId id = postJSONEntity(getRepoEndpoint(), ADMIN_USER, user, EntityId.class);
 		return Long.parseLong(id.getId());
 	}
 
 
 	@Override
-	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException {
+	public void deleteUser(Long id) throws SynapseException {
 		String url = ADMIN_USER + "/" + id; 
-		super.deleteUri(getRepoEndpoint(), url);
+		deleteUri(getRepoEndpoint(), url);
 	}
 
 	@Override
-	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException {
+	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException {
 		String url = ADMIN + "/entity/" + tableId + "/table/rebuild";
-		super.getJson(getRepoEndpoint(), url);
+		getStringDirect(getRepoEndpoint(), url);
 	}
 
 	@Override
 	public void clearAllLocks() throws SynapseException{
-		super.deleteUri(getRepoEndpoint(), ADMIN_CLEAR_LOCKS);
+		deleteUri(getRepoEndpoint(), ADMIN_CLEAR_LOCKS);
 	}
 
 	@Override
 	public void waitForTesting(boolean release) throws SynapseException {
 		try {
 			URIBuilder uri = new URIBuilder(ADMIN_WAIT).setParameter("release", Boolean.toString(release));
-			super.getJson(getRepoEndpoint(), uri.build().toString());
+			getStringDirect(getRepoEndpoint(), uri.build().toString());
 		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
 		}
 	}
 
 	@Override
-	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch)
-			throws SynapseException {
-		try {
-			return doCreateJSONEntity(ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+	public ChangeMessages createOrUpdateChangeMessages(ChangeMessages batch) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), ADMIN_CREATE_OR_UPDATE_CHANGE_MESSAGES, batch, ChangeMessages.class);
 	}
 
 	@Override
@@ -439,11 +345,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 	@Override
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId)
-			throws JSONObjectAdapterException, SynapseException {
-		if (jobId == null)
-			throw new IllegalArgumentException("JobId cannot be null");
+			throws SynapseException {
+		ValidateArgument.required(jobId, "jobId");
 		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
-		return getJSONEntity(url, AsynchronousJobStatus.class);
+		return getJSONEntity(getRepoEndpoint(), url, AsynchronousJobStatus.class);
 	}
-
 }
