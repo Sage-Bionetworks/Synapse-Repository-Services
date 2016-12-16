@@ -190,7 +190,7 @@ public class ClientUtilsTest {
 		when(mockResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE))
 				.thenReturn(mockHeader);
 		when(mockHeader.getValue()).thenReturn("text/plain; charset=UTF-8");
-		assertEquals(Charset.defaultCharset(),
+		assertEquals(Charset.forName("UTF-8"),
 				ClientUtils.getCharacterSetFromResponse(mockResponse));
 	}
 

@@ -54,6 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
+	private static final String UTF_8 = "UTF-8";
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault_v4.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
 	
@@ -163,7 +164,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 				n = is.read(buffer);
 				if (n>0) baos.write(buffer, 0, n);
 			}
-			return baos.toString(Charset.defaultCharset().name());
+			return baos.toString(UTF_8);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
