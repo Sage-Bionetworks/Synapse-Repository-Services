@@ -1453,8 +1453,10 @@ public class TableModelUtils {
 				for(ColumnModel column: schema){
 					Integer index = headerIdToIndex.get(column.getId());
 					if(index != null){
-						String value = row.getValues().get(index);
-						sparse.setCellValue(column.getId(), value);
+						if(index < row.getValues().size()){
+							String value = row.getValues().get(index);
+							sparse.setCellValue(column.getId(), value);
+						}
 					}
 				}
 			}
