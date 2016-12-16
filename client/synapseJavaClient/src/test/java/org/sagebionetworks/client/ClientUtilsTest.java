@@ -14,6 +14,7 @@ import static org.mockito.Mockito.*;
 
 import org.json.JSONObject;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -185,6 +186,7 @@ public class ClientUtilsTest {
 		assertEquals("some reason", actual.get("reason"));
 	}
 
+	@Ignore // see PLFM-4190
 	@Test
 	public void testGetCharacterSetFromResponse() {
 		when(mockResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE))
