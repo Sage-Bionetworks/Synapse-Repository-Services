@@ -520,7 +520,7 @@ public class TableQueryManagerImplTest {
 		assertNull(results.getQueryResult());
 		
 		//check to make sure count query was run using a SqlQuery with an facet WHERE clause
-		assertTrue(queryStringCaptor.getValue().contains("WHERE ( ( ( _C2_ <= :b0 ) ) )"));
+		assertTrue(queryStringCaptor.getValue().contains("WHERE ( ( _C2_ <= :b0 ) )"));
 		Map<String, Object> capturedParams = paramsCaptor.getValue();
 		assertFalse(capturedParams.isEmpty());
 		assertEquals(facetMax, capturedParams.get("b0").toString());

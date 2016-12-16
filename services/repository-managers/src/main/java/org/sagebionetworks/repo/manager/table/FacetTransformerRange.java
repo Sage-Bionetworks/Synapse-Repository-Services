@@ -19,13 +19,13 @@ public class FacetTransformerRange implements FacetTransformer {
 	public static final String MAX_ALIAS = "maximum";
 	
 	private String columnName;
-	private List<ValidatedQueryFacetColumn> facets;
+	private List<FacetRequestColumnModel> facets;
 	private String selectedMin;
 	private String selectedMax;
 	
 	private SqlQuery generatedFacetSqlQuery;
 	
-	public FacetTransformerRange(String columnName, List<ValidatedQueryFacetColumn> facets, SqlQuery originalQuery, String selectedMin, String selectedMax){
+	public FacetTransformerRange(String columnName, List<FacetRequestColumnModel> facets, SqlQuery originalQuery, String selectedMin, String selectedMax){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");

@@ -28,7 +28,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class FacetModel {
 	public static final Long MAX_NUM_FACET_CATEGORIES = 100L;
 	
-	private List<ValidatedQueryFacetColumn> validatedFacets;
+	private List<FacetRequestColumnModel> validatedFacets;
 	private boolean hasFilters;
 	private SqlQuery facetedQuery;
 	private List<FacetTransformer> facetTransformers;
@@ -81,7 +81,7 @@ public class FacetModel {
 	}
 	
 
-	static List<ValidatedQueryFacetColumn> createValidatedFacetsList(List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema,
+	static List<FacetRequestColumnModel> createValidatedFacetsList(List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema,
 			boolean returnFacets) {
 		ValidateArgument.required(schema, "schema");
 		
@@ -90,7 +90,7 @@ public class FacetModel {
 		//keeps track of all faceted column names to verify user does not ask for filtering of an unfaceted column name
 		Set<String> facetedColumnNames = new HashSet<>();
 		//create the SearchConditions based on each facet column's values and store them into the list
-		List <ValidatedQueryFacetColumn> validatedFacetsList = new ArrayList<ValidatedQueryFacetColumn>();
+		List <FacetRequestColumnModel> validatedFacetsList = new ArrayList<FacetRequestColumnModel>();
 		for(ColumnModel columnModel : schema){
 			FacetColumnRequest facetColumnRequest = selectedFacetMap.get(columnModel.getName());
 
@@ -112,14 +112,14 @@ public class FacetModel {
 	 * @param columnModel
 	 * @param facetColumnRequest
 	 */
-	static void processFacetColumnRequest(List<ValidatedQueryFacetColumn> validatedFacetsList, Set<String> facetedColumnNames,
+	static void processFacetColumnRequest(List<FacetRequestColumnModel> validatedFacetsList, Set<String> facetedColumnNames,
 			ColumnModel columnModel, FacetColumnRequest facetColumnRequest, boolean returnFacets) {
 		if(columnModel.getFacetType() != null){
 			facetedColumnNames.add(columnModel.getName());
 			
 			//if it is a faceted column and user either wants returned facets or they have applied a filter to the facet
 			if (returnFacets || facetColumnRequest != null ){
-				validatedFacetsList.add(new ValidatedQueryFacetColumn(columnModel, facetColumnRequest));
+				validatedFacetsList.add(new FacetRequestColumnModel(columnModel, facetColumnRequest));
 			}
 		}
 	}
@@ -141,7 +141,7 @@ public class FacetModel {
 		return result;
 	}
 	
-	static SqlQuery generateFacetFilteredQuery(SqlQuery sqlQuery, List<ValidatedQueryFacetColumn> validatedFacets){
+	static SqlQuery generateFacetFilteredQuery(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		try{
@@ -166,12 +166,12 @@ public class FacetModel {
 		}
 	}
 	
-	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<ValidatedQueryFacetColumn> validatedFacets){
+	static List<FacetTransformer> generateFacetQueryTransformers(SqlQuery sqlQuery, List<FacetRequestColumnModel> validatedFacets){
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		List<FacetTransformer> transformersList = new ArrayList<>(validatedFacets.size());
-		for(ValidatedQueryFacetColumn facet: validatedFacets){
+		for(FacetRequestColumnModel facet: validatedFacets){
 			switch(facet.getFacetType()){
 				case enumeration:
 					Set<String> selectedValues = null;

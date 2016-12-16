@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.util.List;
 
+import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetUtils {
@@ -11,7 +12,7 @@ public class FacetUtils {
 	 * @param columNameToIgnore the name of the column to exclude from the concatenation
 	 * @return the concatenated string or null if there was nothing to concatenate
 	 */
-	public static String concatFacetSearchConditionStrings(List<ValidatedQueryFacetColumn> validatedFacets, String columNameToIgnore){
+	public static String concatFacetSearchConditionStrings(List<FacetRequestColumnModel> validatedFacets, String columNameToIgnore){
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		
 		if(validatedFacets.isEmpty()){
@@ -22,7 +23,7 @@ public class FacetUtils {
 		builder.append("(");
 		int initialSize = builder.length(); //length with the "( " included
 		
-		for(ValidatedQueryFacetColumn facetColumn : validatedFacets){
+		for(FacetRequestColumnModel facetColumn : validatedFacets){
 			if(columNameToIgnore == null || !facetColumn.getColumnName().equals(columNameToIgnore)){ //make sure not to include the ignored column
 				String searchCondition = facetColumn.getSearchConditionString();
 				if(searchCondition != null){//don't add anything if there is no search condition
@@ -39,5 +40,39 @@ public class FacetUtils {
 		
 		builder.append(")");
 		return builder.toString();
+	}
+	
+	/**
+	 * Appends a WHERE clause to the String Builder if necessary
+	 * @param builder StringBuilder to append to
+	 * @param facetSearchConditionString SearchCondition string to append. pass null if none to append.
+	 * @param originalWhereClause the WHERE clause that was in the original query. pass null if not exist.
+	 */
+	public static void appendFacetWhereClauseToStringBuilderIfNecessary(StringBuilder builder, String facetSearchConditionString,
+			WhereClause originalWhereClause) {
+		ValidateArgument.required(builder, "builder");
+		
+		if(facetSearchConditionString != null || originalWhereClause != null){
+			builder.append(" WHERE ");
+			if(originalWhereClause != null){
+				if(facetSearchConditionString != null){
+					builder.append("(");
+				}
+				builder.append(originalWhereClause.getSearchCondition().toSql());
+				if(facetSearchConditionString != null){
+					builder.append(")");
+				}
+			}
+			if(facetSearchConditionString != null){
+				if(originalWhereClause != null){
+					builder.append(" AND ");
+					builder.append("(");
+				}
+				builder.append(facetSearchConditionString);
+				if(originalWhereClause != null){
+					builder.append(")");
+				}
+			}
+		}
 	}
 }

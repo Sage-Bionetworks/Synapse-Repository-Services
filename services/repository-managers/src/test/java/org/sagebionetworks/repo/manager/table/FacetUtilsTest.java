@@ -30,9 +30,9 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 public class FacetUtilsTest {
 
 	@Mock
-	ValidatedQueryFacetColumn mockFacetColumn;
+	FacetRequestColumnModel mockFacetColumn;
 	
-	List<ValidatedQueryFacetColumn> validatedQueryFacetColumns;
+	List<FacetRequestColumnModel> validatedQueryFacetColumns;
 
 	String tableId;
 	String facetColumnName;
@@ -81,7 +81,6 @@ public class FacetUtilsTest {
 		facetSchema = new ArrayList<>();
 		facetSchema.add(facetColumnModel);
 		
-		
 		min1 = "23";
 		max1 = "56";
 		facetRange1 = new FacetColumnRangeRequest();
@@ -96,6 +95,10 @@ public class FacetUtilsTest {
 		
 		supportedFacetColumns = new HashSet<>();
 		requestedFacetColumns = new HashSet<>();
+
+		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
+		facetSearchConditionString = "(tabs > spaces)";
+		stringBuilder = new StringBuilder();
 	}
 
 	/////////////////////////////////////////////
@@ -143,12 +146,44 @@ public class FacetUtilsTest {
 		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		String searchCondition2 = "(searchCondition2)";
-		ValidatedQueryFacetColumn mockFacetColumn2 = Mockito.mock(ValidatedQueryFacetColumn.class);
+		FacetRequestColumnModel mockFacetColumn2 = Mockito.mock(FacetRequestColumnModel.class);
 		Mockito.when(mockFacetColumn2.getSearchConditionString()).thenReturn("(searchCondition2)");
 		validatedQueryFacetColumns.add(mockFacetColumn2);
 
 		String result = FacetUtils.concatFacetSearchConditionStrings(validatedQueryFacetColumns, null);
 		assertEquals("(" + searchCondition1 + " AND " + searchCondition2 + ")", result);
 	}
-
+	
+	
+	////////////////////////////////////////////////////////////
+	// appendFacetWhereClauseToStringBuilderIfNecessary() tests
+	////////////////////////////////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullBuilder(){
+		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(null, facetSearchConditionString, whereClause);
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionStringNullWhereClause(){
+		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, null);
+		assertEquals(0, stringBuilder.length());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullWhereClause(){
+		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, null);
+		assertEquals(" WHERE "+ facetSearchConditionString , stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNullFacetSearchConditionString(){
+		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, null, whereClause);
+		assertEquals(" WHERE "+ whereClause.getSearchCondition().toSql(), stringBuilder.toString());
+	}
+	
+	@Test
+	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
+		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
+		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
+	}
 }
