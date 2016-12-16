@@ -1,7 +1,10 @@
-package org.sagebionetworks.repo.manager.table;
+package org.sagebionetworks.table.query.util;
 
 import java.util.List;
 
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -74,5 +77,24 @@ public class FacetUtils {
 				}
 			}
 		}
+	}
+	
+	public static QuerySpecification appendWhereClauseToQuerySpecification(QuerySpecification sqlModel, List<FacetRequestColumnModel> validatedFacets) throws ParseException{
+		QuerySpecification modelCopy = new TableQueryParser(sqlModel.toSql()).querySpecification();
+		if(!validatedFacets.isEmpty()){
+			WhereClause originalWhereClause = sqlModel.getTableExpression().getWhereClause();
+			
+			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(validatedFacets, null);
+			
+			StringBuilder builder = new StringBuilder();
+			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
+			
+			// create the new where if necessary
+			if(builder.length() > 0){
+				WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
+				modelCopy.getTableExpression().replaceWhere(newWhereClause);
+			}
+		}
+		return modelCopy;
 	}
 }

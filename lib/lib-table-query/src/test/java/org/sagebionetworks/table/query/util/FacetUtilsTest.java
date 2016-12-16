@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.table;
+package org.sagebionetworks.table.query.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -19,12 +19,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
-import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FacetUtilsTest {
@@ -45,7 +43,6 @@ public class FacetUtilsTest {
 	String columnName;
 	
 	
-	SqlQuery simpleQuery;
 	String facetColumnId;
 	ColumnModel facetColumnModel;
 	List<ColumnModel> facetSchema;
@@ -90,9 +87,7 @@ public class FacetUtilsTest {
 		tableId = "syn123";
 		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
 		searchCondition1 = "(searchCondition1)";
-		
-		simpleQuery = new SqlQuery("select * from " + tableId, facetSchema);
-		
+				
 		supportedFacetColumns = new HashSet<>();
 		requestedFacetColumns = new HashSet<>();
 

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.table;
+package org.sagebionetworks.table.query.util;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 

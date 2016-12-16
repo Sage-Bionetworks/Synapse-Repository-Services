@@ -1,17 +1,13 @@
 package org.sagebionetworks.table.query.util;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
@@ -24,9 +20,7 @@ import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.util.ValidateArgument;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
@@ -206,39 +200,23 @@ public class TableSqlProcessor {
 		ValidateArgument.requirement(schema.size() >= selectedFacets.size(), "The schema must have at least as many columns as the selected facets");
 		
 		QuerySpecification model = TableQueryParser.parserQuery(basicSql);
-		TableExpression tableExpression = model.getTableExpression();
-		SelectList selectList =  model.getSelectList();
-		
-		//check to make sure the sql query is basic
-		if( selectList.getColumns() != null || tableExpression.getGroupByClause() != null){
-			throw new IllegalArgumentException("basicSql was not a basic query");
-		}
 		
 		//create a map from column name to columnModel
-		Map<String, ColumnType> columnTypeMap = new HashMap<>();
+		Map<String, ColumnModel> columnTypeMap = new HashMap<>();
 		for(ColumnModel cm : schema){
-			columnTypeMap.put(cm.getName(), cm.getColumnType());
+			columnTypeMap.put(cm.getName(), cm);
 		}
 		
-		
-		//generate the new search condition based on facets
-		StringBuilder newSearchConditionBuilder = new StringBuilder();
-		for(FacetColumnRequest facet : selectedFacets){
-			if(newSearchConditionBuilder.length() > 0){
-				newSearchConditionBuilder.append(" AND ");
+		List<FacetRequestColumnModel> facetRequestModels = new ArrayList<>();
+		for(FacetColumnRequest facetRequest: selectedFacets){
+			ColumnModel columnModel = columnTypeMap.get(facetRequest.getColumnName());
+			if(columnModel == null){
+				throw new IllegalArgumentException("Schema did not contain ColumnModel infromation for column name: " + facetRequest.getColumnName());
 			}
-			newSearchConditionBuilder.append(createFacetSearchConditionString(facet, columnTypeMap.get(facet.getColumnName())));
+			facetRequestModels.add(new FacetRequestColumnModel(columnModel, facetRequest));
 		}
-		String facetSearchConditionString = newSearchConditionBuilder.toString();
 		
-		
-		StringBuilder whereClausebuilder = new StringBuilder();
-		appendFacetWhereClauseToStringBuilderIfNecessary(whereClausebuilder, facetSearchConditionString, null);
-		//add the new where clause to the sql
-		if(newSearchConditionBuilder.length() > 0){
-			tableExpression.replaceWhere(new TableQueryParser(whereClausebuilder.toString()).whereClause());
-		}
-		return model.toSql();
+		return FacetUtils.appendWhereClauseToQuerySpecification(model, facetRequestModels).toSql();
 	}
 	
 

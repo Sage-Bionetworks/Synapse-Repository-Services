@@ -1,11 +1,9 @@
 package org.sagebionetworks.table.query.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Before;
@@ -18,9 +16,6 @@ import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
-import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.WhereClause;
 
@@ -202,16 +197,6 @@ public class TableSqlProcessorTest {
 		TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
 	}
 	
-	@Test (expected= IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNonBasicSqlSelect() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets("SELECT asdf FROM " + tableId, selectedFacets, schema);
-	}
-	
-	@Test (expected= IllegalArgumentException.class)
-	public void testGenerateSqlWithFacetsNonBasicSqlGroupBy() throws ParseException{
-		TableSqlProcessor.generateSqlWithFacets("SELECT * FROM " + tableId + " GROUP BY asdf", selectedFacets, schema);
-	}
-	
 	@Test
 	public void testGenerateSqlWithFacetsHappyCaseNoFacets() throws ParseException{
 		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
@@ -228,7 +213,7 @@ public class TableSqlProcessorTest {
 		selectedFacets.add(stringFacet);
 		
 		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
-		assertEquals("SELECT * FROM " + tableId + " WHERE ( " + intColumnName + " <= " + max +" ) AND ( " + stringColumnName + " = '" + val+ "' ) ORDER BY " + intColumnName + " DESC",
+		assertEquals("SELECT * FROM " + tableId + " WHERE ( ( " + intColumnName + " <= " + max +" ) AND ( " + stringColumnName + " = '" + val+ "' ) ) ORDER BY " + intColumnName + " DESC",
 				result);
 	}
 	

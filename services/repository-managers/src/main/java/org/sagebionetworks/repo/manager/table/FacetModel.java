@@ -13,10 +13,9 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.util.TableSqlProcessor;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
+import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -145,22 +144,9 @@ public class FacetModel {
 		ValidateArgument.required(sqlQuery, "sqlQuery");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
 		try{
-			QuerySpecification modelCopy = new TableQueryParser(sqlQuery.getModel().toSql()).querySpecification();
-			if(!validatedFacets.isEmpty()){
-				WhereClause originalWhereClause = sqlQuery.getModel().getTableExpression().getWhereClause();
-				
-				String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(validatedFacets, null);
-				
-				StringBuilder builder = new StringBuilder();
-				TableSqlProcessor.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);
-				
-				// create the new where if necessary
-				if(builder.length() > 0){
-					WhereClause newWhereClause = new TableQueryParser(builder.toString()).whereClause();
-					modelCopy.getTableExpression().replaceWhere(newWhereClause);
-				}
-			}
-			return new SqlQuery(modelCopy, sqlQuery);
+			QuerySpecification modifiedQuery = FacetUtils.appendWhereClauseToQuerySpecification(sqlQuery.getModel(), validatedFacets);
+
+			return new SqlQuery(modifiedQuery, sqlQuery);
 		}catch (ParseException e){
 			throw new RuntimeException(e);
 		}

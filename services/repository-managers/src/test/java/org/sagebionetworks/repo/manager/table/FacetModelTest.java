@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;

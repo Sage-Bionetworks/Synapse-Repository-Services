@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.table;
+package org.sagebionetworks.table.query.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Sets;
 
