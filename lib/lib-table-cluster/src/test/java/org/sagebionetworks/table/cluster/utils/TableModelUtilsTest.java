@@ -1443,6 +1443,55 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCreateSparseChangeSetPLFM_4180(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
+		
+		List<ColumnModel> rowSetSchema = Lists.newArrayList(c2,c1);
+		// the current schema is not the same as the rowset schema.
+		List<ColumnModel> currentScema = Lists.newArrayList(c1,c2);
+		
+		Long versionNumber = 45L;
+		String tableId = "syn123";
+		List<String> headerIds = Lists.newArrayList("1","2");
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, rowSetSchema);
+		
+		Row row1 = new Row();
+		row1.setRowId(1L);
+		row1.setVersionNumber(versionNumber);
+		row1.setValues(Lists.newArrayList("true", "1"));
+		
+		Row row2 = new Row();
+		row2.setRowId(2L);
+		row2.setVersionNumber(versionNumber);
+		row2.setValues(Lists.newArrayList("false"));
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setEtag("etag");
+		rowSet.setRows(Lists.newArrayList(row1, row2));
+		rowSet.setTableId(tableId);
+		
+		// Call under test
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentScema);
+		assertNotNull(sparse);
+		assertEquals("etag", sparse.getEtag());
+		assertEquals(currentScema, sparse.getSchema());
+		assertEquals(2, sparse.getRowCount());
+		List<SparseRow> rows = new LinkedList<SparseRow>();
+		for(SparseRow row:sparse.rowIterator()){
+			rows.add(row);
+		}
+		assertEquals(2, rows.size());
+		SparseRow two = rows.get(1);
+		assertEquals(row2.getRowId(), two.getRowId());
+		assertEquals(row2.getVersionNumber(), two.getVersionNumber());
+		assertTrue(two.hasCellValue(c1.getId()));
+		assertEquals("false", two.getCellValue(c1.getId()));
+		assertFalse(two.hasCellValue(c2.getId()));
+	}
+	
+	@Test
 	public void testCreateSparseChangeSetNullSelectColumns(){
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
