@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -35,7 +36,7 @@ public class FacetModelTest {
 	String tableId;
 	ColumnModel facetColumnModel;
 	ColumnModel facetColumnModel2;
-	List<ValidatedQueryFacetColumn> validatedQueryFacetColumns;
+	List<FacetRequestColumnModel> validatedQueryFacetColumns;
 	String facetColumnName;
 	String facetColumnName2;
 	SqlQuery simpleQuery;
@@ -161,7 +162,7 @@ public class FacetModelTest {
 		boolean returnFacets = true;
 		
 		
-		List<ValidatedQueryFacetColumn> result = FacetModel.createValidatedFacetsList(selectedFacets , facetSchema, returnFacets);
+		List<FacetRequestColumnModel> result = FacetModel.createValidatedFacetsList(selectedFacets , facetSchema, returnFacets);
 		
 		//check that we got nonEmptyList back
 		//processFacetColumnRequest tests handles case where some columns don't get added
@@ -236,7 +237,7 @@ public class FacetModelTest {
 		FacetModel.processFacetColumnRequest(validatedQueryFacetColumns, supportedFacetColumns, facetColumnModel, null,
 				true);
 		assertEquals(1, validatedQueryFacetColumns.size());
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
+		FacetRequestColumnModel validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
 		assertNull(validatedQueryFacetColumn.getFacetColumnRequest());
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
@@ -258,7 +259,7 @@ public class FacetModelTest {
 				facetRange, false);
 
 		assertEquals(1, validatedQueryFacetColumns.size());
-		ValidatedQueryFacetColumn validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
+		FacetRequestColumnModel validatedQueryFacetColumn = validatedQueryFacetColumns.get(0);
 		assertEquals(facetRange, validatedQueryFacetColumn.getFacetColumnRequest());
 		assertEquals(facetColumnName, validatedQueryFacetColumn.getColumnName());
 		assertEquals(FacetType.range, validatedQueryFacetColumn.getFacetType());
@@ -292,7 +293,7 @@ public class FacetModelTest {
 		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
 				facetSchema);
 
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, rangeRequest));
+		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 
 		SqlQuery modifiedQuery = FacetModel.generateFacetFilteredQuery(query, validatedQueryFacetColumns);
 		String expectedTransformedQuery = "SELECT _C890_, _C098_, ROW_ID, ROW_VERSION FROM T123"
@@ -322,8 +323,8 @@ public class FacetModelTest {
 	
 	@Test
 	public void testGenerateFacetQueryTransformers(){
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName, FacetType.range, rangeRequest));
-		validatedQueryFacetColumns.add(new ValidatedQueryFacetColumn(facetColumnName2, FacetType.enumeration, valuesRequest));
+		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
+		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel2, valuesRequest));
 		
 		List<FacetTransformer> result = FacetModel.generateFacetQueryTransformers(simpleQuery, validatedQueryFacetColumns);
 		//just check for the correct item types.  

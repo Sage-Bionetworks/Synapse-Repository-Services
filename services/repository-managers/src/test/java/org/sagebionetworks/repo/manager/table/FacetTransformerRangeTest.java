@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -34,7 +35,7 @@ public class FacetTransformerRangeTest {
 	private List<ColumnModel> schema;
 	private SqlQuery originalQuery;
 	private String originalSearchCondition;
-	private List<ValidatedQueryFacetColumn> facets;
+	private List<FacetRequestColumnModel> facets;
 	private RowSet rowSet;
 	private List<SelectColumn> correctSelectList;
 	@Before
@@ -47,7 +48,7 @@ public class FacetTransformerRangeTest {
 		rangeRequest.setColumnName(columnName);
 		rangeRequest.setMin(selectedMin);
 		rangeRequest.setMax(selectedMax);
-		facets.add(new ValidatedQueryFacetColumn("i2", FacetType.range, rangeRequest));
+		facets.add(new FacetRequestColumnModel(schema.get(2), rangeRequest)); //use column "i2"
 		selectedMin = "12";
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
@@ -87,7 +88,7 @@ public class FacetTransformerRangeTest {
 		//check the non-transformed sql
 		String expectedString = "SELECT MIN(" + columnName + ") AS " 
 		+ FacetTransformerRange.MIN_ALIAS + ", MAX(" + columnName + ") AS " 
-		+ FacetTransformerRange.MAX_ALIAS + " FROM syn123 WHERE ( "+originalSearchCondition+" )";
+		+ FacetTransformerRange.MAX_ALIAS + " FROM syn123 WHERE "+originalSearchCondition;
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
 		
 		//transformed model will be correct if schema and non-transformed query are correct

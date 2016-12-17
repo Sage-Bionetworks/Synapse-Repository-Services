@@ -17,6 +17,8 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
+import org.sagebionetworks.table.query.util.FacetUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class FacetTransformerValueCounts implements FacetTransformer {
@@ -26,12 +28,12 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	
 	
 	private String columnName;
-	private List<ValidatedQueryFacetColumn> facets;
+	private List<FacetRequestColumnModel> facets;
 	
 	private SqlQuery generatedFacetSqlQuery;
 	private Set<String> selectedValues;
 	
-	public FacetTransformerValueCounts(String columnName, List<ValidatedQueryFacetColumn> facets, SqlQuery originalQuery, Set<String> selectedValues){
+	public FacetTransformerValueCounts(String columnName, List<FacetRequestColumnModel> facets, SqlQuery originalQuery, Set<String> selectedValues){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");

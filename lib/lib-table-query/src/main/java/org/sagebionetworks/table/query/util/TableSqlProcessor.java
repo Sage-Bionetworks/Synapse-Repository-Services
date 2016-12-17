@@ -1,8 +1,13 @@
 package org.sagebionetworks.table.query.util;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.ParseException;
@@ -15,7 +20,7 @@ import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * A utility for processing table SQL strings. This class is part of the table
@@ -180,5 +185,41 @@ public class TableSqlProcessor {
 		}
 		return results;
 	}
+	
+	/**
+	 * Appends a WHERE clause that is based on the selected facets
+	 * @param basicSql must be a very basic SQL i.e. SELECT * FROM (tableId) <ORDER BY ...> 
+	 * @param selectedFacets
+	 * @return the passed in sql query with its where clause's search condition ANDed with the effective search condition of the list of facets
+	 * @throws ParseException 
+	 */
+	public static String generateSqlWithFacets(String basicSql, List<FacetColumnRequest> selectedFacets, List<ColumnModel> schema) throws ParseException{
+		ValidateArgument.required(basicSql, "basicSql");
+		ValidateArgument.required(selectedFacets, "selectedFacets");
+		ValidateArgument.required(schema, "schema");
+		ValidateArgument.requirement(schema.size() >= selectedFacets.size(), "The schema must have at least as many columns as the selected facets");
+		
+		QuerySpecification model = TableQueryParser.parserQuery(basicSql);
+		
+		//create a map from column name to columnModel
+		Map<String, ColumnModel> columnTypeMap = new HashMap<>();
+		for(ColumnModel cm : schema){
+			columnTypeMap.put(cm.getName(), cm);
+		}
+		
+		List<FacetRequestColumnModel> facetRequestModels = new ArrayList<>();
+		for(FacetColumnRequest facetRequest: selectedFacets){
+			ColumnModel columnModel = columnTypeMap.get(facetRequest.getColumnName());
+			if(columnModel == null){
+				throw new IllegalArgumentException("Schema did not contain ColumnModel infromation for column name: " + facetRequest.getColumnName());
+			}
+			facetRequestModels.add(new FacetRequestColumnModel(columnModel, facetRequest));
+		}
+		
+		return FacetUtils.appendFacetSearchConditionToQuerySpecification(model, facetRequestModels).toSql();
+	}
+	
+
+	
 
 }

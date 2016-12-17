@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -37,7 +38,7 @@ public class FacetTransformerValueCountsTest {
 	private List<ColumnModel> schema;
 	private SqlQuery originalQuery;
 	private String originalSearchCondition;
-	private List<ValidatedQueryFacetColumn> facets;
+	private List<FacetRequestColumnModel> facets;
 	private RowSet rowSet;
 	private List<SelectColumn> correctSelectList;
 	private Set<String> selectedValuesSet;
@@ -55,7 +56,7 @@ public class FacetTransformerValueCountsTest {
 		valuesRequest.setColumnName(columnName);
 		selectedValuesSet = Sets.newHashSet(selectedValue);
 		valuesRequest.setFacetValues(selectedValuesSet);
-		facets.add(new ValidatedQueryFacetColumn("i0", FacetType.enumeration, valuesRequest));
+		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
 		originalSearchCondition = "i0 LIKE 'asdf%'";
 		originalQuery = new SqlQuery("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema);
@@ -97,8 +98,8 @@ public class FacetTransformerValueCountsTest {
 		+ FacetTransformerValueCounts.VALUE_ALIAS
 		+ ", COUNT(*) AS " 
 		+ FacetTransformerValueCounts.COUNT_ALIAS 
-		+ " FROM syn123 WHERE ( "+originalSearchCondition
-		+ " ) GROUP BY " + columnName 
+		+ " FROM syn123 WHERE "+originalSearchCondition
+		+ " GROUP BY " + columnName 
 		+ " LIMIT " + FacetTransformerValueCounts.MAX_NUM_FACET_CATEGORIES;
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
 		
