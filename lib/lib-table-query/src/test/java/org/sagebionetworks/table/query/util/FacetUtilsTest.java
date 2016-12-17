@@ -86,7 +86,7 @@ public class FacetUtilsTest {
 		
 		tableId = "syn123";
 		Mockito.when(mockFacetColumn.getColumnName()).thenReturn(facetColumnName);
-		searchCondition1 = "(searchCondition1)";
+		searchCondition1 = "(searchCondition=asdf)";
 				
 		supportedFacetColumns = new HashSet<>();
 		requestedFacetColumns = new HashSet<>();
@@ -94,6 +94,8 @@ public class FacetUtilsTest {
 		whereClause = new WhereClause(SqlElementUntils.createSearchCondition("water=wet AND sky=blue"));
 		facetSearchConditionString = "(tabs > spaces)";
 		stringBuilder = new StringBuilder();
+		
+		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 	}
 
 	/////////////////////////////////////////////
@@ -107,7 +109,6 @@ public class FacetUtilsTest {
 	
 	@Test
 	public void testConcatFacetSearchConditionStringsNullColumnNameToIgnore(){
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
@@ -117,8 +118,6 @@ public class FacetUtilsTest {
 	
 	@Test 
 	public void testConcatFacetSearchConditionStringsOnlyFacetInListIsIgnored(){
-		
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		assertEquals(1, validatedQueryFacetColumns.size());
 		
@@ -138,7 +137,6 @@ public class FacetUtilsTest {
 	
 	@Test
 	public void testConcatFacetSearchConditionStringMultipleFacetColumns(){
-		Mockito.when(mockFacetColumn.getSearchConditionString()).thenReturn(searchCondition1);
 		validatedQueryFacetColumns.add(mockFacetColumn);
 		String searchCondition2 = "(searchCondition2)";
 		FacetRequestColumnModel mockFacetColumn2 = Mockito.mock(FacetRequestColumnModel.class);
@@ -180,5 +178,16 @@ public class FacetUtilsTest {
 	public void appendFacetWhereClauseToStringBuilderIfNecessaryNoNulls(){
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(stringBuilder, facetSearchConditionString, whereClause);
 		assertEquals(" WHERE ("+ whereClause.getSearchCondition().toSql() + ") AND (" + facetSearchConditionString + ")", stringBuilder.toString());
+	}
+	
+	/////////////////////////////////////////////////////////
+	// appendFacetSearchConditionToQuerySpecification() test
+	/////////////////////////////////////////////////////////
+	
+	@Test
+	public void testAppendFacetSearchConditionToQuerySpecification() throws ParseException{
+		validatedQueryFacetColumns.add(mockFacetColumn);
+		QuerySpecification modifiedSql = FacetUtils.appendFacetSearchConditionToQuerySpecification(simpleModel, validatedQueryFacetColumns);
+		assertEquals("SELECT * FROM syn123 WHERE ( i LIKE 'trains' ) AND ( ( ( searchCondition = asdf ) ) )", modifiedSql.toSql());
 	}
 }

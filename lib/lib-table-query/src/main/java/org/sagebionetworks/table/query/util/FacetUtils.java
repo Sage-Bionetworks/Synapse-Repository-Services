@@ -79,12 +79,20 @@ public class FacetUtils {
 		}
 	}
 	
-	public static QuerySpecification appendWhereClauseToQuerySpecification(QuerySpecification sqlModel, List<FacetRequestColumnModel> validatedFacets) throws ParseException{
+	/**
+	 * Returns a new QuerySpecification object that is modified version of 
+	 * sqlModel having the original WHERE clause ANDed with 
+	 * the facet search conditions in facetRequestColumnModels
+	 * @param sqlModel
+	 * @param facetRequestColumnModels
+	 * @throws ParseException
+	 */
+	public static QuerySpecification appendFacetSearchConditionToQuerySpecification(QuerySpecification sqlModel, List<FacetRequestColumnModel> facetRequestColumnModels) throws ParseException{
 		QuerySpecification modelCopy = new TableQueryParser(sqlModel.toSql()).querySpecification();
-		if(!validatedFacets.isEmpty()){
+		if(!facetRequestColumnModels.isEmpty()){
 			WhereClause originalWhereClause = sqlModel.getTableExpression().getWhereClause();
 			
-			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(validatedFacets, null);
+			String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facetRequestColumnModels, null);
 			
 			StringBuilder builder = new StringBuilder();
 			FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, originalWhereClause);

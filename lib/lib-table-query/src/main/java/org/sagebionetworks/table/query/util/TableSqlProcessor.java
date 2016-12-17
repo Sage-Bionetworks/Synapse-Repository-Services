@@ -216,7 +216,7 @@ public class TableSqlProcessor {
 			facetRequestModels.add(new FacetRequestColumnModel(columnModel, facetRequest));
 		}
 		
-		return FacetUtils.appendWhereClauseToQuerySpecification(model, facetRequestModels).toSql();
+		return FacetUtils.appendFacetSearchConditionToQuerySpecification(model, facetRequestModels).toSql();
 	}
 	
 
