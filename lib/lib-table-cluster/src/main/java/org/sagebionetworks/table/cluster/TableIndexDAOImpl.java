@@ -18,7 +18,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.SQL_ENTITY_REPLICATION_CRC_32;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.TYPE_PARAMETER_NAME;
 
 import java.sql.Connection;
@@ -77,6 +77,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
+
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -756,6 +757,44 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, currentSchema);
 		namedTemplate.update(sql, param);
+	}
+
+	@Override
+	public List<ColumnModel> getPossibleAnnotationsForContainers(
+			Set<Long> containerIds, Long limit, Long offset) {
+		ValidateArgument.required(containerIds, "containerIds");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		if(containerIds.isEmpty()){
+			return new LinkedList<>();
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
+		param.addValue(P_LIMIT, limit);
+		param.addValue(P_OFFSET, offset);
+		return namedTemplate.query(SELECT_DISTINCT_ANNOTATION_COLUMNS, param, new RowMapper<ColumnModel>() {
+
+			@Override
+			public ColumnModel mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				String name = rs.getString(ANNOTATION_REPLICATION_COL_KEY);
+				ColumnType type = AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)).getColumnType();
+				ColumnModel cm = new ColumnModel();
+				cm.setName(name);
+				cm.setColumnType(type);
+				if(ColumnType.STRING.equals(type)){
+					cm.setMaximumSize(500L);
+				}
+				return cm;
+			}
+		});
+	}
+
+	@Override
+	public Long getPossibleAnnotationsForContainersCount(Set<Long> containerIds) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

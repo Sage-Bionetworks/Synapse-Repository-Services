@@ -1534,6 +1534,29 @@ public class TableIndexDAOImplTest {
 		assertEquals(-1L, crc32);
 	}
 	
+	@Test
+	public void testGetPossibleAnnotationsForContainers(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		
+		List<ColumnModel> columns = tableIndexDAO.getPossibleAnnotationsForContainers(containerIds, limit, offset);
+		assertNotNull(columns);
+		assertEquals(limit, columns.size());
+	}
+	
 	/**
 	 * Create a view schema using an EntityDTO as a template.
 	 * 
@@ -1546,7 +1569,7 @@ public class TableIndexDAOImplTest {
 		if(dto.getAnnotations() != null){
 			for(AnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
-				cm.setColumnType(translateType(annoDto.getType()));
+				cm.setColumnType(annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
 				if(ColumnType.STRING.equals(cm.getColumnType())){
 					cm.setMaximumSize(50L);
@@ -1562,23 +1585,6 @@ public class TableIndexDAOImplTest {
 			cm.setId(""+i);
 		}
 		return schema;
-	}
-
-	
-	
-	public static ColumnType translateType(AnnotationType type){
-		switch(type){
-		case STRING:
-			return ColumnType.STRING;
-		case DATE:
-			return ColumnType.DATE;
-		case DOUBLE:
-			return ColumnType.DOUBLE;
-		case LONG:
-			return ColumnType.INTEGER;
-		default:
-			return ColumnType.STRING;
-		}
 	}
 	
 	/**

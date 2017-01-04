@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -21,6 +25,8 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	
+	public static final long MAX_LIMIT = 50;
+
 	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
@@ -303,4 +309,54 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
 	}
+	
+	@Override
+	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForView(
+			String viewId, Long limit, Long offset) {
+		ValidateArgument.required(viewId, "viewId");
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
+		return getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+	}
+	
+	@Override
+	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForScope(
+			List<String> scopeIds, Long limit, Long offset) {
+		ValidateArgument.required(scopeIds, "scopeIds");
+		// lookup the containers for the given scope
+		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet);
+		return getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+	}
+	
+	/**
+	 * Get the possible annotations for the given set of container IDs.
+	 * 
+	 * @param containerIds
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForContainerIs(
+			Set<Long> containerIds, Long limit, Long offset) {
+		ValidateArgument.required(containerIds, "containerIds");
+		ValidateArgument.required(limit, "limit");
+		if(limit > MAX_LIMIT){
+			throw new IllegalArgumentException("Limit must not exceed: "+MAX_LIMIT);
+		}
+		if(offset == null || offset < 0){
+			offset = 0L;
+		}
+		PaginatedResults<ColumnModel> results = new PaginatedResults<ColumnModel>();
+		if(containerIds.isEmpty()){
+			results.setResults(new LinkedList<ColumnModel>());
+			results.setTotalNumberOfResults(0L);
+			return results;
+		}
+		List<ColumnModel> columns = tableIndexDao.getPossibleAnnotationsForContainers(containerIds, limit, offset);
+		results.setResults(columns);
+		Long count = tableIndexDao.getPossibleAnnotationsForContainersCount(containerIds);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+
 }

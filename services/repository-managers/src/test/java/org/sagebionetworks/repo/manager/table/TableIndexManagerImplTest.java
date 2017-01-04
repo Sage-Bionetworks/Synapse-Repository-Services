@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
@@ -15,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,7 +27,9 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -68,6 +69,13 @@ public class TableIndexManagerImplTest {
 	
 	Grouping groupOne;
 	Grouping groupTwo;
+	
+	HashSet<Long> containerIds;
+	Long limit;
+	Long offset;
+	Long count;
+	List<String> scopeSynIds;
+	Set<Long> scopeIds;
 	
 	@SuppressWarnings("unchecked")
 	@Before
@@ -126,7 +134,18 @@ public class TableIndexManagerImplTest {
 		});
 		crc32 = 5678L;
 		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString())).thenReturn(crc32);
-
+		
+		containerIds = Sets.newHashSet(1l,2L,3L);
+		limit = 10L;
+		offset = 0L;
+		count = 101L;
+		scopeSynIds = Lists.newArrayList("syn123","syn345");
+		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
+		
+		when(mockIndexDao.getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleAnnotationsForContainersCount(anySet())).thenReturn(count);
+		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(containerIds);
+		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds)).thenReturn(containerIds);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -435,6 +454,95 @@ public class TableIndexManagerImplTest {
 		// call under test
 		manager.populateViewFromEntityReplication(mockCallback, viewType, scope, schema);;
 	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForContainerIs(){
+		// call under test
+		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(schema, results.getResults());
+		
+		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit, offset);
+		verify(mockIndexDao).getPossibleAnnotationsForContainersCount(containerIds);
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForContainerIsNullOffset(){
+		offset = null;
+		// call under test
+		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		assertNotNull(results);
+		// offset should default to zero
+		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit, 0L);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPossibleAnnotationDefinitionsForContainerIsNullLimit(){
+		limit = null;
+		// call under test
+		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPossibleAnnotationDefinitionsForContainerIsNullContainerIds(){
+		containerIds = null;
+		// call under test
+		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForContainerIsEmpty(){
+		containerIds = new HashSet<>();
+		// call under test
+		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		assertNotNull(results);
+		assertNotNull(results.getResults());
+		assertEquals(0L, results.getTotalNumberOfResults());
+		// should not call the dao
+		verify(mockIndexDao, never()).getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong());
+	}
+	
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPossibleAnnotationDefinitionsForContainerIsOverLimit(){
+		limit = TableIndexManagerImpl.MAX_LIMIT+1;
+		// call under test
+		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForView(){
+		// call under test
+		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForView(tableId, limit, offset);
+		assertNotNull(results);
+		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(schema, results.getResults());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPossibleAnnotationDefinitionsForViewNullId(){
+		tableId = null;
+		// call under test
+		manager.getPossibleAnnotationDefinitionsForView(tableId, limit, offset);
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForScope(){
+		// call under test
+		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, limit, offset);
+		assertNotNull(results);
+		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(schema, results.getResults());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
+		scopeSynIds = null;
+		// call under test
+		manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, limit, offset);
+	}
+	
 	
 	/**
 	 * Create the default EntityField schema with IDs for each column.
