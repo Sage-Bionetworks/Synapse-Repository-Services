@@ -11,11 +11,11 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -29,7 +29,6 @@ public class EntityManagerImplUnitTest {
 	private UserInfo mockUser;
 	private EntityManagerImpl entityManager;
 	private NodeManager mockNodeManager;
-	private IdGenerator mocIdGenerator;
 	Long userId = 007L;
 	
 	@Before
@@ -38,7 +37,6 @@ public class EntityManagerImplUnitTest {
 		mockPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockNodeManager = Mockito.mock(NodeManager.class);
-		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mockUser = new UserInfo(false);
 		entityManager = new EntityManagerImpl(mockNodeManager, mockPermissionsManager, mockUserManager);
 	}
@@ -157,10 +155,44 @@ public class EntityManagerImplUnitTest {
 		verify(node).setActivityId(activityId);
 		reset(node);
 
-		// Update: new version, defined activity id. 
+		// Update: new version, defined activity id.
 		activityId = "1";
-		entityManager.updateEntity(mockUser, entity, true, activityId);		
+		entityManager.updateEntity(mockUser, entity, true, activityId);
 		verify(node).setActivityId(activityId);
 		reset(node);
+	}
+
+	@Test
+	public void testValidateCreateOrUpdateEntityWithFolder() {
+		Folder folder = new Folder();
+		EntityManagerImpl.validateCreateOrUpdateEntity(folder);
+	}
+
+	@Test
+	public void testValidateCreateOrUpdateEntityWithoutDeprecatedField() {
+		FileEntity file = new FileEntity();
+		EntityManagerImpl.validateCreateOrUpdateEntity(file);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateCreateOrUpdateEntityWithDeprecatedField() {
+		FileEntity file = new FileEntity();
+		file.setFileNameOverride("fileNameOverride");
+		EntityManagerImpl.validateCreateOrUpdateEntity(file);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateEntityWithFileNameOverride() {
+		FileEntity file = new FileEntity();
+		file.setFileNameOverride("fileNameOverride");
+		entityManager.createEntity(mockUser, file, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateEntityWithFileNameOverride() {
+		FileEntity file = new FileEntity();
+		file.setFileNameOverride("fileNameOverride");
+		file.setId("syn1");
+		entityManager.updateEntity(mockUser, file, true, null);
 	}
 }

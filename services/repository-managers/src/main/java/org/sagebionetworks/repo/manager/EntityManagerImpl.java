@@ -72,6 +72,7 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException, NotFoundException {
 		if (newEntity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
+		validateCreateOrUpdateEntity(newEntity);
 		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
@@ -84,6 +85,19 @@ public class EntityManagerImpl implements EntityManager {
 		node = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
 		return node.getId();
+	}
+
+	/**
+	 * fileNameOverride field is deprecated, user should not be setting it.
+	 * @param entity
+	 */
+	public static <T extends Entity> void validateCreateOrUpdateEntity(T entity) {
+		if (entity instanceof FileEntity) {
+			FileEntity fileEntity = (FileEntity) entity;
+			if (fileEntity.getFileNameOverride() != null) {
+				throw new IllegalArgumentException("fileNameOverride field is deprecated and should not be set.");
+			}
+		}
 	}
 
 	@Override
@@ -339,6 +353,7 @@ public class EntityManagerImpl implements EntityManager {
 		if (updated.getId() == null)
 			throw new IllegalArgumentException(
 					"The updated Entity cannot have a null ID");
+		validateCreateOrUpdateEntity(updated);
 
 		Node node = nodeManager.get(userInfo, updated.getId());
 		// Now get the annotations for this node
