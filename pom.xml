@@ -119,6 +119,16 @@
 				<artifactId>log4j-jcl</artifactId>
 				<version>${log4j.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-1.2-api</artifactId>
+				<version>${log4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>commons-logging</groupId>
+				<artifactId>commons-logging</artifactId>
+				<version>${commonslogging.version}</version>
+			</dependency>
 			
 			<!-- OAuth support -->
 			<dependency>
@@ -837,6 +847,7 @@
 		<com.sun.tools.version>1.7</com.sun.tools.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 		<log4j.version>2.6.1</log4j.version>
+		<commonslogging.version>1.2</commonslogging.version>
 		<org.json.version>20090211</org.json.version>
 	</properties>
 
