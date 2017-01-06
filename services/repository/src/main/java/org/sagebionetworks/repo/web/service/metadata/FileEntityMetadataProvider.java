@@ -15,6 +15,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity> {
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType() || EventType.NEW_VERSION == event.getType()){
 			// This is for PLFM-1754.
 			if(entity.getDataFileHandleId() == null) throw new IllegalArgumentException("FileEntity.dataFileHandleId cannot be null");
+			if (entity.getFileNameOverride() != null) throw new IllegalArgumentException("fileNameOverride field is deprecated and should not be set.");
 		}	
 	}
 }
