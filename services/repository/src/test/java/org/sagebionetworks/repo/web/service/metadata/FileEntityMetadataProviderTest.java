@@ -7,7 +7,6 @@ import javax.mail.Folder;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -15,23 +14,16 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class FileEntityMetadataProviderTest  {
 	
 	FileEntityMetadataProvider provider;
-	
-	String entityId;
 	FileEntity fileEntity;
-	List<String> columnIds;
-	
 	UserInfo userInfo;
 	List<EntityHeader> path;
 	
 	@Before
 	public void before(){
-		MockitoAnnotations.initMocks(this);
-		
 		provider = new FileEntityMetadataProvider();
 		
-		entityId = "syn789";
 		fileEntity = new FileEntity();
-		fileEntity.setId(entityId);
+		fileEntity.setId("syn789");
 		
 		userInfo = new UserInfo(false, 55L);
 
