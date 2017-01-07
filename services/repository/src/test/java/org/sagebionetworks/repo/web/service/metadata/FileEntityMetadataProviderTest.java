@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service.metadata;
 
+import static org.mockito.Mockito.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,11 +9,17 @@ import javax.mail.Folder;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class FileEntityMetadataProviderTest  {
+	@Mock
+	EntityManager mockEntityManager;
 	
 	FileEntityMetadataProvider provider;
 	FileEntity fileEntity;
@@ -20,11 +28,14 @@ public class FileEntityMetadataProviderTest  {
 	
 	@Before
 	public void before(){
+		MockitoAnnotations.initMocks(this);
+
 		provider = new FileEntityMetadataProvider();
-		
+		ReflectionTestUtils.setField(provider, "manager", mockEntityManager);
+
 		fileEntity = new FileEntity();
 		fileEntity.setId("syn789");
-		
+
 		userInfo = new UserInfo(false, 55L);
 
 		// root
@@ -47,12 +58,14 @@ public class FileEntityMetadataProviderTest  {
 	public void testCreateWithoutDataFileHandleId(){
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
 	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWithFileNameOverride(){
 		fileEntity.setDataFileHandleId("1");
 		fileEntity.setFileNameOverride("fileNameOverride");
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.CREATE, path, userInfo));
 	}
+
 	@Test
 	public void testCreate(){
 		fileEntity.setDataFileHandleId("1");
@@ -63,15 +76,28 @@ public class FileEntityMetadataProviderTest  {
 	public void testUpdateWithoutDataFileHandleId(){
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
 	}
-	@Test (expected=IllegalArgumentException.class)
-	public void testUpdateWithFileNameOverride(){
+
+	@Test
+	public void testUpdateWithOriginalFileNameOverride(){
+		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(fileEntity);
 		fileEntity.setDataFileHandleId("1");
 		fileEntity.setFileNameOverride("fileNameOverride");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		provider.entityUpdated(userInfo, fileEntity);
 	}
-	@Test
-	public void testUpdate(){
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateWithNewFileNameOverride(){
+		FileEntity original = new FileEntity();
+		original.setFileNameOverride("originalFileNameOverride");
+		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(original);
 		fileEntity.setDataFileHandleId("1");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		fileEntity.setFileNameOverride("fileNameOverride");
+		provider.entityUpdated(userInfo, fileEntity);
+	}
+
+	@Test
+	public void testUpdateWithoutFileNameOverride(){
+		fileEntity.setDataFileHandleId("1");
+		provider.entityUpdated(userInfo, fileEntity);
 	}
 }
