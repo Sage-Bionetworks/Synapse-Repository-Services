@@ -33,7 +33,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 	public void entityUpdated(UserInfo userInfo, FileEntity entity) {
 		if (entity.getFileNameOverride() != null) {
 			FileEntity original = (FileEntity) manager.getEntity(userInfo, entity.getId());
-			if (original.getFileNameOverride() != entity.getFileNameOverride()) {
+			if (!entity.getFileNameOverride().equals(original.getFileNameOverride())) {
 				throw new IllegalArgumentException(FILE_NAME_OVERRIDE_DEPRECATED_REASON);
 			}
 		}

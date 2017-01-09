@@ -79,7 +79,18 @@ public class FileEntityMetadataProviderTest  {
 
 	@Test
 	public void testUpdateWithOriginalFileNameOverride(){
-		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(fileEntity);
+		FileEntity originalFileEntity = new FileEntity();
+		originalFileEntity.setFileNameOverride("fileNameOverride");
+		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(originalFileEntity);
+		fileEntity.setDataFileHandleId("1");
+		fileEntity.setFileNameOverride("fileNameOverride");
+		provider.entityUpdated(userInfo, fileEntity);
+		verify(mockEntityManager).getEntity(userInfo, fileEntity.getId());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateWithNullOriginalFileNameOverride(){
+		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(new FileEntity());
 		fileEntity.setDataFileHandleId("1");
 		fileEntity.setFileNameOverride("fileNameOverride");
 		provider.entityUpdated(userInfo, fileEntity);
