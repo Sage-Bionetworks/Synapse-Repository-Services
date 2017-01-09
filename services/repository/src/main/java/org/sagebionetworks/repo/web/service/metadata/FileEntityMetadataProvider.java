@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, TypeSpecificUpdateProvider<FileEntity> {
+	private static final String FILE_NAME_OVERRIDE_DEPRECATED_REASON = "fileNameOverride field is deprecated and should not be set.";
 	@Autowired
 	EntityManager manager;
 
@@ -24,7 +25,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 			}
 		}
 		if (EventType.CREATE == event.getType() && entity.getFileNameOverride() != null) {
-			throw new IllegalArgumentException("fileNameOverride field is deprecated and should not be set.");
+			throw new IllegalArgumentException(FILE_NAME_OVERRIDE_DEPRECATED_REASON);
 		}
 	}
 
@@ -33,7 +34,7 @@ public class FileEntityMetadataProvider implements EntityValidator<FileEntity>, 
 		if (entity.getFileNameOverride() != null) {
 			FileEntity original = (FileEntity) manager.getEntity(userInfo, entity.getId());
 			if (original.getFileNameOverride() != entity.getFileNameOverride()) {
-				throw new IllegalArgumentException("fileNameOverride field is deprecated and should not be set.");
+				throw new IllegalArgumentException(FILE_NAME_OVERRIDE_DEPRECATED_REASON);
 			}
 		}
 	}
