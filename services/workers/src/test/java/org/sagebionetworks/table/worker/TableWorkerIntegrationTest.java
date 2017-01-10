@@ -326,6 +326,27 @@ public class TableWorkerIntegrationTest {
 		assertEquals("0", row.getValues().get(0));
 	}
 
+	@Test
+	public void testGetCellValuesPLFM_4191() throws Exception {
+		schema = new LinkedList<ColumnModel>();
+		ColumnModel cm = TableModelTestUtils.createColumn(null, "data.csv", ColumnType.STRING);
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema.add(cm);
+		createTableWithSchema();
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 1));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		String sql = "select * from " + tableId;
+		waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		// This call would throw an exception.
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
+				schema);
+	}
+
 
 	@Test
 	public void testLimitOffset() throws Exception {
