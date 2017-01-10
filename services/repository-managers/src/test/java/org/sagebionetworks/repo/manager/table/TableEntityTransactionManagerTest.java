@@ -207,9 +207,9 @@ public class TableEntityTransactionManagerTest {
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
 		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(progressCallback);
+		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
 		verify(progressCallback, times(2)).progressMade(null);
 	}
 	
@@ -227,9 +227,9 @@ public class TableEntityTransactionManagerTest {
 			// expected
 		}
 		verify(tableIndexConnectionFactory).connectToTableIndex(tableId);
-		verify(tableIndexManager).createTemporaryTableCopy(progressCallback);
+		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
-		verify(tableIndexManager).deleteTemporaryTableCopy(progressCallback);
+		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
 		verify(progressCallback, times(2)).progressMade(null);
 	}
 	
@@ -240,9 +240,9 @@ public class TableEntityTransactionManagerTest {
 		// call under test
 		manager.validateUpdateRequests(progressCallback, userInfo, request);
 		verify(tableIndexConnectionFactory, never()).connectToTableIndex(tableId);
-		verify(tableIndexManager, never()).createTemporaryTableCopy(progressCallback);
+		verify(tableIndexManager, never()).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, null);
-		verify(tableIndexManager, never()).deleteTemporaryTableCopy(any(ProgressCallback.class));
+		verify(tableIndexManager, never()).deleteTemporaryTableCopy(anyString(), any(ProgressCallback.class));
 		verify(progressCallback, times(2)).progressMade(null);
 	}
 	

@@ -150,7 +150,7 @@ public class TableViewWorkerTest {
 		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(schema);
 		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(expandedSchema);
 		viewCRC = 888L;		
-		when(indexManager.populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,expandedSchema)).thenReturn(viewCRC);
+		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema)).thenReturn(viewCRC);
 	}
 
 	@Test
@@ -167,7 +167,7 @@ public class TableViewWorkerTest {
 		change.setChangeType(ChangeType.DELETE);
 		// call under test
 		worker.run(outerCallback, change);
-		verify(indexManager).deleteTableIndex();
+		verify(indexManager).deleteTableIndex(tableId);
 	}
 
 	@Test(expected = RecoverableMessageException.class)
@@ -230,15 +230,15 @@ public class TableViewWorkerTest {
 		// call under test
 		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
 		
-		verify(indexManager).deleteTableIndex();
-		verify(indexManager).setIndexSchema(innerCallback,expandedSchema);
+		verify(indexManager).deleteTableIndex(tableId);
+		verify(indexManager).setIndexSchema(tableId, innerCallback,expandedSchema);
 		verify(tableViewManager).getViewSchemaWithRequiredColumns(tableId);
 		verify(innerCallback, times(4)).progressMade(null);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
-		verify(indexManager, times(1)).populateViewFromEntityReplication(innerCallback, ViewType.file, viewScope,expandedSchema);
-		verify(indexManager).setIndexVersionAndSchemaMD5Hex(viewCRC, schemaMD5Hex);
+		verify(indexManager, times(1)).populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema);
+		verify(indexManager).setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
-		verify(indexManager).optimizeTableIndices();
+		verify(indexManager).optimizeTableIndices(tableId);
 	}
 
 }

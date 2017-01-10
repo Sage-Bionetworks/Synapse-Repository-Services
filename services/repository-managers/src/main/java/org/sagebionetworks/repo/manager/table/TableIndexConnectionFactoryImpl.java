@@ -25,7 +25,7 @@ public class TableIndexConnectionFactoryImpl implements
 		if(dao == null){
 			throw new TableIndexConnectionUnavailableException("Cannot connect to table: "+tableId);
 		}
-		return new TableIndexManagerImpl(dao, tableManagerSupport, tableId);
+		return new TableIndexManagerImpl(dao, tableManagerSupport);
 	}
 
 }
