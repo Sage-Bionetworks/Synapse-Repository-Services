@@ -308,7 +308,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		return getAllContainerIdsForScope(scope);
 	}
 
-	private Set<Long> getAllContainerIdsForScope(Set<Long> scope) {
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
+	 */
+	@Override
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope) {
 		// Add all containers from the given scope
 		Set<Long> allContainersInScope = new HashSet<Long>(scope);
 		for(Long container: scope){

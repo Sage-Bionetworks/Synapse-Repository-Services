@@ -1,5 +1,14 @@
 package org.sagebionetworks.repo.model.table;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -234,4 +243,22 @@ public class TableConstants {
 	public final static String ANNOTATION_REPLICATION_GET = "SELECT * FROM "+TableConstants.ANNOTATION_REPLICATION_TABLE+" WHERE "+TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID+" = ?";
 
 	public static final String NULL_VALUE_KEYWORD = "org.sagebionetworks.UNDEFINED_NULL_NOTSET";
+	
+	public static final String P_OFFSET = "pOffset";
+
+	public static final String P_LIMIT = "pLimit";
+	
+	public static final String SELECT_DISTINCT_ANNOTATION_COLUMNS = "SELECT A."
+			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
+			+ ANNOTATION_REPLICATION_COL_TYPE + ", MAX(LENGTH(A."
+			+ ANNOTATION_REPLICATION_COL_VALUE + "))" + " FROM "
+			+ ENTITY_REPLICATION_TABLE + " AS E" + " INNER JOIN "
+			+ ANNOTATION_REPLICATION_TABLE + " AS A" + " ON E."
+			+ ENTITY_REPLICATION_COL_ID + " = A."
+			+ ANNOTATION_REPLICATION_COL_ENTITY_ID + " WHERE E."
+			+ ENTITY_REPLICATION_COL_PARENT_ID + " IN (:"
+			+ PARENT_ID_PARAMETER_NAME + ") GROUP BY A."
+			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
+			+ ANNOTATION_REPLICATION_COL_TYPE + " LIMIT :" + P_LIMIT
+			+ " OFFSET :" + P_OFFSET;
 }

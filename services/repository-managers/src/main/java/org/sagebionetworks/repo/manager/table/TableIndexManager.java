@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.SparseChangeSet;
 
@@ -170,6 +173,24 @@ public interface TableIndexManager {
 	 */
 	public Long populateViewFromEntityReplication(ProgressCallback<Void> callback, ViewType viewType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
+	
+	/**
+	 * Get the possible ColumnModel definitions for all distinct annotations for a given scope.
+	 * @param scope Defined as the list of container ids for a view.
+	 * @param limit Pagination limit.
+	 * @param offset Pagination offset.
+	 * @return A ColumnModel for each distinct annotation for the given scope.
+	 */
+	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(List<String> scopeIds, String nextPageToken);
+	
+	/**
+	 * Get the possible ColumnModel definitions for all distinct annotations for a given view.
+	 * @param viewId The id of the view to fetch annotation definitions for.
+	 * @param limit Pagination limit.
+	 * @param offset Pagination offset.
+	 * @return A ColumnModel for each distinct annotation for the given scope.
+	 */
+	public ColumnModelPage getPossibleAnnotationDefinitionsForView(String viewId, String nextPageToken);
 	
 
 }

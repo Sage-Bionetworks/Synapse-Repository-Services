@@ -199,6 +199,19 @@ public interface TableManagerSupport {
 	public Set<Long> getAllContainerIdsForViewScope(String viewId);
 	
 	/**
+	 * Get the set of container ids (Projects and Folders) for a given set
+	 * of scope Ids. The resulting set will include the scope containers plus all folders
+	 * contained within each scope.
+	 * 
+	 * All FileEntities within the the given view will have a parentId from the
+	 * returned set.
+	 * @param scope
+	 * @return
+	 */
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope);
+
+	
+	/**
 	 * Get the count of the number of containers (projects, folder) 
 	 *  defined by the given scope IDs.
 	 *  For example, if the given scopeId is a project entity, then
@@ -397,5 +410,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
+
 
 }

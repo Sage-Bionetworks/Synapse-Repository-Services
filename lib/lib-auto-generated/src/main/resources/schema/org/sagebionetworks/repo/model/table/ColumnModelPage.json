@@ -1,0 +1,16 @@
+{
+	"description":"A single page of ColumnModels",
+	"properties":{
+		"results": {
+			"description":"A single page of ColumnModels",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+		"nextPageToken":{
+			"type":"string",
+			"description":"If there are more pages of results this token can be used to get the next page.  Null if this is the last page."
+		}
+	}
+}
