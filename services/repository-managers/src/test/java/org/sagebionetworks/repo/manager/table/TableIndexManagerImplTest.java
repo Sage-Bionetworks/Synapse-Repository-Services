@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
@@ -27,11 +30,12 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -73,7 +77,8 @@ public class TableIndexManagerImplTest {
 	HashSet<Long> containerIds;
 	Long limit;
 	Long offset;
-	Long count;
+	NextPageToken nextPageToken;
+	String tokenString;
 	List<String> scopeSynIds;
 	Set<Long> scopeIds;
 	
@@ -138,12 +143,12 @@ public class TableIndexManagerImplTest {
 		containerIds = Sets.newHashSet(1l,2L,3L);
 		limit = 10L;
 		offset = 0L;
-		count = 101L;
+		nextPageToken = new NextPageToken(limit, offset);
+		tokenString = nextPageToken.toToken();
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 		
 		when(mockIndexDao.getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong())).thenReturn(schema);
-		when(mockIndexDao.getPossibleAnnotationsForContainersCount(anySet())).thenReturn(count);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds)).thenReturn(containerIds);
 	}
@@ -456,49 +461,61 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForContainerIs(){
+	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
 		// call under test
-		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, tokenString);
 		assertNotNull(results);
-		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
-		
-		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit, offset);
-		verify(mockIndexDao).getPossibleAnnotationsForContainersCount(containerIds);
+		// should request one more than the limit
+		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit+1, offset);
 	}
 	
 	@Test
-	public void testGetPossibleAnnotationDefinitionsForContainerIsNullOffset(){
-		offset = null;
+	public void testGetPossibleAnnotationDefinitionsForContainerLastPageNullToken(){
+		tokenString = null;
 		// call under test
-		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, tokenString);
 		assertNotNull(results);
-		// offset should default to zero
-		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit, 0L);
+		assertEquals(null, results.getNextPageToken());
+		assertEquals(schema, results.getResults());
+		// should request one more than the limit
+		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, TableIndexManagerImpl.DEFAULT_LIMIT+1, TableIndexManagerImpl.DEFAULT_OFFSET);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetPossibleAnnotationDefinitionsForContainerIsNullLimit(){
-		limit = null;
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
+		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
+		pagePluseOne.add(new ColumnModel());
+		when(mockIndexDao.getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong())).thenReturn(pagePluseOne);
+		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());
+		assertNotNull(results);
+		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
+		assertEquals(schema, results.getResults());
+		// should request one more than the limit
+		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, nextPageToken.getLimit()+1, nextPageToken.getOffset());
 	}
+	
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForContainerIsNullContainerIds(){
+		String token = nextPageToken.toToken();
 		containerIds = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, token);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerIsEmpty(){
+		String token = nextPageToken.toToken();
 		containerIds = new HashSet<>();
 		// call under test
-		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, token);
 		assertNotNull(results);
 		assertNotNull(results.getResults());
-		assertEquals(0L, results.getTotalNumberOfResults());
+		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
 		verify(mockIndexDao, never()).getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong());
 	}
@@ -507,16 +524,17 @@ public class TableIndexManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForContainerIsOverLimit(){
 		limit = TableIndexManagerImpl.MAX_LIMIT+1;
+		nextPageToken = new NextPageToken(limit, offset);
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForView(){
 		// call under test
-		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForView(tableId, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForView(tableId, tokenString);
 		assertNotNull(results);
-		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 	}
 	
@@ -524,15 +542,15 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForViewNullId(){
 		tableId = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForView(tableId, limit, offset);
+		manager.getPossibleAnnotationDefinitionsForView(tableId, tokenString);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
 		// call under test
-		PaginatedResults<ColumnModel> results = manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, limit, offset);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, tokenString);
 		assertNotNull(results);
-		assertEquals(count.longValue(), results.getTotalNumberOfResults());
+		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 	}
 	
@@ -540,7 +558,7 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
 		scopeSynIds = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, limit, offset);
+		manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, tokenString);
 	}
 	
 	

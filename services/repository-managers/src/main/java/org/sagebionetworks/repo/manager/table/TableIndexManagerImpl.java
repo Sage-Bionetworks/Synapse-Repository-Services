@@ -7,10 +7,11 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
@@ -25,6 +26,10 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	
+	public static final long DEFAULT_OFFSET = 0L;
+
+	public static final long DEFAULT_LIMIT = 50L;
+
 	public static final long MAX_LIMIT = 50;
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
@@ -311,21 +316,21 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForView(
-			String viewId, Long limit, Long offset) {
+	public ColumnModelPage getPossibleAnnotationDefinitionsForView(
+			String viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
-		return getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
 	}
 	
 	@Override
-	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForScope(
-			List<String> scopeIds, Long limit, Long offset) {
+	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(
+			List<String> scopeIds, String nextPageToken) {
 		ValidateArgument.required(scopeIds, "scopeIds");
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet);
-		return getPossibleAnnotationDefinitionsForContainerIs(containerIds, limit, offset);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
 	}
 	
 	/**
@@ -336,26 +341,36 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param offset
 	 * @return
 	 */
-	PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForContainerIs(
-			Set<Long> containerIds, Long limit, Long offset) {
+	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
+			Set<Long> containerIds, String nextPageToken) {
 		ValidateArgument.required(containerIds, "containerIds");
-		ValidateArgument.required(limit, "limit");
-		if(limit > MAX_LIMIT){
+		NextPageToken token = null;
+		if(nextPageToken != null){
+			token = new NextPageToken(nextPageToken);
+		}else{
+			token = new NextPageToken(DEFAULT_LIMIT, DEFAULT_OFFSET);
+		}
+		if(token.getLimit() > MAX_LIMIT){
 			throw new IllegalArgumentException("Limit must not exceed: "+MAX_LIMIT);
 		}
-		if(offset == null || offset < 0){
-			offset = 0L;
-		}
-		PaginatedResults<ColumnModel> results = new PaginatedResults<ColumnModel>();
+		ColumnModelPage results = new ColumnModelPage();
 		if(containerIds.isEmpty()){
 			results.setResults(new LinkedList<ColumnModel>());
-			results.setTotalNumberOfResults(0L);
+			results.setNextPageToken(null);
 			return results;
 		}
-		List<ColumnModel> columns = tableIndexDao.getPossibleAnnotationsForContainers(containerIds, limit, offset);
+		// request one page with a limit one larger than the passed limit.
+		List<ColumnModel> columns = tableIndexDao.getPossibleAnnotationsForContainers(containerIds, token.getLimit()+1, token.getOffset());
+		// is this the last page?
+		if(columns.size() > token.getLimit()){
+			// this is not the last page so generate a next page token.
+			long newOffset = token.getLimit()+token.getOffset();
+			results.setNextPageToken(new NextPageToken(token.getLimit(), newOffset).toToken());
+			// remove the last item
+			columns.remove((int)token.getLimit());
+		}
 		results.setResults(columns);
-		Long count = tableIndexDao.getPossibleAnnotationsForContainersCount(containerIds);
-		results.setTotalNumberOfResults(count);
+		
 		return results;
 	}
 

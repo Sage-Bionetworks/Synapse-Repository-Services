@@ -350,10 +350,4 @@ public interface TableIndexDAO {
 	public List<ColumnModel> getPossibleAnnotationsForContainers(
 			Set<Long> containerIds, Long limit, Long offset);
 
-	/**
-	 * Get the count of the distinct possible ColumnModels for a given set of container ids.
-	 * @param containerIds
-	 * @return
-	 */
-	public Long getPossibleAnnotationsForContainersCount(Set<Long> containerIds);
 }

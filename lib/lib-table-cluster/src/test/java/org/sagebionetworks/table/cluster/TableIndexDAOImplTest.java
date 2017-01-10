@@ -1555,6 +1555,21 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> columns = tableIndexDAO.getPossibleAnnotationsForContainers(containerIds, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
+		// one
+		ColumnModel cm = columns.get(0);
+		assertEquals("key0", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(1L), cm.getMaximumSize());
+		// two
+		cm = columns.get(1);
+		assertEquals("key1", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// three
+		cm = columns.get(2);
+		assertEquals("key10", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
 	}
 	
 	/**

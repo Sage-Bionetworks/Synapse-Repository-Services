@@ -8,6 +8,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.SparseChangeSet;
 
@@ -180,7 +181,7 @@ public interface TableIndexManager {
 	 * @param offset Pagination offset.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForScope(List<String> scopeIds, Long limit, Long offset);
+	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(List<String> scopeIds, String nextPageToken);
 	
 	/**
 	 * Get the possible ColumnModel definitions for all distinct annotations for a given view.
@@ -189,7 +190,7 @@ public interface TableIndexManager {
 	 * @param offset Pagination offset.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public PaginatedResults<ColumnModel> getPossibleAnnotationDefinitionsForView(String viewId, Long limit, Long offset);
+	public ColumnModelPage getPossibleAnnotationDefinitionsForView(String viewId, String nextPageToken);
 	
 
 }
