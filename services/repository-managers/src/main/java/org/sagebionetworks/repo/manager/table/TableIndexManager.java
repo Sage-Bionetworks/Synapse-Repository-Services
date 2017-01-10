@@ -175,22 +175,20 @@ public interface TableIndexManager {
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**
-	 * Get the possible ColumnModel definitions for all distinct annotations for a given scope.
+	 * Get the possible ColumnModel definitions based on annotation within a given scope.
 	 * @param scope Defined as the list of container ids for a view.
-	 * @param limit Pagination limit.
-	 * @param offset Pagination offset.
+	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(List<String> scopeIds, String nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForScope(List<String> scopeIds, String nextPageToken);
 	
 	/**
-	 * Get the possible ColumnModel definitions for all distinct annotations for a given view.
+	 * Get the possible ColumnModel definitions based on annotations for a given view.
 	 * @param viewId The id of the view to fetch annotation definitions for.
-	 * @param limit Pagination limit.
-	 * @param offset Pagination offset.
+	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public ColumnModelPage getPossibleAnnotationDefinitionsForView(String viewId, String nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken);
 	
 
 }

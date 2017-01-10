@@ -148,7 +148,7 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
 		
-		when(mockIndexDao.getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong())).thenReturn(schema);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds)).thenReturn(containerIds);
 	}
@@ -468,7 +468,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, limit+1, offset);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, limit+1, offset);
 	}
 	
 	@Test
@@ -480,14 +480,14 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, TableIndexManagerImpl.DEFAULT_LIMIT+1, TableIndexManagerImpl.DEFAULT_OFFSET);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, TableIndexManagerImpl.DEFAULT_LIMIT+1, TableIndexManagerImpl.DEFAULT_OFFSET);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
 		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
 		pagePluseOne.add(new ColumnModel());
-		when(mockIndexDao.getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong())).thenReturn(pagePluseOne);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong())).thenReturn(pagePluseOne);
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());
@@ -495,7 +495,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleAnnotationsForContainers(containerIds, nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, nextPageToken.getLimit()+1, nextPageToken.getOffset());
 	}
 	
 	
@@ -517,7 +517,7 @@ public class TableIndexManagerImplTest {
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
-		verify(mockIndexDao, never()).getPossibleAnnotationsForContainers(anySet(), anyLong(), anyLong());
+		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong());
 	}
 	
 	
@@ -532,7 +532,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForView(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForView(tableId, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForView(tableId, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -542,13 +542,13 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForViewNullId(){
 		tableId = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForView(tableId, tokenString);
+		manager.getPossibleColumnModelsForView(tableId, tokenString);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
@@ -558,7 +558,7 @@ public class TableIndexManagerImplTest {
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
 		scopeSynIds = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForScope(scopeSynIds, tokenString);
+		manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
 	}
 	
 	

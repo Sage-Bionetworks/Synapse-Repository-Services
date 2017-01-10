@@ -316,7 +316,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleAnnotationDefinitionsForView(
+	public ColumnModelPage getPossibleColumnModelsForView(
 			String viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
@@ -324,7 +324,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(
+	public ColumnModelPage getPossibleColumnModelsForScope(
 			List<String> scopeIds, String nextPageToken) {
 		ValidateArgument.required(scopeIds, "scopeIds");
 		// lookup the containers for the given scope
@@ -337,8 +337,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * Get the possible annotations for the given set of container IDs.
 	 * 
 	 * @param containerIds
-	 * @param limit
-	 * @param offset
+	 * @param nextPageToken Optional: Controls pagination.
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
@@ -360,7 +359,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return results;
 		}
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleAnnotationsForContainers(containerIds, token.getLimit()+1, token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, token.getLimit()+1, token.getOffset());
 		// is this the last page?
 		if(columns.size() > token.getLimit()){
 			// this is not the last page so generate a next page token.
