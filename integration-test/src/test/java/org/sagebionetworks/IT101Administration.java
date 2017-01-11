@@ -155,4 +155,9 @@ public class IT101Administration {
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
 	}
+
+	@Test
+	public void testUpdateFile() throws SynapseException {
+		assertNotNull(adminSynapse.updateFile("syn1", 1L));
+	}
 }

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,9 +10,10 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -186,4 +186,6 @@ public interface AdministrationService {
 	public void doNothing() throws Throwable;
 	public void throwException(String exception) throws Throwable;
 	public void throwExceptionTransactionalBeforeCommit(String exception);
+
+	public FileUpdateResult updateFile(Long userId, FileUpdateRequest request);
 }

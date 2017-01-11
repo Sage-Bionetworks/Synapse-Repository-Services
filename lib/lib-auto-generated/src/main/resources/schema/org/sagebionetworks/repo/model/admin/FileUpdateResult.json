@@ -1,0 +1,13 @@
+{
+	"description": "Result of a file update request.",
+	"properties": {
+		"isSuccessful":{
+			"type": "boolean",
+			"description": "Did we update the file successfully."
+		},
+		"reason": {
+			"type": "string",
+			"description": "Reason for failure."
+		}
+	}
+}
