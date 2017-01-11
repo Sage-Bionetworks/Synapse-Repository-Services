@@ -766,7 +766,7 @@ public class IT100TableControllerTest {
 		long limit = 1;
 		long offset = 1;
 		nextPageToken = new NextPageToken(limit, offset).toToken();
-		page = waitForColumnModelPage(scope, nextPageToken, 3);
+		page = waitForColumnModelPage(scope, nextPageToken, 1);
 		assertNotNull(page);
 		assertNotNull(page.getResults());
 		assertNotNull(page.getNextPageToken());
