@@ -538,6 +538,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		} catch (NotFoundException e) {
 			result.setReason(request.getEntityId()+"."+request.getVersion() +" cannot be found.");
 			return result;
+		} catch (ConflictingUpdateException e2) {
+			result.setReason("Cannot get a lock for "+request.getEntityId()+"."+request.getVersion());
+			return result;
 		}
 		result.setIsSuccessful(true);
 		return result;

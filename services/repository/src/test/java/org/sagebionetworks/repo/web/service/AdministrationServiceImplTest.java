@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -238,6 +239,26 @@ public class AdministrationServiceImplTest {
 		FileUpdateResult result = adminService.updateFile(adminUserId, request);
 		assertFalse(result.getIsSuccessful());
 		assertEquals("1.2 does not have fileNameOverride field set.", result.getReason());
+	}
+
+	@Test
+	public void testUpdateFileConflicted() {
+		FileUpdateRequest request = new FileUpdateRequest();
+		request.setEntityId("1");
+		request.setVersion(2L);
+
+		FileEntity entity = new FileEntity();
+		entity.setId("1");
+		entity.setFileNameOverride("fileNameOverride");
+		entity.setDataFileHandleId("3");
+		entity.setEtag("entityEtag");
+		when(mockEntityManager.<Entity>getEntityForVersion(admin, "1", 2L, FileEntity.class))
+				.thenReturn(entity);
+		when(mockNodeDao.lockNodeAndIncrementEtag("1", "entityEtag"))
+				.thenThrow(new ConflictingUpdateException());
+		FileUpdateResult result = adminService.updateFile(adminUserId, request);
+		assertFalse(result.getIsSuccessful());
+		assertEquals("Cannot get a lock for 1.2", result.getReason());
 	}
 
 	@Test
