@@ -1001,6 +1001,12 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
 
+	/**
+	 * API for updating a file
+	 * @see PLFM-4108
+	 */
+	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";;
+
 	static {
 		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
