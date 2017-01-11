@@ -607,7 +607,9 @@ public class UrlHelpers {
 	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
 	public static final String MIGRATION_STATUS = MIGRATION+"/status";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
+	public static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	public static final String MIGRATION_TYPES = MIGRATION+"/types";
+	public static final String MIGRATION_TYPE_NAMES = MIGRATION_TYPES + "/names";
 	public static final String MIGRATION_RANGE_CHECKSUM = MIGRATION+"/rangechecksum";
 	public static final String MIGRATION_TYPE_CHECKSUM = MIGRATION+"/typechecksum";
 

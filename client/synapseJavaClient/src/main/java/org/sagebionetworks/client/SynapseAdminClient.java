@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 
@@ -89,7 +90,23 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public MigrationTypeList getMigrationTypes() throws SynapseException;
-	
+
+	/**
+	 * Get the list of primary type names
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeNames getPrimaryTypeNames() throws SynapseException;
+
+	/**
+	 * Get the list of migration type names
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeNames getMigrationTypeNames() throws SynapseException;
+
 	/**
 	 * Delete a list of IDs
 	 * 
