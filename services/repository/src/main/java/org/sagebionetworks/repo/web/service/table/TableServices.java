@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -148,4 +149,22 @@ public interface TableServices {
 	 * @return
 	 */
 	public List<ColumnModel> getDefaultViewColumnsForType(ViewType valueOf);
+
+	/**
+	 * Get the possible ColumnModel definitions based on annotations for a given view.
+	 * @param viewId The id of the view to fetch annotation definitions for.
+	 * @param nextPageToken Optional: Controls pagination.
+	 * @return A ColumnModel for each distinct annotation for the given scope.
+	 */
+	ColumnModelPage getPossibleColumnModelsForView(String viewId,
+			String nextPageToken);
+
+	/**
+	 * Get the possible ColumnModel definitions based on annotation within a given scope.
+	 * @param scope Defined as the list of container ids for a view.
+	 * @param nextPageToken Optional: Controls pagination.
+	 * @return A ColumnModel for each distinct annotation for the given scope.
+	 */
+	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds,
+			String nextPageToken);
 }

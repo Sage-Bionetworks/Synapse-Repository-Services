@@ -27,5 +27,11 @@ public class TableIndexConnectionFactoryImpl implements
 		}
 		return new TableIndexManagerImpl(dao, tableManagerSupport);
 	}
+	
+	@Override
+	public TableIndexManager connectToFirstIndex(){
+		TableIndexDAO dao = connectionFactory.getFirstConnection();
+		return new TableIndexManagerImpl(dao, tableManagerSupport);
+	}
 
 }

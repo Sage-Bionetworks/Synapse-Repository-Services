@@ -58,5 +58,12 @@ public class TableIndexConnectionFactoryImplTest {
 		when(mockDaoConnectionFactory.getConnection(tableId)).thenReturn(null);
 		indexFactory.connectToTableIndex(tableId);
 	}
+	
+	@Test
+	public void testGetFirstConnection(){
+		when(mockDaoConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDAO);
+		TableIndexManager manager = indexFactory.connectToFirstIndex();
+		assertNotNull(manager);
+	}
 
 }

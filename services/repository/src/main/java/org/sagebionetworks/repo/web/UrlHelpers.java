@@ -791,6 +791,7 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_UPLOAD_CSV = ENTITY_TABLE + "/upload/csv";
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_START = ENTITY_TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET = ENTITY_TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_COLUMNS_OF_SCOPE = COLUMN+"/view/scope";
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
