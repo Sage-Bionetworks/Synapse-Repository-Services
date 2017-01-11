@@ -1,8 +1,9 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.model;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.NextPageToken;
 
 public class NextPageTokenTest {
 

@@ -1552,7 +1552,7 @@ public class TableIndexDAOImplTest {
 		long limit = 5;
 		long offset = 0;
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleAnnotationsForContainers(containerIds, limit, offset);
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one

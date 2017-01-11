@@ -108,4 +108,9 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		return results;
 	}
 
+	@Override
+	public TableIndexDAO getFirstConnection() {
+		return new TableIndexDAOImpl(singleConnectionPool);
+	}
+
 }

@@ -18,7 +18,7 @@ public interface ConnectionFactory {
 	TableIndexDAO getConnection(String tableId);
 	
 	/**
-	 * Drop all tables in every database connections..
+	 * Drop all tables in every database connections.
 	 * 
 	 */
 	void dropAllTablesForAllConnections();
@@ -28,4 +28,10 @@ public interface ConnectionFactory {
 	 * @return
 	 */
 	List<TableIndexDAO> getAllConnections();
+
+	/**
+	 * Get a connection to the first database.
+	 * @return
+	 */
+	TableIndexDAO getFirstConnection();
 }

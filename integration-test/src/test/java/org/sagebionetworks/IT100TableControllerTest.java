@@ -35,14 +35,18 @@ import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -59,6 +63,7 @@ import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
@@ -730,6 +735,46 @@ public class IT100TableControllerTest {
 		assertEquals(Lists.newArrayList(cm), response.getSchema());
 	}
 	
+	@Test (timeout=60000)
+	public void testGetPossibleColumnModelsForViewScope() throws Exception {
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+		// Add an entity
+		Folder folder = new Folder();
+		folder.setName(UUID.randomUUID().toString());
+		folder.setParentId(project.getId());
+		folder = synapse.createEntity(folder);
+		Annotations annos = synapse.getAnnotations(folder.getId());
+		annos.addAnnotation("keyA", "someValue");
+		annos.addAnnotation("keyB", "123456");
+		annos.addAnnotation("keyC", "45678");
+		synapse.updateAnnotations(folder.getId(), annos);
+		
+		// Now find the columns for this scope
+		ViewScope scope = new ViewScope();
+		scope.setScope(Lists.newArrayList(project.getId()));
+		String nextPageToken = null;
+		ColumnModelPage page = waitForColumnModelPage(scope, nextPageToken, 3);
+		assertNotNull(page);
+		assertNotNull(page.getResults());
+		assertNull(page.getNextPageToken());
+		assertEquals(3, page.getResults().size());
+		// make another call with a next page token.
+		long limit = 1;
+		long offset = 1;
+		nextPageToken = new NextPageToken(limit, offset).toToken();
+		page = waitForColumnModelPage(scope, nextPageToken, 1);
+		assertNotNull(page);
+		assertNotNull(page.getResults());
+		assertNotNull(page.getNextPageToken());
+		assertEquals(1, page.getResults().size());
+		ColumnModel cm = page.getResults().get(0);
+		assertEquals("keyB", cm.getName());
+	}
+	
 	private TableEntity createTable(List<String> columns) throws SynapseException {
 		return createTable(columns, synapse);
 	}
@@ -749,6 +794,26 @@ public class IT100TableControllerTest {
 		table = synapse.createEntity(table);
 		tablesToDelete.add(table);
 		return table;
+	}
+	
+	/**
+	 * Wait for the expected number of ColumnModels to found for a given scope.
+	 * @param scope
+	 * @param nextPageToken
+	 * @param expectedCount
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	private ColumnModelPage waitForColumnModelPage(ViewScope scope, String nextPageToken, int expectedCount) throws SynapseException, InterruptedException{
+		while(true){
+			ColumnModelPage page = synapse.getPossibleColumnModelsForViewScope(scope, nextPageToken);
+			if(page.getResults().size() == expectedCount){
+				return page;
+			}
+			System.out.println("Wait for entity replication...");
+			Thread.sleep(2000);
+		}
 	}
 
 	private <T> T waitForAsync(final Callable<T> callable) throws Exception {

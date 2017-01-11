@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.model;
 
 /**
  * Immutable layer of abstraction over the pagination parameters: limit and

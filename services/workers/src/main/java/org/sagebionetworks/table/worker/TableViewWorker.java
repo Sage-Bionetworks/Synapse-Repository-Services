@@ -14,12 +14,9 @@ import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.table.RowBatchHandler;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -61,7 +58,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 				indexManager = connectionFactory.connectToTableIndex(tableId);
 				if(ChangeType.DELETE.equals(message.getChangeType())){
 					// just delete the index
-					indexManager.deleteTableIndex();
+					indexManager.deleteTableIndex(tableId);
 					return;
 				}else{
 					// create or update the index
@@ -127,7 +124,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		ViewType viewType = tableManagerSupport.getViewType(tableId);
 
 		// Since this worker re-builds the index, start by deleting it.
-		indexManager.deleteTableIndex();
+		indexManager.deleteTableIndex(tableId);
 		callback.progressMade(null);
 		// Need the MD5 for the original schema.
 		List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
@@ -139,17 +136,17 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 		Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
 
 		// create the table in the index.
-		indexManager.setIndexSchema(callback, expandedSchema);
+		indexManager.setIndexSchema(tableId, callback, expandedSchema);
 		callback.progressMade(null);
 		tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		// populate the view by coping data from the entity replication tables.
-		Long viewCRC = indexManager.populateViewFromEntityReplication(callback, viewType, allContainersInScope, expandedSchema);
+		Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewType, allContainersInScope, expandedSchema);
 		callback.progressMade(null);
 		// now that table is created and populated the indices on the table can be optimized.
-		indexManager.optimizeTableIndices();
+		indexManager.optimizeTableIndices(tableId);
 		callback.progressMade(null);
 		// both the CRC and schema MD5 are used to determine if the view is up-to-date.
-		indexManager.setIndexVersionAndSchemaMD5Hex(viewCRC, originalSchemaMD5Hex);
+		indexManager.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, originalSchemaMD5Hex);
 		// Attempt to set the table to complete.
 		tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, DEFAULT_ETAG);
 	}	

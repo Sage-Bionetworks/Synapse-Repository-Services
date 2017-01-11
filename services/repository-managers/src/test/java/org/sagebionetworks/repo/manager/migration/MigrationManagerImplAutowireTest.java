@@ -461,8 +461,8 @@ public class MigrationManagerImplAutowireTest {
 			// pretend to be worker and generate caches and index
 			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport, tableId);
-			manager.setIndexSchema(mockProgressCallbackVoid, currentSchema);
+			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport);
+			manager.setIndexSchema(tableId, mockProgressCallbackVoid, currentSchema);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));

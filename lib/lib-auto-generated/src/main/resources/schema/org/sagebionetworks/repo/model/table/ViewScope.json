@@ -1,0 +1,12 @@
+{
+	"description":"List of parent IDs that define a view scope.",
+	"properties":{
+		"scope": {
+			"description":"List of parent IDs that define a view scope.",
+			"type": "array",
+			"items": {
+				"type":"string"
+			}
+		}
+	}
+}

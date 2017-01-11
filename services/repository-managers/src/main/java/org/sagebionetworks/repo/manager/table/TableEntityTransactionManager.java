@@ -107,13 +107,14 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		
 		// setup a temporary table if needed.
 		if(isTemporaryTableNeeded){
-			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(request.getEntityId());
-			indexManager.createTemporaryTableCopy(callback);
+			String tableId = request.getEntityId();
+			TableIndexManager indexManager = tableIndexConnectionFactory.connectToTableIndex(tableId);
+			indexManager.createTemporaryTableCopy(tableId, callback);
 			try{
 				// validate while the temp table exists.
 				validateEachUpdateRequest(callback, userInfo, request, indexManager);
 			}finally{
-				indexManager.deleteTemporaryTableCopy(callback);
+				indexManager.deleteTemporaryTableCopy(tableId, callback);
 			}
 		}else{
 			// we do not need a temporary copy to validate this request.

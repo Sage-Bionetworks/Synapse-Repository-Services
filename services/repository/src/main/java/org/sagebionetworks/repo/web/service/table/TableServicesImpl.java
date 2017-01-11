@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Row;
@@ -51,6 +53,9 @@ public class TableServicesImpl implements TableServices {
 	TableQueryManager tableQueryManager;
 	@Autowired
 	TableManagerSupport tableManagerSupport;
+	@Autowired
+	TableIndexConnectionFactory connectionFactory;
+	
 
 	@Override
 	public ColumnModel createColumnModel(Long userId, ColumnModel columnModel) throws DatastoreException, NotFoundException {
@@ -207,6 +212,16 @@ public class TableServicesImpl implements TableServices {
 	@Override
 	public List<ColumnModel> getDefaultViewColumnsForType(ViewType viewType) {
 		return tableManagerSupport.getDefaultTableViewColumns(viewType);
+	}
+	
+	@Override
+	public ColumnModelPage getPossibleColumnModelsForView(String viewId, String nextPageToken){
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForView(viewId, nextPageToken);
+	}
+	
+	@Override
+	public ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, String nextPageToken){
+		return connectionFactory.connectToFirstIndex().getPossibleColumnModelsForScope(scopeIds, nextPageToken);
 	}
 	
 }

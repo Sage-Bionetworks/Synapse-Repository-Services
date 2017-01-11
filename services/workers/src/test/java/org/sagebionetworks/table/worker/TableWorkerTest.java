@@ -139,7 +139,7 @@ public class TableWorkerTest {
 		trc2.setRowCount(3L);
 		trc2.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc1,trc2));
-		when(mockTableIndexManager.isVersionAppliedToIndex(anyLong())).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(anyString(), anyLong())).thenReturn(false);
 		
 		rowSet1 = new RowSet();
 		rowSet1.setTableId(tableId);
@@ -222,7 +222,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(two.getObjectId());
 		// delete should be called
-		verify(mockTableIndexManager, times(1)).deleteTableIndex();
+		verify(mockTableIndexManager, times(1)).deleteTableIndex(tableId);
 	}
 	
 	/**
@@ -245,11 +245,11 @@ public class TableWorkerTest {
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag2");
 		verify(mockTableManagerSupport, times(4)).attemptToUpdateTableProgress(eq(tableId), eq(resetToken), anyString(), anyLong(), anyLong());
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, 0L);
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
 		// Progress should be made for each result
 		verify(mockProgressCallback, times(2)).progressMade(null);
-		verify(mockTableIndexManager).optimizeTableIndices();
+		verify(mockTableIndexManager).optimizeTableIndices(tableId);
 	}
 	
 	@Test
@@ -258,12 +258,12 @@ public class TableWorkerTest {
 		two.setChangeType(ChangeType.UPDATE);
 		two.setObjectEtag(resetToken);
 		// For this case v0 is already applied to the index, while v1 is not.
-		when(mockTableIndexManager.isVersionAppliedToIndex(0L)).thenReturn(true);
-		when(mockTableIndexManager.isVersionAppliedToIndex(1L)).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, 0L)).thenReturn(true);
+		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, 1L)).thenReturn(false);
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
 		
 		// Progress should be made for each change even if there is no work.
 		verify(mockProgressCallback, times(2)).progressMade(null);
@@ -289,7 +289,7 @@ public class TableWorkerTest {
 		trc.setRowCount(12L);
 		trc.setChangeType(TableChangeType.ROW);
 		when(mockTableEntityManager.listRowSetsKeysForTable(tableId)).thenReturn(Arrays.asList(trc));
-		when(mockTableIndexManager.isVersionAppliedToIndex(trc.getRowVersion())).thenReturn(false);
+		when(mockTableIndexManager.isVersionAppliedToIndex(tableId, trc.getRowVersion())).thenReturn(false);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
 		rowSet.setTableId(tableId);
@@ -306,7 +306,7 @@ public class TableWorkerTest {
 		// The status should get set to available
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparsRowSet, trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparsRowSet, trc.getRowVersion());
 	}
 	
 	/**
@@ -476,12 +476,12 @@ public class TableWorkerTest {
 		
 		// this time the second change set has an error
 		RuntimeException error = new RuntimeException("Bad Change Set");
-		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(sparseRowset2, 1L);
+		doThrow(error).when(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
 		
 		// call under test
 		worker.run(mockProgressCallback, two);
 		
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1, 0L);
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
 		
 		// The status should get set to failed
 		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
@@ -514,9 +514,9 @@ public class TableWorkerTest {
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		verify(mockTableIndexManager).setIndexSchema(mockProgressCallback, currentSchema);
+		verify(mockTableIndexManager).setIndexSchema(tableId, mockProgressCallback, currentSchema);
 		// the change set should be applied.
-		verify(mockTableIndexManager).applyChangeSetToIndex(sparseRowset1,trc.getRowVersion());
+		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1,trc.getRowVersion());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -566,7 +566,7 @@ public class TableWorkerTest {
 		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
 		// call under test
 		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
-		verify(mockTableIndexManager).updateTableSchema(mockProgressCallback, details);
-		verify(mockTableIndexManager).setIndexVersion(trc.getRowVersion());
+		verify(mockTableIndexManager).updateTableSchema(tableId, mockProgressCallback, details);
+		verify(mockTableIndexManager).setIndexVersion(tableId, trc.getRowVersion());
 	}
 }

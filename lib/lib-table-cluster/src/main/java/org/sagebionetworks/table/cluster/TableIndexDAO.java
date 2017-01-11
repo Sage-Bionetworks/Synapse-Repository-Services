@@ -347,7 +347,7 @@ public interface TableIndexDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<ColumnModel> getPossibleAnnotationsForContainers(
+	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, Long limit, Long offset);
 
 }

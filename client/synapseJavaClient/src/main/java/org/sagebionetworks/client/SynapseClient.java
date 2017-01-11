@@ -151,6 +151,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -165,6 +166,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -2660,5 +2662,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public void requestToCancelSubmission(String submissionId) throws SynapseException;
+
+	/**
+	 * Get the possible ColumnModel definitions based on annotation within a
+	 * given scope.
+	 * 
+	 * @param viewScope
+	 *            List of parent IDs that define the scope.
+	 * @param nextPageToken
+	 *            Optional: When the results include a next page token, the
+	 *            token can be provided to get subsequent pages.
+	 * 
+	 * @return A ColumnModel for each distinct annotation for the given scope. A returned nextPageToken can be used to get subsequent pages
+	 * of ColumnModels for the given scope.  The nextPageToken will be null when there are no more pages of results.
+	 */
+	ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope,
+			String nextPageToken) throws SynapseException;
 
 }

@@ -742,7 +742,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getPossibleAnnotationsForContainers(
+	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, Long limit, Long offset) {
 		ValidateArgument.required(containerIds, "containerIds");
 		ValidateArgument.required(limit, "limit");
