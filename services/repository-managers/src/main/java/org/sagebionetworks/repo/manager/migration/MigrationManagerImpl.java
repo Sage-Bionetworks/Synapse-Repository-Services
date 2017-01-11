@@ -321,12 +321,34 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		return migratableTableDao.getPrimaryMigrationTypes();
 	}
-	
+
+	@Override
+	public List<String> getPrimaryMigrationTypeNames(UserInfo user) {
+		validateUser(user);
+		List<MigrationType> types = migratableTableDao.getPrimaryMigrationTypes();
+		List<String> typeNames = new LinkedList<String>();
+		for (MigrationType t: types) {
+			typeNames.add(t.name());
+		}
+		return typeNames;
+	}
+
 	@Override
 	public List<MigrationType> getMigrationTypes(UserInfo user) {
 		validateUser(user);
 		List<MigrationType> l = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
 		return l;
+	}
+
+	@Override
+	public List<String> getMigrationTypeNames(UserInfo user) {
+		validateUser(user);
+		List<MigrationType> types = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		List<String> typeNames = new LinkedList<String>();
+		for (MigrationType t: types) {
+			typeNames.add(t.name());
+		}
+		return typeNames;
 	}
 
 	@Override

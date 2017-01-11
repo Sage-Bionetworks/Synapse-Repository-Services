@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
@@ -58,7 +59,9 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
 	private static final String MIGRATION_STATUS = MIGRATION + "/status";
 	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
+	private static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	private static final String MIGRATION_TYPES = MIGRATION + "/types";
+	private static final String MIGRATION_TYPE_NAMES = MIGRATION_TYPES + "/names";
 	private static final String MIGRATION_RANGE_CHECKSUM = MIGRATION + "/rangechecksum";
 	private static final String MIGRATION_TYPE_CHECKSUM = MIGRATION + "/typechecksum";
 
@@ -124,11 +127,19 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public MigrationTypeList getPrimaryTypes() throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), MIGRATION_PRIMARY, MigrationTypeList.class);
 	}
-	
+
+	public MigrationTypeNames getPrimaryTypeNames() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), MIGRATION_PRIMARY_NAMES, MigrationTypeNames.class);
+	}
+
 	public MigrationTypeList getMigrationTypes() throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), MIGRATION_TYPES, MigrationTypeList.class);
 	}
-	
+
+	public MigrationTypeNames getMigrationTypeNames() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), MIGRATION_TYPE_NAMES, MigrationTypeNames.class);
+	}
+
 	public MigrationTypeCounts getTypeCounts() throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), MIGRATION_COUNTS, MigrationTypeCounts.class);
 	}

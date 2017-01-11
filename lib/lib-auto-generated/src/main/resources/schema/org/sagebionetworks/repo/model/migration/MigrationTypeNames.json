@@ -1,0 +1,12 @@
+{
+  "description": "List of MigrationType names",
+  "properties": {
+    "list": {
+      "type": "array",
+      "uniqueItems":false,
+      "items": {
+        "type":"string"
+      }
+    }
+  }
+}
