@@ -522,6 +522,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 				return result;
 			}
 			String fileHandleId = toUpdate.getDataFileHandleId();
+
+			nodeDao.lockNodeAndIncrementEtag(toUpdate.getId(), toUpdate.getEtag());
 			// make the copy
 			FileHandle toCopy = fileHandleDao.get(fileHandleId);
 			String newFileHandleId = idGenerator.generateNewId(TYPE.FILE_IDS).toString();
@@ -530,7 +532,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			toCopy.setEtag(UUID.randomUUID().toString());
 			fileHandleDao.createBatch(Arrays.asList(toCopy));
 			// null out fileNameOverride and update entity version's fileHandleId and etag
-			nodeDao.lockNodeAndIncrementEtag(toUpdate.getId(), toUpdate.getEtag());
 			NamedAnnotations annotations = nodeDao.getAnnotationsForVersion(request.getEntityId(), request.getVersion());
 			annotations.getPrimaryAnnotations().deleteAnnotation("fileNameOverride");
 			nodeDao.replaceVersion(request.getEntityId(), request.getVersion(), annotations, newFileHandleId);
