@@ -1263,7 +1263,7 @@ public class SQLUtilsTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 		
 		String sql = SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
-		String expected = "SELECT col_1, col_2 FROM syn123 WHERE ROW_ID IN (222, 333)";
+		String expected = "SELECT 'col_1', 'col_2' FROM syn123 WHERE ROW_ID IN (222, 333)";
 		assertEquals(expected, sql);
 	}
 	

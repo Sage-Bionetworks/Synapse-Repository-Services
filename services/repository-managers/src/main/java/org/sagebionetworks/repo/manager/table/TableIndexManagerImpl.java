@@ -1,12 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.manager.NextPageToken;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
@@ -21,6 +26,12 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 	
+	public static final long DEFAULT_OFFSET = 0L;
+
+	public static final long DEFAULT_LIMIT = 50L;
+
+	public static final long MAX_LIMIT = 50;
+
 	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
@@ -303,4 +314,64 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
 	}
+	
+	@Override
+	public ColumnModelPage getPossibleAnnotationDefinitionsForView(
+			String viewId, String nextPageToken) {
+		ValidateArgument.required(viewId, "viewId");
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
+	}
+	
+	@Override
+	public ColumnModelPage getPossibleAnnotationDefinitionsForScope(
+			List<String> scopeIds, String nextPageToken) {
+		ValidateArgument.required(scopeIds, "scopeIds");
+		// lookup the containers for the given scope
+		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
+	}
+	
+	/**
+	 * Get the possible annotations for the given set of container IDs.
+	 * 
+	 * @param containerIds
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
+			Set<Long> containerIds, String nextPageToken) {
+		ValidateArgument.required(containerIds, "containerIds");
+		NextPageToken token = null;
+		if(nextPageToken != null){
+			token = new NextPageToken(nextPageToken);
+		}else{
+			token = new NextPageToken(DEFAULT_LIMIT, DEFAULT_OFFSET);
+		}
+		if(token.getLimit() > MAX_LIMIT){
+			throw new IllegalArgumentException("Limit must not exceed: "+MAX_LIMIT);
+		}
+		ColumnModelPage results = new ColumnModelPage();
+		if(containerIds.isEmpty()){
+			results.setResults(new LinkedList<ColumnModel>());
+			results.setNextPageToken(null);
+			return results;
+		}
+		// request one page with a limit one larger than the passed limit.
+		List<ColumnModel> columns = tableIndexDao.getPossibleAnnotationsForContainers(containerIds, token.getLimit()+1, token.getOffset());
+		// is this the last page?
+		if(columns.size() > token.getLimit()){
+			// this is not the last page so generate a next page token.
+			long newOffset = token.getLimit()+token.getOffset();
+			results.setNextPageToken(new NextPageToken(token.getLimit(), newOffset).toToken());
+			// remove the last item
+			columns.remove((int)token.getLimit());
+		}
+		results.setResults(columns);
+		
+		return results;
+	}
+
 }

@@ -7,16 +7,18 @@ package org.sagebionetworks.repo.model.table;
  */
 public enum AnnotationType{
 	
-	STRING	(ValueParsers.STRING_PARSER),
-	LONG	(ValueParsers.LONG_PARSER),
-	DOUBLE	(ValueParsers.DOUBLE_PARSER),
-	DATE	(ValueParsers.DATE_PARSER);
+	STRING	(ValueParsers.STRING_PARSER, ColumnType.STRING),
+	LONG	(ValueParsers.LONG_PARSER, ColumnType.INTEGER),
+	DOUBLE	(ValueParsers.DOUBLE_PARSER, ColumnType.DOUBLE),
+	DATE	(ValueParsers.DATE_PARSER, ColumnType.DATE);
 	
-	AnnotationType(ValueParser parser){
+	AnnotationType(ValueParser parser, ColumnType columnType){
 		this.parser = parser;
+		this.columnType = columnType;
 	}
 	
 	ValueParser parser;
+	ColumnType columnType;
 	
 	/**
 	 * Parse the given string value into an object of the correct type.
@@ -25,5 +27,13 @@ public enum AnnotationType{
 	 */
 	public Object parseValue(String value){
 		return parser.parseValue(value);
+	}
+	
+	/**
+	 * Get the column type mapped to this annotation type.
+	 * @return
+	 */
+	public ColumnType getColumnType(){
+		return columnType;
 	}
 }

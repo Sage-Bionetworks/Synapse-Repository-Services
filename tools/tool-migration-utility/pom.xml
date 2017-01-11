@@ -13,7 +13,14 @@
 	<name>tool-migration-utility</name>
 	<description>A Utility for migrating Synapse data from one stack to another</description>
 	<dependencies>
-	
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>

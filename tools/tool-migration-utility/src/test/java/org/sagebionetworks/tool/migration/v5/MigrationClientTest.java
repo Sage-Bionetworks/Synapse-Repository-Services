@@ -17,6 +17,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 
 import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.tool.migration.v5.SynapseAdminClientMockState;
 import org.sagebionetworks.tool.migration.v3.SynapseClientFactory;
 
@@ -67,6 +69,15 @@ public class MigrationClientTest {
 		migrationClient = new MigrationClient(mockFactory);
 	}
 	
+	// Used to fail after moving to SimpleHttpClient
+	@Test
+	public void testLogging() throws Exception {
+		SimpleHttpClientConfig config = new SimpleHttpClientConfig();
+		config.setConnectTimeoutMs(1000*60);
+		config.setSocketTimeoutMs(1000*60*10);
+		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl(config);
+	}
+
 	@Test
 	public void testSetDestinationStatus() throws Exception {
 		// Set the status to down
