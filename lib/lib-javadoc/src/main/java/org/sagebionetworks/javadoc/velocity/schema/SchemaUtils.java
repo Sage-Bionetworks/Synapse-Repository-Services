@@ -238,7 +238,7 @@ public class SchemaUtils {
 		results.setName(schema.getName());
 		// Get the fields
 		Map<String, ObjectSchema> props = schema.getProperties();
-		if(props != null){
+		if(props != null && !props.isEmpty()){
 			List<SchemaFields> fields = new LinkedList<SchemaFields>();
 			results.setFields(fields);
 			Iterator<String> keyIt = props.keySet().iterator();
