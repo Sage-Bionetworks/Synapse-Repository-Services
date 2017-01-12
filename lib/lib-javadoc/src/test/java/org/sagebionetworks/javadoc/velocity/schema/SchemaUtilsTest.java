@@ -40,9 +40,15 @@ public class SchemaUtilsTest {
 	}
 	
 	@Test
-	public void testImplementsJSONEntityTrue(){
+	public void testImplementsJSONEntityOrEnumWithJSONEntity(){
 		ClassDoc cd = JavadocMockUtils.createMockJsonEntity("org.example.SomeJSONEntity");
-		assertTrue(SchemaUtils.implementsJSONEntity(cd));
+		assertTrue(SchemaUtils.implementsJSONEntityOrEnum(cd));
+	}
+
+	@Test
+	public void testImplementsJSONEntityOrEnumWithEnum(){
+		ClassDoc cd = JavadocMockUtils.createMockEnum("org.example.SomeEnum");
+		assertTrue(SchemaUtils.implementsJSONEntityOrEnum(cd));
 	}
 	
 	@Test
@@ -50,7 +56,7 @@ public class SchemaUtilsTest {
 		ClassDoc cd = JavadocMockUtils.createMockClassDoc("org.example.not.a.JSONEntity");
 		ClassDoc[] interfaces = JavadocMockUtils.createMockClassDocs(new String[]{"org.exmaple.some.interface"});
 		when(cd.interfaces()).thenReturn(interfaces);
-		assertFalse(SchemaUtils.implementsJSONEntity(cd));
+		assertFalse(SchemaUtils.implementsJSONEntityOrEnum(cd));
 	}
 	
 	@Test

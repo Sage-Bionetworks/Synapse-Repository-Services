@@ -67,7 +67,7 @@ public class SchemaUtils {
 	}
 
 	private static void recursiveAddSubTypes(Map<String, ObjectSchema> schemaMap, ClassDoc paramClass) {
-		if (implementsJSONEntity(paramClass)) {
+		if (implementsJSONEntityOrEnum(paramClass)) {
 			// Lookup the schema and add sub types.
 			recursiveAddTypes(schemaMap, paramClass.qualifiedName(), null);
 		}
@@ -165,10 +165,13 @@ public class SchemaUtils {
 	 * @param classDoc
 	 * @return
 	 */
-	public static boolean implementsJSONEntity(ClassDoc classDoc) {
+	public static boolean implementsJSONEntityOrEnum(ClassDoc classDoc) {
 		// primitives will not have a class and do not implement JSONEntity
 		if (classDoc == null)
 			return false;
+		if (classDoc.isEnum()) {
+			return true;
+		}
 		ClassDoc[] interfaces = classDoc.interfaces();
 		if (interfaces != null) {
 			for (ClassDoc doc : interfaces) {
