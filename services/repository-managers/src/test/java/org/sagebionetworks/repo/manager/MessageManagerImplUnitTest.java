@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
@@ -173,6 +174,28 @@ public class MessageManagerImplUnitTest {
 		fileHandle = new S3FileHandle();
 		fileHandle.setId(FILE_HANDLE_ID);
 
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateMessageWithoutUser() {
+		messageManager.createMessage(null, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateMessageWithoutMessage() {
+		messageManager.createMessage(creatorUserInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateMessageWithoutRecipients() {
+		messageManager.createMessage(creatorUserInfo, new MessageToUser());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateMessageWithEmptyRecipients() {
+		MessageToUser messageToUser = new MessageToUser();
+		messageToUser.setRecipients(new HashSet<String>());
+		messageManager.createMessage(creatorUserInfo, messageToUser);
 	}
 	
 	@Test
