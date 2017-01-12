@@ -248,7 +248,8 @@ public class SchemaUtils {
 				SchemaFields field = translateToSchemaField(key, prop);
 				fields.add(field);
 			}
-		}else if(schema.getEnum() != null){
+		}
+		if(schema.getEnum() != null){
 			// This is an enumeration.
 			List<String> enumValues = new LinkedList<String>();
 			results.setEnumValues(enumValues);

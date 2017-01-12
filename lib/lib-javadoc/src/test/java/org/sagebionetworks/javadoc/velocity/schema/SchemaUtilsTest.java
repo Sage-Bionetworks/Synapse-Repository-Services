@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -256,6 +257,28 @@ public class SchemaUtilsTest {
 		assertEquals(id, model.getId());
 		assertEquals(name, model.getName());
 		assertEquals(effective, model.getEffectiveSchema());
+		assertNull(model.getEnumValues());
+	}
+
+	@Test
+	public void testTranslateToModelForEnum(){
+		String description = "top level description";
+		String name = "Example";
+		String id = "org.sagebionetworks.test."+name;
+		String effective ="{}";
+		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
+		schema.setId(id);
+		schema.setDescription(description);
+		schema.setSchema(effective);
+		schema.setName(name);
+		schema.setEnum(new String[]{"a", "b"});
+		ObjectSchemaModel model = SchemaUtils.translateToModel(schema, null);
+		assertNotNull(model);
+		assertEquals(description, model.getDescription());
+		assertEquals(id, model.getId());
+		assertEquals(name, model.getName());
+		assertEquals(effective, model.getEffectiveSchema());
+		assertEquals(Arrays.asList("a", "b"), model.getEnumValues());
 	}
 	
 	@Test
