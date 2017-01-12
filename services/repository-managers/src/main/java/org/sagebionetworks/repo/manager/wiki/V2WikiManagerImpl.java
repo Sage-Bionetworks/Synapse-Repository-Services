@@ -429,30 +429,4 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		validateReadAccess(user, key);
 		return key;
 	}
-
-	@WriteTransaction
-	@Override
-	public void deleteWikiVersions(UserInfo user, WikiPageKey key,
-			List<Long> versionsToDelete) throws IllegalArgumentException, UnauthorizedException {
-
-		if (user == null) throw new IllegalArgumentException("User cannot be null");
-		if (key == null) throw new IllegalArgumentException("Key cannot be null");
-		if (versionsToDelete == null) throw new IllegalArgumentException("VersionsToDelete cannot be null");
-
-		validateUpdateAccess(user, key);
-
-		String etag = wikiPageDao.lockForUpdate(key.getWikiPageId());
-		
-		Long currentVersion = wikiPageDao.getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
-		if (versionsToDelete.contains(currentVersion)) {
-			throw new IllegalArgumentException("Cannot delete current version of a Wiki.");
-		}
-		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
-		
-		// Update the etag of the page
-		String newEtag = UUID.randomUUID().toString();
-		wikiPageDao.updateWikiEtag(key, newEtag);
-		
-	}
-	
 }

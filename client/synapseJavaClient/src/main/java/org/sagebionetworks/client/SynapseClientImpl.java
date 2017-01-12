@@ -2335,14 +2335,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		deleteUri(getRepoEndpoint(), uri);
 	}
 	
-	@Override
-	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException {
-		ValidateArgument.required(key, "key");
-		ValidateArgument.required(versionsToDelete, "versionsToDelete");
-		String uri = createV2WikiURL(key) + "/markdown/deleteversion";
-		voidPut(getRepoEndpoint(), uri, versionsToDelete);
-	}
-
 	/**
 	 * Get the WikiHeader tree for a given owner object.
 	 * 

@@ -174,16 +174,4 @@ public interface V2WikiManager {
 	 */
 	WikiPageKey getRootWikiKey(UserInfo user, String ownerId, ObjectType type) throws NotFoundException;
 	
-	/**
-	 * 
-	 * @param user
-	 * @param ownerId
-	 * @param ownerType
-	 * @param wikiId
-	 * @param versionsToDelete
-	 * @throws IllegalArgumentException
-	 * @throws UnauthorizedException
-	 */
-	void deleteWikiVersions(UserInfo user, WikiPageKey key, List<Long> versionsToDelete)
-			throws IllegalArgumentException, UnauthorizedException;
 }
