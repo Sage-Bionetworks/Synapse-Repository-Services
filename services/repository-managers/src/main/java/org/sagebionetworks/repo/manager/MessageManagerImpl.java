@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -209,6 +210,10 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(dto, "dto");
+		ValidateArgument.requirement(dto.getRecipients() != null && !dto.getRecipients().isEmpty(),
+				"recipients must be set.");
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
 		if (!userInfo.isAdmin()) {
@@ -234,11 +239,9 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		// Make sure the recipients all exist
-		if (dto.getRecipients() != null) {
-			List<UserGroup> ugs = userGroupDAO.get(Lists.newArrayList(dto.getRecipients()));
-			if (ugs.size() != dto.getRecipients().size()) {
-				throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
-			}
+		List<UserGroup> ugs = userGroupDAO.get(Lists.newArrayList(dto.getRecipients()));
+		if (ugs.size() != dto.getRecipients().size()) {
+			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
 		
 		dto = messageDAO.createMessage(dto);
