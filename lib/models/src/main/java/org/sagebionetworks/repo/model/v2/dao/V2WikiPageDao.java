@@ -202,7 +202,7 @@ public interface V2WikiPageDao {
 	 * @param wikiPageId
 	 * @return
 	 */
-	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId);
+	public Set<String> getFileHandleIdsAssociatedWithWikiAttachments(List<String> fileHandleIds, String wikiPageId);
 
 	/**
 	 * Delete the versions of a Wiki page specified in a list of versions
@@ -234,4 +234,13 @@ public interface V2WikiPageDao {
 	 */
 	Long getCurrentWikiVersion(String ownerId, ObjectType ownerType,
 			String wikiId) throws NotFoundException;
+
+	/**
+	 * Get the markdown FileHandleIds associated with the given wiki page.
+	 * @param fileHandleIds
+	 * @param wikiId
+	 * @return
+	 */
+	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
+			List<String> fileHandleIds, String wikiId);
 }

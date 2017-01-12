@@ -815,17 +815,17 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetFileHandleIdsAssociateWithWikiNullFileHandleIds(){
-		wikiPageDao.getFileHandleIdsAssociatedWithWiki(null, "1");
+		wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(null, "1");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetFileHandleIdsAssociateWithWikiNullWikiPageId() {
-		wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), null);
+		wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(new ArrayList<String>(0), null);
 	}
 
 	@Test
 	public void testGetFileHandleIdsAssociateWithWikiEmptyFileHandleIds() {
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), "1");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(new ArrayList<String>(0), "1");
 		assertNotNull(fileHandleIds);
 		assertTrue(fileHandleIds.isEmpty());
 	}
@@ -833,7 +833,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testGetFileHandleIdsAssociateWithWikiNoAttachments() {
 		List<String> givenFileHandleIds = Arrays.asList("1", "2");
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, "1");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(givenFileHandleIds, "1");
 		assertNotNull(fileHandleIds);
 		assertTrue(fileHandleIds.isEmpty());
 	}
@@ -864,7 +864,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		
 		List<String> givenFileHandleIds = Arrays.asList("1", "2", attachOne.getId());
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, clone.getId());
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(givenFileHandleIds, clone.getId());
 		assertNotNull(fileHandleIds);
 		assertEquals(1L, fileHandleIds.size());
 		assertTrue(fileHandleIds.contains(attachOne.getId()));
@@ -1004,6 +1004,21 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		assertTrue(numVersions == 5);
 		
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithWikiMarkdown(){
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		V2WikiPage one = new V2WikiPage();
+		one.setTitle("one");
+		one.setCreatedBy(creatorUserGroupId);
+		one.setModifiedBy(creatorUserGroupId);
+		one.setMarkdownFileHandleId(markdownOne.getId());
+		one.setAttachmentFileHandleIds(new LinkedList<String>());
+		one = wikiPageDao.create(one, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		wikiPageDao.updateWikiPage(toUpdate, fileNameToFileHandleMap, ownerId, ownerType, newFileHandleIds)
+
 	}
 	
 	// Just create versions with modified page title
