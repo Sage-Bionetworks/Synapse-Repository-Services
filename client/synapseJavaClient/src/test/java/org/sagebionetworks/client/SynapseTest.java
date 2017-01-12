@@ -506,17 +506,6 @@ public class SynapseTest {
 		assertEquals("file-endpoint", synapse.getEndpointForType(RestEndpointType.file));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testDeleteV2WikiVersionsNullKey() throws Exception {
-		synapse.deleteV2WikiVersions(null, new IdList());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testDeleteV2WikiVersionsNullVersionsList() throws Exception {
-		WikiPageKey key = new WikiPageKey();
-		synapse.deleteV2WikiVersions(key, null);
-	}
-	
 	/*
 	 * Private methods
 	 */
