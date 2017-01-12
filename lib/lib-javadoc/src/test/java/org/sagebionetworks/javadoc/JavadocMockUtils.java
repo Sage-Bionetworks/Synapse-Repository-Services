@@ -102,6 +102,17 @@ public class JavadocMockUtils {
 		when(cd.qualifiedName()).thenReturn(name);
 		return cd;
 	}
+
+	/**
+	 * Create a mock Enum
+	 * @param name
+	 * @return
+	 */
+	public static ClassDoc createMockEnum(String name){
+		ClassDoc cd = createMockClassDoc(name);
+		when(cd.isEnum()).thenReturn(true);
+		return cd;
+	}
 	
 	/**
 	 * Create a mock Type.
