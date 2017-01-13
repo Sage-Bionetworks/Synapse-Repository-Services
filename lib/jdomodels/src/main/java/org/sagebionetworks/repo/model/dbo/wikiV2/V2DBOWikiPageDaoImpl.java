@@ -23,6 +23,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_OWNERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
+import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_LIMIT;
+import static org.sagebionetworks.repo.model.table.TableConstants.P_OFFSET;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,6 +71,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -85,6 +89,7 @@ import com.amazonaws.services.s3.model.S3Object;
 
 public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
+
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -96,6 +101,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	private NamedParameterJdbcTemplate namedTemplate;
 	
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -136,6 +144,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_UPDATE_WIKI_ETAG = 
 			"UPDATE " + V2_TABLE_WIKI_PAGE + " SET " + V2_COL_WIKI_ETAG + " = ? " +
 			"WHERE " + V2_COL_WIKI_ID + " = ?";
+	
+	private static final String SQL_INTERSECTION_MARKDOWN_FILEHANDLES = "SELECT DISTINCT "
+			+ V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID
+			+ " FROM "
+			+ V2_TABLE_WIKI_MARKDOWN
+			+ " WHERE "
+			+ V2_COL_WIKI_MARKDOWN_ID
+			+ " = :wikiId AND "
+			+ V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID
+			+ " IN (:fileHandleIds)";
 
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
@@ -752,7 +770,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithWiki(List<String> fileHandleIds, String wikiPageId) {
+	public Set<String> getFileHandleIdsAssociatedWithWikiAttachments(List<String> fileHandleIds, String wikiPageId) {
 		ValidateArgument.required(fileHandleIds, "fileHandleIds");
 		ValidateArgument.required(wikiPageId, "wikiPageId");
 		Set<String> results = new HashSet<String>();
@@ -827,6 +845,26 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		String wikiId = key.getWikiPageId();
 		Long numVersions = jdbcTemplate.queryForObject(SQL_COUNT_WIKI_HISTORY, Long.class, wikiId);
 		return numVersions;
+	}
+
+	@Override
+	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
+			List<String> fileHandleIds, String wikiId) {
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		final Set<String> results = new HashSet<String>();
+		if(fileHandleIds.isEmpty()){
+			return results;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("fileHandleIds", fileHandleIds);
+		param.addValue("wikiId", wikiId);
+		namedTemplate.query(SQL_INTERSECTION_MARKDOWN_FILEHANDLES, param, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				results.add(rs.getString(1));
+			}
+		});
+		return results;
 	}
 	
 }
