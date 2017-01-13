@@ -858,7 +858,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("fileHandleIds", fileHandleIds);
 		param.addValue("wikiId", wikiId);
-		namedTemplate.query(SQL_INTERSECTION_MARKDOWN_FILEHANDLES, new RowCallbackHandler() {
+		namedTemplate.query(SQL_INTERSECTION_MARKDOWN_FILEHANDLES, param, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
 				results.add(rs.getString(1));
