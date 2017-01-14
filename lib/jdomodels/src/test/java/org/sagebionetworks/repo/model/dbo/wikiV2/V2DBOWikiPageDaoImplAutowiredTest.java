@@ -1058,6 +1058,16 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithWikiMarkdownEmptyResults(){
+		// There should be no matches for this case.
+		List<String> fileHandleIds = Lists.newArrayList("456");
+		Set<String> results = wikiPageDao.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, "123");
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
 	// Just create versions with modified page title
 	private V2WikiPage createVersions(V2WikiPage page, String ownerId, ObjectType ownerType, int numVersions) {
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
