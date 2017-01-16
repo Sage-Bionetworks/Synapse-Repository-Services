@@ -92,7 +92,7 @@ public class ITChallengeController {
 		// Note:  since the 'admin' user is the one who created the 
 		// team, he's the only one in that team initially
 		PaginatedResults<TeamMember> initialMembers = 
-				synapse.getTeamMembers(participantTeam.getId(), null, 1000L, 0L);
+				synapse.getTeamMembers(participantTeam.getId(), null, 10L, 0L);
 		assertEquals(1L, initialMembers.getTotalNumberOfResults());
 		assertEquals(adminUserId, initialMembers.getResults().get(0).getMember().getOwnerId());
 	}

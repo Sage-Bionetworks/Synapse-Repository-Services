@@ -1062,7 +1062,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
 		assertTrue(target.length()>0);
 		// query for all teams
-		PaginatedResults<Team> teams = waitForTeams(null, 1000, 0);
+		PaginatedResults<Team> teams = waitForTeams(null, 10, 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
