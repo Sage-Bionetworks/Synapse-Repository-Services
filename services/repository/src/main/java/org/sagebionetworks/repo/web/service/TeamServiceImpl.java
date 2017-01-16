@@ -112,9 +112,13 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException  {
-		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
-		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
-		if (fragment==null || fragment.trim().length()==0) return teamManager.list(limit, offset);
+
+		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		if (fragment==null || fragment.trim().length()==0) {
+			return teamManager.list(limit, offset);
+		}
 		
 		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
