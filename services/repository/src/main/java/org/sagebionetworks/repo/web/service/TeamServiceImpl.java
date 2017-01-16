@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -37,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class TeamServiceImpl implements TeamService {
+	public static final long MAX_LIMIT = 10L;
 
 	@Autowired
 	private TeamManager teamManager;
@@ -110,9 +112,13 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException  {
-		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
-		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
-		if (fragment==null || fragment.trim().length()==0) return teamManager.list(limit, offset);
+
+		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		if (fragment==null || fragment.trim().length()==0) {
+			return teamManager.list(limit, offset);
+		}
 		
 		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
@@ -138,8 +144,8 @@ public class TeamServiceImpl implements TeamService {
 			String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		
-		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
-		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
+		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
 		// if there is no prefix provided, we just to a regular paginated query
 		// against the database and return the result.  We also clear out the private fields.
