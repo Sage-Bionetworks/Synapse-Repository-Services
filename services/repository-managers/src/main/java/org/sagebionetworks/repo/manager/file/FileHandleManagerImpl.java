@@ -712,6 +712,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public UploadDestination getUploadDestination(UserInfo userInfo, String parentId, Long storageLocationId) throws DatastoreException,
 			NotFoundException {
+		ValidateArgument.required(storageLocationId, "storageLocationId");
 		// handle default case
 		if (storageLocationId.equals(DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID)) {
 			return DBOStorageLocationDAOImpl.getDefaultUploadDestination();
@@ -748,13 +749,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public UploadDestination getDefaultUploadDestination(UserInfo userInfo, String parentId) throws DatastoreException, NotFoundException {
-		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
+		UploadDestinationListSetting uploadDestinationsSettings = 
+				projectSettingsManager.getProjectSettingForNode(userInfo, parentId,
 				ProjectSettingsType.upload, UploadDestinationListSetting.class);
 
 		// make sure there is always one entry
 		Long storageLocationId;
-		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getLocations() == null
-				|| uploadDestinationsSettings.getLocations().isEmpty()) {
+		if (uploadDestinationsSettings == null ||
+				uploadDestinationsSettings.getLocations() == null ||
+				uploadDestinationsSettings.getLocations().isEmpty() ||
+				uploadDestinationsSettings.getLocations().get(0) == null) {
 			storageLocationId = DBOStorageLocationDAOImpl.DEFAULT_STORAGE_LOCATION_ID;
 		} else {
 			storageLocationId = uploadDestinationsSettings.getLocations().get(0);
