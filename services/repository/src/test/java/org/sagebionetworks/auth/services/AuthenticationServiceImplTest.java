@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -66,7 +65,7 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(DomainType.SYNAPSE), eq(true)))
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
 				.thenReturn(userId);
 		
 		mockMessageManager = Mockito.mock(MessageManager.class);
@@ -76,15 +75,15 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testRevalidateToU() throws Exception {
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(DomainType.SYNAPSE), eq(true)))
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true)))
 				.thenThrow(new TermsOfUseException());
 		
 		// A boolean flag should let us get past this call
-		service.revalidate(sessionToken, DomainType.SYNAPSE, false);
+		service.revalidate(sessionToken, false);
 
 		// But it should default to true
 		try {
-			service.revalidate(sessionToken, DomainType.SYNAPSE);
+			service.revalidate(sessionToken);
 			fail();
 		} catch (TermsOfUseException e) {
 			// Expected
@@ -97,7 +96,7 @@ public class AuthenticationServiceImplTest {
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		info.setFullName(fullName);
-		service.processOpenIDInfo(info, DomainType.SYNAPSE);
+		service.processOpenIDInfo(info);
 	}
 	
 	@Test
@@ -128,7 +127,7 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
-		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
+		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		//call under test
 		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);
@@ -149,7 +148,7 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.lookupPrincipalByAlias(info.getUsersVerifiedEmail())).thenReturn(alias);
 		Session session = new Session();
 		session.setSessionToken("token");
-		when(mockAuthenticationManager.getSessionToken(userId, DomainType.SYNAPSE)).thenReturn(session);
+		when(mockAuthenticationManager.getSessionToken(userId)).thenReturn(session);
 		//call under test
 		Session result = service.validateOAuthAuthenticationCodeAndLogin(request);
 		assertEquals(session, result);

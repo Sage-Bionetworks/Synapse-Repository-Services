@@ -44,12 +44,10 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -220,7 +218,6 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -2482,13 +2479,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
-		return getTermsOfUse(DomainType.SYNAPSE);
-	}
-
-	@Override
-	public String getTermsOfUse(DomainType domain) throws SynapseException {
-		ValidateArgument.required(domain, "domain");
-		return getStringDirect(getAuthEndpoint(), "/" + domain.name().toLowerCase() + "TermsOfUse.html");
+		return getStringDirect(getAuthEndpoint(), "/synapseTermsOfUse.html");
 	}
 
 	/**
@@ -4149,19 +4140,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
 			throws SynapseException {
-		signTermsOfUse(sessionToken, DomainType.SYNAPSE, acceptTerms);
-	}
-
-	@Override
-	public void signTermsOfUse(String sessionToken, DomainType domain,
-			boolean acceptTerms) throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(sessionToken);
 		session.setAcceptsTermsOfUse(acceptTerms);
-
-		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
-		voidPost(getAuthEndpoint(), "/termsOfUse", session, parameters);
+		voidPost(getAuthEndpoint(), "/termsOfUse", session, null);
 	}
 
 	/*

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -14,10 +13,6 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-
-
-
 
 public interface MessageManager {
 	
@@ -110,12 +105,12 @@ public interface MessageManager {
 	/**
 	 * Sends a password reset email based on a template via Amazon SES
 	 */
-	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException;
+	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Sends a welcome email based on a template via Amazon SES
 	 */
-	public void sendWelcomeEmail(Long recipientId, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException;
 	
 	/**
 	 * Sends a delivery failure notification based on a template

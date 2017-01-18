@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -32,18 +31,16 @@ public interface PrincipalService {
 	 * 
 	 * @param user the info for the new user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse
 	 */
-	void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain);
+	void newAccountEmailValidation(NewUser user, String portalEndpoint);
 	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
-	 * @param domain
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException;
+	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
@@ -51,10 +48,9 @@ public interface PrincipalService {
 	 * @param userId the authenticated user making the request
 	 * @param email the email which is claimed by the user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse
 	 * @throws NotFoundException
 	 */
-	void additionalEmailValidation(Long userId, Username email, String portalEndpoint, DomainType domain) throws NotFoundException;
+	void additionalEmailValidation(Long userId, Username email, String portalEndpoint) throws NotFoundException;
 	
 	/**
 	 * Add a new email address to an existing account.

@@ -109,7 +109,7 @@ public class BaseClientImplTest {
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(),
 				eq(EntityFactory.createJSONObjectForEntity(request).toString()));
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/login",
 				captor.getValue().getUri());
 	}
 
@@ -120,7 +120,7 @@ public class BaseClientImplTest {
 		baseClient.logout();
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).delete(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
 				captor.getValue().getUri());
 	}
 
@@ -139,7 +139,7 @@ public class BaseClientImplTest {
 		ArgumentCaptor<SimpleHttpRequest> requestCaptor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
 		verify(mockClient).put(requestCaptor.capture(), bodyCaptor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/session",
 				requestCaptor.getValue().getUri());
 		assertEquals("{\"sessionToken\":\"token\"}", bodyCaptor.getValue());
 	}
@@ -151,7 +151,7 @@ public class BaseClientImplTest {
 		baseClient.invalidateApiKey();;
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).delete(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/secretKey?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/secretKey",
 				captor.getValue().getUri());
 	}
 
@@ -402,7 +402,7 @@ public class BaseClientImplTest {
 						"/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).put(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -426,7 +426,7 @@ public class BaseClientImplTest {
 		baseClient.voidPut("https://repo-prod.prod.sagebase.org", "/entityId", null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).put(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -458,7 +458,7 @@ public class BaseClientImplTest {
 						"/entityId", null, EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -482,7 +482,7 @@ public class BaseClientImplTest {
 		baseClient.voidPost("https://repo-prod.prod.sagebase.org", "/entityId", null, null);
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -510,7 +510,7 @@ public class BaseClientImplTest {
 						"/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -526,7 +526,7 @@ public class BaseClientImplTest {
 						"/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -561,7 +561,7 @@ public class BaseClientImplTest {
 						"/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -603,7 +603,7 @@ public class BaseClientImplTest {
 						"/entityId", new EntityId(), EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -637,7 +637,7 @@ public class BaseClientImplTest {
 						"/entityId", EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -677,7 +677,7 @@ public class BaseClientImplTest {
 						"/entityId", new EntityId(), EntityId.class));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).post(captor.capture(), anyString());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -700,7 +700,7 @@ public class BaseClientImplTest {
 				baseClient.getBooleanResult("https://repo-prod.prod.sagebase.org", "/entityId"));
 		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
 		verify(mockClient).get(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+		assertEquals("https://repo-prod.prod.sagebase.org/entityId",
 				captor.getValue().getUri());
 	}
 
@@ -711,7 +711,7 @@ public class BaseClientImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testAddDigitalSignatureWithNullHeaders() throws Exception {
-		baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE", null);
+		baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", null);
 	}
 
 	@Test
@@ -743,7 +743,7 @@ public class BaseClientImplTest {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(200);
 		assertEquals(mockResponse, baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+				"https://repo-prod.prod.sagebase.org/entityId",
 				GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
@@ -753,7 +753,7 @@ public class BaseClientImplTest {
 		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(500);
 		assertEquals(mockResponse, baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+				"https://repo-prod.prod.sagebase.org/entityId",
 				GET, null, null));
 		verify(mockClient).get(any(SimpleHttpRequest.class));
 	}
@@ -764,7 +764,7 @@ public class BaseClientImplTest {
 		when(mockResponse.getStatusCode()).thenReturn(503);
 		try {
 			baseClient.performRequestWithRetry(
-					"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+					"https://repo-prod.prod.sagebase.org/entityId",
 					GET, null, null);
 			fail("expect SynapseServerException");
 		} catch (SynapseServerException e) {

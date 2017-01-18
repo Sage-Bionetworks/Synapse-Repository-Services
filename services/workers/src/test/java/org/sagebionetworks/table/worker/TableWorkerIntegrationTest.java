@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -1564,7 +1563,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		long userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo owner = userManager.getUserInfo(userId);
 		users.add(owner);
 
@@ -1573,7 +1572,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo notOwner = userManager.getUserInfo(userId);
 		users.add(notOwner);
 
