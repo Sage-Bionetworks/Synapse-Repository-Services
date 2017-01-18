@@ -25,8 +25,6 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
@@ -36,8 +34,6 @@ import org.sagebionetworks.util.ValidateArgument;
 public class ClientUtils {
 
 	public static final String ERROR_REASON_TAG = "reason";
-
-	private static final DomainType SYNAPSE_DOMAIN = DomainType.SYNAPSE;
 
 	/**
 	 * Checks to see if the statusCode is in [200,300) range.
@@ -190,9 +186,6 @@ public class ClientUtils {
 				for (Map.Entry<String,String> entry : parameters.entrySet()) {
 					builder.addParameter(entry.getKey(), entry.getValue());
 				}
-			} else {
-				// TODO: do we need this?
-				builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, SYNAPSE_DOMAIN.name());
 			}
 		} catch(MalformedURLException mue) {
 			throw new SynapseClientException("Invalid URI.", mue);

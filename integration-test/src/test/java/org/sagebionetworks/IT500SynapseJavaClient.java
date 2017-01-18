@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -824,13 +823,6 @@ public class IT500SynapseJavaClient {
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
 	}
-	
-	@Test(expected = SynapseServerException.class)
-	public void testRetrieveOtherTOU() throws Exception {
-		// NONE domain not supported
-		synapseOne.getTermsOfUse(DomainType.NONE);
-	}
-	
 
 	/**
 	 * Test that we can add an attachment to a project and then get it back.

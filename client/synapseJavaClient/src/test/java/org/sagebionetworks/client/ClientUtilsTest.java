@@ -206,7 +206,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testCreateRequestUrlWithNullParams() throws Exception{
-		assertEquals("http://synapse.org/uri?domain=SYNAPSE",
+		assertEquals("http://synapse.org/uri",
 				ClientUtils.createRequestUrl("http://synapse.org", "/uri", null));
 	}
 

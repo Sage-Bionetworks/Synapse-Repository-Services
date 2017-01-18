@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -701,8 +700,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
-	
-	public String getTermsOfUse(DomainType domain) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -1631,12 +1628,6 @@ public interface SynapseClient extends BaseClient {
 	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
-	
-	/**
-	 * 
-	 * Signs the terms of use for utilization of specific Dage application, as identified by a session token
-	 */
-	public void signTermsOfUse(String sessionToken, DomainType domain, boolean acceptTerms) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.
