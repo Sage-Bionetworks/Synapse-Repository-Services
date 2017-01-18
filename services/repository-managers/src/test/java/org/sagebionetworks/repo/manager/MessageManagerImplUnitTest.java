@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -356,7 +355,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testWelcomeEmail() throws Exception{
-		messageManager.sendWelcomeEmail(RECIPIENT_ID, DomainType.SYNAPSE, UNSUBSCRIBE_ENDPOINT);
+		messageManager.sendWelcomeEmail(RECIPIENT_ID, UNSUBSCRIBE_ENDPOINT);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
@@ -371,7 +370,7 @@ public class MessageManagerImplUnitTest {
 
 	@Test
 	public void testPasswordResetEmail() throws Exception{
-		messageManager.sendPasswordResetEmail(RECIPIENT_ID, DomainType.SYNAPSE, "abcdefg");
+		messageManager.sendPasswordResetEmail(RECIPIENT_ID, "abcdefg");
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();

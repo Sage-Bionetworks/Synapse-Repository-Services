@@ -15,7 +15,6 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.auth.BasicAuthUtils;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -53,7 +52,7 @@ public class DockerClientAuthFilterTest {
 	@Test
 	public void testDoFilterWithoutBasicAuth() throws Exception {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockAuthenticationService, never()).authenticate(any(LoginCredentials.class), any(DomainType.class));
+		verify(mockAuthenticationService, never()).authenticate(any(LoginCredentials.class));
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));
@@ -69,11 +68,11 @@ public class DockerClientAuthFilterTest {
 		LoginCredentials loginCred = new LoginCredentials();
 		loginCred.setEmail(USERNAME);
 		loginCred.setPassword(PASSWORD);
-		when(mockAuthenticationService.authenticate(loginCred , DomainType.SYNAPSE))
+		when(mockAuthenticationService.authenticate(loginCred))
 				.thenThrow(new NotFoundException());
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
+		verify(mockAuthenticationService).authenticate(loginCred);
 		verify(mockAuthenticationService, never()).lookupUserForAuthentication(anyString());
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 	}
@@ -88,7 +87,7 @@ public class DockerClientAuthFilterTest {
 				.thenThrow(new NotFoundException());
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
+		verify(mockAuthenticationService).authenticate(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(USERNAME);
 		verify(mockFilterChain, never()).doFilter(any(HttpServletRequest.class), eq(mockResponse));
 	}
@@ -104,7 +103,7 @@ public class DockerClientAuthFilterTest {
 		when(mockPrincipalAlias.getPrincipalId()).thenReturn(USERID);
 
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-		verify(mockAuthenticationService).authenticate(loginCred , DomainType.SYNAPSE);
+		verify(mockAuthenticationService).authenticate(loginCred);
 		verify(mockAuthenticationService).lookupUserForAuthentication(anyString());
 		ArgumentCaptor<HttpServletRequest> requestCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), eq(mockResponse));

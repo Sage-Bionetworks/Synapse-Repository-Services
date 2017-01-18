@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.sagebionetworks.auth.DomainTypeUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -90,11 +88,9 @@ public class PrincipalController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void newAccountEmailValidation(
 			@RequestBody NewUser user,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client,
 			@RequestParam(value = AuthorizationConstants.PORTAL_ENDPOINT_PARAM, required = true) String portalEndpoint
 			) {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		serviceProvider.getPrincipalService().newAccountEmailValidation(user, portalEndpoint, domain);
+		serviceProvider.getPrincipalService().newAccountEmailValidation(user, portalEndpoint);
 	}
 	
 	/**
@@ -112,11 +108,8 @@ public class PrincipalController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
 	@ResponseBody
 	public Session createNewAccount(
-			@RequestBody AccountSetupInfo accountSetupInfo,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client
-			) throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo, domain);
+			@RequestBody AccountSetupInfo accountSetupInfo) throws NotFoundException {
+		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo);
 	}
 	
 	/**
@@ -140,12 +133,11 @@ public class PrincipalController extends BaseController {
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Username email,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client,
 			@RequestParam(value = AuthorizationConstants.PORTAL_ENDPOINT_PARAM, required = true) String portalEndpoint
 			) throws NotFoundException {
-		if (userId==null || !id.equals(userId.toString())) throw new IllegalArgumentException("user id in URL must match that of the authenticated user.");
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		serviceProvider.getPrincipalService().additionalEmailValidation(userId, email, portalEndpoint, domain);
+		if (userId==null || !id.equals(userId.toString())) 
+			throw new IllegalArgumentException("user id in URL must match that of the authenticated user.");
+		serviceProvider.getPrincipalService().additionalEmailValidation(userId, email, portalEndpoint);
 	}
 	
 	/**

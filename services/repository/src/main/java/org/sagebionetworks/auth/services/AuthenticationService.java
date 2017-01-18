@@ -2,7 +2,6 @@ package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.authutil.OpenIDInfo;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -27,23 +26,22 @@ public interface AuthenticationService {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException;
+	public Session authenticate(LoginCredentials credential) throws NotFoundException;
 	
 	/**
-	 * Revalidates a session token and checks if the user has accepted the terms of use for the 
-	 * given domain.
+	 * Revalidates a session token and checks if the user has accepted the terms of use.
 	 * @return The principalId of the user holding the token
-	 * @throws UnauthorizedException If the token has expired or is otherwise not valid for this domain.
-	 * @throws TermsOfUseException If the user has not accepted the terms of use for this domain.
+	 * @throws UnauthorizedException If the token has expired or is otherwise not valid.
+	 * @throws TermsOfUseException If the user has not accepted the terms of use.
 	 */
-	public Long revalidate(String sessionToken, DomainType domain) throws NotFoundException;
+	public Long revalidate(String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Revalidates a session token
 	 * See {@link #revalidate(String)}
 	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
 	 */
-	public Long revalidate(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException;
+	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
 	
 	/**
 	 * Invalidates a session token
@@ -54,25 +52,24 @@ public interface AuthenticationService {
 	 * Initializes a new user into the system
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
-	public void createUser(NewUser user, DomainType domain);
+	public void createUser(NewUser user);
 	
 	/**
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(Long userId, DomainType domain)
-			 throws NotFoundException;
+	public void sendPasswordEmail(Long userId) throws NotFoundException;
 	
 	/**
 	 * Changes the password of the user
 	 * Also invalidates the user's session token
 	 */
-	public void changePassword(ChangePasswordRequest request, DomainType domain) throws NotFoundException;
+	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
 	 */
-	public void signTermsOfUse(Session session, DomainType domain) throws NotFoundException;
+	public void signTermsOfUse(Session session) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -101,7 +98,7 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	public boolean hasUserAcceptedTermsOfUse(Long userId, DomainType domain) throws NotFoundException;
+	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
 	
 	/**
 	 * Uses the pre-validated OpenID information to fetch a session token
@@ -110,15 +107,14 @@ public interface AuthenticationService {
 	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException;
 	
 	/**
-	 * This should only be called after the OpendId info havs already been validated.
+	 * This should only be called after the OpendId info have already been validated.
 	 * @param info
-	 * @param domain
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException;
+	public Session processOpenIDInfo(OpenIDInfo info) throws NotFoundException;
 
-	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException;
+	public void sendPasswordEmail(String email) throws NotFoundException;
 
 	public OAuthUrlResponse getOAuthAuthenticationUrl(OAuthUrlRequest request);
 

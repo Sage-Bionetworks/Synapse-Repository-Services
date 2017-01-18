@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -86,8 +85,8 @@ public class EntityPermissionsManagerImplUnitTest {
     	
     	when(mockStackConfiguration.getDisableCertifiedUser()).thenReturn(false);
     	
-    	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId(), DomainType.SYNAPSE)).thenReturn(true);
-    	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId(), DomainType.SYNAPSE)).thenReturn(true);
+    	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
+    	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
     	project = new Node();
     	project.setId(projectId);

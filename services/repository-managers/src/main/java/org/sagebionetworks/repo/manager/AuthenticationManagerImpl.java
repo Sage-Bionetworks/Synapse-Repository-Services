@@ -56,15 +56,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Override
 	@WriteTransaction
-	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
+	public Session authenticate(long principalId, String password) throws NotFoundException {
 		ValidateArgument.required(password, "password");
-		ValidateArgument.required(domain, "domain");
 		// acquire a lock for throttling password attacks
 		String lockToken = authenticationThrottleMemoryCountingSemaphore.attemptToAcquireLock(""+principalId, LOCK_TIMOUTE_SEC, MAX_CONCURRENT_LOCKS);
 		if (lockToken != null) {
 			authenticateAndThrowException(principalId, password);
 			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
-			return getSessionToken(principalId, domain);
+			return getSessionToken(principalId);
 		} else {
 			logAttemptAfterAccountIsLocked(principalId);
 			throw new LockedException(ACCOUNT_LOCKED_MESSAGE);
@@ -93,7 +92,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@WriteTransaction
-	public Long checkSessionToken(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
+	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
@@ -104,10 +103,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, DomainType.SYNAPSE)) {
 			throw new TermsOfUseException();
 		}
-		authDAO.revalidateSessionTokenIfNeeded(principalId, domain);
+		authDAO.revalidateSessionTokenIfNeeded(principalId, DomainType.SYNAPSE);
 		return principalId;
 	}
 
@@ -138,9 +137,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@WriteTransaction
-	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
+	public Session getSessionToken(long principalId) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
+		Session session = authDAO.getSessionTokenIfValid(principalId, DomainType.SYNAPSE);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -154,8 +153,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
 			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
-			String token = authDAO.changeSessionToken(principalId, null, domain);
-			boolean toU = authDAO.hasUserAcceptedToU(principalId, domain);
+			String token = authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
+			boolean toU = authDAO.hasUserAcceptedToU(principalId, DomainType.SYNAPSE);
 			session.setSessionToken(token);
 			
 			// Make sure to fetch the ToU state
@@ -166,23 +165,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long id, DomainType domain) throws NotFoundException {
-		if (domain == null) {
-			throw new IllegalArgumentException("Must provide a domain");
-		}
-		return authDAO.hasUserAcceptedToU(id, domain);
+	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
+		return authDAO.hasUserAcceptedToU(id, DomainType.SYNAPSE);
 	}
 	
 	@Override
 	@WriteTransaction
-	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance) {
-		if (domain == null) {
-			throw new IllegalArgumentException("Must provide a domain");
-		}
+	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(principalId, domain, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, DomainType.SYNAPSE, acceptance);
 	}
 
 	@WriteTransactionReadCommitted
@@ -207,7 +200,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			authenticationThrottleMemoryCountingSemaphore.releaseLock(""+principalId, lockToken);
 		}
 
-		Session session = getSessionToken(principalId, DomainType.SYNAPSE);
+		Session session = getSessionToken(principalId);
 
 		String newReceipt = null;
 		if (authReceiptDAO.countReceipts(principalId) < AUTHENTICATION_RECEIPT_LIMIT) {

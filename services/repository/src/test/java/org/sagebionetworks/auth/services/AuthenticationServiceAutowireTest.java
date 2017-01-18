@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -91,7 +90,7 @@ public class AuthenticationServiceAutowireTest {
 		openIdInfo.setEmail(OPEN_ID_TEST_EMAIL);
 		openIdInfo.setIdentifier(OPEN_ID_TEST_ID);
 		// We should be able to login
-		Session session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
+		Session session = authenticationService.processOpenIDInfo(openIdInfo);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
 		profile = userProfileManger.getUserProfile(principalId.toString());
@@ -101,7 +100,7 @@ public class AuthenticationServiceAutowireTest {
 		assertEquals(OPEN_ID_TEST_ID, profile.getOpenIds().get(0));
 		
 		// now if we log in again, it should not change.
-		session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
+		session = authenticationService.processOpenIDInfo(openIdInfo);
 		assertNotNull(session);
 		// The open ID should now be bound to the user's profile
 		profile = userProfileManger.getUserProfile(principalId.toString());
@@ -134,7 +133,7 @@ public class AuthenticationServiceAutowireTest {
 		openIdInfo.setEmail(nu.getEmail());
 		openIdInfo.setIdentifier("https://www.google.com/accounts/o8/id?id=S123");
 		// We should be able to login
-		Session session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
+		Session session = authenticationService.processOpenIDInfo(openIdInfo);
 		assertNotNull(session);
 	}
 }

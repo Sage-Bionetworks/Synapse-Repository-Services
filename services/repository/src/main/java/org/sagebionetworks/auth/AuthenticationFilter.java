@@ -22,7 +22,6 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -101,13 +100,12 @@ public class AuthenticationFilter implements Filter {
 		
 		// Determine the caller's identity
 		Long userId = null;
-		DomainType domain = DomainTypeUtils.valueOf(req.getParameter(AuthorizationConstants.DOMAIN_PARAM));
 		
 		// A session token maps to a specific user
 		if (!isSessionTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
-				userId = authenticationService.revalidate(sessionToken, domain, false);
+				userId = authenticationService.revalidate(sessionToken, false);
 			} catch (UnauthenticatedException e) {
 				reject(req, (HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
@@ -148,7 +146,7 @@ public class AuthenticationFilter implements Filter {
 		if (userId != null) {
 			boolean toUCheck = false;
 			try {
-				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId, domain);
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId);
 			} catch (NotFoundException e) {
 				String reason = "User " + userId + " does not exist";
 				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
@@ -229,8 +227,7 @@ public class AuthenticationFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
-		@SuppressWarnings("unchecked")
-        Enumeration<String> paramNames = filterConfig.getInitParameterNames();
+		Enumeration<String> paramNames = filterConfig.getInitParameterNames();
         while (paramNames.hasMoreElements()) {
         	String paramName = paramNames.nextElement();
         	String paramValue = filterConfig.getInitParameter(paramName);
