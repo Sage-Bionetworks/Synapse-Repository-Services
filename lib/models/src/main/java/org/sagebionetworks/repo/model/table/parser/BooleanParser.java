@@ -12,6 +12,12 @@ public class BooleanParser implements ValueParser {
 	@Override
 	public String parseValueForDatabaseRead(String value)
 			throws IllegalArgumentException {
-		return value;
+		if("0".equals(value)){
+			return "false";
+		}else if("1".equals(value)){
+			return "true";
+		}else{
+			return value;
+		}
 	}
 }

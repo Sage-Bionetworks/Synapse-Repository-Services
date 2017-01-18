@@ -30,8 +30,10 @@ public class BooleanParserTest {
 	
 	@Test
 	public void testParseValueForDatabaseReadTrue(){
-		assertEquals("true", parser.parseValueForDatabaseRead("true"));
+		assertEquals("false", parser.parseValueForDatabaseRead("0"));
 		assertEquals("false", parser.parseValueForDatabaseRead("false"));
+		assertEquals("true", parser.parseValueForDatabaseRead("1"));
+		assertEquals("true", parser.parseValueForDatabaseRead("true"));
 	}
 	
 }
