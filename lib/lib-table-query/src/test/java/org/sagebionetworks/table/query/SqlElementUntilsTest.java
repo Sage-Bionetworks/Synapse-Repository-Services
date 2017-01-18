@@ -7,7 +7,9 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
@@ -211,6 +213,33 @@ public class SqlElementUntilsTest {
 		Long maxRowsPerPage = null;
 		QuerySpecification converted = SqlElementUntils.overridePagination(model, offset, limit, maxRowsPerPage);
 		assertEquals("SELECT * FROM syn123 LIMIT 100 OFFSET 75", converted.toString());
+	}
+	
+	@Test
+	public void testEntityIdRightHandSide() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = syn456");
+		assertEquals("syn123", model.getTableName());
+		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
+		assertEquals("id", predicate.getLeftHandSide().toSql());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
+	}
+	
+	@Test
+	public void testEntityIdRightHandSideSingeQuotes() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = 'syn456'");
+		assertEquals("syn123", model.getTableName());
+		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
+		assertEquals("id", predicate.getLeftHandSide().toSql());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
+	}
+	
+	@Test
+	public void testEntityIdRightHandSideDoubleQuotes() throws ParseException{
+		QuerySpecification model = TableQueryParser.parserQuery("select * from syn123 where id = \"syn456\"");
+		assertEquals("syn123", model.getTableName());
+		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
+		assertEquals("id", predicate.getLeftHandSide().toSql());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
 	}
 	
 	@Test

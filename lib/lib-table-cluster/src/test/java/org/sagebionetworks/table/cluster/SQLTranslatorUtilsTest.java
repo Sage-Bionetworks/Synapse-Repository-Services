@@ -630,6 +630,7 @@ public class SQLTranslatorUtilsTest {
 		two.setColumnType(ColumnType.BOOLEAN);
 		
 		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
 		
 		Long rowId = 123L;
 		Long rowVersion = 2L;
@@ -637,9 +638,9 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
 		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
 		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("1");
+		when(mockResultSet.getString(2)).thenReturn("true");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
 		assertNotNull(result);
 		assertEquals(rowId, result.getRowId());
 		assertEquals(rowVersion, result.getVersionNumber());
@@ -661,11 +662,12 @@ public class SQLTranslatorUtilsTest {
 		two.setColumnType(ColumnType.BOOLEAN);
 		
 		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
 
 		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("0");
+		when(mockResultSet.getString(2)).thenReturn("false");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
 		assertNotNull(result);
 		assertEquals(null, result.getRowId());
 		assertEquals(null, result.getVersionNumber());
