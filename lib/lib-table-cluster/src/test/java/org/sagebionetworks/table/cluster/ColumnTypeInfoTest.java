@@ -68,7 +68,7 @@ public class ColumnTypeInfoTest {
 	@Test
 	public void testParseEntityId(){
 		Object dbValue = ColumnTypeInfo.ENTITYID.parseValueForDatabaseWrite("syn123");
-		assertEquals("syn123",dbValue);
+		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test
@@ -129,7 +129,7 @@ public class ColumnTypeInfoTest {
 
 	@Test
 	public void testIsStringType(){
-		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.ENTITYID, ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK);
+		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK);
 		for(ColumnTypeInfo type: ColumnTypeInfo.values()){
 			if(stringTypes.contains(type)){
 				assertTrue("Should not be a string type: "+type.name(),type.isStringType());
@@ -220,7 +220,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test
@@ -228,7 +228,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "syn123";
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'syn123' COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

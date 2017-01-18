@@ -237,7 +237,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(Boolean.FALSE, row.get("_C3_"));
 		assertEquals(123L, row.get("_C4_"));
 		assertEquals(123L, row.get("_C5_"));
-		assertEquals("123", row.get("_C6_"));
+		assertEquals(new Long(123), row.get("_C6_"));
 		assertEquals("largeText", row.get("_C8_"));
 		assertEquals(42L, row.get("_C9_"));
 	}
