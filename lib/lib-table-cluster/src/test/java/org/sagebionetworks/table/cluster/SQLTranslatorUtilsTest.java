@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1166,6 +1167,25 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT FOUND_ROWS()",element.toSql());
+	}
+	
+	@Test
+	public void testGetColumnTypeInfoArray(){
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.ENTITYID);
+		SelectColumn three = new SelectColumn();
+		three.setColumnType(ColumnType.INTEGER);
+		
+		List<SelectColumn> selectColumns = Lists.newArrayList(one, two, three);
+		ColumnTypeInfo[] expected = new ColumnTypeInfo[]{
+			ColumnTypeInfo.STRING,
+			ColumnTypeInfo.ENTITYID,
+			ColumnTypeInfo.INTEGER,
+		};
+		ColumnTypeInfo[] results = SQLTranslatorUtils.getColumnTypeInfoArray(selectColumns);
+		assertTrue(Arrays.equals(expected, results));
 	}
 	
 
