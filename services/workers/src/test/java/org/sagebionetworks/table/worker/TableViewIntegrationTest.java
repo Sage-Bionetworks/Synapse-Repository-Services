@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -395,6 +396,38 @@ public class TableViewIntegrationTest {
 		// is the annotation changed?
 		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
 		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+	}
+	
+	/**
+	 * This is a test for PLFM-4088.  Need to support 'syn123' in both 
+	 * a query where clause query return values.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryEntityColumnType() throws Exception {
+		String fileId = fileIds.get(0);
+		assertTrue(fileId.startsWith("syn"));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		waitForEntityReplication(fileViewId, file.getId());
+		
+		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = "+fileId;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(4, row.getValues().size());
+		assertEquals(file.getId(), row.getValues().get(0));
+		assertEquals(file.getParentId(), row.getValues().get(1));
+		assertTrue(row.getValues().get(2).startsWith("syn"));
+		assertTrue(row.getValues().get(3).startsWith("syn"));
 	}
 	
 	/**

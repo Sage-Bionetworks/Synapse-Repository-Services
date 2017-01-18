@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 
@@ -1180,18 +1181,9 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testTranslateFromQuery() {
-		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", ColumnType.BOOLEAN));
-		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", ColumnType.BOOLEAN));
-		assertEquals("something else", TableModelUtils.translateRowValueFromQuery("something else", ColumnType.BOOLEAN));
-		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", null));
-
-		// for all other types
-		for (ColumnType type : ColumnType.values()) {
-			if (type == ColumnType.BOOLEAN) {
-				continue;
-			}
-			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", type));
-		}
+		assertEquals(null, TableModelUtils.translateRowValueFromQuery(null, ColumnTypeInfo.BOOLEAN));
+		assertEquals(null, TableModelUtils.translateRowValueFromQuery("true", null));
+		assertEquals("true", TableModelUtils.translateRowValueFromQuery("true", ColumnTypeInfo.BOOLEAN));
 	}
 	
 	@Test

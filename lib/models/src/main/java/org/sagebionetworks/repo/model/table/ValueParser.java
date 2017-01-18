@@ -8,11 +8,21 @@ package org.sagebionetworks.repo.model.table;
 public interface ValueParser {
 	
 	/**
-	 * Parse the given value.
+	 * Parse the given value for a database write.
+	 * 
 	 * @param value
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	Object parseValue(String value) throws IllegalArgumentException;
+	Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException;
+	
 
+	/**
+	 * Parse the given value for a database read.
+	 * 
+	 * @param value
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	String parseValueForDatabaseRead(String value) throws IllegalArgumentException;
 }

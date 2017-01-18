@@ -91,8 +91,8 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testparseValueForDBEntityId() {
-		String expected = "syn123.3";
-		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123.3");
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123");
 		assertEquals(expected, objectValue);
 	}
 
@@ -245,7 +245,7 @@ public class SQLUtilsTest {
 		assertEquals(new Boolean(false), results[0].getValue("_C3_"));
 		assertEquals(new Long(404000), results[0].getValue("_C4_"));
 		assertEquals(new Long(505000), results[0].getValue("_C5_"));
-		assertEquals("syn606000.607000", results[0].getValue("_C6_"));
+		assertEquals(new Long(606000), results[0].getValue("_C6_"));
 		// second
 		assertEquals(new Long(101), results[1].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
@@ -256,7 +256,7 @@ public class SQLUtilsTest {
 		assertEquals(new Boolean(true), results[1].getValue("_C3_"));
 		assertEquals(new Long(404001), results[1].getValue("_C4_"));
 		assertEquals(new Long(505001), results[1].getValue("_C5_"));
-		assertEquals("syn606001.607001", results[1].getValue("_C6_"));
+		assertEquals(new Long(606001), results[1].getValue("_C6_"));
 	}
 	
 	@Test

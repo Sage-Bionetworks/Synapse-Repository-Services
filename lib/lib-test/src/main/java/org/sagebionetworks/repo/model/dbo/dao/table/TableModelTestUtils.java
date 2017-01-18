@@ -322,7 +322,7 @@ public class TableModelTestUtils {
 				return "" + (i + 5000 + (isUpdate ? 10000 : 0));
 			}
 		case ENTITYID:
-			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "." + (i + 7000 + (isUpdate ? 10000 : 0));
+			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0));
 		case BOOLEAN:
 			if (i % 2 > 0 ^ isUpdate) {
 				return Boolean.TRUE.toString();

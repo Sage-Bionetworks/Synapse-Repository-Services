@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
@@ -452,15 +453,14 @@ public class TableModelUtils {
 	 * @param columnModel
 	 * @return
 	 */
-	public static String translateRowValueFromQuery(String value, ColumnType columnType) {
-		if (columnType == ColumnType.BOOLEAN) {
-			if ("0".equals(value)) {
-				value = "false";
-			} else if ("1".equals(value)) {
-				value = "true";
-			}
+	public static String translateRowValueFromQuery(String value, ColumnTypeInfo columnType) {
+		if(value == null){
+			return null;
 		}
-		return value;
+		if(columnType == null){
+			return null;
+		}
+		return columnType.parseValueForDatabaseRead(value);
 	}
 	
 	@Deprecated
