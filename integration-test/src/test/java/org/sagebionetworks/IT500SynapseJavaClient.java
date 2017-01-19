@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -824,13 +823,6 @@ public class IT500SynapseJavaClient {
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
 	}
-	
-	@Test(expected = SynapseServerException.class)
-	public void testRetrieveOtherTOU() throws Exception {
-		// NONE domain not supported
-		synapseOne.getTermsOfUse(DomainType.NONE);
-	}
-	
 
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
@@ -1062,7 +1054,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
 		assertTrue(target.length()>0);
 		// query for all teams
-		PaginatedResults<Team> teams = waitForTeams(null, 1000, 0);
+		PaginatedResults<Team> teams = waitForTeams(null, 10, 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works

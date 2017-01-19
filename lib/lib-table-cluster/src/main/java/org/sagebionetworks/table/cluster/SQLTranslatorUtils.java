@@ -22,36 +22,19 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
-import org.sagebionetworks.table.query.model.CharacterFactor;
-import org.sagebionetworks.table.query.model.CharacterPrimary;
-import org.sagebionetworks.table.query.model.CharacterValueExpression;
-import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.Factor;
-import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
-import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.MysqlFunction;
-import org.sagebionetworks.table.query.model.NumericPrimary;
-import org.sagebionetworks.table.query.model.NumericValueExpression;
-import org.sagebionetworks.table.query.model.NumericValueFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SetQuantifier;
-import org.sagebionetworks.table.query.model.SortKey;
-import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
-import org.sagebionetworks.table.query.model.Term;
-import org.sagebionetworks.table.query.model.ValueExpression;
-import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -266,13 +249,28 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
+	 * Create ColumnTypeInfo[] for a given list of SelectColumns.
+	 * 
+	 * @param columns
+	 * @return
+	 */
+	public static ColumnTypeInfo[] getColumnTypeInfoArray(List<SelectColumn> columns){
+		ColumnTypeInfo[] infoArray = new  ColumnTypeInfo[columns.size()];
+		for(int i=0; i<columns.size(); i++){
+			SelectColumn column = columns.get(i);
+			infoArray[i] = ColumnTypeInfo.getInfoForType(column.getColumnType());
+		}
+		return infoArray;
+	}
+	
+	/**
 	 * Read a Row from a ResultSet that was produced with the given query.
 	 * @param rs
 	 * @param query
 	 * @return
 	 * @throws SQLException
 	 */
-	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, List<SelectColumn> selectColumn) throws SQLException{
+	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, ColumnTypeInfo[] colunTypes) throws SQLException{
 		Row row = new Row();
 		List<String> values = new LinkedList<String>();
 		row.setValues(values);
@@ -281,10 +279,10 @@ public class SQLTranslatorUtils {
 			row.setVersionNumber(rs.getLong(ROW_VERSION));
 		}
 		// Read the select columns.
-		for(int i=0; i < selectColumn.size(); i++){
-			SelectColumn select = selectColumn.get(i);
+		for(int i=0; i < colunTypes.length; i++){
+			ColumnTypeInfo type = colunTypes[i];
 			String value = rs.getString(i+1);
-			value = TableModelUtils.translateRowValueFromQuery(value, select.getColumnType());
+			value = TableModelUtils.translateRowValueFromQuery(value, type);
 			values.add(value);
 		}
 		return row;

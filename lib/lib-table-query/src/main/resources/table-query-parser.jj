@@ -162,8 +162,7 @@ TOKEN [IGNORE_CASE]: {
 }
 
 TOKEN [IGNORE_CASE]: {
-  < entity_id: "SYN"(["0"-"9"])*>
-| < regular_identifier: ["a"-"z","A"-"Z","_"](["a"-"z","A"-"Z","0"-"9","_"])*>
+  < regular_identifier: ["a"-"z","A"-"Z","_"](["a"-"z","A"-"Z","0"-"9","_"])*>
 }
 
 /* Symbols and punctuation */
@@ -454,7 +453,7 @@ String tableName():
 	Token token = null;
 }
 {	
-	token = <entity_id> { return token.image; }
+	token = <regular_identifier> { return token.image; }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }

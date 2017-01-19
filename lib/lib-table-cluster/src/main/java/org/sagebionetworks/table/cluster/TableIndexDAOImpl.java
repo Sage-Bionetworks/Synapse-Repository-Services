@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
@@ -276,6 +277,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
+		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
@@ -285,7 +287,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(callback != null){
 					callback.progressMade(null);
 				}
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
+				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
 				handler.nextRow(row);
 			}
 		});

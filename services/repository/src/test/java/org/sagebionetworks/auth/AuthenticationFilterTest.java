@@ -26,7 +26,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -47,9 +46,9 @@ public class AuthenticationFilterTest {
 	@Before
 	public void setupFilter() throws Exception {
 		mockAuthService = mock(AuthenticationService.class);
-		when(mockAuthService.revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false))).thenReturn(userId);
+		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
-		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
 		when(mockAuthService.getUserId(eq(username))).thenReturn(userId);
 
 		final Map<String,String> filterParams = new HashMap<String, String>();
@@ -111,7 +110,7 @@ public class AuthenticationFilterTest {
 		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
-		when(mockAuthService.revalidate(eq(""), eq(DomainType.SYNAPSE), eq(false))).thenThrow(new UnauthorizedException("That is not a valid session token"));
+		when(mockAuthService.revalidate(eq(""), eq(false))).thenThrow(new UnauthorizedException("That is not a valid session token"));
 		
 		filter.doFilter(request, response, filterChain);
 		
@@ -133,7 +132,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Session token should be recognized
-		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false));
+		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -151,7 +150,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Session token should be recognized
-		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false));
+		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);

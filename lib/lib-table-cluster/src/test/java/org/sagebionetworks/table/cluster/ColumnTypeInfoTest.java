@@ -17,105 +17,105 @@ public class ColumnTypeInfoTest {
 	
 	@Test
 	public void testParseInteger(){
-		Object dbValue = ColumnTypeInfo.INTEGER.parseValueForDB("123");
+		Object dbValue = ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("123");
 		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testParseIntegerBad(){
-		ColumnTypeInfo.INTEGER.parseValueForDB("foo");
+		ColumnTypeInfo.INTEGER.parseValueForDatabaseWrite("foo");
 	}
 	
 	@Test
 	public void testParseFileHandleId(){
-		Object dbValue = ColumnTypeInfo.FILEHANDLEID.parseValueForDB("123");
+		Object dbValue = ColumnTypeInfo.FILEHANDLEID.parseValueForDatabaseWrite("123");
 		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testParseFileHandleBad(){
-		ColumnTypeInfo.FILEHANDLEID.parseValueForDB("foo");
+		ColumnTypeInfo.FILEHANDLEID.parseValueForDatabaseWrite("foo");
 	}
 	
 	@Test
 	public void testParseUserId(){
-		Object dbValue = ColumnTypeInfo.USERID.parseValueForDB("123");
+		Object dbValue = ColumnTypeInfo.USERID.parseValueForDatabaseWrite("123");
 		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testParseUserIdBad(){
-		ColumnTypeInfo.USERID.parseValueForDB("foo");
+		ColumnTypeInfo.USERID.parseValueForDatabaseWrite("foo");
 	}
 	
 	@Test
 	public void testParseDateLong(){
-		Object dbValue = ColumnTypeInfo.DATE.parseValueForDB("123");
+		Object dbValue = ColumnTypeInfo.DATE.parseValueForDatabaseWrite("123");
 		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test
 	public void testParseDateString(){
-		Object dbValue = ColumnTypeInfo.DATE.parseValueForDB("1970-1-1 00:00:00.123");
+		Object dbValue = ColumnTypeInfo.DATE.parseValueForDatabaseWrite("1970-1-1 00:00:00.123");
 		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testParseDateBad(){
-		ColumnTypeInfo.DATE.parseValueForDB("1970-1-1 00:00:00.foo");
+		ColumnTypeInfo.DATE.parseValueForDatabaseWrite("1970-1-1 00:00:00.foo");
 	}
 	
 	@Test
 	public void testParseEntityId(){
-		Object dbValue = ColumnTypeInfo.ENTITYID.parseValueForDB("syn123");
-		assertEquals("syn123",dbValue);
+		Object dbValue = ColumnTypeInfo.ENTITYID.parseValueForDatabaseWrite("syn123");
+		assertEquals(new Long(123),dbValue);
 	}
 	
 	@Test
 	public void testParseLink(){
-		Object dbValue = ColumnTypeInfo.LINK.parseValueForDB("http://google.com");
+		Object dbValue = ColumnTypeInfo.LINK.parseValueForDatabaseWrite("http://google.com");
 		assertEquals("http://google.com",dbValue);
 	}
 	
 	@Test
 	public void testParseString(){
-		Object dbValue = ColumnTypeInfo.STRING.parseValueForDB("foo");
+		Object dbValue = ColumnTypeInfo.STRING.parseValueForDatabaseWrite("foo");
 		assertEquals("foo", dbValue);
 	}
 	
 	@Test
 	public void testParseDouble(){
-		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDB("123.1");
+		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("123.1");
 		assertEquals(new Double(123.1), dbValue);
 	}
 	
 	@Test
 	public void testParseDoubleNaN(){
-		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDB("NaN");
+		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("NaN");
 		assertEquals(Double.NaN, dbValue);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testParseDoubleBad(){
-		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDB("123.1foo");
+		Object dbValue = ColumnTypeInfo.DOUBLE.parseValueForDatabaseWrite("123.1foo");
 		assertEquals(new Double(123.1), dbValue);
 	}
 	
 	@Test
 	public void testParseBooleanTrue(){
-		Object dbValue = ColumnTypeInfo.BOOLEAN.parseValueForDB("true");
+		Object dbValue = ColumnTypeInfo.BOOLEAN.parseValueForDatabaseWrite("true");
 		assertEquals(Boolean.TRUE, dbValue);
 	}
 	
 	@Test
 	public void testParseBooleanFalse(){
-		Object dbValue = ColumnTypeInfo.BOOLEAN.parseValueForDB("False");
+		Object dbValue = ColumnTypeInfo.BOOLEAN.parseValueForDatabaseWrite("False");
 		assertEquals(Boolean.FALSE, dbValue);
 	}
 	
 	@Test
 	public void testParseLargeText(){
-		Object dbValue = ColumnTypeInfo.LARGETEXT.parseValueForDB("foo");
+		Object dbValue = ColumnTypeInfo.LARGETEXT.parseValueForDatabaseWrite("foo");
 		assertEquals("foo", dbValue);
 	}
 	
@@ -123,13 +123,13 @@ public class ColumnTypeInfoTest {
 	public void testParseAllNull(){
 		for(ColumnTypeInfo info: ColumnTypeInfo.values()){
 			String value = null;
-			assertNull(info.parseValueForDB(value));
+			assertNull(info.parseValueForDatabaseWrite(value));
 		}
 	}
 
 	@Test
 	public void testIsStringType(){
-		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.ENTITYID, ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK);
+		Set<ColumnTypeInfo> stringTypes = Sets.newHashSet(ColumnTypeInfo.STRING, ColumnTypeInfo.LARGETEXT, ColumnTypeInfo.LINK);
 		for(ColumnTypeInfo type: ColumnTypeInfo.values()){
 			if(stringTypes.contains(type)){
 				assertTrue("Should not be a string type: "+type.name(),type.isStringType());
@@ -220,7 +220,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = null;
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT(20) DEFAULT NULL COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test
@@ -228,7 +228,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "syn123";
 		String sql = ColumnTypeInfo.ENTITYID.toSql(inputSize, defaultValue);
-		assertEquals("VARCHAR(44) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT 'syn123' COMMENT 'ENTITYID'", sql);
+		assertEquals("BIGINT(20) DEFAULT 123 COMMENT 'ENTITYID'", sql);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

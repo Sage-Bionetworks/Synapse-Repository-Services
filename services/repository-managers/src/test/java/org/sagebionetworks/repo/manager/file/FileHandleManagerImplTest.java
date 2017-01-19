@@ -26,6 +26,7 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -49,6 +50,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.audit.ObjectRecordQueue;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -59,6 +61,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.DBOStorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyRequest;
 import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
@@ -76,8 +79,10 @@ import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.S3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -113,13 +118,13 @@ public class FileHandleManagerImplTest {
 	ObjectRecordQueue mockObjectRecordQueue;
 	@Mock
 	IdGenerator mockIdGenerator;
-	
+	@Mock
+	ProjectSettingsManager mockProjectSettingsManager;
+
 	FileHandleManagerImpl manager;
-	
 	UserInfo mockUser;
-	
 	S3FileHandle validResults;
-	
+
 	String bucket;
 	String key;
 	String md5;
@@ -128,18 +133,17 @@ public class FileHandleManagerImplTest {
 	// setup a storage location
 	ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	S3FileHandle externals3FileHandle;
-	
+
 	ProxyStorageLocationSettings proxyStorageLocationSettings;
 	ProxyFileHandle externalProxyFileHandle;
-	
+
 	List<FileHandleAssociation> associations;
 	FileHandleAssociation fha1;
 	FileHandleAssociation fha2;
 	FileHandleAssociation fhaMissing;
 	BatchFileRequest batchRequest;
 	ObjectRecord successRecord;
-	
-	
+
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
 		MockitoAnnotations.initMocks(this);
@@ -152,17 +156,18 @@ public class FileHandleManagerImplTest {
 		ReflectionTestUtils.setField(manager, "fileHandleAuthorizationManager", mockFileHandleAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "objectRecordQueue", mockObjectRecordQueue);
 		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
-		
+		ReflectionTestUtils.setField(manager, "projectSettingsManager", mockProjectSettingsManager);
+
 		// The user is not really a mock
 		mockUser = new UserInfo(false,"987");
-		
+
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
 		String fileName = "someTextFile.txt";
 		String contentString = "I am a very short string";
 		byte[] contentBytes = contentString.getBytes();
 		String contentMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(contentBytes)));
-				
+
 		// setup the primary to succeed
 		validResults = new S3FileHandle();
 		validResults.setId("123");
@@ -1224,5 +1229,47 @@ public class FileHandleManagerImplTest {
 		ObjectRecord record = records.get(0);
 		assertEquals(EntityFactory.createJSONStringForEntity(FileHandleCopyUtils.createCopyRecord(mockUser.getId().toString(), newId.toString(), fha2)),
 				record.getJsonString());
+	}
+
+	@Test
+	public void testGetDefaultUploadDestinationWithNullUploadDestinationListSetting(){
+		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
+				manager.getDefaultUploadDestination(mockUser, "syn1"));
+	}
+
+	@Test
+	public void testGetDefaultUploadDestinationWithNullLocations(){
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
+				ProjectSettingsType.upload, UploadDestinationListSetting.class))
+				.thenReturn(new UploadDestinationListSetting());
+		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
+				manager.getDefaultUploadDestination(mockUser, "syn1"));
+	}
+
+	@Test
+	public void testGetDefaultUploadDestinationWithEmptyLocations(){
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(new LinkedList<Long>());
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
+				ProjectSettingsType.upload, UploadDestinationListSetting.class))
+				.thenReturn(setting );
+		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
+				manager.getDefaultUploadDestination(mockUser, "syn1"));
+	}
+
+	@Test
+	public void testGetDefaultUploadDestinationWithANullLocation(){
+		UploadDestinationListSetting setting = new UploadDestinationListSetting();
+		setting.setLocations(Arrays.asList((Long) null));
+		when(mockProjectSettingsManager.getProjectSettingForNode(mockUser, "syn1",
+				ProjectSettingsType.upload, UploadDestinationListSetting.class))
+				.thenReturn(setting );
+		assertEquals(DBOStorageLocationDAOImpl.getDefaultUploadDestination(),
+				manager.getDefaultUploadDestination(mockUser, "syn1"));
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetUploadDestinationWithNullStorageLocationId() {
+		manager.getUploadDestination(mockUser, "syn1", null);
 	}
 }

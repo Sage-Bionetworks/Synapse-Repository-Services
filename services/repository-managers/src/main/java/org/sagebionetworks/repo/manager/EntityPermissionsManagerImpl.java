@@ -25,14 +25,12 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
@@ -48,8 +46,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private static final Long TRASH_FOLDER_ID = Long.parseLong(
 			StackConfiguration.getTrashFolderEntityIdStatic());
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
@@ -447,7 +443,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
-		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
+		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId());
 	}
 	
 	@Override

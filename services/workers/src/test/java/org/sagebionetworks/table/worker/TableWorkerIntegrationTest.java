@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -1564,7 +1563,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		long userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo owner = userManager.getUserInfo(userId);
 		users.add(owner);
 
@@ -1573,7 +1572,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo notOwner = userManager.getUserInfo(userId);
 		users.add(notOwner);
 
@@ -1878,6 +1877,63 @@ public class TableWorkerIntegrationTest {
 		TableStatus status = waitForTableProcessing(localTableId);
 		assertNotNull(status);
 		assertEquals(TableState.AVAILABLE, status.getState());
+	}
+	
+	/**
+	 * Test for PLFM-4216, PLFM-4088, PLFM-4203
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testEntityIdColumns() throws Exception {
+		// setup an EntityId column.
+		ColumnModel entityIdColumn = new ColumnModel();
+		entityIdColumn.setColumnType(ColumnType.ENTITYID);
+		entityIdColumn.setName("anEntityId");
+		entityIdColumn.setFacetType(FacetType.enumeration);
+		entityIdColumn = columnManager.createColumnModel(adminUserInfo, entityIdColumn);
+		schema = Lists.newArrayList(entityIdColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		// add rows to the table.
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "syn123"),
+				TableModelTestUtils.createRow(null, null, "syn456"),
+				TableModelTestUtils.createRow(null, null, "syn789"),
+				TableModelTestUtils.createRow(null, null, "syn123")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		
+		String sql = "select * from " + tableId;
+		waitForConsistentQuery(adminUserInfo, sql, null, 1L);
+		
+		// setup and run a faceted query
+		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
+		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
+		selectedColumn.setColumnName(entityIdColumn.getName());
+		Set<String> facetValues = new HashSet<>();
+		facetValues.add("syn123");
+		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
+		selectedFacets.add(selectedColumn);
+		
+		QueryResultBundle results = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, null, null, true, false, true, true);
+		assertNotNull(results);
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals(2, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(1, row.getValues().size());
+		assertEquals("syn123", row.getValues().get(0));
+	
 	}
 	
 	/**

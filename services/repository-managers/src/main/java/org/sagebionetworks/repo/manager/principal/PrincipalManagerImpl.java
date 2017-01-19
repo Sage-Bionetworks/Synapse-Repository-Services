@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.WordUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -21,7 +20,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -120,7 +118,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	}
 	
 	// note, this assumes that first name, last name and email are valid in 'user'
-	public static String createTokenForNewAccount(NewUser user, DomainType domain, Date now) {
+	public static String createTokenForNewAccount(NewUser user, Date now) {
 		try {
 			StringBuilder sb = new StringBuilder();
 			String urlEncodedFirstName = URLEncoder.encode(user.getFirstName(), PARAMETER_CHARSET);
@@ -133,7 +131,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String timestampString = df.format(now);
 			String urlEncodedTimeStampString = URLEncoder.encode(timestampString, PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
-			String urlEncodedDomain = URLEncoder.encode(domain.name(), PARAMETER_CHARSET);
+			String urlEncodedDomain = URLEncoder.encode("Synapse", PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
 			String mac = generateSignatureForNewAccount(
 					urlEncodedFirstName, urlEncodedLastName, urlEncodedEmail, 
@@ -207,50 +205,43 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return email;
 	}
 	
-	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
+	// will throw exception for invalid email, invalid endpoint, or an email which is already taken
 	@Override
-	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint) {
 		if (user.getFirstName()==null) user.setFirstName("");
 		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE)) {
-			String token = createTokenForNewAccount(user, domain, new Date());
-			String url = portalEndpoint+token;
-			EmailUtils.validateSynapsePortalHost(url);
-			// is the email taken?
-			if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
-				throw new NameConflictException("The email address provided is already used.");
-			}
-			
-			// all requirements are met, so send the email
-			String domainString = WordUtils.capitalizeFully(domain.name());
-			String subject = "Welcome to " + domain + "!";
-			Map<String,String> fieldValues = new HashMap<String,String>();
-			if (user.getFirstName().length()>0 || user.getLastName().length()>0) {
-				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
-			} else {
-				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
-			}
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
-			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
-			SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-					.withRecipientEmail(user.getEmail())
-					.withSubject(subject)
-					.withBody(messageBody, BodyType.HTML)
-					.withIsNotificationMessage(true)
-					.build();	
-			sesClient.sendRawEmail(sendEmailRequest);
-		} else {
-			throw new IllegalArgumentException("Unexpected Domain: "+domain);
+		String token = createTokenForNewAccount(user, new Date());
+		String url = portalEndpoint+token;
+		EmailUtils.validateSynapsePortalHost(url);
+		// is the email taken?
+		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
+			throw new NameConflictException("The email address provided is already used.");
 		}
+		String subject = "Welcome to SYNAPSE!";
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		if (user.getFirstName().length()>0 || user.getLastName().length()>0) {
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
+		} else {
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
+		}
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
+		String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(user.getEmail())
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.HTML)
+				.withIsNotificationMessage(true)
+				.build();	
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
 	@WriteTransaction
 	@Override
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException {
+	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
 		String validatedEmail = validateNewAccountToken(accountSetupInfo.getEmailValidationToken(), new Date());
 
 		NewUser newUser = new NewUser();
@@ -261,14 +252,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		long newPrincipalId = userManager.createUser(newUser);
 		
 		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword(), domain);
+		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword());
 	}
 
 	public static String generateSignatureForAdditionalEmail(String userId, String email, String timestamp, String domain) {
 		return generateSignature(userId+email+timestamp+domain);
 	}
 	
-	public static String createTokenForAdditionalEmail(Long userId, String email, DomainType domain, Date now) {
+	public static String createTokenForAdditionalEmail(Long userId, String email, Date now) {
 		try {
 			StringBuilder sb = new StringBuilder();
 			String urlEncodedUserId = URLEncoder.encode(userId.toString(), PARAMETER_CHARSET);
@@ -279,7 +270,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String timestampString = df.format(now);
 			String urlEncodedTimeStampString = URLEncoder.encode(timestampString, PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
-			String urlEncodedDomain = URLEncoder.encode(domain.name(), PARAMETER_CHARSET);
+			String urlEncodedDomain = URLEncoder.encode("Synapse", PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
 			String mac = generateSignatureForAdditionalEmail(urlEncodedUserId, urlEncodedEmail, 
 					urlEncodedTimeStampString, urlEncodedDomain);
@@ -346,42 +337,38 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	
 	@Override
 	public void additionalEmailValidation(UserInfo userInfo, Username email,
-			String portalEndpoint, DomainType domain) throws NotFoundException {
+			String portalEndpoint) throws NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		
-		if (domain.equals(DomainType.SYNAPSE)) {
-			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
-			String url = portalEndpoint+token;
-			EmailUtils.validateSynapsePortalHost(url);
-			// is the email taken?
-			if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
-				throw new NameConflictException("The email address provided is already used.");
-			}
-			
-			// all requirements are met, so send the email
-			String subject = "Request to add or change new email";
-			Map<String,String> fieldValues = new HashMap<String,String>();
-			UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
-			userProfile.getFirstName()+" "+userProfile.getLastName());
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
-			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
-			SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-					.withRecipientEmail(email.getEmail())
-					.withSubject(subject)
-					.withBody(messageBody, BodyType.HTML)
-					.withIsNotificationMessage(true)
-					.build();
-			sesClient.sendRawEmail(sendEmailRequest);
-		} else {
-			throw new IllegalArgumentException("Unexpected Domain: "+domain);
+		String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), new Date());
+		String url = portalEndpoint+token;
+		EmailUtils.validateSynapsePortalHost(url);
+		// is the email taken?
+		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
+			throw new NameConflictException("The email address provided is already used.");
 		}
+		
+		// all requirements are met, so send the email
+		String subject = "Request to add or change new email";
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
+		userProfile.getFirstName()+" "+userProfile.getLastName());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
+		String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.html", fieldValues);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+				.withRecipientEmail(email.getEmail())
+				.withSubject(subject)
+				.withBody(messageBody, BodyType.HTML)
+				.withIsNotificationMessage(true)
+				.build();
+		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
 	public static String getParameterValueFromToken(String token, String paramName) {

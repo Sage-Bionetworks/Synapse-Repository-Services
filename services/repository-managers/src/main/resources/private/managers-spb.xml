@@ -187,7 +187,11 @@
 				</entry>
 				<entry key="WikiAttachment">
 					<bean
-						class="org.sagebionetworks.repo.manager.wiki.WikiFileHandleAssociationProvider" />
+						class="org.sagebionetworks.repo.manager.wiki.WikiAttachmentFileHandleAssociationProvider" />
+				</entry>
+				<entry key="WikiMarkdown">
+					<bean
+						class="org.sagebionetworks.repo.manager.wiki.WikiMarkdownFileHandleAssociationProvider" />
 				</entry>
 				<entry key="UserProfileAttachment">
 					<bean
