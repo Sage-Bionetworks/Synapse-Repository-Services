@@ -876,8 +876,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			// to use the version returned.
 		}
 		return v;
+	}
 
-	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
+	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown (
 			List<String> fileHandleIds, String wikiId) {
 		ValidateArgument.required(fileHandleIds, "fileHandleIds");
 		final Set<String> results = new HashSet<String>();
