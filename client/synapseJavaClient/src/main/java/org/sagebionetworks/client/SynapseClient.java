@@ -647,8 +647,6 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
-	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException;
-	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
 		ObjectType ownerType) throws SynapseException;
 	

@@ -147,10 +147,4 @@ public class V2WikiServiceImpl implements V2WikiService {
 		return fileHandleManager.getRedirectURLForFileHandle(id);
 	}
 
-	@Override
-	public void deleteWikiVersions(Long userId, WikiPageKey key, List<Long> versionsToDelete) {
-		UserInfo user = userManager.getUserInfo(userId);
-		wikiManager.deleteWikiVersions(user, key, versionsToDelete);
-	}
-
 }

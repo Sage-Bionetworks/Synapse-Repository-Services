@@ -137,14 +137,20 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			"SELECT "+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST
 			+" FROM "+V2_TABLE_WIKI_MARKDOWN
 			+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ?";
-	private static final String SQL_DELETE_WIKI_VERSIONS =
-			"DELETE FROM " + V2_TABLE_WIKI_MARKDOWN +
-				" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId AND " +
-				V2_COL_WIKI_MARKDOWN_VERSION + " IN (:versions)";
-	private static final String SQL_UPDATE_WIKI_ETAG = 
+	private static final String SQL_UPDATE_WIKI_ETAG =
 			"UPDATE " + V2_TABLE_WIKI_PAGE + " SET " + V2_COL_WIKI_ETAG + " = ? " +
 			"WHERE " + V2_COL_WIKI_ID + " = ?";
-	
+	private static final String SQL_GET_WIKI_VERSION_NUM_BY_RANK =
+			"SELECT " + V2_COL_WIKI_MARKDOWN_VERSION +
+			" FROM " + V2_TABLE_WIKI_MARKDOWN +
+			" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId " +
+			" ORDER BY " + V2_COL_WIKI_MARKDOWN_VERSION + " DESC" +
+			" LIMIT 1 OFFSET :rank";
+	private static final String SQL_DELETE_WIKI_VERSIONS2 =
+			"DELETE FROM " + V2_TABLE_WIKI_MARKDOWN +
+			" WHERE " + V2_COL_WIKI_MARKDOWN_ID + " = :wikiPageId AND " +
+			V2_COL_WIKI_MARKDOWN_VERSION + " < :version";
+			
 	private static final String SQL_INTERSECTION_MARKDOWN_FILEHANDLES = "SELECT DISTINCT "
 			+ V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID
 			+ " FROM "
@@ -801,23 +807,20 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@WriteTransaction
 	@Override
-	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete) {
+	public void deleteWikiVersions(WikiPageKey key, Long minVersionToKeep) {
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null.");
 		}
-		if (versionsToDelete == null) {
-			throw new IllegalArgumentException("VersionsToDelete cannot be null.");
-		}
-		if (versionsToDelete.size() == 0) {
-			throw new IllegalArgumentException("VersionsToDelete cannot be empty.");
+		if (minVersionToKeep == null) {
+			throw new IllegalArgumentException("MinVersionToKeep cannot be null.");
 		}
 		String wikiId = key.getWikiPageId();
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("wikiPageId", wikiId);
-		params.addValue("versions", versionsToDelete);
+		params.addValue("version", minVersionToKeep);
 		try {
-			namedTemplate.update(SQL_DELETE_WIKI_VERSIONS, params);
+			namedTemplate.update(SQL_DELETE_WIKI_VERSIONS2, params);
 		} catch (NotFoundException e) {
 			// Nothing to do if none found
 		}
@@ -848,7 +851,34 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 
 	@Override
-	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown(
+	public Long getWikiVersionByRank(WikiPageKey key, Long rank) throws NotFoundException {
+		if (key == null) {
+			throw new IllegalArgumentException("Key cannot be null.");
+		}
+		if (rank == null) {
+			throw new IllegalArgumentException(("Rank cannot be null."));
+		}
+		if (rank < 0) {
+			throw new IllegalArgumentException("Rank must be positive.");
+		}
+		String wikiId = key.getWikiPageId();
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("wikiPageId", wikiId);
+		params.addValue("rank", rank);
+		Long v = 0L;
+		try {
+			v = namedTemplate.queryForObject(SQL_GET_WIKI_VERSION_NUM_BY_RANK, params, Long.class);
+		} catch (EmptyResultDataAccessException e) {
+			// Just return 0
+			// Note: This is fine for use case (<= getWikiVersionByRank()) but
+			// we should return the min(version) or raise an exception if we were
+			// to use the version returned.
+		}
+		return v;
+	}
+
+	public Set<String> getFileHandleIdsAssociatedWithWikiMarkdown (
 			List<String> fileHandleIds, String wikiId) {
 		ValidateArgument.required(fileHandleIds, "fileHandleIds");
 		final Set<String> results = new HashSet<String>();

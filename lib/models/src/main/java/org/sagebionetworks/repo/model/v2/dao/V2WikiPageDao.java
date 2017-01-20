@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -205,11 +206,11 @@ public interface V2WikiPageDao {
 	public Set<String> getFileHandleIdsAssociatedWithWikiAttachments(List<String> fileHandleIds, String wikiPageId);
 
 	/**
-	 * Delete the versions of a Wiki page specified in a list of versions
+	 * Delete the versions of a Wiki page with versions < minVersionToKeep
 	 * @param key
-	 * @param versionsToDelete
+	 * @param minVersionToKeep
 	 */
-	public void deleteWikiVersions(WikiPageKey key, List<Long> versionsToDelete);
+	public void deleteWikiVersions(WikiPageKey key, Long minVersionToKeep);
 	
 	/**
 	 * Update the Etag of a Wiki page
@@ -234,6 +235,16 @@ public interface V2WikiPageDao {
 	 */
 	Long getCurrentWikiVersion(String ownerId, ObjectType ownerType,
 			String wikiId) throws NotFoundException;
+
+	/**
+	 * Returns the version of the Wiki for given rank (order by version desc)
+	 * @param ownerId
+	 * @param objectType
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Long getWikiVersionByRank(WikiPageKey key, Long rank) throws NotFoundException;
 
 	/**
 	 * Get the markdown FileHandleIds associated with the given wiki page.

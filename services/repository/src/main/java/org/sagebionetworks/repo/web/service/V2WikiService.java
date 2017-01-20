@@ -182,12 +182,4 @@ public interface V2WikiService {
 	 */
 	V2WikiOrderHint updateWikiOrderHint(Long userId, V2WikiOrderHint orderHint) throws NotFoundException;
 	
-	/**
-	 * Delete 
-	 * @param userId
-	 * @param ownerId
-	 * @param ownerType
-	 * @param wikiPage
-	 */
-	void deleteWikiVersions(Long userId, WikiPageKey key, List<Long> versionsToDelete);
 }
