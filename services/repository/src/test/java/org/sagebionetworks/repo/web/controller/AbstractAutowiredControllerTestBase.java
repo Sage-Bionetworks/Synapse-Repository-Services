@@ -1,18 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
