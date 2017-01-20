@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -107,6 +109,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		this.schema = new LinkedList<ColumnModel>();
 	}
 
 	@After
@@ -144,13 +148,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	private void doTestRoundTrip(boolean useCSVHeader) throws DatastoreException, InvalidModelException, UnauthorizedException,
 			NotFoundException, IOException,
 			InterruptedException {
-		this.schema = new LinkedList<ColumnModel>();
-		// Create a project
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		String id = entityManager.createEntity(adminUserInfo, project, null);
-		project = entityManager.getEntity(adminUserInfo, id, Project.class);
-		toDelete.add(project.getId());
 		// Create a few columns
 		// String
 		ColumnModel cm = new ColumnModel();
@@ -166,14 +163,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		schema.add(cm);
 		headers = TableModelUtils.getIds(schema);
 
-		// Create the table
-		TableEntity table = new TableEntity();
-		table.setParentId(project.getId());
-		table.setColumnIds(headers);
-		table.setName(UUID.randomUUID().toString());
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		// create the table
+		createTableWithSchema();
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
@@ -192,20 +183,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		} finally {
 			csv.close();
 		}
-		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
-		fileHandle.setKey(UUID.randomUUID() + ".csv");
-		fileHandle.setContentType("text/csv");
-		fileHandle.setCreatedBy("" + adminUserInfo.getId());
-		fileHandle.setFileName("ToAppendToTable.csv");
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
-		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setPreviewId(fileHandle.getId());
-		// Upload the File to S3
-		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
-		fileHandles.add(fileHandle);
-		// Upload the file to S3.
-		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), tempFile);
+		S3FileHandle fileHandle = uploadFile(tempFile);
 		// We are now ready to start the job
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
@@ -240,13 +218,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	@Test
 	public void testUpdateRoundTrip() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
 			IOException, InterruptedException {
-		this.schema = new LinkedList<ColumnModel>();
-		// Create a project
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		String id = entityManager.createEntity(adminUserInfo, project, null);
-		project = entityManager.getEntity(adminUserInfo, id, Project.class);
-		toDelete.add(project.getId());
 		// Create a few columns
 		// String
 		ColumnModel cm = new ColumnModel();
@@ -260,17 +231,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		cm.setName("someinteger");
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
-		List<String> ids = TableModelUtils.getIds(schema);
-		headers = ids;
-
-		// Create the table
-		TableEntity table = new TableEntity();
-		table.setParentId(project.getId());
-		table.setColumnIds(headers);
-		table.setName(UUID.randomUUID().toString());
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+		// create the table.
+		createTableWithSchema();
 
 		// Create a CSV file to upload
 		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
@@ -287,20 +249,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		} finally {
 			csv.close();
 		}
-		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
-		fileHandle.setKey(UUID.randomUUID() + ".csv");
-		fileHandle.setContentType("text/csv");
-		fileHandle.setCreatedBy("" + adminUserInfo.getId());
-		fileHandle.setFileName("ToAppendToTable.csv");
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
-		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setPreviewId(fileHandle.getId());
-		// Upload the File to S3
-		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
-		fileHandles.add(fileHandle);
-		// Upload the file to S3.
-		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), tempFile);
+		S3FileHandle fileHandle = uploadFile(tempFile);
 		// We are now ready to start the job
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
@@ -347,20 +296,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		}
 		csv.close();
 
-		fileHandle = new S3FileHandle();
-		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
-		fileHandle.setKey(UUID.randomUUID() + ".csv");
-		fileHandle.setContentType("text/csv");
-		fileHandle.setCreatedBy("" + adminUserInfo.getId());
-		fileHandle.setFileName("ToAppendToTable2.csv");
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
-		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setPreviewId(fileHandle.getId());
-		// Upload the File to S3
-		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
-		fileHandles.add(fileHandle);
-		// Upload the file to S3.
-		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), tempFile);
+		fileHandle = uploadFile(tempFile);
 		// We are now ready to start the job
 		body = new UploadToTableRequest();
 		body.setTableId(tableId);
@@ -377,6 +313,82 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		assertNotNull(changes);
 		assertEquals(2, changes.size());
 	}
+	
+	/**
+	 * A complex use case is needed to verify that both PLFM-3155 and PLFM-3355 are fixed.
+	 * For this use case a CSV that includes both ROW_ID and ROW_VERSION is used to create 
+	 * a new table.  The CSV contains one column of actual string data with a header named 'bar'.
+	 * The new table table has a single string column named 'foo'.  Since the column name
+	 * of the table and the CSV header do not match, the CSV will be uploaded with
+	 * linesToSkip=1 and isFirstLineHeader=false.  The expected result is all data from
+	 * the 'bar' column in the CSV is successfully added to the 'foo' column of the
+	 * table.
+	 */
+	@Test
+	public void testPLFM_3155andPLFM_3354() throws Exception {
+		// the column name is 'foo;
+		ColumnModel column = TableModelTestUtils.createColumn(null, "foo", ColumnType.STRING);
+		column.setMaximumSize(2L);
+		column = columnManager.createColumnModel(adminUserInfo, column);
+		schema = Lists.newArrayList(column);
+		// create the table
+		createTableWithSchema();
+		
+		// Create a CSV file to upload
+		File tempFile = File.createTempFile("TestPLFM_3155andPLFM_3354", ".csv");
+		tempFiles.add(tempFile);
+		CSVWriter csv = new CSVWriter(new FileWriter(tempFile));
+		int rowCount = 10;
+		try {
+			// the header name is 'bar'
+			csv.writeNext(new String[] { TableConstants.ROW_ID, TableConstants.ROW_VERSION, "bar"});
+			// Write some rows
+			for (int i = 0; i < rowCount; i++) {
+				csv.writeNext(new String[] { "" + (100+i), "99","d" + i });
+			}
+		} finally {
+			csv.close();
+		}
+		S3FileHandle fileHandle = uploadFile(tempFile);
+		// Upload the CSV to the table
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId(tableId);
+		body.setEntityId(tableId);
+		body.setUploadFileHandleId(fileHandle.getId());
+		// skip the first line
+		body.setLinesToSkip(1L);
+		CsvTableDescriptor csvDescriptor = new CsvTableDescriptor();
+		// the first 
+		csvDescriptor.setIsFirstLineHeader(false);
+		body.setCsvTableDescriptor(csvDescriptor);
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		assertNotNull(status);
+		UploadToTableResult response = TableModelUtils.extractResponseFromTransaction(status.getResponseBody(), UploadToTableResult.class);
+		assertNotNull(response.getEtag());
+		assertEquals(new Long(rowCount), response.getRowsProcessed());
+	}
+	
+	/**
+	 * Create a table using the schema.
+	 * 
+	 */
+	void createTableWithSchema() {
+		List<String> ids = TableModelUtils.getIds(schema);
+		headers = ids;
+
+		// Create the table
+		TableEntity table = new TableEntity();
+		table.setColumnIds(headers);
+		table.setName(UUID.randomUUID().toString());
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		toDelete.add(tableId);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
+	}
 
 	private AsynchronousJobStatus waitForStatus(UserInfo user, AsynchronousJobStatus status) throws InterruptedException, DatastoreException,
 			NotFoundException {
@@ -389,5 +401,29 @@ public class TableCSVAppenderWorkerIntegrationTest {
 			status = this.asynchJobStatusManager.getJobStatus(user, status.getJobId());
 		}
 		return status;
+	}
+	
+	/**
+	 * Upload the given file to S3 and create a S3FileHandle for it.
+	 * 
+	 * @param tempFile
+	 * @return
+	 */
+	private S3FileHandle uploadFile(File tempFile){
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setBucketName(StackConfiguration.getS3Bucket());
+		fileHandle.setKey(UUID.randomUUID() + ".csv");
+		fileHandle.setContentType("text/csv");
+		fileHandle.setCreatedBy("" + adminUserInfo.getId());
+		fileHandle.setFileName(tempFile.getName());
+		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setPreviewId(fileHandle.getId());
+		// Upload the File to S3
+		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
+		fileHandles.add(fileHandle);
+		// Upload the file to S3.
+		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), tempFile);
+		return fileHandle;
 	}
 }

@@ -115,14 +115,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -1397,7 +1397,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null, null, null);
 		// Now wait for the table index to be ready
@@ -1448,7 +1448,7 @@ public class TableWorkerIntegrationTest {
 		copy.get(3)[2] = "FFF";
 		reader = TableModelTestUtils.createReader(copy);
 		// Use the data to update the table
-		iterator = new CSVToRowIterator(schema, reader, true, null);
+		iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				response.getEtag(), null, null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
@@ -1479,7 +1479,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null,
 				null, null);
