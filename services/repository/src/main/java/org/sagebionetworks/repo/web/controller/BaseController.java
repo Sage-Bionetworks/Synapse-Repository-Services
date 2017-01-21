@@ -41,6 +41,7 @@ import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -808,5 +809,14 @@ public abstract class BaseController {
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);
+	}
+
+	@ExceptionHandler(UnexpectedRollbackException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex.getCause(), request, true);
 	}
 }
