@@ -720,7 +720,7 @@ public class BaseClientImplTest {
 		baseClient.setApiKey("apiKey");
 		HashMap<String, String> headers = new HashMap<String, String>();
 		baseClient.addDigitalSignature(
-				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE", headers);
+				"https://repo-prod.prod.sagebase.org/entityId", headers);
 		assertEquals("username", headers.get(AuthorizationConstants.USER_ID_HEADER));
 		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE_TIMESTAMP));
 		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE));
@@ -734,7 +734,7 @@ public class BaseClientImplTest {
 	@Test (expected = SynapseClientException.class)
 	public void testPerformRequestWithRetryWithNullMethod() throws Exception {
 		baseClient.performRequestWithRetry(
-				"https://repo-prod.prod.sagebase.org/entityId?domain=SYNAPSE",
+				"https://repo-prod.prod.sagebase.org/entityId",
 				null, null, null);
 	}
 

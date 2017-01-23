@@ -184,9 +184,6 @@ public class UserManagerImpl implements UserManager {
 			basicDAO.createOrUpdate(touAgreement);
 		}
 		if (token != null) {
-			if (token.getDomain() == null) {
-				throw new IllegalArgumentException("Session token cannot be set without a domain specified");
-			}
 			token.setPrincipalId(principalId);
 			basicDAO.createOrUpdate(token);
 		}

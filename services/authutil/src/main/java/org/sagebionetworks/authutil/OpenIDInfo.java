@@ -22,7 +22,6 @@ public class OpenIDInfo {
 	public static final String AX_REG_FULL_NAME = "fullname";
 	
 	public static final String CREATE_USER_IF_NECESSARY_PARAM_NAME = "org.sagebionetworks.createUserIfNecessary";
-	public static final String ORIGINATING_CLIENT_PARAM_NAME = "domain";
 
 	public OpenIDInfo() { }
 
