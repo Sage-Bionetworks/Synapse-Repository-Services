@@ -1088,6 +1088,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(request.getRequestedFiles(), "requestedFiles");
 		String userId = userInfo.getId().toString();
 		long now = System.currentTimeMillis();
+		if (request.getIncludeFileHandles() == null) {
+			request.setIncludeFileHandles(false);
+		}
+		if (request.getIncludePreSignedURLs() == null) {
+			request.setIncludePreSignedURLs(false);
+		}
 		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
 			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
 		}

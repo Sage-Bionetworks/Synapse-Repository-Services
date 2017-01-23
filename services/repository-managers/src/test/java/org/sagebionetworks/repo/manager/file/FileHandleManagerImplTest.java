@@ -943,8 +943,8 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {	
-		batchRequest.setIncludeFileHandles(false);
+	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {
+		batchRequest.setIncludeFileHandles(null);
 		batchRequest.setIncludePreSignedURLs(true);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
@@ -966,7 +966,7 @@ public class FileHandleManagerImplTest {
 	@Test
 	public void testGetFileHandleAndUrlBatchHandlesOnly() throws Exception {	
 		batchRequest.setIncludeFileHandles(true);
-		batchRequest.setIncludePreSignedURLs(false);
+		batchRequest.setIncludePreSignedURLs(null);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -1004,7 +1004,7 @@ public class FileHandleManagerImplTest {
 		// call under test
 		manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 	}
-	
+
 	@Test
 	public void testGetFileHandleAndUrlBatchOverLimit() throws Exception {
 		List<FileHandleAssociation> overLimit = new LinkedList<>();
