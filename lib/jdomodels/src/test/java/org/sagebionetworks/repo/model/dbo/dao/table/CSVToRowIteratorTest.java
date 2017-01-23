@@ -408,6 +408,10 @@ public class CSVToRowIteratorTest {
 		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
 		List<SparseRowDto> rows = readAll(iterator);
 
+		/*
+		 * For this case the first row should be skipped but the next two rows
+		 * should be read correctly including ROW_ID and ROW_VERSION.
+		 */
 		assertEquals(2, rows.size());
 		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, columns, "AAA"), rows.get(0));
 		assertEquals(TableModelTestUtils.createSparseRow(2L, 11L, columns, "BBB"), rows.get(1));

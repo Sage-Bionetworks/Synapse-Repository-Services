@@ -31,6 +31,7 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 	private String[] lastRow;
 	private int rowLineNumber;
 	private long rowsRead;
+	private int linesToSkip;
 
 	/**
 	 * Create a new object for each use.
@@ -48,7 +49,7 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 		this.reader = reader;
 		this.rowLineNumber = 1;
 		rowsRead = 0;
-		int linesToSkip = 0;
+		linesToSkip = 0;
 		if(linesToSkipLong != null){
 			linesToSkip = linesToSkipLong.intValue();
 		}
@@ -59,13 +60,7 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 		}
 		
 		// create the headers
-		String[] headers = createHeaderFromLastRow(lastRow, linesToSkip, resultSchema);
-
-		if (isFirstLineHeader) {
-			// read the header
-			headers = reader.readNext();
-			rowLineNumber++;
-		}
+		String[] headers = createHeader(isFirstLineHeader);
 		
 		lastRow = reader.readNext();
 		rowLineNumber++;
@@ -78,37 +73,47 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 	}
 	
 	/**
-	 * Create a CSV header by considering the lastRow, isFirstLineHeader and linesToSkip.
-	 * When isFirstLineHeader=true the header is simply the last row.
-	 * Since callers use isFirstLineHeader=true and linesToSkip > 0 when the headers do not match the names
-	 * we still need to consider the last row for the case where the CSV includes ROW_ID and Row_VERSION.
-	 * When isFirstLineHeader=true and linesToSkip > 0 then 
+	 * Create a CSV header by considering the lastRow, isFirstLineHeader and
+	 * linesToSkip. When isFirstLineHeader=true the header is simply the last
+	 * row. Since callers use isFirstLineHeader=true and linesToSkip > 0 when
+	 * the headers do not match the names we still need to consider the last row
+	 * for the case where the CSV includes ROW_ID and Row_VERSION. When
+	 * isFirstLineHeader=true and linesToSkip > 0 then
+	 * 
 	 * @param lastRow
 	 * @param isFirstLineHeader
 	 * @param linesToSkip
 	 * @param schema
 	 * @return
+	 * @throws IOException
 	 */
-	public static String[] createHeaderFromLastRow(String[] lastRow, int linesToSkip, List<ColumnModel> schema){
+	String[] createHeader(boolean isFirstLineHeader) throws IOException {
+		// if the first line is a header then we simply read it.
+		if (isFirstLineHeader) {
+			// read the header
+			rowLineNumber++;
+			return reader.readNext();
+		}
 		boolean lastRowIncludesRowIdAndVersion = false;
-		if (lastRow != null && lastRow.length == schema.size() + 2) {
-			if (TableConstants.ROW_ID.equals(lastRow[0]) && TableConstants.ROW_VERSION.equals(lastRow[1])) {
+		if (lastRow != null && lastRow.length == resultSchema.size() + 2) {
+			if (TableConstants.ROW_ID.equals(lastRow[0])
+					&& TableConstants.ROW_VERSION.equals(lastRow[1])) {
 				lastRowIncludesRowIdAndVersion = true;
 			}
 		}
 		List<String> headerList = new LinkedList<>();
 		/*
-		 * For the case where firstLineHeader=false and linesToSkip > 0 and 
-		 * the lastRowIncludesRowIdAndVersion=true we need to create a header using the 
-		 * names of the columns in the schema  
+		 * For the case where firstLineHeader=false and linesToSkip > 0 and the
+		 * lastRowIncludesRowIdAndVersion=true we need to create a header using
+		 * the names of the columns in the schema
 		 */
-		if(linesToSkip > 0 && lastRowIncludesRowIdAndVersion){
+		if (linesToSkip > 0 && lastRowIncludesRowIdAndVersion) {
 			// For this case the header needs to include ROW_ID and version
 			headerList.add(TableConstants.ROW_ID);
 			headerList.add(TableConstants.ROW_VERSION);
 		}
 		// Add the names of the columns from the schema
-		for(ColumnModel cm: schema){
+		for (ColumnModel cm : resultSchema) {
 			headerList.add(cm.getName());
 		}
 		// convert to an array.

@@ -834,4 +834,10 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQuery(sql, schema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
+	
+	@Test
+	public void testPLFM_3902() throws ParseException{
+		SqlQuery query = new SqlQuery("SELECT foo as \"abcd\", count(*) as C FROM syn123 group by \"abcd\" order by count(*)", tableSchema);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+	}
 }
