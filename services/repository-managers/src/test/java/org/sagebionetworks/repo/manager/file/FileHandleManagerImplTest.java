@@ -943,8 +943,29 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {
+	public void testGetFileHandleAndUrlBatchUrlsOnlyWithNullValue() throws Exception {
 		batchRequest.setIncludeFileHandles(null);
+		batchRequest.setIncludePreSignedURLs(true);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// second one is okay
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNotNull(result.getPreSignedURL());
+		// a batch of records should be pushed.
+		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+	}
+
+	@Test
+	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(true);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
