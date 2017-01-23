@@ -9,7 +9,6 @@ import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.util.Clock;
@@ -26,7 +25,6 @@ public class DBOAuthenticationDAOImplUnitTest {
 	Clock mockClock;
 	DBOAuthenticationDAOImpl authDao;
 	long principalId;
-	DomainType domainType;
 	
 	@Before
 	public void before(){
@@ -41,7 +39,6 @@ public class DBOAuthenticationDAOImplUnitTest {
 		ReflectionTestUtils.setField(authDao, "clock", mockClock);
 		
 		principalId = 789;
-		domainType = DomainType.SYNAPSE;
 	}
 	
 	/**
@@ -55,7 +52,7 @@ public class DBOAuthenticationDAOImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(now);
 		when(mockJdbcTemplate.queryForObject(any(String.class), Matchers.<RowMapper<Long>>any(),Matchers.<Object>anyVararg())).thenReturn(lastValidate);
 		// call under test
-		assertFalse("The token did not need to be validated yet",authDao.revalidateSessionTokenIfNeeded(principalId, domainType));
+		assertFalse("The token did not need to be validated yet",authDao.revalidateSessionTokenIfNeeded(principalId));
 		verify(mockUserGroupDao, never()).touch(anyLong());
 		verify(mockJdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
 	}
@@ -71,7 +68,7 @@ public class DBOAuthenticationDAOImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(now);
 		when(mockJdbcTemplate.queryForObject(any(String.class), Matchers.<RowMapper<Long>>any(),Matchers.<Object>anyVararg())).thenReturn(lastValidate);
 		// call under test
-		assertTrue("The token needed to be revalidated",authDao.revalidateSessionTokenIfNeeded(principalId, domainType));
+		assertTrue("The token needed to be revalidated",authDao.revalidateSessionTokenIfNeeded(principalId));
 		verify(mockUserGroupDao).touch(principalId);
 		verify(mockJdbcTemplate).update(anyString(), Matchers.<Object>anyVararg());
 	}

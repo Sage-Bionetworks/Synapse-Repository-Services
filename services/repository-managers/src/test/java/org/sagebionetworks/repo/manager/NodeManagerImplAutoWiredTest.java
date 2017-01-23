@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -44,7 +42,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -53,9 +50,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Lists;
-
 
 /**
  * This is an integration test for the NodeManagerImpl.  Most of the testing should occur
@@ -89,9 +83,6 @@ public class NodeManagerImplAutoWiredTest {
 	private ActivityManager activityManager;
 	
 	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
 
 	private List<String> nodesToDelete;
@@ -107,7 +98,6 @@ public class NodeManagerImplAutoWiredTest {
 		activitiesToDelete = new ArrayList<String>();
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		// Make sure we have a valid user.

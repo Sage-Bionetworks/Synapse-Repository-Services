@@ -180,16 +180,10 @@ public class UserManagerImpl implements UserManager {
 		basicDAO.update(credential);
 		
 		if (touAgreement != null) {
-			if (touAgreement.getDomain() == null) {
-				throw new IllegalArgumentException("Terms of use cannot be set without a domain specified");
-			}
 			touAgreement.setPrincipalId(principalId);
 			basicDAO.createOrUpdate(touAgreement);
 		}
 		if (token != null) {
-			if (token.getDomain() == null) {
-				throw new IllegalArgumentException("Session token cannot be set without a domain specified");
-			}
 			token.setPrincipalId(principalId);
 			basicDAO.createOrUpdate(token);
 		}

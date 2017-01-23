@@ -36,7 +36,7 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE, nullable = false)
 	private PrincipalType principalType;
 
-	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE, nullable = false)
+	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE, nullable = true)
 	private DomainType domainType;
 
 	public String getPrincipalTypeAsString() {

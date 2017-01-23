@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -17,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -36,9 +34,6 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 	private List<String> groupsToDelete;
 	

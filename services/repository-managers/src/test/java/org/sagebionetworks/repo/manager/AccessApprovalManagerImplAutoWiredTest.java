@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -39,7 +38,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,9 +67,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
 	
@@ -98,7 +93,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		nu.setUserName(UUID.randomUUID().toString());
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		testUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 		

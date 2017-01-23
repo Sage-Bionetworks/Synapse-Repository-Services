@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -40,7 +39,6 @@ public class ForumManagerImplAutowiredTest {
 	@Before
 	public void before() {
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

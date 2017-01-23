@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -49,18 +48,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityPermissionsManagerImplTest {
-
-	@Autowired
-	private AuthorizationManager authorizationManager;
 	
 	@Autowired
 	private NodeManager nodeManager;
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
@@ -107,7 +100,6 @@ public class EntityPermissionsManagerImplTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		DBOCredential cred = new DBOCredential();
