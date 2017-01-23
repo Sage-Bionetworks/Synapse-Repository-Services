@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_DOMAIN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
@@ -19,7 +17,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -62,42 +59,43 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public static final Long SESSION_EXPIRATION_TIME = 1000 * 60 * 60 * 24L;
 	public static final long HALF_SESSION_EXPIRATION = SESSION_EXPIRATION_TIME/2;
 	
-	public static final String SELECT_VALIDATED_ON_FROM_SESSION_TOKEN = "SELECT "+
-			COL_SESSION_TOKEN_VALIDATED_ON+
-			" FROM "+TABLE_SESSION_TOKEN+" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+
-			" = ? AND "+COL_SESSION_TOKEN_DOMAIN+" = ? ";
+	public static final String SELECT_VALIDATED_ON_FROM_SESSION_TOKEN = 
+			"SELECT "+COL_SESSION_TOKEN_VALIDATED_ON+
+			" FROM "+TABLE_SESSION_TOKEN+
+			" WHERE "+COL_SESSION_TOKEN_PRINCIPAL_ID+" = ?";
 	
-	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD = 
+	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD =
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+
-				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
+			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
 				" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?"+
 				" AND "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"=?";
 	
 	private static final String UPDATE_VALIDATION_TIME = 
-			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
-					SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
-			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?"+ 
-			" AND " + SqlConstants.COL_SESSION_TOKEN_DOMAIN + "= ?";
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
+			" SET "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"= ?"+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"= ?";
 	
 	private static final String IF_VALID_SUFFIX = 
 			" AND "+SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"> ?";
 	
 	// NOTE: Neither in this version, or the prior version, were you selecting by user's name
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
-			"SELECT st."+COL_SESSION_TOKEN_SESSION_TOKEN+", tou."+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+" FROM "+TABLE_SESSION_TOKEN+" st, "+TABLE_TERMS_OF_USE_AGREEMENT+
-			" tou WHERE tou."+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=st."+COL_SESSION_TOKEN_PRINCIPAL_ID+" AND tou."+COL_TERMS_OF_USE_AGREEMENT_DOMAIN+
-			"=st."+COL_SESSION_TOKEN_DOMAIN+" AND st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? AND tou."+COL_TERMS_OF_USE_AGREEMENT_DOMAIN+
-			"= ? AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
+			"SELECT st."+COL_SESSION_TOKEN_SESSION_TOKEN+", tou."+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
+			" FROM "+TABLE_SESSION_TOKEN+" st, "+TABLE_TERMS_OF_USE_AGREEMENT+" tou "+
+			"WHERE tou."+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"=st."+COL_SESSION_TOKEN_PRINCIPAL_ID+
+			" AND st."+COL_SESSION_TOKEN_PRINCIPAL_ID+"= ? "
+			+ "AND st."+COL_SESSION_TOKEN_VALIDATED_ON+" > ?";
 
 	
 	private static final String NULLIFY_SESSION_TOKEN = 
-			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
-					SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+
+			" SET "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
 			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 
 	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
-			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_SESSION_TOKEN+
+			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+
+			" FROM "+SqlConstants.TABLE_SESSION_TOKEN+
 			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"= ?";
 	
 	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
@@ -105,30 +103,29 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	private static final String SELECT_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
-				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
+			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
 			" AND "+SqlConstants.COL_USER_GROUP_ID+"= ?";
 	
 	private static final String UPDATE_PASSWORD = 
-			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
-			SqlConstants.COL_CREDENTIAL_PASS_HASH+"= ?"+
+			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+
+			" SET "+SqlConstants.COL_CREDENTIAL_PASS_HASH+"= ?"+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_SECRET_KEY = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_SECRET_KEY+
 			" FROM "+SqlConstants.TABLE_CREDENTIAL+
-		" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
+			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String UPDATE_SECRET_KEY = 
-			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
-			SqlConstants.COL_CREDENTIAL_SECRET_KEY+"= ?"+
+			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+
+			" SET "+SqlConstants.COL_CREDENTIAL_SECRET_KEY+"= ?"+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
 	
 	private static final String SELECT_TOU_ACCEPTANCE = 
 			"SELECT "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
 			" FROM "+SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT+
-		" WHERE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?"+
-		" AND "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN+"= ?";
+			" WHERE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?";
 	
 	private RowMapper<Session> sessionRowMapper = new RowMapper<Session>() {
 		@Override
@@ -159,12 +156,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@WriteTransaction
-	public boolean revalidateSessionTokenIfNeeded(long principalId, DomainType domain) {
-		if (domain == null) {
-			throw new UnauthenticatedException("Domain must be declared to revalidate session token");
-		}
+	public boolean revalidateSessionTokenIfNeeded(long principalId) {
 		// Determine the last time the token was re-validate.
-		Long lastValidatedOn = jdbcTemplate.queryForObject(SELECT_VALIDATED_ON_FROM_SESSION_TOKEN, new SingleColumnRowMapper<Long>(), principalId, domain.name());
+		Long lastValidatedOn = jdbcTemplate.queryForObject(SELECT_VALIDATED_ON_FROM_SESSION_TOKEN, new SingleColumnRowMapper<Long>(), principalId);
 		long now = clock.currentTimeMillis();
 		/*
 		 * Only revalidate a token if it is past its half-life.
@@ -173,7 +167,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		if(lastValidatedOn + HALF_SESSION_EXPIRATION < now){
 			// The session token needs to be revaldiated.
 			userGroupDAO.touch(principalId);
-			jdbcTemplate.update(UPDATE_VALIDATION_TIME, clock.currentTimeMillis(),principalId, domain.name());
+			jdbcTemplate.update(UPDATE_VALIDATION_TIME, clock.currentTimeMillis(),principalId);
 			return true;
 		}else{
 			// no need to update.
@@ -183,7 +177,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@WriteTransaction
-	public String changeSessionToken(long principalId, String sessionToken, DomainType domain) {
+	public String changeSessionToken(long principalId, String sessionToken) {
 		userGroupDAO.touch(principalId);
 		
 		if (sessionToken == null) {
@@ -192,7 +186,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		
 		DBOSessionToken dboSession = new DBOSessionToken();
 		dboSession.setPrincipalId(principalId);
-		dboSession.setDomain(domain);
 		dboSession.setSessionToken(sessionToken);
 		dboSession.setValidatedOn(new Date());
 		basicDAO.createOrUpdate(dboSession);
@@ -200,16 +193,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public Session getSessionTokenIfValid(long principalsId, DomainType domain) {
-		return getSessionTokenIfValid(principalsId, new Date(), domain);
+	public Session getSessionTokenIfValid(long principalsId) {
+		return getSessionTokenIfValid(principalsId, new Date());
 	}
 	
 	@Override
-	public Session getSessionTokenIfValid(long principalId, Date now, DomainType domain) {
+	public Session getSessionTokenIfValid(long principalId, Date now) {
 		long time = now.getTime() - SESSION_EXPIRATION_TIME;
 		try {
 			return jdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID, sessionRowMapper,
-					principalId, domain.name(), time);
+					principalId, time);
 		} catch(EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -226,7 +219,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public Long getPrincipal(String sessionToken) {		
+	public Long getPrincipal(String sessionToken) {
 		try {
 			return jdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN,new SingleColumnRowMapper<Long>(), sessionToken); 
 		} catch (EmptyResultDataAccessException e) {
@@ -288,10 +281,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(long principalId, DomainType domain) throws NotFoundException {
+	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
 		Boolean acceptance;
 		try {
-			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, new SingleColumnRowMapper<Boolean>(), principalId, domain.name());
+			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, new SingleColumnRowMapper<Boolean>(), principalId);
 		} catch (EmptyResultDataAccessException e) {
 			// It's possible now that there is no record. That shouldn't be an
 			// exception, that's a "false, not accepted".
@@ -305,7 +298,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@WriteTransaction
-	public void setTermsOfUseAcceptance(long principalId, DomainType domain, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance) {
 		if (acceptance == null) {
 			acceptance = Boolean.FALSE;
 		}
@@ -313,7 +306,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		
 		DBOTermsOfUseAgreement agreement = new DBOTermsOfUseAgreement();
 		agreement.setPrincipalId(principalId);
-		agreement.setDomain(domain);
 		agreement.setAgreesToTermsOfUse(acceptance);
 		basicDAO.createOrUpdate(agreement);
 	}
@@ -336,7 +328,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			
 			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
 			if (!AuthorizationUtils.isUserAnonymous(abs.getId())) {
-				setTermsOfUseAcceptance(abs.getId(), DomainType.SYNAPSE, true);
+				setTermsOfUseAcceptance(abs.getId(), true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks

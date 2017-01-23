@@ -752,12 +752,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		Long principalId = Long.parseLong(group.getId());
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
-		authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(principalId, null);
 	}
 	
 	private void createSessionToken(UserGroup group) throws Exception {
 		DBOSessionToken token = new DBOSessionToken();
-		token.setDomain(DomainType.SYNAPSE);
 		token.setPrincipalId(Long.parseLong(group.getId()));
 		token.setSessionToken(UUID.randomUUID().toString());
 		token.setValidatedOn(new Date());

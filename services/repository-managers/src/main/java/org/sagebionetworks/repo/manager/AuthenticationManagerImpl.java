@@ -6,7 +6,6 @@ import java.util.Date;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -103,10 +102,10 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, DomainType.SYNAPSE)) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId)) {
 			throw new TermsOfUseException();
 		}
-		authDAO.revalidateSessionTokenIfNeeded(principalId, DomainType.SYNAPSE);
+		authDAO.revalidateSessionTokenIfNeeded(principalId);
 		return principalId;
 	}
 
@@ -139,7 +138,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@WriteTransaction
 	public Session getSessionToken(long principalId) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(principalId, DomainType.SYNAPSE);
+		Session session = authDAO.getSessionTokenIfValid(principalId);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -153,8 +152,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
 			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
-			String token = authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
-			boolean toU = authDAO.hasUserAcceptedToU(principalId, DomainType.SYNAPSE);
+			String token = authDAO.changeSessionToken(principalId, null);
+			boolean toU = authDAO.hasUserAcceptedToU(principalId);
 			session.setSessionToken(token);
 			
 			// Make sure to fetch the ToU state
@@ -166,7 +165,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Override
 	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
-		return authDAO.hasUserAcceptedToU(id, DomainType.SYNAPSE);
+		return authDAO.hasUserAcceptedToU(id);
 	}
 	
 	@Override
@@ -175,7 +174,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(principalId, DomainType.SYNAPSE, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 
 	@WriteTransactionReadCommitted

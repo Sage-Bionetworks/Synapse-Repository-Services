@@ -32,7 +32,7 @@ public interface AuthenticationDAO {
 	 * It is the caller's responsibility to determine if the session token is still valid
 	 * @return true if the timstamp was reset. Returns false if an update was not needed.
 	 */
-	public boolean revalidateSessionTokenIfNeeded(long principalId, DomainType domain);
+	public boolean revalidateSessionTokenIfNeeded(long principalId);
 	
 	/**
 	 * Changes the user's session token to the specified string
@@ -40,20 +40,20 @@ public interface AuthenticationDAO {
 	 *   To set the token to null, use deleteSessionToken()
 	 * @return The session token that was set
 	 */
-	public String changeSessionToken(long principalId, String sessionToken, DomainType domain);
+	public String changeSessionToken(long principalId, String sessionToken);
 	
 	/** 
 	 * Fetches a session token by username (email)
 	 * If the token has expired, null is returned
 	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
 	 */
-	public Session getSessionTokenIfValid(long principalId, DomainType domain);
+	public Session getSessionTokenIfValid(long principalId);
 
 	/**
 	 * For testing purposes only
 	 * Allows the current time to be spoofed for testing purposes
 	 */
-	public Session getSessionTokenIfValid(long userId, Date now, DomainType domain);
+	public Session getSessionTokenIfValid(long userId, Date now);
 	
 	/**
 	 * Nullifies the session token
@@ -100,12 +100,12 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedToU(long principalId, DomainType domain) throws NotFoundException;
+	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException;
 	
 	/**
 	 * Sets whether the user has accepted, rejected, or not seen the terms of use
 	 */
-	public void setTermsOfUseAcceptance(long principalId, DomainType domain, Boolean acceptance);
+	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance);
 
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate

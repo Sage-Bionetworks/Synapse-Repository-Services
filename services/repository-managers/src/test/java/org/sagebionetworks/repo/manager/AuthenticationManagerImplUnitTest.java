@@ -12,8 +12,6 @@ import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
 
 import org.apache.commons.lang.RandomStringUtils;
 
-import junit.framework.Assert;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +20,6 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -59,7 +56,7 @@ public class AuthenticationManagerImplUnitTest {
 		MockitoAnnotations.initMocks(this);
 
 		when(mockAuthDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE))).thenReturn(synapseSessionToken);
+		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		UserGroup ug = new UserGroup();
 		ug.setId(userId.toString());
@@ -121,23 +118,23 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testGetSessionToken() throws Exception {
 		Session session = authManager.getSessionToken(userId);
-		Assert.assertEquals(synapseSessionToken, session.getSessionToken());
+		assertEquals(synapseSessionToken, session.getSessionToken());
 		
-		verify(mockAuthDAO, times(1)).getSessionTokenIfValid(eq(userId), eq(DomainType.SYNAPSE));
-		verify(mockAuthDAO, times(1)).changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE));
+		verify(mockAuthDAO, times(1)).getSessionTokenIfValid(eq(userId));
+		verify(mockAuthDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
 	}
 	
 	@Test
 	public void testCheckSessionToken() throws Exception {
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(userId);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		//when(authDAO.deriveDomainFromSessionToken(eq(sessionToken))).thenReturn(DomainType.SYNAPSE);
 		Long principalId = authManager.checkSessionToken(synapseSessionToken, true);
-		Assert.assertEquals(userId, principalId);
+		assertEquals(userId, principalId);
 		
 		// Token matches, but terms haven't been signed
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(false);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
 		try {
 			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();
@@ -146,7 +143,7 @@ public class AuthenticationManagerImplUnitTest {
 		// Nothing matches the token
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		try {
 			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();

@@ -28,7 +28,7 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
 	
-	@Field(name = COL_TERMS_OF_USE_AGREEMENT_DOMAIN, nullable = false, varchar=256, primary=true)
+	@Field(name = COL_TERMS_OF_USE_AGREEMENT_DOMAIN, nullable = true, varchar=256)
 	private DomainType domain;
 	
 	@Field(name = COL_TERMS_OF_USE_AGREEMENT_AGREEMENT)
@@ -68,10 +68,12 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 		return new MigratableTableTranslation<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement>(){
 			@Override
 			public DBOTermsOfUseAgreement createDatabaseObjectFromBackup(DBOTermsOfUseAgreement backup) {
+				backup.setDomain(null);
 				return backup;
 			}
 			@Override
 			public DBOTermsOfUseAgreement createBackupFromDatabaseObject(DBOTermsOfUseAgreement dbo) {
+				dbo.setDomain(null);
 				return dbo;
 			}
 		};
