@@ -129,7 +129,6 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(userId);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
 		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
-		//when(authDAO.deriveDomainFromSessionToken(eq(sessionToken))).thenReturn(DomainType.SYNAPSE);
 		Long principalId = authManager.checkSessionToken(synapseSessionToken, true);
 		assertEquals(userId, principalId);
 		

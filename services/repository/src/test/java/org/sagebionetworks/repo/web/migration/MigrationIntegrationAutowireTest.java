@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -767,7 +766,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setPrincipalId(Long.parseLong(group.getId()));
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		tou.setDomain(DomainType.SYNAPSE);
 		basicDao.createNew(tou);
 	}
 

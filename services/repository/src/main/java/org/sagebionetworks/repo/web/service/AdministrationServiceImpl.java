@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -237,13 +236,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			Date date = new Date();
 
 			touAgreement = new DBOTermsOfUseAgreement();
-			touAgreement.setDomain(DomainType.SYNAPSE);
 			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 
 			token = new DBOSessionToken();
 			token.setSessionToken(userSpecs.getSession().getSessionToken());
 			token.setValidatedOn(date);
-			token.setDomain(DomainType.SYNAPSE);
 		}
 		
 		NewUser nu = new NewUser();
