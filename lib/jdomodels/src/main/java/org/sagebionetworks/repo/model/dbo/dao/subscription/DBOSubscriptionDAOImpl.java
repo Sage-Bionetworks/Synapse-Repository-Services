@@ -159,6 +159,9 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "WHERE "+COL_SUBSCRIPTION_OBJECT_ID+" = ? "
 			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ?";
 
+	private static final String SQL_GET_SUBSCRIBERS_LIMIT_AND_OFFSET = SQL_GET_SUBSCRIBERS
+			+" LIMIT ? OFFSET ?";
+
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
 		@Override
@@ -359,5 +362,13 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			default:
 				throw new RuntimeException("Unsopported type "+objectType.name());
 		}
+	}
+
+	@Override
+	public List<String> getSubscribers(String objectId, SubscriptionObjectType objectType, long limit, long offset) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		return jdbcTemplate.queryForList(SQL_GET_SUBSCRIBERS_LIMIT_AND_OFFSET,
+				new Object[]{objectId, objectType.name(), limit, offset}, String.class);
 	}
 }

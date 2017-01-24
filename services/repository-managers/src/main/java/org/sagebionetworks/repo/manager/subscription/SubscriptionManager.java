@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.subscription;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -72,5 +73,15 @@ public interface SubscriptionManager {
 	 * @return
 	 */
 	public Etag getEtag(String objectId, ObjectType objectType);
+
+	/**
+	 * Retrieve a list of subscribers for a given topic
+	 * 
+	 * @param userInfo
+	 * @param topic
+	 * @param nextPageToken
+	 * @return
+	 */
+	public SubscriberPagedResults getSubscribers(UserInfo userInfo, Topic topic, String nextPageToken);
 
 }
