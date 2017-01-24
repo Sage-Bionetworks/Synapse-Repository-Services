@@ -156,10 +156,11 @@ public class TableUploadManagerTest {
 		// Create the CSV
 		List<String[]> input = new ArrayList<String[]>(3);
 		/*
-		 *  The first row is a header but the name 'bar' does not match 'foo'.
-		 *  For this case the caller will set firstLineHeader=false and linesToSkip=1.
-		 *  We still need to read the file correctly which includes detecting
-		 *  ROW_ID and ROW_VERSION and mapping the column 'bar' to 'foo'.
+		 * The first row is a header but the name 'bar' does not match 'foo'.
+		 * For this case the caller will set firstLineHeader=false and
+		 * linesToSkip=1. We still need to read the file correctly which
+		 * includes detecting ROW_ID and ROW_VERSION and mapping the column
+		 * 'bar' to 'foo' by column index.
 		 */
 		input.add(new String[] { ROW_ID, ROW_VERSION, "bar" });
 		input.add(new String[] { "1", "10", "a" });

@@ -145,6 +145,7 @@ public class TableEntityManagerTest {
 	RowSet set;
 	RawRowSet rawSet;
 	SparseChangeSet sparseChangeSet;
+	SparseChangeSet sparseChangeSetWithRowIds;
 	PartialRowSet partialSet;
 	RawRowSet expectedRawRows;
 	RowReferenceSet refSet;
@@ -192,6 +193,17 @@ public class TableEntityManagerTest {
 		rawSet = new RawRowSet(TableModelUtils.getIds(models), null, tableId, Lists.newArrayList(rows));
 		
 		sparseChangeSet = TableModelUtils.createSparseChangeSet(rawSet, models);
+		
+		// create a sparse rowset with ID
+		List<SparseRowDto> sparseRowsWithIds = TableModelTestUtils.createSparseRows(models, 2);
+		// assign IDs to each
+		Long versionNumber = 101L;
+		for(int i=0; i<sparseRowsWithIds.size(); i++){
+			SparseRowDto row = sparseRowsWithIds.get(i);
+			row.setRowId(new Long(i));
+			row.setVersionNumber(versionNumber);
+		}
+		sparseChangeSetWithRowIds = new SparseChangeSet(tableId, models, sparseRowsWithIds, ETAG);
 
 		List<PartialRow> partialRows = TableModelTestUtils.createPartialRows(models, 10);
 		partialSet = new PartialRowSet();
@@ -434,6 +446,35 @@ public class TableEntityManagerTest {
 		verify(mockProgressCallback).progressMade(null);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
+	}
+	
+	@Test
+	public void testAppendRowsAsStreamPLFM_3155TableNoRows() throws DatastoreException, NotFoundException, IOException{
+		// setup an empty table with no rows.
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(0L);
+		String etag = "etag";
+		RowReferenceSet results = new RowReferenceSet();
+		// call under test
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback);
+		assertNotNull(response);
+		
+		// a rowIds should be assigned to each row.
+		long idsToReserve = sparseChangeSetWithRowIds.getRowCount();
+		verify(mockTruthDao).reserveIdsInRange(tableId, idsToReserve);
+	}
+	
+	@Test
+	public void testAppendRowsAsStreamPLFM_3155TableWithRows() throws DatastoreException, NotFoundException, IOException{
+		// setup at table with rows.
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(1L);
+		String etag = "etag";
+		RowReferenceSet results = new RowReferenceSet();
+		// call under test
+		TableUpdateResponse response = manager.appendRowsAsStream(user, tableId, models, sparseChangeSetWithRowIds.writeToDto().getRows().iterator(), etag, results, mockProgressCallback);
+		assertNotNull(response);
+		// no rowIds should be reserved. Each row should already have a rowId.
+		long idsToReserve = 0;
+		verify(mockTruthDao).reserveIdsInRange(tableId, idsToReserve);
 	}
 	
 	@Test
