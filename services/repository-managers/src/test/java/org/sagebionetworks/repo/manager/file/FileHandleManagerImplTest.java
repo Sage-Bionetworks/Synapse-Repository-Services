@@ -892,7 +892,7 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetFileHandleAndUrlBatch() throws Exception {		
+	public void testGetFileHandleAndUrlBatch() throws Exception {
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -946,6 +946,7 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleAndUrlBatchUrlsOnlyWithNullValue() throws Exception {
 		batchRequest.setIncludeFileHandles(null);
 		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(null);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -959,6 +960,7 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
@@ -967,6 +969,7 @@ public class FileHandleManagerImplTest {
 	public void testGetFileHandleAndUrlBatchUrlsOnly() throws Exception {
 		batchRequest.setIncludeFileHandles(false);
 		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(false);
 		// call under test
 		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
 		assertNotNull(results);
@@ -980,10 +983,65 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
-	
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreviewPreSignedURLOnly() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(false);
+		batchRequest.setIncludePreviewPreSignedURLs(true);
+		S3FileHandle fh = new S3FileHandle();
+		fh.setId(fha2.getFileHandleId());
+		fh.setPreviewId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh.getId(), fh);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// second one is okay
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNull(result.getPreSignedURL());
+		assertNotNull(result.getPreviewPreSignedURL());
+		// no downloads should be pushed since no urls were returned.
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao, times(2)).getAllFileHandlesBatch(any(Iterable.class));
+	}
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreviewPreSignedURLOnlyPreviewDoesNotExist() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(false);
+		batchRequest.setIncludePreviewPreSignedURLs(true);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+		
+		// second one is okay
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertNull(result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
+		// no downloads should be pushed since no urls were returned.
+		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao).getAllFileHandlesBatch(any(Iterable.class));
+	}
+
 	@Test
 	public void testGetFileHandleAndUrlBatchHandlesOnlyWithNullValue() throws Exception {
 		batchRequest.setIncludeFileHandles(true);
@@ -1005,6 +1063,7 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
 
+	@Test
 	public void testGetFileHandleAndUrlBatchHandlesOnly() throws Exception {
 		batchRequest.setIncludeFileHandles(true);
 		batchRequest.setIncludePreSignedURLs(false);

@@ -15,6 +15,10 @@
 		"includeFileHandles":{
 			"type": "boolean",
 			"description": "Set to true to request a FileHandle for each file."
+		},
+		"includePreviewPreSignedURLs":{
+			"type": "boolean",
+			"description": "Set to true to request a preview's pre-signed URL for each file."
 		}
 	}
 }

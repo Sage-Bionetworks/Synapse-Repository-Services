@@ -130,7 +130,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String FILE_HANDLE_COPY_RECORD_TYPE = FileHandleCopyRecord.class.getSimpleName().toLowerCase();
 
-	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs";
+	public static final String MUST_INCLUDE_EITHER = "Must include either FileHandles or pre-signed URLs or preview pre-signed URLs";
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
@@ -1094,7 +1094,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (request.getIncludePreSignedURLs() == null) {
 			request.setIncludePreSignedURLs(false);
 		}
-		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs()){
+		if (request.getIncludePreviewPreSignedURLs() == null) {
+			request.setIncludePreviewPreSignedURLs(false);
+		}
+		if(!request.getIncludeFileHandles() && !request.getIncludePreSignedURLs() && !request.getIncludePreviewPreSignedURLs()){
 			throw new IllegalArgumentException(MUST_INCLUDE_EITHER);
 		}
 		if(request.getRequestedFiles().size() > MAX_REQUESTS_PER_CALL){
@@ -1121,6 +1124,23 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!fileHandleIdsToFetch.isEmpty()){
 			// lookup the file handles.
 			Map<String, FileHandle> fileHandles = fileHandleDao.getAllFileHandlesBatch(fileHandleIdsToFetch);
+			Map<String, FileHandle> previewFileHandles = new HashMap<String, FileHandle>();
+			if (request.getIncludePreviewPreSignedURLs()) {
+				HashSet<String> previewFileHandleIdsToFetch = new HashSet<String>();
+				for (String fileHandleId : fileHandles.keySet()) {
+					FileHandle fh = fileHandles.get(fileHandleId);
+					if (fh instanceof HasPreviewId) {
+						HasPreviewId hasPreview = (HasPreviewId) fh;
+						if (hasPreview.getPreviewId() != null) {
+							previewFileHandleIdsToFetch.add(hasPreview.getPreviewId());
+						}
+					}
+				}
+				if (!previewFileHandleIdsToFetch.isEmpty()) {
+					previewFileHandles = fileHandleDao.getAllFileHandlesBatch(previewFileHandleIdsToFetch);
+				}
+			}
+			
 			// add the fileHandles to the results
 			for(FileResult fr: requestedFiles){
 				if(fr.getFailureCode() == null){
@@ -1138,6 +1158,16 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 							ObjectRecord record = createObjectRecord(userId, association, now);
 							downloadRecords.add(record);
+						}
+						if (request.getIncludePreviewPreSignedURLs()) {
+							if (handle instanceof HasPreviewId) {
+								HasPreviewId hasPreview = (HasPreviewId) handle;
+								String previewId = hasPreview.getPreviewId();
+								if (previewFileHandles.containsKey(previewId)) {
+									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId), null);
+									fr.setPreviewPreSignedURL(previewURL);
+								}
+							}
 						}
 					}
 				}
