@@ -960,6 +960,7 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
@@ -982,6 +983,7 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getFailureCode());
 		assertNull(result.getFileHandle());
 		assertNotNull(result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
 		// a batch of records should be pushed.
 		verify(mockObjectRecordQueue).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
