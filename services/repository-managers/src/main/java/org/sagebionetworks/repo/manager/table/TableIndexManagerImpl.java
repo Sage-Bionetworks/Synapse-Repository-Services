@@ -25,12 +25,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
-	
-	public static final long DEFAULT_OFFSET = 0L;
-
-	public static final long DEFAULT_LIMIT = 50L;
-
-	public static final long MAX_LIMIT = 50;
 
 	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
 	
@@ -338,15 +332,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
 			Set<Long> containerIds, String nextPageToken) {
 		ValidateArgument.required(containerIds, "containerIds");
-		NextPageToken token = null;
-		if(nextPageToken != null){
-			token = new NextPageToken(nextPageToken);
-		}else{
-			token = new NextPageToken(DEFAULT_LIMIT, DEFAULT_OFFSET);
-		}
-		if(token.getLimit() > MAX_LIMIT){
-			throw new IllegalArgumentException("Limit must not exceed: "+MAX_LIMIT);
-		}
+		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
 		if(containerIds.isEmpty()){
 			results.setResults(new LinkedList<ColumnModel>());
@@ -354,15 +340,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return results;
 		}
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, token.getLimit()+1, token.getOffset());
-		// is this the last page?
-		if(columns.size() > token.getLimit()){
-			// this is not the last page so generate a next page token.
-			long newOffset = token.getLimit()+token.getOffset();
-			results.setNextPageToken(new NextPageToken(token.getLimit(), newOffset).toToken());
-			// remove the last item
-			columns.remove((int)token.getLimit());
-		}
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, token.getLimitForQuery(), token.getOffset());
+		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
 		
 		return results;
