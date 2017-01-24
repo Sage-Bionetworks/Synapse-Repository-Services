@@ -1789,10 +1789,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				ENTITY + "/" + entityId + FILE + QUERY_REDIRECT_PARAMETER + "false");
 	}
 
+	@Deprecated
 	@Override
 	public void downloadFromFileEntityCurrentVersion(String fileEntityId,
 			File destinationFile) throws SynapseException {
 		String uri = ENTITY + "/" + fileEntityId + FILE;
+		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
+	}
+
+	@Deprecated
+	@Override
+	public void downloadFromFileEntityForVersion(String entityId,
+			Long versionNumber, File destinationFile) throws SynapseException {
+		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
+				+ versionNumber + FILE;
 		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
 	}
 
@@ -1842,14 +1852,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
 				+ versionNumber + FILE + QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(getRepoEndpoint(), uri);
-	}
-
-	@Override
-	public void downloadFromFileEntityForVersion(String entityId,
-			Long versionNumber, File destinationFile) throws SynapseException {
-		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
-				+ versionNumber + FILE;
-		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
 	}
 
 	/**

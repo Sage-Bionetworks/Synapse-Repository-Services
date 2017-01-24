@@ -166,9 +166,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
  * <li><a href="${POST.entity}">POST /entity</a>
  * <li><a href="${PUT.entity.id}">PUT /entity/{id}</a>
- * <li><a href="${GET.entity.id.file}">GET /entity/{id}/file</a>
- * <li><a href="${GET.entity.id.version.versionNumber.file}">GET
- * /entity/{id}/version/{versionNumber}/file</a>
  * <li><a href="${GET.entity.id.filepreview}">GET /entity/{id}/filepreview</a>
  * <li><a href="${GET.entity.id.version.versionNumber.filepreview}">GET
  * /entity/{id}/version/{versionNumber}/filepreview</a>

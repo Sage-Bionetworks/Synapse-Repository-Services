@@ -1297,6 +1297,7 @@ public class EntityController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectURLForCurrentVersion(
@@ -1332,6 +1333,7 @@ public class EntityController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectURLForVersion(

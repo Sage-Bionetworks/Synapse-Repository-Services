@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -664,6 +663,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param destinationFile
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public void downloadFromFileEntityCurrentVersion(String entityId, File destinationFile)
 			throws SynapseException;
 	
@@ -675,6 +675,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param destinationFile
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public void downloadFromFileEntityForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
