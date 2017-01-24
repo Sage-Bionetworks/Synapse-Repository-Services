@@ -51,6 +51,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	
 	private static final String USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE = "Only the creator of a FileHandle id: '%1$s' is authorized to assgin it to an object";
 
+	private static final Long MAX_WIKI_MARKDOWN_RANK = 100L;
+
 	@Autowired
 	V2WikiPageDao wikiPageDao;
 	
@@ -244,6 +246,10 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(!currentEtag.equals(wikiPage.getEtag())){
 			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
+
+		// Delete Wiki versions for rank > MAX_RANK
+		Long versionAtMaxRank = wikiPageDao.getWikiVersionByRank(WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId()), MAX_WIKI_MARKDOWN_RANK);
+		wikiPageDao.deleteWikiVersions(WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId()), versionAtMaxRank);
 		
 		// Set modified by
 		wikiPage.setModifiedBy(user.getId().toString());

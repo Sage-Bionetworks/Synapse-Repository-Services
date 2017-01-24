@@ -38,12 +38,10 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Unit test for the WikiManager
@@ -160,7 +158,7 @@ public class V2WikiManagerTest {
 	}
 	
 	@Test
-	public void testUpadateAuthorized() throws DatastoreException, NotFoundException{
+	public void testUpdateAuthorized() throws DatastoreException, NotFoundException{
 		V2WikiPage page = new V2WikiPage();
 		page.setId("000");
 		page.setEtag("etag");
@@ -173,8 +171,9 @@ public class V2WikiManagerTest {
 		// setup allow
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockWikiDao.getNumberOfVersions(any(WikiPageKey.class))).thenReturn(999L); // If 999, can create 1000th
-		
+		// No versions to delete
+		when(mockWikiDao.getWikiVersionByRank(any(WikiPageKey.class), eq(100L))).thenReturn(105L);
+
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
 		List<String> newIds = new ArrayList<String>();
@@ -182,6 +181,8 @@ public class V2WikiManagerTest {
 		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, newIds);
 		// The lock must be acquired
 		verify(mockWikiDao, times(1)).lockForUpdate("000");
+		// Called deleteWikiVersions
+		verify(mockWikiDao, times(1)).deleteWikiVersions(any(WikiPageKey.class), eq(105L));
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
