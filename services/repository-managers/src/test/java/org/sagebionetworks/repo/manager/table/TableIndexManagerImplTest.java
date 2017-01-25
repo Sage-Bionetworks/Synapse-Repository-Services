@@ -475,7 +475,7 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, TableIndexManagerImpl.DEFAULT_LIMIT+1, TableIndexManagerImpl.DEFAULT_OFFSET);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 	
 	@Test
@@ -518,7 +518,7 @@ public class TableIndexManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForContainerIsOverLimit(){
-		limit = TableIndexManagerImpl.MAX_LIMIT+1;
+		limit = NextPageToken.MAX_LIMIT+1;
 		nextPageToken = new NextPageToken(limit, offset);
 		// call under test
 		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());

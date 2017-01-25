@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -155,5 +156,21 @@ public class SubscriptionController extends BaseController{
 			@PathVariable String objectId,
 			@PathVariable String objectType) {
 		return serviceProvider.getSubscriptionService().getEtag(objectId, ObjectType.valueOf(objectType));
+	}
+
+	/**
+	 * Retrieve subscribers for a given topic.
+	 * 
+	 * @param userId
+	 * @param topic
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_SUBSCRIBERS, method = RequestMethod.POST)
+	public @ResponseBody SubscriberPagedResults getSubscribers(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody Topic topic,
+			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+		return serviceProvider.getSubscriptionService().getSubscribers(userId, topic, nextPageToken);
 	}
 }

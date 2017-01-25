@@ -332,14 +332,14 @@ public class SubscriptionManagerImplTest {
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		List<String> subscribers = new LinkedList<String>();
 		when(mockDao.getSubscribers(topic.getObjectId(), topic.getObjectType(),
-				SubscriptionManagerImpl.DEFAULT_LIMIT+1, SubscriptionManagerImpl.DEFAULT_OFFSET))
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET))
 				.thenReturn(subscribers);
 		SubscriberPagedResults results = manager.getSubscribers(userInfo, topic, null);
 		assertNotNull(results);
 		assertEquals(subscribers, results.getSubscribers());
 		assertNull(results.getNextPageToken());
 		verify(mockDao).getSubscribers(topic.getObjectId(), topic.getObjectType(),
-				SubscriptionManagerImpl.DEFAULT_LIMIT+1, SubscriptionManagerImpl.DEFAULT_OFFSET);
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 
 	@Test

@@ -27,9 +27,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SubscriptionManagerImpl implements SubscriptionManager {
-	public static final long DEFAULT_OFFSET = 0L;
-	public static final long DEFAULT_LIMIT = 50L;
-	public static final long MAX_LIMIT = 50;
 
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
@@ -133,24 +130,10 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
-		NextPageToken token = null;
-		if(nextPageToken != null){
-			token = new NextPageToken(nextPageToken);
-		}else{
-			token = new NextPageToken(DEFAULT_LIMIT, DEFAULT_OFFSET);
-		}
-		if(token.getLimit() > MAX_LIMIT){
-			throw new IllegalArgumentException("Limit must not exceed: "+MAX_LIMIT);
-		}
-		List<String> subscribers = subscriptionDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), token.getLimit()+1, token.getOffset());
+		NextPageToken token = new NextPageToken(nextPageToken);
+		List<String> subscribers = subscriptionDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), token.getLimitForQuery(), token.getOffset());
 		SubscriberPagedResults results = new SubscriberPagedResults();
-		if(subscribers.size() > token.getLimit()){
-			// this is not the last page so generate a next page token.
-			long newOffset = token.getLimit()+token.getOffset();
-			results.setNextPageToken(new NextPageToken(token.getLimit(), newOffset).toToken());
-			// remove the last item
-			subscribers.remove((int)token.getLimit());
-		}
+		results.setNextPageToken(token.getNextPageTokenForCurrentResults(subscribers));
 		results.setSubscribers(subscribers);
 		return results;
 	}

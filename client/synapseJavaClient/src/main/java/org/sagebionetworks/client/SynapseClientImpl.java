@@ -166,6 +166,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -481,6 +482,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	
 	private static final String DOCKER_COMMIT = "/dockerCommit";
+
+	private static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken=";
 
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3
@@ -4882,5 +4885,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url.append(nextPageToken);
 		}
 		return postJSONEntity(getRepoEndpoint(), url.toString(), scope, ColumnModelPage.class);
+	}
+
+	@Override
+	public SubscriberPagedResults getSubscribers(Topic topic, String nextPageToken) throws SynapseException {
+		String url = SUBSCRIPTION+"/subscribers";
+		if (nextPageToken != null) {
+			url += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return postJSONEntity(getRepoEndpoint(), url, topic, SubscriberPagedResults.class);
 	}
 }

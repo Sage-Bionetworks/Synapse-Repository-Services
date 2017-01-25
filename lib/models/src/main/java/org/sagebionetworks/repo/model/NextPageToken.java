@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.List;
+
 /**
  * Immutable layer of abstraction over the pagination parameters: limit and
  * offset with a string representation.
@@ -8,6 +10,9 @@ package org.sagebionetworks.repo.model;
 public class NextPageToken {
 
 	public static final String DELIMITER = "a";
+	public static final long DEFAULT_LIMIT = 50L;
+	public static final long DEFAULT_OFFSET = 0L;
+	public static final long MAX_LIMIT = 50L;
 
 	private long limit;
 	private long offset;
@@ -25,20 +30,36 @@ public class NextPageToken {
 	}
 
 	/**
-	 * Create a from a token string.
+	 * Create a token from a token string.
 	 * 
 	 * @param token
 	 */
 	public NextPageToken(String token) {
+		this(token, DEFAULT_LIMIT, MAX_LIMIT);
+	}
+
+	/**
+	 * Create a token from a token string, default limit and max limit values.
+	 * 
+	 * @param token
+	 * @param defaultLimit
+	 * @param maxLimit
+	 */
+	public NextPageToken(String token, long defaultLimit, long maxLimit) {
 		if (token == null) {
-			throw new IllegalArgumentException("Token cannot be null");
+			limit = defaultLimit;
+			offset = DEFAULT_OFFSET;
+		} else {
+			String[] split = token.split(DELIMITER);
+			if (split.length != 2) {
+				throw new IllegalArgumentException("Unknow token format: " + token);
+			}
+			limit = Long.parseLong(split[0]);
+			offset = Long.parseLong(split[1]);
 		}
-		String[] split = token.split(DELIMITER);
-		if (split.length != 2) {
-			throw new IllegalArgumentException("Unknow token format: " + token);
+		if (limit > maxLimit) {
+			throw new IllegalArgumentException("Limit must not exceed: " + maxLimit);
 		}
-		limit = Long.parseLong(split[0]);
-		offset = Long.parseLong(split[1]);
 	}
 
 	/**
@@ -60,12 +81,38 @@ public class NextPageToken {
 	}
 
 	/**
+	 * The limit that is used to query for a page of result. 
+	 * We used limit + 1 for query to check if there is a next page.
+	 * 
+	 * @return
+	 */
+	public long getLimitForQuery() {
+		return limit+1;
+	}
+
+	/**
 	 * The offset for the next page.
 	 * 
 	 * @return
 	 */
 	public long getOffset() {
 		return offset;
+	}
+
+	/**
+	 * Check the given results to see if there is a next page. If so, remove the
+	 * last item in the list and return a token to get the next page.
+	 * 
+	 * @param results
+	 * @return
+	 */
+	public String getNextPageTokenForCurrentResults(List results) {
+		if (results.size() > limit) {
+			long newOffset = limit + offset;
+			results.remove((int) limit);
+			return new NextPageToken(limit, newOffset).toToken();
+		}
+		return null;
 	}
 
 	@Override
