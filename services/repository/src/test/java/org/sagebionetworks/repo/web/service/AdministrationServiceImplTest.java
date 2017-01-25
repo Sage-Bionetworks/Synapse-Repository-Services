@@ -214,6 +214,15 @@ public class AdministrationServiceImplTest {
 	public void testUpdateFileWithNullVersion() {
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId("1");
+		request.setEtag("etag");
+		adminService.updateFile(adminUserId, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateFileWithNullEtag() {
+		FileUpdateRequest request = new FileUpdateRequest();
+		request.setEntityId("1");
+		request.setVersion(1L);
 		adminService.updateFile(adminUserId, request);
 	}
 
@@ -222,6 +231,7 @@ public class AdministrationServiceImplTest {
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId("1");
 		request.setVersion(2L);
+		request.setEtag("etag");
 		when(mockEntityManager.<Entity>getEntityForVersion(admin, "1", 2L, FileEntity.class))
 				.thenThrow(new NotFoundException());
 		FileUpdateResult result = adminService.updateFile(adminUserId, request);
@@ -234,6 +244,7 @@ public class AdministrationServiceImplTest {
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId("1");
 		request.setVersion(2L);
+		request.setEtag("etag");
 		when(mockEntityManager.<Entity>getEntityForVersion(admin, "1", 2L, FileEntity.class))
 				.thenReturn(new FileEntity());
 		FileUpdateResult result = adminService.updateFile(adminUserId, request);
@@ -246,7 +257,7 @@ public class AdministrationServiceImplTest {
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId("1");
 		request.setVersion(2L);
-
+		request.setEtag("entityEtag");
 		FileEntity entity = new FileEntity();
 		entity.setId("1");
 		entity.setFileNameOverride("fileNameOverride");
@@ -266,6 +277,7 @@ public class AdministrationServiceImplTest {
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId("1");
 		request.setVersion(2L);
+		request.setEtag("entityEtag");
 
 		FileEntity entity = new FileEntity();
 		entity.setId("1");
