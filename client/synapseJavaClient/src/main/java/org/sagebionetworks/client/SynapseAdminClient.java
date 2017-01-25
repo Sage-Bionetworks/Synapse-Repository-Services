@@ -292,9 +292,10 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @see PLFM-4108
 	 * @param entityId
 	 * @param version
+	 * @param etag
 	 * @return 
 	 * @throws SynapseException 
 	 */
-	public FileUpdateResult updateFile(String entityId, Long version) throws SynapseException;
+	public FileUpdateResult updateFile(String entityId, Long version, String etag) throws SynapseException;
 
 }

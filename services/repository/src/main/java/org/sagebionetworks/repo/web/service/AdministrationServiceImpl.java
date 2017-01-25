@@ -509,9 +509,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityId(), "entityId");
 		ValidateArgument.required(request.getVersion(), "version");
+		ValidateArgument.required(request.getEtag(), "etag");
 		FileUpdateResult result = new FileUpdateResult();
 		result.setIsSuccessful(false);
 		try {
+			nodeDao.lockNodeAndIncrementEtag(request.getEntityId(), request.getEtag());
 			FileEntity toUpdate = entityManager.getEntityForVersion(userInfo, request.getEntityId(), request.getVersion(), FileEntity.class);
 			String fileNameOverride = toUpdate.getFileNameOverride();
 			if (fileNameOverride == null) {
@@ -520,7 +522,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			}
 			String fileHandleId = toUpdate.getDataFileHandleId();
 
-			nodeDao.lockNodeAndIncrementEtag(toUpdate.getId(), toUpdate.getEtag());
 			// make the copy
 			FileHandle toCopy = fileHandleDao.get(fileHandleId);
 			String newFileHandleId = idGenerator.generateNewId(TYPE.FILE_IDS).toString();

@@ -8,6 +8,10 @@
 		"version":{
 			"type": "integer",
 			"description": "The version of the entity to update."
+		},
+		"etag":{
+			"type": "string",
+			"description": "The eatg of the entity to update."
 		}
 	}
 }
