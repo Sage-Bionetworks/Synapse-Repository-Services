@@ -158,6 +158,6 @@ public class IT101Administration {
 
 	@Test
 	public void testUpdateFile() throws SynapseException {
-		assertNotNull(adminSynapse.updateFile("syn1", 1L));
+		assertNotNull(adminSynapse.updateFile("syn1", 1L, "etag"));
 	}
 }
