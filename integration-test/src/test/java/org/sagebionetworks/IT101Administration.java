@@ -158,6 +158,9 @@ public class IT101Administration {
 
 	@Test
 	public void testUpdateFile() throws SynapseException {
-		assertNotNull(adminSynapse.updateFile("syn1", 1L, "etag"));
+		Project project = new Project();
+		project = adminSynapse.createEntity(project);
+		this.toDelete.add(project);
+		assertNotNull(adminSynapse.updateFile(project.getId(), 1L, project.getEtag()));
 	}
 }
