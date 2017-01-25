@@ -214,7 +214,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		 */
 		boolean ignoreRowIdAndVersion = false;
 		long maxRowId = tableRowTruthDao.getMaxRowId(tableId);
-		if (maxRowId < 1L) {
+		if (maxRowId < 0L) {
 			ignoreRowIdAndVersion = true;
 		}
 		
@@ -396,11 +396,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	@Override
 	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException {
 		return tableRowTruthDao.getLastTableRowChange(tableId);
-	}
-
-	@Override
-	public long getMaxRowId(String tableId) throws IOException, NotFoundException {
-		return tableRowTruthDao.getMaxRowId(tableId);
 	}
 
 	@Override

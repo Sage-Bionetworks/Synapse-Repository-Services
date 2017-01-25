@@ -451,7 +451,7 @@ public class TableEntityManagerTest {
 	@Test
 	public void testAppendRowsAsStreamPLFM_3155TableNoRows() throws DatastoreException, NotFoundException, IOException{
 		// setup an empty table with no rows.
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(0L);
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(-1L);
 		String etag = "etag";
 		RowReferenceSet results = new RowReferenceSet();
 		// call under test

@@ -368,7 +368,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			return jdbcTemplate.queryForObject(SQL_SELECT_MAX_ROWID, Long.class, tableId);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
-			return 0L;
+			return -1L;
 		}
 	}
 

@@ -433,6 +433,13 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
+	public void testGetMaxRowIdEmpty(){
+		String tableId = "syn123";
+		// for a tableId that does not exist the value should be negative (zero is a value rowId).
+		assertEquals(-1L, tableRowTruthDao.getMaxRowId(tableId));
+	}
+	
+	@Test
 	public void testAppendRowsUpdate() throws IOException, NotFoundException{
 		// Create some test column models
 		List<ColumnModel> columns = TableModelTestUtils.createOneOfEachType();
