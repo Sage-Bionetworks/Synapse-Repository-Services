@@ -367,12 +367,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public FileUpdateResult updateFile(String entityId, Long version) throws SynapseException {
+	public FileUpdateResult updateFile(String entityId, Long version, String etag) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(version, "version");
+		ValidateArgument.required(etag, "etag");
 		FileUpdateRequest request = new FileUpdateRequest();
 		request.setEntityId(entityId);
 		request.setVersion(version);
+		request.setEtag(etag);
 		return putJSONEntity(getRepoEndpoint(), ADMIN_UPDATE_FILE, request, FileUpdateResult.class);
 	}
 }
