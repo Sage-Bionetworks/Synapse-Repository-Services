@@ -1306,14 +1306,6 @@ public class TableModelUtils {
 		return columnIdToColumnIndexMap;
 	}
 
-	public static Map<Long, Integer> createColumnIdToSchemaIndexMap(List<ColumnModel> resultSchema) {
-		Map<Long, Integer> columnIdToSchemaIndexMap = Maps.newHashMap();
-		for (int i = 0; i < resultSchema.size(); i++) {
-			columnIdToSchemaIndexMap.put(Long.parseLong(resultSchema.get(i).getId()), i);
-		}
-		return columnIdToSchemaIndexMap;
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);

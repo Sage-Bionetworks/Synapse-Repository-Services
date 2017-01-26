@@ -1,11 +1,17 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +31,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -121,7 +128,7 @@ public class TableUploadManagerTest {
 				result.setEtag("etag"+count);
 				result.setRowsProcessed(new Long(count));
 				return result;
-			}}).when(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), eq(tableSchema), any(Iterator.class), eq(uploadRequest.getUpdateEtag()), eq(mockProgressCallback));
+			}}).when(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), anyListOf(ColumnModel.class), any(Iterator.class), anyString(), eq(mockProgressCallback));
 	}
 	
 	@Test
@@ -135,6 +142,63 @@ public class TableUploadManagerTest {
 		assertEquals(new Long(2), uploadResult.getRowsProcessed());
 		assertEquals(2, rowsRead.size());
 		verify(rowProcessor).processRows(eq(user), eq(uploadRequest.getTableId()), eq(tableSchema), any(Iterator.class), eq(uploadRequest.getUpdateEtag()), eq(mockProgressCallback));
+	}
+	
+	/**
+	 * A case where the first line is skipped.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_3155() throws Exception{
+		// Setup a column with the name foo.
+		tableSchema = TableModelTestUtils.createColumsWithNames("foo");
+		String columnId = tableSchema.get(0).getId();
+		// Create the CSV
+		List<String[]> input = new ArrayList<String[]>(3);
+		/*
+		 * The first row is a header but the name 'bar' does not match 'foo'.
+		 * For this case the caller will set firstLineHeader=false and
+		 * linesToSkip=1. We still need to read the file correctly which
+		 * includes detecting ROW_ID and ROW_VERSION and mapping the column
+		 * 'bar' to 'foo' by column index.
+		 */
+		input.add(new String[] { ROW_ID, ROW_VERSION, "bar" });
+		input.add(new String[] { "1", "10", "a" });
+		input.add(new String[] { "2", "10", "b" });
+		csvString = TableModelTestUtils.createCSVString(input);
+		StringInputStream csvStream = new StringInputStream(csvString);
+		s3Object.setObjectContent(new S3ObjectInputStream(csvStream, null));
+		
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(false);
+		uploadRequest.setCsvTableDescriptor(descriptor);
+		uploadRequest.setLinesToSkip(1L);
+		
+		when(mockFileHandleManger.getRawFileHandle(user, uploadRequest.getUploadFileHandleId())).thenReturn(fileHandle);
+		when(mockS3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(fileMetadata);
+		when(mockS3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey())).thenReturn(s3Object);
+		when(mockTableManagerSupport.getColumnModelsForTable(uploadRequest.getTableId())).thenReturn(tableSchema);
+		
+		// call under test;
+		TableUpdateResponse results = manager.uploadCSV(mockProgressCallback, user, uploadRequest, rowProcessor);
+		assertNotNull(results);
+		assertTrue(results instanceof UploadToTableResult);
+		UploadToTableResult uploadResult = (UploadToTableResult)results;
+		assertEquals("etag2", uploadResult.getEtag());
+		assertEquals(new Long(2), uploadResult.getRowsProcessed());
+		assertEquals(2, rowsRead.size());
+		// one
+		SparseRowDto one = rowsRead.get(0);
+		assertEquals(new Long(1), one.getRowId());
+		assertEquals(new Long(10), one.getVersionNumber());
+		assertNotNull(one.getValues());
+		assertEquals("a",one.getValues().get(columnId));
+		// two
+		SparseRowDto two = rowsRead.get(1);
+		assertEquals(new Long(2), two.getRowId());
+		assertEquals(new Long(10), two.getVersionNumber());
+		assertNotNull(two.getValues());
+		assertEquals("b",two.getValues().get(columnId));
 	}
 	
 

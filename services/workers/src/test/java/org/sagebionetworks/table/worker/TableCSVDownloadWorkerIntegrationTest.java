@@ -302,7 +302,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null, null, null);
 		return input;

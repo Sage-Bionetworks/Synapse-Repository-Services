@@ -834,4 +834,5 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQuery(sql, schema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
+
 }

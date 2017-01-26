@@ -208,11 +208,25 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		// serially by locking on the table's Id.
 		tableManagerSupport.lockOnTableId(tableId);
 		
+		/*
+		 * RowId and RowVersion can be ignored when appending data to an empty
+		 * table. See PLFM-3155.
+		 */
+		boolean ignoreRowIdAndVersion = false;
+		long maxRowId = tableRowTruthDao.getMaxRowId(tableId);
+		if (maxRowId < 0L) {
+			ignoreRowIdAndVersion = true;
+		}
+		
 		List<SparseRowDto> batch = new LinkedList<SparseRowDto>();
 		int batchSizeBytes = 0;
 		long rowCount = 0;
 		while(rowStream.hasNext()){
 			SparseRowDto row = rowStream.next();
+			if(ignoreRowIdAndVersion){
+				row.setRowId(null);
+				row.setVersionNumber(null);
+			}
 			batch.add(row);
 			rowCount++;
 			// batch using the actual size of the row.
@@ -301,7 +315,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		// See PLFM-3041
 		checkStackWiteStatus();
 		validateFileHandles(user, delta.getTableId(), delta);
-		
+				
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
@@ -382,11 +396,6 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	@Override
 	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException {
 		return tableRowTruthDao.getLastTableRowChange(tableId);
-	}
-
-	@Override
-	public long getMaxRowId(String tableId) throws IOException, NotFoundException {
-		return tableRowTruthDao.getMaxRowId(tableId);
 	}
 
 	@Override
