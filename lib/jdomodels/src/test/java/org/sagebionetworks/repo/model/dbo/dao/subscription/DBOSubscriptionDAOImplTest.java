@@ -406,4 +406,25 @@ public class DBOSubscriptionDAOImplTest {
 		assertEquals(Arrays.asList(userId),
 				subscriptionDao.getSubscribers(threadId, SubscriptionObjectType.THREAD, 10, 0));
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullObjectId() {
+		subscriptionDao.getSubscriberCount(null, SubscriptionObjectType.THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullObjectType() {
+		subscriptionDao.getSubscriberCount("1", null);
+	}
+
+	@Test
+	public void testGetSubscriberCountWithNonExistTopic() {
+		assertEquals(0, subscriptionDao.getSubscriberCount("1", SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testGetSubscriberCountWithExistTopic() {
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
+		assertEquals(1, subscriptionDao.getSubscriberCount(threadId, SubscriptionObjectType.THREAD));
+	}
 }

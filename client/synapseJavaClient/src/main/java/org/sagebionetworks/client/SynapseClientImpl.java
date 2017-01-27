@@ -166,6 +166,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -4894,5 +4895,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
 		}
 		return postJSONEntity(getRepoEndpoint(), url, topic, SubscriberPagedResults.class);
+	}
+
+	@Override
+	public SubscriberCount getSubscriberCount(Topic topic) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), SUBSCRIPTION+"/subscribers/count", topic, SubscriberCount.class);
 	}
 }

@@ -154,13 +154,19 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	private static final String SQL_DELETE_ALL = "DELETE FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = ?";
 
-	private static final String SQL_GET_SUBSCRIBERS = "SELECT "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" "
-			+ "FROM "+TABLE_SUBSCRIPTION+" "
+	private static final String QUERY_FOR_TOPIC = "FROM "+TABLE_SUBSCRIPTION+" "
 			+ "WHERE "+COL_SUBSCRIPTION_OBJECT_ID+" = ? "
 			+ "AND "+COL_SUBSCRIPTION_OBJECT_TYPE+" = ?";
 
+	private static final String SQL_GET_SUBSCRIBERS = "SELECT "+COL_SUBSCRIPTION_SUBSCRIBER_ID+" "
+			+ QUERY_FOR_TOPIC;
+
 	private static final String SQL_GET_SUBSCRIBERS_LIMIT_AND_OFFSET = SQL_GET_SUBSCRIBERS
 			+" LIMIT ? OFFSET ?";
+
+	private static final String SQL_GET_SUBSCRIBER_COUNT =
+			"SELECT COUNT(DISTINCT "+COL_SUBSCRIPTION_SUBSCRIBER_ID+") "
+			+ QUERY_FOR_TOPIC;
 
 	private static final RowMapper<Subscription> ROW_MAPPER = new RowMapper<Subscription>(){
 
@@ -370,5 +376,12 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(objectType, "objectType");
 		return jdbcTemplate.queryForList(SQL_GET_SUBSCRIBERS_LIMIT_AND_OFFSET,
 				new Object[]{objectId, objectType.name(), limit, offset}, String.class);
+	}
+
+	@Override
+	public long getSubscriberCount(String objectId, SubscriptionObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		return jdbcTemplate.queryForObject(SQL_GET_SUBSCRIBER_COUNT, Long.class, objectId, objectType.name());
 	}
 }
