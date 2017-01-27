@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -134,6 +136,19 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		// Clear all locks
 		servletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
+	}
+
+	@Test
+	public void testUpdateFile() throws Exception {
+		entity = new Project();
+		entity.setName("project"+UUID.randomUUID());
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserId, null);
+		FileUpdateRequest request = new FileUpdateRequest();
+		request.setEntityId(entity.getId());
+		request.setVersion(1L);
+		request.setEtag("fakeEtag");
+		servletTestHelper.updateFile(dispatchServlet, adminUserId, request);
 	}
 }
 

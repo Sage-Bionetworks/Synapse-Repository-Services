@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -356,5 +357,36 @@ public class SubscriptionManagerImplTest {
 		assertEquals(subscribers, results.getSubscribers());
 		assertEquals(new NextPageToken(1, 1).toToken(), results.getNextPageToken());
 		verify(mockDao).getSubscribers(topic.getObjectId(), topic.getObjectType(), 2, 0);
+	}
+
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullUserInfo(){
+		manager.getSubscriberCount(null, topic);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullTopic(){
+		manager.getSubscriberCount(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetSubscriberCountUnauthorized(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		manager.getSubscriberCount(userInfo, topic);
+	}
+
+	@Test
+	public void testGetSubscriberCountAuthorized(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(10L);
+		SubscriberCount count = manager.getSubscriberCount(userInfo, topic);
+		assertNotNull(count);
+		assertEquals((Long) 10L, count.getCount());
 	}
 }

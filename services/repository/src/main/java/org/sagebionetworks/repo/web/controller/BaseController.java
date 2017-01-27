@@ -817,6 +817,7 @@ public abstract class BaseController {
 	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
-		return handleException(ex.getCause(), request, true);
+		ex.printStackTrace();
+		return handleException(ex.getRootCause(), request, true);
 	}
 }

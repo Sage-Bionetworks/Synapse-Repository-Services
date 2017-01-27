@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -136,5 +137,18 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(subscribers));
 		results.setSubscribers(subscribers);
 		return results;
+	}
+
+	@Override
+	public SubscriberCount getSubscriberCount(UserInfo userInfo, Topic topic) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(topic, "topic");
+		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
+		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		SubscriberCount count = new SubscriberCount();
+		count.setCount(subscriptionDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()));
+		return count;
 	}
 }
