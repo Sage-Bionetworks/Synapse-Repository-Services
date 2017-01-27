@@ -115,4 +115,13 @@ public interface SubscriptionDAO {
 	 */
 	public List<String> getSubscribers(String objectId, SubscriptionObjectType objectType, long limit, long offset);
 
+	/**
+	 * Retrieve the number of subscribers for a given topic
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	public long getSubscriberCount(String objectId, SubscriptionObjectType objectType);
+
 }

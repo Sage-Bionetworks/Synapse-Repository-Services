@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -96,6 +97,11 @@ public class ITSubscription {
 		assertNotNull(subscribers);
 		assertEquals(Arrays.asList(sub.getSubscriberId()), subscribers.getSubscribers());
 		assertNull(subscribers.getNextPageToken());
+
+		SubscriberCount subscriberCount = synapse.getSubscriberCount(toSubscribe);
+		assertNotNull(subscriberCount);
+		assertEquals((Long) 1L, subscriberCount.getCount());
+		
 
 		synapse.unsubscribe(Long.parseLong(sub.getSubscriptionId()));
 		results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);

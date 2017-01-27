@@ -142,6 +142,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
 import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -2518,6 +2519,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	SubscriberPagedResults getSubscribers(Topic topic, String nextPageToken) throws SynapseException;
+
+	/**
+	 * Retrieve number of subscribers for a given topic
+	 * 
+	 * @param topic
+	 * @return
+	 * @throws SynapseException
+	 */
+	SubscriberCount getSubscriberCount(Topic topic) throws SynapseException;
+
 
 	/**
 	 * Retrieve the current etag for a given object.
