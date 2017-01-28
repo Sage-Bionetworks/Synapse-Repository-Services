@@ -27,7 +27,8 @@ public class TextPreviewGenerator implements PreviewGenerator {
 			.add("application/text", "application/x-sh", "application/x-javascript").build();
 	
 	public static final String TEXT_SLASH 	= "text/";
-	public static final int MAX_CHARACTER_COUNT = 1500;
+	public static final int MAX_CHARACTER_COUNT = 300;
+	public static final int MAX_LINE_COUNT = 30;
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		// load the text
@@ -35,24 +36,39 @@ public class TextPreviewGenerator implements PreviewGenerator {
 		//LineIterator iterator = IOUtils.lineIterator(from, "UTF-8");
 		String output = read(from);
 		//and abbreviate
-		IOUtils.write(StringUtils.abbreviate(output, MAX_CHARACTER_COUNT), to, "UTF-8");
+		IOUtils.write(output, to, "UTF-8");
 		return new PreviewOutputMetadata(TEXT_PLAIN, ".txt");
 	}
 	
 	public String read(InputStream from) throws IOException{
 		StringBuilder buffer = new StringBuilder();
-        InputStreamReader isr = new InputStreamReader(from, "UTF-8");
+		InputStreamReader isr = new InputStreamReader(from, "UTF-8");
         Reader in = new BufferedReader(isr);
-        int ch;
+		int currentLine = 0;
+	    while(currentLine < MAX_LINE_COUNT) {
+	    	buffer.append(getNextAbbreviatedLine(in));
+	    	currentLine++;
+	    }
+	    in.close();
+	    return buffer.toString();
+	    
+	}
+
+	
+	public String getNextAbbreviatedLine(Reader in) throws IOException {
+		StringBuilder buffer = new StringBuilder();
+		int ch;
         int count = 0;
-        while ((ch = in.read()) > -1 && count < MAX_CHARACTER_COUNT+10) {
+        while ((ch = in.read()) > -1 && count < MAX_CHARACTER_COUNT+15 && ch != '\n') {
             buffer.append((char)ch);
             count++;
         }
-        in.close();
-        return buffer.toString();
+        //now scan forward to the next newline if we didn't find one above
+        if (ch != '\n')
+        	while ((ch = in.read()) > -1 && ch != '\n');
+        return StringUtils.abbreviate(buffer.toString(), MAX_CHARACTER_COUNT) + "\n";
 	}
-
+	
 	@Override
 	public boolean supportsContentType(String contentType, String extension) {
 		// supported if it's text or js or sh
