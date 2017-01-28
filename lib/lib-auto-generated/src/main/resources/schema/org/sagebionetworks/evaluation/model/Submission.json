@@ -12,9 +12,10 @@
 			"description": "The Synapse ID of the user who created this Submission.",
 			"transient": true
 		},
-		"submitterAlias":{
-			"type": "string",
-			"description": "The alias for the user or team creating the submission."
+		"attribution":{
+			"type": "object",
+			"description": "Describes the submitter and contributors of a submission.",
+			"$ref": "org.sagebionetworks.evaluation.model.Attribution"
 		},
 		"evaluationId": {
 			"type": "string",

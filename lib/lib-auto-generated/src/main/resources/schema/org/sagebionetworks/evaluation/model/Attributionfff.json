@@ -1,0 +1,15 @@
+{
+	"description": "Describes the full history of submission attribution.  The first entry will always be the original Attribution.",
+	"properties": {
+		"submissionId": {
+			"type": "string",
+			"description": "The ID of the submission."
+		},
+		"attribution": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.evaluation.model.Attribution"
+			}
+		}
+	}
+}

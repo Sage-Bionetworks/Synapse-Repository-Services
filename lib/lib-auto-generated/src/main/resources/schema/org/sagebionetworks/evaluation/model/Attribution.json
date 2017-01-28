@@ -1,0 +1,21 @@
+{
+	"description": "Describes the submitter and contributors of a submission",
+	"properties": {
+		"submitterAlias": {
+			"type": "string",
+			"description": "The alias for the user or team creating the submission."
+		},
+		"contributors": {
+		    "description":"The list of user IDs that contributed to this submission.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"attributedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time on which this attribution was made"
+		}
+	}
+}
