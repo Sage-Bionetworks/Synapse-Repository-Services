@@ -1,0 +1,10 @@
+{
+    "description":"The enumeration of the possible alias types that can be bound to a principal.",
+    "type":"string",
+    "enum":[
+    	USER_NAME,
+    	TEAM_NAME,
+    	USER_EMAIL,
+    	USER_OPEN_ID
+    ]
+}

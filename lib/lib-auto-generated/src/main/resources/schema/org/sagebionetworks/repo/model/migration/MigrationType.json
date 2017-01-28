@@ -4,7 +4,8 @@
     "enum":[
     	"PRINCIPAL",
     	"GROUP_MEMBERS", 
-    	"CREDENTIAL", 
+    	"CREDENTIAL",
+    	"PRINCIPAL_ALIAS", 
     	"USER_PROFILE",
         "FILE_HANDLE",
 		"MESSAGE", 

@@ -93,7 +93,10 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl"
 		depends-on="userGroupDAO" 
 		init-method="bootstrapGroups" />
-		
+
+	<bean id="principalAliasDao"
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl" />
+
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
 		depends-on="userGroupDAO"

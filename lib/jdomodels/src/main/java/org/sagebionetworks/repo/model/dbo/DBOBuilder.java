@@ -113,6 +113,24 @@ public class DBOBuilder<T> {
 			}
 		}
 	}
+	
+	private static class BooleanRowMapper extends BaseRowMapper{
+
+		public BooleanRowMapper(Method fieldSetter, String columnName,
+				boolean isNullable) {
+			super(fieldSetter, columnName, isNullable);
+		}
+		
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			Boolean bool = rs.getBoolean(columnName);
+			if(rs.wasNull()){
+				return null;
+			}else{
+				return bool;
+			}
+		}
+		
+	}
 
 	public static String getTableName(Class<?> clazz) {
 		Table tableAnnotation = clazz.getAnnotation(Table.class);
@@ -188,6 +206,11 @@ public class DBOBuilder<T> {
 				if (fieldEntry.field.getType() == Date.class) {
 					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
+				
+				if (fieldEntry.field.getType() == Boolean.class) {
+					return new BooleanRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+				}
+
 
 				throw new IllegalArgumentException("No default mapper for type " + fieldEntry.field.getType());
 			}
@@ -258,9 +281,11 @@ public class DBOBuilder<T> {
 							+ fieldAnnotation.name() + " on " + owner.getName());
 				}
 			} else if (Enum.class.isAssignableFrom(fieldClazz)) {
-				type = "CHAR (" + 32 + ")";
+				type = buildEnumType(fieldClazz);
 			} else if (!StringUtils.isEmpty(fieldAnnotation.blob())) {
 				type = fieldAnnotation.blob();
+			} else if (fieldClazz == Boolean.class) {
+				type = "bit(1)";
 			} else {
 				throw new IllegalArgumentException("No type defined and " + fieldAnnotation.name() + " on " + owner.getName()
 						+ " cannot be automatically translated");
@@ -281,6 +306,28 @@ public class DBOBuilder<T> {
 			parts.add(fieldAnnotation.sql());
 		}
 		return StringUtils.join(parts, " ");
+	}
+
+	/**
+	 * Build up an DDL ENUM type from a java enum.
+	 * @param fieldClazz
+	 * @return
+	 */
+	private static String buildEnumType(Class<?> fieldClazz) {
+		String type;
+		Class<? extends Enum> enumClass = (Class<? extends Enum>) fieldClazz;
+		StringBuilder builder = new StringBuilder();
+		builder.append("ENUM( ");
+		Enum[] values =  enumClass.getEnumConstants();
+		for(int i=0; i< values.length; i++){
+			if(i > 0){
+				builder.append(", ");
+			}
+			builder.append("'").append(values[i].name()).append("'");
+		}
+		builder.append(")");
+		type = builder.toString();
+		return type;
 	}
 
 	private static String escapeName(String name) {

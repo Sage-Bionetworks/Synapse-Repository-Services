@@ -111,8 +111,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private <T> T insert(T toCreate, String insertSQl) {
 		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
 		try{
-			int updatedCount = simpleJdbcTemplate.update(insertSQl, namedParameters);
-			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
+			simpleJdbcTemplate.update(insertSQl, namedParameters);
 			// If this is an auto-increment class we need to fetch the new ID.
 			if(toCreate instanceof AutoIncrementDatabaseObject){
 				AutoIncrementDatabaseObject autoDBO = (AutoIncrementDatabaseObject) toCreate;
