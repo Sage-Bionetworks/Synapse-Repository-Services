@@ -242,6 +242,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(evalId);
+		acl.setOwnerType(ObjectType.EVALUATION);
 		acl.setCreationDate(new Date());
 		acl.setResourceAccess(raSet);
 

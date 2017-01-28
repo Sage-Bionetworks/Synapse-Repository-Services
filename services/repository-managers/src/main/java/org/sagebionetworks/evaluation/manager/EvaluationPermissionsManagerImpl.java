@@ -66,6 +66,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("ACL's evaluation ID must not be null or empty.");
 		}
+		
+		if (acl.getOwnerType()==null) acl.setOwnerType(ObjectType.EVALUATION);
+		if (acl.getOwnerType()!=ObjectType.EVALUATION) throw new IllegalArgumentException("Illegal owner type: "+acl.getOwnerType());
 
 		final Evaluation eval = getEvaluation(evalId);
 		if (!isEvalOwner(userInfo, eval)) {
@@ -96,6 +99,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("ACL's evaluation ID must not be null or empty.");
 		}
+		
+		if (acl.getOwnerType()==null) acl.setOwnerType(ObjectType.EVALUATION);
+		if (acl.getOwnerType()!=ObjectType.EVALUATION) 
+			throw new IllegalArgumentException("Illegal owner type: "+acl.getOwnerType());
 
 		final Evaluation eval = getEvaluation(evalId);
 		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {

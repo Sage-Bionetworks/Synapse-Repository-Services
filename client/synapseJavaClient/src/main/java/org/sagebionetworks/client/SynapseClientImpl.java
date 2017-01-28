@@ -929,6 +929,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
+
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
 		try {
 			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);

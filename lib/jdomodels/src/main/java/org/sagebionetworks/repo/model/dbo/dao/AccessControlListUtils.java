@@ -32,6 +32,7 @@ public class AccessControlListUtils {
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
+		dbo.setOwnerType(acl.getOwnerType());
 		return dbo;
 	}
 	
@@ -43,7 +44,9 @@ public class AccessControlListUtils {
 	 */
 	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType objectType) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
-		if (ObjectType.ENTITY.equals(objectType)) {
+		acl.setOwnerType(dbo.getOwnerType());
+		if (acl.getOwnerType()==null) acl.setOwnerType(objectType);
+		if (ObjectType.ENTITY.equals(acl.getOwnerType())) {
 			acl.setId(KeyFactory.keyToString(dbo.getId()));
 		} else {
 			acl.setId(dbo.getId().toString());

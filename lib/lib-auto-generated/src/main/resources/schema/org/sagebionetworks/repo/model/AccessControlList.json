@@ -4,7 +4,11 @@
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The entity id"
+			"description": "The id of the object to which this ACL applies"
+		},
+		"ownerType": {
+			"description": "The type of the object to which this ACL applies",
+			"$ref":"org.sagebionetworks.repo.model.ObjectType"
 		},
 		"createdBy": {
 			"type": "string",

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -502,6 +503,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private AccessControlList createAcl(String evalId, UserInfo userInfo) throws Exception {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(evalId);
+		acl.setOwnerType(ObjectType.EVALUATION);
 		final String principalId = userInfo.getIndividualGroup().getId();
 		acl.setCreatedBy(principalId);
 		final Date now = new Date();

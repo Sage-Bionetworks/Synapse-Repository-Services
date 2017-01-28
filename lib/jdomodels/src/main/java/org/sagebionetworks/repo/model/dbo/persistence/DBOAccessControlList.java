@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 
@@ -11,6 +12,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -21,6 +23,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, true).withIsBackupId(true),
+		new FieldColumn("ownerType", COL_ACL_TYPE, true),
 		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
 		new FieldColumn("creationDate", COL_ACL_CREATED_ON)
 		};
@@ -34,6 +37,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				DBOAccessControlList acl = new DBOAccessControlList();
 				acl.setId(rs.getLong(COL_ACL_ID));
 				acl.setEtag(rs.getString(COL_ACL_ETAG));
+				acl.setOwnerType(ObjectType.valueOf(rs.getString(COL_ACL_TYPE)));
 				acl.setCreationDate(rs.getLong(COL_ACL_CREATED_ON));
 				return acl;
 			}
@@ -61,10 +65,17 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 
 	private Long id;
 	private String etag;
+	private ObjectType ownerType;
 	private Long creationDate;
 
 	public Long getId() {
 		return id;
+	}
+	public ObjectType getOwnerType() {
+		return ownerType;
+	}
+	public void setOwnerType(ObjectType ownerType) {
+		this.ownerType = ownerType;
 	}
 	public void setId(Long id) {
 		this.id = id;
@@ -124,6 +135,8 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((ownerType == null) ? 0 : ownerType.hashCode());
 		return result;
 	}
 	@Override
@@ -150,11 +163,14 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (ownerType != other.ownerType)
+			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
 		return "DBOAccessControlList [id=" + id + ", etag=" + etag
-				+ ", creationDate=" + creationDate + "]";
+				+ ", ownerType=" + ownerType + ", creationDate=" + creationDate
+				+ "]";
 	}
 }

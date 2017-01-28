@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -251,6 +252,7 @@ public class EvaluationDAOImplTest {
 		// adding 'participantId' into the ACL with SUBMIT permission
 		AccessControlList acl = new AccessControlList();
 		acl.setId(eval.getId());
+		acl.setOwnerType(ObjectType.EVALUATION);
 		acl.setCreationDate(new Date());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();

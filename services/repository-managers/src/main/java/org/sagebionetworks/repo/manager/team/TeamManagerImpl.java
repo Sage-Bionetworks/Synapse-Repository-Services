@@ -168,6 +168,7 @@ public class TeamManagerImpl implements TeamManager {
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(teamId);
+		acl.setOwnerType(ObjectType.TEAM);
 		acl.setCreatedBy(creator.getIndividualGroup().getId());
 		acl.setCreationDate(creationDate);
 		acl.setModifiedBy(creator.getIndividualGroup().getId());
