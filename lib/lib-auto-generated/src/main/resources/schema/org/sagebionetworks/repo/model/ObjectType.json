@@ -16,6 +16,7 @@
     	"ACCESS_REQUIREMENT",
     	"ACCESS_APPROVAL",
     	"TEAM",
+    	"TEAM_MEMBER",
     	"TABLE",
     	"ACCESS_CONTROL_LIST",
     	"PROJECT_SETTING",

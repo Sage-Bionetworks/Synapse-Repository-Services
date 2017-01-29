@@ -278,11 +278,17 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 			@Override
 			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
+				if (backup.getObjectType() == ObjectType.TEAM_MEMBER) {
+					return null;
+				}
 				return backup;
 			}
 
 			@Override
 			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
+				if (dbo.getObjectType() == ObjectType.TEAM_MEMBER) {
+					return null;
+				}
 				return dbo;
 			}};
 	}
