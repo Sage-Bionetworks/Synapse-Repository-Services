@@ -56,6 +56,5 @@ public interface SearchDocumentDriver {
 	
 	
 	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException;
-	
 
 }
