@@ -2,6 +2,5 @@
 	<!-- Specify the paths for translatable code -->
 	<source path="repo/model" />
 	<source path ="evaluation/model" />
-	<inherits name="com.google.gwt.junit.JUnit" />
 	<inherits name="org.sagebionetworks.SchemaToPojoLib" />
 </module>
