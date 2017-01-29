@@ -219,20 +219,6 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
-
-	/**
-	 * Update the lastest version cache if supported
-	 * 
-	 * @throws IOException
-	 */
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
-
-	/**
-	 * Remove the latest version cache and row cache for the table
-	 * 
-	 * @param tableId
-	 */
-	public void removeCaches(Long tableId) throws IOException;
 	
 	/**
 	 * Check for a row level conflicts in the passed change sets, by scanning

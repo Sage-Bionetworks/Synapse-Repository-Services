@@ -5,8 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -30,9 +31,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -65,7 +64,6 @@ public class TableIndexDAOImplTest {
 	StackConfiguration config;
 	// These are not a bean
 	TableIndexDAO tableIndexDAO;
-	CurrentRowCacheDao currentRowCacheDao;
 	
 	ProgressCallback<Void> mockProgressCallback;
 
@@ -79,8 +77,6 @@ public class TableIndexDAOImplTest {
 		tableId = "syn" + new Random().nextInt(Integer.MAX_VALUE);
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
-		currentRowCacheDao = tableConnectionFactory
-				.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 	}
 
 	@After

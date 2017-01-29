@@ -24,6 +24,4 @@
 		class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl"
 		scope="prototype" />
 
-	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
-
 </beans>

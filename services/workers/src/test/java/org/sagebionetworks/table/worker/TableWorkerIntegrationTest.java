@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -21,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -30,7 +31,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -90,7 +89,6 @@ import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -148,8 +146,6 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
 	@Autowired
-	TableRowCache tableRowCache;
-	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	SemaphoreManager semphoreManager;
@@ -191,7 +187,6 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
-		tableRowCache.truncateAllData();
 		oldMaxBytesPerRequest = (Integer) ReflectionTestUtils.getField(getTargetObject(tableRowManager), "maxBytesPerRequest");
 	}
 	
@@ -207,7 +202,6 @@ public class TableWorkerIntegrationTest {
 				entityManager.deleteEntity(adminUserInfo, projectId);
 			}
 			// cleanup
-			tableRowCache.truncateAllData();
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
@@ -738,12 +732,6 @@ public class TableWorkerIntegrationTest {
 			@Override
 			public boolean apply(Void input) {
 				return tableIndexDAO.getRowCountForTable(tableId) != null;
-			}
-		}));
-		assertTrue("Current index was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
-			@Override
-			public boolean apply(Void input) {
-				return tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0, 1000).size() == 2;
 			}
 		}));
 
@@ -1725,6 +1713,10 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : columnModels) {
+			// skip files 
+			if(ColumnType.FILEHANDLEID.equals(cm.getColumnType())){
+				continue;
+			}
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}

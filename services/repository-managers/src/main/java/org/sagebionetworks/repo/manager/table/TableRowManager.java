@@ -37,8 +37,6 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
-import com.amazonaws.services.sqs.model.Message;
-
 /**
  * Abstraction for Table Row management.
  * 
@@ -439,13 +437,6 @@ public interface TableRowManager {
 	 */
 	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, CSVWriterStream writer,
 			boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavilableException, NotFoundException, TableFailedException;
-
-	/**
-	 * Update the current version cache if enabled
-	 */
-	void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
-
-	void removeCaches(String tableId) throws IOException;
 
 	/**
 	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.

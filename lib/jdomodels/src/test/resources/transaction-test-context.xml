@@ -19,6 +19,4 @@
 		class=" org.sagebionetworks.repo.model.dbo.dao.transactions.TransactionValidatorImpl"
 		init-method="initialize" />
 
-	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
-
 </beans>

@@ -23,6 +23,7 @@ import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnMapper;
@@ -251,7 +253,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	private Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
+	private static Row resolveInsertValues(PartialRow partialRow, ColumnMapper columnMapper) {
 		List<String> values = Lists.newArrayListWithCapacity(columnMapper.selectColumnCount());
 		for (SelectColumnAndModel model : columnMapper.getSelectColumnAndModels()) {
 			String value = null;
@@ -1080,16 +1082,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		return repsonse;
 	}
 
-	@Override
-	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
-		tableRowTruthDao.updateLatestVersionCache(tableId, progressCallback);
-	}
-
-	@Override
-	public void removeCaches(String tableId) throws IOException {
-		tableRowTruthDao.removeCaches(KeyFactory.stringToKey(tableId));
-	}
-
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {
@@ -1136,139 +1128,51 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
-	private void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
+	/**
+	 * Can the user download all FileHandles in the passed set of rows.
+	 * @param user
+	 * @param tableId
+	 * @param columnMapper
+	 * @param rows
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public void validateFileHandles(UserInfo user, String tableId, ColumnMapper columnMapper, List<Row> rows)
 			throws IOException,
 			NotFoundException {
-
-		List<Long> fileHandleColumnIds = Lists.newArrayList();
-		for (ColumnModel cm : columnMapper.getColumnModels()) {
-			if (cm.getColumnType() == ColumnType.FILEHANDLEID) {
-				fileHandleColumnIds.add(Long.parseLong(cm.getId()));
-			}
-		}
-
-		if (fileHandleColumnIds.isEmpty()) {
-			// no filehandles: success!
-			return;
-		}
-
-		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(rows, columnMapper);
-
-		// eliminate all file handles that are owned by current user
-		Set<String> ownedFileHandles = Sets.newHashSet();
-		Set<String> unownedFileHandles = Sets.newHashSet();
-
-		// first handle all new rows
-		List<String> fileHandles = Lists.newLinkedList();
-		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
-			RowAccessor row = rowIter.next();
-			if (TableModelUtils.isNullOrInvalid(row.getRowId())) {
-				getFileHandles(row, fileHandleColumnIds, user, fileHandles);
-				rowIter.remove();
-			}
-		}
-
-		// check the file handles?
-		if (!fileHandles.isEmpty()) {
-			authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
-
-			if (!unownedFileHandles.isEmpty()) {
-				// this is a new row and the user is trying to add a file handle they do not own
-				throw new IllegalArgumentException("You cannot add new file ids that you do not own");
-			}
-		}
-
-		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
-			// all new rows and all file handles owned by user or null: success!
-			return;
-		}
-
-		// now all we have left is rows that are updated
-
-		// collect all file handles
-		fileHandles.clear();
-		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			getFileHandles(row, fileHandleColumnIds, user, fileHandles);
-		}
-		// check all file handles for access
-		authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
-
-		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
-			RowAccessor row = rowIter.next();
-			String unownedFileHandle = checkRowForUnownedFileHandle(user, row, fileHandleColumnIds, ownedFileHandles, unownedFileHandles);
-			if (unownedFileHandle == null) {
-				// No unowned file handles, so no need to check previous values
-				rowIter.remove();
-			}
-		}
-
-		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
-			// all file handles null or owned by calling user: success!
-			return;
-		}
-
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, fileHandlesToCheckAccessor.getRowIds(), 0,
-				columnMapper);
-
-		// now we need to check if any of the unowned filehandles are changing with this request
-		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
-			RowAccessor lastRowVersion = latestVersions.getRow(row.getRowId());
-			for (Long fileHandleColumn : fileHandleColumnIds) {
-				String newFileHandleId = row.getCellById(fileHandleColumn);
-				if (newFileHandleId == null) {
-					// erasing a file handle id is always allowed
-					continue;
-				}
-				if (ownedFileHandles.contains(newFileHandleId)) {
-					// we already checked. We own this one
-					continue;
-				}
-				String oldFileHandleId = lastRowVersion.getCellById(fileHandleColumn);
-				if (!oldFileHandleId.equals(newFileHandleId) && !ownedFileHandles.contains(newFileHandleId)) {
-					throw new IllegalArgumentException("You cannot change a file id to a new file id that you do not own: rowId="
-							+ row.getRowId() + ", old file handle=" + oldFileHandleId + ", new file handle=" + newFileHandleId);
-				}
-			}
-		}
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(columnMapper.getSelectColumns());
+		validateFileHandles(user, tableId, rowSet);
 	}
 
-	private void getFileHandles(RowAccessor row, List<Long> fileHandleColumnIds, UserInfo user, List<String> fileHandles) {
-		for (Long fileHandleColumn : fileHandleColumnIds) {
-			String fileHandleId = row.getCellById(fileHandleColumn);
-			if (fileHandleId != null) {
-				fileHandles.add(fileHandleId);
+	/**
+	 * 
+	 * @param user
+	 * @param tableId
+	 * @param rowSet
+	 */
+	public void validateFileHandles(UserInfo user, String tableId,
+			RowSet rowSet) {
+		// Extract the files handles from the change set.
+		Set<Long> filesHandleIds = TableModelUtils.getFileHandleIdsInRowSet(rowSet);
+		if(!filesHandleIds.isEmpty()){
+			// convert the longs to strings.
+			List<String> fileHandesStrings = new LinkedList<String>();
+			TableModelUtils.convertLongToString(filesHandleIds, fileHandesStrings);
+			// The user must have the download permission for every file handle in the change set.
+			List<FileHandleAuthorizationStatus> resutls = authorizationManager.canDownloadFile(user, fileHandesStrings, tableId, FileHandleAssociateType.TableEntity);
+			for(FileHandleAuthorizationStatus status: resutls){
+				if(!status.getStatus().getAuthorized()){
+					throw new UnauthorizedException("Cannot access file: "+status.getFileHandleId());
+				}
 			}
 		}
-	}
-
-	private String checkRowForUnownedFileHandle(UserInfo userInfo, RowAccessor row, List<Long> fileHandleColumns,
-			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
-		for (Long fileHandleColumn : fileHandleColumns) {
-			String fileHandleId = row.getCellById(fileHandleColumn);
-			if (fileHandleId == null) {
-				// erasing a file handle id is always allowed
-				continue;
-			}
-			if (ownedFileHandles.contains(fileHandleId)) {
-				// We own this one
-				continue;
-			}
-			if (unownedFileHandles.contains(fileHandleId)) {
-				// We don't own this one.
-				return fileHandleId;
-			}
-			// somehow didn't show up in owned or unowned. Run separate access check
-			if (authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId).getAuthorized()) {
-				continue;
-			} else {
-				return fileHandleId;
-			}
-		}
-		return null;
 	}
 	
 	/**
-	 * Thows an exception if the table feature is disabled.
+	 * Throws an exception if the table feature is disabled.
 	 */
 	public void validateFeatureEnabled(){
 		if(!StackConfiguration.singleton().getTableEnabled()){

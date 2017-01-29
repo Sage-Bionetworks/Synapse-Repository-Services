@@ -1076,64 +1076,6 @@ public class TableModelUtils {
 		return columnIdToSchemaIndexMap;
 	}
 
-	public static RowSetAccessor getRowSetAccessor(final List<Row> rows, final ColumnMapper columnMapper) {
-		return new RowSetAccessor() {
-
-			private Map<Long, Integer> columnIdToIndexMap = null;
-			private Map<Long, RowAccessor> rowIdToRowMap = null;
-			private List<RowAccessor> newRows = null;
-
-			@Override
-			public Iterable<RowAccessor> getRows() {
-				Collection<RowAccessor> rows = getRowIdToRowMap().values();
-				return Iterables.concat(newRows, rows);
-			}
-
-			public Map<Long, RowAccessor> getRowIdToRowMap() {
-				if (rowIdToRowMap == null) {
-					rowIdToRowMap = Maps.newHashMap();
-					newRows = Lists.newLinkedList();
-					for (final Row row : rows) {
-						RowAccessor rowAccessor = new RowAccessor() {
-							@Override
-							public String getCellById(Long columnId) {
-								Integer index = getColumnIdToIndexMap().get(columnId);
-								if (index == null || row.getValues() == null || index >= row.getValues().size()) {
-									return null;
-								}
-								return row.getValues().get(index);
-							}
-
-							@Override
-							public Long getRowId() {
-								return row.getRowId();
-							}
-
-							@Override
-							public Long getVersionNumber() {
-								return row.getVersionNumber();
-							}
-						};
-						if (rowAccessor.getRowId() == null) {
-							newRows.add(rowAccessor);
-						} else {
-							rowIdToRowMap.put(rowAccessor.getRowId(), rowAccessor);
-						}
-					}
-				}
-				return rowIdToRowMap;
-			}
-
-			private Map<Long, Integer> getColumnIdToIndexMap() {
-				if (columnIdToIndexMap == null) {
-					columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(Lists.transform(columnMapper.getSelectColumns(),
-							SELECT_COLUMN_TO_ID));
-				}
-				return columnIdToIndexMap;
-			}
-		};
-	}
-
 
 	public static SetMultimap<Long, Long> createVersionToRowIdsMap(Map<Long, Long> currentVersionNumbers) {
 		// create a map from version to set of row ids map
