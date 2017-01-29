@@ -19,9 +19,12 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 	RowWriter<RowMetadata> toCreate;
 	RowWriter<RowMetadata> toUpdate;
 	RowWriter<RowMetadata> toDelete;
+	Long maxSourceId;
 
 
-	public DeltaBuilder(Iterator<RowMetadata> sourceIterator, Iterator<RowMetadata> destIterator, RowWriter<RowMetadata> toCreate, RowWriter<RowMetadata> toUpdate, RowWriter<RowMetadata> toDelete) {
+	public DeltaBuilder(Iterator<RowMetadata> sourceIterator, Iterator<RowMetadata> destIterator,
+		RowWriter<RowMetadata> toCreate, RowWriter<RowMetadata> toUpdate, RowWriter<RowMetadata> toDelete,
+		Long maxSourceId) {
 		super();
 		if(sourceIterator == null) throw new IllegalArgumentException("Source cannot be null");
 		if(destIterator == null) throw new IllegalArgumentException("Destination cannot be null");
@@ -30,6 +33,7 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 		this.toCreate = toCreate;
 		this.toUpdate = toUpdate;
 		this.toDelete = toDelete;
+		this.maxSourceId = maxSourceId;
 	}
 
 
@@ -59,6 +63,10 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 			long destId = -1l;
 			if(sourceRow != null){
 				sourceId = sourceRow.getId();
+				if ((maxSourceId != null) && (sourceId > maxSourceId)) {
+					sourceId = -1L;
+					sourceRow = null;
+				}
 			}
 			if(destRow != null){
 				destId = destRow.getId();

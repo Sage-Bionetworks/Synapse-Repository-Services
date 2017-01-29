@@ -84,6 +84,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	private boolean getNextPage() throws SynapseException,	JSONObjectAdapterException {
 		long start = System.currentTimeMillis();
 		this.lastPage = client.getRowMetadata(type, batchSize, offset);
+		
 		long elapse = System.currentTimeMillis()-start;
 //		System.out.println("Fetched "+batchSize+" ids in "+elapse+" ms");
 		this.offset += this.batchSize;
