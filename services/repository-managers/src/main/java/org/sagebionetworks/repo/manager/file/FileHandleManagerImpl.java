@@ -327,23 +327,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle, null);
-	}
-
-	@Override
-	public String getRedirectURLForFileHandle(String handleId, String fileNameOverride)
-			throws DatastoreException, NotFoundException {
-		// First lookup the file handle
-		FileHandle handle = fileHandleDao.get(handleId);
-		return getURLForFileHandle(handle, fileNameOverride);
+		return getURLForFileHandle(handle);
 	}
 
 	/**
 	 * @param handle
-	 * @param fileNameOverride a value for the file name that overrides that in the file handle or in the S3 object
 	 * @return
 	 */
-	public String getURLForFileHandle(FileHandle handle, String fileNameOverride) {
+	public String getURLForFileHandle(FileHandle handle) {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
@@ -367,8 +358,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			if (StringUtils.isNotEmpty(contentType) && !NOT_SET.equals(contentType)) {
 				responseHeaderOverrides.setContentType(contentType);
 			}
-			String fileName = StringUtils.isNotEmpty(fileNameOverride) ? 
-					fileNameOverride : handle.getFileName();
+			String fileName = handle.getFileName();
 			if (StringUtils.isNotEmpty(fileName) && !NOT_SET.equals(fileName)) {
 				responseHeaderOverrides.setContentDisposition("attachment; filename=" + fileName);
 			}
@@ -675,7 +665,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException(
 					"Only the user that created the FileHandle can get the URL of the file.");
 		}
-		return getURLForFileHandle(handle, null);
+		return getURLForFileHandle(handle);
 	}
 
 	@Override
@@ -1077,7 +1067,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		AuthorizationStatus authStatus = authResults.get(0).getStatus();
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authStatus);
 		FileHandle fileHandle = fileHandleDao.get(fileHandleId);
-		return getURLForFileHandle(fileHandle, null);
+		return getURLForFileHandle(fileHandle);
 	}
 
 	@Override
@@ -1153,7 +1143,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 							fr.setFileHandle(handle);
 						}
 						if(request.getIncludePreSignedURLs()){
-							String url = getURLForFileHandle(handle, null);
+							String url = getURLForFileHandle(handle);
 							fr.setPreSignedURL(url);
 							FileHandleAssociation association = idToFileHandleAssociation.get(fr.getFileHandleId());
 							ObjectRecord record = createObjectRecord(userId, association, now);
@@ -1164,7 +1154,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 								HasPreviewId hasPreview = (HasPreviewId) handle;
 								String previewId = hasPreview.getPreviewId();
 								if (previewFileHandles.containsKey(previewId)) {
-									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId), null);
+									String previewURL = getURLForFileHandle(previewFileHandles.get(previewId));
 									fr.setPreviewPreSignedURL(previewURL);
 								}
 							}
