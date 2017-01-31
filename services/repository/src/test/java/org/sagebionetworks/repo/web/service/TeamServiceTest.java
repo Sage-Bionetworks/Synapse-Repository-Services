@@ -152,12 +152,12 @@ public class TeamServiceTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamWithOverMaxLimit() {
-		teamService.get(null, 11, 0);
+		teamService.get(null, 51, 0);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamWithNegativeOffset() {
-		teamService.get(null, 10, -1);
+		teamService.get(null, 50, -1);
 	}
 	
 	@Test
@@ -176,7 +176,7 @@ public class TeamServiceTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetTeamMemberWithOverMaxLimit() {
-		teamService.getMembers("101", null, 11, 0);
+		teamService.getMembers("101", null, 51, 0);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
