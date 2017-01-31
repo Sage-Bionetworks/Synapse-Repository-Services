@@ -38,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class TeamServiceImpl implements TeamService {
-	public static final long MAX_LIMIT = 10L;
+	public static final long MAX_LIMIT = 50L;
 
 	@Autowired
 	private TeamManager teamManager;
