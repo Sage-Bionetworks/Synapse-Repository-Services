@@ -360,25 +360,39 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(map, JDOSecondaryPropertyUtils.decompressedReferences(compressed));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringNull(){
 		// call under test.
-		JDOSecondaryPropertyUtils.getSingleString(null, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(null, 50);
+		assertEquals(null, value);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringEmpty(){
 		List list = new LinkedList<String>();
 		// call under test
-		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals(null, value);
 	}
-	@Test (expected=IllegalArgumentException.class)
+	
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringNullValue(){
 		List list = new LinkedList<String>();
 		list.add(null);
 		// call under test
-		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals(null, value);
 	}
+	
 	@Test
 	public void testGetSingleStringString(){
 		List list = new LinkedList<String>();
@@ -428,6 +442,58 @@ public class JDOSecondaryPropertyUtilsTest {
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
 		
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * See PLFM_4184
+	 */
+	@Test
+	public void testTranslateEmptyList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "emptyList", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * See PLFM-4224
+	 */
+	@Test
+	public void testTranslateNullList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("nullList", null);
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "nullList", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testTranslateNullValueInList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
+		
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "listWithNullValue", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
 		assertEquals(expected, results);
 	}
 
