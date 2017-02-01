@@ -413,10 +413,16 @@ public class JDOSecondaryPropertyUtils {
 	 * @return
 	 */
 	public static String getSingleString(List values, int maxAnnotationChars){
-		ValidateArgument.required(values, "values");
-		ValidateArgument.requirement(!values.isEmpty(), "values is empty");
+		if(values == null){
+			return null;
+		}
+		if(values.isEmpty()){
+			return null;
+		}
 		Object value = values.get(0);
-		ValidateArgument.required(value, "value");
+		if(value == null){
+			return null;
+		}
 		String stringValue = null;
 		if(value instanceof Date){
 			stringValue = ""+((Date)value).getTime();

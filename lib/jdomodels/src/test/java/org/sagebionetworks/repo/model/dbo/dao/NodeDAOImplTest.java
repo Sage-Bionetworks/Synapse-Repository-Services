@@ -3064,6 +3064,51 @@ public class NodeDAOImplTest {
 		assertEquals(null, projectDto.getFileHandleId());
 		assertEquals(null, projectDto.getAnnotations());
 	}
+	
+	@Test
+	public void testGetEntityDTOsNullValues(){
+		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		
+		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
+		file.setNodeType(EntityType.file);
+		file.setParentId(project.getId());
+		file.setFileHandleId(fileHandle.getId());
+		file = nodeDao.createNewNode(file);
+		long fileIdLong = KeyFactory.stringToKey(file.getId());
+		toDelete.add(file.getId());
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.setId(file.getId());
+		annos.setCreatedBy(file.getCreatedByPrincipalId());
+		annos.setCreationDate(file.getCreatedOn());
+		annos.setEtag(file.getETag());
+		// added for PLFM_4184
+		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
+		// added for PLFM-4224
+		annos.getAdditionalAnnotations().getLongAnnotations().put("nullList", null);
+		annos.getAdditionalAnnotations().getDoubleAnnotations().put("listWithNullValue", Lists.newArrayList((Double)null));
+		nodeDao.updateAnnotations(file.getId(), annos);
+		
+		int maxAnnotationChars = 10;
+		
+		// call under test
+		List<EntityDTO> results = nodeDao.getEntityDTOs(Lists.newArrayList(project.getId(),file.getId()), maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		EntityDTO fileDto = results.get(1);
+		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
+		assertNotNull(fileDto.getAnnotations());
+		assertEquals(3, fileDto.getAnnotations().size());
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(fileIdLong, "emptyList", AnnotationType.STRING, null),
+				new AnnotationDTO(fileIdLong, "nullList", AnnotationType.LONG, null),
+				new AnnotationDTO(fileIdLong, "listWithNullValue", AnnotationType.DOUBLE, null)
+		);
+		assertEquals(expected, fileDto.getAnnotations());
+	}
+	
 
 	/**
 	 * Generate the following Hierarchy:
