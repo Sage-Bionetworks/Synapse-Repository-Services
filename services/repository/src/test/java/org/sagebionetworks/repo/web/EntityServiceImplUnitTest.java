@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -99,13 +98,8 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.
 				getFileHandleIdForVersion(userInfo, entityId, null, FileHandleReason.FOR_FILE_DOWNLOAD)).
 				thenReturn(fileHandleId);
-		
-		FileEntity fileEntity = new FileEntity();
-		String fileNameOverride = "foo.txt";
-		fileEntity.setFileNameOverride(fileNameOverride);
-		when(mockEntityManager.getEntitySecondaryFields(userInfo, entityId, FileEntity.class)).thenReturn(fileEntity);
 		String url = "http://foo.bar";
-		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId, "foo.txt")).thenReturn(url);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForCurrentVersion(PRINCIPAL_ID, entityId));
 	}
 	
@@ -118,13 +112,8 @@ public class EntityServiceImplUnitTest {
 		when(mockEntityManager.
 				getFileHandleIdForVersion(userInfo, entityId, version, FileHandleReason.FOR_FILE_DOWNLOAD)).
 				thenReturn(fileHandleId);
-		
-		FileEntity fileEntity = new FileEntity();
-		String fileNameOverride = "foo.txt";
-		fileEntity.setFileNameOverride(fileNameOverride);
-		when(mockEntityManager.getEntitySecondaryFieldsForVersion(userInfo, entityId, version, FileEntity.class)).thenReturn(fileEntity);
 		String url = "http://foo.bar";
-		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId, "foo.txt")).thenReturn(url);
+		when(mockFileHandleManager.getRedirectURLForFileHandle(fileHandleId)).thenReturn(url);
 		assertEquals(url, entityService.getFileRedirectURLForVersion(PRINCIPAL_ID, entityId, version));
 	}
 	

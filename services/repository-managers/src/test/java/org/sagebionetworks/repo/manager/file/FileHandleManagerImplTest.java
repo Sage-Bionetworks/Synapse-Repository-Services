@@ -412,27 +412,6 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
-	public void testGetRedirectURLForFileHandleS3WithFileNameOverride() throws DatastoreException, NotFoundException, MalformedURLException{
-		S3FileHandle s3FileHandle = new S3FileHandle();
-		s3FileHandle.setId("123");
-		s3FileHandle.setBucketName("bucket");
-		s3FileHandle.setKey("key");
-		s3FileHandle.setFileName("we will not use this one.jpg");
-		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		String expectedURL = "https://amamzon.com";
-		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).
-			thenReturn(new URL(expectedURL));
-		// fire!
-		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId(), "foo.txt");
-		assertNotNull(redirect);
-		assertEquals(expectedURL, redirect.toString());
-		ArgumentCaptor<GeneratePresignedUrlRequest> gpuRequest = ArgumentCaptor.forClass(GeneratePresignedUrlRequest.class);
-		verify(mockS3Client).generatePresignedUrl(gpuRequest.capture());
-		assertEquals("attachment; filename=foo.txt", 
-				gpuRequest.getValue().getResponseHeaders().getContentDisposition());
-	}
-	
-	@Test
 	public void testProxyPresignedUrl(){
 		Long locationId = 123L;
 		ProxyFileHandle proxyHandle = new ProxyFileHandle();
@@ -449,7 +428,7 @@ public class FileHandleManagerImplTest {
 		when(mockStorageLocationDao.get(locationId)).thenReturn(proxyLocation);
 		
 		// call under test
-		String url = manager.getURLForFileHandle(proxyHandle, null);
+		String url = manager.getURLForFileHandle(proxyHandle);
 		assertNotNull(url);
 		assertTrue(url.startsWith("https://host.org/sftp/path/root/child?"));
 	}
@@ -467,7 +446,7 @@ public class FileHandleManagerImplTest {
 		when(mockStorageLocationDao.get(locationId)).thenReturn(location);
 		
 		// call under test
-		manager.getURLForFileHandle(proxyHandle, null);
+		manager.getURLForFileHandle(proxyHandle);
 	}
 		
 	@Test
