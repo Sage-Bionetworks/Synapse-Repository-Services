@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -116,14 +115,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -324,6 +323,27 @@ public class TableWorkerIntegrationTest {
 		assertEquals(null, row.getVersionNumber());
 		assertNotNull(row.getValues());
 		assertEquals("0", row.getValues().get(0));
+	}
+
+	@Test
+	public void testGetCellValuesPLFM_4191() throws Exception {
+		schema = new LinkedList<ColumnModel>();
+		ColumnModel cm = TableModelTestUtils.createColumn(null, "data.csv", ColumnType.STRING);
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema.add(cm);
+		createTableWithSchema();
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 1));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		String sql = "select * from " + tableId;
+		waitForConsistentQuery(adminUserInfo, sql, null, 7L);
+		// This call would throw an exception.
+		rowSet = tableEntityManager.getCellValues(adminUserInfo, tableId, referenceSet.getRows(),
+				schema);
 	}
 
 
@@ -1377,7 +1397,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null, null, null);
 		// Now wait for the table index to be ready
@@ -1428,7 +1448,7 @@ public class TableWorkerIntegrationTest {
 		copy.get(3)[2] = "FFF";
 		reader = TableModelTestUtils.createReader(copy);
 		// Use the data to update the table
-		iterator = new CSVToRowIterator(schema, reader, true, null);
+		iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				response.getEtag(), null, null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
@@ -1459,7 +1479,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null,
 				null, null);
@@ -1543,7 +1563,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		long userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo owner = userManager.getUserInfo(userId);
 		users.add(owner);
 
@@ -1552,7 +1572,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, true);
 		UserInfo notOwner = userManager.getUserInfo(userId);
 		users.add(notOwner);
 
@@ -1857,6 +1877,63 @@ public class TableWorkerIntegrationTest {
 		TableStatus status = waitForTableProcessing(localTableId);
 		assertNotNull(status);
 		assertEquals(TableState.AVAILABLE, status.getState());
+	}
+	
+	/**
+	 * Test for PLFM-4216, PLFM-4088, PLFM-4203
+	 * @throws IOException 
+	 * @throws NotFoundException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testEntityIdColumns() throws Exception {
+		// setup an EntityId column.
+		ColumnModel entityIdColumn = new ColumnModel();
+		entityIdColumn.setColumnType(ColumnType.ENTITYID);
+		entityIdColumn.setName("anEntityId");
+		entityIdColumn.setFacetType(FacetType.enumeration);
+		entityIdColumn = columnManager.createColumnModel(adminUserInfo, entityIdColumn);
+		schema = Lists.newArrayList(entityIdColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		// add rows to the table.
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "syn123"),
+				TableModelTestUtils.createRow(null, null, "syn456"),
+				TableModelTestUtils.createRow(null, null, "syn789"),
+				TableModelTestUtils.createRow(null, null, "syn123")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		
+		String sql = "select * from " + tableId;
+		waitForConsistentQuery(adminUserInfo, sql, null, 1L);
+		
+		// setup and run a faceted query
+		List<FacetColumnRequest> selectedFacets = new ArrayList<>();
+		FacetColumnRequest selectedColumn = new FacetColumnValuesRequest();
+		selectedColumn.setColumnName(entityIdColumn.getName());
+		Set<String> facetValues = new HashSet<>();
+		facetValues.add("syn123");
+		((FacetColumnValuesRequest)selectedColumn).setFacetValues(facetValues);
+		selectedFacets.add(selectedColumn);
+		
+		QueryResultBundle results = tableQueryManger.querySinglePage(mockProgressCallbackVoid, adminUserInfo, sql, null, selectedFacets, null, null, true, false, true, true);
+		assertNotNull(results);
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals(2, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row);
+		assertNotNull(row.getValues());
+		assertEquals(1, row.getValues().size());
+		assertEquals("syn123", row.getValues().get(0));
+	
 	}
 	
 	/**

@@ -128,6 +128,42 @@ public class TableModelTestUtils {
 	public static List<Row> createRows(List<ColumnModel> cms, int count) {
 		return createRows(cms, count, true, null);
 	}
+	
+	/**
+	 * Create count number SparseRowDtos 
+	 * @param cms
+	 * @param count
+	 * @return
+	 */
+	public static List<SparseRowDto> createSparseRows(List<ColumnModel> cms, int count) {
+		List<SparseRowDto> rows = new LinkedList<SparseRowDto>();
+		for(int rowIndex=0; rowIndex<count; rowIndex++){
+			rows.add(createSparseRow(cms, rowIndex));
+		}
+		return rows;
+	}
+	
+	/**
+	 * Create a single SparseRowDto with all values for the given schema.
+	 * 
+	 * @param cms
+	 * @param rowIndex
+	 * @return
+	 */
+	public static SparseRowDto createSparseRow(List<ColumnModel> cms, int rowIndex){
+		SparseRowDto row = new SparseRowDto();
+		Map<String, String> valueMap = new HashMap<String, String>();
+		for(int columnIndex=0; columnIndex<cms.size(); columnIndex++){
+			ColumnModel cm = cms.get(columnIndex);
+			boolean isUpdate = false;
+			boolean useDateStrings = false;
+			List<String> fileHandleIds = null;
+			String value = getValue(cm, rowIndex, isUpdate, useDateStrings, false, columnIndex++, fileHandleIds);
+			valueMap.put(cm.getId(), value);
+		}
+		row.setValues(valueMap);
+		return row;
+	}
 
 	/**
 	 * Create a row.
@@ -322,7 +358,7 @@ public class TableModelTestUtils {
 				return "" + (i + 5000 + (isUpdate ? 10000 : 0));
 			}
 		case ENTITYID:
-			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "." + (i + 7000 + (isUpdate ? 10000 : 0));
+			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0));
 		case BOOLEAN:
 			if (i % 2 > 0 ^ isUpdate) {
 				return Boolean.TRUE.toString();

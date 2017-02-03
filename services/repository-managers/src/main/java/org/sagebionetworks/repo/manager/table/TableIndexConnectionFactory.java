@@ -36,4 +36,11 @@ public interface TableIndexConnectionFactory {
 	 */
 	TableIndexManager connectToTableIndex(String tableId) throws TableIndexConnectionUnavailableException;
 
+	/**
+	 * Acquire an index manager that wraps a connection to the first database in the cluster.
+	 * 
+	 * @return
+	 */
+	TableIndexManager connectToFirstIndex();
+
 }

@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.TimeUtils;
@@ -452,15 +453,14 @@ public class TableModelUtils {
 	 * @param columnModel
 	 * @return
 	 */
-	public static String translateRowValueFromQuery(String value, ColumnType columnType) {
-		if (columnType == ColumnType.BOOLEAN) {
-			if ("0".equals(value)) {
-				value = "false";
-			} else if ("1".equals(value)) {
-				value = "true";
-			}
+	public static String translateRowValueFromQuery(String value, ColumnTypeInfo columnType) {
+		if(value == null){
+			return null;
 		}
-		return value;
+		if(columnType == null){
+			return null;
+		}
+		return columnType.parseValueForDatabaseRead(value);
 	}
 	
 	@Deprecated
@@ -1306,14 +1306,6 @@ public class TableModelUtils {
 		return columnIdToColumnIndexMap;
 	}
 
-	public static Map<Long, Integer> createColumnIdToSchemaIndexMap(List<ColumnModel> resultSchema) {
-		Map<Long, Integer> columnIdToSchemaIndexMap = Maps.newHashMap();
-		for (int i = 0; i < resultSchema.size(); i++) {
-			columnIdToSchemaIndexMap.put(Long.parseLong(resultSchema.get(i).getId()), i);
-		}
-		return columnIdToSchemaIndexMap;
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
@@ -1453,8 +1445,10 @@ public class TableModelUtils {
 				for(ColumnModel column: schema){
 					Integer index = headerIdToIndex.get(column.getId());
 					if(index != null){
-						String value = row.getValues().get(index);
-						sparse.setCellValue(column.getId(), value);
+						if(index < row.getValues().size()){
+							String value = row.getValues().get(index);
+							sparse.setCellValue(column.getId(), value);
+						}
 					}
 				}
 			}

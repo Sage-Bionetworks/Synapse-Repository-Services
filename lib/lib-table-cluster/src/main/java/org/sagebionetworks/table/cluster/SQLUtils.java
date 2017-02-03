@@ -140,7 +140,7 @@ public class SQLUtils {
 		if(value == null) return null;
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(type);
-		return info.parseValueForDB(value);
+		return info.parseValueForDatabaseWrite(value);
 	}
 
 	/**
@@ -1323,7 +1323,9 @@ public class SQLUtils {
 			if(!first){
 				builder.append(", ");
 			}
+			builder.append("'");
 			builder.append(cm.getName());
+			builder.append("'");
 			first = false;
 		}
 		builder.append(" FROM ");

@@ -12,8 +12,6 @@ import static org.sagebionetworks.repo.manager.AuthenticationManagerImpl.*;
 
 import org.apache.commons.lang.RandomStringUtils;
 
-import junit.framework.Assert;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +20,6 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.LockedException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -59,7 +56,7 @@ public class AuthenticationManagerImplUnitTest {
 		MockitoAnnotations.initMocks(this);
 
 		when(mockAuthDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
-		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE))).thenReturn(synapseSessionToken);
+		when(mockAuthDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(synapseSessionToken);
 
 		UserGroup ug = new UserGroup();
 		ug.setId(userId.toString());
@@ -77,7 +74,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testAuthenticateWithPassword() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("fake token");
-		Session session = authManager.authenticate(userId, password, DomainType.SYNAPSE);
+		Session session = authManager.authenticate(userId, password);
 		assertEquals(synapseSessionToken, session.getSessionToken());
 		
 		String passHash = PBKDF2Utils.hashPassword(password, salt);
@@ -87,19 +84,14 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testAuthenticateWithoutPassword() throws Exception {
-		authManager.authenticate(userId, null, DomainType.SYNAPSE);
-	}
-
-	@Test (expected=IllegalArgumentException.class)
-	public void testAuthenticateWithoutDomain() throws Exception {
-		authManager.authenticate(userId, "password", null);
+		authManager.authenticate(userId, null);
 	}
 
 	@Test
 	public void testAuthenticateThrottleWithLimitAttempts() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS; i++) {
-			authManager.authenticate(userId, "password", DomainType.SYNAPSE);
+			authManager.authenticate(userId, "password");
 		}
 	}
 
@@ -107,7 +99,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testAuthenticateThrottleWithOverLimitAttempts() throws Exception {
 		when(mockUsernameThrottleGate.attemptToAcquireLock(anyString(), anyLong(), anyInt())).thenReturn("0","1","2","3","4","5","6","7","8","9", null);
 		for (int i = 0; i < MAX_CONCURRENT_LOCKS+1; i++) {
-			authManager.authenticate(userId, "password", DomainType.SYNAPSE);
+			authManager.authenticate(userId, "password");
 		}
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		verify(mockConsumer).addProfileData(captor.capture());
@@ -125,35 +117,34 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testGetSessionToken() throws Exception {
-		Session session = authManager.getSessionToken(userId, DomainType.SYNAPSE);
-		Assert.assertEquals(synapseSessionToken, session.getSessionToken());
+		Session session = authManager.getSessionToken(userId);
+		assertEquals(synapseSessionToken, session.getSessionToken());
 		
-		verify(mockAuthDAO, times(1)).getSessionTokenIfValid(eq(userId), eq(DomainType.SYNAPSE));
-		verify(mockAuthDAO, times(1)).changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE));
+		verify(mockAuthDAO, times(1)).getSessionTokenIfValid(eq(userId));
+		verify(mockAuthDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
 	}
 	
 	@Test
 	public void testCheckSessionToken() throws Exception {
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(userId);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
-		//when(authDAO.deriveDomainFromSessionToken(eq(sessionToken))).thenReturn(DomainType.SYNAPSE);
-		Long principalId = authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true);
-		Assert.assertEquals(userId, principalId);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		Long principalId = authManager.checkSessionToken(synapseSessionToken, true);
+		assertEquals(userId, principalId);
 		
 		// Token matches, but terms haven't been signed
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(false);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
 		try {
-			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
+			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();
 		} catch (TermsOfUseException e) { }
 
 		// Nothing matches the token
 		when(mockAuthDAO.getPrincipalIfValid(eq(synapseSessionToken))).thenReturn(null);
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(null);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		try {
-			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
+			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();
 		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
@@ -162,7 +153,7 @@ public class AuthenticationManagerImplUnitTest {
 		// Token matches, but has expired
 		when(mockAuthDAO.getPrincipal(eq(synapseSessionToken))).thenReturn(userId);
 		try {
-			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
+			authManager.checkSessionToken(synapseSessionToken, true).toString();
 			fail();
 		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("expired"));
@@ -171,7 +162,7 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class) 
 	public void testUnseeTermsOfUse() throws Exception {
-		authManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, null);
+		authManager.setTermsOfUseAcceptance(userId, null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

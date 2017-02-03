@@ -1,25 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PROJECT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
-import static org.sagebionetworks.repo.model.table.TableConstants.SQL_ENTITY_REPLICATION_CRC_32;
-import static org.sagebionetworks.repo.model.table.TableConstants.TYPE_PARAMETER_NAME;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,9 +31,11 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.util.ValidateArgument;
@@ -77,6 +60,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
+
 
 	/**
 	 * The MD5 used for tables with no schema.
@@ -293,6 +277,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	@Override
 	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
+		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
@@ -302,7 +287,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				if(callback != null){
 					callback.progressMade(null);
 				}
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.getSelectColumns());
+				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
 				handler.nextRow(row);
 			}
 		});
@@ -756,6 +741,42 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, currentSchema);
 		namedTemplate.update(sql, param);
+	}
+
+	@Override
+	public List<ColumnModel> getPossibleColumnModelsForContainers(
+			Set<Long> containerIds, Long limit, Long offset) {
+		ValidateArgument.required(containerIds, "containerIds");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		if(containerIds.isEmpty()){
+			return new LinkedList<>();
+		}
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
+		param.addValue(P_LIMIT, limit);
+		param.addValue(P_OFFSET, offset);
+		return namedTemplate.query(SELECT_DISTINCT_ANNOTATION_COLUMNS, param, new RowMapper<ColumnModel>() {
+
+			@Override
+			public ColumnModel mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				String name = rs.getString(ANNOTATION_REPLICATION_COL_KEY);
+				ColumnType type = AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)).getColumnType();
+				ColumnModel cm = new ColumnModel();
+				cm.setName(name);
+				cm.setColumnType(type);
+				if(ColumnType.STRING.equals(type)){
+					long maxLength = rs.getLong(3);
+					if(maxLength < 1){
+						maxLength = ColumnConstants.DEFAULT_STRING_SIZE;
+					}
+					cm.setMaximumSize(maxLength);
+				}
+				return cm;
+			}
+		});
 	}
 
 }

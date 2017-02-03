@@ -6,6 +6,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 
@@ -88,7 +90,23 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	public MigrationTypeList getMigrationTypes() throws SynapseException;
-	
+
+	/**
+	 * Get the list of primary type names
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeNames getPrimaryTypeNames() throws SynapseException;
+
+	/**
+	 * Get the list of migration type names
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeNames getMigrationTypeNames() throws SynapseException;
+
 	/**
 	 * Delete a list of IDs
 	 * 
@@ -268,5 +286,16 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
+
+	/**
+	 * Update fileEntity
+	 * @see PLFM-4108
+	 * @param entityId
+	 * @param version
+	 * @param etag
+	 * @return 
+	 * @throws SynapseException 
+	 */
+	public FileUpdateResult updateFile(String entityId, Long version, String etag) throws SynapseException;
 
 }

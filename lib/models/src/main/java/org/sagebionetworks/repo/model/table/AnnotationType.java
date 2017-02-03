@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model.table;
 
+import org.sagebionetworks.repo.model.table.parser.DateParser;
+import org.sagebionetworks.repo.model.table.parser.DoubleParser;
+import org.sagebionetworks.repo.model.table.parser.LongParser;
+import org.sagebionetworks.repo.model.table.parser.StringParser;
+
 /**
  * 
  * Enumeration of the currently supported annotation types.
@@ -7,16 +12,18 @@ package org.sagebionetworks.repo.model.table;
  */
 public enum AnnotationType{
 	
-	STRING	(ValueParsers.STRING_PARSER),
-	LONG	(ValueParsers.LONG_PARSER),
-	DOUBLE	(ValueParsers.DOUBLE_PARSER),
-	DATE	(ValueParsers.DATE_PARSER);
+	STRING	(new StringParser(), ColumnType.STRING),
+	LONG	(new LongParser(), ColumnType.INTEGER),
+	DOUBLE	(new DoubleParser(), ColumnType.DOUBLE),
+	DATE	(new DateParser(), ColumnType.DATE);
 	
-	AnnotationType(ValueParser parser){
+	AnnotationType(ValueParser parser, ColumnType columnType){
 		this.parser = parser;
+		this.columnType = columnType;
 	}
 	
 	ValueParser parser;
+	ColumnType columnType;
 	
 	/**
 	 * Parse the given string value into an object of the correct type.
@@ -24,6 +31,14 @@ public enum AnnotationType{
 	 * @return
 	 */
 	public Object parseValue(String value){
-		return parser.parseValue(value);
+		return parser.parseValueForDatabaseWrite(value);
+	}
+	
+	/**
+	 * Get the column type mapped to this annotation type.
+	 * @return
+	 */
+	public ColumnType getColumnType(){
+		return columnType;
 	}
 }

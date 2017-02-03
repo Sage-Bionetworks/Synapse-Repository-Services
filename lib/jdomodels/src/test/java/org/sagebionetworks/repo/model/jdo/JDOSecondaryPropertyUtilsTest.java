@@ -6,6 +6,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AnnotationNameSpace;
@@ -358,25 +360,39 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(map, JDOSecondaryPropertyUtils.decompressedReferences(compressed));
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringNull(){
 		// call under test.
-		JDOSecondaryPropertyUtils.getSingleString(null, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(null, 50);
+		assertEquals(null, value);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringEmpty(){
 		List list = new LinkedList<String>();
 		// call under test
-		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals(null, value);
 	}
-	@Test (expected=IllegalArgumentException.class)
+	
+	/**
+	 * See PLFM_4222 & PLFM-4184
+	 */
+	@Test
 	public void testGetSingleStringNullValue(){
 		List list = new LinkedList<String>();
 		list.add(null);
 		// call under test
-		JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		String value = JDOSecondaryPropertyUtils.getSingleString(list, 50);
+		assertEquals(null, value);
 	}
+	
 	@Test
 	public void testGetSingleStringString(){
 		List list = new LinkedList<String>();
@@ -428,5 +444,67 @@ public class JDOSecondaryPropertyUtilsTest {
 		
 		assertEquals(expected, results);
 	}
+	
+	/**
+	 * See PLFM_4184
+	 */
+	@Test
+	public void testTranslateEmptyList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "emptyList", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(expected, results);
+	}
+	
+	/**
+	 * See PLFM-4224
+	 */
+	@Test
+	public void testTranslateNullList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("nullList", null);
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "nullList", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testTranslateNullValueInList(){
+		long entityId = 123;
+		int maxAnnotationChars = 6;
+		NamedAnnotations annos = new NamedAnnotations();
+		annos.getAdditionalAnnotations().getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
+		
+		List<AnnotationDTO> expected = Lists.newArrayList(
+				new AnnotationDTO(entityId, "listWithNullValue", AnnotationType.STRING, null)
+		);
+		
+		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
+		assertNotNull(results);
+		assertEquals(expected, results);
+	}
 
+	@Test
+	public void testPLFM_4189() throws IOException{
+		String fileName = "CompressedAnnotationsPLFM_4189.xml.gz";
+		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", in);
+		byte[] bytes = IOUtils.toByteArray(in);
+		NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+		Annotations primary = named.getPrimaryAnnotations();
+		assertEquals("docker.synapse.org/syn4224222/dm-python-example", primary.getSingleValue("repositoryName"));
+	}
 }

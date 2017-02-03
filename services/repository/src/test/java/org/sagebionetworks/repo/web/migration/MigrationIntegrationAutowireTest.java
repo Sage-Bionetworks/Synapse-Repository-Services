@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -752,12 +751,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		Long principalId = Long.parseLong(group.getId());
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
-		authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(principalId, null);
 	}
 	
 	private void createSessionToken(UserGroup group) throws Exception {
 		DBOSessionToken token = new DBOSessionToken();
-		token.setDomain(DomainType.SYNAPSE);
 		token.setPrincipalId(Long.parseLong(group.getId()));
 		token.setSessionToken(UUID.randomUUID().toString());
 		token.setValidatedOn(new Date());
@@ -768,7 +766,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setPrincipalId(Long.parseLong(group.getId()));
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		tou.setDomain(DomainType.SYNAPSE);
 		basicDao.createNew(tou);
 	}
 

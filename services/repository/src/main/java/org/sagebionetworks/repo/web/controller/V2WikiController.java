@@ -1510,44 +1510,5 @@ public class V2WikiController extends BaseController {
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
-	
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
-	public @ResponseBody
-	void deleteEntityWikiMarkdownVersions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody(required = true) IdList toDelete,
-			HttpServletResponse response) throws DatastoreException,
-			NotFoundException, IOException {
 
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId);
-		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
-	}
-	
-	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
-	public @ResponseBody
-	void deleteEvaluationWikiMarkdownVersions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody(required = true) IdList toDelete,
-			HttpServletResponse response) throws DatastoreException,
-			NotFoundException, IOException {
-
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId);
-		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
-	}
-	
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2, method = RequestMethod.PUT)
-	public @ResponseBody
-	void deleteAccessRequirementsWikiMarkdownVersions(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody(required = true) IdList toDelete,
-			HttpServletResponse response) throws DatastoreException,
-			NotFoundException, IOException {
-
-		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ACCESS_REQUIREMENT, wikiId);
-		serviceProvider.getV2WikiService().deleteWikiVersions(userId, key, toDelete.getList());
-	}
-	
 }

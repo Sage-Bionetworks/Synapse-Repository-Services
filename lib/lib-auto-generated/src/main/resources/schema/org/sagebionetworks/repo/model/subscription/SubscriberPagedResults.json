@@ -1,0 +1,16 @@
+{
+    "description":"A paginated list of subscribers",
+    "properties":{
+		"subscribers": {
+			"description":"The list of subscriberId for this page",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"nextPageToken":{
+			"description":"The token to get the next page result.",
+			"type": "string"
+		}
+    }
+}

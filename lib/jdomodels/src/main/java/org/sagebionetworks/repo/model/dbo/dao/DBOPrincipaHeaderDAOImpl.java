@@ -9,7 +9,6 @@ import java.util.Set;
 
 import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
 import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -34,7 +33,6 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String PRINCIPAL_NAME_PARAM_NAME = "principalName";
 	private static final String PRINCIPAL_TYPE_PARAM_NAME = "principalType";
-	private static final String DOMAIN_TYPE_PARAM_NAME = "domainType";
 	private static final String LIMIT_PARAM_NAME = "limit";
 	private static final String OFFSET_PARAM_NAME = "offset";
 	
@@ -50,8 +48,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	
 	private static final String QUERY_ON_PRINCIPAL_HEADERS_CORE = 
 			"FROM " + SqlConstants.TABLE_PRINCIPAL_HEADER + 
-			" WHERE " + SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE + " IN (:" + PRINCIPAL_TYPE_PARAM_NAME + ")" + 
-			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE + " IN (:" + DOMAIN_TYPE_PARAM_NAME + ")";
+			" WHERE " + SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE + " IN (:" + PRINCIPAL_TYPE_PARAM_NAME + ")";
 	
 	private static final String EXACT_MATCH_CONDITION = 
 			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT + "=:" + PRINCIPAL_NAME_PARAM_NAME;
@@ -99,7 +96,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			
 	@Override
 	@WriteTransaction
-	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType, DomainType dType) {
+	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType) {
 		if (fragments == null || fragments.size() <= 0) {
 			return;
 		}
@@ -114,7 +111,6 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			dbo.setSoundex(new Soundex().encode(fragment));
 			
 			dbo.setPrincipalType(pType);
-			dbo.setDomainType(dType);
 			
 			dbos.add(dbo);
 		}
@@ -132,11 +128,9 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 
 	@Override
 	public List<Long> query(String nameFilter, MATCH_TYPE mType,
-			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
-			long offset) {
+			Set<PrincipalType> principals, long limit, long offset) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_TYPE_PARAM_NAME, convertEnum(principals, PrincipalType.class));
-		params.addValue(DOMAIN_TYPE_PARAM_NAME, convertEnum(domains, DomainType.class));
 		params.addValue(LIMIT_PARAM_NAME, limit);
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		
@@ -163,10 +157,9 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	
 	@Override
 	public long countQueryResults(String nameFilter, MATCH_TYPE mType,
-			Set<PrincipalType> principals, Set<DomainType> domains) {
+			Set<PrincipalType> principals) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_TYPE_PARAM_NAME, convertEnum(principals, PrincipalType.class));
-		params.addValue(DOMAIN_TYPE_PARAM_NAME, convertEnum(domains, DomainType.class));
 
 		String sql;
 		switch (mType) {

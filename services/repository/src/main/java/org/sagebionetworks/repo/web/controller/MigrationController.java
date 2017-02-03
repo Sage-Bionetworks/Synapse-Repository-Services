@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -271,7 +272,22 @@ public class MigrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
-	
+
+	/**
+	 * The list of primary migration type names
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY_NAMES }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeNames getPrimaryTypeNames(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getPrimaryTypeNames(userId);
+	}
+
 	/**
 	 * The list of  migration types.
 	 * @param userId
@@ -284,7 +300,22 @@ public class MigrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getMigrationTypes(userId);
 	}
-	
+
+	/**
+	 * The list of primary migration type names
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_TYPE_NAMES }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeNames getMigrationTypeNames(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getMigrationTypeNames(userId);
+	}
+
 	/**
 	 * A checksum on ETAG or backup ID for a given range and a given migration type
 	 * @throws NotFoundException 

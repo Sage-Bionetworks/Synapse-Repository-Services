@@ -9,11 +9,17 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
+import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.javadoc.testclasses.GenericList;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -270,6 +276,19 @@ public class ExampleController {
 	@RequestMapping(value = "/some/generic", method = RequestMethod.POST)
 	public @ResponseBody
 	Long someGenericParam(@RequestBody GenericList<Annotations> annos) {
+		return null;
+	}
+
+	/**
+	 * using enum in the param.
+	 * Available filter options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 * 
+	 * @param filter - Available options: <a href="${org.sagebionetworks.repo.model.discussion.DiscussionFilter}">DiscussionFilter</a>.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/some/enum", method = RequestMethod.GET)
+	public @ResponseBody Long enumParam(
+			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter) {
 		return null;
 	}
 }

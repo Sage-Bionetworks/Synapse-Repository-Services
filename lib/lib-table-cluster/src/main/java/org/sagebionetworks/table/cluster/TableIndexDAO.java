@@ -339,4 +339,15 @@ public interface TableIndexDAO {
 	 */
 	public void setIndexVersionAndSchemaMD5Hex(String tableId, Long viewCRC,
 			String schemaMD5Hex);
+
+	/**
+	 * Get the distinct possible ColumnModels for a given set of container ids.
+	 * @param containerIds
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<ColumnModel> getPossibleColumnModelsForContainers(
+			Set<Long> containerIds, Long limit, Long offset);
+
 }

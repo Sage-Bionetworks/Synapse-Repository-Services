@@ -36,14 +36,12 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -144,6 +142,8 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -151,6 +151,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionRequest;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -165,6 +166,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -646,8 +648,6 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
-	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException;
-	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
 		ObjectType ownerType) throws SynapseException;
 	
@@ -665,6 +665,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param destinationFile
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public void downloadFromFileEntityCurrentVersion(String entityId, File destinationFile)
 			throws SynapseException;
 	
@@ -676,6 +677,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param destinationFile
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public void downloadFromFileEntityForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
@@ -699,8 +701,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
-	
-	public String getTermsOfUse(DomainType domain) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -1631,12 +1631,6 @@ public interface SynapseClient extends BaseClient {
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
 	
 	/**
-	 * 
-	 * Signs the terms of use for utilization of specific Dage application, as identified by a session token
-	 */
-	public void signTermsOfUse(String sessionToken, DomainType domain, boolean acceptTerms) throws SynapseException;
-	
-	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
@@ -2517,6 +2511,26 @@ public interface SynapseClient extends BaseClient {
 	Subscription getSubscription(String subscriptionId) throws SynapseException;
 
 	/**
+	 * Retrieve a page of subscribers for a given topic
+	 * 
+	 * @param topic
+	 * @param nextPageToken
+	 * @return
+	 * @throws SynapseException
+	 */
+	SubscriberPagedResults getSubscribers(Topic topic, String nextPageToken) throws SynapseException;
+
+	/**
+	 * Retrieve number of subscribers for a given topic
+	 * 
+	 * @param topic
+	 * @return
+	 * @throws SynapseException
+	 */
+	SubscriberCount getSubscriberCount(Topic topic) throws SynapseException;
+
+
+	/**
 	 * Retrieve the current etag for a given object.
 	 * 
 	 * @param objectId
@@ -2660,5 +2674,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public void requestToCancelSubmission(String submissionId) throws SynapseException;
+
+	/**
+	 * Get the possible ColumnModel definitions based on annotation within a
+	 * given scope.
+	 * 
+	 * @param viewScope
+	 *            List of parent IDs that define the scope.
+	 * @param nextPageToken
+	 *            Optional: When the results include a next page token, the
+	 *            token can be provided to get subsequent pages.
+	 * 
+	 * @return A ColumnModel for each distinct annotation for the given scope. A returned nextPageToken can be used to get subsequent pages
+	 * of ColumnModels for the given scope.  The nextPageToken will be null when there are no more pages of results.
+	 */
+	ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope,
+			String nextPageToken) throws SynapseException;
 
 }

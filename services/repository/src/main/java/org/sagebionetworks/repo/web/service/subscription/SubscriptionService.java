@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.service.subscription;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -71,4 +73,24 @@ public interface SubscriptionService {
 	 * @return
 	 */
 	public Etag getEtag(String objectId, ObjectType objectType);
+
+	/**
+	 * retrieve a page of subscribers for a given topic
+	 * 
+	 * @param userId
+	 * @param topic
+	 * @param nextPageToken
+	 * @return
+	 */
+	public SubscriberPagedResults getSubscribers(Long userId, Topic topic, String nextPageToken);
+
+	/**
+	 * retrieve number of subscribers for a given topic
+	 * 
+	 * @param userId
+	 * @param topic
+	 * @return
+	 */
+	public SubscriberCount getSubscriberCount(Long userId, Topic topic);
+
 }

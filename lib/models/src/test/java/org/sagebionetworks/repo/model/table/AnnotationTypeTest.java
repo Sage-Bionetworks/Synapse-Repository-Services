@@ -18,4 +18,12 @@ public class AnnotationTypeTest {
 		assertEquals(new Date(1480950853111L), AnnotationType.DATE.parseValue("2016-12-05 15:14:13.111"));
 		assertEquals(new Date(123L), AnnotationType.DATE.parseValue("123"));
 	}
+	
+	@Test
+	public void testColumnType(){
+		assertEquals(ColumnType.STRING, AnnotationType.STRING.getColumnType());
+		assertEquals(ColumnType.INTEGER, AnnotationType.LONG.getColumnType());
+		assertEquals(ColumnType.DOUBLE, AnnotationType.DOUBLE.getColumnType());
+		assertEquals(ColumnType.DATE, AnnotationType.DATE.getColumnType());
+	}
 }

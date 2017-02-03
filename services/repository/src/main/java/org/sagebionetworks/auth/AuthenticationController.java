@@ -7,7 +7,6 @@ import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -75,11 +74,9 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(
-			@RequestBody LoginCredentials credentials,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestBody LoginCredentials credentials)
 			throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		return authenticationService.authenticate(credentials, domain);
+		return authenticationService.authenticate(credentials);
 	}
 
 	/**
@@ -100,11 +97,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
 	public void revalidate(
-			@RequestBody Session session,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestBody Session session)
 			throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.revalidate(session.getSessionToken(), domain);
+		authenticationService.revalidate(session.getSessionToken());
 	}
 
 	/**
@@ -130,10 +125,8 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(
-			@RequestBody NewUser user,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client) {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.createUser(user, domain);
+			@RequestBody NewUser user) {
+		authenticationService.createUser(user);
 	}
 
 	/**
@@ -144,11 +137,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendPasswordEmail(
-			@RequestBody Username user,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestBody Username user)
 			throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.sendPasswordEmail(user.getEmail(), domain);
+		authenticationService.sendPasswordEmail(user.getEmail());
 	}
 
 	/**
@@ -157,11 +148,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
 	public void changePassword(
-			@RequestBody ChangePasswordRequest request,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestBody ChangePasswordRequest request)
 			throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.changePassword(request, domain);
+		authenticationService.changePassword(request);
 	}
 
 	/**
@@ -170,11 +159,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
 	public void signTermsOfUse(
-			@RequestBody Session session,
-			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			@RequestBody Session session)
 			throws NotFoundException {
-		DomainType domain = DomainTypeUtils.valueOf(client);
-		authenticationService.signTermsOfUse(session, domain);
+		authenticationService.signTermsOfUse(session);
 	}
 
 	/**

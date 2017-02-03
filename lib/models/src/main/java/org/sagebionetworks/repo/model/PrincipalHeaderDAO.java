@@ -32,7 +32,7 @@ public interface PrincipalHeaderDAO {
 	 * Inserts a row into the PrincipalHeader table for each fragment
 	 * All fields are required
 	 */
-	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType, DomainType dType);
+	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType);
 	
 	/**
 	 * Deletes the ID to fragment mapping for the given principal
@@ -50,11 +50,9 @@ public interface PrincipalHeaderDAO {
 	 * @param nameFilter The string to match.  If null/empty and the exactMatch=false, then all results will be returned
 	 * @param mType How should the name filter be applied?  See {@link #MATCH_TYPE}
 	 * @param principals The type(s) of principal to include.  If null or empty, all principals are included
-	 * @param domains The type(s) of domain to include.  If null or empty, all domains are included
 	 */
 	public List<Long> query(String nameFilter, MATCH_TYPE mType,
-			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
-			long offset);
+			Set<PrincipalType> principals, long limit, long offset);
 	
 	/**
 	 * Returns the total number of results of the given query
@@ -62,5 +60,5 @@ public interface PrincipalHeaderDAO {
 	 * See {@link #query(String, boolean, Set, Set, Set, long, long)}
 	 */
 	public long countQueryResults(String nameFilter, MATCH_TYPE mType,
-			Set<PrincipalType> principals, Set<DomainType> domains);
+			Set<PrincipalType> principals);
 }

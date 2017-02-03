@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
@@ -27,7 +26,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -45,6 +43,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -815,17 +815,17 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetFileHandleIdsAssociateWithWikiNullFileHandleIds(){
-		wikiPageDao.getFileHandleIdsAssociatedWithWiki(null, "1");
+		wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(null, "1");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetFileHandleIdsAssociateWithWikiNullWikiPageId() {
-		wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), null);
+		wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(new ArrayList<String>(0), null);
 	}
 
 	@Test
 	public void testGetFileHandleIdsAssociateWithWikiEmptyFileHandleIds() {
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(new ArrayList<String>(0), "1");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(new ArrayList<String>(0), "1");
 		assertNotNull(fileHandleIds);
 		assertTrue(fileHandleIds.isEmpty());
 	}
@@ -833,7 +833,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testGetFileHandleIdsAssociateWithWikiNoAttachments() {
 		List<String> givenFileHandleIds = Arrays.asList("1", "2");
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, "1");
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(givenFileHandleIds, "1");
 		assertNotNull(fileHandleIds);
 		assertTrue(fileHandleIds.isEmpty());
 	}
@@ -864,7 +864,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		
 		List<String> givenFileHandleIds = Arrays.asList("1", "2", attachOne.getId());
-		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWiki(givenFileHandleIds, clone.getId());
+		Set<String> fileHandleIds = wikiPageDao.getFileHandleIdsAssociatedWithWikiAttachments(givenFileHandleIds, clone.getId());
 		assertNotNull(fileHandleIds);
 		assertEquals(1L, fileHandleIds.size());
 		assertTrue(fileHandleIds.contains(attachOne.getId()));
@@ -872,23 +872,14 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullWikiId() throws Exception {
-		List<Long> versionsToDelete = new LinkedList<Long>();
-		versionsToDelete.add(123L);
-		wikiPageDao.deleteWikiVersions(null, versionsToDelete);
+		Long versionToDelete = 123L;
+		wikiPageDao.deleteWikiVersions(null, versionToDelete);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteWikiVersionsNullVersions() throws Exception {
 		WikiPageKey key = new WikiPageKey();
 		wikiPageDao.deleteWikiVersions(key, null);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testDeleteWikiVersionsEmptyVersions() throws Exception {
-		WikiPageKey key = new WikiPageKey();
-		List<Long> versionsToDelete = new LinkedList<Long>();
-
-		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
 	}
 	
 	@Test
@@ -913,18 +904,17 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		assertEquals(5, wikiPageDao.getWikiHistory(key, 10L, 0L).size());
 		
-		List<Long> versionsToDelete = new LinkedList<Long>();
-		// Delete some versions, including one that does not exist
-		versionsToDelete.addAll(Arrays.asList(0L, 1L, 4L, 10L));
-		
-		wikiPageDao.deleteWikiVersions(key, versionsToDelete);
+		Long minVerToKeep = 2L;
+
+		wikiPageDao.deleteWikiVersions(key, minVerToKeep);
 
 		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, 10L, 0L);
 		assertNotNull(history);
-		assertEquals(2, history.size());
-		assertEquals("3", history.get(0).getVersion());
-		assertEquals("2", history.get(1).getVersion());
-		
+		assertEquals(3, history.size());
+		assertEquals("4", history.get(0).getVersion());
+		assertEquals("3", history.get(1).getVersion());
+		assertEquals("2", history.get(2).getVersion());
+
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -1004,6 +994,99 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		assertTrue(numVersions == 5);
 		
+	}
+
+	@Test
+	public void testGetWikiVersionByRank() throws Exception {
+		// Create a new wiki page
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> fileIds = new ArrayList<String>();
+
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, fileIds);
+		assertNotNull(clone);
+		V2WikiPage clone2 = createVersions(clone, ownerId, ownerType, 4);
+		WikiPageKey key1 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone2.getId());
+		toDelete.add(key1);
+
+		Long vAtRank0 = wikiPageDao.getWikiVersionByRank(key1, 0L);
+		assertNotNull(vAtRank0);
+		assertEquals(4L, vAtRank0.longValue());
+		Long vAtRank2 = wikiPageDao.getWikiVersionByRank(key1, 2L);
+		assertEquals(2L, vAtRank2.longValue());
+		Long vAtRank5 = wikiPageDao.getWikiVersionByRank(key1, 4L);
+		assertEquals(0L, vAtRank5.longValue());
+		Long vAtRank7 = wikiPageDao.getWikiVersionByRank(key1, 7L);
+		assertEquals(0L, vAtRank5.longValue());
+
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithWikiMarkdown(){
+		String ownerId = "syn192";
+		ObjectType ownerType = ObjectType.ENTITY;
+		V2WikiPage one = new V2WikiPage();
+		one.setTitle("one");
+		one.setCreatedBy(creatorUserGroupId);
+		one.setModifiedBy(creatorUserGroupId);
+		one.setMarkdownFileHandleId(markdownOne.getId());
+		one.setAttachmentFileHandleIds(new LinkedList<String>());
+		one = wikiPageDao.create(one, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		WikiPageKey oneKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, one.getId());
+		toDelete.add(oneKey);
+		// create a few versions of this wiki
+		createVersions(one, ownerId, ownerType, 2);
+		
+		// create another wiki
+		ownerId = "syn1923";
+		V2WikiPage two = new V2WikiPage();
+		two.setTitle("two");
+		two.setCreatedBy(creatorUserGroupId);
+		two.setModifiedBy(creatorUserGroupId);
+		two.setMarkdownFileHandleId(attachOne.getId());
+		two.setAttachmentFileHandleIds(new LinkedList<String>());
+		two = wikiPageDao.create(two, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		WikiPageKey twoKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, two.getId());
+		toDelete.add(twoKey);
+		// call under test
+		List<String> fileHandleIds = Lists.newArrayList(markdownTwo.getId(), markdownOne.getId(), attachOne.getId());
+		Set<String> results = wikiPageDao.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, one.getId());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertTrue(results.contains(markdownOne.getId()));
+		assertTrue(results.contains(markdownTwo.getId()));
+		assertFalse(results.contains(attachOne.getId()));
+		// check the other wiki
+		fileHandleIds = Lists.newArrayList(attachOne.getId(), "-123");
+		results = wikiPageDao.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, two.getId());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertTrue(results.contains(attachOne.getId()));
+	}
+	
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithWikiMarkdownEmpty(){
+		// call under test
+		List<String> fileHandleIds = new LinkedList<>();
+		Set<String> results = wikiPageDao.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, "123");
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithWikiMarkdownEmptyResults(){
+		// There should be no matches for this case.
+		List<String> fileHandleIds = Lists.newArrayList("456");
+		Set<String> results = wikiPageDao.getFileHandleIdsAssociatedWithWikiMarkdown(fileHandleIds, "123");
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 	
 	// Just create versions with modified page title

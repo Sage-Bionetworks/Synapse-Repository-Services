@@ -461,8 +461,8 @@ public class MigrationManagerImplAutowireTest {
 			// pretend to be worker and generate caches and index
 			List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport, tableId);
-			manager.setIndexSchema(mockProgressCallbackVoid, currentSchema);
+			TableIndexManagerImpl manager = new TableIndexManagerImpl(indexDao,tableManagerSupport);
+			manager.setIndexSchema(tableId, mockProgressCallbackVoid, currentSchema);
 			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
 			RowReferenceSet rowRefs = new RowReferenceSet();
 			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
@@ -480,7 +480,29 @@ public class MigrationManagerImplAutowireTest {
 		List<MigrationType> actual = migrationManager.getMigrationTypes(adminUser);
 		assertEquals(expected, actual);
 	}
-	
+
+	@Test
+	public void testGetMigrationTypeNames() {
+		List<MigrationType> expectedTypes = new LinkedList<MigrationType>(Arrays.asList(MigrationType.values()));
+		List<String> expectedTypeNames = new LinkedList<String>();
+		for (MigrationType t: expectedTypes) {
+			expectedTypeNames.add(t.name());
+		}
+		List<String> actual = migrationManager.getMigrationTypeNames(adminUser);
+		assertEquals(expectedTypeNames, actual);
+	}
+
+	@Test
+	public void testGetPrimaryTypeNames() {
+		List<MigrationType> expectedTypes = migrationManager.getPrimaryMigrationTypes(adminUser);
+		List<String> expectedTypeNames = new LinkedList<String>();
+		for (MigrationType t: expectedTypes) {
+			expectedTypeNames.add(t.name());
+		}
+		List<String> actual = migrationManager.getPrimaryMigrationTypeNames(adminUser);
+		assertEquals(expectedTypeNames, actual);
+	}
+
 	@Test
 	public void testGetSecondaryTypes(){
 		// Node should have revision as a secondary.

@@ -215,7 +215,7 @@ public class TableIndexDAOImplTest {
 		// We should be able to update all of the rows
 		rows.get(4).setValues(
 				Arrays.asList("update", "99.99", "3", "false", "123", "123",
-						"syn123.3", "link2", "largeText", "42"));
+						"syn123", "link2", "largeText", "42"));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
@@ -237,7 +237,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(Boolean.FALSE, row.get("_C3_"));
 		assertEquals(123L, row.get("_C4_"));
 		assertEquals(123L, row.get("_C5_"));
-		assertEquals("syn123.3", row.get("_C6_"));
+		assertEquals(new Long(123), row.get("_C6_"));
 		assertEquals("largeText", row.get("_C8_"));
 		assertEquals(42L, row.get("_C9_"));
 	}
@@ -362,7 +362,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string0", "341003.12",
-				"203000", "false", "404000", "505000", "syn606000.607000",
+				"203000", "false", "404000", "505000", "syn606000",
 				"link708000", "largeText804000", "903000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
@@ -371,7 +371,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
 		expectedValues = Arrays.asList("string1", "341006.53", "203001",
-				"true", "404001", "505001", "syn606001.607001", 
+				"true", "404001", "505001", "syn606001", 
 				"link708001", "largeText804001", "903001");
 		assertEquals(expectedValues, row.getValues());
 		// progress should be made for each row.
@@ -1534,6 +1534,44 @@ public class TableIndexDAOImplTest {
 		assertEquals(-1L, crc32);
 	}
 	
+	@Test
+	public void testGetPossibleAnnotationsForContainers(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 15);
+		file1.setParentId(333L);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 12);
+		file2.setParentId(222L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
+		long limit = 5;
+		long offset = 0;
+		
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, limit, offset);
+		assertNotNull(columns);
+		assertEquals(limit, columns.size());
+		// one
+		ColumnModel cm = columns.get(0);
+		assertEquals("key0", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(1L), cm.getMaximumSize());
+		// two
+		cm = columns.get(1);
+		assertEquals("key1", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// three
+		cm = columns.get(2);
+		assertEquals("key10", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
 	/**
 	 * Create a view schema using an EntityDTO as a template.
 	 * 
@@ -1546,7 +1584,7 @@ public class TableIndexDAOImplTest {
 		if(dto.getAnnotations() != null){
 			for(AnnotationDTO annoDto: dto.getAnnotations()){
 				ColumnModel cm = new ColumnModel();
-				cm.setColumnType(translateType(annoDto.getType()));
+				cm.setColumnType(annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
 				if(ColumnType.STRING.equals(cm.getColumnType())){
 					cm.setMaximumSize(50L);
@@ -1562,23 +1600,6 @@ public class TableIndexDAOImplTest {
 			cm.setId(""+i);
 		}
 		return schema;
-	}
-
-	
-	
-	public static ColumnType translateType(AnnotationType type){
-		switch(type){
-		case STRING:
-			return ColumnType.STRING;
-		case DATE:
-			return ColumnType.DATE;
-		case DOUBLE:
-			return ColumnType.DOUBLE;
-		case LONG:
-			return ColumnType.INTEGER;
-		default:
-			return ColumnType.STRING;
-		}
 	}
 	
 	/**

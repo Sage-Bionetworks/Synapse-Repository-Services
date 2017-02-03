@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.subscription;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -382,5 +383,48 @@ public class DBOSubscriptionDAOImplTest {
 		assertNotNull(projects);
 		assertEquals(1L, projects.size());
 		assertTrue(projects.contains(Long.parseLong(projectId)));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscribersWithNullObjectId() {
+		subscriptionDao.getSubscribers(null, SubscriptionObjectType.FORUM, 0, 0);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscribersWithNullObjectType() {
+		subscriptionDao.getSubscribers("123", null, 0, 0);
+	}
+
+	@Test
+	public void testGetSubscribersEmpty() {
+		assertNotNull(subscriptionDao.getSubscribers("123", SubscriptionObjectType.FORUM, 0, 0));
+	}
+
+	@Test
+	public void testGetSubscribers() {
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
+		assertEquals(Arrays.asList(userId),
+				subscriptionDao.getSubscribers(threadId, SubscriptionObjectType.THREAD, 10, 0));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullObjectId() {
+		subscriptionDao.getSubscriberCount(null, SubscriptionObjectType.THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullObjectType() {
+		subscriptionDao.getSubscriberCount("1", null);
+	}
+
+	@Test
+	public void testGetSubscriberCountWithNonExistTopic() {
+		assertEquals(0, subscriptionDao.getSubscriberCount("1", SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testGetSubscriberCountWithExistTopic() {
+		subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
+		assertEquals(1, subscriptionDao.getSubscriberCount(threadId, SubscriptionObjectType.THREAD));
 	}
 }

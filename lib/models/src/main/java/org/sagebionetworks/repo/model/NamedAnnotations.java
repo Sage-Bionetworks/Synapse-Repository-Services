@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -17,12 +18,12 @@ public class NamedAnnotations {
 	private String etag;
 	private Date creationDate;
 	private Long createdBy;
-	private Map<AnnotationNameSpace, Annotations> map;
+	private Map<String, Annotations> map;
 	
 	public NamedAnnotations(){
-		map = new HashMap<AnnotationNameSpace, Annotations>();
-		map.put(AnnotationNameSpace.PRIMARY, new Annotations());
-		map.put(AnnotationNameSpace.ADDITIONAL, new Annotations());
+		map = new HashMap<String, Annotations>();
+		map.put(AnnotationNameSpace.PRIMARY.name(), new Annotations());
+		map.put(AnnotationNameSpace.ADDITIONAL.name(), new Annotations());
 	}
 	
 	/**
@@ -32,10 +33,10 @@ public class NamedAnnotations {
 	 */
 	public Annotations getAnnotationsForName(AnnotationNameSpace name){
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
-		Annotations annos = map.get(name);
+		Annotations annos = map.get(name.name());
 		if(annos == null){
 			annos = new Annotations();
-			map.put(name, annos);
+			map.put(name.name(), annos);
 		}
 		// Make sure the annotations have the correct metadata
 		setMetadate(annos);
@@ -59,7 +60,10 @@ public class NamedAnnotations {
 	}
 	
 	public Iterator<AnnotationNameSpace> nameIterator(){
-		return map.keySet().iterator();
+		LinkedList<AnnotationNameSpace> list = new LinkedList<>();
+		list.add(AnnotationNameSpace.PRIMARY);
+		list.add(AnnotationNameSpace.ADDITIONAL);
+		return list.iterator();
 	}
 	
 	/**
@@ -110,20 +114,11 @@ public class NamedAnnotations {
 		this.createdBy = createdBy;
 	}
 
-	/**
-	 * Put all annotations from the passed map.
-	 * @param toAdd
-	 */
-	public void putAll(Map<AnnotationNameSpace, Annotations> toAdd) {
-		if(toAdd != null){
-			map.putAll(toAdd);
-		}
-	}
 	
 	public void put(AnnotationNameSpace nameSpace, Annotations annos){
 		if(nameSpace == null) throw new IllegalArgumentException("Name cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
-		map.put(nameSpace, annos);
+		map.put(nameSpace.name(), annos);
 	}
 	
 	
@@ -131,7 +126,7 @@ public class NamedAnnotations {
 	 * Get a read only copy of the map
 	 * @return
 	 */
-	public Map<AnnotationNameSpace, Annotations> getMap(){
+	public Map<String, Annotations> getMap(){
 		return Collections.unmodifiableMap(map);
 	}
 

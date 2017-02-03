@@ -8,14 +8,14 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class WikiFileHandleAssociationProvider implements FileHandleAssociationProvider {
+public class WikiAttachmentFileHandleAssociationProvider implements FileHandleAssociationProvider {
 
 	@Autowired
 	V2WikiPageDao wikiPageDaoV2;
 
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
-		return wikiPageDaoV2.getFileHandleIdsAssociatedWithWiki(fileHandleIds, objectId);
+		return wikiPageDaoV2.getFileHandleIdsAssociatedWithWikiAttachments(fileHandleIds, objectId);
 	}
 
 	@Override

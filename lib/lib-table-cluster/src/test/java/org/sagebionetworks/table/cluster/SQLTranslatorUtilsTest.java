@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -630,6 +631,7 @@ public class SQLTranslatorUtilsTest {
 		two.setColumnType(ColumnType.BOOLEAN);
 		
 		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
 		
 		Long rowId = 123L;
 		Long rowVersion = 2L;
@@ -637,9 +639,9 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
 		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
 		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("1");
+		when(mockResultSet.getString(2)).thenReturn("true");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
 		assertNotNull(result);
 		assertEquals(rowId, result.getRowId());
 		assertEquals(rowVersion, result.getVersionNumber());
@@ -661,11 +663,12 @@ public class SQLTranslatorUtilsTest {
 		two.setColumnType(ColumnType.BOOLEAN);
 		
 		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
 
 		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("0");
+		when(mockResultSet.getString(2)).thenReturn("false");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, selectList);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
 		assertNotNull(result);
 		assertEquals(null, result.getRowId());
 		assertEquals(null, result.getVersionNumber());
@@ -1164,6 +1167,25 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT FOUND_ROWS()",element.toSql());
+	}
+	
+	@Test
+	public void testGetColumnTypeInfoArray(){
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.ENTITYID);
+		SelectColumn three = new SelectColumn();
+		three.setColumnType(ColumnType.INTEGER);
+		
+		List<SelectColumn> selectColumns = Lists.newArrayList(one, two, three);
+		ColumnTypeInfo[] expected = new ColumnTypeInfo[]{
+			ColumnTypeInfo.STRING,
+			ColumnTypeInfo.ENTITYID,
+			ColumnTypeInfo.INTEGER,
+		};
+		ColumnTypeInfo[] results = SQLTranslatorUtils.getColumnTypeInfoArray(selectColumns);
+		assertTrue(Arrays.equals(expected, results));
 	}
 	
 

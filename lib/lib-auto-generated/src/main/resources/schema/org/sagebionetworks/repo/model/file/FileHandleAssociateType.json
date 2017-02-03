@@ -5,6 +5,7 @@
 		"FileEntity",
 		"TableEntity",
 		"WikiAttachment",
+		"WikiMarkdown",
 		"UserProfileAttachment",
 		"MessageAttachment",
 		"TeamAttachment",

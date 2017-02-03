@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
@@ -28,7 +27,7 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	@Field(name = COL_SESSION_TOKEN_VALIDATED_ON)
 	private Date validatedOn;
 	
-	@Field(name = COL_SESSION_TOKEN_DOMAIN, nullable = false, varchar=256, primary=true)
+	@Field(name = COL_SESSION_TOKEN_DOMAIN, nullable = true, varchar=256)
 	private DomainType domain;
 
 	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
@@ -75,11 +74,13 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 		return new MigratableTableTranslation<DBOSessionToken, DBOSessionToken>(){
 			@Override
 			public DBOSessionToken createDatabaseObjectFromBackup(DBOSessionToken backup) {
+				backup.setDomain(null);
 				return backup;
 			}
 
 			@Override
 			public DBOSessionToken createBackupFromDatabaseObject(DBOSessionToken dbo) {
+				dbo.setDomain(null);
 				return dbo;
 			}
 		};	

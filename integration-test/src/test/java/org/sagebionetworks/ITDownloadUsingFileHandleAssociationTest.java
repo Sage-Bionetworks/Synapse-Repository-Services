@@ -123,12 +123,19 @@ public class ITDownloadUsingFileHandleAssociationTest {
 		// Create a V2WikiPage
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		
+		// get attachments
 		FileHandleAssociation fha = new FileHandleAssociation();
 		fha.setAssociateObjectId(wiki.getId());
 		fha.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
 		fha.setFileHandleId(fileHandle.getId());
 		URL url = synapse.getFileURL(fha);
+		assertNotNull(url);
+		// get markdown
+		fha = new FileHandleAssociation();
+		fha.setAssociateObjectId(wiki.getId());
+		fha.setAssociateObjectType(FileHandleAssociateType.WikiMarkdown);
+		fha.setFileHandleId(markdownHandle.getId());
+		url = synapse.getFileURL(fha);
 		assertNotNull(url);
 	}
 

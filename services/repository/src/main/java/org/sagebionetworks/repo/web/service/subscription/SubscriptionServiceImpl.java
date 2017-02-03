@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -57,6 +59,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	@Override
 	public Etag getEtag(String objectId, ObjectType objectType) {
 		return subscriptionManager.getEtag(objectId, objectType);
+	}
+
+	@Override
+	public SubscriberPagedResults getSubscribers(Long userId, Topic topic, String nextPageToken) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return subscriptionManager.getSubscribers(userInfo, topic, nextPageToken);
+	}
+
+	@Override
+	public SubscriberCount getSubscriberCount(Long userId, Topic topic) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return subscriptionManager.getSubscriberCount(userInfo, topic);
 	}
 
 }

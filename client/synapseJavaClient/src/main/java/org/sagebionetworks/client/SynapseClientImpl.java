@@ -44,12 +44,10 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -168,6 +166,8 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -176,6 +176,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -198,6 +199,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -218,7 +220,6 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -482,6 +483,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 	
 	private static final String DOCKER_COMMIT = "/dockerCommit";
+
+	private static final String NEXT_PAGE_TOKEN_PARAM = "nextPageToken=";
 
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3
@@ -1790,10 +1793,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				ENTITY + "/" + entityId + FILE + QUERY_REDIRECT_PARAMETER + "false");
 	}
 
+	@Deprecated
 	@Override
 	public void downloadFromFileEntityCurrentVersion(String fileEntityId,
 			File destinationFile) throws SynapseException {
 		String uri = ENTITY + "/" + fileEntityId + FILE;
+		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
+	}
+
+	@Deprecated
+	@Override
+	public void downloadFromFileEntityForVersion(String entityId,
+			Long versionNumber, File destinationFile) throws SynapseException {
+		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
+				+ versionNumber + FILE;
 		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
 	}
 
@@ -1843,14 +1856,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
 				+ versionNumber + FILE + QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(getRepoEndpoint(), uri);
-	}
-
-	@Override
-	public void downloadFromFileEntityForVersion(String entityId,
-			Long versionNumber, File destinationFile) throws SynapseException {
-		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/"
-				+ versionNumber + FILE;
-		downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile);
 	}
 
 	/**
@@ -2333,14 +2338,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		deleteUri(getRepoEndpoint(), uri);
 	}
 	
-	@Override
-	public void deleteV2WikiVersions(WikiPageKey key, IdList versionsToDelete) throws SynapseException {
-		ValidateArgument.required(key, "key");
-		ValidateArgument.required(versionsToDelete, "versionsToDelete");
-		String uri = createV2WikiURL(key) + "/markdown/deleteversion";
-		voidPut(getRepoEndpoint(), uri, versionsToDelete);
-	}
-
 	/**
 	 * Get the WikiHeader tree for a given owner object.
 	 * 
@@ -2480,13 +2477,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
-		return getTermsOfUse(DomainType.SYNAPSE);
-	}
-
-	@Override
-	public String getTermsOfUse(DomainType domain) throws SynapseException {
-		ValidateArgument.required(domain, "domain");
-		return getStringDirect(getAuthEndpoint(), "/" + domain.name().toLowerCase() + "TermsOfUse.html");
+		return getStringDirect(getAuthEndpoint(), "/synapseTermsOfUse.html");
 	}
 
 	/**
@@ -4147,19 +4138,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
 			throws SynapseException {
-		signTermsOfUse(sessionToken, DomainType.SYNAPSE, acceptTerms);
-	}
-
-	@Override
-	public void signTermsOfUse(String sessionToken, DomainType domain,
-			boolean acceptTerms) throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(sessionToken);
 		session.setAcceptsTermsOfUse(acceptTerms);
-
-		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
-		voidPost(getAuthEndpoint(), "/termsOfUse", session, parameters);
+		voidPost(getAuthEndpoint(), "/termsOfUse", session, null);
 	}
 
 	/*
@@ -4894,5 +4876,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void requestToCancelSubmission(String submissionId) throws SynapseException {
 		putUri(getRepoEndpoint(), EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+"/cancellation");
+	}
+	
+	@Override
+	public ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope, String nextPageToken) throws SynapseException{
+		StringBuilder url = new StringBuilder("/column/view/scope");
+		if(nextPageToken != null){
+			url.append("?nextPageToken=");
+			url.append(nextPageToken);
+		}
+		return postJSONEntity(getRepoEndpoint(), url.toString(), scope, ColumnModelPage.class);
+	}
+
+	@Override
+	public SubscriberPagedResults getSubscribers(Topic topic, String nextPageToken) throws SynapseException {
+		String url = SUBSCRIPTION+"/subscribers";
+		if (nextPageToken != null) {
+			url += "?" + NEXT_PAGE_TOKEN_PARAM + nextPageToken;
+		}
+		return postJSONEntity(getRepoEndpoint(), url, topic, SubscriberPagedResults.class);
+	}
+
+	@Override
+	public SubscriberCount getSubscriberCount(Topic topic) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), SUBSCRIPTION+"/subscribers/count", topic, SubscriberCount.class);
 	}
 }

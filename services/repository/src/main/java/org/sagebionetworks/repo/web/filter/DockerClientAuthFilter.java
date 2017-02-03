@@ -19,7 +19,6 @@ import org.sagebionetworks.auth.UserNameAndPassword;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -47,7 +46,7 @@ public class DockerClientAuthFilter implements Filter {
 				LoginCredentials credential = new LoginCredentials();
 				credential.setEmail(up.getUserName());
 				credential.setPassword(up.getPassword());
-				authenticationService.authenticate(credential, DomainType.SYNAPSE);
+				authenticationService.authenticate(credential);
 				PrincipalAlias alias = authenticationService.lookupUserForAuthentication(up.getUserName());
 				userId = alias.getPrincipalId();
 			} catch (NotFoundException e) {

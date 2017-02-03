@@ -5,7 +5,12 @@ import static org.sagebionetworks.table.cluster.utils.ColumnConstants.CHARACTER_
 import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ValueParser;
-import org.sagebionetworks.repo.model.table.ValueParsers;
+import org.sagebionetworks.repo.model.table.parser.BooleanParser;
+import org.sagebionetworks.repo.model.table.parser.DateToLongParser;
+import org.sagebionetworks.repo.model.table.parser.DoubleParser;
+import org.sagebionetworks.repo.model.table.parser.EntityIdParser;
+import org.sagebionetworks.repo.model.table.parser.LongParser;
+import org.sagebionetworks.repo.model.table.parser.StringParser;
 
 /**
  * Mapping of ColumnType to database information.
@@ -13,16 +18,16 @@ import org.sagebionetworks.repo.model.table.ValueParsers;
  */
 public enum ColumnTypeInfo {
 	
-	INTEGER		(ColumnType.INTEGER, 		MySqlColumnType.BIGINT,		ValueParsers.LONG_PARSER,		20L),
-	FILEHANDLEID(ColumnType.FILEHANDLEID,	MySqlColumnType.BIGINT, 	ValueParsers.LONG_PARSER,		20L),
-	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		ValueParsers.DATE_TO_LONG_PARSER,		20L),
-	ENTITYID	(ColumnType.ENTITYID,		MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		44L),
-	LINK		(ColumnType.LINK,			MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		null),
-	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	ValueParsers.STRING_PARSER,		null),
-	DOUBLE		(ColumnType.DOUBLE,			MySqlColumnType.DOUBLE,		ValueParsers.DOUBLE_PARSER,		null),
-	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	ValueParsers.BOOLEAN_PARSER,	null),
-	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	ValueParsers.STRING_PARSER,		null),
-	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	ValueParsers.LONG_PARSER,		20L);
+	INTEGER		(ColumnType.INTEGER, 		MySqlColumnType.BIGINT,		new LongParser(),			20L),
+	FILEHANDLEID(ColumnType.FILEHANDLEID,	MySqlColumnType.BIGINT, 	new LongParser(),			20L),
+	DATE		(ColumnType.DATE,			MySqlColumnType.BIGINT,		new DateToLongParser(),		20L),
+	ENTITYID	(ColumnType.ENTITYID,		MySqlColumnType.BIGINT,		new EntityIdParser(),		20L),
+	LINK		(ColumnType.LINK,			MySqlColumnType.VARCHAR,	new StringParser(),			null),
+	STRING		(ColumnType.STRING,			MySqlColumnType.VARCHAR,	new StringParser(),			null),
+	DOUBLE		(ColumnType.DOUBLE,			MySqlColumnType.DOUBLE,		new DoubleParser(),			null),
+	BOOLEAN		(ColumnType.BOOLEAN,		MySqlColumnType.BOOLEAN,	new BooleanParser(),		null),
+	LARGETEXT	(ColumnType.LARGETEXT,		MySqlColumnType.MEDIUMTEXT,	new StringParser(),			null),
+	USERID		(ColumnType.USERID,			MySqlColumnType.BIGINT, 	new LongParser(),			20L);
 	
 	private ColumnType type;
 	private MySqlColumnType mySqlType;
@@ -106,11 +111,24 @@ public enum ColumnTypeInfo {
 	 * @param value
 	 * @return
 	 */
-	public Object parseValueForDB(String value){
+	public Object parseValueForDatabaseWrite(String value){
 		if(value == null) {
 			return null;
 		}
-		return parser.parseValue(value);
+		return parser.parseValueForDatabaseWrite(value);
+	}
+	
+	/**
+	 * Parser the value for a database read.
+	 * 
+	 * @param value
+	 * @return
+	 */
+	public String parseValueForDatabaseRead(String value) {
+		if(value == null){
+			return null;
+		}
+		return parser.parseValueForDatabaseRead(value);
 	}
 	
 	/**
@@ -127,7 +145,7 @@ public enum ColumnTypeInfo {
 			// Block SQL injections
 			defaultValue = StringEscapeUtils.escapeSql(defaultValue);
 			// Validate the default can be applied.
-			Object objectValue = parseValueForDB(defaultValue);
+			Object objectValue = parseValueForDatabaseWrite(defaultValue);
 			if(isStringType()){
 				builder.append("'");
 			}

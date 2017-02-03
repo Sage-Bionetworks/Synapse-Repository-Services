@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1157,6 +1160,32 @@ public class TableController extends BaseController {
 						asyncToken);
 		// This job is wrapped in a transaction.
 		return TableModelUtils.extractResponseFromTransaction(jobStatus.getResponseBody(), UploadToTableResult.class);
+	}
+	
+	/**
+	 * Get the possible ColumnModel definitions based on annotation within a
+	 * given scope.
+	 * 
+	 * @param viewScope
+	 *            List of parent IDs that define the scope.
+	 * @param nextPageToken
+	 *            Optional: When the results include a next page token, the
+	 *            token can be provided to get subsequent pages.
+	 * 
+	 * @return A ColumnModel for each distinct annotation for the given scope. A returned nextPageToken can be used to get subsequent pages
+	 * of ColumnModels for the given scope.  The nextPageToken will be null when there are no more pages of results.
+	 * 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_COLUMNS_OF_SCOPE, method = RequestMethod.POST)
+	public @ResponseBody
+	ColumnModelPage getPossibleColumnModelsForView(
+			@RequestBody ViewScope viewScope,
+			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+		ValidateArgument.required(viewScope, "viewScope");
+		return serviceProvider.getTableServices()
+				.getPossibleColumnModelsForScopeIds(viewScope.getScope(),
+						nextPageToken);
 	}
 
 }

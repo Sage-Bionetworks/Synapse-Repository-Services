@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.WordUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -52,6 +50,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -209,6 +208,10 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(dto, "dto");
+		ValidateArgument.requirement(dto.getRecipients() != null && !dto.getRecipients().isEmpty(),
+				"recipients must be set.");
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getId().toString());
 		if (!userInfo.isAdmin()) {
@@ -234,11 +237,9 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		// Make sure the recipients all exist
-		if (dto.getRecipients() != null) {
-			List<UserGroup> ugs = userGroupDAO.get(Lists.newArrayList(dto.getRecipients()));
-			if (ugs.size() != dto.getRecipients().size()) {
-				throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
-			}
+		List<UserGroup> ugs = userGroupDAO.get(Lists.newArrayList(dto.getRecipients()));
+		if (ugs.size() != dto.getRecipients().size()) {
+			throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
 		}
 		
 		dto = messageDAO.createMessage(dto);
@@ -603,12 +604,10 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@WriteTransaction
-	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
-		// Build the subject and body of the message
-		String domainString = WordUtils.capitalizeFully(domain.name());
-		String subject = "Set " + domain + " Password";
+	public void sendPasswordResetEmail(Long recipientId, String sessionToken) throws NotFoundException {
+		String subject = "Set Synapse Password";
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 		
 		String alias = principalAliasDAO.getUserName(recipientId);
 		UserProfile userProfile = userProfileManager.getUserProfile(recipientId.toString());
@@ -617,14 +616,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
-		String webLink;
-		switch (domain) {
-		case SYNAPSE:
-			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
-			break;
-		default:
-			throw new IllegalArgumentException("Unknown origin client type: " + domain);
-		}
+		String webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, webLink);
 		String messageBody = EmailUtils.readMailTemplate("message/PasswordResetTemplate.txt", fieldValues);
 		String email = getEmailForUser(recipientId);
@@ -642,12 +634,10 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@WriteTransaction
-	public void sendWelcomeEmail(Long recipientId, DomainType domain, String notificationUnsubscribeEndpoint) throws NotFoundException {
-		// Build the subject and body of the message
-		String domainString = WordUtils.capitalizeFully(domain.name());
-		String subject = "Welcome to " + domain + "!";
+	public void sendWelcomeEmail(Long recipientId, String notificationUnsubscribeEndpoint) throws NotFoundException {
+		String subject = "Welcome to Synapse!";
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 		
 		String alias = principalAliasDAO.getUserName(recipientId);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);

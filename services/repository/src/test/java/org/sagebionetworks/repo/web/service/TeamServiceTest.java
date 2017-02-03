@@ -144,6 +144,21 @@ public class TeamServiceTest {
 		teamService.get(null, 1, 0);
 		verify(mockTeamManager).list(1, 0);
 	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamWithUnderMinLimit() {
+		teamService.get(null, 0, 0);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamWithOverMaxLimit() {
+		teamService.get(null, 51, 0);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamWithNegativeOffset() {
+		teamService.get(null, 50, -1);
+	}
 	
 	@Test
 	public void testGetTeamMemberNoFragment() throws Exception {
@@ -152,6 +167,21 @@ public class TeamServiceTest {
 		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
 		verify(mockTeamManager).listMembers("101", 1, 0);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamMemberWithUnderMinLimit() {
+		teamService.getMembers("101", null, 0, 0);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamMemberWithOverMaxLimit() {
+		teamService.getMembers("101", null, 51, 0);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTeamMemberWithNegativeOffset() {
+		teamService.getMembers("101", null, 1, -1);
 	}
 	
 	@Test

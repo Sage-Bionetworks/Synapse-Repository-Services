@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.subscription;
 
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -13,6 +15,8 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.subscription.Etag;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -117,5 +121,34 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		Etag etag = new Etag();
 		etag.setEtag(changeDao.getEtag(objectIdLong, objectType));
 		return etag;
+	}
+
+	@Override
+	public SubscriberPagedResults getSubscribers(UserInfo userInfo, Topic topic, String nextPageToken) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(topic, "topic");
+		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
+		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		NextPageToken token = new NextPageToken(nextPageToken);
+		List<String> subscribers = subscriptionDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), token.getLimitForQuery(), token.getOffset());
+		SubscriberPagedResults results = new SubscriberPagedResults();
+		results.setNextPageToken(token.getNextPageTokenForCurrentResults(subscribers));
+		results.setSubscribers(subscribers);
+		return results;
+	}
+
+	@Override
+	public SubscriberCount getSubscriberCount(UserInfo userInfo, Topic topic) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(topic, "topic");
+		ValidateArgument.required(topic.getObjectId(), "Topic.objectId");
+		ValidateArgument.required(topic.getObjectType(), "Topic.objectType");
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()));
+		SubscriberCount count = new SubscriberCount();
+		count.setCount(subscriptionDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()));
+		return count;
 	}
 }

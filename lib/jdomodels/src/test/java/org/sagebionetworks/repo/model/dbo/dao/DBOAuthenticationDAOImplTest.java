@@ -20,9 +20,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -84,14 +82,12 @@ public class DBOAuthenticationDAOImplTest {
 		
 		sessionToken = new DBOSessionToken();
 		sessionToken.setPrincipalId(userId);
-		sessionToken.setDomain(DomainType.SYNAPSE);
 		sessionToken.setValidatedOn(new Date());
 		sessionToken.setSessionToken("Hsssssss...");
 		sessionToken = basicDAO.createNew(sessionToken);
 		
 		touAgreement = new DBOTermsOfUseAgreement();
 		touAgreement.setPrincipalId(userId);
-		touAgreement.setDomain(DomainType.SYNAPSE);
 		touAgreement.setAgreesToTermsOfUse(true);
 		touAgreement = basicDAO.createNew(touAgreement);
 	}
@@ -128,28 +124,26 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testCheckSessionNotSharedBetweenDomains() {
-		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertNotNull(session);
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.NONE);
-		assertNull(session);
 	}
 
 	@Test
 	public void testSigningOffOnlySignsOffOneDomain() {
 		// Log in to none, log out
 		authDAO.checkUserCredentials(userId, credential.getPassHash());
-		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.NONE);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		authDAO.deleteSessionToken(sessionToken.getSessionToken());
 
 		// You are still logged in to synapse
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertNotNull(session);
 	}
 
 	@Test
 	public void testSessionTokenCRUD() throws Exception {
 		// Get by username
-		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 
@@ -163,7 +157,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Delete
 		authDAO.deleteSessionToken(sessionToken.getSessionToken());
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertNull(session.getSessionToken());
 		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
@@ -173,8 +167,8 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(credential.getPrincipalId(), foobarSessionToken, DomainType.SYNAPSE);
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(credential.getPrincipalId(), foobarSessionToken);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
 		// Verify that the parent group's etag has changed
@@ -183,8 +177,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Change to a UUID
-		authDAO.changeSessionToken(credential.getPrincipalId(), null, DomainType.SYNAPSE);
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(credential.getPrincipalId(), null);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(sessionToken.getSessionToken().equals(session.getSessionToken()));
 		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
@@ -202,11 +196,10 @@ public class DBOAuthenticationDAOImplTest {
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setPrincipalId(credential.getPrincipalId());
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.FALSE);
 		basicDAO.createOrUpdate(tou);
 		
-		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertNotNull(session);
 		
 		Long id = authDAO.getPrincipalIfValid(sessionToken.getSessionToken());
@@ -221,23 +214,23 @@ public class DBOAuthenticationDAOImplTest {
 		basicDAO.update(sessionToken);
 
 		// Still valid
-		Session session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
+		Session session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNotNull(session);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 
 		// Right on the dot!  Too bad, that's invalid :P
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNull(session);
 		
 		// Session should no longer be valid
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNull(session);
 
 		// Session is valid again
-		assertTrue(authDAO.revalidateSessionTokenIfNeeded(credential.getPrincipalId(), DomainType.SYNAPSE));
-		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		assertTrue(authDAO.revalidateSessionTokenIfNeeded(credential.getPrincipalId()));
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
 	
@@ -293,17 +286,17 @@ public class DBOAuthenticationDAOImplTest {
 		Long userId = credential.getPrincipalId();
 		
 		// Reject the terms
-		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, false);
-		assertFalse(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
-		assertNotNull(authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE));
+		authDAO.setTermsOfUseAcceptance(userId, false);
+		assertFalse(authDAO.hasUserAcceptedToU(userId));
+		assertNotNull(authDAO.getSessionTokenIfValid(userId));
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms
-		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
+		authDAO.setTermsOfUseAcceptance(userId, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -311,8 +304,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Pretend we haven't had a chance to see the terms yet
-		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, null);
-		assertFalse(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
+		authDAO.setTermsOfUseAcceptance(userId, null);
+		assertFalse(authDAO.hasUserAcceptedToU(userId));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -320,8 +313,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms again
-		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
+		authDAO.setTermsOfUseAcceptance(userId, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;

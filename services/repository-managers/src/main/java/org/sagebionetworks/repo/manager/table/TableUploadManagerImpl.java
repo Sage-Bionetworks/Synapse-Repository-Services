@@ -41,11 +41,12 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
 			// Create a reader from the passed parameters
-			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), request.getCsvTableDescriptor(), request.getLinesToSkip());
+			// Note: The CSVToRowIterator handles linesToSkip so we pass null linesToSkip for the reader.
+			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), request.getCsvTableDescriptor(), null);
 			
 			// Create the iterator
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(request.getCsvTableDescriptor());
-			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, request.getColumnIds());
+			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, request.getColumnIds(), request.getLinesToSkip());
 			// Append the data to the table
 			return rowProcessor.processRows(user, request.getTableId(),
 					tableSchema, iterator, request.getUpdateEtag(), progressCallback);

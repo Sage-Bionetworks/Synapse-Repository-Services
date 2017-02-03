@@ -4,7 +4,9 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -16,13 +18,15 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.subscription.SubscriberCount;
+import org.sagebionetworks.repo.model.subscription.SubscriberPagedResults;
 import org.sagebionetworks.repo.model.subscription.Subscription;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionPagedResults;
@@ -302,5 +306,87 @@ public class SubscriptionManagerImplTest {
 				.getEtag(Long.parseLong(objectId), ObjectType.FORUM))
 				.thenReturn(etag);
 		assertEquals(etag, manager.getEtag(objectId, ObjectType.FORUM).getEtag());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscribersWithNullUserInfo(){
+		manager.getSubscribers(null, topic, new NextPageToken(1, 0).toToken());
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscribersWithNullTopic(){
+		manager.getSubscribers(userInfo, null, new NextPageToken(1, 0).toToken());
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetSubscribersUnauthorized(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		manager.getSubscribers(userInfo, topic, new NextPageToken(1, 0).toToken());
+	}
+
+	@Test
+	public void testGetSubscribersWithNullNextPageToken(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		List<String> subscribers = new LinkedList<String>();
+		when(mockDao.getSubscribers(topic.getObjectId(), topic.getObjectType(),
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET))
+				.thenReturn(subscribers);
+		SubscriberPagedResults results = manager.getSubscribers(userInfo, topic, null);
+		assertNotNull(results);
+		assertEquals(subscribers, results.getSubscribers());
+		assertNull(results.getNextPageToken());
+		verify(mockDao).getSubscribers(topic.getObjectId(), topic.getObjectType(),
+				NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+	}
+
+	@Test
+	public void testGetSubscribersWithNextPageToken(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		List<String> subscribers = new ArrayList<String>();
+		subscribers.addAll(Arrays.asList("1", "2"));
+		when(mockDao.getSubscribers(topic.getObjectId(), topic.getObjectType(), 2, 0))
+				.thenReturn(subscribers);
+		SubscriberPagedResults results = manager.getSubscribers(userInfo, topic, new NextPageToken(1, 0).toToken());
+		assertNotNull(results);
+		assertEquals(subscribers, results.getSubscribers());
+		assertEquals(new NextPageToken(1, 1).toToken(), results.getNextPageToken());
+		verify(mockDao).getSubscribers(topic.getObjectId(), topic.getObjectType(), 2, 0);
+	}
+
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullUserInfo(){
+		manager.getSubscriberCount(null, topic);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetSubscriberCountWithNullTopic(){
+		manager.getSubscriberCount(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testGetSubscriberCountUnauthorized(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		manager.getSubscriberCount(userInfo, topic);
+	}
+
+	@Test
+	public void testGetSubscriberCountAuthorized(){
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockDao.getSubscriberCount(topic.getObjectId(), topic.getObjectType()))
+				.thenReturn(10L);
+		SubscriberCount count = manager.getSubscriberCount(userInfo, topic);
+		assertNotNull(count);
+		assertEquals((Long) 10L, count.getCount());
 	}
 }

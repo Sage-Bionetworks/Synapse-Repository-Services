@@ -18,12 +18,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -34,7 +32,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -64,9 +61,6 @@ public class AuthorizationManagerImplTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private UserProfileManager userProfileManager;
-	
-	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
@@ -74,12 +68,6 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private ActivityManager activityManager;
-	
-	@Autowired
-	private EvaluationManager evaluationManager;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
 	
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -124,7 +112,6 @@ public class AuthorizationManagerImplTest {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		// Create a new user
@@ -471,7 +458,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		assertTrue(adminUser.isAdmin());
-		assertTrue(authenticationManager.hasUserAcceptedTermsOfUse(adminUser.getId(), DomainType.SYNAPSE));
+		assertTrue(authenticationManager.hasUserAcceptedTermsOfUse(adminUser.getId()));
 		// the admin user can do it all
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminUser, node.getId());
 		assertNotNull(uep);

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -54,19 +53,18 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse
 	 */
-	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
-		principalManager.newAccountEmailValidation(user, portalEndpoint, domain);
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint) {
+		principalManager.newAccountEmailValidation(user, portalEndpoint);
 	}
 	
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
-	 * @param domain
 	 * @return session
 	 * @throws NotFoundException 
 	 */
-	public Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException {
-		return principalManager.createNewAccount(accountSetupInfo, domain);
+	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
+		return principalManager.createNewAccount(accountSetupInfo);
 	}
 	
 	/**
@@ -75,12 +73,11 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * @param userId the authenticated user making the request
 	 * @param email the email which is claimed by the user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse
 	 * @throws NotFoundException
 	 */
-	public void additionalEmailValidation(Long userId, Username email, String portalEndpoint, DomainType domain) throws NotFoundException {
+	public void additionalEmailValidation(Long userId, Username email, String portalEndpoint) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		principalManager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
+		principalManager.additionalEmailValidation(userInfo, email, portalEndpoint);
 	}
 	
 	/**

@@ -84,7 +84,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			}
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
-				indexManager.deleteTableIndex();
+				indexManager.deleteTableIndex(tableId);
 				return;
 			} else {
 				// this method does the real work.
@@ -246,7 +246,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 				currentProgress += changeSet.getRowCount();
 				lastEtag = changeSet.getEtag();
 				// Only apply changes sets not already applied to the index.
-				if(!indexManager.isVersionAppliedToIndex(changeSet.getRowVersion())){
+				if(!indexManager.isVersionAppliedToIndex(tableId, changeSet.getRowVersion())){
 					// update the progress between actual change.
 					tableManagerSupport.attemptToUpdateTableProgress(tableId,
 							resetToken, "Applying version: " + changeSet.getRowVersion(), currentProgress,
@@ -269,10 +269,10 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		}
 		// After all changes are applied to the index ensure the final schema is set
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-		indexManager.setIndexSchema(progressCallback, currentSchema);
+		indexManager.setIndexSchema(tableId, progressCallback, currentSchema);
 		
 		// now that table is created and populated the indices on the table can be optimized.
-		indexManager.optimizeTableIndices();
+		indexManager.optimizeTableIndices(tableId);
 		
 		return lastEtag;
 	}
@@ -295,8 +295,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		}
 		// apply the schema change
 		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
-		indexManager.updateTableSchema(progressCallback, schemaChange);
-		indexManager.setIndexVersion(changeSet.getRowVersion());
+		indexManager.updateTableSchema(tableId, progressCallback, schemaChange);
+		indexManager.setIndexVersion(tableId, changeSet.getRowVersion());
 	}
 
 
@@ -319,9 +319,9 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.
-		indexManager.setIndexSchema(progressCallback, sparseChangeSet.getSchema());
+		indexManager.setIndexSchema(tableId, progressCallback, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
-		indexManager.applyChangeSetToIndex(sparseChangeSet, change.getRowVersion());
+		indexManager.applyChangeSetToIndex(tableId, sparseChangeSet, change.getRowVersion());
 	}
 
 

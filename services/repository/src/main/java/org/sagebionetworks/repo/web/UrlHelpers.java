@@ -607,7 +607,9 @@ public class UrlHelpers {
 	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
 	public static final String MIGRATION_STATUS = MIGRATION+"/status";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
+	public static final String MIGRATION_PRIMARY_NAMES = MIGRATION_PRIMARY + "/names";
 	public static final String MIGRATION_TYPES = MIGRATION+"/types";
+	public static final String MIGRATION_TYPE_NAMES = MIGRATION_TYPES + "/names";
 	public static final String MIGRATION_RANGE_CHECKSUM = MIGRATION+"/rangechecksum";
 	public static final String MIGRATION_TYPE_CHECKSUM = MIGRATION+"/typechecksum";
 
@@ -713,7 +715,6 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
-	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = ENTITY_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
@@ -725,7 +726,6 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
-	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
 	// Access Requirement
 	public static final String ACCESS_REQUIREMENT_OWNER_ID_V2 = "/access_requirement/{ownerId}";
 	public static final String ACCESS_REQUIREMENT_WIKI_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_V2;
@@ -737,8 +737,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WIKI_HISTORY_V2 = ACCESS_REQUIREMENT_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_AND_VERSION_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 = ACCESS_REQUIREMENT_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
-	public static final String ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_VERSION_DELETE_V2 = ACCESS_REQUIREMENT_WIKI_ID_MARKDOWN_FILE_V2 + MARKDOWN_V2_VERSION_DELETE;
-	
+
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String COLUMN_BATCH = COLUMN + "/batch";
@@ -791,6 +790,7 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_UPLOAD_CSV = ENTITY_TABLE + "/upload/csv";
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_START = ENTITY_TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
 	public static final String ENTITY_TABLE_UPLOAD_CSV_ASYNC_GET = ENTITY_TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_COLUMNS_OF_SCOPE = COLUMN+"/view/scope";
 
 	public static final String ADMIN_TABLE_REBUILD = ADMIN + ENTITY_TABLE + "/rebuild";
 	public static final String ADMIN_TABLE_ADD_INDEXES = ADMIN + ENTITY_TABLE + "/addindexes";
@@ -942,6 +942,8 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE = "/{objectType}";
 	public static final String ETAG = "/etag";
 	public static final String OBJECT_ID_TYPE_ETAG = OBJECT+OBJECT_ID+OBJECT_TYPE+ETAG;
+	public static final String SUBSCRIPTION_SUBSCRIBERS = SUBSCRIPTION + "/subscribers";
+	public static final String SUBSCRIPTION_SUBSCRIBER_COUNT = SUBSCRIPTION_SUBSCRIBERS + "/count";
 	
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
@@ -1000,6 +1002,12 @@ public class UrlHelpers {
 	 * API for testing exception handling
 	 */
 	public static final String ADMIN_EXCEPTION = ADMIN + "/exception";
+
+	/**
+	 * API for updating a file
+	 * @see PLFM-4108
+	 */
+	public static final String ADMIN_UPDATE_FILE = ADMIN + "/updateFile";;
 
 	static {
 		@SuppressWarnings("rawtypes")
