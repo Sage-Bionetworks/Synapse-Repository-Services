@@ -8,6 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -181,4 +182,11 @@ public interface SubmissionDAO {
 	 * @return
 	 */
 	String getCreatedBy(String submissionId);
+	
+	/*
+	 * Return true if and only if the given Docker Repository name is in a Submission under an Evaluation 
+	 * in which the given user (represented by a list of principalIds) has the given access type.
+	 */
+	boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, List<Long> principalIds, ACCESS_TYPE accessType);
+
 }

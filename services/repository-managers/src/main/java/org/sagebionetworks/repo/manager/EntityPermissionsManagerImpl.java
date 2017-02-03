@@ -10,7 +10,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.BooleanUtils;
@@ -35,7 +34,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -66,9 +64,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
 	private StackConfiguration configuration;
-	@Autowired
-	private PermissionDao permissionDao;
-
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -371,9 +366,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
-	// non-docker entities have to meet access requirements (ARs)
-	// docker entities either have to (1) meet ARs AND have read access or (2) be associated
-	// with a downloadable submission
+	// entities have to meet access requirements (ARs)
 	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
 			throws DatastoreException, NotFoundException {
 		
@@ -383,17 +376,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
 		if (meetsAccessRequirements.getAuthorized() && canRead) {
 			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		
-		// if the ACL doesn't permit access but it's a Docker repository entity
-		// then DOWNLOAD access can be permitted via a submission queue
-		if (entityType==EntityType.dockerrepo) {
-			if (permissionDao.isEntityInEvaluationWithAccess(entityId, 
-					new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
-			} else {
-				return AuthorizationManagerUtil.ACCESS_DENIED;
-			}
 		}
 		
 		// at this point the entity is NOT authorized via ACL+access requirements and is NOT an Docker repo
