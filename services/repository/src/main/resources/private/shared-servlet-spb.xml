@@ -55,4 +55,6 @@
 		</property>
 	</bean>
 
+	<!-- This bean will capture exceptions thrown during a transaction. -->
+	<bean id="transactionExceptionListener" class="org.sagebionetworks.repo.web.TransactionExceptionListener" />
 </beans>

@@ -34,9 +34,11 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TransactionExceptionListener;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.CloudSearchClientException;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -105,6 +107,8 @@ import org.springframework.web.util.NestedServletException;
  */
 
 public abstract class BaseController {
+
+	private static final ThreadLocal<Throwable> exceptionThreadLocal = ThreadLocalProvider.getInstance(TransactionExceptionListener.EXCEPTION, Throwable.class);
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
@@ -817,6 +821,6 @@ public abstract class BaseController {
 	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
-		return handleException(ex.getCause(), request, true);
+		return handleException(exceptionThreadLocal.get(), request, true);
 	}
 }
