@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
@@ -25,19 +29,27 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -48,11 +60,13 @@ import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -103,6 +117,15 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
+
+	@Autowired
+	private FileHandleDao fileHandleDao;
+
+	@Autowired
+	private IdGenerator idGenerator;
+
+	@Autowired
+	private NodeDAO nodeDao;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStatus(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -475,4 +498,49 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return messages;
 	}
 
+	@WriteTransactionReadCommitted
+	@Override
+	public FileUpdateResult updateFile(Long userId, FileUpdateRequest request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		}
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityId(), "entityId");
+		ValidateArgument.required(request.getVersion(), "version");
+		ValidateArgument.required(request.getEtag(), "etag");
+		FileUpdateResult result = new FileUpdateResult();
+		result.setIsSuccessful(false);
+		try {
+			nodeDao.lockNodeAndIncrementEtag(request.getEntityId(), request.getEtag());
+			FileEntity toUpdate = entityManager.getEntityForVersion(userInfo, request.getEntityId(), request.getVersion(), FileEntity.class);
+			String fileNameOverride = toUpdate.getFileNameOverride();
+			if (fileNameOverride == null) {
+				result.setReason(request.getEntityId()+"."+request.getVersion() +" does not have fileNameOverride field set.");
+				return result;
+			}
+			String fileHandleId = toUpdate.getDataFileHandleId();
+
+			// make the copy
+			FileHandle toCopy = fileHandleDao.get(fileHandleId);
+			String newFileHandleId = idGenerator.generateNewId(TYPE.FILE_IDS).toString();
+			toCopy.setId(newFileHandleId);
+			toCopy.setFileName(fileNameOverride);
+			toCopy.setEtag(UUID.randomUUID().toString());
+			fileHandleDao.createBatch(Arrays.asList(toCopy));
+			// null out fileNameOverride and update entity version's fileHandleId and etag
+			NamedAnnotations annotations = nodeDao.getAnnotationsForVersion(request.getEntityId(), request.getVersion());
+			annotations.getPrimaryAnnotations().deleteAnnotation("fileNameOverride");
+			nodeDao.replaceVersion(request.getEntityId(), request.getVersion(), annotations, newFileHandleId);
+		} catch (NotFoundException e) {
+			result.setReason(request.getEntityId()+"."+request.getVersion() +" cannot be found.");
+			return result;
+		} catch (ConflictingUpdateException e2) {
+			result.setReason("Cannot get a lock for "+request.getEntityId()+"."+request.getVersion());
+			return result;
+		}
+		result.setIsSuccessful(true);
+		return result;
+	}
 }

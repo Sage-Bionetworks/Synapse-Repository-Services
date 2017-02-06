@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -184,4 +186,6 @@ public interface AdministrationService {
 	public void doNothing() throws Throwable;
 	public void throwException(String exception) throws Throwable;
 	public void throwExceptionTransactionalBeforeCommit(String exception);
+
+	public FileUpdateResult updateFile(Long userId, FileUpdateRequest request);
 }

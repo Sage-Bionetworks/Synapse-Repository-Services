@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -14,6 +15,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
@@ -154,5 +156,15 @@ public class IT101Administration {
 	@Test
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
+	}
+
+	@Test (expected = SynapseBadRequestException.class)
+	public void testUpdateFile() throws SynapseException {
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project.setEntityType(project.getClass().getName());
+		project = adminSynapse.createEntity(project);
+		this.toDelete.add(project);
+		adminSynapse.updateFile(project.getId(), 1L, "fake etag");
 	}
 }

@@ -6,6 +6,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -285,4 +286,16 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
+
+	/**
+	 * Update fileEntity
+	 * @see PLFM-4108
+	 * @param entityId
+	 * @param version
+	 * @param etag
+	 * @return 
+	 * @throws SynapseException 
+	 */
+	public FileUpdateResult updateFile(String entityId, Long version, String etag) throws SynapseException;
+
 }

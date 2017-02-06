@@ -1,0 +1,17 @@
+{
+	"description": "Admin request to update a file. See PLFM-4108.",
+	"properties": {
+		"entityId":{
+			"type": "string",
+			"description": "The ID of the entity to update."
+		},
+		"version":{
+			"type": "integer",
+			"description": "The version of the entity to update."
+		},
+		"etag":{
+			"type": "string",
+			"description": "The eatg of the entity to update."
+		}
+	}
+}
