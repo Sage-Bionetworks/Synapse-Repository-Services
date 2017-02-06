@@ -77,12 +77,23 @@ public class FileEntityMetadataProviderTest  {
 		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
 	}
 
+	@Test
+	public void testUpdateWithOriginalFileNameOverride(){
+		FileEntity originalFileEntity = new FileEntity();
+		originalFileEntity.setFileNameOverride("fileNameOverride");
+		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(originalFileEntity);
+		fileEntity.setDataFileHandleId("1");
+		fileEntity.setFileNameOverride("fileNameOverride");
+		provider.entityUpdated(userInfo, fileEntity);
+		verify(mockEntityManager).getEntity(userInfo, fileEntity.getId());
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateWithNullOriginalFileNameOverride(){
 		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(new FileEntity());
 		fileEntity.setDataFileHandleId("1");
 		fileEntity.setFileNameOverride("fileNameOverride");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		provider.entityUpdated(userInfo, fileEntity);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -92,12 +103,12 @@ public class FileEntityMetadataProviderTest  {
 		when(mockEntityManager.getEntity(userInfo, fileEntity.getId())).thenReturn(original);
 		fileEntity.setDataFileHandleId("1");
 		fileEntity.setFileNameOverride("fileNameOverride");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		provider.entityUpdated(userInfo, fileEntity);
 	}
 
 	@Test
 	public void testUpdateWithoutFileNameOverride(){
 		fileEntity.setDataFileHandleId("1");
-		provider.validateEntity(fileEntity, new EntityEvent(EventType.UPDATE, path, userInfo));
+		provider.entityUpdated(userInfo, fileEntity);
 	}
 }
