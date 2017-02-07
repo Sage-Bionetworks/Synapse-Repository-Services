@@ -23,4 +23,11 @@ public class ExceptionThreadLocalTest {
 		// stack has been emptied
 		assertNull(ExceptionThreadLocal.pop(IllegalArgumentException.class));
 	}
+
+	@Test
+	public void testOnlyIgnoreType() {
+		ExceptionThreadLocal.push(new IllegalArgumentException());
+		ExceptionThreadLocal.push(new IllegalArgumentException());
+		assertNull(ExceptionThreadLocal.pop(IllegalArgumentException.class));
+	}
 }

@@ -19,13 +19,13 @@ public class ExceptionThreadLocal {
 		if (stack == null) {
 			return null;
 		}
-		Throwable throwable = null;
-		if (!stack.empty()) {
-			do {
-				throwable = stack.pop();
-			} while (ignoreType.isAssignableFrom(throwable.getClass()) && !stack.isEmpty());
-			stack.clear();
+		while (!stack.isEmpty()) {
+			Throwable throwable = stack.pop();
+			if (!ignoreType.isAssignableFrom(throwable.getClass())) {
+				stack.clear();
+				return throwable;
+			}
 		}
-		return throwable;
+		return null;
 	}
 }
