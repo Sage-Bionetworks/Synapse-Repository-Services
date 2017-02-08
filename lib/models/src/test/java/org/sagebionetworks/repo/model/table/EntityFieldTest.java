@@ -46,17 +46,77 @@ public class EntityFieldTest {
 	}
 	
 	@Test
+	public void testIsMatchSizeGreater(){
+		ColumnModel model = new ColumnModel();
+		model.setId("123");
+		model.setColumnType(ColumnType.STRING);
+		model.setName(EntityField.name.name());
+		// size greater
+		model.setMaximumSize(EntityField.name.getColumnModel().getMaximumSize()+1);
+		assertTrue(EntityField.name.isMatch(model));
+	}
+	
+	@Test
+	public void testIsMatchSizeEqual(){
+		ColumnModel model = new ColumnModel();
+		model.setId("123");
+		model.setColumnType(ColumnType.STRING);
+		model.setName(EntityField.name.name());
+		// size equals
+		model.setMaximumSize(EntityField.name.getColumnModel().getMaximumSize());
+		assertTrue(EntityField.name.isMatch(model));
+	}
+	
+	@Test
+	public void testIsMatchSizeLess(){
+		ColumnModel model = new ColumnModel();
+		model.setId("123");
+		model.setColumnType(ColumnType.STRING);
+		model.setName(EntityField.name.name());
+		// size less
+		model.setMaximumSize(EntityField.name.getColumnModel().getMaximumSize()-1);
+		assertFalse(EntityField.name.isMatch(model));
+	}
+	
+	@Test
+	public void testIsMatchSizeNull(){
+		ColumnModel model = new ColumnModel();
+		model.setId("123");
+		model.setColumnType(ColumnType.STRING);
+		model.setName(EntityField.name.name());
+		// size null
+		model.setMaximumSize(null);
+		assertFalse(EntityField.name.isMatch(model));
+	}
+	
+	@Test
+	public void testIsMatchNoFacets(){
+		// this models is not faceted but it should still match.
+		ColumnModel model = new ColumnModel();
+		model.setId("123");
+		model.setColumnType(ColumnType.ENTITYID);
+		model.setName(EntityField.parentId.name());
+		model.setFacetType(null);
+		assertTrue(EntityField.parentId.isMatch(model));
+	}
+	
+	@Test
 	public void testIsMatchFalseSize(){
 		ColumnModel model = EntityField.name.getColumnModel();
 		model.setMaximumSize(null);
 		assertFalse(EntityField.name.isMatch(model));
 	}
 	
+	/**
+	 * Test a default column that does not have a maxSize,
+	 * but the test column does have a maxSize.
+	 * 
+	 */
 	@Test
 	public void testIsMatchSizeNotNull(){
 		ColumnModel model = EntityField.id.getColumnModel();
 		model.setMaximumSize(123L);
-		assertFalse(EntityField.id.isMatch(model));
+		assertTrue(EntityField.id.isMatch(model));
 	}
 	
 	@Test
@@ -88,7 +148,9 @@ public class EntityFieldTest {
 	
 	@Test
 	public void testFindMatchNotFound(){
-		ColumnModel model = EntityField.name.getColumnModel();
+		ColumnModel model = new ColumnModel();
+		model.setName("noMatch");
+		model.setColumnType(ColumnType.BOOLEAN);
 		model.setDefaultValue("someDefault");
 		EntityField match = EntityField.findMatch(model);
 		assertEquals(null, match);
