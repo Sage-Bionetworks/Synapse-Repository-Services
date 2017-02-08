@@ -5,16 +5,7 @@ import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.*;
 
 /**
  * Abstraction for the V2 migration manager.
@@ -147,7 +138,10 @@ public interface MigrationManager {
 	
 	public MigrationTypeCount processAsyncMigrationTypeCountRequest(
 			final UserInfo user, final AsyncMigrationTypeCountRequest mReq);
-	
+
+	public MigrationTypeCounts processAsyncMigrationTypeCountsRequest(
+			final UserInfo user, final AsyncMigrationTypeCountsRequest mReq);
+
 	public MigrationTypeChecksum processAsyncMigrationTypeChecksumRequest(
 			final UserInfo user, final AsyncMigrationTypeChecksumRequest mReq);
 	

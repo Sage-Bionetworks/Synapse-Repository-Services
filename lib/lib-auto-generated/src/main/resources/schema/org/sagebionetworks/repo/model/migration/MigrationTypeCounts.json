@@ -1,5 +1,10 @@
 {
 	"description": "List of MigrationTypeCount records",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	],
 	"properties": {
 		"list": {
 			"type": "array",
