@@ -311,7 +311,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
 		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type, limit, offset);
-		return PaginatedResults.createWithLimit(list, limit);
+		return PaginatedResults.createWithLimitAndOffset(list, limit, offset);
 	}
 	
 	@Override
@@ -421,7 +421,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
 		List<V2WikiHistorySnapshot> snapshots = wikiPageDao.getWikiHistory(wikiPageKey, limit, offset);
-		return PaginatedResults.createWithLimit(snapshots, limit);
+		return PaginatedResults.createWithLimitAndOffset(snapshots, limit, offset);
 	}
 	
 	@Override
