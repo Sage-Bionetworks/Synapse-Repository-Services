@@ -45,8 +45,7 @@ public class MarkdownClient {
 		String uri = markdownServiceEndpoint+MARKDOWN_TO_HTML;
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri);
-		Map<String, String> headers = new HashMap<String, String>(DEFAULT_REQUEST_HEADERS);
-		request.setHeaders(headers);
+		request.setHeaders(new HashMap<String, String>(DEFAULT_REQUEST_HEADERS));
 		SimpleHttpResponse response = simpleHttpClient.post(request , requestContent);
 		if (response.getStatusCode() == 200) {
 			return response.getContent();
