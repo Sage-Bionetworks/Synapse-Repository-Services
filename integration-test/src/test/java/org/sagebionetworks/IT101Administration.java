@@ -155,12 +155,4 @@ public class IT101Administration {
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
 	}
-
-	@Test
-	public void testUpdateFile() throws SynapseException {
-		Project project = new Project();
-		project = adminSynapse.createEntity(project);
-		this.toDelete.add(project);
-		assertNotNull(adminSynapse.updateFile(project.getId(), 1L, project.getEtag()));
-	}
 }
