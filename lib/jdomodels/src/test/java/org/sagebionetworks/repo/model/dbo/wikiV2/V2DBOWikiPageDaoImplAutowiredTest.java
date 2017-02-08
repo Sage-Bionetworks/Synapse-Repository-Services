@@ -485,7 +485,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	}
 	
 	/**
-	 * See PLFM-4250
+	 * See PLFM
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
@@ -499,13 +499,13 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.setModifiedBy(creatorUserGroupId);
 		page.setMarkdownFileHandleId(markdownOne.getId());
 		
-//		// Add an attachment
-//		page.setAttachmentFileHandleIds(new LinkedList<String>());
-//		page.getAttachmentFileHandleIds().add(attachOne.getId());
-//		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
-//		fileNameMap.put(attachOne.getFileName(), attachOne);
-//		List<String> newIds = new ArrayList<String>();
-//		newIds.add(attachOne.getId());
+		// Add an attachment
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
 		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
