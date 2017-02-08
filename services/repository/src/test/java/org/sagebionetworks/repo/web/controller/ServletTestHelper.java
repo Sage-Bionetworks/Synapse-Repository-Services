@@ -48,6 +48,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
+import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -2211,5 +2213,15 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 		return objectMapper.readValue(response.getContentAsString(), PaginatedIds.class);
+	}
+
+	public FileUpdateResult updateFile(DispatcherServlet dispatchServlet,
+			Long userId, FileUpdateRequest fileUpdateRequest) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.REPO_PATH, UrlHelpers.ADMIN_UPDATE_FILE,
+				userId, fileUpdateRequest);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(
+				dispatchServlet, request, HttpStatus.OK);
+		return objectMapper.readValue(response.getContentAsString(), FileUpdateResult.class);
 	}
 }
