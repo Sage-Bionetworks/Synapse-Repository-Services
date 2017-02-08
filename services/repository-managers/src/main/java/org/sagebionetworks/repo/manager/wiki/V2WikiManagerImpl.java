@@ -49,10 +49,10 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	
 	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an onwerId: '%2$s' of type: '%3$s'";
 	
-	private static final String USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE = "Only the creator of a FileHandle id: '%1$s' is authorized to assgin it to an object";
-
 	private static final Long MAX_WIKI_MARKDOWN_RANK = 100L;
 
+	public static final long MAX_LIMIT = 50;
+	
 	@Autowired
 	V2WikiPageDao wikiPageDao;
 	
@@ -297,13 +297,21 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(type == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(limit == null){
+			limit = MAX_LIMIT;
+		}
+		if(limit > MAX_LIMIT){
+			throw new IllegalArgumentException("Limit cannot exceed: "+MAX_LIMIT);
+		}
+		if(offset == null){
+			offset = 0L;
+		}
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
-		// Limit and offset are currently ignored.
-		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type);
-		return new PaginatedResults<V2WikiHeader>(list, list.size());
+		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type, limit, offset);
+		return PaginatedResults.createWithLimit(list, limit);
 	}
 	
 	@Override
@@ -413,7 +421,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
 		List<V2WikiHistorySnapshot> snapshots = wikiPageDao.getWikiHistory(wikiPageKey, limit, offset);
-		return new PaginatedResults<V2WikiHistorySnapshot>(snapshots, snapshots.size());
+		return PaginatedResults.createWithLimit(snapshots, limit);
 	}
 	
 	@Override

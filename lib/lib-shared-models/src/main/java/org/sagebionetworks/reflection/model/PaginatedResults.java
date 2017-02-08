@@ -44,6 +44,37 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		this.clazz = (Class<T>) clazz;
 	}
 	
+	PaginatedResults(List<T> results) {
+		this.results = results;
+	}
+	
+	/**
+	 * Since we no longer support calculating the actual totalNumberOfResults
+	 * for each page, we estimate totalNumberOfResults using the current page
+	 * and the limit. When the page size equals the limit, the
+	 * totalNumberOfResults will be limit + 1. Otherwise, the
+	 * totalNumberOfResults will be the page size.
+	 * 
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createWithLimit(List<T> page, Long limit){
+		if(page == null){
+			throw new IllegalArgumentException("Page cannot be null");
+		}
+		if(limit == null){
+			throw new IllegalArgumentException("Limit cannot be null");
+		}
+		PaginatedResults<T> results = new PaginatedResults<T>(page);
+		if(page.size() >= limit){
+			results.setTotalNumberOfResults(page.size()+1);
+		}else{
+			results.setTotalNumberOfResults(page.size());
+		}
+		return results;
+	}
+	
 	/**
 	 * The simple constructor.
 	 * @param results

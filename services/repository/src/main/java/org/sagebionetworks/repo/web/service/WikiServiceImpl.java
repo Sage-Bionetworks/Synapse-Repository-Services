@@ -92,8 +92,7 @@ public class WikiServiceImpl implements WikiService {
 			convertedList.add(newHeader);
 		}
 		// create the paginated results with the translated headers and return
-		PaginatedResults<WikiHeader> convertedPaginatedResults = new PaginatedResults<WikiHeader>(convertedList, convertedList.size());
-		return convertedPaginatedResults;
+		return PaginatedResults.createWithLimit(convertedList, limit);
 	}
 
 	@Override
