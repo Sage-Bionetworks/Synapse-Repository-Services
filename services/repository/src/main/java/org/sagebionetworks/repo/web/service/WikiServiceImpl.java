@@ -9,6 +9,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -79,6 +80,9 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(Long userId, String ownerId, ObjectType type, Long limit, Long offest) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
+		if(limit == null){
+			limit = V2WikiManagerImpl.MAX_LIMIT;
+		}
 		// Get the v2 wiki headers and translate them into v1 headers
 		PaginatedResults<V2WikiHeader> headerResults = v2WikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
 		List<V2WikiHeader> resultAsList = headerResults.getResults();
