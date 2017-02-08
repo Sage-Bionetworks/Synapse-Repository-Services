@@ -5,15 +5,11 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -22,12 +18,11 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class AdministrationControllerTest extends AbstractAutowiredControllerTestBase {
 
@@ -134,6 +129,19 @@ public class AdministrationControllerTest extends AbstractAutowiredControllerTes
 		// Clear all locks
 		servletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateFile() throws Exception {
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project.setEntityType(project.getClass().getName());
+		project = (Project) entityServletHelper.createEntity(project, adminUserId, null);
+		FileUpdateRequest request = new FileUpdateRequest();
+		request.setEntityId(project.getId());
+		request.setVersion(1L);
+		request.setEtag("fake etag");
+		servletTestHelper.updateFile(dispatchServlet, adminUserId, request);
 	}
 }
 

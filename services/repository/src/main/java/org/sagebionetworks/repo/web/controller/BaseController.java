@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.exception.ExceptionThreadLocal;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -817,6 +818,6 @@ public abstract class BaseController {
 	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
-		return handleException(ex.getCause(), request, true);
+		return handleException(ExceptionThreadLocal.pop(UnexpectedRollbackException.class), request, true);
 	}
 }
