@@ -721,30 +721,6 @@ public class TableQueryManagerImplTest {
 		assertEquals(null, maxRows);
 	}
 
-
-	@Test
-	public void testCreateNextPageTokenEscapingSingle() throws Exception {
-		String sql = "select \"i-0\" from " + tableId;
-		SortItem sort = new SortItem();
-		sort.setColumn("i0");
-		sort.setDirection(SortDirection.DESC);
-		List<SortItem> sortList= Lists.newArrayList(sort);
-		FacetColumnRequest facet = new FacetColumnRangeRequest();
-		facet.setColumnName(facetColumnName);
-		List<FacetColumnRequest> selectedFacets = Lists.newArrayList(facet);
-		
-		Long nextOffset = 10L;
-		Long limit = 21L;
-		boolean isConsistent = true;
-		QueryNextPageToken token = TableQueryManagerImpl.createNextPageToken(sql, sortList, nextOffset, limit, isConsistent, selectedFacets);
-		Query query = TableQueryManagerImpl.createQueryFromNextPageToken(token);
-		assertEquals(sql, query.getSql());
-		assertEquals(nextOffset, query.getOffset());
-		assertEquals(limit, query.getLimit());
-		assertEquals(isConsistent, query.getIsConsistent());
-		assertEquals(sortList, query.getSort());
-		assertEquals(selectedFacets, query.getSelectedFacets());
-	}
 	
 	@Test
 	public void testValidateTableIsAvailableWithStateAvailable() throws NotFoundException, TableUnavailableException, TableFailedException{
@@ -992,7 +968,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(new Long(1), result.getMaxRowsPerPage());
 		assertNotNull(result.getQueryResult());
 		assertNotNull(result.getQueryResult().getNextPageToken());
-		Query nextQuery = TableQueryManagerImpl.createQueryFromNextPageToken(result.getQueryResult().getNextPageToken());
+		Query nextQuery = TableQueryUtils.createQueryFromNextPageToken(result.getQueryResult().getNextPageToken());
 		assertNotNull(nextQuery);
 		assertEquals(null, nextQuery.getLimit());
 		assertEquals(new Long(1),nextQuery.getOffset());

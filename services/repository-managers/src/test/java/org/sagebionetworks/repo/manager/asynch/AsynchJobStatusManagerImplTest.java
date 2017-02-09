@@ -19,7 +19,9 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
@@ -50,11 +52,17 @@ import org.springframework.test.util.ReflectionTestUtils;
  */
 public class AsynchJobStatusManagerImplTest {
 	
+	@Mock
 	AsynchronousJobStatusDAO mockAsynchJobStatusDao;
+	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
 	StackStatusDao mockStackStatusDao;
+	@Mock
 	AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
+	@Mock
 	JobHashProvider mockJobHashProvider;
+	@Mock
 	ObjectRecordDAO mockObjectRecordDAO;
 	UserInfo user = null;
 	AsynchJobStatusManager manager;
@@ -62,15 +70,8 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
-		// Setup the mocks
-		mockAsynchJobStatusDao = Mockito.mock(AsynchronousJobStatusDAO.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
-		mockAsynchJobQueuePublisher = Mockito.mock(AsynchJobQueuePublisher.class);
-		mockJobHashProvider = Mockito.mock(JobHashProvider.class);
-		mockObjectRecordDAO = Mockito.mock(ObjectRecordDAO.class);
+		MockitoAnnotations.initMocks(this);
 		manager = new AsynchJobStatusManagerImpl();
-		
 		
 		ReflectionTestUtils.setField(manager, "asynchJobStatusDao", mockAsynchJobStatusDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
@@ -480,6 +481,29 @@ public class AsynchJobStatusManagerImplTest {
 		// The job should be started and published.
 		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
+	}
+	
+	/**
+	 * A null jobHash means the job cannot be cached.
+	 * 
+	 */
+	@Test
+	public void testStartJobNullHash(){
+		// request
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
+		body.setEntityId("syn123");
+		body.setSql("select * from syn123");
+		// return null hash
+		String bodyHash = null;
+		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
+		// call under test.
+		AsynchronousJobStatus status = manager.startJob(user, body);
+		assertNotNull(status);
+		assertEquals(startedJobId, status.getJobId());
+		// The job should be started and published.
+		verify(mockAsynchJobStatusDao, times(1)).startJob(anyLong(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
+		verify(mockAsynchJobStatusDao, never()).findCompletedJobStatus(anyString(), anyLong());
 	}
 
 }

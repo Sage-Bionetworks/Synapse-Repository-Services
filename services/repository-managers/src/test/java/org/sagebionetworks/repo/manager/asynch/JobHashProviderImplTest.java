@@ -13,6 +13,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.table.TableEntityManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl;
+import org.sagebionetworks.repo.manager.table.TableQueryUtils;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -37,6 +39,7 @@ public class JobHashProviderImplTest {
 		tableStatus.setLastTableChangeEtag("someEtag");
 		tableStatus.setResetToken("someResetToken");
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
+		when(mockTableManagerSupport.getTableType(anyString())).thenReturn(ObjectType.TABLE);
 	}
 	
 	@Test
@@ -117,7 +120,7 @@ public class JobHashProviderImplTest {
 	
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
-		QueryNextPageToken body1 = TableQueryManagerImpl.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L, true, null);
+		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L, true, null);
 		// call under test
 		String hash = provider.getJobHash(body1);
 		assertEquals("c7cb5c28b91dae3fd40d6f8e4415eb75", hash);

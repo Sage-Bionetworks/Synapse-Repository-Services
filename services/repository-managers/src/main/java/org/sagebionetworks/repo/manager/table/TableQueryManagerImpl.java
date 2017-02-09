@@ -118,7 +118,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
 				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
 				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
-				QueryNextPageToken nextPageToken = createNextPageToken(query,sortList,
+				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query,sortList,
 						nextOffset, limit, isConsistent, selectedFacets);
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
@@ -365,7 +365,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			UserInfo user, QueryNextPageToken nextPageToken)
 			throws TableUnavailableException, TableFailedException,
 			LockUnavilableException {
-		Query query = createQueryFromNextPageToken(nextPageToken);
+		Query query = TableQueryUtils.createQueryFromNextPageToken(nextPageToken);
 		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, query.getSelectedFacets(), query.getOffset(), query.getLimit(),
 				true, false, false, query.getIsConsistent());
 		return queryResult.getQueryResult();
@@ -429,52 +429,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setMaxRowsPerPage(queryResult.getMaxRowsPerPage());
 		}
 		return bundle;
-	}
-
-	/**
-	 * Create a QueryNextPageToken from a sql string.
-	 * @param sql
-	 * @param nextOffset
-	 * @param limit
-	 * @param isConsistent
-	 * @return
-	 */
-	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, boolean isConsistent, List<FacetColumnRequest> selectedFacets) {
-		Query query = new Query();
-		query.setSql(sql);
-		query.setSort(sortList);
-		query.setOffset(nextOffset);
-		query.setLimit(limit);
-		query.setIsConsistent(isConsistent);
-		query.setSelectedFacets(selectedFacets);
-
-		StringWriter writer = new StringWriter(sql.length() + 50);
-		XStream xstream = new XStream();
-		xstream.alias("Query", Query.class);
-		xstream.toXML(query, writer);
-		IOUtils.closeQuietly(writer);
-		QueryNextPageToken nextPageToken = new QueryNextPageToken();
-		nextPageToken.setToken(writer.toString());
-		return nextPageToken;
-	}
-
-	/**
-	 * Extract a query from a next page token.
-	 * @param nextPageToken
-	 * @return
-	 */
-	public static Query createQueryFromNextPageToken(QueryNextPageToken nextPageToken) {
-		if (nextPageToken == null || StringUtils.isEmpty(nextPageToken.getToken())) {
-			throw new IllegalArgumentException("Next page token cannot be empty");
-		}
-		try {
-			XStream xstream = new XStream();
-			xstream.alias("Query", Query.class);
-			Query query = (Query) xstream.fromXML(nextPageToken.getToken(), new Query());
-			return query;
-		} catch (Throwable t) {
-			throw new IllegalArgumentException("Not a valid next page token", t);
-		}
 	}
 
 	/**
