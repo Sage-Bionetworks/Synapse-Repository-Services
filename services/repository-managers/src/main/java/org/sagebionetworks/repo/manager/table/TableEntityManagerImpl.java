@@ -509,39 +509,16 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	@Override
 	public Set<Long> getFileHandleIdsAssociatedWithTable(final String tableId,
 			final Set<Long> toTest) {
-		try {
-			return tableManagerSupport.tryRunWithTableNonexclusiveLock(null, tableId, READ_LOCK_TIMEOUT_SEC, new ProgressingCallable<Set<Long>, Void>(){
-
-				@Override
-				public Set<Long> call(ProgressCallback<Void> callback) throws Exception {
-					// What is the current version of the talbe's truth?
-					TableRowChange lastChange = tableRowTruthDao.getLastTableRowChange(tableId);
-					callback.progressMade(null);
-					if(lastChange == null){
-						// There are no changes applied to this table so return an empty set.
-						return Sets.newHashSet();
-					}
-					long truthVersion = lastChange.getRowVersion();
-					// Next connect to the table
-					TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-					if(indexDao == null){
-						throw new TemporarilyUnavailableException("Cannot connect to table index at this time.");
-					}
-					long indexVersion = indexDao.getMaxCurrentCompleteVersionForTable(tableId);
-					if(indexVersion < truthVersion){
-						throw new TemporarilyUnavailableException("Waiting for the table index to be built.");
-					}
-					callback.progressMade(null);
-					// the index dao 
-					return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
-				}});
-		} catch (LockUnavilableException e) {
-			throw new TemporarilyUnavailableException(e);
-		} catch (TemporarilyUnavailableException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		// What is the current version of the talbe's truth?
+		TableRowChange lastChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		if(lastChange == null){
+			// There are no changes applied to this table so return an empty set.
+			return Sets.newHashSet();
 		}
+		// Next connect to the table
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		// the index dao 
+		return indexDao.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 	}
 
 	@WriteTransactionReadCommitted
