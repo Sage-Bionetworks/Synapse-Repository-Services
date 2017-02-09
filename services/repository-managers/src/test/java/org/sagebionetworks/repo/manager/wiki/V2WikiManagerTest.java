@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.wiki;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -23,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -53,6 +54,9 @@ public class V2WikiManagerTest {
 	V2WikiManagerImpl wikiManager;
 	AuthorizationManager mockAuthManager;
 	FileHandleDao mockFileDao;
+	String ownerId;
+	ObjectType ownerType;
+	String wikiId;
 	WikiPageKey key;
 	UserInfo user;
 	
@@ -63,8 +67,15 @@ public class V2WikiManagerTest {
 		mockWikiDao = Mockito.mock(V2WikiPageDao.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
 		mockFileDao = Mockito.mock(FileHandleDao.class);
-		key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
+		
+		ownerId = "123";
+		ownerType = ObjectType.EVALUATION;
+		wikiId = "345";
+		
+		key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
 		wikiManager = new V2WikiManagerImpl(mockWikiDao, mockAuthManager, mockFileDao);
+		
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -347,7 +358,7 @@ public class V2WikiManagerTest {
 		// setup allow
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, null, null);
-		verify(mockWikiDao, times(1)).getHeaderTree(any(String.class), any(ObjectType.class));
+		verify(mockWikiDao, times(1)).getHeaderTree(any(String.class), any(ObjectType.class), eq(V2WikiManagerImpl.MAX_LIMIT), eq(0L));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -355,6 +366,15 @@ public class V2WikiManagerTest {
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.deleteWiki(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetTreeOverLimit() throws DatastoreException, NotFoundException{
+		long limit = V2WikiManagerImpl.MAX_LIMIT +1;
+		long offset = 0L;
+		// setup allow
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, limit, offset);
 	}
 	
 	@Test
@@ -746,6 +766,50 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
 		verify(mockWikiDao, times(1)).getWikiHistory(key, new Long(10), new Long(0));
+	}
+	
+	@Test
+	public void testGetWikiHistoryFirstPage() throws NotFoundException {
+		long limit = 10;
+		long offset = 0;
+		int resultSize = (int)limit;
+		// setup a page size equal to limit
+		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(createListOfSize(resultSize, V2WikiHistorySnapshot.class));
+		PaginatedResults<V2WikiHistorySnapshot> page = wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
+		assertNotNull(page);
+		// total number of results must be larger than the limit to indicate more pages.
+		assertTrue(page.getTotalNumberOfResults() > limit);
+	}
+	
+	@Test
+	public void testGetWikiHistoryLastPage() throws NotFoundException {
+		long limit = 10;
+		long offset = 0;
+		int resultSize = (int)(limit-1);
+		// setup a page size equal to limit
+		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(createListOfSize(resultSize, V2WikiHistorySnapshot.class));
+		PaginatedResults<V2WikiHistorySnapshot> page = wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
+		assertNotNull(page);
+		// total number of results should match the result size.
+		assertEquals(resultSize, page.getTotalNumberOfResults());
+	}
+	
+	/**
+	 * Helper to create a list of a given size.
+	 * @param size
+	 * @param clazz
+	 * @return
+	 */
+	public static <T> List<T> createListOfSize(int size, Class<? extends T> clazz){
+		List<T> result = new LinkedList<T>();
+		for(int i=0; i<size; i++){
+			try {
+				result.add(clazz.newInstance());
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return result;
 	}
 	
 	@Test (expected=UnauthorizedException.class)

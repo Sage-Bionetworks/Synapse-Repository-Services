@@ -484,6 +484,43 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 	}
 	
+	/**
+	 * See PLFM
+	 * @throws NotFoundException
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testGetWikiHistoryLastPage() throws NotFoundException, InterruptedException {
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn1082";
+		ObjectType ownerType = ObjectType.EVALUATION;
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		
+		// Add an attachment
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
+		
+		// Create it
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
+		assertNotNull(clone);
+		 
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
+
+		long limit = 10;
+		long offset = 1000;
+		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, limit, offset);
+		assertNotNull(history);
+		assertTrue(history.isEmpty());
+	}
+	
 	@Test
 	public void testGet() throws NotFoundException {
 		// Create a new wiki page with a single attachment
@@ -575,7 +612,9 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		// Test getHeaderTree
 		// Should return tree (including the parent)
-		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, ownerType);
+		long limit = 10L;
+		long offset = 0L;
+		List<V2WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, ownerType, limit, offset);
 		System.out.println(list);
 		assertNotNull(list);
 		assertEquals(childCount+1, list.size());
