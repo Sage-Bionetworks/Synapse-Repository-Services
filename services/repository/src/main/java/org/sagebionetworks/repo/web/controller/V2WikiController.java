@@ -761,7 +761,7 @@ public class V2WikiController extends BaseController {
 	 *            be at offset = 10.
 	 * @param limit
 	 *            Limits the size of the page returned. For example, a page size
-	 *            of 10 require limit = 10.
+	 *            of 10 require limit = 10. Limit must be 50 or less.
 	 * @param ownerId
 	 *            The ID of the owning Entity.
 	 * @return
@@ -903,7 +903,7 @@ public class V2WikiController extends BaseController {
 	 *            be at offset = 10.
 	 * @param limit
 	 *            Limits the size of the page returned. For example, a page size
-	 *            of 10 require limit = 10.
+	 *            of 10 require limit = 10. Limit must be 50 or less.
 	 * @param ownerId
 	 *            The ID of the owning Entity.
 	 * @param wikiId
