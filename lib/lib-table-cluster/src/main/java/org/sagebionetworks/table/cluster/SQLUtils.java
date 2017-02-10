@@ -1359,10 +1359,10 @@ public class SQLUtils {
 			List<DatabaseColumnInfo> currentIndexSchema,
 			List<ColumnChangeDetails> changes) {
 		Set<String> existingColumnIds = new HashSet<>(currentIndexSchema.size());
-		for (DatabaseColumnInfo info : currentIndexSchema) {
-			if (!info.isRowIdOrVersion()) {
-				String columnId = "" + getColumnId(info);
-				existingColumnIds.add(columnId);
+		List<ColumnModel> currentModels = extractSchemaFromInfo(currentIndexSchema);
+		for (ColumnModel model : currentModels) {
+			if(model.getId() != null){
+				existingColumnIds.add(model.getId());
 			}
 		}
 		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
