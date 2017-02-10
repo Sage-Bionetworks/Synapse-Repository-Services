@@ -782,7 +782,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -830,7 +830,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param statusString
 	 * @param request
 	 * @return
@@ -873,7 +873,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
 	 * @param request
