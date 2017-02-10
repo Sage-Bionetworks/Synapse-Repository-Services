@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,10 +17,14 @@ import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
@@ -98,5 +100,94 @@ public class EvaluationServiceTest {
 		verify(mockNotificationManager).sendNotifications(eq(userInfo), mtuArg.capture());
 		assertEquals(result, mtuArg.getValue());		
 	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitTLow() {
+
+		// Call under test
+		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitHigh() {
+
+		// Call under test
+		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsOffsetNeg() {
+
+		// Call under test
+		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
+	}
+
+	@Test
+	public void testGetAllSubmissions() {
+		QueryResults<Submission> expectedRes = new QueryResults<Submission>();
+		when(mockSubmissionManager.getAllSubmissions(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
+		// Call under test
+		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitLow() {
+
+		// Call under test
+		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitHigh() {
+
+		// Call under test
+		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesOffsetNeg() {
+
+		// Call under test
+		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
+	}
+
+	@Test
+	public void testGetAllSubmissionBundles() {
+		QueryResults<SubmissionBundle> expectedRes = new QueryResults<SubmissionBundle>();
+		when(mockSubmissionManager.getAllSubmissionBundles(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
+		// Call under test
+		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitLow() {
+
+		// Call under test
+		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitHigh() {
+
+		// Call under test
+		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesOffsetNeg() {
+
+		// Call under test
+		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
+	}
+
+	@Test
+	public void testGetAllSubmissionStatuses() {
+		QueryResults<SubmissionStatus> expectedRes = new QueryResults<SubmissionStatus>();
+		when(mockSubmissionManager.getAllSubmissionStatuses(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
+		// Call under test
+		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
+	}
+
+
 
 }
