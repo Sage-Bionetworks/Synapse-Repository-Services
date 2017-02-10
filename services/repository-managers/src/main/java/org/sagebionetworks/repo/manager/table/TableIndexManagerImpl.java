@@ -172,7 +172,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 		}
 		return wasSchemaChanged;
-	}
+	}	
 	
 	@Override
 	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
@@ -193,13 +193,31 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
-					return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
+					return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 				}
 			});
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	/**
+	 * Alter a table as needed within the auto-progress using the provided changes.
+	 * Note: If a column update is requested but the column does not actual exist in the index
+	 * the update will be changed to an added.
+	 * @param tableId
+	 * @param changes
+	 * @param alterTemp
+	 * @return
+	 */
+	boolean alterTableAsNeededWithinAutoProgress(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+		// Lookup the current schema of the index.
+		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
+		// Ensure all all updated columns actually exist.
+		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
+		return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableIndexManager#optimizeTableIndices()

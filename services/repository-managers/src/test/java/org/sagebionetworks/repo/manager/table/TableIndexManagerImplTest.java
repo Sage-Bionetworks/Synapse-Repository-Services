@@ -12,7 +12,7 @@ import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -25,6 +25,8 @@ import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -39,6 +41,7 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -62,6 +65,8 @@ public class TableIndexManagerImplTest {
 	TableManagerSupport mockManagerSupport;
 	@Mock
 	ProgressCallback<Void> mockCallback;
+	@Captor 
+	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	
 	TableIndexManagerImpl manager;
 	String tableId;
@@ -554,6 +559,42 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = null;
 		// call under test
 		manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
+	}
+	
+	/**
+	 * Test added for PLFM-4155.
+	 */
+	@Test
+	public void testAlterTableAsNeededWithinAutoProgress(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(curretIndexSchema);
+		
+		// the old does not exist in the current
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("333");
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("444");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		
+		// call under test
+		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
+		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
+		List<ColumnChangeDetails> captured = changeCaptor.getValue();
+		// the results should be changed
+		assertNotNull(captured);
+		assertEquals(1, captured.size());
+		ColumnChangeDetails updated = captured.get(0);
+		// should not be the same instance.
+		assertFalse(change == updated);
+		assertEquals(null, updated.getOldColumn());
+		assertEquals(newColumn, updated.getNewColumn());
 	}
 	
 	

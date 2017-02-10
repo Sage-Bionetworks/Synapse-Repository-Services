@@ -37,7 +37,6 @@ import com.google.common.collect.Lists;
 public class SQLUtilsTest {
 	
 	List<ColumnModel> simpleSchema;
-	private StackConfiguration oldStackConfiguration = null;
 	
 	@Before
 	public void before(){
@@ -61,12 +60,6 @@ public class SQLUtilsTest {
 		simpleSchema.add(col);
 	}
 
-	@After
-	public void teardownStackConfig() {
-		if (oldStackConfiguration != null) {
-			ReflectionTestUtils.setField(StackConfiguration.singleton(), "singleton", oldStackConfiguration);
-		}
-	}
 	
 	@Test
 	public void testparseValueForDBLong(){
@@ -1319,5 +1312,87 @@ public class SQLUtilsTest {
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L);
 		
 		SQLUtils.buildSelectRowIds("syn123", Lists.newArrayList(ref1, ref2), Lists.newArrayList(c1,  c2));
+	}
+	
+	@Test
+	public void testMatchChangesToCurrentInfoOldExists(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		// the old exists in the current.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("222");
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("333");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be unchanged.
+		assertEquals(changes, results);
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertFalse(change == updated);
+	}
+	
+	@Test
+	public void testMatchChangesToCurrentInfoOldDoesNotExist(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		
+		// the old does not exist in the current
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("333");
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("444");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertFalse(change == updated);
+		assertEquals(null, updated.getOldColumn());
+		assertEquals(newColumn, updated.getNewColumn());
+	}
+	
+	@Test
+	public void testMatchChangesToCurrentInfoCurrentEmpty(){
+		List<DatabaseColumnInfo> curretIndexSchema = new LinkedList<>();
+		// the old does not exist in the current
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("333");
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("444");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		
+		// call under test
+		List<ColumnChangeDetails> results = SQLUtils.matchChangesToCurrentInfo(curretIndexSchema, changes);
+		// the results should be changed
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		ColumnChangeDetails updated = results.get(0);
+		// should not be the same instance.
+		assertFalse(change == updated);
+		assertEquals(null, updated.getOldColumn());
+		assertEquals(newColumn, updated.getNewColumn());
 	}
 }

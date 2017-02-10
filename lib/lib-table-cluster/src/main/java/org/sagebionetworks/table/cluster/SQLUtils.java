@@ -1346,4 +1346,42 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+	/**
+	 * Match the given column changes to the current schema. If a column update
+	 * is requested but the column does not exist in the current schema, then
+	 * the updated will be changed to an add.
+	 * 
+	 * @param currentIndexSchema
+	 * @param changes
+	 * @return
+	 */
+	public static List<ColumnChangeDetails> matchChangesToCurrentInfo(
+			List<DatabaseColumnInfo> currentIndexSchema,
+			List<ColumnChangeDetails> changes) {
+		Set<String> existingColumnIds = new HashSet<>(currentIndexSchema.size());
+		for (DatabaseColumnInfo info : currentIndexSchema) {
+			if (!info.isRowIdOrVersion()) {
+				String columnId = "" + getColumnId(info);
+				existingColumnIds.add(columnId);
+			}
+		}
+		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
+		for (ColumnChangeDetails change : changes) {
+			ColumnModel oldColumn = change.getOldColumn();
+			if (oldColumn != null) {
+				if (!existingColumnIds.contains(oldColumn.getId())) {
+					/*
+					 * The old column does not exist in the table. Setting the
+					 * old column to null will treat this change as an add
+					 * instead of an update.
+					 */
+					oldColumn = null;
+				}
+			}
+			results.add(new ColumnChangeDetails(oldColumn, change
+					.getNewColumn()));
+		}
+		return results;
+	}
+
 }
