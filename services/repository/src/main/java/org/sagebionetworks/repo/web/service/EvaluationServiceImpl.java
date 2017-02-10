@@ -266,7 +266,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
 		QueryResults<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
@@ -280,7 +280,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
 		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
@@ -294,7 +294,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
 
 		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
@@ -306,7 +306,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Submission> getMyOwnSubmissionsByEvaluation(
 			String evalId, Long userId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		QueryResults<Submission> res = submissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
 		return new PaginatedResults<Submission>(res.getResults(),
 				res.getTotalNumberOfResults());
@@ -316,7 +320,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			String evalId, Long userId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		QueryResults<SubmissionBundle> res = submissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
 		return new PaginatedResults<SubmissionBundle>(res.getResults(),
 				res.getTotalNumberOfResults());

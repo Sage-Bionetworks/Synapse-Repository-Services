@@ -102,10 +102,10 @@ public class EvaluationServiceTest {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionsLimitTLow() {
+	public void testGetAllSubmissionsLimitLow() {
 
 		// Call under test
-		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -134,7 +134,7 @@ public class EvaluationServiceTest {
 	public void testGetAllSubmissionBundlesLimitLow() {
 
 		// Call under test
-		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -163,7 +163,7 @@ public class EvaluationServiceTest {
 	public void testGetAllSubmissionStatusesLimitLow() {
 
 		// Call under test
-		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 0, 0, null);
+		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -188,6 +188,62 @@ public class EvaluationServiceTest {
 		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitLow() {
 
+		// Call under test
+		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, -1, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitHigh() {
+
+		// Call under test
+		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 101, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationOffsetNeg() {
+
+		// Call under test
+		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 100, -1, null);
+	}
+
+	@Test
+	public void testgetMyOwnSubmissionsByEvaluation() {
+		QueryResults<Submission> expectedRes = new QueryResults<Submission>();
+		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(any(UserInfo.class), anyString(), anyLong(), anyLong())).thenReturn(expectedRes);
+		// Call under test
+		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 11, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitLow() {
+
+		// Call under test
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, -1, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitHigh() {
+
+		// Call under test
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 101, 0, null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationOffsetNeg() {
+
+		// Call under test
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 100, -1, null);
+	}
+
+	@Test
+	public void testgetMyOwnSubmissionsBundlesByEvaluation() {
+		QueryResults<SubmissionBundle> expectedRes = new QueryResults<SubmissionBundle>();
+		when(mockSubmissionManager.getMyOwnSubmissionBundlesByEvaluation(any(UserInfo.class), anyString(), anyLong(), anyLong())).thenReturn(expectedRes);
+		// Call under test
+		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 11, 0, null);
+	}
 
 }
