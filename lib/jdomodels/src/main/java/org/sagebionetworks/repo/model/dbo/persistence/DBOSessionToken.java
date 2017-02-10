@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
@@ -26,9 +25,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	
 	@Field(name = COL_SESSION_TOKEN_VALIDATED_ON)
 	private Date validatedOn;
-	
-	@Field(name = COL_SESSION_TOKEN_DOMAIN, nullable = true, varchar=256)
-	private DomainType domain;
 
 	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
@@ -50,12 +46,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	public void setValidatedOn(Date validatedOn) {
 		this.validatedOn = validatedOn;
 	}
-	public DomainType getDomain() {
-		return domain;
-	}
-	public void setDomain(DomainType domain) {
-		this.domain = domain;
-	}
 	public String getSessionToken() {
 		return sessionToken;
 	}
@@ -74,13 +64,11 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 		return new MigratableTableTranslation<DBOSessionToken, DBOSessionToken>(){
 			@Override
 			public DBOSessionToken createDatabaseObjectFromBackup(DBOSessionToken backup) {
-				backup.setDomain(null);
 				return backup;
 			}
 
 			@Override
 			public DBOSessionToken createBackupFromDatabaseObject(DBOSessionToken dbo) {
-				dbo.setDomain(null);
 				return dbo;
 			}
 		};	
@@ -105,7 +93,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((domain == null) ? 0 : domain.hashCode());
 		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
 		result = prime * result + ((sessionToken == null) ? 0 : sessionToken.hashCode());
 		result = prime * result + ((validatedOn == null) ? 0 : validatedOn.hashCode());
@@ -121,8 +108,6 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 		if (getClass() != obj.getClass())
 			return false;
 		DBOSessionToken other = (DBOSessionToken) obj;
-		if (domain != other.domain)
-			return false;
 		if (principalId == null) {
 			if (other.principalId != null)
 				return false;
@@ -143,8 +128,8 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 
 	@Override
 	public String toString() {
-		return "DBOSessionToken [principalId=" + principalId + ", validatedOn=" + validatedOn + ", domain=" + domain
-				+ ", sessionToken=" + sessionToken + "]";
+		return "DBOSessionToken [principalId=" + principalId + ", validatedOn=" + validatedOn + ", sessionToken="
+				+ sessionToken + "]";
 	}
 
 }

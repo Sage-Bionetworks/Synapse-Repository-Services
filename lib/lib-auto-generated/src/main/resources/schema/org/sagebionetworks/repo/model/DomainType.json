@@ -1,8 +1,0 @@
-{
-    "description":"JSON enum for the domain of Synapse.",
-    "type":"string",
-    "enum":[
-    	"SYNAPSE",
-    	"NONE"
-    ]
-}

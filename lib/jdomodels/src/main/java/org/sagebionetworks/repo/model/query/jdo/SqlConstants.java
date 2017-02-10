@@ -296,15 +296,7 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
-	
-	// Principal headers table
-	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";
-	public static final String COL_PRINCIPAL_HEADER_ID             = "PRINCIPAL_ID";
-	public static final String COL_PRINCIPAL_HEADER_FRAGMENT       = "FRAGMENT";
-	public static final String COL_PRINCIPAL_HEADER_SOUNDEX        = "SOUNDEX";
-	public static final String COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE = "PRINCIPAL_TYPE";
-	public static final String COL_PRINCIPAL_HEADER_DOMAIN_TYPE    = "DOMAIN_TYPE";
-    
+
     // The group members table
     public static final String TABLE_GROUP_MEMBERS         = "GROUP_MEMBERS";
     public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
@@ -651,13 +643,11 @@ public class SqlConstants {
 	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
-	public static final String COL_SESSION_TOKEN_DOMAIN  	   = "DOMAIN";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
 	
 	// Terms of use agreement
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_TERMS_OF_USE_AGREEMENT_DOMAIN  		= "DOMAIN";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
 	
 	// The Team table
