@@ -1320,8 +1320,10 @@ public class SQLUtilsTest {
 		rowId.setColumnName(TableConstants.ROW_ID);
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
 		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
+		two.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
 		// the old exists in the current.
 		ColumnModel oldColumn = new ColumnModel();
@@ -1347,8 +1349,10 @@ public class SQLUtilsTest {
 		rowId.setColumnName(TableConstants.ROW_ID);
 		DatabaseColumnInfo one = new DatabaseColumnInfo();
 		one.setColumnName("_C111_");
+		one.setColumnType(ColumnType.STRING);
 		DatabaseColumnInfo two = new DatabaseColumnInfo();
 		two.setColumnName("_C222_");
+		two.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
 		
 		// the old does not exist in the current

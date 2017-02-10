@@ -334,6 +334,7 @@ public class TableIndexManagerImplTest {
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
 		DatabaseColumnInfo current = new DatabaseColumnInfo();
 		current.setColumnName(SQLUtils.getColumnNameForId(oldColumn.getId()));
+		current.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		// call under test
