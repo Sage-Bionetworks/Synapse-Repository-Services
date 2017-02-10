@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,15 +23,7 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.migration.AdminRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MigrationWorkerTest {
@@ -110,7 +104,17 @@ public class MigrationWorkerTest {
 		
 		verify(mockMigrationManager).processAsyncMigrationTypeCountRequest(user, mReq);
 	}
-	
+
+	@Test
+	public void testProcessAsyncMigrationTypeCountsRequest() throws Throwable {
+		AsyncMigrationTypeCountsRequest mReq = new AsyncMigrationTypeCountsRequest();
+		List<MigrationType> types = Arrays.asList(MigrationType.ACCESS_APPROVAL, MigrationType.ACCESS_REQUIREMENT);
+		mReq.setTypes(types);
+
+		migrationWorker.processRequest(user, mReq, "JOBID");
+
+		verify(mockMigrationManager).processAsyncMigrationTypeCountsRequest(user, mReq);
+	}
 	@Test(expected=Exception.class)
 	public void testProcessAsyncMigrationTypeCountRequestFailed() throws Throwable {
 		AsyncMigrationTypeCountRequest mReq = new AsyncMigrationTypeCountRequest();

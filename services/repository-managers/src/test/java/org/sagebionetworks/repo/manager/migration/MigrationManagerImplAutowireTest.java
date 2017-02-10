@@ -44,16 +44,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.*;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -283,7 +274,29 @@ public class MigrationManagerImplAutowireTest {
 		assertNotNull(amtcRes);
 		assertEquals(expectedCount, amtcRes);
 	}
-	
+
+	@Test
+	public void testProcessAsyncMigrationTypeCounts() {
+		MigrationTypeCounts expectedCounts = new MigrationTypeCounts();
+		MigrationTypeCount expectedCount = new MigrationTypeCount();
+		expectedCount.setType(MigrationType.FILE_HANDLE);
+		expectedCount.setMinid(migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setMaxid(migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE));
+		expectedCount.setCount(migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		List<MigrationTypeCount> l = new LinkedList<MigrationTypeCount>();
+		l.add(expectedCount);
+		expectedCounts.setList(l);
+
+		AsyncMigrationTypeCountsRequest asyncMigrationTypeCountsRequest = new AsyncMigrationTypeCountsRequest();
+		List<MigrationType> types = new LinkedList<MigrationType>();
+		types.add(MigrationType.FILE_HANDLE);
+		asyncMigrationTypeCountsRequest.setTypes(types);
+
+		MigrationTypeCounts amtcRes = migrationManager.processAsyncMigrationTypeCountsRequest(adminUser, asyncMigrationTypeCountsRequest);
+
+		assertNotNull(amtcRes);
+		assertEquals(expectedCounts, amtcRes);
+	}
 	@Test
 	public void testGetChecksumForIdRange() {
 		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
