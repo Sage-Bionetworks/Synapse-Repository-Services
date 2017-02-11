@@ -14,8 +14,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
-import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -363,17 +361,5 @@ public class AdministrationController extends BaseController {
 			@PathVariable String jobId)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
-	}
-
-	/**
-	 * API for updating a file
-	 * @see PLFM-4108
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_UPDATE_FILE, method = RequestMethod.PUT)
-	public @ResponseBody FileUpdateResult updateFile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody FileUpdateRequest request) throws Exception {
-		return serviceProvider.getAdministrationService().updateFile(userId, request);
 	}
 }

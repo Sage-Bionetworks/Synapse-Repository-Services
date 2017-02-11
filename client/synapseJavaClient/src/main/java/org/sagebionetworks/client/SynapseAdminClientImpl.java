@@ -12,8 +12,6 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.admin.FileUpdateRequest;
-import org.sagebionetworks.repo.model.admin.FileUpdateResult;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -76,8 +74,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String DAYS_IN_TRASH_PARAM = "daysInTrash";
 	
 	private static final String ADMIN_ASYNCHRONOUS_JOB = "/admin/asynchronous/job";
-
-	private static final String ADMIN_UPDATE_FILE = "/admin/updateFile";
 	
 	public SynapseAdminClientImpl() {
 		super();
@@ -364,17 +360,5 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		ValidateArgument.required(jobId, "jobId");
 		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
 		return getJSONEntity(getRepoEndpoint(), url, AsynchronousJobStatus.class);
-	}
-
-	@Override
-	public FileUpdateResult updateFile(String entityId, Long version, String etag) throws SynapseException {
-		ValidateArgument.required(entityId, "entityId");
-		ValidateArgument.required(version, "version");
-		ValidateArgument.required(etag, "etag");
-		FileUpdateRequest request = new FileUpdateRequest();
-		request.setEntityId(entityId);
-		request.setVersion(version);
-		request.setEtag(etag);
-		return putJSONEntity(getRepoEndpoint(), ADMIN_UPDATE_FILE, request, FileUpdateResult.class);
 	}
 }
