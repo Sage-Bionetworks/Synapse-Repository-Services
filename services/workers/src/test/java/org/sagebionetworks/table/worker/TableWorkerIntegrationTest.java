@@ -1937,6 +1937,57 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	/**
+	 * PLFM-4254 & PLFM-4155 occur when a column change is made to a table with
+	 * no rows.  The problem only manifests after the table is rebuilt.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_4245() throws Exception{
+		// setup an EntityId column.
+		ColumnModel startColumn = new ColumnModel();
+		startColumn.setColumnType(ColumnType.INTEGER);
+		startColumn.setName("startColumn");
+		startColumn = columnManager.createColumnModel(adminUserInfo, startColumn);
+		schema = Lists.newArrayList(startColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		TableStatus status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+		// now rename the column
+		ColumnModel updateColumn = new ColumnModel();
+		updateColumn.setColumnType(ColumnType.INTEGER);
+		updateColumn.setName("updatedColumn");
+		updateColumn = columnManager.createColumnModel(adminUserInfo, updateColumn);
+		TableSchemaChangeRequest schemaChangeRequest = new TableSchemaChangeRequest();
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(startColumn.getId());
+		change.setNewColumnId(updateColumn.getId());
+		schemaChangeRequest.setChanges(Lists.newArrayList(change));
+		schemaChangeRequest.setEntityId(tableId);
+		tableEntityManager.updateTable(mockPprogressCallback, adminUserInfo, schemaChangeRequest);
+		
+		// wait for the table.
+		status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue(TableState.AVAILABLE.equals(status.getState()));
+		// Trigger a full rebuild of the table
+		TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
+		dao.deleteTable(tableId);
+		dao.deleteSecondayTables(tableId);
+		// The rebuild should not fails
+		status = waitForTableProcessing(tableId);
+		if(status.getErrorDetails() != null){
+			System.out.println(status.getErrorDetails());
+		}
+		assertTrue("Job failed after rebuild",TableState.AVAILABLE.equals(status.getState()));
+	}
+	
+	/**
 	 * Wait for tables status to change from processing.
 	 * 
 	 * @param tableId
