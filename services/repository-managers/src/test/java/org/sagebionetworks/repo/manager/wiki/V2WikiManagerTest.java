@@ -21,7 +21,8 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -50,9 +51,16 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  */
 public class V2WikiManagerTest {
+	
+	@Mock
+	List<V2WikiHistorySnapshot> mockPage;
+	@Mock
 	V2WikiPageDao mockWikiDao;
+	
 	V2WikiManagerImpl wikiManager;
+	@Mock
 	AuthorizationManager mockAuthManager;
+	@Mock
 	FileHandleDao mockFileDao;
 	String ownerId;
 	ObjectType ownerType;
@@ -62,12 +70,8 @@ public class V2WikiManagerTest {
 	
 	@Before
 	public void before() {
+		MockitoAnnotations.initMocks(this);
 		user = new UserInfo(false, "987");
-		// setup the mocks
-		mockWikiDao = Mockito.mock(V2WikiPageDao.class);
-		mockAuthManager = Mockito.mock(AuthorizationManager.class);
-		mockFileDao = Mockito.mock(FileHandleDao.class);
-		
 		ownerId = "123";
 		ownerType = ObjectType.EVALUATION;
 		wikiId = "345";
@@ -773,8 +777,9 @@ public class V2WikiManagerTest {
 		long limit = 10;
 		long offset = 0;
 		int resultSize = (int)limit;
+		when(mockPage.size()).thenReturn(resultSize);
 		// setup a page size equal to limit
-		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(createListOfSize(resultSize, V2WikiHistorySnapshot.class));
+		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(mockPage);
 		PaginatedResults<V2WikiHistorySnapshot> page = wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
 		assertNotNull(page);
 		// total number of results must be larger than the limit to indicate more pages.
@@ -786,30 +791,13 @@ public class V2WikiManagerTest {
 		long limit = 10;
 		long offset = 0;
 		int resultSize = (int)(limit-1);
+		when(mockPage.size()).thenReturn(resultSize);
 		// setup a page size equal to limit
-		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(createListOfSize(resultSize, V2WikiHistorySnapshot.class));
+		when(mockWikiDao.getWikiHistory(key, limit, offset)).thenReturn(mockPage);
 		PaginatedResults<V2WikiHistorySnapshot> page = wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
 		assertNotNull(page);
 		// total number of results should match the result size.
 		assertEquals(resultSize, page.getTotalNumberOfResults());
-	}
-	
-	/**
-	 * Helper to create a list of a given size.
-	 * @param size
-	 * @param clazz
-	 * @return
-	 */
-	public static <T> List<T> createListOfSize(int size, Class<? extends T> clazz){
-		List<T> result = new LinkedList<T>();
-		for(int i=0; i<size; i++){
-			try {
-				result.add(clazz.newInstance());
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-		return result;
 	}
 	
 	@Test (expected=UnauthorizedException.class)
