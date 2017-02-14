@@ -1486,8 +1486,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) {
+	public List<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects
@@ -1555,8 +1555,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
 				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
 
-		List<ProjectHeader> headers = getProjectHeaders(parameters, selectSql);
-		return PaginatedResults.createWithLimitAndOffset(headers, (long)limit, (long)offset);
+		return getProjectHeaders(parameters, selectSql);
 	}
 
 	private List<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql) {
