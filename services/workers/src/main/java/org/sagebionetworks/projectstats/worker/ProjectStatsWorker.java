@@ -7,7 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -56,9 +55,6 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 
 	@Autowired
 	private NodeDAO nodeDao;
-
-	@Autowired
-	private UserManager userManager;
 
 	@Autowired
 	private TeamDAO teamDAO;
@@ -146,12 +142,18 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 	}
 
 	private void updateProjectStats(final Team team, Date timestamp, long... members) {
-		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		Iterable<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(adminUser, adminUser, team, ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, Integer.MAX_VALUE, 0);
-		for (ProjectHeader projectHeader : projectHeaders) {
+		UserInfo adminUser = new UserInfo(true,	BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		long limit = Long.MAX_VALUE;
+		long offset = 0;
+		List<ProjectHeader> headers = nodeDao.getProjectHeaders(adminUser,
+				adminUser, team, ProjectListType.TEAM_PROJECTS,
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC,
+				limit, offset);
+		for (ProjectHeader projectHeader : headers) {
 			for (long member : members) {
-				ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(projectHeader.getId()), member, timestamp);
+				ProjectStat projectStat = new ProjectStat(
+						KeyFactory.stringToKey(projectHeader.getId()), member,
+						timestamp);
 				projectStatsDao.update(projectStat);
 			}
 		}

@@ -61,7 +61,6 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -1487,7 +1486,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public List<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) {
+				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects

@@ -185,7 +185,7 @@ public interface UserProfileService {
 	 * @throws DatastoreException
 	 */
 	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
 
 	/**
