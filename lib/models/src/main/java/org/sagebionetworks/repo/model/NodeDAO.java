@@ -387,7 +387,7 @@ public interface NodeDAO {
      */
 	public boolean doesNodeHaveChildren(String nodeId);
 
-	public QueryResults<VersionInfo> getVersionsOfEntity(String entityId, long offset,
+	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException;
 
 	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;

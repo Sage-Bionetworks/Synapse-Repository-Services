@@ -189,15 +189,14 @@ public class UserProfileManagerImplUnitTest {
 		when(mockProfileDAO.list(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())))).
 			thenReturn(upList);
 
-		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
+		List<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
 		assertFalse(upForList.getEmails().isEmpty());
 		assertFalse(upForList.getOpenIds().isEmpty());
-		assertEquals(1L, results.getTotalNumberOfResults());
-		assertEquals(upList, results.getResults());
+		assertEquals(upList, results);
 		
 		IdList ids = new IdList();
 		ids.setList(Collections.singletonList(Long.parseLong(userProfile.getOwnerId())));
-		assertEquals(results.getResults(), userProfileManager.list(ids).getList());
+		assertEquals(results, userProfileManager.list(ids).getList());
 	}
 		
 	@Test

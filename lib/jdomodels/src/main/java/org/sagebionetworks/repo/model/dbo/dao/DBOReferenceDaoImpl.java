@@ -115,7 +115,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	}
 
 	@Override
-	public QueryResults<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException {
+	public List<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Long offset, Long limit) throws DatastoreException {
 		if(targetId == null) throw new IllegalArgumentException("targetId cannot be null");
 
 		StringBuilder whereClause = new StringBuilder(1000);
@@ -161,10 +161,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				return referrer;
 			}
 		});
-		QueryResults<EntityHeader> ehqr = new QueryResults<EntityHeader>();
-		ehqr.setResults(results);
-		ehqr.setTotalNumberOfResults(namedJdbcTemplate.queryForObject(countQuery, baseParameters, Long.class));
-		return ehqr;
+		return results;
 	}
 	
 	/**

@@ -474,12 +474,12 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		// pass through
-		QueryResults<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
-		for (VersionInfo version : versionsOfEntity.getResults()) {
+		List<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+		for (VersionInfo version : versionsOfEntity) {
 			version.setModifiedBy(version.getModifiedByPrincipalId());
 		}
 		return versionsOfEntity;
@@ -527,12 +527,12 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return the headers of the entities which refer to the given entityId,
 	 *         filtered by the access permissions of 'userInfo'
 	 */
-	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo,
-			String entityId, Integer versionNumber, Integer offset,
-			Integer limit) throws NotFoundException, DatastoreException {
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo,
+			String entityId, Integer versionNumber, Long offset,
+			Long limit) throws NotFoundException, DatastoreException {
 		// pass through
 
-		QueryResults<EntityHeader> results = nodeManager.getEntityReferences(
+		List<EntityHeader> results = nodeManager.getEntityReferences(
 				userInfo, entityId, versionNumber, offset, limit);
 		// Note: This is a hack that we currently depend on for Mike's demo.
 		// In the demo we want to show that one dataset is derived from another
@@ -552,8 +552,8 @@ public class EntityManagerImpl implements EntityManager {
 		// This propery will then point to the original dataset. At that point
 		// this method will work without this hack!
 
-		if (results != null && results.getResults() != null) {
-			List<EntityHeader> list = results.getResults();
+		if (results != null) {
+			List<EntityHeader> list = results;
 			for (int i = 0; i < list.size(); i++) {
 				EntityHeader header = list.get(i);
 				EntityType type = EntityType.valueOf(header.getType());

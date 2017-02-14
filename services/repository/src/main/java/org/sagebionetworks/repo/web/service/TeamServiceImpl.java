@@ -122,19 +122,8 @@ public class TeamServiceImpl implements TeamService {
 		
 		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
-		PaginatedResults<Team> results = new PaginatedResults<Team>(teams, 0);
-		results.setTotalNumberOfResults(principalPrefixDAO.countTeamsForPrefix(fragment));
-		return results;
+		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}
-
-
-
-	private static Comparator<TeamMember> teamMemberComparator = new Comparator<TeamMember>() {
-		@Override
-		public int compare(TeamMember o1, TeamMember o2) {
-			return o1.getMember().getUserName().compareTo(o2.getMember().getUserName());
-		}
-	};
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#getMembers(java.lang.String, java.lang.String, long, long)
@@ -159,9 +148,7 @@ public class TeamServiceImpl implements TeamService {
 		Long teamIdLong = Long.parseLong(teamId);
 		List<Long> memberIds = principalPrefixDAO.listTeamMembersForPrefix(fragment, teamIdLong, limit, offset);
 		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
-		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(members, 0);
-		results.setTotalNumberOfResults(principalPrefixDAO.countTeamMembersForPrefix(fragment, teamIdLong));
-		return results;
+		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
 	}
 	
 	@Override

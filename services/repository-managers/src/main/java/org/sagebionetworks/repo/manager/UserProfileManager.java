@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -10,7 +12,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -30,7 +31,7 @@ public interface UserProfileManager {
 	 * Get the public profiles of the users in the system, paginated. 
 	 * Default to not include e-mail addresses.
 	 */
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo,
+	public List<UserProfile> getInRange(UserInfo userInfo,
 			long startIncl, long endExcl) throws DatastoreException,
 			NotFoundException;
 

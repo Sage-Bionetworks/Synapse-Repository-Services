@@ -1097,18 +1097,18 @@ public class NodeDAOImplTest {
 		int numberVersions = 10;
 		String id = createNodeWithMultipleVersions(numberVersions);
 		// Now list the versions
-		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
+		List<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
 		assertNotNull(versionsOfEntity);
-		assertEquals(numberVersions,versionsOfEntity.getResults().size());
-		VersionInfo firstResult = versionsOfEntity.getResults().get(0);
+		assertEquals(numberVersions,versionsOfEntity.size());
+		VersionInfo firstResult = versionsOfEntity.get(0);
 		assertEquals(new Long(numberVersions), firstResult.getVersionNumber());
 		//verify content size
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
 		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
 
-		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
-		for (VersionInfo vi : versionsOfEntity.getResults()) {
+		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
+		for (VersionInfo vi : versionsOfEntity) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
 			assertNotNull(node.getETag());
 			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
