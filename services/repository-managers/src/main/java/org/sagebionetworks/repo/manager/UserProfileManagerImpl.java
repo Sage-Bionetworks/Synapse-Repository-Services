@@ -147,12 +147,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+	public List<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		addAliasesToProfiles(userProfiles);
-		long totalNumberOfResults = userProfileDAO.getCount();
-		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
-		return result;
+		return userProfiles;
 	}
 	/**
 	 * List the UserProfiles for the given IDs

@@ -829,17 +829,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public QueryResults<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
+	public List<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(entityId));
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
-
-		QueryResults<VersionInfo> queryResults = new QueryResults<VersionInfo>();
-
-		queryResults.setTotalNumberOfResults(getVersionCount(entityId));
-		queryResults.setResults(namedParameterJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, params, new RowMapper<VersionInfo>() {
+		return namedParameterJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, params, new RowMapper<VersionInfo>() {
 
 			@Override
 			public VersionInfo mapRow(ResultSet rs, int rowNum)
@@ -856,9 +852,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return info;
 			}
 
-		}));
-
-		return queryResults;
+		});
 	}
 
 	@Override

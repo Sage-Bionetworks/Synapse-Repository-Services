@@ -285,7 +285,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Long offset, Long limit) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Validate that the user has read access.
@@ -327,7 +327,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Gets the activity for the given Entity
