@@ -239,12 +239,8 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(
-				response.getContentAsString()));
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
-				EntityHeader.class);
-		results.initializeFromJSONObject(adapter);
-		return results;
+		String json = response.getContentAsString();
+		return  PaginatedResults.createFromJSONString(json, EntityHeader.class);
 	}
 
 	/**
@@ -623,12 +619,8 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		JSONObjectAdapter adapter = ServletTestHelperUtils
-				.readResponseJSON(response);
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
-				EntityHeader.class);
-		results.initializeFromJSONObject(adapter);
-		return results;
+		String json = response.getContentAsString();
+		return  PaginatedResults.createFromJSONString(json, EntityHeader.class);
 	}
 
 	/**
