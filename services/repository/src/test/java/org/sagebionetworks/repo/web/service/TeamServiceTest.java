@@ -72,7 +72,7 @@ public class TeamServiceTest {
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
 		when(mockTeamManager.listAllTeamsAndMembers()).thenReturn(universe);
 		
-		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
+		PaginatedResults<TeamMember> members = PaginatedResults.createWithLimitAndOffset(Arrays.asList(new TeamMember[]{member}), 100L, 0L);
 		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
