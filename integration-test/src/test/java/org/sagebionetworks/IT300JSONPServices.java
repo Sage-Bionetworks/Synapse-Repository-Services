@@ -97,10 +97,7 @@ public class IT300JSONPServices {
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		
-		JSONObject jsonObj = new JSONObject(extractedJson);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<Team> results = new PaginatedResults<Team>(Team.class);
-		results.initializeFromJSONObject(adapter);
+		PaginatedResults<Team> results = PaginatedResults.createFromJSONString(extractedJson, Team.class);
 		assertNotNull(results.getTotalNumberOfResults());
 	}
 	
@@ -135,10 +132,7 @@ public class IT300JSONPServices {
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		
-		JSONObject jsonObj = new JSONObject(extractedJson);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(TeamMember.class);
-		results.initializeFromJSONObject(adapter);
+		PaginatedResults<TeamMember> results = PaginatedResults.createFromJSONString(extractedJson, TeamMember.class);
 		assertNotNull(results.getTotalNumberOfResults());
 	}
 }

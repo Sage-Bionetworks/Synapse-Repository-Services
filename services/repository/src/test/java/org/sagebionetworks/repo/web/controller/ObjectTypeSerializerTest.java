@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -159,7 +160,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 	}
 	
 	@Test
-	public void testPLFM_834Paginated() throws HttpMessageNotWritableException, IOException, JSONObjectAdapterException{
+	public void testPLFM_834Paginated() throws HttpMessageNotWritableException, IOException, JSONObjectAdapterException, JSONException{
 		// Make sure we can write an entity to json
 		List<EntityHeader> results = new ArrayList<EntityHeader>(); 
 		EntityHeader h1 = new EntityHeader();
@@ -185,9 +186,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);
 		// Make sure we can create a new entity with the path.
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(outString);
-		PaginatedResults<EntityHeader> clone = new PaginatedResults<EntityHeader>(EntityHeader.class);
-		clone.initializeFromJSONObject(adapter);
+		PaginatedResults<EntityHeader> clone = PaginatedResults.createFromJSONString(outString, EntityHeader.class);
 		assertEquals(paged, clone);
 	}
 

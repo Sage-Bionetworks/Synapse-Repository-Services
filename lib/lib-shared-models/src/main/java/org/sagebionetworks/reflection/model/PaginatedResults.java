@@ -4,17 +4,20 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Calculating the actual totalNumberOfResults is not longer supported.
  * Instead, a NextPageToken should be used for pagination.
  */
 @Deprecated
-// use a next page token
 public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		
 	private static final String CONCRETE_TYPE = "concreteType";
@@ -33,13 +36,17 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	}
 
 	/**
-	 * Default constructor
+	 * Should not be public. Use one of the static create methods.
 	 */
-	public PaginatedResults(Class<? extends T> clazz) {
+	PaginatedResults(Class<? extends T> clazz) {
 		this.clazz = (Class<T>) clazz;
 	}
 	
-	public PaginatedResults(List<T> results) {
+	/**
+	 * Should not be public. Use one of the static create methods.
+	 * @param results
+	 */
+	PaginatedResults(List<T> results) {
 		this.results = results;
 	}
 	
@@ -97,6 +104,32 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		}
 		PaginatedResults<T> results = new PaginatedResults<T>(page);
 		results.setTotalNumberOfResults(page.size());
+		return results;
+	}
+	
+	/**
+	 * Create PaginatedResults from a json string.
+	 * @param json
+	 * @param clazz
+	 * @throws JSONException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createFromJSONString(String json, Class<? extends T> clazz) throws JSONObjectAdapterException{
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(json);
+		return createFromJSONObjectAdapter(adapter, clazz);
+	}
+	
+	/**
+	 * Create from JSONObjectAdapter
+	 * @param json
+	 * @param clazz
+	 * @return
+	 * @throws JSONException
+	 * @throws JSONObjectAdapterException
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createFromJSONObjectAdapter(JSONObjectAdapter adapter, Class<? extends T> clazz) throws JSONObjectAdapterException{
+		PaginatedResults<T> results = new PaginatedResults<T>(clazz);
+		results.initializeFromJSONObject(adapter);
 		return results;
 	}
 	

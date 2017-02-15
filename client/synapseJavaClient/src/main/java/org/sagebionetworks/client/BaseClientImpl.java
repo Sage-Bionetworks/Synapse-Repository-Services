@@ -662,10 +662,8 @@ public class BaseClientImpl implements BaseClient {
 
 		JSONObject jsonObject = getJson(endpoint, uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
-		PaginatedResults<T> results = new PaginatedResults<T>(returnClass);
 		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
+			return PaginatedResults.createFromJSONObjectAdapter(adapter, returnClass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -684,9 +682,7 @@ public class BaseClientImpl implements BaseClient {
 			String jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			JSONObject jsonObject = postJson(endpoint, uri, jsonString, null);
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
-			PaginatedResults<T> results = new PaginatedResults<T>(returnClass);
-			results.initializeFromJSONObject(adapter);
-			return results;
+			return PaginatedResults.createFromJSONObjectAdapter(adapter, returnClass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
