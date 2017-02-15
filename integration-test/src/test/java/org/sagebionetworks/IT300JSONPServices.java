@@ -96,8 +96,9 @@ public class IT300JSONPServices {
 		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
-		// Make sure we can parse the results		
-		PaginatedResults<Team> results = PaginatedResults.createFromJSONString(extractedJson, Team.class);
+		// Make sure we can parse the results	
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(extractedJson);
+		PaginatedResults<Team> results = PaginatedResults.createFromJSONObjectAdapter(adapter, Team.class);
 		assertNotNull(results.getTotalNumberOfResults());
 	}
 	
@@ -132,7 +133,8 @@ public class IT300JSONPServices {
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		
-		PaginatedResults<TeamMember> results = PaginatedResults.createFromJSONString(extractedJson, TeamMember.class);
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(extractedJson);
+		PaginatedResults<Team> results = PaginatedResults.createFromJSONObjectAdapter(adapter, Team.class);
 		assertNotNull(results.getTotalNumberOfResults());
 	}
 }

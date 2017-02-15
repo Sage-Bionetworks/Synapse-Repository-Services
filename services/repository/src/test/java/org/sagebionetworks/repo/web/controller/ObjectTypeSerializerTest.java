@@ -186,7 +186,8 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);
 		// Make sure we can create a new entity with the path.
-		PaginatedResults<EntityHeader> clone = PaginatedResults.createFromJSONString(outString, EntityHeader.class);
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(outString);
+		PaginatedResults<EntityHeader> clone = PaginatedResults.createFromJSONObjectAdapter(adapter, EntityHeader.class);
 		assertEquals(paged, clone);
 	}
 

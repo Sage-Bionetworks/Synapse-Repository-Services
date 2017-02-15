@@ -1,12 +1,8 @@
 package org.sagebionetworks.reflection.model;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -105,18 +101,6 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		PaginatedResults<T> results = new PaginatedResults<T>(page);
 		results.setTotalNumberOfResults(page.size());
 		return results;
-	}
-	
-	/**
-	 * Create PaginatedResults from a json string.
-	 * @param json
-	 * @param clazz
-	 * @throws JSONException 
-	 * @throws JSONObjectAdapterException 
-	 */
-	public static <T extends JSONEntity> PaginatedResults<T> createFromJSONString(String json, Class<? extends T> clazz) throws JSONObjectAdapterException{
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(json);
-		return createFromJSONObjectAdapter(adapter, clazz);
 	}
 	
 	/**

@@ -60,7 +60,7 @@ public class PaginatedResultsTest {
 		System.out.println(json);
 		// Now create a clone from the JSON
 		adapter = new JSONObjectAdapterImpl(json);
-		PaginatedResults<Project> clone = PaginatedResults.createFromJSONString(json, Project.class);
+		PaginatedResults<Project> clone = PaginatedResults.createFromJSONObjectAdapter(adapter, Project.class);
 		clone.initializeFromJSONObject(adapter);
 		assertEquals(pr, clone);
 	}
