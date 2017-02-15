@@ -203,10 +203,9 @@ public class DBODiscussionReplyDAOImplTest {
 
 	@Test
 	public void testGetRepliesForThreadWithZeroExistingReplies() {
-		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
+		List<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertNotNull(results);
-		assertEquals(0L, results.getTotalNumberOfResults());
-		assertTrue(results.getResults().isEmpty());
+		assertTrue(results.isEmpty());
 	}
 
 	@Test
@@ -214,24 +213,20 @@ public class DBODiscussionReplyDAOImplTest {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
-		PaginatedResults<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
+		List<DiscussionReplyBundle> results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertNotNull(results);
-		assertEquals("unordered replies", numberOfReplies, results.getTotalNumberOfResults());
 		assertEquals("unordered replies",
-				new HashSet<DiscussionReplyBundle>(results.getResults()),
+				new HashSet<DiscussionReplyBundle>(results),
 				new HashSet<DiscussionReplyBundle>(createdReplies));
 
 		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
-		assertEquals("ordered replies", numberOfReplies, results.getTotalNumberOfResults());
-		assertEquals("ordered replies", createdReplies, results.getResults());
+		assertEquals("ordered replies", createdReplies, results);
 
 		results = replyDao.getRepliesForThread(threadIdLong, 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
-		assertEquals("middle element", numberOfReplies, results.getTotalNumberOfResults());
-		assertEquals("middle element", createdReplies.get(1), results.getResults().get(0));
+		assertEquals("middle element", createdReplies.get(1), results.get(0));
 
 		results = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 3L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
-		assertEquals("out of range", numberOfReplies, results.getTotalNumberOfResults());
-		assertTrue("out of range", results.getResults().isEmpty());
+		assertTrue("out of range", results.isEmpty());
 	}
 
 	@Test
@@ -239,11 +234,10 @@ public class DBODiscussionReplyDAOImplTest {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
-		PaginatedResults<DiscussionReplyBundle> results =
+		List<DiscussionReplyBundle> results =
 				replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER);
-		assertEquals("ordered desc replies", numberOfReplies, results.getTotalNumberOfResults());
 		Collections.reverse(createdReplies);
-		assertEquals("ordered desc replies", createdReplies, results.getResults());
+		assertEquals("ordered desc replies", createdReplies, results);
 	}
 
 	@Test
@@ -251,8 +245,8 @@ public class DBODiscussionReplyDAOImplTest {
 		int numberOfReplies = 3;
 		List<DiscussionReplyBundle> createdReplies = createReplies(numberOfReplies, threadId);
 
-		PaginatedResults<DiscussionReplyBundle> nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
-		PaginatedResults<DiscussionReplyBundle> includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
+		List<DiscussionReplyBundle> nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
+		List<DiscussionReplyBundle> includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertEquals(nonDeletedReplies, includedeletedReplies);
 
 		replyDao.markReplyAsDeleted(Long.parseLong(createdReplies.get(1).getId()));
@@ -260,10 +254,10 @@ public class DBODiscussionReplyDAOImplTest {
 		nonDeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED);
 		includedeletedReplies = replyDao.getRepliesForThread(threadIdLong, MAX_LIMIT, 0L, null, null, DiscussionFilter.NO_FILTER);
 		assertFalse(nonDeletedReplies.equals(includedeletedReplies));
-		assertEquals(nonDeletedReplies.getTotalNumberOfResults(), 2);
-		assertEquals(includedeletedReplies.getTotalNumberOfResults(), 3);
-		assertFalse(nonDeletedReplies.getResults().get(0).getId().equals(createdReplies.get(1).getId()));
-		assertFalse(nonDeletedReplies.getResults().get(1).getId().equals(createdReplies.get(1).getId()));
+		assertEquals(nonDeletedReplies.size(), 2);
+		assertEquals(includedeletedReplies.size(), 3);
+		assertFalse(nonDeletedReplies.get(0).getId().equals(createdReplies.get(1).getId()));
+		assertFalse(nonDeletedReplies.get(1).getId().equals(createdReplies.get(1).getId()));
 	}
 
 	private List<DiscussionReplyBundle> createReplies(int numberOfReplies, String threadId) throws InterruptedException {

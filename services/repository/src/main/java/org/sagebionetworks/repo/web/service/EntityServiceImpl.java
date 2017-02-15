@@ -526,7 +526,7 @@ public class EntityServiceImpl implements EntityService {
 			DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> headers = entityManager.getEntityHeader(userInfo, references);
-		return PaginatedResults.createWithLimitAndOffset(headers, (long)headers.size()+1, 0L);
+		return PaginatedResults.createMisusedPaginatedResults(headers);
 	}
 
 	@Override
@@ -550,7 +550,7 @@ public class EntityServiceImpl implements EntityService {
 		long realOffset = offset-1;
 		long realLimit = limit;
 		List<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, realOffset, realLimit);
-		return PaginatedResults.createWithLimitAndOffset(results, realLimit+1, realOffset);
+		return PaginatedResults.createWithLimitAndOffset(results, realLimit, realOffset);
 	}
 
 	@Override
