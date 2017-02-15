@@ -71,11 +71,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(record.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
 
 		record.setIsRestricted(false);
 		record.setIsControlled(false);
-		for (AccessRequirement ar: ars.getResults()){
+		for (AccessRequirement ar: ars){
 			if (ar instanceof ACTAccessRequirement && !record.getIsControlled()) {
 				record.setIsControlled(true);
 			}

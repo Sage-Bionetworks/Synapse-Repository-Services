@@ -143,15 +143,6 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		this.totalNumberOfResults = totalNumberOfResults;
 	}
 
-	public PaginatedResults(JSONObjectAdapter jsonObject) {
-		this.results = new LinkedList();
-		try {
-			initializeFromJSONObject(jsonObject);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-
 	/**
 	 * @return the total number of results in the system
 	 */
