@@ -84,6 +84,29 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	}
 	
 	/**
+	 * PaginatedResult has been misused for services that are not actually
+	 * paginated. If a service does no include the parameters: limit and offset,
+	 * then the service is not paginated and should not return PaginatedResults.
+	 * This method is only provided as a 'hack' for cases where PaginatedResults
+	 * has already been misused. This method should be used not to support new
+	 * services.
+	 * 
+	 * For this case totalNumberOfResults will be set to the size of the page.
+	 * 
+	 * @param page
+	 * @return
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createMisusedPaginatedResults(
+			List<T> page) {
+		if (page == null) {
+			throw new IllegalArgumentException("Page cannot be null");
+		}
+		PaginatedResults<T> results = new PaginatedResults<T>(page);
+		results.setTotalNumberOfResults(page.size());
+		return results;
+	}
+	
+	/**
 	 * The simple constructor.
 	 * @param results
 	 * @param totalNumberOfResults

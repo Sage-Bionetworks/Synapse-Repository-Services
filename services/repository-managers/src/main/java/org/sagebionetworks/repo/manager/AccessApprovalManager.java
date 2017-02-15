@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,7 +32,7 @@ public interface AccessApprovalManager {
 	/**
 	 *  get all the access approvals for an entity
 	 */
-	public QueryResults<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 *  update an access approval
