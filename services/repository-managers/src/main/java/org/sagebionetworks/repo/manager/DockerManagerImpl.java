@@ -298,10 +298,6 @@ public class DockerManagerImpl implements DockerManager {
 		EntityType entityType = entityManager.getEntityType(userInfo, entityId);
 		if (!entityType.equals(EntityType.dockerrepo)) throw new IllegalArgumentException("Only Docker reposiory entities have commits.");
 		List<DockerCommit> commits = dockerCommitDao.listDockerCommits(entityId, sortBy, ascending, limit, offset);
-		long count = dockerCommitDao.countDockerCommits(entityId);
-		PaginatedResults<DockerCommit> result = new PaginatedResults<DockerCommit>();
-		result.setResults(commits);
-		result.setTotalNumberOfResults(count);
-		return result;
+		return PaginatedResults.createWithLimitAndOffset(commits, limit, offset);
 	}
 }

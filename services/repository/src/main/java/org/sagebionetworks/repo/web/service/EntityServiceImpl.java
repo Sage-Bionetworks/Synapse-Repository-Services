@@ -525,7 +525,7 @@ public class EntityServiceImpl implements EntityService {
 			DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> headers = entityManager.getEntityHeader(userInfo, references);
-		return PaginatedResults.createWithLimitAndOffset(headers, (long)headers.size()+1, 0L);
+		return PaginatedResults.createMisusedPaginatedResults(headers);
 	}
 
 	@Override

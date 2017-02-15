@@ -217,18 +217,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.MODERATE));
 		}
-
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		long forumIdLong = Long.parseLong(forumId);
-		long count = threadDao.getThreadCountForForum(forumIdLong, filter);
-		threads.setTotalNumberOfResults(count);
-
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		if (count > 0) {
-			results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
-		}
-		threads.setResults(results);
-		return threads;
+		List<DiscussionThreadBundle> results = threadDao.getThreadsForForum(Long.parseLong(forumId), limit, offset, order, ascending, filter);
+		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 
 	@Override
@@ -269,16 +259,8 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long entityIdLong = KeyFactory.stringToKey(entityId);
 		Set<Long> projectIds = threadDao.getDistinctProjectIdsOfThreadsReferencesEntityIds(Arrays.asList(entityIdLong));
 		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-
-		PaginatedResults<DiscussionThreadBundle> threads = new PaginatedResults<DiscussionThreadBundle>();
-		long count = threadDao.getThreadCountForEntity(entityIdLong, DiscussionFilter.EXCLUDE_DELETED, projectIds);
-		threads.setTotalNumberOfResults(count);
-		List<DiscussionThreadBundle> results = new ArrayList<DiscussionThreadBundle>();
-		if (count > 0) {
-			results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
-		}
-		threads.setResults(results);
-		return threads;
+		List<DiscussionThreadBundle> results = threadDao.getThreadsForEntity(entityIdLong, limit, offset, order, ascending, DiscussionFilter.EXCLUDE_DELETED, projectIds);
+		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 
 	@Override

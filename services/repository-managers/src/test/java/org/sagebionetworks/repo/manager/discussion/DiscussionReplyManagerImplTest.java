@@ -281,8 +281,7 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testGetRepliesForThread() {
-		PaginatedResults<DiscussionReplyBundle> replies = new PaginatedResults<DiscussionReplyBundle>();
-		replies.setResults(Arrays.asList(bundle));
+		List<DiscussionReplyBundle> replies = Arrays.asList(bundle);
 		when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(),
 				Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean(),
 				Mockito.any(DiscussionFilter.class))).thenReturn(replies);
