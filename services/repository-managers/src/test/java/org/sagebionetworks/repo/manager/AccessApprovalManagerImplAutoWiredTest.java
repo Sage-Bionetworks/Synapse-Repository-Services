@@ -365,14 +365,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
 
-		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
-		assertEquals(0L, aas.getTotalNumberOfResults());
-		assertEquals(0, aas.getResults().size());
+		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		assertEquals(0, aas.size());
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
-		assertEquals(1L, aas.getTotalNumberOfResults());
-		assertEquals(1, aas.getResults().size());
+		assertEquals(1, aas.size());
 		
 		AccessApproval retrieved = accessApprovalManager.getAccessApproval(adminUserInfo, aa.getId().toString());
 		assertEquals(aa, retrieved);
@@ -380,15 +378,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// node B inherits the ARs and AAs from Node A
 		rod.setId(nodeBId);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
-		assertEquals(1L, aas.getTotalNumberOfResults());
-		assertEquals(1, aas.getResults().size());
+		assertEquals(1, aas.size());
 		
 		TermsOfUseAccessApproval aaB = newToUAccessApproval(arB.getId(), adminUserInfo.getId().toString());
 		aaB = accessApprovalManager.createAccessApproval(adminUserInfo, aaB);
 		
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
-		assertEquals(2L, aas.getTotalNumberOfResults());
-		assertEquals(2, aas.getResults().size());
+		assertEquals(2, aas.size());
 	}
 	
 	@Test
@@ -411,9 +407,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
-		assertEquals(0L, aas.getTotalNumberOfResults());
-		assertEquals(0, aas.getResults().size());
+		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		assertEquals(0, aas.size());
 	}
 	
 	
