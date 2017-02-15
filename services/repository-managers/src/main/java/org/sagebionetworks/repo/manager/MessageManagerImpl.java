@@ -323,33 +323,30 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public QueryResults<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
+	public List<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(associatedMessageId);
 		String rootMessageId = dto.getInReplyToRoot();
 		
 		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getId().toString());
-		return new QueryResults<MessageToUser>(dtos, totalMessages);
+		return dtos;
 	}
 
 	@Override
-	public QueryResults<MessageBundle> getInbox(UserInfo userInfo, 
+	public List<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset) {
 		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getId().toString(), 
 				included, sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumReceivedMessages(userInfo.getId().toString(), included);
-		return new QueryResults<MessageBundle>(dtos, totalMessages);
+		return dtos;
 	}
 
 	@Override
-	public QueryResults<MessageToUser> getOutbox(UserInfo userInfo, 
+	public List<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) {
 		List<MessageToUser> dtos = messageDAO.getSentMessages(userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumSentMessages(userInfo.getId().toString());
-		return new QueryResults<MessageToUser>(dtos, totalMessages);
+		return dtos;
 	}
 
 	@Override
