@@ -132,7 +132,7 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Submission> getAllSubmissions(UserInfo userInfo, String evalId,
+	public List<Submission> getAllSubmissions(UserInfo userInfo, String evalId,
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
@@ -145,7 +145,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Submission> getMyOwnSubmissionsByEvaluation(UserInfo userInfo,
+	public List<Submission> getMyOwnSubmissionsByEvaluation(UserInfo userInfo,
 			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
@@ -171,7 +171,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
+	public List<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
@@ -189,7 +189,7 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo,
+	public List<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo,
 			String evalId, SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
@@ -205,7 +205,7 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
+	public List<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 

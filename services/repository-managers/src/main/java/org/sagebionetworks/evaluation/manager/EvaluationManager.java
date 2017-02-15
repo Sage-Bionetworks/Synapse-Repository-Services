@@ -7,7 +7,6 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -29,20 +28,20 @@ public interface EvaluationManager {
 	/**
 	 * Gets all Synapse Evaluations tied to the given project
 	 */
-	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
+	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
 	@Deprecated
-	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset) 
+	public List<Evaluation> getInRange(UserInfo userInfo, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds) 
+	public List<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds) 
 			throws DatastoreException, NotFoundException;
 
 	/**

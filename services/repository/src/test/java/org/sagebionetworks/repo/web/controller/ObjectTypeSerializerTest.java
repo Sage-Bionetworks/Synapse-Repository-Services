@@ -168,7 +168,7 @@ public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBas
 		h1.setName("Joe");
 		h1.setType("type");
 		results.add(h1);
-		PaginatedResults<EntityHeader> paged = new PaginatedResults<EntityHeader>(results, 101);
+		PaginatedResults<EntityHeader> paged = PaginatedResults.createWithLimitAndOffset(results, 101L, 0L);
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		HttpOutputMessage message = new HttpOutputMessage() {
 			@Override
