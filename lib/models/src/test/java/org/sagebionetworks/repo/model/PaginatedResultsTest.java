@@ -51,7 +51,7 @@ public class PaginatedResultsTest {
 			list.add(project);
 		}
 		
-		PaginatedResults<Project> pr = new PaginatedResults<Project>(list, 101);
+		PaginatedResults<Project> pr = PaginatedResults.createWithLimitAndOffset(list, 100L, 0L);
 		// now write it to JSON
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		pr.writeToJSONObject(adapter);

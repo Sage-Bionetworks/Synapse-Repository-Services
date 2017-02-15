@@ -53,7 +53,7 @@ public interface TrashManager {
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
-	QueryResults<TrashedEntity> viewTrashForUser(UserInfo currentUser, UserInfo userInfo,
+	List<TrashedEntity> viewTrashForUser(UserInfo currentUser, UserInfo userInfo,
 			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
@@ -68,7 +68,7 @@ public interface TrashManager {
 	 * @throws UnauthorizedException
 	 *             When the current user is not an administrator.
 	 */
-	QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
+	List<TrashedEntity> viewTrash(UserInfo currentUser,
 			long offset, long limit) throws DatastoreException, UnauthorizedException;
 
 	/**

@@ -132,16 +132,6 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		results.initializeFromJSONObject(adapter);
 		return results;
 	}
-	
-	/**
-	 * The simple constructor.
-	 * @param results
-	 * @param totalNumberOfResults
-	 */
-	public PaginatedResults(List<T> results, long totalNumberOfResults){
-		this.results = results;
-		this.totalNumberOfResults = totalNumberOfResults;
-	}
 
 	/**
 	 * @return the total number of results in the system
