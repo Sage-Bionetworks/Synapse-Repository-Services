@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
@@ -124,7 +125,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissions() {
-		QueryResults<Submission> expectedRes = new QueryResults<Submission>();
+		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getAllSubmissions(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
@@ -153,7 +154,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissionBundles() {
-		QueryResults<SubmissionBundle> expectedRes = new QueryResults<SubmissionBundle>();
+		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getAllSubmissionBundles(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
@@ -182,7 +183,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testGetAllSubmissionStatuses() {
-		QueryResults<SubmissionStatus> expectedRes = new QueryResults<SubmissionStatus>();
+		List<SubmissionStatus> expectedRes = new LinkedList<SubmissionStatus>();
 		when(mockSubmissionManager.getAllSubmissionStatuses(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
@@ -211,7 +212,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testgetMyOwnSubmissionsByEvaluation() {
-		QueryResults<Submission> expectedRes = new QueryResults<Submission>();
+		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(any(UserInfo.class), anyString(), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 11, 0, null);
@@ -240,7 +241,7 @@ public class EvaluationServiceTest {
 
 	@Test
 	public void testgetMyOwnSubmissionsBundlesByEvaluation() {
-		QueryResults<SubmissionBundle> expectedRes = new QueryResults<SubmissionBundle>();
+		List<SubmissionBundle> expectedRes = new LinkedList<SubmissionBundle>();
 		when(mockSubmissionManager.getMyOwnSubmissionBundlesByEvaluation(any(UserInfo.class), anyString(), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 11, 0, null);

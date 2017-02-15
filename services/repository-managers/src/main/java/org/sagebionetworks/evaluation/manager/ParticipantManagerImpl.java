@@ -67,14 +67,12 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 
 	@Override
-	public QueryResults<Participant> getAllParticipants(
+	public List<Participant> getAllParticipants(
 			UserInfo userInfo, final String evalId, final long limit, final long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException {
 		validateUpdateAccess(userInfo, evalId);
 		List<Participant> participants = participantDAO.getAllByEvaluation(evalId, limit, offset);
-		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
-		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
-		return res;
+		return participants;
 	}
 
 	private void validateUpdateAccess(final UserInfo userInfo, final String evalId)
