@@ -1064,7 +1064,7 @@ public class IT500SynapseJavaClient {
 		// need to update cache.  the service to trigger an update
 		// requires admin privileges, so we log in as an admin:
 		teams = waitForTeams(name.substring(0, 3),1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(2L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// again, make sure pagination works
 		teams = waitForTeams(name.substring(0, 3), 10, 1);
@@ -1076,7 +1076,7 @@ public class IT500SynapseJavaClient {
 		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = waitForTeamMembers(updatedTeam.getId(), null, 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
@@ -1122,7 +1122,7 @@ public class IT500SynapseJavaClient {
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = myProfile.getUserName();
 		members = waitForTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
@@ -1144,12 +1144,12 @@ public class IT500SynapseJavaClient {
 
 		// query for team members.  should get creator as well as new member back
 		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(3L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1159,7 +1159,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		
 		members = waitForTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1192,7 +1192,7 @@ public class IT500SynapseJavaClient {
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(2L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
 		synapseOne.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
