@@ -154,20 +154,18 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 	
 	@Override
-	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
+	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
 		} else {
 			subjectIds.add(subjectId.getId());			
 		}
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
-		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
-		return result;
+		return accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 	}
 	
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
+	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<String> subjectIds = new ArrayList<String>();
 		subjectIds.add(subjectId.getId());
@@ -211,8 +209,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				}
 			}
 		}
-		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(unmetRequirements, (int)unmetRequirements.size());
-		return result;
+		return unmetRequirements;
 	}	
 	
 	@WriteTransaction
