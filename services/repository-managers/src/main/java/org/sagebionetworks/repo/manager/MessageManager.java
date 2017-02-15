@@ -64,7 +64,7 @@ public interface MessageManager {
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
-	public QueryResults<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
+	public List<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException;
 	
 	/**
@@ -72,13 +72,13 @@ public interface MessageManager {
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
-	public QueryResults<MessageBundle> getInbox(UserInfo userInfo, 
+	public List<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Retrieves all messages sent by the user
 	 */
-	public QueryResults<MessageToUser> getOutbox(UserInfo userInfo, 
+	public List<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
