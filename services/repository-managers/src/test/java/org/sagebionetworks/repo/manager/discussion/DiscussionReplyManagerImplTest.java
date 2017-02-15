@@ -281,10 +281,10 @@ public class DiscussionReplyManagerImplTest {
 
 	@Test
 	public void testGetRepliesForThread() {
-		List<DiscussionReplyBundle> replies = Arrays.asList(bundle);
+		PaginatedResults<DiscussionReplyBundle> replies = PaginatedResults.createWithLimitAndOffset(Arrays.asList(bundle), 2L, 0L);
 		when(mockReplyDao.getRepliesForThread(Mockito.anyLong(), Mockito.anyLong(),
 				Mockito.anyLong(), (DiscussionReplyOrder) Mockito.any(), Mockito.anyBoolean(),
-				Mockito.any(DiscussionFilter.class))).thenReturn(replies);
+				Mockito.any(DiscussionFilter.class))).thenReturn(Arrays.asList(bundle));
 		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(replies, replyManager.getRepliesForThread(userInfo, threadId, 2L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
