@@ -448,22 +448,34 @@ public class JDOSecondaryPropertyUtils {
 			Annotations additional = annos.getAdditionalAnnotations();
 			for(String key: additional.getStringAnnotations().keySet()){
 				List values = additional.getStringAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, getSingleString(values, maxAnnotationChars)));
+				String value = getSingleString(values, maxAnnotationChars);
+				if(value != null){
+					results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
+				}
 			}
 			// longs
 			for(String key: additional.getLongAnnotations().keySet()){
 				List values = additional.getLongAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, getSingleString(values, maxAnnotationChars)));
+				String value = getSingleString(values, maxAnnotationChars);
+				if(value != null){
+					results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
+				}
 			}
 			// doubles
 			for(String key: additional.getDoubleAnnotations().keySet()){
 				List values = additional.getDoubleAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, getSingleString(values, maxAnnotationChars)));
+				String value = getSingleString(values, maxAnnotationChars);
+				if(value != null){
+					results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
+				}
 			}
 			// dates
 			for(String key: additional.getDateAnnotations().keySet()){
 				List values = additional.getDateAnnotations().get(key);
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, getSingleString(values, maxAnnotationChars)));
+				String value = getSingleString(values, maxAnnotationChars);
+				if(value != null){
+					results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
+				}
 			}
 		}
 		return results;

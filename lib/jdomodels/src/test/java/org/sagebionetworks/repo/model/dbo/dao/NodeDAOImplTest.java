@@ -3100,13 +3100,7 @@ public class NodeDAOImplTest {
 		EntityDTO fileDto = results.get(1);
 		assertEquals(KeyFactory.stringToKey(file.getId()), fileDto.getId());
 		assertNotNull(fileDto.getAnnotations());
-		assertEquals(3, fileDto.getAnnotations().size());
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(fileIdLong, "emptyList", AnnotationType.STRING, null),
-				new AnnotationDTO(fileIdLong, "nullList", AnnotationType.LONG, null),
-				new AnnotationDTO(fileIdLong, "listWithNullValue", AnnotationType.DOUBLE, null)
-		);
-		assertEquals(expected, fileDto.getAnnotations());
+		assertEquals(0, fileDto.getAnnotations().size());
 	}
 	
 

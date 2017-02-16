@@ -454,13 +454,9 @@ public class JDOSecondaryPropertyUtilsTest {
 		int maxAnnotationChars = 6;
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.getAdditionalAnnotations().getStringAnnotations().put("emptyList", new LinkedList<String>());
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(entityId, "emptyList", AnnotationType.STRING, null)
-		);
-		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
-		assertEquals(expected, results);
+		assertEquals(0, results.size());
 	}
 	
 	/**
@@ -471,14 +467,10 @@ public class JDOSecondaryPropertyUtilsTest {
 		long entityId = 123;
 		int maxAnnotationChars = 6;
 		NamedAnnotations annos = new NamedAnnotations();
-		annos.getAdditionalAnnotations().getStringAnnotations().put("nullList", null);
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(entityId, "nullList", AnnotationType.STRING, null)
-		);
-		
+		annos.getAdditionalAnnotations().getStringAnnotations().put("nullList", null);		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
-		assertEquals(expected, results);
+		assertEquals(0, results.size());
 	}
 	
 	@Test
@@ -487,14 +479,9 @@ public class JDOSecondaryPropertyUtilsTest {
 		int maxAnnotationChars = 6;
 		NamedAnnotations annos = new NamedAnnotations();
 		annos.getAdditionalAnnotations().getStringAnnotations().put("listWithNullValue", Lists.newArrayList((String)null));
-		
-		List<AnnotationDTO> expected = Lists.newArrayList(
-				new AnnotationDTO(entityId, "listWithNullValue", AnnotationType.STRING, null)
-		);
-		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);
 		assertNotNull(results);
-		assertEquals(expected, results);
+		assertEquals(0, results.size());
 	}
 
 	@Test
