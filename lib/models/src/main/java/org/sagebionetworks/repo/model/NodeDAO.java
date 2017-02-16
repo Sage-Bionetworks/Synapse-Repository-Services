@@ -450,7 +450,7 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
+	public List<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
 			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset);
 
 	long getCount();
