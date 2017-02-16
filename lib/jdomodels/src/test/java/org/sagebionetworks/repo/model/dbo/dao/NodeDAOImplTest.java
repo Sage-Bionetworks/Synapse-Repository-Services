@@ -2594,7 +2594,6 @@ public class NodeDAOImplTest {
 			projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
 					ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 1, i);
 			assertEquals(1L, projectHeaders.size());
-			assertEquals(5L, projectHeaders.size());
 			projectIds2.add(projectHeaders.get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
