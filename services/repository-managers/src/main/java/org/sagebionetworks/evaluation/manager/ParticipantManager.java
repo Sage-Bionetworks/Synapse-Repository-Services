@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -27,6 +29,6 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Participant> getAllParticipants(UserInfo userInfo, String evalId, long limit, long offset)
+	public List<Participant> getAllParticipants(UserInfo userInfo, String evalId, long limit, long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 }

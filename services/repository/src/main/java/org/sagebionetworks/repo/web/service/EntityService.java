@@ -37,28 +37,6 @@ import org.sagebionetworks.repo.web.service.metadata.EventType;
 public interface EntityService {
 
 	/**
-	 * Get entities
-	 * 
-	 * @param userId
-	 * @param offset
-	 *            1-Entity pagination offset
-	 * @param limit
-	 *            maximum number of results to return
-	 * @param sort
-	 * @param ascending
-	 * @param request
-	 *            used to form return URLs in the body of the response
-	 * @return list of all entities stored in the repository
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	public <T extends Entity> PaginatedResults<T> getEntities(Long userId,
-			PaginatedParameters paging, HttpServletRequest request,
-			Class<? extends T> clazz) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
-
-	/**
 	 * Get all versions of an entity. This list will be sorted on version number
 	 * descending.
 	 * 
@@ -188,42 +166,6 @@ public interface EntityService {
 			Long versionNumber, HttpServletRequest request,
 			Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
-
-	/**
-	 * Get all of the children of a given type.
-	 * 
-	 * @param <T>
-	 * @param userId
-	 * @param parentId
-	 * @param clazz
-	 * @return
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public <T extends Entity> List<T> getEntityChildrenOfType(Long userId,
-			String parentId, Class<? extends T> clazz,
-			HttpServletRequest request) throws DatastoreException,
-			NotFoundException, UnauthorizedException;
-
-	/**
-	 * Get the children of a given type with paging.
-	 * 
-	 * @param <T>
-	 * @param userId
-	 * @param parentId
-	 * @param clazz
-	 * @param paging
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> PaginatedResults<T> getEntityChildrenOfTypePaginated(
-			Long userId, String parentId, Class<? extends T> clazz,
-			PaginatedParameters paging, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Create a new entity

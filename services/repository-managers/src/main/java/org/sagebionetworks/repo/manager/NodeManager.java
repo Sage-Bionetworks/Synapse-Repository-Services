@@ -278,7 +278,7 @@ public interface NodeManager {
 	 * @param versionNumber
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Long offset, Long limit)
 	throws NotFoundException, DatastoreException;
 
 	/**
@@ -289,7 +289,7 @@ public interface NodeManager {
 	 */
 	public boolean doesNodeHaveChildren(String entityId);
 
-	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**

@@ -3130,13 +3130,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				getRepoEndpoint() + uri, null, destinationFile);
 	}
 
-	@Override
-	public Long getSubmissionCount(String evalId) throws SynapseException {
-		ValidateArgument.required(evalId, "Evaluation ID");
-		PaginatedResults<Submission> res = getAllSubmissions(evalId, 0, 0);
-		return res.getTotalNumberOfResults();
-	}
-
 	/**
 	 * Execute a user query over the Submissions of a specified Evaluation.
 	 * 

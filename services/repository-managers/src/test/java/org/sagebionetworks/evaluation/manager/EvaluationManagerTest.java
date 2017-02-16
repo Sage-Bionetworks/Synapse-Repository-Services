@@ -151,9 +151,9 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetEvaluationByContentSource() throws Exception {
-		QueryResults<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, 10, 0);
-		assertEquals(evaluations, qr.getResults());
-		assertEquals(1L, qr.getTotalNumberOfResults());
+		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, 10, 0);
+		assertEquals(evaluations, qr);
+		assertEquals(1L, qr.size());
 	}
 	
 	@Test
@@ -186,9 +186,9 @@ public class EvaluationManagerTest {
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
-		assertEquals(evaluations, qr.getResults());
-		assertEquals(1L, qr.getTotalNumberOfResults());
+		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
+		assertEquals(evaluations, qr);
+		assertEquals(1L, qr.size());
 	}
 	
 	@Test(expected=NotFoundException.class)

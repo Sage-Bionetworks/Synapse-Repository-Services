@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -419,12 +420,11 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testGetReferences() throws Exception {
-		QueryResults<EntityHeader> expected = new QueryResults<EntityHeader>();
-		expected.setResults(new ArrayList<EntityHeader>());
+		List<EntityHeader> expected = new ArrayList<EntityHeader>();
 		Long id = 101L;
 		UserInfo userInfo = anonUserInfo;
 		when(mockReferenceDao.getReferrers(id, null, userInfo, null, null)).thenReturn(expected);
-		QueryResults<EntityHeader> actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
+		List<EntityHeader> actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
 	}
 	
 	/**
@@ -622,11 +622,9 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		Node mockNode = mock(Node.class);
 		when(mockNodeDao.getNodeForVersion(nodeId, versionNumber)).thenReturn(mockNode);
-		QueryResults<VersionInfo> results = new QueryResults<VersionInfo>();
 		List<VersionInfo> versionInfoList = new ArrayList<VersionInfo>();
 		versionInfoList.add(mock(VersionInfo.class));
-		results.setResults(versionInfoList);
-		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(results);
+		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(versionInfoList);
 		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, versionNumber);
 		verify(mockNodeDao, times(1)).lockNodeAndIncrementEtag(eq(nodeId), anyString());
 		verify(mockNodeDao, times(1)).createNewVersion(mockNode);

@@ -88,10 +88,9 @@ public class TrashServiceImpl implements TrashService {
 
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		UserInfo user = userManager.getUserInfo(userId);
-		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrashForUser(
+		List<TrashedEntity> trashEntities = trashManager.viewTrashForUser(
 				currentUser, user, offset, limit);
-		return new PaginatedResults<TrashedEntity>(trashEntities.getResults(),
-				trashEntities.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(trashEntities, limit, offset);
 	}
 
 	@Override
@@ -99,10 +98,9 @@ public class TrashServiceImpl implements TrashService {
 			Long offset, Long limit, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
-		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrash(
+		List<TrashedEntity> trashEntities = trashManager.viewTrash(
 				currentUser, offset, limit);
-		return new PaginatedResults<TrashedEntity>(trashEntities.getResults(),
-				trashEntities.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(trashEntities, limit, offset);
 	}
 
 	private class TrashPurgeCallback implements PurgeCallback {

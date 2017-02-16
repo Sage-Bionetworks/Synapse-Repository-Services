@@ -26,7 +26,6 @@ public class UserGroupServiceImpl implements UserGroupService {
 		long endExcl = offset+limit;
 		List<UserGroup> results = userManager.getGroupsInRange(userInfo, offset, endExcl, sort, ascending);
 		int totalNumberOfResults = userManager.getGroups().size();
-		return new PaginatedResults<UserGroup>(	results,
-				totalNumberOfResults);
+		return PaginatedResults.createWithLimitAndOffset(results, (long)limit, (long)offset);
 	}
 }

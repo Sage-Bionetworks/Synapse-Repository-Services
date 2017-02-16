@@ -342,9 +342,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -354,9 +353,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -368,13 +366,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(1, ars.size());
 		
 		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -386,13 +382,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(1, ars.size());
 		
 		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -404,13 +398,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(adminEvaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
+		assertEquals(1, ars.size());
 		
 		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		assertEquals(1, ars.size());
 	}
 	
 	// entity owner does have unmet access requirements, for non-file
@@ -422,9 +414,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(1, ars.size());
 	}
 	
 	// File owner never has unmet access requirements
@@ -435,9 +426,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(0L, ars.getTotalNumberOfResults());
-		assertEquals(0, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(0, ars.size());
 	}
 	
 	// evaluation owner gets no special treatment
@@ -448,9 +438,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(evaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
-		assertEquals(1L, ars.getTotalNumberOfResults());
-		assertEquals(1, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
+		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -462,9 +451,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
-		assertEquals(0L, ars.getTotalNumberOfResults());
-		assertEquals(0, ars.getResults().size());
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		assertEquals(0, ars.size());
 	}
 	
 	@Test(expected=UnauthorizedException.class)

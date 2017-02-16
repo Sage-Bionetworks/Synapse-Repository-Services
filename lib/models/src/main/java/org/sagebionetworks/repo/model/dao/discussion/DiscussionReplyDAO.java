@@ -43,7 +43,7 @@ public interface DiscussionReplyDAO {
 	 * @param filter 
 	 * @return
 	 */
-	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(Long threadId,
+	public List<DiscussionReplyBundle> getRepliesForThread(Long threadId,
 			Long limit, Long offset, DiscussionReplyOrder order, Boolean ascending,
 			DiscussionFilter filter);
 

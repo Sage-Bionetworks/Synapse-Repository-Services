@@ -164,7 +164,7 @@ public class TrashManagerImpl implements TrashManager {
 	}
 
 	@Override
-	public QueryResults<TrashedEntity> viewTrashForUser(
+	public List<TrashedEntity> viewTrashForUser(
 			UserInfo currentUser, UserInfo user, long offset, long limit) {
 		ValidateArgument.required(currentUser, "currentUser");
 		ValidateArgument.required(user, "user");
@@ -186,14 +186,11 @@ public class TrashManagerImpl implements TrashManager {
 			}
 		}
 
-		List<TrashedEntity> list = trashCanDao.getInRangeForUser(userId, false, offset, limit);
-		int count = trashCanDao.getCount(userId);
-		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
-		return results;
+		return trashCanDao.getInRangeForUser(userId, false, offset, limit);
 	}
 
 	@Override
-	public QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
+	public List<TrashedEntity> viewTrash(UserInfo currentUser,
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException {
 
@@ -214,10 +211,7 @@ public class TrashManagerImpl implements TrashManager {
 					+ " does not have the permission.");
 		}
 
-		List<TrashedEntity> list = trashCanDao.getInRange(false, offset, limit);
-		int count = trashCanDao.getCount();
-		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
-		return results;
+		return trashCanDao.getInRange(false, offset, limit);
 	}
 
 	@WriteTransaction

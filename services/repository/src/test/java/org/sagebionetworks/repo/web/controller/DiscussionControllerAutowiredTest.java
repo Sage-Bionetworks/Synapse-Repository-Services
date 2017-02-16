@@ -110,7 +110,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionThreadBundle bundle2 = servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreadsForForum(dispatchServlet, adminUserId, forum.getId(), 1L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER);
 		assertEquals(bundle2, results.getResults().get(0));
-		assertEquals(2L, results.getTotalNumberOfResults());
+		assertEquals(3L, results.getTotalNumberOfResults());
 	}
 
 	@Test
@@ -230,11 +230,11 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		DiscussionReplyBundle replyBundle2 = servletTestHelper.createReply(dispatchServlet, adminUserId, createReply);
 		PaginatedResults<DiscussionReplyBundle> results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 1L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER);
 		assertEquals(replyBundle2, results.getResults().get(0));
-		assertEquals(2L, results.getTotalNumberOfResults());
+		assertEquals(3L, results.getTotalNumberOfResults());
 		servletTestHelper.markReplyAsDeleted(dispatchServlet, adminUserId, replyBundle1.getId());
 		results = servletTestHelper.getReplies(dispatchServlet, adminUserId, threadBundle.getId(), 1L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.EXCLUDE_DELETED);
 		assertEquals(replyBundle2, results.getResults().get(0));
-		assertEquals(1L, results.getTotalNumberOfResults());
+		assertEquals(2L, results.getTotalNumberOfResults());
 	}
 
 	@Test
@@ -313,7 +313,7 @@ public class DiscussionControllerAutowiredTest extends AbstractAutowiredControll
 		servletTestHelper.createThread(dispatchServlet, adminUserId, createThread);
 		PaginatedResults<DiscussionThreadBundle> results = servletTestHelper.getThreadsForEntity(dispatchServlet, adminUserId, project.getId(), 1L, 1L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true);
 		assertNotNull(results);
-		assertEquals(0L, results.getTotalNumberOfResults());
+		assertEquals(1L, results.getTotalNumberOfResults());
 		assertNotNull(results.getResults());
 		assertTrue(results.getResults().isEmpty());
 	}

@@ -72,7 +72,7 @@ public class TeamServiceTest {
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
 		when(mockTeamManager.listAllTeamsAndMembers()).thenReturn(universe);
 		
-		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
+		PaginatedResults<TeamMember> members = PaginatedResults.createWithLimitAndOffset(Arrays.asList(new TeamMember[]{member}), 100L, 0L);
 		when(mockTeamManager.listMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 
 		mockNotificationManager = Mockito.mock(NotificationManager.class);
@@ -101,15 +101,15 @@ public class TeamServiceTest {
 		wrapped.setList(expected);
 		when(mockTeamManager.list(any(List.class))).thenReturn(wrapped);
 		PaginatedResults<Team> pr = teamService.get("foo", 1, 0);
-		assertEquals(expected.size(), pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		pr = teamService.get("ba", 1, 0);
-		assertEquals(expected.size(), pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		
 		// no match
 		pr = teamService.get("bas", 1, 0);
-		assertEquals(0, pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 	}
 	
 	@Test
@@ -128,15 +128,15 @@ public class TeamServiceTest {
 		when(mockTeamManager.listMembers(any(List.class), any(List.class))).thenReturn(wrapper);
 		// test last name match
 		PaginatedResults<TeamMember> pr = teamService.getMembers("101", "Smith", 1, 0);
-		assertEquals(expected.size(), pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		// test first name match, different case
 		pr = teamService.getMembers("101", "john", 1, 0);
-		assertEquals(expected.size(), pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		// no match
 		pr = teamService.getMembers("101", "bas", 1, 0);
-		assertEquals(0, pr.getTotalNumberOfResults());
+		assertEquals(2L, pr.getTotalNumberOfResults());
 	}
 	
 	@Test

@@ -346,11 +346,7 @@ public class TeamManagerImpl implements TeamManager {
 	public PaginatedResults<Team> list(long limit, long offset)
 			throws DatastoreException {
 		List<Team> results = teamDAO.getInRange(limit, offset);
-		long count = teamDAO.getCount();
-		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
-		queryResults.setResults(results);
-		queryResults.setTotalNumberOfResults(count);
-		return queryResults;
+		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 
 	@Override
@@ -365,11 +361,7 @@ public class TeamManagerImpl implements TeamManager {
 	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
 			long offset) throws DatastoreException {
 		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
-		long count = teamDAO.getMembersCount(teamId);
-		PaginatedResults<TeamMember> queryResults = new PaginatedResults<TeamMember>();
-		queryResults.setResults(results);
-		queryResults.setTotalNumberOfResults(count);
-		return queryResults;
+		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 	
 	@Override
@@ -392,11 +384,7 @@ public class TeamManagerImpl implements TeamManager {
 	public PaginatedResults<Team> listByMember(String principalId,
 			long limit, long offset) throws DatastoreException {
 		List<Team> results = teamDAO.getForMemberInRange(principalId, limit, offset);
-		long count = teamDAO.getCountForMember(principalId);
-		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
-		queryResults.setResults(results);
-		queryResults.setTotalNumberOfResults(count);
-		return queryResults;
+		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
 	}
 
 	/* (non-Javadoc)

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
@@ -50,12 +51,10 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
-		QueryResults<AccessApproval> results = 
+		List<AccessApproval> results = 
 			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
-		
-		return new PaginatedResults<AccessApproval>(
-				results.getResults(),
-				(int)results.getTotalNumberOfResults());
+		// This services is not actually paginated so PaginatedResults is being misused.
+		return PaginatedResults.createMisusedPaginatedResults(results);
 	}
 
 	@WriteTransaction

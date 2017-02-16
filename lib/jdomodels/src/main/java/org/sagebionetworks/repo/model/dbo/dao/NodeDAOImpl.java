@@ -178,9 +178,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
 
-	private static final String COUNT_PROJECTS_SQL1 = 
-		"select count(*) from (" + 
-			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
 		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE +
 				", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
@@ -832,17 +829,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public QueryResults<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
+	public List<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(entityId));
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
-
-		QueryResults<VersionInfo> queryResults = new QueryResults<VersionInfo>();
-
-		queryResults.setTotalNumberOfResults(getVersionCount(entityId));
-		queryResults.setResults(namedParameterJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, params, new RowMapper<VersionInfo>() {
+		return namedParameterJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, params, new RowMapper<VersionInfo>() {
 
 			@Override
 			public VersionInfo mapRow(ResultSet rs, int rowNum)
@@ -859,9 +852,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return info;
 			}
 
-		}));
-
-		return queryResults;
+		});
 	}
 
 	@Override
@@ -1495,8 +1486,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) {
+	public List<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
 		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects
@@ -1563,14 +1554,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
 				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
-		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause + whereClause2;
 
-		return getProjectHeaders(parameters, selectSql, countSql);
+		return getProjectHeaders(parameters, selectSql);
 	}
 
-	private PaginatedResults<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql, String countSql) {
+	private List<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql) {
 		MapSqlParameterSource params = new MapSqlParameterSource(parameters);
-		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params, new RowMapper<ProjectHeader>() {
+		return namedParameterJdbcTemplate.query(selectSql, params, new RowMapper<ProjectHeader>() {
 			@Override
 			public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ProjectHeader header = new ProjectHeader();
@@ -1585,18 +1575,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return header;
 			}
 		});
-
-		// return the page of objects, along with the total result count
-		PaginatedResults<ProjectHeader> queryResults = new PaginatedResults<ProjectHeader>();
-		queryResults.setResults(projectsHeaders);
-		long totalCount = 0;
-		try {
-			totalCount = namedParameterJdbcTemplate.queryForObject(countSql, params, Long.class);
-		} catch (EmptyResultDataAccessException e) {
-			// count = 0
-		}
-		queryResults.setTotalNumberOfResults(totalCount);
-		return queryResults;
 	}
 
 	@MandatoryWriteTransaction

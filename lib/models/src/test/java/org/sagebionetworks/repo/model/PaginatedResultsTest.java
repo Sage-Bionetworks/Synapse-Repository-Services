@@ -6,10 +6,13 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+
 import static org.mockito.Mockito.*;
+
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -37,7 +40,7 @@ public class PaginatedResultsTest {
 	}
 	
 	@Test
-	public void testRoundJSONRoundTrip() throws JSONObjectAdapterException{
+	public void testRoundJSONRoundTrip() throws JSONObjectAdapterException, JSONException{
 		// Create a list of projects
 		List<Project> list = new ArrayList<Project>();
 		for(int i=0; i<4; i++){
@@ -48,7 +51,7 @@ public class PaginatedResultsTest {
 			list.add(project);
 		}
 		
-		PaginatedResults<Project> pr = new PaginatedResults<Project>(list, 101);
+		PaginatedResults<Project> pr = PaginatedResults.createWithLimitAndOffset(list, 100L, 0L);
 		// now write it to JSON
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		pr.writeToJSONObject(adapter);
@@ -57,7 +60,7 @@ public class PaginatedResultsTest {
 		System.out.println(json);
 		// Now create a clone from the JSON
 		adapter = new JSONObjectAdapterImpl(json);
-		PaginatedResults<Project> clone = new PaginatedResults<Project>(Project.class);
+		PaginatedResults<Project> clone = PaginatedResults.createFromJSONObjectAdapter(adapter, Project.class);
 		clone.initializeFromJSONObject(adapter);
 		assertEquals(pr, clone);
 	}

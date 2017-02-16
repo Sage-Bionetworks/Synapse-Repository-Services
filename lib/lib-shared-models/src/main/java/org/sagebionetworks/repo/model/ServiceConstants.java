@@ -206,6 +206,7 @@ public class ServiceConstants {
 	 * @param limit
 	 * @throws IllegalArgumentException
 	 */
+	@Deprecated
 	public static void validatePaginationParamsNoOffsetEqualsOne(Long offset, Long limit)
 			throws IllegalArgumentException {
 		if (1 > offset) {
