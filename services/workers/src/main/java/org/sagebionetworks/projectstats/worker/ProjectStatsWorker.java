@@ -7,8 +7,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.reflection.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Node;
@@ -148,18 +146,9 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 	}
 
 	private void updateProjectStats(final Team team, Date timestamp, long... members) {
-		Iterable<ProjectHeader> projectHeaders = PaginatedResultsUtil.getPaginatedResultsIterable(
-				new PaginatedResultsUtil.Paginator<ProjectHeader>() {
-					@Override
-					public PaginatedResults<ProjectHeader> getBatch(long limit, long offset) {
-						// we must call this as admin, because we want to see all headers, regardless of
-						// access
-						UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-						return nodeDao.getProjectHeaders(adminUser, adminUser, team, ProjectListType.TEAM_PROJECTS,
-								ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, (int) limit, (int) offset);
-					}
-				}, 500);
-
+		UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		Iterable<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(adminUser, adminUser, team, ProjectListType.TEAM_PROJECTS,
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, Integer.MAX_VALUE, 0);
 		for (ProjectHeader projectHeader : projectHeaders) {
 			for (long member : members) {
 				ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(projectHeader.getId()), member, timestamp);
