@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
@@ -460,6 +457,72 @@ public class TableIndexManagerImplTest {
 		mockCallback = null;
 		// call under test
 		manager.populateViewFromEntityReplication(tableId, mockCallback, viewType, scope, schema);;
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// call under test
+		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+		assertEquals(crc32, resultCrc);
+		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		// the CRC should be calculated with the etag column.
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationUnknownCause() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// setup a failure
+		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		try {
+			// call under test
+			manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+			fail("Should have failed");
+		} catch (IllegalArgumentException expected) {
+			// when the cause cannot be determined the original exception is thrown.
+			assertEquals(error, expected);
+		}
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationKnownCause() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		
+		ColumnModel column = new ColumnModel();
+		column.setId("123");
+		column.setName("foo");
+		column.setColumnType(ColumnType.STRING);
+		column.setMaximumSize(10L);
+		schema.add(column);
+		// Setup an annotation that is larger than the columns.
+		ColumnModel annotation = new ColumnModel();
+		annotation.setName("foo");
+		annotation.setMaximumSize(11L);
+		annotation.setColumnType(ColumnType.STRING);
+		
+		// setup the annotations 
+		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
+		// setup a failure
+		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		try {
+			// call under test
+			manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+			fail("Should have failed");
+		} catch (IllegalArgumentException expected) {
+			assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
+			// the cause should match the original error.
+			assertEquals(error, expected.getCause());
+		}
 	}
 	
 	@Test

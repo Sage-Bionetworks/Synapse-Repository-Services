@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.cluster.ColumnMetadata;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -301,8 +302,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param allContainersInScope
 	 * @param currentSchema
 	 * @return The CRC32 of the concatenation of ROW_ID & ETAG of the table after the update.
+	 * @throws Exception 
 	 */
-	Long populateViewFromEntityReplicationWithProgress(final String tableId, ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema){
+	Long populateViewFromEntityReplicationWithProgress(final String tableId, ViewType viewType, Set<Long> allContainersInScope, List<ColumnModel> currentSchema) throws Exception{
 		ValidateArgument.required(viewType, "viewType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -317,9 +319,30 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			throw new IllegalArgumentException("The BENEFACTOR column is missing from the schema");
 		}
 		// copy the data from the entity replication tables to table's index
-		tableIndexDao.copyEntityReplicationToTable(tableId, viewType, allContainersInScope, currentSchema);
+		try {
+			tableIndexDao.copyEntityReplicationToTable(tableId, viewType, allContainersInScope, currentSchema);
+		} catch (Exception e) {
+			// if the copy failed. Attempt to determine the cause.
+			determineCauseOfReplicationFailure(e, currentSchema, allContainersInScope);
+		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
+	}
+	
+	/**
+	 * Attempt to determine the cause of a replication failure.
+	 * 
+	 * @param exception The exception thrown during replication.
+	 * @param currentSchema
+	 * @throws Exception 
+	 */
+	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope) throws Exception{
+		// Calculate the schema from the annotations
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, Long.MAX_VALUE, 0L);
+		// check the 
+		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
+		// Have not determined the cause so throw the original exception
+		throw exception;
 	}
 	
 	@Override

@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
@@ -371,6 +373,5 @@ public class SqlElementUntilsTest {
 		DerivedColumn dr = SqlElementUntils.createNonQuotedDerivedColumn("ROW_ID");
 		assertEquals("ROW_ID", dr.toSql());
 	}
-	
 	
 }
