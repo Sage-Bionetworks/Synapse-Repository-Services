@@ -76,7 +76,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, String errorDetails)
+			String resetToken, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**

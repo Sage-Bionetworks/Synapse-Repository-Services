@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -142,8 +144,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@RequiresNewReadCommitted
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, String errorDetails)
+			String resetToken, Exception error)
 			throws ConflictingUpdateException, NotFoundException {
+		String errorMessage = error.getMessage();
+		StringWriter writer = new StringWriter();
+		error.printStackTrace(new PrintWriter(writer));
+		String errorDetails = writer.toString();
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
 	}
 
