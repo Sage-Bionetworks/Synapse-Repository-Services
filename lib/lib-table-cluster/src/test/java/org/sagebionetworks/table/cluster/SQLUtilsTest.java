@@ -1,9 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -12,6 +9,7 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.internal.runners.statements.Fail;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -1398,5 +1396,163 @@ public class SQLUtilsTest {
 		assertFalse(change == updated);
 		assertEquals(null, updated.getOldColumn());
 		assertEquals(newColumn, updated.getNewColumn());
+	}
+	
+	/**
+	 * This is a test case for PLFM-4235 where a view's string columns were
+	 * set to be too small for the annotation values.
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionTooSmall() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		try {
+			// call under test
+			SQLUtils.determineCauseOfException(oringal, columnModel,
+					annotationModel);
+			fail("Should have failed.");
+		} catch (IllegalArgumentException expected) {
+			assertEquals(
+					"The size of the column 'foo' is too small.  The column size needs to be at least 11 characters.",
+					expected.getMessage());
+			// the cause should be kept
+			assertEquals(oringal, expected.getCause());
+		}
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionSameSize() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(10L);
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionNameDoesNotMatch() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("bar");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionTypeDoesNotMatch() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.INTEGER);
+		annotationModel.setMaximumSize(11L);
+		// call under test
+		SQLUtils.determineCauseOfException(oringal, columnModel, annotationModel);
+	}
+	
+	
+	/**
+	 * This is a test for PLFM-4260 where a boolean column was mapped to a string annotation.
+	 */
+	@Test
+	public void testDetermineCauseOfExceptionWrongType() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.BOOLEAN);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		try {
+			// call under test
+			SQLUtils.determineCauseOfException(oringal, columnModel,
+					annotationModel);
+			fail("Should have failed.");
+		} catch (IllegalArgumentException expected) {
+			assertEquals(
+					"Cannot insert an annotation value of type STRING into column 'foo' which is of type BOOLEAN.",
+					expected.getMessage());
+			// the cause should be kept
+			assertEquals(oringal, expected.getCause());
+		}
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionLists() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+
+		ColumnModel annotationModel = new ColumnModel();
+		annotationModel.setName("foo");
+		annotationModel.setColumnType(ColumnType.STRING);
+		annotationModel.setMaximumSize(11L);
+		try {
+			// call under test
+			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
+					Lists.newArrayList(annotationModel));
+			fail("Should have failed.");
+		} catch (IllegalArgumentException expected) {
+			// the cause should be kept
+			assertEquals(oringal, expected.getCause());
+		}
+	}
+	
+	@Test
+	public void testDetermineCauseOfExceptionListsMultipleValues() {
+		Exception oringal = new Exception("Some exception");
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setName("foo");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumSize(10L);
+		// type does not match.
+		ColumnModel a1 = new ColumnModel();
+		a1.setName("foo");
+		a1.setColumnType(ColumnType.INTEGER);
+
+		ColumnModel a2 = new ColumnModel();
+		a2.setName("foo");
+		a2.setColumnType(ColumnType.STRING);
+		a2.setMaximumSize(11L);
+		
+		try {
+			// call under test
+			SQLUtils.determineCauseOfException(oringal, Lists.newArrayList(columnModel),
+					Lists.newArrayList(a1, a2));
+			fail("Should have failed.");
+		} catch (IllegalArgumentException expected) {
+			// the cause should be kept
+			assertEquals(oringal, expected.getCause());
+		}
 	}
 }

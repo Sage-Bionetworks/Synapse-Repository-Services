@@ -331,7 +331,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(tableId);
 		// The status should get set to failed
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
+		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), any(Exception.class));
 	}
 	
 	/**
@@ -484,7 +484,7 @@ public class TableWorkerTest {
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
 		
 		// The status should get set to failed
-		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), anyString(), anyString());
+		verify(mockTableManagerSupport, times(1)).attemptToSetTableStatusToFailed(anyString(), anyString(), any(Exception.class));
 	}
 	
 	@Test

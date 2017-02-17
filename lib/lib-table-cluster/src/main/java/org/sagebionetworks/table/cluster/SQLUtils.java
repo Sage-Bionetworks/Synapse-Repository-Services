@@ -1384,4 +1384,75 @@ public class SQLUtils {
 		return results;
 	}
 
+	/**
+	 * Determine if an incompatibility between view's schema and the possible
+	 * annotations is the cause of the passed exception. If the cause is
+	 * determined an appropriate IllegalArgumentException will be thrown.
+	 * 
+	 * @param viewSchema
+	 *            The schema of the view.
+	 * @param possibleAnnotations
+	 *            The possible column models for the annotations within the
+	 *            view's scope.
+	 */
+	public static void determineCauseOfException(Exception exception,
+			List<ColumnModel> viewSchema, List<ColumnModel> possibleAnnotations) {
+		// Find matches
+		for (ColumnModel annotation : possibleAnnotations) {
+			for (ColumnModel schemaModel : viewSchema) {
+				determineCauseOfException(exception, schemaModel, annotation);
+			}
+		}
+	}
+
+	/**
+	 * Determine if an incompatibility between the passed two columns is the
+	 * cause of the passed exception.
+	 * 
+	 * @param exception
+	 * @param annotationMetadata
+	 * @param columnMetadata
+	 */
+	public static void determineCauseOfException(Exception exception,
+			ColumnModel columnModel, ColumnModel annotationModel) {
+		EntityField entityField = EntityField.findMatch(columnModel);
+		if(entityField != null){
+			// entity field are not matched to annotations.
+			return;
+		}
+		// lookup the annotation type that matches the column type.
+		AnnotationType columnModelAnnotationType = translateColumnType(columnModel.getColumnType());
+		AnnotationType annotationType = translateColumnType(annotationModel.getColumnType());
+		// do the names match?
+		if (columnModel.getName().equals(annotationModel.getName())) {
+			// Do they map to the same annotation type?
+			if (columnModelAnnotationType.equals(annotationType)) {
+				// Have match.
+				if (ColumnType.STRING.equals(columnModel.getColumnType())) {
+					if (columnModel.getMaximumSize() < annotationModel
+							.getMaximumSize()) {
+						throw new IllegalArgumentException(
+								"The size of the column '"
+										+ columnModel.getName()
+										+ "' is too small.  The column size needs to be at least "
+										+ annotationModel.getMaximumSize()
+										+ " characters.", exception);
+					}
+				}
+				// do the column types match?
+				if (!columnModel.getColumnType().equals(
+						annotationModel.getColumnType())) {
+					throw new IllegalArgumentException(
+							"Cannot insert an annotation value of type "
+									+ annotationType
+									+ " into column '"
+									+ columnModel.getName()
+									+ "' which is of type "
+									+ columnModel.getColumnType() + ".",
+							exception);
+				}
+			}
+		}
+	}
+
 }

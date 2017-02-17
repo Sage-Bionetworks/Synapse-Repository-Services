@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
@@ -428,6 +429,45 @@ public class TableViewIntegrationTest {
 		assertEquals(file.getParentId(), row.getValues().get(1));
 		assertTrue(row.getValues().get(2).startsWith("syn"));
 		assertTrue(row.getValues().get(3).startsWith("syn"));
+	}
+	
+	/**
+	 * Test for PLFM-4235. For PLFM-4235, an annotation with a value that is
+	 * larger than the size of the Corresponding string column on the view. The
+	 * view should be set to failed with a human readable error message.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_4235() throws Exception {
+		String fileId = fileIds.get(0);
+		// Add a string column to the view
+		ColumnModel stringColumn = new ColumnModel();
+		stringColumn.setName("aString");
+		stringColumn.setColumnType(ColumnType.STRING);
+		stringColumn.setMaximumSize(1L);
+		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
+				stringColumn);
+		defaultColumnIds.add(stringColumn.getId());
+		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
+				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+
+		// Add an annotation with the same name and a value larger than the size
+		// of the column.
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), "too big");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		waitForEntityReplication(fileViewId, fileId);
+
+		try {
+			String sql = "select * from " + fileViewId;
+			waitForConsistentQuery(adminUserInfo, sql);
+			fail("should have failed");
+		} catch (TableFailedException expected) {
+			assertEquals(
+					"The size of the column 'aString' is too small.  The column size needs to be at least 7 characters.",
+					expected.getStatus().getErrorMessage());
+		}
 	}
 	
 	/**
