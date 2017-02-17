@@ -12,7 +12,6 @@
 	<name>Platform Tools</name>
 
     <modules>
-      <module>tool-migration-utility</module>
   </modules>
 
 </project>
