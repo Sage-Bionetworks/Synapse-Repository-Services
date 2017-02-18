@@ -35,11 +35,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.tool.migration.v5.AsyncMigrationWorker;
-import org.sagebionetworks.tool.progress.BasicProgress;
-import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.DefaultClock;
-
 
 public class IT102MigrationTest {
 
@@ -167,27 +162,4 @@ public class IT102MigrationTest {
 		assertNotNull(checksum1);
 	}
 	
-	@Test
-	public void testChecksumForIdRangeAsync() throws Exception {
-		Long minId = Long.parseLong(project.getId().substring(3));
-		Long maxId = Long.parseLong(project.getId().substring(3));
-		String salt = "SALT";
-		AsyncMigrationRangeChecksumRequest req = new AsyncMigrationRangeChecksumRequest();
-		req.setMinId(minId);
-		req.setMaxId(maxId);
-		req.setSalt(salt);
-		req.setType(MigrationType.NODE.name());
-		AsyncMigrationRequest migReq = new AsyncMigrationRequest();
-		migReq.setAdminRequest(req);
-		
-		// Checksum before
-		AsynchronousJobStatus jobStatus = adminSynapse.startAdminAsynchronousJob(migReq);
-		Clock clock = new DefaultClock();
-		
-		BasicProgress progress = new BasicProgress();
-		AsyncMigrationWorker worker = new AsyncMigrationWorker(adminSynapse, req, ASYNC_MIGRATION_MAX_WAIT_MS, progress);
-		MigrationRangeChecksum checksum1 = (MigrationRangeChecksum) worker.call();
-		assertNotNull(checksum1);
-	}
-
 }
