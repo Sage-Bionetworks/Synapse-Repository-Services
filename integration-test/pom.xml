@@ -247,10 +247,6 @@
 			<artifactId>lib-communicationUtilities</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>tool-migration-utility</artifactId>
-		</dependency>
 		<!-- Jackson JSON Mapper -->
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
