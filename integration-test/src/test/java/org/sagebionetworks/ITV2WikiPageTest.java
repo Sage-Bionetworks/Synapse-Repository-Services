@@ -208,7 +208,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(oldMarkdown);
 		
 		// Get the tree
-		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
+		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType(), 50L, 0L);
 		assertNotNull(tree);
 		assertNotNull(tree.getResults());
 		assertEquals(1, tree.getResults().size());
@@ -326,7 +326,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(oldMarkdown);
 		
 		// Get the tree
-		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
+		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType(), 50L, 0L);
 		assertNotNull(tree);
 		assertNotNull(tree.getResults());
 		assertEquals(1, tree.getResults().size());
