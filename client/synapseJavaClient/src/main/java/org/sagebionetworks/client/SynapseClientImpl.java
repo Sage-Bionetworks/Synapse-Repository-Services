@@ -2348,11 +2348,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
-			ObjectType ownerType) throws SynapseException {
+			ObjectType ownerType, Long limit, Long offset) throws SynapseException {
 		ValidateArgument.required(ownerId, "ownerId");
 		ValidateArgument.required(ownerType, "ownerType");
 		String uri = String.format(WIKI_TREE_URI_TEMPLATE_V2, ownerType.name()
-				.toLowerCase(), ownerId);
+				.toLowerCase(), ownerId) + "?offset" + "=" + offset + "&limit="
+				+ limit;
 		return getPaginatedResults(getRepoEndpoint(), uri, V2WikiHeader.class);
 	}
 
