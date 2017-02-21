@@ -48,11 +48,7 @@ public class ChangeMessageUtils {
 		dbo.setObjectType(dto.getObjectType().name());
 		dbo.setChangeType(dto.getChangeType().name());
 		dbo.setObjectEtag(dto.getObjectEtag());
-		String dtoParentId = dto.getParentId();
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
-		if (dtoParentId != null) {
-			dbo.setParentId(KeyFactory.stringToKey(dtoParentId));
-		}
 		if (dto.getUserId() != null) {
 			dbo.setUserId(dto.getUserId());
 		}
@@ -88,14 +84,9 @@ public class ChangeMessageUtils {
 		if(ObjectType.ENTITY == dto.getObjectType()){
 			// Entities get an 'syn' prefix
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
-			dto.setParentId(KeyFactory.keyToString(dbo.getParentId()));
 		}else{
 			// All other types are longs.
 			dto.setObjectId(dbo.getObjectId().toString());
-			Long parentId = dbo.getParentId();
-			if (parentId != null) {
-				dto.setParentId(parentId.toString());
-			}
 		}
 		dto.setChangeType(ChangeType.valueOf(dbo.getChangeType()));
 		if (dbo.getUserId() != null) {
