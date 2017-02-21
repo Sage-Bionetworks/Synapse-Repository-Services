@@ -1978,7 +1978,7 @@ public class TableWorkerIntegrationTest {
 		// Trigger a full rebuild of the table
 		TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
 		dao.deleteTable(tableId);
-		dao.deleteSecondayTables(tableId);
+		dao.deleteSecondaryTables(tableId);
 		// The rebuild should not fails
 		status = waitForTableProcessing(tableId);
 		if(status.getErrorDetails() != null){

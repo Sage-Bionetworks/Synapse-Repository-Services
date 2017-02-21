@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -481,5 +482,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
 		return columnModelDao.getColumnModel(ids, keepOrder);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void rebuildTable(UserInfo userInfo, String tableId) {
+		if (!userInfo.isAdmin())
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		// purge
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		if (indexDao != null) {
+			indexDao.deleteTable(tableId);
+			indexDao.deleteSecondaryTables(tableId);
+		}
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(getTableType(tableId));
+		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
+		message.setObjectEtag(resetToken);
+		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 }

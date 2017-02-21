@@ -83,7 +83,7 @@ public class TableIndexDAOImplTest {
 		// First get a connection for this table
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
-		tableIndexDAO.deleteSecondayTables(tableId);
+		tableIndexDAO.deleteSecondaryTables(tableId);
 	}
 
 	@After
@@ -91,7 +91,7 @@ public class TableIndexDAOImplTest {
 		// Drop the table
 		if (tableId != null && tableIndexDAO != null) {
 			tableIndexDAO.deleteTable(tableId);
-			tableIndexDAO.deleteSecondayTables(tableId);
+			tableIndexDAO.deleteSecondaryTables(tableId);
 		}
 	}
 	
@@ -300,7 +300,7 @@ public class TableIndexDAOImplTest {
 				.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(4L, maxVersion.longValue());
 
-		tableIndexDAO.deleteSecondayTables(tableId);
+		tableIndexDAO.deleteSecondaryTables(tableId);
 	}
 	
 	@Test
@@ -926,9 +926,9 @@ public class TableIndexDAOImplTest {
 		// must be able to call this again.
 		this.tableIndexDAO.createSecondaryTables(tableId);
 		// The delete must also be idempotent
-		this.tableIndexDAO.deleteSecondayTables(tableId);
+		this.tableIndexDAO.deleteSecondaryTables(tableId);
 		// must be able to call this again
-		this.tableIndexDAO.deleteSecondayTables(tableId);
+		this.tableIndexDAO.deleteSecondaryTables(tableId);
 	}
 
 	/**
@@ -973,7 +973,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testBindFileHandlesTableDoesNotExist() {
 		// test with no secondary table.
-		this.tableIndexDAO.deleteSecondayTables(tableId);
+		this.tableIndexDAO.deleteSecondaryTables(tableId);
 		Set<Long> toTest = Sets.newHashSet(0L, 2L, 3L, 5L, 8L);
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertNotNull(results);

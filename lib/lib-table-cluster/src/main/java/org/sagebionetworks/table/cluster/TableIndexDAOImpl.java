@@ -222,7 +222,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteSecondayTables(String tableId) {
+	public void deleteSecondaryTables(String tableId) {
 		for(TableType type: SQLUtils.SECONDARY_TYPES){
 			String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, type);
 			try {

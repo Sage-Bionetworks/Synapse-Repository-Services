@@ -130,7 +130,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void deleteTableIndex(final String tableId) {
 		// delete all tables for this index.
 		tableIndexDao.deleteTable(tableId);
-		tableIndexDao.deleteSecondayTables(tableId);
+		tableIndexDao.deleteSecondaryTables(tableId);
 	}
 	
 	@Override
