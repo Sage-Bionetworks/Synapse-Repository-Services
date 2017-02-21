@@ -236,10 +236,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 				if (!rs.wasNull()) {
 					dbo.setUserId(userId);
 				}
-				Long parentId = rs.getLong(COL_CHANGES_PARENT_ID);
-				if (!rs.wasNull()) {
-					dbo.setParentId(parentId);
-				}
 				dbo.setObjectEtag(rs.getString(COL_CHANGES_OBJECT_ETAG));
 				dbo.setChangeType(rs.getString(COL_CHANGES_CHANGE_TYPE));
 				return dbo;
@@ -278,11 +274,13 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 			@Override
 			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
+				backup.setParentId(null);
 				return backup;
 			}
 
 			@Override
 			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
+				dbo.setParentId(null);
 				return dbo;
 			}};
 	}
