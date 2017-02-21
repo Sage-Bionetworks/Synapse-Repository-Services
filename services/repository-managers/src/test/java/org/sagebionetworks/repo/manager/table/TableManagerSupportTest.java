@@ -675,7 +675,7 @@ public class TableManagerSupportTest {
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();
-		assertEquals(message.getObjectId(), tableId);
+		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.TABLE, message.getObjectType());
 		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
@@ -693,7 +693,7 @@ public class TableManagerSupportTest {
 		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
 		ChangeMessage message = captor.getValue();
-		assertEquals(message.getObjectId(), tableId);
+		assertEquals(message.getObjectId(), tableIdLong+"");
 		assertEquals(ObjectType.ENTITY_VIEW, message.getObjectType());
 		assertEquals(etag, message.getObjectEtag());
 		assertEquals(ChangeType.UPDATE, message.getChangeType());
