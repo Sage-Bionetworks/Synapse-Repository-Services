@@ -293,14 +293,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 		
 		// Create AccessApproval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
@@ -308,11 +308,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 	}

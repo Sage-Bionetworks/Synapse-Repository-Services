@@ -210,7 +210,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -267,7 +266,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	private static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
-	private static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
 	private static final String WIKI_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2";
 	private static final String WIKI_ID_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s";
 	private static final String WIKI_ID_VERSION_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s/%4$s";
@@ -1142,8 +1140,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
-			throws SynapseException {
+			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType,
+			Long limit, Long offset) throws SynapseException {
 		String uri = null;
 		switch (subjectId.getType()) {
 			case ENTITY:
@@ -1158,8 +1156,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			default: 
 				throw new SynapseClientException("Unsupported type " + subjectId.getType());
 		}
+		uri += "?limit="+limit+"&offset="+offset;
 		if (accessType != null) {
-			uri += "?" + ACCESS_TYPE_PARAMETER + "=" + accessType;
+			uri += "&" + ACCESS_TYPE_PARAMETER + "=" + accessType;
 		}
 		return getPaginatedResults(getRepoEndpoint(), uri, AccessRequirement.class);
 	}
@@ -1173,7 +1172,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			RestrictableObjectDescriptor subjectId) throws SynapseException {
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException {
 		String uri = null;
 		switch (subjectId.getType()){
 			case ENTITY:
@@ -1188,6 +1187,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			default:
 				throw new SynapseClientException("Unsupported type "+ subjectId.getType());
 		}
+		uri += "?limit="+limit+"&offset="+offset;
 		return getPaginatedResults(getRepoEndpoint(), uri, AccessRequirement.class);
 	}
 
@@ -1204,15 +1204,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = ACCESS_APPROVAL + "/" + approvalId;
 		return getJSONEntity(getRepoEndpoint(), uri, AccessApproval.class);
-	}
-
-	// TODO: remove this method after SWC is updated to used deleteAccessApprovals()
-	@Deprecated
-	@Override
-	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId)
-			throws SynapseException {
-		String uri = ENTITY + "/" + entityId + "/" + ACCESS_APPROVAL;
-		return getPaginatedResults(getRepoEndpoint(), uri, AccessApproval.class);
 	}
 
 	@Override
@@ -1409,6 +1400,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), url, EntityPath.class);
 	}
 
+	@Deprecated
+	/* wrong use of PaginatedResults since expected returned data is not a page */
 	@Override
 	public PaginatedResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
 			throws SynapseException {
@@ -1421,6 +1414,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getPaginatedResults(getRepoEndpoint(), url, EntityHeader.class);
 	}
 
+	@Deprecated
+	/* wrong use of PaginatedResults since expected returned data is not a page */
 	@Override
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(
 			List<Reference> references) throws SynapseException {
@@ -1932,24 +1927,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return String.format(WIKI_ID_URI_TEMPLATE, key.getOwnerObjectType()
 				.name().toLowerCase(), key.getOwnerObjectId(),
 				key.getWikiPageId());
-	}
-
-	/**
-	 * Get the WikiHeader tree for a given owner object.
-	 * 
-	 * @param ownerId
-	 * @param ownerType
-	 * @return
-	 * @throws SynapseException
-	 */
-	@Override
-	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
-			ObjectType ownerType) throws SynapseException {
-		ValidateArgument.required(ownerId, "ownerId");
-		ValidateArgument.required(ownerType, "ownerType");
-		String uri = String.format(WIKI_TREE_URI_TEMPLATE, ownerType.name()
-				.toLowerCase(), ownerId);
-		return getPaginatedResults(getRepoEndpoint(), uri, WikiHeader.class);
 	}
 
 	/**
@@ -3464,6 +3441,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Gets the header information of entities whose file's MD5 matches the
 	 * given MD5 checksum.
 	 */
+	@Deprecated
+	/* wrong use of PaginatedResults since the expected returned data is not a page */
 	@Override
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException {
 		ValidateArgument.required(md5, "md5");

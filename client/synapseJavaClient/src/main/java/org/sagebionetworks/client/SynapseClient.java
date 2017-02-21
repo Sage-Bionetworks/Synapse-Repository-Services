@@ -340,7 +340,7 @@ public interface SynapseClient extends BaseClient {
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			RestrictableObjectDescriptor subjectId) throws SynapseException;
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException;
 
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws SynapseException;
@@ -479,14 +479,12 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException;
+			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType, Long limit, Long offset) throws SynapseException;
 
 	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
-
-	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId) throws SynapseException;
 
 	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
@@ -584,9 +582,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
-
-	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
-			ObjectType ownerType) throws SynapseException;
 
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId)
 			throws SynapseException;
