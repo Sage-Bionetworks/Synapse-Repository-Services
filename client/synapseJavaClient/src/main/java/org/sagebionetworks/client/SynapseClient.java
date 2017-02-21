@@ -649,7 +649,7 @@ public interface SynapseClient extends BaseClient {
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
-		ObjectType ownerType) throws SynapseException;
+		ObjectType ownerType, Long limit, Long offset) throws SynapseException;
 	
 	V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException;
 	
