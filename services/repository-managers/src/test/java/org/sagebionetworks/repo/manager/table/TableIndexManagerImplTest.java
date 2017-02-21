@@ -277,7 +277,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testDeleteTableIndex(){
 		manager.deleteTableIndex(tableId);
-		verify(mockIndexDao).deleteSecondayTables(tableId);
+		verify(mockIndexDao).deleteSecondaryTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
 	

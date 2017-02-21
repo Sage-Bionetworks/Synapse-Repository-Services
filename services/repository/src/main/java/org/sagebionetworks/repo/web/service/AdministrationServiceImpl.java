@@ -12,14 +12,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
-import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -33,26 +32,19 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -87,19 +79,10 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	SemaphoreManager semaphoreManager;
 
 	@Autowired
-	private ConnectionFactory tableConnectionFactory;
-
-	@Autowired
-	private RepositoryMessagePublisher repositoryMessagePublisher;
-
-	@Autowired
-	private EntityManager entityManager;
+	TableManagerSupport tableManagerSupport;
 
 	@Autowired
 	private DBOChangeDAO changeDAO;
-
-	@Autowired
-	private TableStatusDAO tableStatusDAO;
 
 	@Autowired
 	TransactionSynchronizationProxy transactionSynchronizationManager;
@@ -238,26 +221,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Override
 	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin())
-			throw new UnauthorizedException("Only an administrator may access this service.");
-		// purge
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		if (indexDao != null) {
-			indexDao.deleteTable(tableId);
-			indexDao.deleteSecondayTables(tableId);
-		}
-		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
-		TableEntity tableEntity = entityManager.getEntity(userInfo, tableId, TableEntity.class);
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectType(ObjectType.TABLE);
-		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
-		message.setObjectEtag(resetToken);
-		message.setParentId(KeyFactory.stringToKey(tableEntity.getParentId()).toString());
-		message = changeDAO.replaceChange(message);
-
-		// and send out update message
-		repositoryMessagePublisher.fireChangeMessage(message);
+		tableManagerSupport.rebuildTable(userInfo, tableId);
 	}
 
 	@Override
