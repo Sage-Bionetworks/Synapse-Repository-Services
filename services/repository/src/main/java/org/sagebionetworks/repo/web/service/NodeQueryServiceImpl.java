@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
-import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -63,7 +62,7 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
 
 		// Parse and validate the query
-		QueryStatement stmt = new QueryStatement(query, true/*offset=1 means 'no offset'*/);
+		QueryStatement stmt = new QueryStatement(query);
 		// Convert from a query statement to a basic query
 		BasicQuery basic = QueryTranslator.createBasicQueryDecrementingOffset(stmt);
 		QueryResults results = executeQueryWithAnnotations(userId, basic, request);

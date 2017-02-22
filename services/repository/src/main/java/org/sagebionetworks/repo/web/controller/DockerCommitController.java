@@ -78,7 +78,7 @@ public class DockerCommitController {
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) String sortByParam,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = "false") Boolean ascending,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset
 			) {
 		DockerCommitSortBy sortBy = sortByParam==null ? 
 				DockerCommitSortBy.CREATED_ON : DockerCommitSortBy.valueOf(sortByParam);

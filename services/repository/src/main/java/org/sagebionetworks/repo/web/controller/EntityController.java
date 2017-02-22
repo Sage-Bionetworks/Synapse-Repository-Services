@@ -1025,14 +1025,9 @@ public class EntityController extends BaseController {
 	PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-
-		if (limit == null) {
-			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
-		}
-
 		// Determine the object type from the url.
 		PaginatedResults<VersionInfo> results = serviceProvider
 				.getEntityService().getAllVersionsOfEntity(userId, offset,

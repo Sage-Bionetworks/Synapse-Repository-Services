@@ -73,6 +73,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @SuppressWarnings({"rawtypes","unchecked"})
 public class EntityServiceImpl implements EntityService {
+	public static final Integer DEFAULT_LIMIT = 10;
+	public static final Integer DEFAULT_OFFSET = 0;
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
@@ -94,7 +96,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public <T extends Entity> PaginatedResults<T> getEntities(Long userId, PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(paging.getOffset(), paging.getLimit());
+		ServiceConstants.validatePaginationParams(paging.getOffset(), paging.getLimit());
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
 		// First build the query that will be used
@@ -109,12 +111,12 @@ public class EntityServiceImpl implements EntityService {
 			Long userId, Integer offset, Integer limit, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
-			offset = 1;
+			offset = DEFAULT_OFFSET;
 		}
 		if(limit == null){
-			limit = 10;
+			limit = DEFAULT_LIMIT;
 		}
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
@@ -529,7 +531,7 @@ public class EntityServiceImpl implements EntityService {
 			return updateEntityACL(userId, acl, recursive, request);
 		} else {
 			// Local ACL does not exist; create it
-			return createEntityACL(userId, acl, request);			
+			return createEntityACL(userId, acl, request);
 		}
 	}
 	
@@ -584,9 +586,13 @@ public class EntityServiceImpl implements EntityService {
 	public PaginatedResults<EntityHeader> getEntityReferences(Long userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (offset==null) offset = 1;
-		if (limit==null) limit = Integer.MAX_VALUE;
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
+		if(offset == null){
+			offset = DEFAULT_OFFSET;
+		}
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
 		return new PaginatedResults(results.getResults(), results.getTotalNumberOfResults());
 	}
@@ -669,7 +675,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(activityId == null) throw new IllegalArgumentException("Activity Id can not be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.setActivityForEntity(userInfo, entityId, activityId);		
+		return entityManager.setActivityForEntity(userInfo, entityId, activityId);
 	}
 
 
@@ -681,7 +687,7 @@ public class EntityServiceImpl implements EntityService {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		entityManager.deleteActivityForEntity(userInfo, entityId);				
+		entityManager.deleteActivityForEntity(userInfo, entityId);
 	}
 
 	@Override
