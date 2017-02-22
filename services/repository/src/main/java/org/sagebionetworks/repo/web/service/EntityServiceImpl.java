@@ -119,7 +119,7 @@ public class EntityServiceImpl implements EntityService {
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
-		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
+		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
 		return new PaginatedResults<VersionInfo>(versions.getResults(), versions.getTotalNumberOfResults());
 	}
 
@@ -593,7 +593,7 @@ public class EntityServiceImpl implements EntityService {
 			limit = DEFAULT_LIMIT;
 		}
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
-		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
+		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
 		return new PaginatedResults(results.getResults(), results.getTotalNumberOfResults());
 	}
 
