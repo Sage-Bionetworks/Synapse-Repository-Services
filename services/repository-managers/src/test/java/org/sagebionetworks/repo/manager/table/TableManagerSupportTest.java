@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -655,5 +657,45 @@ public class TableManagerSupportTest {
 		Integer result = manager.callWithAutoProgress(mockCallback, callable);
 		assertEquals(callableReturn, result);
 		verify(mockCallback, times(1)).progressMade(null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testRebuildTableUnauthorized() throws Exception {
+		manager.rebuildTable(userInfo, tableId);
+	}
+
+	@Test
+	public void testRebuildTableAuthorizedForTableEntity() throws Exception {
+		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
+		when(mockAdmin.isAdmin()).thenReturn(true);
+		manager.rebuildTable(mockAdmin, tableId);
+		verify(mockTableIndexDAO).deleteTable(tableId);
+		verify(mockTableIndexDAO).deleteSecondaryTables(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
+		ChangeMessage message = captor.getValue();
+		assertEquals(message.getObjectId(), tableIdLong+"");
+		assertEquals(ObjectType.TABLE, message.getObjectType());
+		assertEquals(etag, message.getObjectEtag());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
+	}
+
+	@Test
+	public void testRebuildTableAuthorizedForFileView() throws Exception {
+		UserInfo mockAdmin = Mockito.mock(UserInfo.class);
+		when(mockAdmin.isAdmin()).thenReturn(true);
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.entityview);
+		manager.rebuildTable(mockAdmin, tableId);
+		verify(mockTableIndexDAO).deleteTable(tableId);
+		verify(mockTableIndexDAO).deleteSecondaryTables(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		ArgumentCaptor<ChangeMessage> captor = ArgumentCaptor.forClass(ChangeMessage.class);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(captor.capture());
+		ChangeMessage message = captor.getValue();
+		assertEquals(message.getObjectId(), tableIdLong+"");
+		assertEquals(ObjectType.ENTITY_VIEW, message.getObjectType());
+		assertEquals(etag, message.getObjectEtag());
+		assertEquals(ChangeType.UPDATE, message.getChangeType());
 	}
 }

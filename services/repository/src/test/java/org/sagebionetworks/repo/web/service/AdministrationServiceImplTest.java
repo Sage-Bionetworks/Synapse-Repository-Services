@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
@@ -52,8 +51,6 @@ public class AdministrationServiceImplTest {
 	MessageSyndication mockMessageSyndication;
 	@Mock
 	DBOChangeDAO mockChangeDAO;
-	@Mock
-	EntityManager mockEntityManager;
 	
 	AdministrationServiceImpl adminService;
 	
@@ -72,7 +69,6 @@ public class AdministrationServiceImplTest {
 		ReflectionTestUtils.setField(adminService, "stackStatusManager", mockStackStatusManager);
 		ReflectionTestUtils.setField(adminService, "messageSyndication", mockMessageSyndication);
 		ReflectionTestUtils.setField(adminService, "changeDAO", mockChangeDAO);
-		ReflectionTestUtils.setField(adminService, "entityManager", mockEntityManager);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);

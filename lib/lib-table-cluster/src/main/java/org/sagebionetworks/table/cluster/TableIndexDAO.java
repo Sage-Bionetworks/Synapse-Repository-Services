@@ -128,7 +128,7 @@ public interface TableIndexDAO {
 	 * 
 	 * @param tableId
 	 */
-	public void deleteSecondayTables(String tableId);
+	public void deleteSecondaryTables(String tableId);
 	
 	/**
 	 * Create all of the secondary tables used for an index if they do not exist.

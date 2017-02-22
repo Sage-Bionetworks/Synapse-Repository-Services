@@ -29,7 +29,6 @@
 		<module>lib</module>
 		<module>services</module>
 		<module>client</module>
-		<module>tools</module>
 		<module>integration-test</module>
 	</modules>
 
