@@ -591,12 +591,8 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Test
 	public void testAllMigrationTypesRegistered() {
-		// Workaround for PLFM-3988: skip STORAGE_QUOTA
-		// Remove when fixing PFLM-3989
 		for (MigrationType t: MigrationType.values()) {
-			if (MigrationType.STORAGE_QUOTA != t) {
-				assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
-			}
+		    assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
 		}
 	}
 }
