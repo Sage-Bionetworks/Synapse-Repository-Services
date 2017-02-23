@@ -89,7 +89,7 @@ public class MembershipInvitationController extends BaseController {
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.TEAM_ID_REQUEST_PARAMETER, required = false) String teamId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().getOpenInvitations(null, id, teamId, limit, offset);
 	}
@@ -113,7 +113,7 @@ public class MembershipInvitationController extends BaseController {
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.INVITEE_ID_REQUEST_PARAMETER, required = false) String inviteeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().getOpenInvitationSubmissions(userId, inviteeId, id, limit, offset);
 	}

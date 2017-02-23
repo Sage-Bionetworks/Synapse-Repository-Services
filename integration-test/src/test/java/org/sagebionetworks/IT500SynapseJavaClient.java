@@ -43,7 +43,6 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -404,7 +403,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(file.getId());
-		PaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		PaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -414,7 +413,7 @@ public class IT500SynapseJavaClient {
 		
 		synapseTwo.createAccessApproval(aa);
 		
-		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
@@ -769,7 +768,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(layer.getId());
-		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -778,7 +777,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
 		// check that access type param works
-		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD));
+		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L));
 		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
@@ -790,7 +789,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
 		
 		// get unmet requirements -- should be empty
-		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
@@ -1271,11 +1270,11 @@ public class IT500SynapseJavaClient {
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
@@ -1284,15 +1283,15 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 	}
 
 	@Test
@@ -1314,7 +1313,6 @@ public class IT500SynapseJavaClient {
 		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
-		String inviteeEmail = inviteeEmails.get(0);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);

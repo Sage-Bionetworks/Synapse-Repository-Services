@@ -114,7 +114,7 @@ public class TeamController extends BaseController {
 	PaginatedResults<Team> getTeamsByNameFragment(
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().get(fragment, limit, offset);
 	}
@@ -133,7 +133,7 @@ public class TeamController extends BaseController {
 	PaginatedResults<Team> getTeamsByMember(
 			@PathVariable String id,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
 	}
@@ -350,7 +350,7 @@ public class TeamController extends BaseController {
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getMembers(id, fragment, limit, offset);
 	}

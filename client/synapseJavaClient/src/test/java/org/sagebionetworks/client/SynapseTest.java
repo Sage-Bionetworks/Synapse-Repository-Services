@@ -4,7 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -28,7 +33,6 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -36,7 +40,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -339,7 +342,7 @@ public class SynapseTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId("12345");
 		PaginatedResults<AccessRequirement> clone = 
-			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertNotNull(clone);
 		assertEquals(result, clone);
 	}	

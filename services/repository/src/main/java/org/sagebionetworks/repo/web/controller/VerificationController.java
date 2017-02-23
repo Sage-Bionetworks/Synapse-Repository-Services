@@ -130,7 +130,7 @@ public class VerificationController extends BaseController {
 			@RequestParam(required = false) Long verifiedUserId,
 			@RequestParam(required = false) VerificationStateEnum currentVerificationState,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException, NotFoundException {
 		List<VerificationStateEnum> currentVerificationStateList = null;
 		if (currentVerificationState!=null) {

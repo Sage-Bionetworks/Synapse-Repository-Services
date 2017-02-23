@@ -85,7 +85,7 @@ public class MembershipRequestController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.REQUESTOR_ID_REQUEST_PARAMETER, required = false) String requestorId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getMembershipRequestService().getOpenRequests(userId, requestorId, id, limit, offset);
 	}
@@ -112,7 +112,7 @@ public class MembershipRequestController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) String teamId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getMembershipRequestService().getOpenRequestSubmissions(userId, id, teamId, limit, offset);
 	}
