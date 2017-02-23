@@ -110,7 +110,7 @@ public class UserProfileServiceTest {
 		UserProfile p = new UserProfile();
 		p.setOwnerId("-100");
 		list.add(p);
-		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
+		List<UserProfile> profiles = list;
 		
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());

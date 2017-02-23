@@ -28,7 +28,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -71,8 +70,8 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
-import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1097,18 +1096,18 @@ public class NodeDAOImplTest {
 		int numberVersions = 10;
 		String id = createNodeWithMultipleVersions(numberVersions);
 		// Now list the versions
-		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
+		List<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
 		assertNotNull(versionsOfEntity);
-		assertEquals(numberVersions,versionsOfEntity.getResults().size());
-		VersionInfo firstResult = versionsOfEntity.getResults().get(0);
+		assertEquals(numberVersions,versionsOfEntity.size());
+		VersionInfo firstResult = versionsOfEntity.get(0);
 		assertEquals(new Long(numberVersions), firstResult.getVersionNumber());
 		//verify content size
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
 		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
 
-		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
-		for (VersionInfo vi : versionsOfEntity.getResults()) {
+		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
+		for (VersionInfo vi : versionsOfEntity) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
 			assertNotNull(node.getETag());
 			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
@@ -2510,7 +2509,7 @@ public class NodeDAOImplTest {
 		addReadAcl(owned, user1);
 
 		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(1, projectHeaders.size());
 		ProjectHeader header = projectHeaders.get(0);
 		assertEquals(ownedProject.getName(), header.getName());
@@ -2536,7 +2535,7 @@ public class NodeDAOImplTest {
 		projectStatsDAO.update(projectStat);
 
 		List<ProjectHeader> projectHeadersAfter = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(1, projectHeadersAfter.size());
 		ProjectHeader headerAfter = projectHeadersAfter.get(0);
 		assertEquals(ownedProject.getName(), headerAfter.getName());
@@ -2569,30 +2568,30 @@ public class NodeDAOImplTest {
 		createProjects();
 
 		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
 
 		// sort opposite direction
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.ASC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.ASC, 100L, 0L);
 		projectIds = Lists.transform(projectHeaders, transformToId);
 		assertEquals(Lists.newArrayList(owned, participate, groupParticipate, subFolderProject2, publicProject), projectIds);
 
 		// sort by name
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.PROJECT_NAME, SortDirection.DESC, 100L, 0L);
 		projectIds = Lists.transform(projectHeaders, transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
 
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		projectIds = Lists.transform(projectHeaders, transformToId);
 
 		List<String> projectIds2 = Lists.newArrayList();
-		for (int i = 0; i < 5; i++) {
+		for (long i = 0; i < 5; i++) {
 			projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-					ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 1, i);
+					ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 1L, i);
 			assertEquals(1L, projectHeaders.size());
 			projectIds2.add(projectHeaders.get(0).getId());
 		}
@@ -2610,39 +2609,39 @@ public class NodeDAOImplTest {
 		projectStatsDAO.update(projectStat);
 
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject2, groupParticipate),
 				Lists.transform(projectHeaders, transformToId));
 
 		// created by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(owned, publicProject), Lists.transform(projectHeaders, transformToId));
 
 		// direct participation by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(participate, subFolderProject2, groupParticipate),
 				Lists.transform(projectHeaders, transformToId));
 
 		// participate via team by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
 
 		// user3 only has access to group project
 		projectHeaders = nodeDao.getProjectHeaders(user3Info, user1Info, null, ProjectListType.OTHER_USER_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders, transformToId));
 
 		// group only has access to group projects, and only user1 can access sub folder project
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(subFolderProject2, groupParticipate), Lists.transform(projectHeaders, transformToId));
 
 		// group only has access to group project and user3 cannot access sub folder project
 		projectHeaders = nodeDao.getProjectHeaders(user3Info, user3Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
 	}
 
@@ -2655,29 +2654,29 @@ public class NodeDAOImplTest {
 		createProjects();
 
 		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, subFolderProject, groupParticipate, participate, owned), projectIds);
 
 		// created by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(publicProject, owned), Lists.transform(projectHeaders, transformToId));
 
 		// direct participation by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate, participate),
 				Lists.transform(projectHeaders, transformToId));
 
 		// participate via team by user1
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
 
 		// group only has access to group projects, and only user1 can access sub folder project
 		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100, 0);
+				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
 		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate),
 				Lists.transform(projectHeaders, transformToId));
 	}
@@ -2699,7 +2698,7 @@ public class NodeDAOImplTest {
 		addReadAcl(third, user1);
 
 		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_CREATED_PROJECTS, ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100, 0);
+				ProjectListType.MY_CREATED_PROJECTS, ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100L, 0L);
 		assertEquals(Lists.newArrayList(first, second, third), Lists.transform(projectHeaders, transformToId));
 	}
 

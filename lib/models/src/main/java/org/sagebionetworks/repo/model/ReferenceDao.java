@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.List;
+
 
 public interface ReferenceDao {
 	
@@ -35,6 +37,6 @@ public interface ReferenceDao {
 	 * @throws DatastoreException 
 	 * 
 	 */
-	public QueryResults<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException;
+	public List<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Long offset, Long limit) throws DatastoreException;
 
 }

@@ -180,9 +180,7 @@ public class ServletTestHelperUtils {
 			throws Exception {
 		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
-		PaginatedResults<T> result = new PaginatedResults<T>(clazz);
-		result.initializeFromJSONObject(adapter);
-		return result;
+		return PaginatedResults.createFromJSONObjectAdapter(adapter, clazz);
 	}
 
 	/**
@@ -194,9 +192,7 @@ public class ServletTestHelperUtils {
 			throws Exception {
 		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
-		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
-		pr.initializeFromJSONObject(adapter);
-		return pr;
+		return PaginatedResults.createFromJSONObjectAdapter(adapter, clazz);
 	}
 
 	/**

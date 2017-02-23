@@ -943,8 +943,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
 			throws SynapseException;
-	
-	public Long getSubmissionCount(String evalId) throws SynapseException;
 
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -239,12 +240,9 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(
-				response.getContentAsString()));
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
-				EntityHeader.class);
-		results.initializeFromJSONObject(adapter);
-		return results;
+		String json = response.getContentAsString();
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(json);
+		return PaginatedResults.createFromJSONObjectAdapter(adapter, EntityHeader.class);
 	}
 
 	/**
@@ -623,12 +621,9 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		JSONObjectAdapter adapter = ServletTestHelperUtils
-				.readResponseJSON(response);
-		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(
-				EntityHeader.class);
-		results.initializeFromJSONObject(adapter);
-		return results;
+		String json = response.getContentAsString();
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(json);
+		return PaginatedResults.createFromJSONObjectAdapter(adapter, EntityHeader.class);
 	}
 
 	/**

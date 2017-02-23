@@ -101,7 +101,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 	@Deprecated
 	@Override
-	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
+	public List<AccessApproval> getAccessApprovalsForSubject(
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		
@@ -119,8 +119,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
 		}
-		QueryResults<AccessApproval> result = new QueryResults<AccessApproval>(aas, aas.size());
-		return result;
+		return aas;
 	}
 
 	@WriteTransaction

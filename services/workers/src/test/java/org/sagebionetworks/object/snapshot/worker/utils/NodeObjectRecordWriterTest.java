@@ -54,8 +54,7 @@ public class NodeObjectRecordWriterTest {
 	private AccessRequirementManager mockAccessRequirementManager;
 	@Mock
 	private EntityPermissionsManager mockEntityPermissionManager;
-	@Mock
-	private QueryResults<AccessRequirement> mockArs;
+	private List<AccessRequirement> args;
 	@Mock
 	private UserEntityPermissions mockPermissions;
 	@Mock
@@ -81,12 +80,14 @@ public class NodeObjectRecordWriterTest {
 		node = new NodeRecord();
 		node.setId("123");
 		when(mockNodeDAO.getNode("123")).thenReturn(node);
+		
+		args = new ArrayList<>();
 
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
 		when(mockAccessRequirementManager
 				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
-				.thenReturn(mockArs);
+				.thenReturn(args);
 		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
 	}
@@ -115,8 +116,7 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void notPublicTest() throws IOException {
 		// not restricted, not controlled
-		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		when(mockArs.getResults()).thenReturn(ars);
+		args = new ArrayList<AccessRequirement>();
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
@@ -138,8 +138,7 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void publicTest() throws IOException {
 		// not restricted, not controlled
-		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		when(mockArs.getResults()).thenReturn(ars);
+		args = new ArrayList<AccessRequirement>();
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(true);
 
@@ -161,9 +160,11 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void restrictedTest() throws IOException {
 		// Restricted
-		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		ars.add(new PostMessageContentAccessRequirement());
-		when(mockArs.getResults()).thenReturn(ars);
+		args = new ArrayList<AccessRequirement>();
+		args.add(new PostMessageContentAccessRequirement());
+		when(mockAccessRequirementManager
+				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.thenReturn(args);
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
@@ -185,9 +186,12 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void controlledTest() throws IOException {
 		// controlled
-		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		ars.add(new ACTAccessRequirement());
-		when(mockArs.getResults()).thenReturn(ars);
+		args = new ArrayList<AccessRequirement>();
+		args.add(new ACTAccessRequirement());
+		when(mockAccessRequirementManager
+				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.thenReturn(args);
+		
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(false);
 
@@ -209,10 +213,12 @@ public class NodeObjectRecordWriterTest {
 	@Test
 	public void publicRestrictedAndControlledTest() throws IOException {
 		// controlled
-		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
-		ars.add(new ACTAccessRequirement());
-		ars.add(new TermsOfUseAccessRequirement());
-		when(mockArs.getResults()).thenReturn(ars);
+		args = new ArrayList<AccessRequirement>();
+		args.add(new ACTAccessRequirement());
+		args.add(new TermsOfUseAccessRequirement());
+		when(mockAccessRequirementManager
+				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.thenReturn(args);
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(true);
 

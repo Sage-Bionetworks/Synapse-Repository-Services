@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.discussion;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -131,7 +132,8 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(filter, "filter");
-		return replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
+		List<DiscussionReplyBundle> page = replyDao.getRepliesForThread(Long.parseLong(threadId), limit, offset, order, ascending, filter);
+		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -387,7 +386,7 @@ public interface NodeDAO {
      */
 	public boolean doesNodeHaveChildren(String nodeId);
 
-	public QueryResults<VersionInfo> getVersionsOfEntity(String entityId, long offset,
+	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException;
 
 	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
@@ -451,7 +450,8 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
-			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset);
+			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
+
 
 	long getCount();
 	

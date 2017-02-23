@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -32,7 +34,7 @@ public interface AccessRequirementManager {
 	/**
 	 *  get all the access requirements for an entity
 	 */
-	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 *  get all the unmet access requirements
@@ -40,7 +42,7 @@ public interface AccessRequirementManager {
 	 *  the user is allowed to READ the entity
 	 *  
 	 */
-	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 *  update an access requirement

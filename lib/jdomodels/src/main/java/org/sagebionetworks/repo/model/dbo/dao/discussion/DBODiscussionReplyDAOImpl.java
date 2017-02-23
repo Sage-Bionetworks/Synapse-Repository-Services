@@ -179,7 +179,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	}
 
 	@Override
-	public PaginatedResults<DiscussionReplyBundle> getRepliesForThread(
+	public List<DiscussionReplyBundle> getRepliesForThread(
 			Long threadId, Long limit, Long offset, DiscussionReplyOrder order,
 			Boolean ascending, DiscussionFilter filter) {
 		ValidateArgument.required(threadId, "threadId");
@@ -190,19 +190,8 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 				"Limit and offset must be greater than 0, and limit must be smaller than or equal to "+MAX_LIMIT);
 		ValidateArgument.requirement((order == null && ascending == null)
 			|| (order != null && ascending != null),"order and ascending must be both null or not null");
-
-		PaginatedResults<DiscussionReplyBundle> results = new PaginatedResults<DiscussionReplyBundle>();
-		List<DiscussionReplyBundle> replies = new ArrayList<DiscussionReplyBundle>();
-		long replyCount = getReplyCount(threadId, filter);
-		results.setTotalNumberOfResults(replyCount);
-
-		if (replyCount > 0) {
-			String query = buildGetRepliesQuery(limit, offset, order, ascending, filter);
-			replies = jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
-		}
-
-		results.setResults(replies);
-		return results;
+		String query = buildGetRepliesQuery(limit, offset, order, ascending, filter);
+		return jdbcTemplate.query(query,  DISCUSSION_REPLY_BUNDLE_ROW_MAPPER, threadId);
 	}
 
 	protected static String buildGetRepliesQuery(Long limit, Long offset,
