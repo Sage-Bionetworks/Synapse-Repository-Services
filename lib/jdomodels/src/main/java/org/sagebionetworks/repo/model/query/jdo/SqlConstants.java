@@ -821,7 +821,7 @@ public class SqlConstants {
 	public static final String TABLE_THROTTLE_RULES = "THROTTLE_RULES";
 	public static final String COL_THROTTLE_RULES_ID = "THROTTLE_ID";
 	public static final String COL_THROTTLE_RULES_NORMALIZED_URI = "NORMALIZED_PATH";
-	public static final String COL_THROTTLE_RULES_MAX_CALLS = "MAX_CALLS_PER_USER_PER_SECOND";
+	public static final String COL_THROTTLE_RULES_MAX_CALLS = "MAX_CALLS_PER_USER_PER_PERIOD";
 	public static final String COL_THROTTLE_RULES_CALL_PERIOD = "PERIOD_IN_SECONDS";
 	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
