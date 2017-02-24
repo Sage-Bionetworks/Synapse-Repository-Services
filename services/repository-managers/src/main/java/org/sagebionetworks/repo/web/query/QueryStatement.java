@@ -47,12 +47,23 @@ public class QueryStatement {
 	private QueryNode parseTree = null;
 
 	/**
+	 * Create a query using the proper definition of the 'offset' pagination param (no offset is zero)
+	 * @param query
+	 */
+	public QueryStatement(String query)  throws ParseException {
+		this(query, false);
+	}
+
+	/**
 	 * @param query
 	 * @throws ParseException
 	 */
-	public QueryStatement(String query) throws ParseException {
-		offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
-
+	public QueryStatement(String query, boolean defaultOffset1) throws ParseException {
+		if (defaultOffset1) {
+			offset = 1L;
+		} else {
+			offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
+		}
 		// TODO stash this in ThreadLocal because its expensive to create and
 		// not threadsafe
 		try {
@@ -154,6 +165,9 @@ public class QueryStatement {
 			}
 		}
 		ServiceConstants.validatePaginationParams(offset, limit);
+		if (defaultOffset1 && offset < 1) {
+			throw new IllegalArgumentException("This API requires offset to be 1 or greater.");
+		}
 	}
 	
 	/**
@@ -282,6 +296,4 @@ public class QueryStatement {
 	public void dumpParseTree() {
 		parseTree.dump("");
 	}
-	
-	
 }

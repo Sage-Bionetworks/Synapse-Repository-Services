@@ -941,6 +941,29 @@ public class IT500SynapseJavaClient {
 		// Wait for the query
 		waitForQuery(queryString);
 	}
+
+	@Test
+	public void testGetQueryWithNoOffset() throws SynapseException, InterruptedException, JSONException{
+		JSONObject noOffset = waitForQuery("select id from entity");
+		assertEquals(2, noOffset.get("totalNumberOfResults"));
+		assertTrue(noOffset.get("results").toString().contains(project.getId()));
+		assertTrue(noOffset.get("results").toString().contains(dataset.getId()));
+	}
+
+	@Test
+	public void testGetQueryWithOffset1() throws SynapseException, InterruptedException, JSONException{
+		JSONObject offset1 = waitForQuery("select id from entity offset 1");
+		assertEquals(2, offset1.get("totalNumberOfResults"));
+		assertTrue(offset1.get("results").toString().contains(project.getId()));
+		assertTrue(offset1.get("results").toString().contains(dataset.getId()));
+	}
+
+	@Test (expected=SynapseBadRequestException.class)
+	public void testGetQueryWithOffset0() throws SynapseException, InterruptedException, JSONException{
+		String queryString = "select id from entity offset 0";
+		// Wait for the query
+		waitForQuery(queryString);
+	}
 	
 	/**
 	 * Helper 
