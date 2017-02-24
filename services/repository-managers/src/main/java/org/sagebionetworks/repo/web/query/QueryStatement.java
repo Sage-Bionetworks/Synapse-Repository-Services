@@ -165,6 +165,9 @@ public class QueryStatement {
 			}
 		}
 		ServiceConstants.validatePaginationParams(offset, limit);
+		if (defaultOffset1 && offset < 1) {
+			throw new IllegalArgumentException("This API requires offset to be 1 or greater.");
+		}
 	}
 	
 	/**
