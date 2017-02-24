@@ -941,6 +941,26 @@ public class IT500SynapseJavaClient {
 		// Wait for the query
 		waitForQuery(queryString);
 	}
+
+	@Test
+	public void testGetQueryWithNoOffset() throws SynapseException, InterruptedException, JSONException{
+		String queryString = "select id from entity limit 1";
+		// Wait for the query
+		waitForQuery(queryString);
+	}
+
+	@Test
+	public void testGetQueryWithOffset1() throws SynapseException, InterruptedException, JSONException{
+		assertEquals(waitForQuery("select id from entity offset 1 limit 1"),
+				waitForQuery("select id from entity limit 1"));
+	}
+
+	@Test (expected=SynapseBadRequestException.class)
+	public void testGetQueryWithOffset0() throws SynapseException, InterruptedException, JSONException{
+		String queryString = "select id from entity offset 0 limit 1";
+		// Wait for the query
+		waitForQuery(queryString);
+	}
 	
 	/**
 	 * Helper 
