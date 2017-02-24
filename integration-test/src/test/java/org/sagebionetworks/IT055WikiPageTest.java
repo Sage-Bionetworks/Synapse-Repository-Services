@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -10,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,11 +21,9 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
-import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -36,8 +32,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -138,13 +132,6 @@ public class IT055WikiPageTest {
 		WikiPage root = synapse.getRootWikiPage(project.getId(), ObjectType.ENTITY);
 		handlesToDelete.add(synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY).getMarkdownFileHandleId());
 		assertEquals(wiki, root);
-		// Get the tree
-		PaginatedResults<WikiHeader> tree = synapse.getWikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
-		assertNotNull(tree);
-		assertNotNull(tree.getResults());
-		assertEquals(1, tree.getResults().size());
-		assertEquals(1, tree.getTotalNumberOfResults());
-		
 		// Delete the wiki
 		synapse.deleteWikiPage(key);
 		// Now try to get it

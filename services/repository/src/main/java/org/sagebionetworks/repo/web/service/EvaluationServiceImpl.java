@@ -45,8 +45,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class EvaluationServiceImpl implements EvaluationService {
+	public static final long MAX_LIMIT = 100L;
 
 	@Autowired
 	private ServiceProvider serviceProvider;
@@ -108,9 +110,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, id, limit, offset);
-		return new PaginatedResults<Evaluation>(res.getResults(),
-				res.getTotalNumberOfResults());
+		List<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, id, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
@@ -118,9 +119,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getInRange(userInfo, limit, offset);
-		return new PaginatedResults<Evaluation>(res.getResults(),
-				res.getTotalNumberOfResults());
+		List<Evaluation> res = evaluationManager.getInRange(userInfo, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
 	/**
@@ -139,9 +139,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset, evaluationIds);
-		return new PaginatedResults<Evaluation>(res.getResults(),
-				res.getTotalNumberOfResults());
+		List<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset, evaluationIds);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
@@ -179,9 +178,8 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Participant> getAllParticipants(Long userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Participant> res = participantManager.getAllParticipants(userInfo, evalId, limit, offset);
-		return new PaginatedResults<Participant>(res.getResults(),
-				res.getTotalNumberOfResults());
+		List<Participant> res = participantManager.getAllParticipants(userInfo, evalId, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
@@ -262,50 +260,65 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Submission> getAllSubmissions(Long userId, String evalId,
 			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
-		return new PaginatedResults<Submission>(res.getResults(),
-				res.getTotalNumberOfResults());
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		List<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
 	@Override
 	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(Long userId, String evalId,
 			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
-		return new PaginatedResults<SubmissionStatus>(res.getResults(),
-				res.getTotalNumberOfResults());
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		List<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
 	@Override
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(Long userId, String evalId,
 			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
-		return new PaginatedResults<SubmissionBundle>(res.getResults(),
-				res.getTotalNumberOfResults());
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		List<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
 	@Override
 	public PaginatedResults<Submission> getMyOwnSubmissionsByEvaluation(
 			String evalId, Long userId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Submission> res = submissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
-		return new PaginatedResults<Submission>(res.getResults(),
-				res.getTotalNumberOfResults());
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		List<Submission> res = submissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
 	@Override
 	public PaginatedResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			String evalId, Long userId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<SubmissionBundle> res = submissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
-		return new PaginatedResults<SubmissionBundle>(res.getResults(),
-				res.getTotalNumberOfResults());
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
+		List<SubmissionBundle> res = submissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
+		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override

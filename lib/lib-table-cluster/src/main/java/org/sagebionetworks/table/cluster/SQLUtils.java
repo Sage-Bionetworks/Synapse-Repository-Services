@@ -1346,4 +1346,113 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
+	/**
+	 * Match the given column changes to the current schema. If a column update
+	 * is requested but the column does not exist in the current schema, then
+	 * the updated will be changed to an add.
+	 * 
+	 * @param currentIndexSchema
+	 * @param changes
+	 * @return
+	 */
+	public static List<ColumnChangeDetails> matchChangesToCurrentInfo(
+			List<DatabaseColumnInfo> currentIndexSchema,
+			List<ColumnChangeDetails> changes) {
+		Set<String> existingColumnIds = new HashSet<>(currentIndexSchema.size());
+		List<ColumnModel> currentModels = extractSchemaFromInfo(currentIndexSchema);
+		for (ColumnModel model : currentModels) {
+			if(model.getId() != null){
+				existingColumnIds.add(model.getId());
+			}
+		}
+		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
+		for (ColumnChangeDetails change : changes) {
+			ColumnModel oldColumn = change.getOldColumn();
+			if (oldColumn != null) {
+				if (!existingColumnIds.contains(oldColumn.getId())) {
+					/*
+					 * The old column does not exist in the table. Setting the
+					 * old column to null will treat this change as an add
+					 * instead of an update.
+					 */
+					oldColumn = null;
+				}
+			}
+			results.add(new ColumnChangeDetails(oldColumn, change
+					.getNewColumn()));
+		}
+		return results;
+	}
+
+	/**
+	 * Determine if an incompatibility between view's schema and the possible
+	 * annotations is the cause of the passed exception. If the cause is
+	 * determined an appropriate IllegalArgumentException will be thrown.
+	 * 
+	 * @param viewSchema
+	 *            The schema of the view.
+	 * @param possibleAnnotations
+	 *            The possible column models for the annotations within the
+	 *            view's scope.
+	 */
+	public static void determineCauseOfException(Exception exception,
+			List<ColumnModel> viewSchema, List<ColumnModel> possibleAnnotations) {
+		// Find matches
+		for (ColumnModel annotation : possibleAnnotations) {
+			for (ColumnModel schemaModel : viewSchema) {
+				determineCauseOfException(exception, schemaModel, annotation);
+			}
+		}
+	}
+
+	/**
+	 * Determine if an incompatibility between the passed two columns is the
+	 * cause of the passed exception.
+	 * 
+	 * @param exception
+	 * @param annotationMetadata
+	 * @param columnMetadata
+	 */
+	public static void determineCauseOfException(Exception exception,
+			ColumnModel columnModel, ColumnModel annotationModel) {
+		EntityField entityField = EntityField.findMatch(columnModel);
+		if(entityField != null){
+			// entity field are not matched to annotations.
+			return;
+		}
+		// lookup the annotation type that matches the column type.
+		AnnotationType columnModelAnnotationType = translateColumnType(columnModel.getColumnType());
+		AnnotationType annotationType = translateColumnType(annotationModel.getColumnType());
+		// do the names match?
+		if (columnModel.getName().equals(annotationModel.getName())) {
+			// Do they map to the same annotation type?
+			if (columnModelAnnotationType.equals(annotationType)) {
+				// Have match.
+				if (ColumnType.STRING.equals(columnModel.getColumnType())) {
+					if (columnModel.getMaximumSize() < annotationModel
+							.getMaximumSize()) {
+						throw new IllegalArgumentException(
+								"The size of the column '"
+										+ columnModel.getName()
+										+ "' is too small.  The column size needs to be at least "
+										+ annotationModel.getMaximumSize()
+										+ " characters.", exception);
+					}
+				}
+				// do the column types match?
+				if (!columnModel.getColumnType().equals(
+						annotationModel.getColumnType())) {
+					throw new IllegalArgumentException(
+							"Cannot insert an annotation value of type "
+									+ annotationType
+									+ " into column '"
+									+ columnModel.getName()
+									+ "' which is of type "
+									+ columnModel.getColumnType() + ".",
+							exception);
+				}
+			}
+		}
+	}
+
 }

@@ -1,19 +1,13 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -25,6 +19,8 @@ import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -39,8 +35,10 @@ import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -62,6 +60,8 @@ public class TableIndexManagerImplTest {
 	TableManagerSupport mockManagerSupport;
 	@Mock
 	ProgressCallback<Void> mockCallback;
+	@Captor 
+	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	
 	TableIndexManagerImpl manager;
 	String tableId;
@@ -277,7 +277,7 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testDeleteTableIndex(){
 		manager.deleteTableIndex(tableId);
-		verify(mockIndexDao).deleteSecondayTables(tableId);
+		verify(mockIndexDao).deleteSecondaryTables(tableId);
 		verify(mockIndexDao).deleteTable(tableId);
 	}
 	
@@ -329,12 +329,16 @@ public class TableIndexManagerImplTest {
 
 		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(true);
-		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		DatabaseColumnInfo current = new DatabaseColumnInfo();
+		current.setColumnName(SQLUtils.getColumnNameForId(oldColumn.getId()));
+		current.setColumnType(ColumnType.STRING);
+		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
 		// call under test
 		manager.updateTableSchema(tableId, mockCallback, changes);
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
-		verify(mockIndexDao).getDatabaseInfo(tableId);
+		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
 		verify(mockIndexDao).truncateTable(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
@@ -354,7 +358,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
-		verify(mockIndexDao, never()).getDatabaseInfo(tableId);
+		verify(mockIndexDao).getDatabaseInfo(tableId);
 		verify(mockIndexDao, never()).truncateTable(tableId);
 		verify(mockIndexDao, never()).setCurrentSchemaMD5Hex(anyString(), anyString());
 	}
@@ -456,6 +460,72 @@ public class TableIndexManagerImplTest {
 	}
 	
 	@Test
+	public void testPopulateViewFromEntityReplicationWithProgress() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		// call under test
+		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+		assertEquals(crc32, resultCrc);
+		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		// the CRC should be calculated with the etag column.
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationUnknownCause() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		// setup a failure
+		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		try {
+			// call under test
+			manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+			fail("Should have failed");
+		} catch (IllegalArgumentException expected) {
+			// when the cause cannot be determined the original exception is thrown.
+			assertEquals(error, expected);
+		}
+	}
+	
+	@Test
+	public void testPopulateViewFromEntityReplicationKnownCause() throws Exception{
+		ViewType viewType = ViewType.file;
+		Set<Long> scope = Sets.newHashSet(1L,2L);
+		List<ColumnModel> schema = createDefaultColumnsWithIds();
+		
+		ColumnModel column = new ColumnModel();
+		column.setId("123");
+		column.setName("foo");
+		column.setColumnType(ColumnType.STRING);
+		column.setMaximumSize(10L);
+		schema.add(column);
+		// Setup an annotation that is larger than the columns.
+		ColumnModel annotation = new ColumnModel();
+		annotation.setName("foo");
+		annotation.setMaximumSize(11L);
+		annotation.setColumnType(ColumnType.STRING);
+		
+		// setup the annotations 
+		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
+		// setup a failure
+		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
+		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
+		try {
+			// call under test
+			manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
+			fail("Should have failed");
+		} catch (IllegalArgumentException expected) {
+			assertTrue(expected.getMessage().startsWith("The size of the column 'foo' is too small"));
+			// the cause should match the original error.
+			assertEquals(error, expected.getCause());
+		}
+	}
+	
+	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
 		// call under test
 		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, tokenString);
@@ -554,6 +624,42 @@ public class TableIndexManagerImplTest {
 		scopeSynIds = null;
 		// call under test
 		manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
+	}
+	
+	/**
+	 * Test added for PLFM-4155.
+	 */
+	@Test
+	public void testAlterTableAsNeededWithinAutoProgress(){
+		DatabaseColumnInfo rowId = new DatabaseColumnInfo();
+		rowId.setColumnName(TableConstants.ROW_ID);
+		DatabaseColumnInfo one = new DatabaseColumnInfo();
+		one.setColumnName("_C111_");
+		DatabaseColumnInfo two = new DatabaseColumnInfo();
+		two.setColumnName("_C222_");
+		List<DatabaseColumnInfo> curretIndexSchema = Lists.newArrayList(rowId, one, two);
+		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(curretIndexSchema);
+		
+		// the old does not exist in the current
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("333");
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("444");
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		List<ColumnChangeDetails> changes = Lists.newArrayList(change);
+		
+		// call under test
+		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
+		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
+		List<ColumnChangeDetails> captured = changeCaptor.getValue();
+		// the results should be changed
+		assertNotNull(captured);
+		assertEquals(1, captured.size());
+		ColumnChangeDetails updated = captured.get(0);
+		// should not be the same instance.
+		assertFalse(change == updated);
+		assertEquals(null, updated.getOldColumn());
+		assertEquals(newColumn, updated.getNewColumn());
 	}
 	
 	

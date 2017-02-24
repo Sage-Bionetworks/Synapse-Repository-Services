@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,11 +23,8 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -38,12 +34,9 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.PaginatedParameters;
-import org.sagebionetworks.repo.web.QueryUtils;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.EntityEvent;
@@ -74,6 +67,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @SuppressWarnings({"rawtypes","unchecked"})
 public class EntityServiceImpl implements EntityService {
+	public static final Integer DEFAULT_LIMIT = 10;
+	public static final Integer DEFAULT_OFFSET = 0;
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
@@ -91,35 +86,21 @@ public class EntityServiceImpl implements EntityService {
 	AllTypesValidator allTypesValidator;
 	@Autowired
 	FileHandleManager fileHandleManager;
-
-	@Override
-	public <T extends Entity> PaginatedResults<T> getEntities(Long userId, PaginatedParameters paging,
-			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(paging.getOffset(), paging.getLimit());
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(clazz);
-		// First build the query that will be used
-		BasicQuery query = QueryUtils.createFindPaginagedOfType(paging, type);
-		// Execute the query and convert to entities.
-		return executeQueryAndConvertToEntites(paging, request, clazz,
-				userInfo, query);
-	}
 	
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			Long userId, Integer offset, Integer limit, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
-			offset = 1;
+			offset = DEFAULT_OFFSET;
 		}
 		if(limit == null){
-			limit = 10;
+			limit = DEFAULT_LIMIT;
 		}
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
-		return new PaginatedResults<VersionInfo>(versions.getResults(), versions.getTotalNumberOfResults());
+		List<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
+		return PaginatedResults.createWithLimitAndOffset(versions, (long)limit, (long)offset);
 	}
 
 	@Override
@@ -460,29 +441,6 @@ public class EntityServiceImpl implements EntityService {
 		return annos;
 	}
 
-	@Override
-	public <T extends Entity> List<T> getEntityChildrenOfType(Long userId,
-			String parentId, Class<? extends T> childClass, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType childType =  EntityTypeUtils.getEntityTypeForClass(childClass);
-		// For this case we want all children so build up the paging as such
-		PaginatedParameters paging = new PaginatedParameters(0, Long.MAX_VALUE, null, true);
-		BasicQuery query = QueryUtils.createChildrenOfTypePaginated(parentId, paging, childType);
-		PaginatedResults<T> pageResult = executeQueryAndConvertToEntites(paging, request, childClass, userInfo, query);
-		return pageResult.getResults();
-	}
-	
-	@Override
-	public <T extends Entity> PaginatedResults<T> getEntityChildrenOfTypePaginated(
-			Long userId, String parentId, Class<? extends T> clazz,
-			PaginatedParameters paging, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		EntityType childType =  EntityTypeUtils.getEntityTypeForClass(clazz);
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		BasicQuery query = QueryUtils.createChildrenOfTypePaginated(parentId, paging, childType);
-		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
-	}
-
 	@WriteTransaction
 	@Override
 	public AccessControlList createEntityACL(Long userId, AccessControlList newACL,
@@ -530,7 +488,7 @@ public class EntityServiceImpl implements EntityService {
 			return updateEntityACL(userId, acl, recursive, request);
 		} else {
 			// Local ACL does not exist; create it
-			return createEntityACL(userId, acl, request);			
+			return createEntityACL(userId, acl, request);
 		}
 	}
 	
@@ -567,7 +525,7 @@ public class EntityServiceImpl implements EntityService {
 			DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<EntityHeader> headers = entityManager.getEntityHeader(userInfo, references);
-		return new PaginatedResults<EntityHeader>(headers, headers.size());
+		return PaginatedResults.createMisusedPaginatedResults(headers);
 	}
 
 	@Override
@@ -585,50 +543,21 @@ public class EntityServiceImpl implements EntityService {
 	public PaginatedResults<EntityHeader> getEntityReferences(Long userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (offset==null) offset = 1;
-		if (limit==null) limit = Integer.MAX_VALUE;
-		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
-		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
-		return new PaginatedResults(results.getResults(), results.getTotalNumberOfResults());
+		if(offset == null){
+			offset = DEFAULT_OFFSET;
+		}
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
+		List<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, (long) offset, (long) limit);
+		return PaginatedResults.createWithLimitAndOffset(results, (long)limit, (long)offset);
 	}
 
 	@Override
 	public UserEntityPermissions getUserEntityPermissions(Long userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
-	}
-
-	/**
-	 * First, execute the given query to determine the nodes that match the criteria.
-	 * Then, for each node id, fetch the entity and build up the paginated results.
-	 * 
-	 * @param <T>
-	 * @param paging
-	 * @param request
-	 * @param clazz
-	 * @param userInfo
-	 * @param nodeResults
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	private <T extends Entity> PaginatedResults<T> executeQueryAndConvertToEntites(
-			PaginatedParameters paging,
-			HttpServletRequest request,
-			Class<? extends T> clazz,
-			UserInfo userInfo,
-			BasicQuery query) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
-		// First execute the query.
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		// Fetch each entity
-		List<T> entityList = new ArrayList<T>();
-		for(String id: nodeResults.getResultIds()){
-			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
-			entityList.add(entity);
-		}
-		return new PaginatedResults<T>(entityList, nodeResults.getTotalNumberOfResults());
 	}
 
 	@Override
@@ -670,7 +599,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(activityId == null) throw new IllegalArgumentException("Activity Id can not be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.setActivityForEntity(userInfo, entityId, activityId);		
+		return entityManager.setActivityForEntity(userInfo, entityId, activityId);
 	}
 
 
@@ -682,7 +611,7 @@ public class EntityServiceImpl implements EntityService {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		entityManager.deleteActivityForEntity(userInfo, entityId);				
+		entityManager.deleteActivityForEntity(userInfo, entityId);
 	}
 
 	@Override
@@ -692,9 +621,8 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, null, FileHandleReason.FOR_FILE_DOWNLOAD);
-		FileEntity fileEntity = entityManager.getEntitySecondaryFields(userInfo, id, FileEntity.class);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileNameOverride());
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
 	
 	@Override
@@ -718,9 +646,8 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the file handle.
 		String fileHandleId = entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber, FileHandleReason.FOR_FILE_DOWNLOAD);
-		FileEntity fileEntity = entityManager.getEntitySecondaryFieldsForVersion(userInfo, id, versionNumber, FileEntity.class);
 		// Use the FileHandle ID to get the URL
-		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId, fileEntity.getFileNameOverride());
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
 
 

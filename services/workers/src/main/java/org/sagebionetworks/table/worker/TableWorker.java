@@ -190,12 +190,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
-			// Get the stack trace.
-			StringWriter writer = new StringWriter();
-			e.printStackTrace(new PrintWriter(writer));
 			// Attempt to set the status to failed.
-			tableManagerSupport.attemptToSetTableStatusToFailed(tableId,
-					tableResetToken, e.getMessage(), writer.toString());
+			tableManagerSupport.attemptToSetTableStatusToFailed(tableId, tableResetToken, e);
 			// This is not an error we can recover from.
 			log.info("Create index " + tableId + " aborted, unrecoverable");
 			return State.UNRECOVERABLE_FAILURE;

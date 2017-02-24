@@ -408,8 +408,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException {
 		// Lookup all wiki pages for this node
 		try {
+			long limit = 100L;
+			long offset = 0L;
 			List<V2WikiHeader> wikiHeaders = wikiPageDao.getHeaderTree(nodeId,
-					ObjectType.ENTITY);
+					ObjectType.ENTITY, limit, offset);
 			if (wikiHeaders == null)
 				return null;
 			// For each header get the wikipage

@@ -141,7 +141,7 @@ public interface V2WikiPageDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	List<V2WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType) throws DatastoreException, NotFoundException;
+	List<V2WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType, Long limit, Long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lock for update, returning the current etag

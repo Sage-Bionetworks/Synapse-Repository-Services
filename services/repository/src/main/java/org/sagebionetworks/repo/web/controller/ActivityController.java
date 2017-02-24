@@ -287,7 +287,7 @@ public class ActivityController extends BaseController{
 	PaginatedResults<Reference> getEntitiesGeneratedBy(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getActivityService().getEntitiesGeneratedBy(userId, id, limit, offset);

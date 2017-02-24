@@ -96,7 +96,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
+	public List<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(id, "Entity ID");
 		if (userInfo == null) {
@@ -110,13 +110,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				evaluations.add(eval);
 			}
 		}
-		long totalNumberOfResults = evaluationDAO.getCountByContentSource(id);
-		return new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
+		return evaluations;
 	}
 
 	@Deprecated
 	@Override
-	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
+	public List<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		List<Evaluation> evalList = evaluationDAO.getInRange(limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
@@ -125,22 +124,17 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				evaluations.add(eval);
 			}
 		}
-		long totalNumberOfResults = evaluationDAO.getCount();
-		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
-		return res;
+		return evaluations;
 	}
 
 	@Override
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
+	public List<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
 		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
 		for (Long g : userInfo.getGroups()) {
 			principalIds.add(g);
 		}
-		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(principalIds, limit, offset, evaluationIds);
-		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds, evaluationIds);
-		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evalList, totalNumberOfResults);
-		return res;
+		return evaluationDAO.getAvailableInRange(principalIds, limit, offset, evaluationIds);
 	}
 
 	@Override

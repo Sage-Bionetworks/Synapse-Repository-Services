@@ -177,7 +177,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -340,7 +339,7 @@ public interface SynapseClient extends BaseClient {
 	public AccessRequirement getAccessRequirement(Long requirementId) throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			RestrictableObjectDescriptor subjectId) throws SynapseException;
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws SynapseException;
 
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws SynapseException;
@@ -479,14 +478,12 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws SynapseException;
+			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType, Long limit, Long offset) throws SynapseException;
 
 	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
 	
 	public AccessApproval getAccessApproval(Long approvalId) throws SynapseException;
-
-	public PaginatedResults<AccessApproval> getEntityAccessApproval(String entityId) throws SynapseException;
 
 	public void deleteAccessApproval(Long approvalId) throws SynapseException;
 
@@ -585,9 +582,6 @@ public interface SynapseClient extends BaseClient {
 
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
-	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
-			ObjectType ownerType) throws SynapseException;
-
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId)
 			throws SynapseException;
 
@@ -649,7 +643,7 @@ public interface SynapseClient extends BaseClient {
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
 	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
-		ObjectType ownerType) throws SynapseException;
+		ObjectType ownerType, Long limit, Long offset) throws SynapseException;
 	
 	V2WikiOrderHint getV2OrderHint(WikiPageKey key) throws SynapseException;
 	
@@ -949,8 +943,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
 			throws SynapseException;
-	
-	public Long getSubmissionCount(String evalId) throws SynapseException;
 
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 

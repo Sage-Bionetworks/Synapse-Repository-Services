@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
@@ -9,7 +8,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_G
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
@@ -28,9 +26,6 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
 	
-	@Field(name = COL_TERMS_OF_USE_AGREEMENT_DOMAIN, nullable = true, varchar=256)
-	private DomainType domain;
-	
 	@Field(name = COL_TERMS_OF_USE_AGREEMENT_AGREEMENT)
 	private Boolean agreesToTermsOfUse;
 	
@@ -44,12 +39,6 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	}
 	public void setPrincipalId(Long principalId) {
 		this.principalId = principalId;
-	}
-	public DomainType getDomain() {
-		return domain;
-	}
-	public void setDomain(DomainType domain) {
-		this.domain = domain;
 	}
 	public Boolean getAgreesToTermsOfUse() {
 		return agreesToTermsOfUse;
@@ -68,12 +57,10 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 		return new MigratableTableTranslation<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement>(){
 			@Override
 			public DBOTermsOfUseAgreement createDatabaseObjectFromBackup(DBOTermsOfUseAgreement backup) {
-				backup.setDomain(null);
 				return backup;
 			}
 			@Override
 			public DBOTermsOfUseAgreement createBackupFromDatabaseObject(DBOTermsOfUseAgreement dbo) {
-				dbo.setDomain(null);
 				return dbo;
 			}
 		};
@@ -99,7 +86,6 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((agreesToTermsOfUse == null) ? 0 : agreesToTermsOfUse.hashCode());
-		result = prime * result + ((domain == null) ? 0 : domain.hashCode());
 		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
 		return result;
 	}
@@ -118,8 +104,6 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 				return false;
 		} else if (!agreesToTermsOfUse.equals(other.agreesToTermsOfUse))
 			return false;
-		if (domain != other.domain)
-			return false;
 		if (principalId == null) {
 			if (other.principalId != null)
 				return false;
@@ -130,7 +114,7 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 
 	@Override
 	public String toString() {
-		return "DBOTermsOfUseAgreement [principalId=" + principalId + ", domain=" + domain + ", agreesToTermsOfUse="
-				+ agreesToTermsOfUse + "]";
+		return "DBOTermsOfUseAgreement [principalId=" + principalId + ", agreesToTermsOfUse=" + agreesToTermsOfUse
+				+ "]";
 	}
 }

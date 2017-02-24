@@ -105,17 +105,20 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			 *  for this request and user.
 			 */
 			String requestHash = jobHashProvider.getJobHash((CacheableRequestBody) body);
-			// Does this job already exist
-			AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
-			if(status != null){
-				/*
-				 * If here then the caller has already made this exact request
-				 * and the object has not changed since the last request.
-				 * Therefore, we return the same job status as before without
-				 * starting a new job.
-				 */
-				log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, status.getJobId()));
-				return status;
+			// if the requestHash is null the job cannot be cached.
+			if(requestHash != null){
+				// Does this job already exist
+				AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
+				if(status != null){
+					/*
+					 * If here then the caller has already made this exact request
+					 * and the object has not changed since the last request.
+					 * Therefore, we return the same job status as before without
+					 * starting a new job.
+					 */
+					log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, status.getJobId()));
+					return status;
+				}
 			}
 		}
 		

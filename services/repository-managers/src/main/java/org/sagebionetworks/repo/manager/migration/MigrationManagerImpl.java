@@ -15,19 +15,7 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
-import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
-import org.sagebionetworks.repo.model.migration.ListBucketProvider;
-import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
-import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
-import org.sagebionetworks.repo.model.migration.MigrationUtils;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.*;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -457,6 +445,20 @@ public class MigrationManagerImpl implements MigrationManager {
 		return mtc;
 	}
 	
+	@Override
+	public MigrationTypeCounts processAsyncMigrationTypeCountsRequest(
+			final UserInfo user, final AsyncMigrationTypeCountsRequest mReq) {
+		validateUser(user);
+		List<MigrationTypeCount> res = new LinkedList<MigrationTypeCount>();
+			for (MigrationType t: mReq.getTypes()) {
+				MigrationTypeCount mtc = migratableTableDao.getMigrationTypeCount(t);
+				res.add(mtc);
+			}
+			MigrationTypeCounts mtRes = new MigrationTypeCounts();
+			mtRes.setList(res);
+			return mtRes;
+	}
+
 	@Override
 	public MigrationTypeCount processAsyncMigrationTypeCountRequest(
 			final UserInfo user, final AsyncMigrationTypeCountRequest mReq) {

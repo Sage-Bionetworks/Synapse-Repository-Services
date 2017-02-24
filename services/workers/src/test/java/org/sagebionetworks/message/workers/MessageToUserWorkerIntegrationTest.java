@@ -9,6 +9,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
@@ -137,10 +138,10 @@ public class MessageToUserWorkerIntegrationTest {
 	@SuppressWarnings("serial")
 	@Test
 	public void testRoundTrip() throws Exception {
-		QueryResults<MessageBundle> messages = null;
+		List<MessageBundle> messages = null;
 		
 		long start = System.currentTimeMillis();
-		while (messages == null || messages.getResults().size() < 1) {
+		while (messages == null || messages.size() < 1) {
 			// Check the inbox of the recipient
 			messages = messageManager.getInbox(toUserInfo, new ArrayList<MessageStatusType>() {
 				{
@@ -152,11 +153,11 @@ public class MessageToUserWorkerIntegrationTest {
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
 		}
-		assertFalse(message.equals(messages.getResults().get(0).getMessage()));
+		assertFalse(message.equals(messages.get(0).getMessage()));
 		message.setIsNotificationMessage(false);
 		message.setWithProfileSettingLink(false);
 		message.setWithUnsubscribeLink(false);
-		assertEquals(message, messages.getResults().get(0).getMessage());
+		assertEquals(message, messages.get(0).getMessage());
 	}
 	
 }

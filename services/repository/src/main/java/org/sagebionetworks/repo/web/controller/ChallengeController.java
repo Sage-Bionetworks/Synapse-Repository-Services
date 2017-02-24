@@ -120,7 +120,7 @@ public class ChallengeController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required=true) long participantId, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException, NotFoundException {
 		return serviceProvider.getChallengeService().listChallengesForParticipant(userId, participantId, limit, offset);
 	}
@@ -188,7 +188,7 @@ public class ChallengeController extends BaseController {
 			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(required=false) Boolean affiliated, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException, NotFoundException {
 		return serviceProvider.getChallengeService().listParticipantsInChallenge(userId, challengeId, affiliated, limit, offset);
 	}
@@ -234,7 +234,7 @@ public class ChallengeController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getChallengeService().listChallengeTeams(userId, challengeId, limit, offset);
@@ -260,7 +260,7 @@ public class ChallengeController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getChallengeService().listRegistratableTeams(userId, challengeId, limit, offset);
@@ -331,7 +331,7 @@ public class ChallengeController extends BaseController {
 			@PathVariable(value = UrlHelpers.CHALLENGE_ID_PATH_VARIABLE) long challengeId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) long submitterPrincipalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset
 			) throws DatastoreException, NotFoundException {
 		return serviceProvider.getChallengeService().listSubmissionTeams(userId, challengeId, submitterPrincipalId, limit, offset);
 	}

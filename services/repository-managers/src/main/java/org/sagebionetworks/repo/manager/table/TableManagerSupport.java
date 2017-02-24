@@ -76,7 +76,7 @@ public interface TableManagerSupport {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, String errorDetails)
+			String resetToken, Exception exception)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
@@ -411,5 +411,12 @@ public interface TableManagerSupport {
 	 */
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder);
 
-
+	/**
+	 * Only Administrator can perform this action.
+	 * Trigger a table/ view to be rebuilt.
+	 * 
+	 * @param userInfo
+	 * @param tableId
+	 */
+	public void rebuildTable(UserInfo userInfo, String tableId);
 }

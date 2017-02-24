@@ -95,8 +95,25 @@ public enum EntityField {
 	 */
 	public boolean isMatch(ColumnModel cm){
 		ColumnModel fieldColumnModel = this.getColumnModel();
-		fieldColumnModel.setId(cm.getId());
-		return fieldColumnModel.equals(cm);
+		// name must match
+		if(!fieldColumnModel.getName().equals(cm.getName())){
+			return false;
+		}
+		// type must match
+		if(!fieldColumnModel.getColumnType().equals(cm.getColumnType())){
+			return false;
+		}
+		// size must be greater than or equal
+		if(fieldColumnModel.getMaximumSize() != null){
+			if(cm.getMaximumSize() == null){
+				return false;
+			}
+			if(cm.getMaximumSize() < fieldColumnModel.getMaximumSize()){
+				return false;
+			}
+		}
+		// name and type match, and size is than greater or equal
+		return true;
 	}
 	
 	/**

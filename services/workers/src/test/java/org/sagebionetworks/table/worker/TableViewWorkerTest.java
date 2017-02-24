@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
@@ -239,6 +240,27 @@ public class TableViewWorkerTest {
 		verify(indexManager).setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);
 		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
 		verify(indexManager).optimizeTableIndices(tableId);
+	}
+	
+	/**
+	 * Test added for PLFM-4223.  An exception should result in setting the view to failed.
+	 * 
+	 * @throws RecoverableMessageException
+	 */
+	@Test
+	public void testCreateOrUpdateIndexHoldingLockException() throws RecoverableMessageException{
+		IllegalArgumentException exception = new IllegalArgumentException("failure");
+		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema)).thenThrow(exception);
+		
+		try {
+			// call under test
+			worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
+			fail("Should have thrown an exception");
+		} catch (IllegalArgumentException e) {
+			// expected
+		}
+		verify(tableManagerSupport, never()).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.DEFAULT_ETAG);
+		verify(tableManagerSupport).attemptToSetTableStatusToFailed(tableId, token, exception);
 	}
 
 }

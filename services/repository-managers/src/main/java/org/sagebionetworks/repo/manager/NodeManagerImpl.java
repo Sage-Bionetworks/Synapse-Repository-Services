@@ -656,7 +656,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Long offset, Long limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);
 		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
@@ -668,7 +668,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
 		validateReadAccess(userInfo, entityId);
@@ -738,8 +738,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			nodeToPromote.setVersionLabel(null); // To get a new version label
 			nodeDao.createNewVersion(nodeToPromote);
 		}
-		QueryResults<VersionInfo> versions = nodeDao.getVersionsOfEntity(nodeId, 0, 1);
-		return versions.getResults().get(0);
+		List<VersionInfo> versions = nodeDao.getVersionsOfEntity(nodeId, 0, 1);
+		return versions.get(0);
 	}
 
 	@Override

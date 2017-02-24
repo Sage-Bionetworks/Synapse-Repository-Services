@@ -149,7 +149,7 @@ public class MessageController extends BaseController {
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset, 
 			HttpServletRequest request) 
 					throws NotFoundException {
 		// Convert inbox filter param into a list
@@ -180,7 +180,7 @@ public class MessageController extends BaseController {
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset, 
 			HttpServletRequest request) 
 					throws NotFoundException {
 		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
@@ -232,7 +232,7 @@ public class MessageController extends BaseController {
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset, 
 			HttpServletRequest request) 
 					throws NotFoundException {
 		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());

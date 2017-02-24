@@ -110,13 +110,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile> results = userProfileManager.getInRange(userInfo, offset, endExcl);
-		List<UserProfile> profileResults = results.getResults();
-		for (UserProfile profile : profileResults) {
+		List<UserProfile> page = userProfileManager.getInRange(userInfo, offset, endExcl);
+		for (UserProfile profile : page) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		}
-		return new PaginatedResults<UserProfile>(profileResults,
-				(int)results.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(page, (long)limit, (long)offset);
 	}
 	
 	/**
@@ -236,7 +234,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long otherUserId, Long teamId, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Integer limit, Integer offset) throws DatastoreException,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo userToGetInfoFor = userInfo;

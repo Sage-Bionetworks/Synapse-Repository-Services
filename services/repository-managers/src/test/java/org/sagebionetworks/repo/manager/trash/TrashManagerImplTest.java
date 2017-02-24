@@ -368,9 +368,8 @@ public class TrashManagerImplTest {
 		final long offset = 0;
 		when(mockTrashCanDao.getInRangeForUser(userInfo.getId().toString(), false, offset , limit))
 		.thenReturn(trashList);
-		QueryResults<TrashedEntity> results = trashManager.viewTrashForUser(userInfo, userInfo, offset , limit);
-		assertEquals(trashList.size(), results.getTotalNumberOfResults());
-		assertEquals(trashList, results.getResults());
+		List<TrashedEntity> results = trashManager.viewTrashForUser(userInfo, userInfo, offset , limit);
+		assertEquals(trashList, results);
 	}
 	///////////////////////
 	//viewTrash()
@@ -398,9 +397,8 @@ public class TrashManagerImplTest {
 		
 		when(mockTrashCanDao.getInRange(false, offset , limit))
 		.thenReturn(trashList);
-		QueryResults<TrashedEntity> results = trashManager.viewTrash(adminUserInfo, offset , limit);
-		assertEquals(trashList.size(), results.getTotalNumberOfResults());
-		assertEquals(trashList, results.getResults());
+		List<TrashedEntity> results = trashManager.viewTrash(adminUserInfo, offset , limit);
+		assertEquals(trashList, results);
 	}
 	
 	////////////////////////////

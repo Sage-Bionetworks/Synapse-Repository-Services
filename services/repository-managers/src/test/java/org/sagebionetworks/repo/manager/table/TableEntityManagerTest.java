@@ -795,53 +795,6 @@ public class TableEntityManagerTest {
 		assertTrue(out.isEmpty());
 	}
 	
-	@Test (expected=TemporarilyUnavailableException.class)
-	public void testGetFileHandleIdsAssociatedWithTableLockFailed() throws LockUnavilableException, Exception{
-		// setup LockUnavilableException.
-		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).thenThrow(new LockUnavilableException());
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(3L);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
-		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
-		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
-		// call under test.
-		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
-		assertEquals(results, out);
-	}
-	
-	@Test (expected=TemporarilyUnavailableException.class)
-	public void testGetFileHandleIdsAssociatedWithTableIndexBehind(){
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(3L);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		// set the index behind the truth version
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion()-1);
-		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
-		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
-		// call under test.
-		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
-		assertEquals(results, out);
-	}
-	
-	@Test (expected=TemporarilyUnavailableException.class)
-	public void testGetFileHandleIdsAssociatedWithTableNoIndexConnection(){
-		// null means no index connection.
-		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(null);
-		TableRowChange lastChange = new TableRowChange();
-		lastChange.setRowVersion(3L);
-		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(lastChange);
-		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(lastChange.getRowVersion());
-		Set<Long> input = Sets.newHashSet(0L, 1L, 2L, 3L);
-		Set<Long> results = Sets.newHashSet(1L,2L);
-		when(mockTableIndexDAO.getFileHandleIdsAssociatedWithTable(input, tableId)).thenReturn(results);
-		// call under test.
-		Set<Long> out = manager.getFileHandleIdsAssociatedWithTable(tableId, input);
-		assertEquals(results, out);
-	}
-	
 	@Test
 	public void testGetFileHandleIdsAssociatedWithTableAlternateSignature(){
 		TableRowChange lastChange = new TableRowChange();

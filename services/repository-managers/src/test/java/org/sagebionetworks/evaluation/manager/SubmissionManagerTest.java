@@ -539,15 +539,14 @@ public class SubmissionManagerTest {
 		when(mockSubmissionDAO.getAllByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
 			thenReturn(Collections.singletonList(subWithId));
 		when(mockSubmissionDAO.getCountByEvaluationAndStatus(EVAL_ID, statusEnum)).thenReturn(1L);
-		QueryResults<SubmissionBundle> queryResults = 
+		List<SubmissionBundle> queryResults = 
 				submissionManager.getAllSubmissionBundles(ownerInfo, EVAL_ID, statusEnum, 10L, 0L);
-		assertEquals(1L, queryResults.getTotalNumberOfResults());
+		assertEquals(1L, queryResults.size());
 		SubmissionBundle expected = new SubmissionBundle();
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
-		assertEquals(Collections.singletonList(expected), queryResults.getResults());
+		assertEquals(Collections.singletonList(expected), queryResults);
 		verify(mockSubmissionDAO).getAllByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
-		verify(mockSubmissionDAO).getCountByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum));
 		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
 	}
 	
@@ -556,14 +555,13 @@ public class SubmissionManagerTest {
 		when(mockSubmissionDAO.getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
 			thenReturn(Collections.singletonList(subWithId));
 		when(mockSubmissionDAO.getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString())).thenReturn(1L);
-		QueryResults<SubmissionBundle> queryResults = 
+		List<SubmissionBundle> queryResults = 
 				submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10L, 0L);
 		SubmissionBundle expected = new SubmissionBundle();
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
-		assertEquals(Collections.singletonList(expected), queryResults.getResults());
+		assertEquals(Collections.singletonList(expected), queryResults);
 		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
-		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString());
 		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
 	}
 	
@@ -571,7 +569,6 @@ public class SubmissionManagerTest {
 	public void testGetMyOwnSubmissions() throws Exception {
 		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, EVAL_ID, 10, 0);
 		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10, 0);
-		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString());
 	}
 	
 	@Test

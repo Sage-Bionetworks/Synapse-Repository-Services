@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
 import org.junit.Test;
@@ -18,8 +17,6 @@ import com.google.gwt.junit.client.GWTTestCase;
  *
  */
 public class GwtTestSuite extends GWTTestCase {
-	
-	private static final int NUM_PAGINATED_RESULTS = 5;
 
 	/**
 	 * Must refer to a valid module that sources this class.
@@ -76,12 +73,7 @@ public class GwtTestSuite extends GWTTestCase {
 		// Clone it
 		EntityBundle clone = new EntityBundle();
 		clone.initializeFromJSONObject(adapter);
-		assertEquals(entityBundle, clone);		
+		assertEquals(entityBundle, clone);
 	}
-	
-	@Test
-	public void serviceConstantsTest() throws JSONObjectAdapterException, UnsupportedEncodingException{
-		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE);
-	}
-	
+
 }

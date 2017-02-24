@@ -433,13 +433,13 @@ public class MessageManagerImplTest {
 		MessageToUser aMessage = createMessage(testUser, StubAmazonSimpleEmailServiceClient.MESSAGE_SUBJECT_FOR_FAILURE, 
 				new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, null);
 		
-		QueryResults<MessageBundle> inbox = null;
+		List<MessageBundle> inbox = null;
 		inbox = messageManager.getInbox(testUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
 		int initialTestUserInboxSize = 1;
-		assertEquals(initialTestUserInboxSize, inbox.getTotalNumberOfResults());
+		assertEquals(initialTestUserInboxSize, inbox.size());
 		int initialOtherTestUserInboxSize = 1;
 		inbox = messageManager.getInbox(otherTestUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
-		assertEquals(initialOtherTestUserInboxSize, inbox.getTotalNumberOfResults());
+		assertEquals(initialOtherTestUserInboxSize, inbox.size());
 		
 		// now send the message
 		List<String> errors = messageManager.processMessage(aMessage.getId(), null);
@@ -452,9 +452,9 @@ public class MessageManagerImplTest {
 		
 		// even though the message is not sent by email, it does appear in the in-box
 		inbox = messageManager.getInbox(testUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
-		assertEquals(initialTestUserInboxSize+1, inbox.getTotalNumberOfResults());
+		assertEquals(initialTestUserInboxSize+1, inbox.size());
 		inbox = messageManager.getInbox(otherTestUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
-		assertEquals(initialOtherTestUserInboxSize+1, inbox.getTotalNumberOfResults());
+		assertEquals(initialOtherTestUserInboxSize+1, inbox.size());
 
 		// now send a second time
 		errors = messageManager.processMessage(aMessage.getId(), null);
@@ -499,111 +499,101 @@ public class MessageManagerImplTest {
 		cleanup.add(forwarded.getId());
 		
 		// It should appear in the test user's inbox immediately
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(2L, messages.getTotalNumberOfResults());
-		assertEquals(2, messages.getResults().size());
-		assertEquals(forwarded, messages.getResults().get(0).getMessage());
-		assertEquals(otherReplyToUser, messages.getResults().get(1).getMessage());
+		assertEquals(2, messages.size());
+		assertEquals(forwarded, messages.get(0).getMessage());
+		assertEquals(otherReplyToUser, messages.get(1).getMessage());
 	}
 	
 	@Test
 	public void testGetConversation_BeforeSending() throws Exception {
-		QueryResults<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
+		List<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(3L, messages.getTotalNumberOfResults());
-		assertEquals(3, messages.getResults().size());
-		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(0));
-		assertEquals(otherReplyToUser, messages.getResults().get(1));
-		assertEquals(userToOther, messages.getResults().get(2));
+		assertEquals(3, messages.size());
+		assertEquals(userReplyToOtherAndSelf, messages.get(0));
+		assertEquals(otherReplyToUser, messages.get(1));
+		assertEquals(userToOther, messages.get(2));
 		
 		messages = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(3L, messages.getTotalNumberOfResults());
-		assertEquals(3, messages.getResults().size());
-		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0));
-		assertEquals(otherReplyToUser, messages.getResults().get(1));
-		assertEquals(userToOther, messages.getResults().get(2));
+		assertEquals(3, messages.size());
+		assertEquals(otherReplyToUserAndSelf, messages.get(0));
+		assertEquals(otherReplyToUser, messages.get(1));
+		assertEquals(userToOther, messages.get(2));
 	}
 	
 	@Test
 	public void testGetConversation_AfterSending() throws Exception {
 		sendUnsentMessages(false);
 		
-		QueryResults<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
+		List<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("All messages should have been sent", 4L, messages.getTotalNumberOfResults());
-		assertEquals(4, messages.getResults().size());
-		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0));
-		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1));
-		assertEquals(otherReplyToUser, messages.getResults().get(2));
-		assertEquals(userToOther, messages.getResults().get(3));
+		assertEquals(4, messages.size());
+		assertEquals(otherReplyToUserAndSelf, messages.get(0));
+		assertEquals(userReplyToOtherAndSelf, messages.get(1));
+		assertEquals(otherReplyToUser, messages.get(2));
+		assertEquals(userToOther, messages.get(3));
 		
-		QueryResults<MessageToUser> whatTheOtherUserSees = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
+		List<MessageToUser> whatTheOtherUserSees = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("The users have the same privileges regarding the thread's visibility", messages, whatTheOtherUserSees);
 	}
 	
 	@Test
 	public void testGetInbox_BeforeSending() throws Exception {
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(1L, messages.getTotalNumberOfResults());
-		assertEquals(1, messages.getResults().size());
-		assertEquals(otherReplyToUser, messages.getResults().get(0).getMessage());
+		assertEquals(1, messages.size());
+		assertEquals(otherReplyToUser, messages.get(0).getMessage());
 		
 		messages = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(1L, messages.getTotalNumberOfResults());
-		assertEquals(1, messages.getResults().size());
-		assertEquals(userToOther, messages.getResults().get(0).getMessage());
+		assertEquals(1, messages.size());
+		assertEquals(userToOther, messages.get(0).getMessage());
 	}
 	
 	@Test
 	public void testGetInbox_AfterSending() throws Exception {
 		sendUnsentMessages(false);
 		
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(4L, messages.getTotalNumberOfResults());
-		assertEquals(4, messages.getResults().size());
-		assertEquals(userToSelfAndGroup, messages.getResults().get(0).getMessage());
-		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(1).getMessage());
-		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(2).getMessage());
-		assertEquals(otherReplyToUser, messages.getResults().get(3).getMessage());
+		assertEquals(4, messages.size());
+		assertEquals(userToSelfAndGroup, messages.get(0).getMessage());
+		assertEquals(otherReplyToUserAndSelf, messages.get(1).getMessage());
+		assertEquals(userReplyToOtherAndSelf, messages.get(2).getMessage());
+		assertEquals(otherReplyToUser, messages.get(3).getMessage());
 		
 		messages = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(3L, messages.getTotalNumberOfResults());
-		assertEquals(3, messages.getResults().size());
-		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0).getMessage());
-		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1).getMessage());
-		assertEquals(userToOther, messages.getResults().get(2).getMessage());
+		assertEquals(3, messages.size());
+		assertEquals(otherReplyToUserAndSelf, messages.get(0).getMessage());
+		assertEquals(userReplyToOtherAndSelf, messages.get(1).getMessage());
+		assertEquals(userToOther, messages.get(2).getMessage());
 	}
 	
 	@Test
 	public void testGetOutbox() throws Exception {
-		QueryResults<MessageToUser> messages = messageManager.getOutbox(testUser, 
+		List<MessageToUser> messages = messageManager.getOutbox(testUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("All sent messages should appear in the outbox regardless of sending status", 3L, messages.getTotalNumberOfResults());
-		assertEquals(3, messages.getResults().size());
-		assertEquals(userToSelfAndGroup, messages.getResults().get(0));
-		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1));
-		assertEquals(userToOther, messages.getResults().get(2));
+		assertEquals(3, messages.size());
+		assertEquals(userToSelfAndGroup, messages.get(0));
+		assertEquals(userReplyToOtherAndSelf, messages.get(1));
+		assertEquals(userToOther, messages.get(2));
 		
 		sendUnsentMessages(false);
 		
-		QueryResults<MessageToUser> afterSending = messageManager.getOutbox(testUser, 
+		List<MessageToUser> afterSending = messageManager.getOutbox(testUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(messages, afterSending);
 	}
 	
 	@Test
 	public void testSendMessage_DoesntFailOnResend() throws Exception {
-		QueryResults<MessageBundle> messages = messageManager.getInbox(otherTestUser, 
+		List<MessageBundle> messages = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(1L, messages.getTotalNumberOfResults());
-		assertEquals(1, messages.getResults().size());
+		assertEquals(1, messages.size());
 		
 		messageManager.processMessage(userToOther.getId(), null);
 		messageManager.processMessage(userToOther.getId(), null);
@@ -612,8 +602,7 @@ public class MessageManagerImplTest {
 		// Multiple calls to sendMessage do nothing
 		messages = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(1L, messages.getTotalNumberOfResults());
-		assertEquals(1, messages.getResults().size());
+		assertEquals(1, messages.size());
 	}
 	
 	@Test
@@ -654,9 +643,9 @@ public class MessageManagerImplTest {
 		assertEquals(0, errors.size());
 		
 		// The last message should show up in the testUser's inbox, even though the testUser was not in the recipient list
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+		List<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
+		assertEquals(otherToGroup, messages.get(0).getMessage());
 	}
 	
 	@Test
@@ -728,9 +717,9 @@ public class MessageManagerImplTest {
 		
 		// With default settings, the message should appear in the user's inbox
 		MessageToUser message = createMessage(otherTestUser, "message1", testUserIdSet, null);
-		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		
 		// Emails are sent by default
 		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
@@ -742,10 +731,10 @@ public class MessageManagerImplTest {
 		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		inbox = messageManager.getInbox(testUser, 
 				new ArrayList<MessageStatusType>() {{add(MessageStatusType.READ);}}, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message2, inbox.getResults().get(0).getMessage());
+		assertEquals(message2, inbox.get(0).getMessage());
 		
 		// If you disable the sending of emails, the auto-READ-marking gets disabled too
 		profile.getNotificationSettings().setSendEmailNotifications(false);
@@ -755,7 +744,7 @@ public class MessageManagerImplTest {
 		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message3, inbox.getResults().get(0).getMessage());
+		assertEquals(message3, inbox.get(0).getMessage());
 	}
 	
 	@Test
@@ -787,9 +776,9 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 		
 		// Check the test user's inbox
-		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		
 		// Case #2 - Creator can't share
 		// Have the admin give transfer the sharing permission to the other user
@@ -810,7 +799,7 @@ public class MessageManagerImplTest {
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		
 		// Case #3 - Creator and other can share
 		// Have the admin give sharing permission back to the creator
@@ -830,7 +819,7 @@ public class MessageManagerImplTest {
 		// Check the test user's inbox
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		
 		// Case #4 - Nobody can share
 		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
@@ -867,9 +856,9 @@ public class MessageManagerImplTest {
 		cleanup.add(message.getId());
 		
 		// Check the test user's inbox
-		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+		List<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(message, inbox.getResults().get(0).getMessage());
+		assertEquals(message, inbox.get(0).getMessage());
 		
 	}
 	

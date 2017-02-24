@@ -1,7 +1,6 @@
 package org.sagebionetworks.reflection.model;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
@@ -10,21 +9,15 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
- * Generic class used to encapsulate a paginated list of results of objects of
- * any type.
- * <p>
- * 
- * This class has been annotated to produce XML in addition to JSON.
- * <p>
- * 
- * @param <T>
- *            the type of result to paginate
+ * Calculating the actual totalNumberOfResults is not longer supported.
+ * Instead, a NextPageToken should be used for pagination.
  */
+@Deprecated
 public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		
 	private static final String CONCRETE_TYPE = "concreteType";
 
-	public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.model.PaginatedResults\",\"description\":\"JSON schema for Row POJO\",\"name\":\"PaginatedResults\",\"properties\":{\"totalNumberOfResults\":{\"description\":\"The total number of results for this query\",\"type\":\"integer\"},\"results\":{\"items\":{\"id\":\"org.sagebionetworks.repo.model.Entity\",\"description\":\"This is the base interface that all Entities should implement\",\"name\":\"Entity\",\"properties\":{\"id\":{\"description\":\"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued\",\"type\":\"string\"},\"createdOn\":{\"description\":\"The date this entity was created.\",\"format\":\"date-time\",\"type\":\"string\"},\"modifiedOn\":{\"description\":\"The date this entity was last modified.\",\"format\":\"date-time\",\"type\":\"string\"},\"parentId\":{\"description\":\"The ID of the parent of this entity\",\"type\":\"string\"},\"etag\":{\"description\":\"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.\",\"type\":\"string\"},\"createdBy\":{\"description\":\"The user that created this entity.\",\"type\":\"string\"},\"accessControlList\":{\"description\":\"The URI to get to this entity's access control list\",\"transient\":true,\"type\":\"string\"},\"description\":{\"description\":\"The description of this entity.\",\"type\":\"string\"},\"modifiedBy\":{\"description\":\"The user that last modified this entity.\",\"type\":\"string\"},\"name\":{\"description\":\"The name of this entity\",\"type\":\"string\"},\"annotations\":{\"description\":\"The URI to get to this entity's annotations\",\"transient\":true,\"type\":\"string\"},\"uri\":{\"description\":\"The Uniform Resource Identifier (URI) for this entity.\",\"transient\":true,\"type\":\"string\"}},\"type\":\"interface\"},\"description\":\"The the id of the entity to which this reference refers\",\"type\":\"array\"}},\"type\":\"object\"}";
+	public final static String EFFECTIVE_SCHEMA = "{\"id\":\"org.sagebionetworks.repo.model.PaginatedResults\",\"description\":\"JSON schema for Row POJO\",\"name\":\"PaginatedResults\",\"properties\":{\"totalNumberOfResults\":{\"description\":\"Calculating the actual totalNumberOfResults is not longer supported. Therefore, for each page, the totalNumberOfResults is estimated using the current page, limit, and offset. When the page size equals the limit, the totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the totalNumberOfResults will be offset+pageSize.\",\"type\":\"integer\"},\"results\":{\"items\":{\"id\":\"org.sagebionetworks.repo.model.Entity\",\"description\":\"This is the base interface that all Entities should implement\",\"name\":\"Entity\",\"properties\":{\"id\":{\"description\":\"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued\",\"type\":\"string\"},\"createdOn\":{\"description\":\"The date this entity was created.\",\"format\":\"date-time\",\"type\":\"string\"},\"modifiedOn\":{\"description\":\"The date this entity was last modified.\",\"format\":\"date-time\",\"type\":\"string\"},\"parentId\":{\"description\":\"The ID of the parent of this entity\",\"type\":\"string\"},\"etag\":{\"description\":\"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.\",\"type\":\"string\"},\"createdBy\":{\"description\":\"The user that created this entity.\",\"type\":\"string\"},\"accessControlList\":{\"description\":\"The URI to get to this entity's access control list\",\"transient\":true,\"type\":\"string\"},\"description\":{\"description\":\"The description of this entity.\",\"type\":\"string\"},\"modifiedBy\":{\"description\":\"The user that last modified this entity.\",\"type\":\"string\"},\"name\":{\"description\":\"The name of this entity\",\"type\":\"string\"},\"annotations\":{\"description\":\"The URI to get to this entity's annotations\",\"transient\":true,\"type\":\"string\"},\"uri\":{\"description\":\"The Uniform Resource Identifier (URI) for this entity.\",\"transient\":true,\"type\":\"string\"}},\"type\":\"interface\"},\"description\":\"The the id of the entity to which this reference refers\",\"type\":\"array\"}},\"type\":\"object\"}";
 
 	private static final long serialVersionUID = 1L;
 
@@ -38,29 +31,89 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	}
 
 	/**
-	 * Default constructor
+	 * Should not be public. Use one of the static create methods.
 	 */
-	public PaginatedResults(Class<? extends T> clazz) {
+	PaginatedResults(Class<? extends T> clazz) {
 		this.clazz = (Class<T>) clazz;
 	}
 	
 	/**
-	 * The simple constructor.
+	 * Should not be public. Use one of the static create methods.
 	 * @param results
-	 * @param totalNumberOfResults
 	 */
-	public PaginatedResults(List<T> results, long totalNumberOfResults){
+	PaginatedResults(List<T> results) {
 		this.results = results;
-		this.totalNumberOfResults = totalNumberOfResults;
 	}
-
-	public PaginatedResults(JSONObjectAdapter jsonObject) {
-		this.results = new LinkedList();
-		try {
-			initializeFromJSONObject(jsonObject);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e.getMessage());
+	
+	/**
+	 * Since we no longer support calculating the actual totalNumberOfResults
+	 * for each page, we estimate totalNumberOfResults using the current page,
+	 * limit, and offset. When the page size equals the limit, the
+	 * totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the
+	 * totalNumberOfResults will be offset+pageSize.
+	 * 
+	 * @param page
+	 *            The page to be returned.
+	 * @param limit
+	 *            The limit used to fetch the page.
+	 * @param offset
+	 *            The offset used to fetch the page.
+	 * @return
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createWithLimitAndOffset(List<T> page, Long limit, Long offset){
+		if(page == null){
+			throw new IllegalArgumentException("Page cannot be null");
 		}
+		if(limit == null){
+			throw new IllegalArgumentException("Limit cannot be null");
+		}
+		if(offset == null){
+			throw new IllegalArgumentException("Offset cannot be null");
+		}
+		PaginatedResults<T> results = new PaginatedResults<T>(page);
+		if(page.size() >= limit){
+			results.setTotalNumberOfResults(offset+page.size()+1);
+		}else{
+			results.setTotalNumberOfResults(offset+page.size());
+		}
+		return results;
+	}
+	
+	/**
+	 * PaginatedResult has been misused for services that are not actually
+	 * paginated. If a service does no include the parameters: limit and offset,
+	 * then the service is not paginated and should not return PaginatedResults.
+	 * This method is only provided as a 'hack' for cases where PaginatedResults
+	 * has already been misused. This method should be used not to support new
+	 * services.
+	 * 
+	 * For this case totalNumberOfResults will be set to the size of the page.
+	 * 
+	 * @param page
+	 * @return
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createMisusedPaginatedResults(
+			List<T> page) {
+		if (page == null) {
+			throw new IllegalArgumentException("Page cannot be null");
+		}
+		PaginatedResults<T> results = new PaginatedResults<T>(page);
+		results.setTotalNumberOfResults(page.size());
+		return results;
+	}
+	
+	/**
+	 * Create from JSONObjectAdapter
+	 * @param json
+	 * @param clazz
+	 * @return
+	 * @throws JSONException
+	 * @throws JSONObjectAdapterException
+	 */
+	public static <T extends JSONEntity> PaginatedResults<T> createFromJSONObjectAdapter(JSONObjectAdapter adapter, Class<? extends T> clazz) throws JSONObjectAdapterException{
+		PaginatedResults<T> results = new PaginatedResults<T>(clazz);
+		results.initializeFromJSONObject(adapter);
+		return results;
 	}
 
 	/**

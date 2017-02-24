@@ -123,7 +123,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_GET_CURRENT_WIKI_MARKDOWN_ATTACHMENT_LIST = "SELECT WM."+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM, "+V2_TABLE_WIKI_PAGE+" WP WHERE WP."+V2_COL_WIKI_ID+" = ? AND WM."+V2_COL_WIKI_MARKDOWN_ID+" = WP."+V2_COL_WIKI_ID+" AND WP."+V2_COL_WIKI_MARKDOWN_VERSION+" = WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String WIKI_HEADER_SELECT = V2_COL_WIKI_ID+", "+V2_COL_WIKI_TITLE+", "+V2_COL_WIKI_PARENT_ID;
-	private static final String SQL_SELECT_CHILDREN_HEADERS = "SELECT "+WIKI_HEADER_SELECT+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ROOT_ID+" = ? ORDER BY "+V2_COL_WIKI_PARENT_ID+", "+V2_COL_WIKI_TITLE;
+	private static final String SQL_SELECT_CHILDREN_HEADERS = "SELECT "+WIKI_HEADER_SELECT+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ROOT_ID+" = ? ORDER BY "+V2_COL_WIKI_PARENT_ID+", "+V2_COL_WIKI_TITLE+" LIMIT ? OFFSET ?";
 	private static final String SQL_LOCK_FOR_UPDATE = "SELECT "+V2_COL_WIKI_ETAG+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? FOR UPDATE";
 	private static final String SQL_LOCK_OWNERS_FOR_UPDATE = "SELECT "+V2_COL_WIKI_OWNERS_ETAG+" FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" = ? FOR UPDATE";
 	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+V2_TABLE_WIKI_PAGE;
@@ -629,10 +629,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(key == null) throw new IllegalArgumentException("WikiPage key cannot be null");
 		if(doesExist(key.getWikiPageId())) {
 			// Get all versions of a wiki page
-			List<V2WikiHistorySnapshot> history = jdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
-
-			if(history.size() < 1) throw new DatastoreException("No history is found for a wiki page of id: " + key.getWikiPageId());
-			return history;
+			return jdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
 		} else {
 			throw new NotFoundException("Wiki page with id: " + key.getWikiPageId() + " does not exist.");
 	
@@ -661,12 +658,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 
 	@Override
-	public List<V2WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType)
+	public List<V2WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType, Long limit, Long offset)
 			throws DatastoreException, NotFoundException {
+		ValidateArgument.required(ownerId, "ownerId");
+		ValidateArgument.required(ownerType, "ownerType");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		// First look up the root for this owner
 		Long root = getRootWiki(ownerId, ownerType);
 		// Now use the root to the the full tree
-		return jdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root, limit, offset);
 	}
 	
 	/**

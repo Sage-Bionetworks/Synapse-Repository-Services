@@ -182,7 +182,7 @@ public class EvaluationController extends BaseController {
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
@@ -220,7 +220,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
@@ -258,7 +258,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
@@ -452,7 +452,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Participant> getAllParticipants(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@PathVariable String evalId,
 			HttpServletRequest request
@@ -782,7 +782,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -796,7 +796,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Submission> getAllSubmissions(
 			@PathVariable String evalId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
@@ -830,7 +830,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param statusString
 	 * @param request
 	 * @return
@@ -843,7 +843,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
 			@PathVariable String evalId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
@@ -873,7 +873,7 @@ public class EvaluationController extends BaseController {
 	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
+	 *            page. When null it will default to 10, max value 100.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -887,7 +887,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<SubmissionBundle> getAllSubmissionBundles(
 			@PathVariable String evalId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
@@ -925,7 +925,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Submission> getMySubmissions(
 			@PathVariable String evalId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
@@ -960,7 +960,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<SubmissionBundle> getMySubmissionBundles(
 			@PathVariable String evalId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request

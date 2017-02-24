@@ -29,7 +29,6 @@
 		<module>lib</module>
 		<module>services</module>
 		<module>client</module>
-		<module>tools</module>
 		<module>integration-test</module>
 	</modules>
 
@@ -475,12 +474,6 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>auth-util</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>tool-migration-utility</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 

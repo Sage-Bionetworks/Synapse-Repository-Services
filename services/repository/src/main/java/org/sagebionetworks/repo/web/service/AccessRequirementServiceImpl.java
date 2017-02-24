@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.List;
+
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -61,11 +63,11 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 	
-		QueryResults<AccessRequirement> results = 
+		List<AccessRequirement> results = 
 			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
-		
-		return new PaginatedResults<AccessRequirement>(results.getResults(),
-				(int)results.getTotalNumberOfResults());
+
+		// This services is not actually paginated so PaginatedResults is being misused.
+		return PaginatedResults.createMisusedPaginatedResults(results);
 	}
 	
 	@Override
@@ -86,11 +88,11 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
-		QueryResults<AccessRequirement> results = 
+		List<AccessRequirement> results = 
 			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
 		
-		return new PaginatedResults<AccessRequirement>(results.getResults(),
-				(int)results.getTotalNumberOfResults());
+		// This services is not actually paginated so PaginatedResults is being misused.
+		return PaginatedResults.createMisusedPaginatedResults(results);
 	}
 	
 	@WriteTransaction

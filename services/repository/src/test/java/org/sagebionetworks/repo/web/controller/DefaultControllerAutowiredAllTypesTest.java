@@ -635,7 +635,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				long previousVersion = currentVersion-1;
 				long firstVersion = 1;
 				// Now get all entities
-				PaginatedResults<VersionInfo> results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100,
+				PaginatedResults<VersionInfo> results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 0, 100,
 						userId);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
@@ -648,7 +648,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				assertEquals(new Long(firstVersion), results.getResults().get(results.getResults().size()-1).getVersionNumber());
 				
 				// Query again but this time get a sub-set
-				results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 2, 3, userId);
+				results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 3, userId);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());

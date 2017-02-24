@@ -1007,9 +1007,7 @@ public class EntityController extends BaseController {
 	 *            The ID of the Entity to get all versions for.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            When null it will default to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -1025,14 +1023,9 @@ public class EntityController extends BaseController {
 	PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-
-		if (limit == null) {
-			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
-		}
-
 		// Determine the object type from the url.
 		PaginatedResults<VersionInfo> results = serviceProvider
 				.getEntityService().getAllVersionsOfEntity(userId, offset,

@@ -43,7 +43,6 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -404,7 +403,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(file.getId());
-		PaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		PaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -414,7 +413,7 @@ public class IT500SynapseJavaClient {
 		
 		synapseTwo.createAccessApproval(aa);
 		
-		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
@@ -769,7 +768,7 @@ public class IT500SynapseJavaClient {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(layer.getId());
-		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -778,7 +777,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
 		// check that access type param works
-		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD));
+		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L));
 		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
@@ -790,7 +789,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
 		
 		// get unmet requirements -- should be empty
-		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD);
+		ars = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L);
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
@@ -942,6 +941,29 @@ public class IT500SynapseJavaClient {
 		// Wait for the query
 		waitForQuery(queryString);
 	}
+
+	@Test
+	public void testGetQueryWithNoOffset() throws SynapseException, InterruptedException, JSONException{
+		JSONObject noOffset = waitForQuery("select id from entity");
+		assertEquals(2, noOffset.get("totalNumberOfResults"));
+		assertTrue(noOffset.get("results").toString().contains(project.getId()));
+		assertTrue(noOffset.get("results").toString().contains(dataset.getId()));
+	}
+
+	@Test
+	public void testGetQueryWithOffset1() throws SynapseException, InterruptedException, JSONException{
+		JSONObject offset1 = waitForQuery("select id from entity offset 1");
+		assertEquals(2, offset1.get("totalNumberOfResults"));
+		assertTrue(offset1.get("results").toString().contains(project.getId()));
+		assertTrue(offset1.get("results").toString().contains(dataset.getId()));
+	}
+
+	@Test (expected=SynapseBadRequestException.class)
+	public void testGetQueryWithOffset0() throws SynapseException, InterruptedException, JSONException{
+		String queryString = "select id from entity offset 0";
+		// Wait for the query
+		waitForQuery(queryString);
+	}
 	
 	/**
 	 * Helper 
@@ -1065,7 +1087,7 @@ public class IT500SynapseJavaClient {
 		// need to update cache.  the service to trigger an update
 		// requires admin privileges, so we log in as an admin:
 		teams = waitForTeams(name.substring(0, 3),1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(2L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// again, make sure pagination works
 		teams = waitForTeams(name.substring(0, 3), 10, 1);
@@ -1077,7 +1099,7 @@ public class IT500SynapseJavaClient {
 		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = waitForTeamMembers(updatedTeam.getId(), null, 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
@@ -1123,7 +1145,7 @@ public class IT500SynapseJavaClient {
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = myProfile.getUserName();
 		members = waitForTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
@@ -1145,12 +1167,12 @@ public class IT500SynapseJavaClient {
 
 		// query for team members.  should get creator as well as new member back
 		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(3L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1160,7 +1182,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		
 		members = waitForTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1193,7 +1215,7 @@ public class IT500SynapseJavaClient {
 		
 		// query for teams based on member's id
 		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(2L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
 		synapseOne.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
@@ -1271,11 +1293,11 @@ public class IT500SynapseJavaClient {
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
@@ -1284,15 +1306,15 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 	}
 
 	@Test
@@ -1314,7 +1336,6 @@ public class IT500SynapseJavaClient {
 		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
-		String inviteeEmail = inviteeEmails.get(0);
 		
 		String inviteePrincipalId = inviteeUserProfile.getOwnerId();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);

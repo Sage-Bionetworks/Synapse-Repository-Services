@@ -270,15 +270,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testEvaluationRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		Long initialCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
+		int initialCount = synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size();
 		
 		// Create Evaluation
 		eval1 = synapseOne.createEvaluation(eval1);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size());
 
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
@@ -293,14 +293,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 		
 		// Create AccessApproval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
@@ -308,26 +308,26 @@ public class IT520SynapseJavaClientEvaluationTest {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 	}
 	
 	@Test
 	public void testEvaluationRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		Long initialCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
+		int initialCount = synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size();
 		
 		// Create
 		eval1 = synapseOne.createEvaluation(eval1);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size());
 		
 		// Read
 		Evaluation fetched = synapseOne.getEvaluation(eval1.getId());
@@ -355,7 +355,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		} catch (SynapseException e) {
 			// expected
 		}
-		assertEquals(initialCount, (Long) synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults());
+		assertEquals(initialCount, synapseOne.getAvailableEvaluationsPaginated(100, 0).getResults().size());
 	}
 	
 	@Test
@@ -389,7 +389,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String entityFileHandleId = fileEntity.getDataFileHandleId();
 		assertNotNull(entityId);
 		
-		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
+		int initialCount = synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size();
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -398,8 +398,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
 		
 		// read
 		Submission clone = synapseOne.getSubmission(sub1.getId());
@@ -447,7 +447,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.getAnnotations().setObjectId(sub1.getId());
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
-		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
 		
 		status = statusClone; // 'status' is, once again, the current version
 		SubmissionStatusBatch batch = new SubmissionStatusBatch();
@@ -472,7 +472,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		} catch (SynapseException e) {
 			// expected
 		}
-		assertEquals(initialCount, synapseOne.getSubmissionCount(eval1.getId()));
+		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
 	}
 	
 	private static SubmissionQuota createSubmissionQuota() {
@@ -513,7 +513,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		String entityEtag = fileEntity.getEtag();
 		assertNotNull(entityId);
 		
-		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
+		int initialCount = synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size();
 		
 		// let's register for the challenge!
 		Team myTeam = createParticipantTeam();
@@ -544,8 +544,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
 		
 		Submission clone = synapseOne.getSubmission(sub1.getId());
 		assertEquals(myTeam.getId(), clone.getTeamId());
@@ -681,7 +681,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(entityId);
 		entitiesToDelete.add(entityId);
 		
-		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
+		int initialCount = synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size();
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
@@ -690,8 +690,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 				MOCK_CHALLENGE_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		int newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getAllSubmissions(eval1.getId(), 0, 100).getResults().size());
 		
 		// read
 		sub1 = synapseOne.getSubmission(sub1.getId());
@@ -717,7 +717,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		} catch (SynapseException e) {
 			// expected
 		}
-		assertEquals(initialCount, synapseOne.getSubmissionCount(eval1.getId()));
+		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
 	}
 	
 	@Test

@@ -164,7 +164,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
@@ -265,7 +265,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			@RequestParam(value = UrlHelpers.PREFIX_FILTER, required = false) String prefixFilter,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
@@ -385,7 +385,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getFavorites(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
@@ -410,8 +410,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getUserProfileService().getProjects(userId, null, null, type, sortColumn, sortDirection, limit, offset);
 	}
@@ -430,8 +430,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getUserProfileService().getProjects(userId, null, teamId, type, sortColumn, sortDirection, limit, offset);
 	}
@@ -450,8 +450,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_PARAM, required = false) ProjectListSortColumn sortColumn,
 			@RequestParam(value = UrlHelpers.PROJECTS_SORT_DIRECTION_PARAM, required = false) SortDirection sortDirection,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getUserProfileService().getProjects(userId, principalId, null, type, sortColumn, sortDirection, limit, offset);
 	}

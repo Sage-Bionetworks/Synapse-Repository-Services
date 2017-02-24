@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -142,8 +145,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@RequiresNewReadCommitted
 	@Override
 	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, String errorDetails)
+			String resetToken, Exception error)
 			throws ConflictingUpdateException, NotFoundException {
+		String errorMessage = error.getMessage();
+		StringWriter writer = new StringWriter();
+		error.printStackTrace(new PrintWriter(writer));
+		String errorDetails = writer.toString();
 		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
 	}
 
@@ -475,5 +482,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) {
 		return columnModelDao.getColumnModel(ids, keepOrder);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void rebuildTable(UserInfo userInfo, String tableId) {
+		if (!userInfo.isAdmin())
+			throw new UnauthorizedException("Only an administrator may access this service.");
+		// purge
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		if (indexDao != null) {
+			indexDao.deleteTable(tableId);
+			indexDao.deleteSecondaryTables(tableId);
+		}
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing(tableId);
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(getTableType(tableId));
+		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
+		message.setObjectEtag(resetToken);
+		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 }

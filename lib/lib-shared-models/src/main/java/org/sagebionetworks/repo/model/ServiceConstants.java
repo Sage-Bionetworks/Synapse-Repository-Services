@@ -39,20 +39,11 @@ public class ServiceConstants {
 	 * Default value for offset parameter used RequestParam annotations which
 	 * require a static string
 	 */
-	@Deprecated
-	// SEE: PLFM-972
-	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE = "1";
+	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "0";
 
-	/**
-	 * As PLFM-972 points out offsets should start at zero not one.
-	 */
-	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NEW = "0";
 	/**
 	 * Default value for offset parameter
 	 */
-	public static final Long DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE = new Long(
-			DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE);
-	
 	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(0);
 
 	/**
@@ -195,29 +186,6 @@ public class ServiceConstants {
 	 * The generatedBy provenance parameter
 	 */
 	public static final String GENERATED_BY_PARAM = "generatedBy";
-
-	
-	/**
-	 * Utility method to sanity check pagination parameters, using incorrect legacy definition
-	 * of '1' for no offset
-	 * <p>
-	 * 
-	 * @param offset
-	 * @param limit
-	 * @throws IllegalArgumentException
-	 */
-	public static void validatePaginationParamsNoOffsetEqualsOne(Long offset, Long limit)
-			throws IllegalArgumentException {
-		if (1 > offset) {
-			throw new IllegalArgumentException(
-					"pagination offset must be 1 or greater");
-		}
-		if (1 > limit) {
-			throw new IllegalArgumentException(
-					"pagination limit must be 1 or greater");
-		}
-		return;
-	}
 
 	/**
 	 * Utility method to sanity check pagination parameters

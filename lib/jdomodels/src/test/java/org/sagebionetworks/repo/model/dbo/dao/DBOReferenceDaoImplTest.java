@@ -186,13 +186,11 @@ public class DBOReferenceDaoImplTest {
 		
 		UserInfo userInfo = new UserInfo(true/*is admin*/);
 		// both should refer to id=123
-		QueryResults<EntityHeader> ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
-		long count = ehqr.getTotalNumberOfResults();
-		Collection<EntityHeader> referrers = ehqr.getResults();
+		List<EntityHeader> ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
+		Collection<EntityHeader> referrers = ehqr;
 		Set<String> expected = new HashSet<String>(); 
 		// Make sure our referrers have the syn prefix
 		expected.add(KeyFactory.keyToString(node0.getId())); expected.add(KeyFactory.keyToString(node1.getId()));
-		assertEquals(2, count);
 		assertEquals(expected, justIds(referrers));
 		
 		// now make the second node refer to a different revision of 123
@@ -205,30 +203,24 @@ public class DBOReferenceDaoImplTest {
 		}
 		
 		// only the first node refers to revision 1
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0L, 1000L);
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		expected.add(KeyFactory.keyToString(node0.getId()));
-		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 		
 		// only the second node refers to revision 2
 		ehqr = dboReferenceDao.getReferrers(123L, 2, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		expected.add(KeyFactory.keyToString(node1.getId()));
-		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 		
 		// if we are revision-agnostic, both should still refer to id=123
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		expected.add(KeyFactory.keyToString(node0.getId())); expected.add(KeyFactory.keyToString(node1.getId()));
-		assertEquals(2, count);
 		assertEquals(expected, justIds(referrers));
 		
 		// ask for a specific version when the *reference* leaves the version blank:
@@ -243,11 +235,9 @@ public class DBOReferenceDaoImplTest {
 		
 		// only the first node refers to revision 1.
 		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		expected.add(KeyFactory.keyToString(node0.getId()));
-		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 
 		// check authorization
@@ -300,8 +290,7 @@ public class DBOReferenceDaoImplTest {
 		
 		// now should only find referrers which allow the created group
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		expected.add(KeyFactory.keyToString(node0.getId()));
 		assertEquals(expected, justIds(referrers));
@@ -315,15 +304,13 @@ public class DBOReferenceDaoImplTest {
 			// Now save to the DB
 			dboReferenceDao.replaceReference(node1.getId(), ref);
 		}
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0L, 1000L);
+		referrers = ehqr;
 		assertEquals(expected, justIds(referrers));
 		
 		// if you refer to the wrong version, you get nothing back
 		ehqr = dboReferenceDao.getReferrers(123L, 99, userInfo, null, null);
-		count = ehqr.getTotalNumberOfResults();
-		referrers = ehqr.getResults();
+		referrers = ehqr;
 		expected = new HashSet<String>(); 
 		assertEquals(expected, justIds(referrers));
 	}

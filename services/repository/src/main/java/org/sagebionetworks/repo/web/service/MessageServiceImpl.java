@@ -73,9 +73,9 @@ public class MessageServiceImpl implements MessageService {
 			boolean descending, long limit, long offset, String urlPath)
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<MessageBundle> messages = messageManager.getInbox(
+		List<MessageBundle> messages = messageManager.getInbox(
 				userInfo, inclusionFilter, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageBundle>(messages.getResults(), messages.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(messages, limit, offset);
 	}
 
 	@Override
@@ -83,9 +83,9 @@ public class MessageServiceImpl implements MessageService {
 			MessageSortBy sortBy, boolean descending, long limit, long offset,
 			String urlPath) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<MessageToUser> messages = messageManager.getOutbox(
+		List<MessageToUser> messages = messageManager.getOutbox(
 				userInfo, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageToUser>(messages.getResults(), messages.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(messages, limit, offset);
 	}
 
 	@Override
@@ -107,9 +107,9 @@ public class MessageServiceImpl implements MessageService {
 			String messageId, MessageSortBy sortBy, boolean descending,
 			long limit, long offset, String urlPath) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<MessageToUser> messages = messageManager.getConversation(
+		List<MessageToUser> messages = messageManager.getConversation(
 				userInfo, messageId, sortBy, descending, limit, offset);
-		return new PaginatedResults<MessageToUser>(messages.getResults(), messages.getTotalNumberOfResults());
+		return PaginatedResults.createWithLimitAndOffset(messages, limit, offset);
 	}
 
 	@Override

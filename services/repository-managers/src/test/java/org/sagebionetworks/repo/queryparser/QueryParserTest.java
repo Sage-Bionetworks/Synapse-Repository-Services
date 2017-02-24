@@ -239,23 +239,10 @@ public class QueryParserTest {
 	 */
 	@Test
 	public void testDefaultOffset() throws Exception {
-
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset");
 		assertEquals("dataset", stmt.getTableName());
 		assertEquals(new Long(0), stmt.getOffset());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDefaultOffsetNoneEqualsOne() throws Exception {
-
-		QueryStatement stmt = new QueryStatement(
-				"select * from dataset", true);
-		assertEquals("dataset", stmt.getTableName());
-		assertEquals(new Long(1), stmt.getOffset());
 	}
 
 	/**
