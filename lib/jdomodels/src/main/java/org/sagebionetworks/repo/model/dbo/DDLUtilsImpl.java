@@ -20,6 +20,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public class DDLUtilsImpl implements DDLUtils{
 	
+	private static final String DROP_FUNCTION_IF_EXISTS = "DROP function IF EXISTS `%1s`;";
+
 	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
 	// Determine if the table exists
@@ -125,7 +127,18 @@ public class DDLUtilsImpl implements DDLUtils{
 			// This means the table does not exist
 			return 0;			
 		}
+	}
+	
 
+	@Override
+	public void createFunction(String functionName, String fileName)
+			throws IOException {
+		log.info("Creating/Updating function: "+functionName);
+		// drop the function if it exists
+		jdbcTemplate.update(String.format(DROP_FUNCTION_IF_EXISTS, functionName));
+		String functionDefinition = loadSchemaSql(fileName);
+		// create the function from its definition
+		jdbcTemplate.update(functionDefinition);
 	}
 
 }

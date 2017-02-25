@@ -39,7 +39,26 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	 */
 	private List<DatabaseObject> databaseObjectRegister;
 	
-	
+	/**
+	 * Map of MySQL function names to function definition file names used
+	 * to create/update MySQL functions.
+	 * 
+	 * Injected via Spring
+	 * 
+	 */
+	private Map<String, String> functionMap;
+
+	/**
+	 * Map of MySQL function names to function definition file names used
+	 * to create/update MySQL functions.
+	 * 
+	 * Injected via Spring
+	 * 
+	 */
+	public void setFunctionMap(Map<String, String> functionMap) {
+		this.functionMap = functionMap;
+	}
+
 	/**
 	 * Injected via spring
 	 * @param databaseObjectRegister
@@ -91,6 +110,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			String update = DMLUtils.createUpdateStatment(mapping);
 			updateMap.put(mapping.getDBOClass(), update);
 			this.classToMapping.put(mapping.getDBOClass(), dbo.getTableMapping());
+		}
+		
+		/**
+		 * Create all functions that should be created.
+		 */
+		for(String functionName: functionMap.keySet()){
+			ddlUtils.createFunction(functionName, functionMap.get(functionName));
 		}
 	}
 

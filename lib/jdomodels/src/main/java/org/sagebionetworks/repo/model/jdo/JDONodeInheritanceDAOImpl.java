@@ -65,7 +65,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	}
 
 	@Override
-	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
+	public String getBenefactorCached(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
 			long benefactorId = jdbcTemplate.queryForObject(SELECT_BENEFACTOR, Long.class, KeyFactory.stringToKey(beneficiaryId));
 			return KeyFactory.keyToString(benefactorId);
@@ -96,6 +96,16 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		}
 		transactionalMessenger.sendMessageAfterCommit(beneficiary, ChangeType.UPDATE);
 		dboBasicDao.update(beneficiary);
+	}
+
+	@Override
+	public String getBenefactor(String beneficiaryId) {
+		Long id = KeyFactory.stringToKey(beneficiaryId);
+		Long benefactorId = jdbcTemplate.queryForObject("SELECT getEntityBenefactor(?)", Long.class, id);
+		if(benefactorId == null){
+			throw new NotFoundException("Benefactor not found for: "+beneficiaryId);
+		}
+		return KeyFactory.keyToString(benefactorId);
 	}
 
 

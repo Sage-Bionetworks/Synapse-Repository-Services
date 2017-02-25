@@ -12,7 +12,7 @@ public interface NodeInheritanceManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	String getBenefactor(String nodeId) throws NotFoundException, DatastoreException;
+	String getBenefactorCached(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * When a node's parent has changed, sets the node and its descendants to the nearest benefactor.

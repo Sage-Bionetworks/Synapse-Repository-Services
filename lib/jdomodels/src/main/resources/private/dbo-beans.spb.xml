@@ -125,6 +125,17 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 			</list>
 		</property>
+		<!-- MySQL Functions to be created/updated -->
+		<property name="functionMap">
+			<map>
+				<entry>
+					<key>
+						<value>getEntityBenefactor</value>
+					</key>
+					<value>schema/functions/GetEntityBenefactor.ddl.sql</value>
+				</entry>
+			</map>
+		</property>
 	</bean>
 
 	<!-- register for primary migration objects.  The order of this list determines migration order.-->

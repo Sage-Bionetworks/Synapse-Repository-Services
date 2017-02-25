@@ -46,7 +46,7 @@ public class EntityBootstrapperAutowireTest {
 			assertNotNull(id);
 			Node node = nodeDao.getNode(id);
 			assertNotNull(node);
-			String benenefactorId = nodeInheritanceDao.getBenefactor(id);
+			String benenefactorId = nodeInheritanceDao.getBenefactorCached(id);
 			// This node should inherit from itself
 			assertEquals("A bootstrapped node should be its own benefactor",id, benenefactorId);
 			

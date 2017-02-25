@@ -278,7 +278,7 @@ public class MessageManagerImpl implements MessageManager {
 		// No permission checks since we only need to find the IDs of the creator of the node
 		//   (or anyone with CHANGE_PERMISSIONS access)
 		Node entity = nodeDAO.getNode(entityId);
-		String benefactor = nodeInheritanceManager.getBenefactor(entityId);		
+		String benefactor = nodeInheritanceManager.getBenefactorCached(entityId);		
 		AccessControlList acl = entityPermissionsManager.getACL(benefactor, userInfo);
 		
 		// Find all users with permission to change permissions

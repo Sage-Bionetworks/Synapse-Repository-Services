@@ -859,6 +859,11 @@ public class SqlConstants {
 	public static final int MAX_ALLOWED_PACKET_BYTES = 16777216;
 	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
 	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
+	
+	/**
+	 * Function names:
+	 */
+	public static final String FUNCTION_GET_ENTITY_BENEFACTOR = "getEntityBenefactor";
 
 	static{
 		// Map column names to the field names

@@ -302,7 +302,7 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 		
 		// Since this node has no parent, it should be its own benefactor.
-		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
+		String benefactorId = nodeInheritanceDAO.getBenefactorCached(id);
 		assertEquals(id, benefactorId);
 	}
 	
@@ -507,7 +507,7 @@ public class NodeDAOImplTest {
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
 		// This child should be inheriting from its parent by default
-		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
+		String childBenefactorId = nodeInheritanceDAO.getBenefactorCached(childId);
 		assertEquals(parentId, childBenefactorId);
 		
 		// now add a grandchild
@@ -517,7 +517,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandkidId);
 
 		// This grandchild should be inheriting from its grandparent by default
-		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
+		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactorCached(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
@@ -2834,7 +2834,7 @@ public class NodeDAOImplTest {
 			assertEquals(node.getParentId(), KeyFactory.keyToString(nodehierarchy.getParentId()));
 			assertEquals(projectId, nodehierarchy.getProjectId());
 			// lookup the benefactor for this node.
-			String benefactor = nodeInheritanceDAO.getBenefactor(node.getId());
+			String benefactor = nodeInheritanceDAO.getBenefactorCached(node.getId());
 			assertEquals(benefactor, KeyFactory.keyToString(nodehierarchy.getBenefectorId()));
 		}
 	}
@@ -2892,7 +2892,7 @@ public class NodeDAOImplTest {
 		Node folder2 = nodeDao.getNode(""+folder2Id);
 		assertEquals(folder0Id, KeyFactory.stringToKey(folder2.getParentId()));
 		assertEquals(folder1Id, KeyFactory.stringToKey(folder2.getProjectId()));
-		String benefactor = nodeInheritanceDAO.getBenefactor(""+folder2Id);
+		String benefactor = nodeInheritanceDAO.getBenefactorCached(""+folder2Id);
 		// should be its own benefactor
 		assertEquals(folder2Id, KeyFactory.stringToKey(benefactor));
 		
@@ -2905,7 +2905,7 @@ public class NodeDAOImplTest {
 		Node file1 = nodeDao.getNode(""+file1Id);
 		assertEquals(folder0Id, KeyFactory.stringToKey(file1.getParentId()));
 		assertEquals(folder2Id, KeyFactory.stringToKey(file1.getProjectId()));
-		benefactor = nodeInheritanceDAO.getBenefactor(""+file1Id);
+		benefactor = nodeInheritanceDAO.getBenefactorCached(""+file1Id);
 		// should be its own benefactor
 		assertEquals(file1Id, KeyFactory.stringToKey(benefactor));
 		
@@ -2914,7 +2914,7 @@ public class NodeDAOImplTest {
 		assertEquals(null, file2.getParentId());
 		assertEquals(null, file2.getProjectId());
 		try {
-			benefactor = nodeInheritanceDAO.getBenefactor(""+file2Id);
+			benefactor = nodeInheritanceDAO.getBenefactorCached(""+file2Id);
 			fail("should throw NotFoundException");
 		} catch (NotFoundException e) {
 			// expected
