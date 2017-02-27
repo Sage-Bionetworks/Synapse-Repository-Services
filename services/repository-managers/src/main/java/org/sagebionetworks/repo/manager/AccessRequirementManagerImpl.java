@@ -15,13 +15,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -39,9 +37,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
 	private NodeDAO nodeDao;
-
-	@Autowired
-	private EvaluationDAO evaluationDAO;
 	
 	@Autowired
 	private NotificationEmailDAO notificationEmailDao;
@@ -97,7 +92,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (accessRequirement.getAccessType()==ACCESS_TYPE.UPLOAD) {
 			throw new IllegalArgumentException("Creating UPLOAD Access Requirement is not allowed.");
 		}
-		return accessRequirementDAO.create(accessRequirement);
+		return (T) setDefaultValues(accessRequirementDAO.create(accessRequirement));
 	}
 	
 	public static ACTAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId) {
@@ -124,7 +119,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE));
 		
-		
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
@@ -144,13 +138,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				emailString, 
 				entityId);
 
-		return result;
+		return (ACTAccessRequirement) setDefaultValues(result);
 	}
 	
 
 	@Override
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
-		return accessRequirementDAO.get(requirementId);
+		return setDefaultValues(accessRequirementDAO.get(requirementId));
 	}
 	
 	@Override
@@ -159,11 +153,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
 		} else {
-			subjectIds.add(subjectId.getId());			
+			subjectIds.add(subjectId.getId());
 		}
-		return accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
+		return setDefaultValues(accessRequirementDAO.getForSubject(subjectIds, subjectId.getType()));
 	}
-	
+
 	@Override
 	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
@@ -209,7 +203,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				}
 			}
 		}
-		return unmetRequirements;
+		return setDefaultValues(unmetRequirements);
 	}	
 	
 	@WriteTransaction
@@ -221,7 +215,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		accessRequirement.getId());
 		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
 		populateModifiedFields(userInfo, accessRequirement);
-		return accessRequirementDAO.update(accessRequirement);
+		return (T) setDefaultValues(accessRequirementDAO.update(accessRequirement));
 	}
 
 	@WriteTransaction
@@ -232,9 +226,45 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		verifyCanAccess(userInfo, accessRequirementId, ACCESS_TYPE.DELETE);
 		accessRequirementDAO.delete(accessRequirementId);
 	}
-	
+
 	private void verifyCanAccess(UserInfo userInfo, String accessRequirementId, ACCESS_TYPE accessType) throws UnauthorizedException, NotFoundException {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, accessType));
+	}
+
+	static AccessRequirement setDefaultValues(AccessRequirement ar) {
+		if (!(ar instanceof ACTAccessRequirement)) {
+			return ar;
+		}
+		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		if (actAR.getIsCertifiedUserRequired() == null) {
+			actAR.setIsCertifiedUserRequired(false);
+		}
+		if (actAR.getIsValidatedProfileRequired() == null) {
+			actAR.setIsValidatedProfileRequired(false);
+		}
+		if (actAR.getIsDUCRequired() == null) {
+			actAR.setIsDUCRequired(false);
+		}
+		if (actAR.getIsIRBRequired() == null) {
+			actAR.setIsIRBRequired(false);
+		}
+		if (actAR.getAreOtherAttachmentsRequired() == null) {
+			actAR.setAreOtherAttachmentsRequired(false);
+		}
+		if (actAR.getIsAnnualReviewRequired() == null) {
+			actAR.setIsAnnualReviewRequired(false);
+		}
+		if (actAR.getIsIDUPublic() == null) {
+			actAR.setIsIDUPublic(false);
+		}
+		return actAR;
+	}
+
+	static List<AccessRequirement> setDefaultValues(List<AccessRequirement> arList) {
+		for (AccessRequirement ar : arList) {
+			ar = setDefaultValues(ar);
+		}
+		return arList;
 	}
 }

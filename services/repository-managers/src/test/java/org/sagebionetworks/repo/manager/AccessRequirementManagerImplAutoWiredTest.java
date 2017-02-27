@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -242,6 +243,17 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
 	}
+
+	private static ACTAccessRequirement newACTAccessRequirement(String entityId) {
+		ACTAccessRequirement ar = new ACTAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		return ar;
+	}
 	
 	@Test
 	public void testCreateEntityAccessRequirement() throws Exception {
@@ -461,6 +473,17 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		accessRequirementManager.deleteAccessRequirement(testUserInfo, ar.getId().toString());
 	}
-	
 
+	@Test
+	public void testSetDefaultValues() {
+		ACTAccessRequirement ar = newACTAccessRequirement(entityId);
+		ar = (ACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsAnnualReviewRequired());
+		assertFalse(ar.getIsIDUPublic());
+	}
 }
