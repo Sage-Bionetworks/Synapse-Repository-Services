@@ -156,7 +156,6 @@ public class SqlConstants {
 	public static final String COL_CHANGES_CHANGE_NUM				= "CHANGE_NUM";
 	public static final String COL_CHANGES_TIME_STAMP				= "TIME_STAMP";
 	public static final String COL_CHANGES_OBJECT_ID				= "OBJECT_ID";
-	public static final String COL_CHANGES_PARENT_ID                = "PARENT_ID";
 	public static final String COL_CHANGES_OBJECT_TYPE				= "OBJECT_TYPE";
 	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
