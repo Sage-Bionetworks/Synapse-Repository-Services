@@ -2947,26 +2947,24 @@ public class NodeDAOImplTest {
 	public void testGetProjectId(){
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(project);
-		toDelete.add(id);
-		project = nodeDao.getNode(id);
-		assertNotNull(project);
-		assertEquals(id, project.getProjectId());
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
 		// add some hierarchy
 		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setNodeType(EntityType.folder);
 		parent.setParentId(project.getId());
 		parent = nodeDao.createNewNode(parent);
 		toDelete.add(parent.getId());
 		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
 		child.setParentId(parent.getId());
-		child = nodeDao.createNewNode(parent);
+		child.setNodeType(EntityType.folder);
+		child = nodeDao.createNewNode(child);
 		toDelete.add(child.getId());
 		
 		// call under test
-		String projectId = nodeDao.getProjectId(id);
-		assertEquals(project.getProjectId(), projectId);
-		assertEquals(project.getProjectId(), nodeDao.getProjectId(parent.getId()));
-		assertEquals(project.getProjectId(), nodeDao.getProjectId(child.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()));
 	}
 	
 	@Test (expected=NotFoundException.class)
