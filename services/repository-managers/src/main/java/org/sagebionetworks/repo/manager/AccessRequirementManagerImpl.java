@@ -92,7 +92,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (accessRequirement.getAccessType()==ACCESS_TYPE.UPLOAD) {
 			throw new IllegalArgumentException("Creating UPLOAD Access Requirement is not allowed.");
 		}
-		return (T) setDefaultValues(accessRequirementDAO.create(accessRequirement));
+		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
 	
 	public static ACTAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId) {
@@ -128,7 +128,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
 		
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
-		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
+		ACTAccessRequirement result  = (ACTAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 		
 		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
 		
@@ -138,13 +138,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				emailString, 
 				entityId);
 
-		return (ACTAccessRequirement) setDefaultValues(result);
+		return result;
 	}
 	
 
 	@Override
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
-		return setDefaultValues(accessRequirementDAO.get(requirementId));
+		return accessRequirementDAO.get(requirementId);
 	}
 	
 	@Override
@@ -155,7 +155,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		} else {
 			subjectIds.add(subjectId.getId());
 		}
-		return setDefaultValues(accessRequirementDAO.getForSubject(subjectIds, subjectId.getType()));
+		return accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 	}
 
 	@Override
@@ -203,7 +203,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				}
 			}
 		}
-		return setDefaultValues(unmetRequirements);
+		return unmetRequirements;
 	}	
 	
 	@WriteTransaction
@@ -215,7 +215,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		accessRequirement.getId());
 		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
 		populateModifiedFields(userInfo, accessRequirement);
-		return (T) setDefaultValues(accessRequirementDAO.update(accessRequirement));
+		return (T) accessRequirementDAO.update(setDefaultValues(accessRequirement));
 	}
 
 	@WriteTransaction
@@ -246,8 +246,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (actAR.getIsDUCRequired() == null) {
 			actAR.setIsDUCRequired(false);
 		}
-		if (actAR.getIsIRBRequired() == null) {
-			actAR.setIsIRBRequired(false);
+		if (actAR.getIsIRBApprovalRequired() == null) {
+			actAR.setIsIRBApprovalRequired(false);
 		}
 		if (actAR.getAreOtherAttachmentsRequired() == null) {
 			actAR.setAreOtherAttachmentsRequired(false);
@@ -259,12 +259,5 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			actAR.setIsIDUPublic(false);
 		}
 		return actAR;
-	}
-
-	static List<AccessRequirement> setDefaultValues(List<AccessRequirement> arList) {
-		for (AccessRequirement ar : arList) {
-			ar = setDefaultValues(ar);
-		}
-		return arList;
 	}
 }
