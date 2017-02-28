@@ -863,7 +863,8 @@ public class SqlConstants {
 	/**
 	 * Function names:
 	 */
-	public static final String FUNCTION_GET_ENTITY_BENEFACTOR = "getEntityBenefactor";
+	public static final String FUNCTION_GET_ENTITY_BENEFACTOR_ID = "getEntityBenefactor";
+	public static final String FUNCTION_GET_ENTITY_PROJECT_ID = "getEntityProjectId";
 
 	static{
 		// Map column names to the field names

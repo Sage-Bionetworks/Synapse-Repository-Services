@@ -130,9 +130,15 @@
 			<map>
 				<entry>
 					<key>
-						<value>getEntityBenefactor</value>
+						<value>getEntityBenefactorId</value>
 					</key>
-					<value>schema/functions/GetEntityBenefactor.ddl.sql</value>
+					<value>schema/functions/GetEntityBenefactorId.ddl.sql</value>
+				</entry>
+				<entry>
+					<key>
+						<value>getEntityProjectId</value>
+					</key>
+					<value>schema/functions/getEntityProjectId.ddl.sql</value>
 				</entry>
 			</map>
 		</property>

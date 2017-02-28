@@ -1,41 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.sql.Blob;
@@ -129,6 +94,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SELECT_FUCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_PROJECT_ID = "SELECT "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
 	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
@@ -1714,12 +1680,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public String getProjectId(String nodeId) {
 		ValidateArgument.required(nodeId, "nodeId");
-		try {
-			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
-			return KeyFactory.keyToString(id);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
+		Long projectId = this.jdbcTemplate.queryForObject(SELECT_FUCTION_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
+		if(projectId == null){
+			throw new NotFoundException("Did not find the project for: "+nodeId);
 		}
+		return KeyFactory.keyToString(projectId);
 	}
 
 	@Override

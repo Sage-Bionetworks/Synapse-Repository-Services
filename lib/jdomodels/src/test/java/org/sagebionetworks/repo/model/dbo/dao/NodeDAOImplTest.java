@@ -2952,9 +2952,21 @@ public class NodeDAOImplTest {
 		project = nodeDao.getNode(id);
 		assertNotNull(project);
 		assertEquals(id, project.getProjectId());
+		// add some hierarchy
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(project.getId());
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(parent);
+		toDelete.add(child.getId());
+		
 		// call under test
 		String projectId = nodeDao.getProjectId(id);
 		assertEquals(project.getProjectId(), projectId);
+		assertEquals(project.getProjectId(), nodeDao.getProjectId(parent.getId()));
+		assertEquals(project.getProjectId(), nodeDao.getProjectId(child.getId()));
 	}
 	
 	@Test (expected=NotFoundException.class)

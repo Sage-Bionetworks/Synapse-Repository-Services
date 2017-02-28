@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,6 +25,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
+	private static final String SELECT_ENTITY_BENEFACTOR_FUNCTION = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String SELECT_BENEFICIARIES = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_BENEFACTOR_ID+" = ?";
 	private static final String SELECT_BENEFACTOR = "SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	
@@ -101,7 +100,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public String getBenefactor(String beneficiaryId) {
 		Long id = KeyFactory.stringToKey(beneficiaryId);
-		Long benefactorId = jdbcTemplate.queryForObject("SELECT getEntityBenefactor(?)", Long.class, id);
+		Long benefactorId = jdbcTemplate.queryForObject(SELECT_ENTITY_BENEFACTOR_FUNCTION, Long.class, id);
 		if(benefactorId == null){
 			throw new NotFoundException("Benefactor not found for: "+beneficiaryId);
 		}
