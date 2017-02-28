@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_TIME_STAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_CHANGES;
@@ -34,7 +33,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM).withIsBackupId(true),
 		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
 		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID, true),
-		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
 		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE, true),
 		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG),
 		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
@@ -44,7 +42,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 	private Long changeNumber;
 	private Timestamp timeStamp;
 	private Long objectId;
-	private Long parentId;
 	private String objectType;
 	private String objectEtag;
 	private String changeType;
@@ -131,20 +128,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		this.objectId = objectId;
 	}
 
-	/**
-	 * @return the parentId
-	 */
-	public Long getParentId() {
-		return parentId;
-	}
-
-	/**
-	 * @param parentId the parentId to set
-	 */
-	public void setParentId(Long parentId) {
-		this.parentId = parentId;
-	}
-
 	public Long getUserId() {
 		return userId;
 	}
@@ -162,7 +145,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 		result = prime * result + ((objectEtag == null) ? 0 : objectEtag.hashCode());
 		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result + ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + ((timeStamp == null) ? 0 : timeStamp.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
@@ -196,11 +178,6 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 			return false;
 		if (objectType != other.objectType)
 			return false;
-		if (parentId == null) {
-			if (other.parentId != null)
-				return false;
-		} else if (!parentId.equals(other.parentId))
-			return false;
 		if (timeStamp == null) {
 			if (other.timeStamp != null)
 				return false;
@@ -217,7 +194,7 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 	@Override
 	public String toString() {
 		return "DBOChange [changeNumber=" + changeNumber + ", timeStamp=" + timeStamp + ", objectId=" + objectId
-				+ ", parentId=" + parentId + ", objectType=" + objectType + ", objectEtag=" + objectEtag
+				+ ", objectType=" + objectType + ", objectEtag=" + objectEtag
 				+ ", changeType=" + changeType + ", userId=" + userId + "]";
 	}
 
@@ -274,13 +251,11 @@ public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>
 
 			@Override
 			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
-				backup.setParentId(null);
 				return backup;
 			}
 
 			@Override
 			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
-				dbo.setParentId(null);
 				return dbo;
 			}};
 	}
