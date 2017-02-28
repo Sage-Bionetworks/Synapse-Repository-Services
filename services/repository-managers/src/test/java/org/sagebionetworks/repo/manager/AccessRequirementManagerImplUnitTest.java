@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyObject;
@@ -105,7 +106,7 @@ public class AccessRequirementManagerImplUnitTest {
 		expectedAR.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
 		expectedAR.setConcreteType("org.sagebionetworks.repo.model.ACTAccessRequirement");;
 		AccessRequirementManagerImpl.populateCreationFields(userInfo, expectedAR);
-		return 	expectedAR;
+		return expectedAR;
 	}
 
 	@Test
@@ -127,6 +128,16 @@ public class AccessRequirementManagerImplUnitTest {
 		// test that jira client was called to create issue
 		// we don't test the *content* of the issue because that's tested in JRJCHelperTest
 		verify(jiraClient).createIssue((IssueInput)anyObject());
+
+		// verify that all default fields are set
+		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsAnnualReviewRequired());
+		assertFalse(ar.getIsIDUPublic());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -192,5 +203,62 @@ public class AccessRequirementManagerImplUnitTest {
 		assertEquals(Collections.singletonList(downloadAR), result);
 		result = arm.getUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
 		assertEquals(Collections.singletonList(uploadAR), result);
+	}
+
+	@Test
+	public void testSetDefaultValues() {
+		ACTAccessRequirement ar = (ACTAccessRequirement) createExpectedAR();
+		ar = (ACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsAnnualReviewRequired());
+		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testCreateACTAccessRequirement() {
+		AccessRequirement toCreate = createExpectedAR();
+		when(authorizationManager.canCreateAccessRequirement(userInfo, toCreate)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		arm.createAccessRequirement(userInfo, toCreate);
+
+		// test that the right AR was created
+		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
+		verify(accessRequirementDAO).create(argument.capture());
+
+		// verify that all default fields are set
+		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsAnnualReviewRequired());
+		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testUpdateACTAccessRequirement() {
+		AccessRequirement toUpdate = createExpectedAR();
+		toUpdate.setId(1L);
+		when(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		arm.updateAccessRequirement(userInfo, "1", toUpdate);
+
+		// test that the right AR was created
+		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
+		verify(accessRequirementDAO).update(argument.capture());
+
+		// verify that all default fields are set
+		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
+		assertFalse(ar.getIsDUCRequired());
+		assertFalse(ar.getIsIRBApprovalRequired());
+		assertFalse(ar.getAreOtherAttachmentsRequired());
+		assertFalse(ar.getIsAnnualReviewRequired());
+		assertFalse(ar.getIsIDUPublic());
 	}
 }

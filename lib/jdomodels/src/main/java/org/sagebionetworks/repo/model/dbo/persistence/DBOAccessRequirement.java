@@ -21,12 +21,14 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -274,14 +276,52 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
+				// this logic will be removed after stack-172
+				AccessRequirement ar = AccessRequirementUtils.copyDboToDto(backup, null);
+				ar = setDefaultValues(ar);
+				AccessRequirementUtils.copyDtoToDbo(ar, backup);
 				return backup;
 			}
 			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
+				// this logic will be removed after stack-172
+				AccessRequirement ar = AccessRequirementUtils.copyDboToDto(dbo, null);
+				ar = setDefaultValues(ar);
+				AccessRequirementUtils.copyDtoToDbo(ar, dbo);
 				return dbo;
 			}};
+	}
+
+	// this method will be removed after stack-172
+	static AccessRequirement setDefaultValues(AccessRequirement ar) {
+		if (!(ar instanceof ACTAccessRequirement)) {
+			return ar;
+		}
+		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		if (actAR.getIsCertifiedUserRequired() == null) {
+			actAR.setIsCertifiedUserRequired(false);
+		}
+		if (actAR.getIsValidatedProfileRequired() == null) {
+			actAR.setIsValidatedProfileRequired(false);
+		}
+		if (actAR.getIsDUCRequired() == null) {
+			actAR.setIsDUCRequired(false);
+		}
+		if (actAR.getIsIRBApprovalRequired() == null) {
+			actAR.setIsIRBApprovalRequired(false);
+		}
+		if (actAR.getAreOtherAttachmentsRequired() == null) {
+			actAR.setAreOtherAttachmentsRequired(false);
+		}
+		if (actAR.getIsAnnualReviewRequired() == null) {
+			actAR.setIsAnnualReviewRequired(false);
+		}
+		if (actAR.getIsIDUPublic() == null) {
+			actAR.setIsIDUPublic(false);
+		}
+		return actAR;
 	}
 
 	@Override

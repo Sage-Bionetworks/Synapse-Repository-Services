@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -265,6 +266,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertNotNull(ar.getId());
 		assertNotNull(ar.getModifiedBy());
 		assertNotNull(ar.getModifiedOn());
+		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		assertFalse(actAR.getIsCertifiedUserRequired());
+		assertFalse(actAR.getIsValidatedProfileRequired());
+		assertFalse(actAR.getIsDUCRequired());
+		assertFalse(actAR.getIsIRBApprovalRequired());
+		assertFalse(actAR.getAreOtherAttachmentsRequired());
+		assertFalse(actAR.getIsAnnualReviewRequired());
+		assertFalse(actAR.getIsIDUPublic());
 	}
 	
 	@Test
@@ -461,6 +470,4 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		accessRequirementManager.deleteAccessRequirement(testUserInfo, ar.getId().toString());
 	}
-	
-
 }
