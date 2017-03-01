@@ -115,8 +115,10 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		/**
 		 * Create all functions that should be created.
 		 */
-		for(String functionName: functionMap.keySet()){
-			ddlUtils.createFunction(functionName, functionMap.get(functionName));
+		if(functionMap != null){
+			for(String functionName: functionMap.keySet()){
+				ddlUtils.createFunction(functionName, functionMap.get(functionName));
+			}
 		}
 	}
 
