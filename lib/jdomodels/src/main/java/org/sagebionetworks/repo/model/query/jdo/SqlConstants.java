@@ -825,6 +825,33 @@ public class SqlConstants {
 	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
+	// ResearchProject
+	public static final String DDL_RESEARCH_PROJECT = 						"schema/ResearchProject-ddl.sql";
+	public static final String RESEARCH_PROJECT_ID = 						"ID";
+	public static final String RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String RESEARCH_PROJECT_CREATED_BY = 				"CREATED_BY";
+	public static final String RESEARCH_PROJECT_CREATED_ON = 				"CREATED_ON";
+	public static final String RESEARCH_PROJECT_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String RESEARCH_PROJECT_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String RESEARCH_PROJECT_OWNER_ID = 					"OWNER_ID";
+	public static final String RESEARCH_PROJECT_ETAG = 						"ETAG";
+	public static final String RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
+	public static final String RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";
+	public static final String RESEARCH_PROJECT_IDU = 						"IDU";
+
+	// DataAccessRequest
+	public static final String DDL_DATA_ACCESS_REQUEST = 						"schema/DataAccessRequest-ddl.sql";
+	public static final String DATA_ACCESS_REQUEST_ID = 						"ID";
+	public static final String DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID = 		"ACCESS_REQUIREMENT_ID";
+	public static final String DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID = 		"RESEARCH_PROJECT_ID";
+	public static final String DATA_ACCESS_REQUEST_CREATED_BY = 				"CREATED_BY";
+	public static final String DATA_ACCESS_REQUEST_CREATED_ON = 				"CREATED_ON";
+	public static final String DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
+	public static final String DATA_ACCESS_REQUEST_ACCESSORS = 					"ACCESSORS";
+	public static final String DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

@@ -1,0 +1,14 @@
+{
+    "title":"ChangeOwnershipRequest",
+    "description":"This object represents a request to change the ownership of a ResearchProject.",
+    "properties":{
+        "researchProjectId":{
+            "type":"string",
+            "description":"The ID of the requested research project."
+        },
+        "newOwnerId":{
+            "type":"string",
+            "description":"The userId who will become the owner of the given research project after the request is processed successfully."
+        }
+    }
+}
