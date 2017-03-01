@@ -827,6 +827,7 @@ public class SqlConstants {
 
 	// ResearchProject
 	public static final String DDL_RESEARCH_PROJECT = 						"schema/ResearchProject-ddl.sql";
+	public static final String TABLE_RESEARCH_PROJECT = 					"RESEARCH_PROJECT";
 	public static final String RESEARCH_PROJECT_ID = 						"ID";
 	public static final String RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
 	public static final String RESEARCH_PROJECT_CREATED_BY = 				"CREATED_BY";
@@ -841,6 +842,7 @@ public class SqlConstants {
 
 	// DataAccessRequest
 	public static final String DDL_DATA_ACCESS_REQUEST = 						"schema/DataAccessRequest-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_REQUEST = 						"DATA_ACCESS_REQUEST";
 	public static final String DATA_ACCESS_REQUEST_ID = 						"ID";
 	public static final String DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID = 		"ACCESS_REQUIREMENT_ID";
 	public static final String DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID = 		"RESEARCH_PROJECT_ID";
