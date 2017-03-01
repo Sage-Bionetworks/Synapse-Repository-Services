@@ -1,0 +1,52 @@
+{
+    "title":"ResearchProject",
+    "description":"A research project describes a project at an institution that used a controlled data set for the purposes that are stated in the Intended Data Use Statement.",
+    "properties":{
+        "id":{
+            "type":"string",
+            "description":"The unique immutable ID for this research project."
+        },
+        "accessRequirementId":{
+            "type":"string",
+            "description":"The ID of the Access Requirement which this research project needs to meet to gain access to the data."
+        },
+        "institution":{
+            "type":"string",
+            "description":"The institution that this research project belongs to."
+        },
+        "projectLead":{
+            "type":"string",
+            "description":"The person who is leading the project."
+        },
+        "intendedDataUseStatement":{
+            "type":"string",
+            "description":"A few short paragraph that explains how the controlled data will be used."
+        },
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this research project was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this research project was last modified."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this research project."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this research project."
+		},
+        "ownerId":{
+            "type":"string",
+            "description":"The userId who owns the research project and can make modification to it."
+        },
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a research project is updated it is used to detect when a client's current representation of a research project is out-of-date."
+		}
+    }
+}
