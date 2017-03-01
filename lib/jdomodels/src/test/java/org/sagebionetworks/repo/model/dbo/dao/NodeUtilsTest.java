@@ -41,7 +41,6 @@ public class NodeUtilsTest {
 	public void testRoundTrip() throws DatastoreException, InvalidModelException {
 		Node node = new Node();
 		node.setName("myName");
-		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
 		// This is an update round trip and the type cannot be changed on an update.
 		node.setCreatedByPrincipalId(createdById);

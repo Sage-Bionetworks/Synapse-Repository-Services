@@ -193,11 +193,11 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 */
 	public void initialize() {
 		// Create the bucket as needed
-//		try {
-//			s3Client.createBucket(s3Bucket);
-//		} catch (AmazonS3Exception e) {
-//			log.info("S3 error creating bucket: " + e.getStackTrace());
-//		}
+		try {
+			s3Client.createBucket(s3Bucket);
+		} catch (AmazonS3Exception e) {
+			log.info("S3 error creating bucket: " + e.getStackTrace());
+		}
 	}
 	
 	@WriteTransactionReadCommitted

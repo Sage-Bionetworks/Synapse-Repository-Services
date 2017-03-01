@@ -38,16 +38,6 @@ class NodeUtils {
 	 */
 	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev, boolean deleteActivityId) throws DatastoreException, InvalidModelException {
 		jdo.setName(dto.getName());
-		if(dto.getDescription() !=  null){
-			try {
-				jdo.setDescription(dto.getDescription().getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			jdo.setDescription(null);
-		}
-
 		if(dto.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
@@ -150,15 +140,6 @@ class NodeUtils {
 	public static Node copyFromJDO(DBONode jdo, DBORevision rev) throws DatastoreException{
 		Node dto = new Node();
 		dto.setName(jdo.getName());
-		if(jdo.getDescription() != null){
-			try {
-				dto.setDescription(new String(jdo.getDescription(), "UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			dto.setDescription(null);
-		}
 		if(jdo.getId() != null){
 			dto.setId(KeyFactory.keyToString(jdo.getId()));
 		}

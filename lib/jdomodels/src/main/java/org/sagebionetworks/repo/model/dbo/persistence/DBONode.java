@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
@@ -44,7 +43,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("parentId", COL_NODE_PARENT_ID).withIsSelfForeignKey(true),
 			new FieldColumn("name", COL_NODE_NAME),
 			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
-			new FieldColumn("description", COL_NODE_DESCRIPTION),
 			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
@@ -70,10 +68,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				node.setCurrentRevNumber(rs.getLong(COL_CURRENT_REV));
 				if(rs.wasNull()){
 					node.setCurrentRevNumber(null);
-				}
-				java.sql.Blob blob = rs.getBlob(COL_NODE_DESCRIPTION);
-				if(blob != null){
-					node.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
 				node.seteTag(rs.getString(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));

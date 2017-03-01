@@ -6,13 +6,22 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface NodeInheritanceManager {
 
 	/**
-	 * Get the benefactor of a node.
+	 * Get the cached benefactor of a node.
 	 * @param nodeId
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
+	@Deprecated
 	String getBenefactorCached(String nodeId) throws NotFoundException, DatastoreException;
+	
+
+	/**
+	 * Get the benefactor of a node.
+	 * @param entityId
+	 * @return
+	 */
+	String getBenefactor(String entityId);
 
 	/**
 	 * When a node's parent has changed, sets the node and its descendants to the nearest benefactor.
@@ -80,5 +89,6 @@ public interface NodeInheritanceManager {
 	 * @throws DatastoreException 
 	 */
 	void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException;
+
 
 }

@@ -172,6 +172,15 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		return nodeInheritanceDao.getBenefactorCached(nodeId);
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.NodeInheritanceManager#getBenefactor(java.lang.String)
+	 */
+	@Override
+	public String getBenefactor(String entityId) {
+		return getBenefactor(entityId);
+	}
+	
 	/**
 	 * Add a beneficiary to a node
 	 * @throws NotFoundException 
@@ -182,5 +191,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);
 	}
+
+
 
 }

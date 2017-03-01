@@ -737,7 +737,6 @@ public class NodeDAOImplTest {
 		assertNotNull(copy);
 		// Now change the copy and push it back
 		copy.setName("myNewName");
-		copy.setDescription("myNewDescription");
 		copy.setActivityId(testActivity2.getId());
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);

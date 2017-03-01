@@ -21,7 +21,6 @@ public class SqlConstants {
 	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOTATIONS		= "ANNOTATIONS_ID_OID";
-	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";

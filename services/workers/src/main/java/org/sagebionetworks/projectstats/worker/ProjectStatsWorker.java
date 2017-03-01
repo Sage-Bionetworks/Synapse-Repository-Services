@@ -160,8 +160,8 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 	}
 
 	private Long getProjectIdFromEntityId(String entityId) throws NotFoundException {
-		Node node = nodeDao.getNode(entityId);
-		return node.getProjectId() == null ? null : KeyFactory.stringToKey(node.getProjectId());
+		String projectId = nodeDao.getProjectId(entityId);
+		return KeyFactory.stringToKey(projectId);
 	}
 
 	/**

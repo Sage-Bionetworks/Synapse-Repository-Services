@@ -214,9 +214,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// The description contains the entity description and all wiki page
 		// text
 		StringBuilder descriptionValue = new StringBuilder();
-		if (node.getDescription() != null) {
-			descriptionValue.append(node.getDescription());
-		}
 		if (wikiPagesText != null) {
 			descriptionValue.append(wikiPagesText);
 		}
