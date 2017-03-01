@@ -130,7 +130,7 @@ public class NodeUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Create a DTO from the JDO
 	 * @param jdo
@@ -139,6 +139,19 @@ public class NodeUtils {
 	 */
 	public static Node copyFromJDO(DBONode jdo, DBORevision rev) throws DatastoreException{
 		Node dto = new Node();
+		 copyFromJDO(dto, jdo, rev);
+		return dto;
+	}
+	
+	/**
+	 * Copy data from the passed DBOs to the passed dto.
+	 * 
+	 * @param dto
+	 * @param jdo
+	 * @param rev
+	 * @throws DatastoreException
+	 */
+	public static void copyFromJDO(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException{
 		dto.setName(jdo.getName());
 		if(jdo.getId() != null){
 			dto.setId(KeyFactory.keyToString(jdo.getId()));
@@ -186,7 +199,6 @@ public class NodeUtils {
 		if(rev.getScopeIds() != null){
 			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
-		return dto;
 	}
 	
 	/**

@@ -306,6 +306,16 @@ public class NodeDAOImplTest {
 		assertEquals(id, benefactorId);
 	}
 	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeNotFound(){
+		nodeDao.getNode("syn123");
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeVersionNotFound(){
+		nodeDao.getNodeForVersion("syn123", 1L);
+	}
+	
 	@Test
 	public void testDoesNodeExistInvalid(){
 		// call under test.
@@ -1079,12 +1089,19 @@ public class NodeDAOImplTest {
 		// The very fist version should be last
 		assertEquals(new Long(1), versionNumbers.get(versionNumbers.size()-1));
 		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
+
 		// Make sure we can fetch each version
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
-			assertNotNull(nodeVersion.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
 	}
@@ -1104,13 +1121,20 @@ public class NodeDAOImplTest {
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
 		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
 
 		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity) {
-			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
-			assertNotNull(node.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
-			Date modDate = node.getModifiedOn();
+			Node nodeVersion = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
+			Date modDate = nodeVersion.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
 	}

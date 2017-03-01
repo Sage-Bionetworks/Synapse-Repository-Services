@@ -18,23 +18,6 @@ import java.sql.SQLException;
 import org.springframework.jdbc.core.RowMapper;
 
 public class DBONodeMapper implements RowMapper<DBONode> {
-	
-	/*
-	 * Are the hierarchy functions included in the select?
-	 */
-	private boolean includeHierarchyFunctions;
-	
-
-	/**
-	 * Create a new mapper.
-	 * @param includeHierarchyFunctions Set to true if the hierarchy functions are included
-	 * in the query's select statement.
-	 */
-	public DBONodeMapper(boolean includeHierarchyFunctions) {
-		super();
-		this.includeHierarchyFunctions = includeHierarchyFunctions;
-	}
-
 
 	@Override
 	public DBONode mapRow(ResultSet rs, int rowNum) throws SQLException {

@@ -58,8 +58,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			// Map a result set to this object
 			@Override
 			public DBONode mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				boolean includeHierarchyFunctions = false;
-				DBONodeMapper mapper = new DBONodeMapper(includeHierarchyFunctions);
+				DBONodeMapper mapper = new DBONodeMapper();
 				return mapper.mapRow(rs, rowNum);
 			}
 
