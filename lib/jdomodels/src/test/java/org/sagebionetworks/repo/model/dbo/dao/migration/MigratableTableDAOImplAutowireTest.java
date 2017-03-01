@@ -335,6 +335,8 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.VIEW_TYPE);
 		expectedPrimaryTypes.add(MigrationType.AUTHENTICATION_RECEIPT);
 		expectedPrimaryTypes.add(MigrationType.THROTTLE_RULE);
+		expectedPrimaryTypes.add(MigrationType.RESEARCH_PROJECT);
+		expectedPrimaryTypes.add(MigrationType.DATA_ACCESS_REQUEST);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();
