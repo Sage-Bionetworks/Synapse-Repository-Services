@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
@@ -155,12 +155,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	
+	public static final String SELECT_BENEFACTOR_FUNCTION = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
+	public static final String SELECT_PROJECT_FUNCTION = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
+	
 	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N."
 			+ COL_NODE_ID + ", N."+COL_CURRENT_REV+", N." + COL_NODE_CREATED_BY + ", N."
 			+ COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N."
-			+ COL_NODE_PARENT_ID + ", N." + COL_NODE_BENEFACTOR_ID + ", N."
-			+ COL_NODE_PROJECT_ID + ", R." + COL_REVISION_MODIFIED_BY + ", R."
+			+ COL_NODE_PARENT_ID + ", " + SELECT_BENEFACTOR_FUNCTION + ", "
+			+ SELECT_PROJECT_FUNCTION + ", R." + COL_REVISION_MODIFIED_BY + ", R."
 			+ COL_REVISION_MODIFIED_ON + ", R." + COL_REVISION_FILE_HANDLE_ID
 			+ ", R." + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_NODE + " N, "
 			+ TABLE_REVISION + " R WHERE N." + COL_NODE_ID + " = R."
@@ -1688,11 +1692,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()){
 					dto.setParentId(null);
 				}
-				dto.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
+				dto.setBenefactorId(rs.getLong(SELECT_BENEFACTOR_FUNCTION));
 				if(rs.wasNull()){
 					dto.setBenefactorId(null);
 				}
-				dto.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
+				dto.setProjectId(rs.getLong(SELECT_PROJECT_FUNCTION));
 				if(rs.wasNull()){
 					dto.setProjectId(null);
 				}

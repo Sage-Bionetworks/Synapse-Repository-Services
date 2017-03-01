@@ -71,6 +71,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -166,11 +167,14 @@ public class NodeDAOImplTest {
 	private String nooneOwns;
 
 	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
+	
+	UserInfo adminUser;
 
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		adminUser = new UserInfo(true, creatorUserGroupId);
 		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
@@ -2919,6 +2923,9 @@ public class NodeDAOImplTest {
 		project.setNodeType(EntityType.project);
 		project = nodeDao.createNewNode(project);
 		toDelete.add(project.getId());
+		// Add an ACL at the project
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
 		file.setNodeType(EntityType.file);
