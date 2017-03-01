@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  * @author jmhill
  *
  */
-class NodeUtils {
+public class NodeUtils {
 	
 
 		

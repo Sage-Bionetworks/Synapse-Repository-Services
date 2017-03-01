@@ -58,33 +58,9 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			// Map a result set to this object
 			@Override
 			public DBONode mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				DBONode node = new DBONode();
-				node.setId(rs.getLong(COL_NODE_ID));
-				node.setParentId(rs.getLong(COL_NODE_PARENT_ID));
-				if(rs.wasNull()){
-					node.setParentId(null);
-				}
-				node.setName(rs.getString(COL_NODE_NAME));
-				node.setCurrentRevNumber(rs.getLong(COL_CURRENT_REV));
-				if(rs.wasNull()){
-					node.setCurrentRevNumber(null);
-				}
-				node.seteTag(rs.getString(COL_NODE_ETAG));
-				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
-				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
-				node.setType(rs.getString(COL_NODE_TYPE));
-				node.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				// If the value was null we must set it to null
-				if(rs.wasNull()){
-					node.setBenefactorId(null);
-				}
-				node.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
-				// If the value was null we must set it to null
-				if(rs.wasNull()){
-					node.setProjectId(null);
-				}
-				node.setAlias(rs.getString(COL_NODE_ALIAS));
-				return node;
+				boolean includeHierarchyFunctions = false;
+				DBONodeMapper mapper = new DBONodeMapper(includeHierarchyFunctions);
+				return mapper.mapRow(rs, rowNum);
 			}
 
 			@Override
