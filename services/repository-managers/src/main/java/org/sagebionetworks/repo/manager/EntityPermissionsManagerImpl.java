@@ -69,7 +69,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// Get the id that this node inherits its permissions from
-		String benefactor = nodeInheritanceManager.getBenefactorCached(nodeId);		
+		String benefactor = nodeInheritanceManager.getBenefactor(nodeId);		
 		// This is a fix for PLFM-398
 		if (!benefactor.equals(nodeId)) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
@@ -82,7 +82,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getId();
-		String benefactor = nodeInheritanceManager.getBenefactorCached(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -99,7 +99,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getId();
-		String benefactor = nodeInheritanceManager.getBenefactorCached(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -125,7 +125,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				hasAccess(rId, CHANGE_PERMISSIONS, userInfo));
-		String benefactor = nodeInheritanceManager.getBenefactorCached(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
 
 		// if parent is root, than can't inherit, must have own ACL
@@ -140,7 +140,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		aclDAO.delete(rId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
-		benefactor = nodeInheritanceManager.getBenefactorCached(rId);
+		benefactor = nodeInheritanceManager.getBenefactor(rId);
 		
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}	
@@ -156,11 +156,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		Node node = nodeDao.getNode(parentId);
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 
-		String benefactorId = nodeInheritanceManager.getBenefactorCached(parentId);
+		String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
 		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
 
 		// return governing parent ACL
-		return aclDAO.get(nodeInheritanceManager.getBenefactorCached(parentId), ObjectType.ENTITY);
+		return aclDAO.get(nodeInheritanceManager.getBenefactor(parentId), ObjectType.ENTITY);
 	}
 	
 	private void applyInheritanceToChildrenHelper(final String parentId, final String benefactorId, UserInfo userInfo)
@@ -276,7 +276,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
-		final String benefactor = nodeInheritanceManager.getBenefactorCached(entityId);
+		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
@@ -316,7 +316,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 */
 	@Override
 	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
-		return nodeInheritanceManager.getBenefactorCached(nodeId);
+		return nodeInheritanceManager.getBenefactor(nodeId);
 	}
 
 	@Override
@@ -361,7 +361,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeInheritanceManager.getBenefactorCached(resourceId).equals(resourceId);
+			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
 		}

@@ -119,12 +119,12 @@ public class EntityPermissionsManagerImplUnitTest {
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
     	when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())).thenReturn(anonymousUser);
 
-		when(mockNodeInheritanceManager.getBenefactorCached(projectId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactorCached(folderId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactorCached(dockerRepoId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactorCached(projectParentId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactorCached(folderParentId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactorCached(benefactorId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(projectId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(projectParentId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(folderParentId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(benefactorId)).thenReturn(benefactorId);
 		
 		// we make the given user a fully authorized 'owner' of the entity
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).

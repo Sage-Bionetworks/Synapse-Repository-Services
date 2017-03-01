@@ -178,7 +178,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 */
 	@Override
 	public String getBenefactor(String entityId) {
-		return getBenefactor(entityId);
+		return nodeInheritanceDao.getBenefactor(entityId);
 	}
 	
 	/**
