@@ -44,10 +44,10 @@ public interface ResearchProjectManager {
 	 * Only ACT member can perform this action.
 	 * 
 	 * @param userInfo
-	 * @param rquest
+	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public ResearchProject changeOwnership(UserInfo userInfo, ChangeOwnershipRequest rquest)  throws NotFoundException, UnauthorizedException;
+	public ResearchProject changeOwnership(UserInfo userInfo, ChangeOwnershipRequest request)  throws NotFoundException, UnauthorizedException;
 }
