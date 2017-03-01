@@ -837,7 +837,7 @@ public class SqlConstants {
 	public static final String RESEARCH_PROJECT_ETAG = 						"ETAG";
 	public static final String RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
 	public static final String RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";
-	public static final String RESEARCH_PROJECT_IDU_KEY = 					"IDU_KEY";
+	public static final String RESEARCH_PROJECT_IDU = 						"IDU";
 
 	// DataAccessRequest
 	public static final String DDL_DATA_ACCESS_REQUEST = 						"schema/DataAccessRequest-ddl.sql";
