@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeHierarchy;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -73,7 +72,6 @@ import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
@@ -2823,125 +2821,6 @@ public class NodeDAOImplTest {
 				folder2Id
 		);
 		assertEquals(expected, containers);
-	}
-	
-	@Test
-	public void testStreamOverHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long projectId = KeyFactory.stringToKey(hierarchy.get(0).getId());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				projectId, folder0Id, folder1Id, folder2Id
-		);
-		// Stream over the results and everything to the list
-		final List<NodeHierarchy> resutls = new LinkedList<NodeHierarchy>();
-		// call under test
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				resutls.add(value);
-			}
-		});
-		assertEquals(6, resutls.size());
-		// validate all of the streamed data.
-		for(int i=0; i<6; i++){
-			Node node = hierarchy.get(i+1);
-			NodeHierarchy nodehierarchy = resutls.get(i);
-			// compare the results
-			assertEquals(node.getId(), KeyFactory.keyToString(nodehierarchy.getNodeId()));
-			assertEquals(node.getParentId(), KeyFactory.keyToString(nodehierarchy.getParentId()));
-			assertEquals(projectId, nodehierarchy.getProjectId());
-			// lookup the benefactor for this node.
-			String benefactor = nodeInheritanceDAO.getBenefactorCached(node.getId());
-			assertEquals(benefactor, KeyFactory.keyToString(nodehierarchy.getBenefectorId()));
-		}
-	}
-	
-	@Test
-	public void testBatchUpdateHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		Long file1Id = KeyFactory.stringToKey(hierarchy.get(5).getId());
-		Long file2Id = KeyFactory.stringToKey(hierarchy.get(6).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				folder1Id, folder2Id
-		);
-		// create a batch containing folder2 and file1 to use for an update.
-		final ArrayList<NodeHierarchy> batch = new ArrayList<NodeHierarchy>();
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				batch.add(value);
-			}
-		});
-		assertEquals(3, batch.size());
-		NodeHierarchy folder2Hierarchy = batch.get(0);
-		NodeHierarchy file1Hierarchy = batch.get(1);
-		NodeHierarchy file2Hierarchy = batch.get(2);
-		// 
-		assertEquals(folder2Id, folder2Hierarchy.getNodeId());
-		assertEquals(file1Id, file1Hierarchy.getNodeId());
-		assertEquals(file2Id, file2Hierarchy.getNodeId());
-		
-		// Move both to folder0
-		folder2Hierarchy.setParentId(folder0Id);
-		file1Hierarchy.setParentId(folder0Id);
-		// set each to be their own benefactor
-		folder2Hierarchy.setBenefectorId(folder2Hierarchy.getNodeId());
-		file1Hierarchy.setBenefectorId(file1Hierarchy.getNodeId());
-		// clear the project id for both
-		folder2Hierarchy.setProjectId(folder1Id);
-		file1Hierarchy.setProjectId(folder2Id);
-		// clear all values for the third
-		file2Hierarchy.setBenefectorId(null);
-		file2Hierarchy.setParentId(null);
-		file2Hierarchy.setProjectId(null);
-		
-		// update both as a batch
-		//call under test
-		nodeDao.batchUpdateHierarchy(batch);
-		
-		// Validate all of the changes
-		Node folder2 = nodeDao.getNode(""+folder2Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(folder2.getParentId()));
-		assertEquals(folder1Id, KeyFactory.stringToKey(folder2.getProjectId()));
-		String benefactor = nodeInheritanceDAO.getBenefactorCached(""+folder2Id);
-		// should be its own benefactor
-		assertEquals(folder2Id, KeyFactory.stringToKey(benefactor));
-		
-		// The etag should have changed.
-		Node oldNode = hierarchy.get(4);
-		assertEquals(oldNode.getId(), folder2.getId());
-		assertFalse(folder2.getETag().equals(oldNode.getETag()));
-		
-		// file1
-		Node file1 = nodeDao.getNode(""+file1Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(file1.getParentId()));
-		assertEquals(folder2Id, KeyFactory.stringToKey(file1.getProjectId()));
-		benefactor = nodeInheritanceDAO.getBenefactorCached(""+file1Id);
-		// should be its own benefactor
-		assertEquals(file1Id, KeyFactory.stringToKey(benefactor));
-		
-		// file2 with nulls
-		Node file2 = nodeDao.getNode(""+file2Id);
-		assertEquals(null, file2.getParentId());
-		assertEquals(null, file2.getProjectId());
-		try {
-			benefactor = nodeInheritanceDAO.getBenefactorCached(""+file2Id);
-			fail("should throw NotFoundException");
-		} catch (NotFoundException e) {
-			// expected
-		}
 	}
 	
 	@Test
