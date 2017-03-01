@@ -72,6 +72,8 @@
         "VIEW_SCOPE",
         "AUTHENTICATION_RECEIPT",
         "THROTTLE_RULE",
+        "RESEARCH_PROJECT",
+        "DATA_ACCESS_REQUEST",
         "CHANGE"
     ]
 }
