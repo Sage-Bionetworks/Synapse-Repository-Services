@@ -349,5 +349,7 @@
 	<!-- DAO for DataAccessRequest Feature -->
 	<bean id="researchProjectDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
+	<bean id="dataAccessRequestDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequestDAOImpl" />
 	
 </beans>
