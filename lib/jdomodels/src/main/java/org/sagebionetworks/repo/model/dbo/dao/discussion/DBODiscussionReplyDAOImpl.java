@@ -1,16 +1,31 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_IS_DELETED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_IS_EDITED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MESSAGE_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_REPLY_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_REPLY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionReplyDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionReply;
