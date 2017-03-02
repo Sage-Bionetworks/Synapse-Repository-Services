@@ -86,7 +86,6 @@ public class DBONodeTest {
 		child.seteTag("1");
 		child.setType(EntityType.folder.name());
 		child.setParentId(node.getId());
-		child.setDescription("I have a description".getBytes("UTF-8"));
 		// Get it back
 		clone = dboBasicDao.createNew(child);
 		assertNotNull(clone);
@@ -95,7 +94,6 @@ public class DBONodeTest {
 		
 		
 		// Make sure we can update it.
-		clone.setDescription("This is a new description".getBytes("UTF-8"));
 		clone.seteTag("2");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);

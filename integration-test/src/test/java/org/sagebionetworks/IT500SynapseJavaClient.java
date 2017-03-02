@@ -352,7 +352,7 @@ public class IT500SynapseJavaClient {
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
 		Entity datasetEntity = synapseOne.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
-		assertTrue(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
 
 		// Get the Users permission for this entity
 		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(file.getId());

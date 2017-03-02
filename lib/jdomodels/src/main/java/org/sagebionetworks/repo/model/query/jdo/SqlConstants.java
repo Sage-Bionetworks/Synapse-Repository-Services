@@ -21,7 +21,6 @@ public class SqlConstants {
 	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOTATIONS		= "ANNOTATIONS_ID_OID";
-	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
@@ -887,6 +886,12 @@ public class SqlConstants {
 	public static final int MAX_ALLOWED_PACKET_BYTES = 16777216;
 	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
 	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
+	
+	/**
+	 * Function names:
+	 */
+	public static final String FUNCTION_GET_ENTITY_BENEFACTOR_ID = "getEntityBenefactorId";
+	public static final String FUNCTION_GET_ENTITY_PROJECT_ID = "getEntityProjectId";
 
 	static{
 		// Map column names to the field names

@@ -101,7 +101,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(trashFolder);
 		assertNotNull(trashFolder.getParentId());
 		assertTrue(nodeDAO.isNodeRoot(trashFolder.getParentId()));
-		String benefactorId = nodeInheritanceManager.getBenefactor(trashCanId);
+		String benefactorId = nodeInheritanceManager.getBenefactorCached(trashCanId);
 		assertNotNull(benefactorId);
 		assertEquals(trashCanId, benefactorId);
 
@@ -172,7 +172,7 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeChildId, nodeChildRetrieved.getId());
 		assertEquals(nodeChildName, nodeChildRetrieved.getName());
 		assertEquals(nodeParentId, nodeChildRetrieved.getParentId());
-		assertEquals(nodeParentId, nodeInheritanceManager.getBenefactor(nodeChildRetrieved.getId()));
+		assertEquals(nodeParentId, nodeInheritanceManager.getBenefactorCached(nodeChildRetrieved.getId()));
 	}
 	
 	@Test
@@ -293,7 +293,7 @@ public class TrashManagerImplAutowiredTest {
 		childNodeRetrieved = nodeManager.get(testUserInfo, childId);
 		assertNotNull(nodeRetrieved);
 		assertEquals(nodeId, nodeRetrieved.getId());
-		assertEquals(nodeId, nodeInheritanceManager.getBenefactor(nodeRetrieved.getId()));
+		assertEquals(nodeId, nodeInheritanceManager.getBenefactorCached(nodeRetrieved.getId()));
 		assertEquals(nodeId, nodeRetrieved.getProjectId());
 		assertEquals(nodeId, childNodeRetrieved.getParentId());
 		assertEquals(nodeId, childNodeRetrieved.getProjectId());
@@ -421,8 +421,8 @@ public class TrashManagerImplAutowiredTest {
 		// Modify nodeId12 to be its own benefactor
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId12, testUserInfo, new Date());
 		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
-		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
-		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));
+		assertEquals(nodeId12, nodeInheritanceManager.getBenefactorCached(nodeId12));
+		assertEquals(nodeId12, nodeInheritanceManager.getBenefactorCached(nodeId22));
 
 		// Make sure we can read the nodes before moving the trash can
 		Node nodeBack00 = nodeManager.get(testUserInfo, nodeId00);

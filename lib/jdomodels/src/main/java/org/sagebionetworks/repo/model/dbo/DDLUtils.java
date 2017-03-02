@@ -25,4 +25,14 @@ public interface DDLUtils {
 	 */
 	public int dropTable(String tableName);
 
+	/**
+	 * Create a MySQL function from a DDL file that defines the function.
+	 * 
+	 * @param functionName The name of the function to create/update
+	 * @param fileName
+	 *            The name of the DDL file that defines the function.
+	 * @throws IOException 
+	 */
+	void createFunction(String functionName, String fileName) throws IOException;
+
 }

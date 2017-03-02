@@ -263,22 +263,6 @@ public class EntityManagerImplAutowireTest {
 		
 	}
 
-	@Test
-	public void testGetEntityForVersionNoEtag() throws Exception {
-		TableEntity data = new TableEntity();
-		data.setName("testGetEntityForVersion");
-		String id = entityManager.createEntity(adminUserInfo, data, null);
-		assertNotNull(id);
-		toDelete.add(id);
-		data = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
-		assertNotNull(data);
-		assertNotNull(data.getEtag());
-		assertFalse(data.getEtag().equals(NodeConstants.ZERO_E_TAG));
-		data = entityManager.getEntityForVersion(adminUserInfo, id, data.getVersionNumber(), TableEntity.class);
-		assertNotNull(data.getEtag());
-		assertTrue(data.getEtag().equals(NodeConstants.ZERO_E_TAG)); // PLFM-1420
-	}
-
 	private Folder createLayerForTest(int i){
 		Folder layer = new Folder();
 		layer.setName("layerName"+i);

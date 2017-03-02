@@ -176,7 +176,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
 			// This node inherits from its parent.
-			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
+			String parentBenefactor = nodeInheritanceManager.getBenefactorCached(newNode.getParentId());
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
@@ -795,7 +795,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private void removeBenefactorAcl(String nodeId)  {
 		String benefactor = null;
 		try {
-			benefactor = nodeInheritanceManager.getBenefactor(nodeId);
+			benefactor = nodeInheritanceManager.getBenefactorCached(nodeId);
 		} catch (NotFoundException e) {
 			benefactor = null;
 		}

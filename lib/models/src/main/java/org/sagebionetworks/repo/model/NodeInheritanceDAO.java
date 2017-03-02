@@ -23,13 +23,23 @@ public interface NodeInheritanceDAO {
 	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * A node's permissions benefactor is the node which its permissions are inherited from. 
+	 * A node's permissions benefactor is the node which its permissions are inherited from.
+	 * This version returns a cached version of a node's benefactor.
+	 * 
 	 * @param beneficiaryId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
-	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException;
+	public String getBenefactorCached(String beneficiaryId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * A node's permissions benefactor is the node which its permissions are inherited from.
+	 * This is the non-cached version of the node's benefactor.  The returned value is always consistent.
+	 * @param beneficiaryId
+	 * @return
+	 */
+	public String getBenefactor(String beneficiaryId);
 	
 	
 	/**
@@ -49,4 +59,12 @@ public interface NodeInheritanceDAO {
 	 * @throws DatastoreException
 	 */
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId, boolean keepOldEtag) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Does the given node exist?
+	 * 
+	 * @param id
+	 * @return
+	 */
+	boolean doesNodeExist(String id);
 }

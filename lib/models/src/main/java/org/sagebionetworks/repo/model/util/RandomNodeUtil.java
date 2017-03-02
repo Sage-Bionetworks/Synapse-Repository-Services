@@ -31,7 +31,6 @@ public class RandomNodeUtil {
 	public static Node generateRandom(Random rand) {
 		Node node = new Node();
 		node.setName("name"+rand.nextLong());
-		node.setDescription("description"+rand.nextLong());
 		node.setETag(""+rand.nextLong());
 		node.setId(""+rand.nextLong());
 		node.setModifiedByPrincipalId(rand.nextLong());
