@@ -138,7 +138,7 @@
 					<key>
 						<value>getEntityProjectId</value>
 					</key>
-					<value>schema/functions/getEntityProjectId.ddl.sql</value>
+					<value>schema/functions/GetEntityProjectId.ddl.sql</value>
 				</entry>
 			</map>
 		</property>
