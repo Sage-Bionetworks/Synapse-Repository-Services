@@ -123,6 +123,9 @@
 
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -202,6 +205,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.table.DBOViewType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
+
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

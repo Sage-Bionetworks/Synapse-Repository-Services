@@ -85,9 +85,13 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
@@ -263,6 +267,12 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	@Autowired
 	private ViewScopeDao viewScopeDao;
+
+	@Autowired
+	private ResearchProjectDAO researchProjectDAO;
+
+	@Autowired
+	private DataAccessRequestDAO dataAccessRequestDAO;
 	
 	private Team team;
 
@@ -304,8 +314,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private String forumId;
 	private String threadId;
-	
-	private MessageToUser messageToUser;
+
+	private ResearchProject researchProject;
 
 	@Before
 	public void before() throws Exception {
@@ -351,8 +361,42 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createViewScope();
 		createAuthenticationReceipt();
 		createThrottleRule();
+		createResearchProject();
+		createDataAccessRequest();
 	}
 	
+	private void createDataAccessRequest() {
+		DataAccessRenewal dto = new DataAccessRenewal();
+		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(adminUserIdString);
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy(adminUserIdString);
+		dto.setModifiedOn(new Date());
+		dto.setEtag("etag");
+		dto.setAccessors(Arrays.asList(adminUserIdString));
+		dto.setPublication("publication");
+		dto.setSummaryOfUse("summaryOfUse");
+		dataAccessRequestDAO.create(dto);
+	}
+
+	private void createResearchProject() {
+		researchProject = new ResearchProject();
+		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
+		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
+		researchProject.setCreatedBy(adminUserIdString);
+		researchProject.setCreatedOn(new Date());
+		researchProject.setModifiedBy(adminUserIdString);
+		researchProject.setModifiedOn(new Date());
+		researchProject.setOwnerId(adminUserIdString);
+		researchProject.setEtag("etag");
+		researchProject.setProjectLead("projectLead");
+		researchProject.setInstitution("institution");
+		researchProject.setIntendedDataUseStatement("intendedDataUseStatement");
+		researchProjectDAO.create(researchProject);
+	}
+
 	private void createViewScope() {
 		viewScopeDao.truncateAll();
 		viewScopeDao.setViewScopeAndType(123L, Sets.newHashSet(456L,789L), ViewType.file);
@@ -786,8 +830,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// Note: InReplyToRoot is calculated by the DAO
 
 		dto = messageDAO.createMessage(dto);
-		
-		messageToUser = dto;
 
 		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 
