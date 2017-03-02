@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -16,9 +17,9 @@ public class DataAccessRequestUtils {
 		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
 		dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectId()));
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
-		dbo.setModifiedOn(dto.getModifiedOn());
+		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setEtag(dto.getEtag());
 		dbo.setAccessors(convertListToString(dto.getAccessors()));
 		copyToSerializedField(dto, dbo);
@@ -30,9 +31,9 @@ public class DataAccessRequestUtils {
 		dto.setAccessRequirementId(dbo.getAccessRequirementId().toString());
 		dto.setResearchProjectId(dbo.getResearchProjectId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
-		dto.setModifiedOn(dbo.getModifiedOn());
+		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setEtag(dbo.getEtag());
 		dto.setAccessors(convertStringToList(dbo.getAccessors()));
 		return dto;

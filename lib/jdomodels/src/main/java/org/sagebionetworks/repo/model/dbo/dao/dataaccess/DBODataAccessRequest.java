@@ -6,7 +6,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -34,9 +33,9 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 	private Long accessRequirementId;
 	private Long researchProjectId;
 	private Long createdBy;
-	private Date createdOn;
+	private Long createdOn;
 	private Long modifiedBy;
-	private Date modifiedOn;
+	private Long modifiedOn;
 	private String etag;
 	private String accessors;
 	private byte[] requestSerialized;
@@ -157,11 +156,11 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 		this.createdBy = createdBy;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
@@ -173,11 +172,11 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Date getModifiedOn() {
+	public Long getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public void setModifiedOn(Long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -216,9 +215,9 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 				dbo.setAccessRequirementId(rs.getLong(DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
 				dbo.setResearchProjectId(rs.getLong(DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
 				dbo.setCreatedBy(rs.getLong(DATA_ACCESS_REQUEST_CREATED_BY));
-				dbo.setCreatedOn(new Date(rs.getTimestamp(DATA_ACCESS_REQUEST_CREATED_ON).getTime()));
+				dbo.setCreatedOn(rs.getLong(DATA_ACCESS_REQUEST_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_BY));
-				dbo.setModifiedOn(new Date(rs.getTimestamp(DATA_ACCESS_REQUEST_MODIFIED_ON).getTime()));
+				dbo.setModifiedOn(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_ON));
 				dbo.setEtag(rs.getString(DATA_ACCESS_REQUEST_ETAG));
 				dbo.setAccessors(rs.getString(DATA_ACCESS_REQUEST_ACCESSORS));
 				Blob blob = rs.getBlob(DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);

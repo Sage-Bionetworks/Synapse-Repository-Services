@@ -6,7 +6,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -34,9 +33,9 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 	private Long id;
 	private Long accessRequirementId;
 	private Long createdBy;
-	private Date createdOn;
+	private Long createdOn;
 	private Long modifiedBy;
-	private Date modifiedOn;
+	private Long modifiedOn;
 	private Long ownerId;
 	private String etag;
 	private String projectLead;
@@ -67,11 +66,11 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 		this.createdBy = createdBy;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
@@ -83,11 +82,11 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Date getModifiedOn() {
+	public Long getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public void setModifiedOn(Long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -231,9 +230,9 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 				dbo.setId(rs.getLong(RESEARCH_PROJECT_ID));
 				dbo.setAccessRequirementId(rs.getLong(RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID));
 				dbo.setCreatedBy(rs.getLong(RESEARCH_PROJECT_CREATED_BY));
-				dbo.setCreatedOn(new Date(rs.getTimestamp(RESEARCH_PROJECT_CREATED_ON).getTime()));
+				dbo.setCreatedOn(rs.getLong(RESEARCH_PROJECT_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(RESEARCH_PROJECT_MODIFIED_BY));
-				dbo.setModifiedOn(new Date(rs.getTimestamp(RESEARCH_PROJECT_MODIFIED_ON).getTime()));
+				dbo.setModifiedOn(rs.getLong(RESEARCH_PROJECT_MODIFIED_ON));
 				dbo.setOwnerId(rs.getLong(RESEARCH_PROJECT_OWNER_ID));
 				dbo.setEtag(rs.getString(RESEARCH_PROJECT_ETAG));
 				dbo.setProjectLead(rs.getString(RESEARCH_PROJECT_PROJECT_LEAD));
