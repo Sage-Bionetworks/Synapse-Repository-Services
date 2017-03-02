@@ -33,17 +33,9 @@ public interface ResearchProjectDAO {
 	public ResearchProject update(ResearchProject toUpdate) throws NotFoundException;
 
 	/**
-	 * Update the ownership of an existing ResearchProject.
+	 * Delete a ResearchProject given its ID.
 	 * 
-	 * @param researchProjectId
-	 * @param newOwnerId
-	 * @return
-	 * @throws NotFoundException if the ResearchProject cannot be found.
+	 * @param id
 	 */
-	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws NotFoundException;
-
-	/**
-	 * used for tests
-	 */
-	void truncateAll();
+	void delete(String id);
 }

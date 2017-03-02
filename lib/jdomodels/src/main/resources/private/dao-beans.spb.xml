@@ -346,4 +346,8 @@
 	<bean id="throttleRulesDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.throttle.DBOThrottleRulesDAOImpl" />
 
+	<!-- DAO for DataAccessRequest Feature -->
+	<bean id="researchProjectDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
+	
 </beans>
