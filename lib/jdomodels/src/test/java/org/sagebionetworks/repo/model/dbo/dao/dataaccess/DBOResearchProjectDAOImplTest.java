@@ -116,11 +116,9 @@ public class DBOResearchProjectDAOImplTest {
 		assertEquals(dto, researchProjectDao.update(dto));
 
 		// insert another one with the same accessRequirementId & createdBy
-		ResearchProject dto2 = ResearchProjectTestUtils.createNewDto();
-		dto2.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		try {
-			researchProjectDao.create(dto2);
-			fail("should fail because of uniqueness constrain");
+			researchProjectDao.create(dto);
+			fail("should fail because of uniqueness constraint");
 		} catch (IllegalArgumentException e){
 			// as expected
 		}
