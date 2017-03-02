@@ -136,6 +136,15 @@ public class NodeInheritanceDAOImplTest {
 		nodeDao.delete(parentId);
 	}
 	
+	@Test
+	public void testDoesNodeExist(){
+		Node node = NodeTestUtils.createNew("node", creatorUserGroupId);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		assertTrue(nodenheritanceDao.doesNodeExist(node.getId()));
+		assertFalse(nodenheritanceDao.doesNodeExist("syn9999"));
+	}
+	
 	@Test (expected=NotFoundException.class)
 	public void testGetBenefactorEntityDoesNotExist(){
 		// should not exist
@@ -153,7 +162,7 @@ public class NodeInheritanceDAOImplTest {
 		try{
 			nodenheritanceDao.getBenefactor(grandparent.getId());
 			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
+		}catch(IllegalStateException expected){
 			// expected
 		}
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), user, new Date());
@@ -163,7 +172,7 @@ public class NodeInheritanceDAOImplTest {
 		try{
 			nodenheritanceDao.getBenefactor(grandparent.getId());
 			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
+		}catch(IllegalStateException expected){
 			// expected
 		}
 		// Create an ACL with the correct type
@@ -195,7 +204,7 @@ public class NodeInheritanceDAOImplTest {
 		try{
 			nodenheritanceDao.getBenefactor(child.getId());
 			fail("Does not have a benefactor");
-		}catch(NotFoundException expected){
+		}catch(IllegalStateException expected){
 			// expected
 		}
 		// add an ACL on the grandparent.

@@ -2874,10 +2874,21 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test (expected=NotFoundException.class)
-	public void testGetProjectIdNotFound(){
+	public void testGetProjectNodeDoesNotEixst(){
 		String doesNotExist = "syn9999999";
 		// call under test
 		nodeDao.getProjectId(doesNotExist);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testGetProjectNodeExistsWithNoProject(){
+		// create a node that is not in a project.
+		Node node = NodeTestUtils.createNew("someNode", creatorUserGroupId);
+		node.setNodeType(EntityType.folder);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// call under test
+		nodeDao.getProjectId(node.getId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)

@@ -571,8 +571,8 @@ public class EntityController extends BaseController {
 	 * <p>
 	 * Note: Only the current version of the Entity can be used for an Entity
 	 * update. Therefore, only the current version of the Entity will be
-	 * returned with the actual etag. All older versions will be returned with a
-	 * 'zeroed' eTag.
+	 * returned with the actual etag. All older versions will be returned with an
+	 * eTag '00000000-0000-0000-0000-000000000000'.
 	 * </p>
 	 * 
 	 * @param id

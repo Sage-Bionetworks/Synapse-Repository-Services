@@ -59,4 +59,12 @@ public interface NodeInheritanceDAO {
 	 * @throws DatastoreException
 	 */
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId, boolean keepOldEtag) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Does the given node exist?
+	 * 
+	 * @param id
+	 * @return
+	 */
+	boolean doesNodeExist(String id);
 }
