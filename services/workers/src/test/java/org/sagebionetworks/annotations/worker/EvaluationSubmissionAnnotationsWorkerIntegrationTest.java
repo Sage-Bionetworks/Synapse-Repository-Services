@@ -22,10 +22,13 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -35,6 +38,7 @@ import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -72,6 +76,9 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 	@Autowired
 	private QueueCleaner queueCleaner;
 	
+	@Autowired
+	private AccessControlListDAO accessControlListDAO;
+	
 	private String nodeId;
     private String submissionId;
     private Long userId;
@@ -98,7 +105,12 @@ public class EvaluationSubmissionAnnotationsWorkerIntegrationTest {
 		node.setNodeType(EntityType.project);
 		node.setVersionComment("This is the first version of the first node ever!");
 		node.setVersionLabel("0.0.1");
-    	nodeId = nodeDAO.createNew(node).substring(3); // trim "syn" from node ID
+		node = nodeDAO.createNewNode(node);
+		nodeId = node.getId().substring(3);// trim "syn" from node ID
+    	
+		// add an acl.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(node.getId(), userInfo, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
     	
     	// create an evaluation
         Evaluation evaluation = new Evaluation();
