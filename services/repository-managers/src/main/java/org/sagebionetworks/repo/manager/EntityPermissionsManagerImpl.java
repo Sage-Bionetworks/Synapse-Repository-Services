@@ -325,7 +325,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		Node node = nodeDao.getNode(entityId);
 		
-		String benefactor = node.getBenefactorId();
+		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());

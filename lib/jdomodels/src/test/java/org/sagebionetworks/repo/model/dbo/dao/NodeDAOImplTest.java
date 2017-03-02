@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeHierarchy;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -72,8 +71,8 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
@@ -168,11 +167,14 @@ public class NodeDAOImplTest {
 	private String nooneOwns;
 
 	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
+	
+	UserInfo adminUser;
 
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		adminUser = new UserInfo(true, creatorUserGroupId);
 		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
@@ -302,8 +304,18 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 		
 		// Since this node has no parent, it should be its own benefactor.
-		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
+		String benefactorId = nodeInheritanceDAO.getBenefactorCached(id);
 		assertEquals(id, benefactorId);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeNotFound(){
+		nodeDao.getNode("syn123");
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeVersionNotFound(){
+		nodeDao.getNodeForVersion("syn123", 1L);
 	}
 	
 	@Test
@@ -507,7 +519,7 @@ public class NodeDAOImplTest {
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
 		// This child should be inheriting from its parent by default
-		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
+		String childBenefactorId = nodeInheritanceDAO.getBenefactorCached(childId);
 		assertEquals(parentId, childBenefactorId);
 		
 		// now add a grandchild
@@ -517,7 +529,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandkidId);
 
 		// This grandchild should be inheriting from its grandparent by default
-		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
+		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactorCached(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
@@ -737,7 +749,6 @@ public class NodeDAOImplTest {
 		assertNotNull(copy);
 		// Now change the copy and push it back
 		copy.setName("myNewName");
-		copy.setDescription("myNewDescription");
 		copy.setActivityId(testActivity2.getId());
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);
@@ -1080,12 +1091,19 @@ public class NodeDAOImplTest {
 		// The very fist version should be last
 		assertEquals(new Long(1), versionNumbers.get(versionNumbers.size()-1));
 		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
+
 		// Make sure we can fetch each version
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
-			assertNotNull(nodeVersion.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
 	}
@@ -1105,13 +1123,20 @@ public class NodeDAOImplTest {
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
 		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
 
 		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity) {
-			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
-			assertNotNull(node.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
-			Date modDate = node.getModifiedOn();
+			Node nodeVersion = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
+			Date modDate = nodeVersion.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
 	}
@@ -2803,125 +2828,6 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testStreamOverHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long projectId = KeyFactory.stringToKey(hierarchy.get(0).getId());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				projectId, folder0Id, folder1Id, folder2Id
-		);
-		// Stream over the results and everything to the list
-		final List<NodeHierarchy> resutls = new LinkedList<NodeHierarchy>();
-		// call under test
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				resutls.add(value);
-			}
-		});
-		assertEquals(6, resutls.size());
-		// validate all of the streamed data.
-		for(int i=0; i<6; i++){
-			Node node = hierarchy.get(i+1);
-			NodeHierarchy nodehierarchy = resutls.get(i);
-			// compare the results
-			assertEquals(node.getId(), KeyFactory.keyToString(nodehierarchy.getNodeId()));
-			assertEquals(node.getParentId(), KeyFactory.keyToString(nodehierarchy.getParentId()));
-			assertEquals(projectId, nodehierarchy.getProjectId());
-			// lookup the benefactor for this node.
-			String benefactor = nodeInheritanceDAO.getBenefactor(node.getId());
-			assertEquals(benefactor, KeyFactory.keyToString(nodehierarchy.getBenefectorId()));
-		}
-	}
-	
-	@Test
-	public void testBatchUpdateHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		Long file1Id = KeyFactory.stringToKey(hierarchy.get(5).getId());
-		Long file2Id = KeyFactory.stringToKey(hierarchy.get(6).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				folder1Id, folder2Id
-		);
-		// create a batch containing folder2 and file1 to use for an update.
-		final ArrayList<NodeHierarchy> batch = new ArrayList<NodeHierarchy>();
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				batch.add(value);
-			}
-		});
-		assertEquals(3, batch.size());
-		NodeHierarchy folder2Hierarchy = batch.get(0);
-		NodeHierarchy file1Hierarchy = batch.get(1);
-		NodeHierarchy file2Hierarchy = batch.get(2);
-		// 
-		assertEquals(folder2Id, folder2Hierarchy.getNodeId());
-		assertEquals(file1Id, file1Hierarchy.getNodeId());
-		assertEquals(file2Id, file2Hierarchy.getNodeId());
-		
-		// Move both to folder0
-		folder2Hierarchy.setParentId(folder0Id);
-		file1Hierarchy.setParentId(folder0Id);
-		// set each to be their own benefactor
-		folder2Hierarchy.setBenefectorId(folder2Hierarchy.getNodeId());
-		file1Hierarchy.setBenefectorId(file1Hierarchy.getNodeId());
-		// clear the project id for both
-		folder2Hierarchy.setProjectId(folder1Id);
-		file1Hierarchy.setProjectId(folder2Id);
-		// clear all values for the third
-		file2Hierarchy.setBenefectorId(null);
-		file2Hierarchy.setParentId(null);
-		file2Hierarchy.setProjectId(null);
-		
-		// update both as a batch
-		//call under test
-		nodeDao.batchUpdateHierarchy(batch);
-		
-		// Validate all of the changes
-		Node folder2 = nodeDao.getNode(""+folder2Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(folder2.getParentId()));
-		assertEquals(folder1Id, KeyFactory.stringToKey(folder2.getProjectId()));
-		String benefactor = nodeInheritanceDAO.getBenefactor(""+folder2Id);
-		// should be its own benefactor
-		assertEquals(folder2Id, KeyFactory.stringToKey(benefactor));
-		
-		// The etag should have changed.
-		Node oldNode = hierarchy.get(4);
-		assertEquals(oldNode.getId(), folder2.getId());
-		assertFalse(folder2.getETag().equals(oldNode.getETag()));
-		
-		// file1
-		Node file1 = nodeDao.getNode(""+file1Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(file1.getParentId()));
-		assertEquals(folder2Id, KeyFactory.stringToKey(file1.getProjectId()));
-		benefactor = nodeInheritanceDAO.getBenefactor(""+file1Id);
-		// should be its own benefactor
-		assertEquals(file1Id, KeyFactory.stringToKey(benefactor));
-		
-		// file2 with nulls
-		Node file2 = nodeDao.getNode(""+file2Id);
-		assertEquals(null, file2.getParentId());
-		assertEquals(null, file2.getProjectId());
-		try {
-			benefactor = nodeInheritanceDAO.getBenefactor(""+file2Id);
-			fail("should throw NotFoundException");
-		} catch (NotFoundException e) {
-			// expected
-		}
-	}
-	
-	@Test
 	public void testGetNodeIdByAlias(){
 		Node node = privateCreateNew("testGetNodeIdByAlias");
 		String alias = UUID.randomUUID().toString();
@@ -2947,21 +2853,42 @@ public class NodeDAOImplTest {
 	public void testGetProjectId(){
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(project);
-		toDelete.add(id);
-		project = nodeDao.getNode(id);
-		assertNotNull(project);
-		assertEquals(id, project.getProjectId());
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		// add some hierarchy
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setNodeType(EntityType.folder);
+		parent.setParentId(project.getId());
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child.setNodeType(EntityType.folder);
+		child = nodeDao.createNewNode(child);
+		toDelete.add(child.getId());
+		
 		// call under test
-		String projectId = nodeDao.getProjectId(id);
-		assertEquals(project.getProjectId(), projectId);
+		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()));
 	}
 	
 	@Test (expected=NotFoundException.class)
-	public void testGetProjectIdNotFound(){
+	public void testGetProjectNodeDoesNotEixst(){
 		String doesNotExist = "syn9999999";
 		// call under test
 		nodeDao.getProjectId(doesNotExist);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testGetProjectNodeExistsWithNoProject(){
+		// create a node that is not in a project.
+		Node node = NodeTestUtils.createNew("someNode", creatorUserGroupId);
+		node.setNodeType(EntityType.folder);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// call under test
+		nodeDao.getProjectId(node.getId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -3007,6 +2934,9 @@ public class NodeDAOImplTest {
 		project.setNodeType(EntityType.project);
 		project = nodeDao.createNewNode(project);
 		toDelete.add(project.getId());
+		// Add an ACL at the project
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
 		file.setNodeType(EntityType.file);

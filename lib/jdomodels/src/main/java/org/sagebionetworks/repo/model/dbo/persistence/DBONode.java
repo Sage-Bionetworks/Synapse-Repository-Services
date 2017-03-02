@@ -5,7 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
@@ -44,7 +43,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("parentId", COL_NODE_PARENT_ID).withIsSelfForeignKey(true),
 			new FieldColumn("name", COL_NODE_NAME),
 			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
-			new FieldColumn("description", COL_NODE_DESCRIPTION),
 			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
@@ -60,37 +58,8 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			// Map a result set to this object
 			@Override
 			public DBONode mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				DBONode node = new DBONode();
-				node.setId(rs.getLong(COL_NODE_ID));
-				node.setParentId(rs.getLong(COL_NODE_PARENT_ID));
-				if(rs.wasNull()){
-					node.setParentId(null);
-				}
-				node.setName(rs.getString(COL_NODE_NAME));
-				node.setCurrentRevNumber(rs.getLong(COL_CURRENT_REV));
-				if(rs.wasNull()){
-					node.setCurrentRevNumber(null);
-				}
-				java.sql.Blob blob = rs.getBlob(COL_NODE_DESCRIPTION);
-				if(blob != null){
-					node.setDescription(blob.getBytes(1, (int) blob.length()));
-				}
-				node.seteTag(rs.getString(COL_NODE_ETAG));
-				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
-				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
-				node.setType(rs.getString(COL_NODE_TYPE));
-				node.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				// If the value was null we must set it to null
-				if(rs.wasNull()){
-					node.setBenefactorId(null);
-				}
-				node.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
-				// If the value was null we must set it to null
-				if(rs.wasNull()){
-					node.setProjectId(null);
-				}
-				node.setAlias(rs.getString(COL_NODE_ALIAS));
-				return node;
+				DBONodeMapper mapper = new DBONodeMapper();
+				return mapper.mapRow(rs, rowNum);
 			}
 
 			@Override

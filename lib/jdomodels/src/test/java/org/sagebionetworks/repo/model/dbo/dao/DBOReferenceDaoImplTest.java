@@ -273,7 +273,7 @@ public class DBOReferenceDaoImplTest {
 		userInfo.setGroups(userGroups);
 		
 		// check that permissions are set up.  'userInfo' should be able to get node0 but not node1
-		String permissionsBenefactor0 = nodeInheritanceDao.getBenefactor(""+node0.getId());
+		String permissionsBenefactor0 = nodeInheritanceDao.getBenefactorCached(""+node0.getId());
 		// node0 is its own permissions supplier
 		assertEquals(""+node0.getId()+"!="+permissionsBenefactor0, ""+KeyFactory.keyToString(node0.getId()), permissionsBenefactor0);
 		AccessControlList acl2 = aclDAO.get(""+node0.getId(), ObjectType.ENTITY);
@@ -283,7 +283,7 @@ public class DBOReferenceDaoImplTest {
 		ResourceAccess ra2 = ras2.iterator().next();
 		assertEquals(groupId, ra2.getPrincipalId().toString());
 		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
+		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactorCached(""+node1.getId());
 		// node1 is its own permissions supplier
 		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, KeyFactory.keyToString(node1.getId()), permissionsBenefactor1);
 		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ObjectType.ENTITY, ACCESS_TYPE.READ));

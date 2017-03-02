@@ -1,48 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.sql.Blob;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,7 +37,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeHierarchy;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -88,6 +50,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
@@ -101,16 +64,13 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -129,14 +89,16 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
-	private static final String SQL_SELECT_PROJECT_ID = "SELECT "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R."+COL_REVISION_OWNER_NODE+", R."+COL_REVISION_NUMBER+", R."+COL_REVISION_ACTIVITY_ID+", R."+COL_REVISION_LABEL+", R."+COL_REVISION_COMMENT+", R."+COL_REVISION_MODIFIED_BY+", R."+COL_REVISION_MODIFIED_ON+", R."+COL_REVISION_FILE_HANDLE_ID+", R."+COL_REVISION_COLUMN_MODEL_IDS+", R."+COL_REVISION_SCOPE_IDS+", R."+COL_REVISION_REF_BLOB;
+	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+" AND N."+COL_NODE_ID+"= ?";
+	private static final String SQL_SELECT_NODE_VERSION = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND R."+COL_REVISION_NUMBER+" = ? AND N."+COL_NODE_ID+"= ?";
+
+	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
-	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String SQL_SELECT_HIERARCHY_FOR_PARENTS_IN = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_BENEFACTOR_ID+", "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
@@ -153,12 +115,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	
+	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
+	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
+	
 	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N."
 			+ COL_NODE_ID + ", N."+COL_CURRENT_REV+", N." + COL_NODE_CREATED_BY + ", N."
 			+ COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N."
-			+ COL_NODE_PARENT_ID + ", N." + COL_NODE_BENEFACTOR_ID + ", N."
-			+ COL_NODE_PROJECT_ID + ", R." + COL_REVISION_MODIFIED_BY + ", R."
+			+ COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
+			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R."
 			+ COL_REVISION_MODIFIED_ON + ", R." + COL_REVISION_FILE_HANDLE_ID
 			+ ", R." + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_NODE + " N, "
 			+ TABLE_REVISION + " R WHERE N." + COL_NODE_ID + " = R."
@@ -426,21 +392,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		DBONode jdo =  getNodeById(KeyFactory.stringToKey(id));
-		DBORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
-		return NodeUtils.copyFromJDO(jdo, rev);
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, new NodeMapper(), KeyFactory.stringToKey(id));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
 	}
 	
 	@Override
 	public Node getNodeForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
-		Long nodeID = KeyFactory.stringToKey(id);
-		DBONode jdo =  getNodeById(nodeID);
-		// Remove the eTags (See PLFM-1420)
-		jdo.seteTag(NodeConstants.ZERO_E_TAG);
-		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
-		return NodeUtils.copyFromJDO(jdo, rev);
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, new NodeMapper(),versionNumber, KeyFactory.stringToKey(id));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
 	}
 
 	@WriteTransaction
@@ -1623,82 +1590,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.NodeDAO#streamOverHierarchy(java.util.List, org.sagebionetworks.util.Callback)
-	 */
-	@Override
-	public void streamOverHierarchy(final List<Long> containers,
-			final Callback<NodeHierarchy> callback) {
-		ValidateArgument.required(containers, "containers");
-		ValidateArgument.required(callback, "callback");
-		if(containers.isEmpty()){
-			// nothing to do if the containers are empty.
-			return;
-		}
-		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
-		parameters.put(IDS_PARAM_NAME, containers);
-		namedParameterJdbcTemplate.query(SQL_SELECT_HIERARCHY_FOR_PARENTS_IN, parameters, new RowCallbackHandler() {
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				NodeHierarchy hierarchy = new NodeHierarchy();
-				hierarchy.setNodeId(rs.getLong(COL_NODE_ID));
-				hierarchy.setParentId(rs.getLong(COL_NODE_PARENT_ID));
-				hierarchy.setBenefectorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				hierarchy.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
-				// pass along this row.
-				callback.invoke(hierarchy);
-			}
-		});
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.NodeDAO#batchUpdateHierarchy(java.util.ArrayList)
-	 */
-	@WriteTransactionReadCommitted
-	@Override
-	public void batchUpdateHierarchy(final ArrayList<NodeHierarchy> batch) {
-		ValidateArgument.required(batch, "batch");
-		if(batch.isEmpty()){
-			// nothing to do if the batch is empty.
-			return;
-		}
-		jdbcTemplate.batchUpdate(SQL_BATCH_UPDATE_HIERARCHY, new BatchPreparedStatementSetter() {
-			
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				NodeHierarchy update = batch.get(i);
-				setPreparedStatement(ps, 1, update.getParentId());
-				setPreparedStatement(ps, 2, update.getBenefectorId());
-				setPreparedStatement(ps, 3, update.getProjectId());
-				// nodeId cannot be null
-				ValidateArgument.required(update.getNodeId(), "update.nodeId()");
-				ps.setLong(4, update.getNodeId());
-			}
-			
-			@Override
-			public int getBatchSize() {
-				return batch.size();
-			}
-			
-			/**
-			 * Helper setting PreparedStatement when the value can be nulls.
-			 * @param ps
-			 * @param index
-			 * @param value
-			 * @throws SQLException
-			 */
-			private void setPreparedStatement(PreparedStatement ps, int index, Long value) throws SQLException{
-				if(value != null){
-					ps.setLong(index, value);
-				}else{
-					ps.setNull(index, Types.BIGINT);
-				}
-			}
-		});
-		
-	}
 
 	@Override
 	public String getNodeIdByAlias(String alias) {
@@ -1714,12 +1605,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public String getProjectId(String nodeId) {
 		ValidateArgument.required(nodeId, "nodeId");
-		try {
-			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
-			return KeyFactory.keyToString(id);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
+		long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		Long projectId = this.jdbcTemplate.queryForObject(SELECT_FUNCTION_PROJECT_ID, Long.class, nodeIdLong);
+		if(projectId == null){
+			if(!doesNodeExist(nodeIdLong)){
+				throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+			}else{
+				// the node exists but does not have a project
+				throw new IllegalStateException("Project not found for: "+nodeId);
+			}
 		}
+		return KeyFactory.keyToString(projectId);
 	}
 
 	@Override
@@ -1762,11 +1658,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()){
 					dto.setParentId(null);
 				}
-				dto.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
+				dto.setBenefactorId(rs.getLong(BENEFACTOR_FUNCTION_ALIAS));
 				if(rs.wasNull()){
 					dto.setBenefactorId(null);
 				}
-				dto.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
+				dto.setProjectId(rs.getLong(PROJECT_FUNCTION_ALIAS));
 				if(rs.wasNull()){
 					dto.setProjectId(null);
 				}

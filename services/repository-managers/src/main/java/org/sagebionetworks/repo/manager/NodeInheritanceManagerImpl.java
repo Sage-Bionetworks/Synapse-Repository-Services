@@ -48,7 +48,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		// Must lock before looking up the benefactor of each.
 		nodeDao.lockNodes(Lists.newArrayList(nodeId,parentNodeId));
 		// First determine who this node is inheriting from
-		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+		String oldBenefactorId = nodeInheritanceDao.getBenefactorCached(nodeId);
 		if (skipBenefactor && oldBenefactorId.equals(nodeId)) {
 			return;
 		}
@@ -56,7 +56,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		// Here node needs to be set to nearest benefactor and children
 		// need to be adjusted accordingly. Nearest benefactor will be 
 		// set to what the parent node has as benefactor
-		String changeToId = nodeInheritanceDao.getBenefactor(parentNodeId);
+		String changeToId = nodeInheritanceDao.getBenefactorCached(parentNodeId);
 		// Lock both the old and new benefactor before making a change See PLFM-3713
 		nodeDao.lockNodes(Lists.newArrayList(oldBenefactorId,changeToId));
 		if (skipBenefactor) {
@@ -84,7 +84,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		if (skipBenefactor) {
 			// Find all children of this node that are currently inheriting from the same 
 			// benefactor.
-			String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+			String currentBenefactorId = nodeInheritanceDao.getBenefactorCached(nodeId);
 			// There is nothing to do if a node already inherits from itself
 			if(nodeId.equals(currentBenefactorId)) return;
 			// Change all the required children
@@ -98,7 +98,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	@Override
 	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException {
 		// First determine who this node is inheriting from.
-		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+		String currentBenefactorId = nodeInheritanceDao.getBenefactorCached(nodeId);
 		Node node = nodeDao.getNode(nodeId);
 		String changeToId = null;
 		if(node.getParentId() == null){
@@ -109,7 +109,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 			changeToId = nodeId;
 		}else{
 			// Change to the parent's benefactor
-			changeToId = nodeInheritanceDao.getBenefactor(node.getParentId());
+			changeToId = nodeInheritanceDao.getBenefactorCached(node.getParentId());
 		}
 		// Do the change
 		// Change all the required children
@@ -150,7 +150,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 */
 	private void addChildrenToChange(String currentBenefactorId, String parentId, Set<String> toChange) throws NotFoundException, DatastoreException{
 		// Find find the parent's benefactor
-		String parentCurrentBenefactorId = nodeInheritanceDao.getBenefactor(parentId);
+		String parentCurrentBenefactorId = nodeInheritanceDao.getBenefactorCached(parentId);
 		if (currentBenefactorId == null || parentCurrentBenefactorId.equals(currentBenefactorId)){
 			toChange.add(parentId);
 			// Now check this node's children
@@ -168,8 +168,17 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * @throws DatastoreException 
 	 */
 	@Override
-	public String getBenefactor(String nodeId) throws NotFoundException, DatastoreException {
-		return nodeInheritanceDao.getBenefactor(nodeId);
+	public String getBenefactorCached(String nodeId) throws NotFoundException, DatastoreException {
+		return nodeInheritanceDao.getBenefactorCached(nodeId);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.NodeInheritanceManager#getBenefactor(java.lang.String)
+	 */
+	@Override
+	public String getBenefactor(String entityId) {
+		return nodeInheritanceDao.getBenefactor(entityId);
 	}
 	
 	/**
@@ -182,5 +191,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);
 	}
+
+
 
 }

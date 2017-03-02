@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
@@ -28,7 +29,6 @@ public enum NodeField {
 
 	ID				("id",						COL_NODE_ID	,				TABLE_NODE,			NODE_ALIAS),
 	NAME			("name",					COL_NODE_NAME,				TABLE_NODE,			NODE_ALIAS),
-	DESCRIPTION		("description",				COL_NODE_DESCRIPTION,		TABLE_NODE,			NODE_ALIAS),
 	PARENT_ID		("parentId",				COL_NODE_PARENT_ID,			TABLE_NODE,			NODE_ALIAS),
 	CREATED_BY		("createdByPrincipalId",	COL_NODE_CREATED_BY,		TABLE_NODE,			NODE_ALIAS),
 	CREATED_ON		("createdOn",				COL_NODE_CREATED_ON,		TABLE_NODE,			NODE_ALIAS),

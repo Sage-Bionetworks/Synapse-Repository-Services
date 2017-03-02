@@ -181,7 +181,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setParentId("1234");
 		node.setETag("0");
 		node.setNodeType(EntityType.folder);
-		node.setDescription("Test annotations");
 		Long nonexistantPrincipalId = 42L;
 		node.setCreatedByPrincipalId(nonexistantPrincipalId);
 		node.setCreatedOn(new Date());
@@ -251,7 +250,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(node.getName(), fields.getName());
 		
 		assertEquals("folder", fields.getNode_type());
-		assertEquals(node.getDescription()+wikiPageText, fields.getDescription());
+		assertEquals(wikiPageText, fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
 		assertEquals(nonexistantPrincipalId.toString(), fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields
@@ -312,8 +311,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setParentId("1234");
 		node.setETag("0");
 		node.setNodeType(EntityType.folder);
-		node
-				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
 		Long nonexistantPrincipalId = 42L;
 		node.setCreatedByPrincipalId(nonexistantPrincipalId);
 		node.setCreatedOn(new Date());

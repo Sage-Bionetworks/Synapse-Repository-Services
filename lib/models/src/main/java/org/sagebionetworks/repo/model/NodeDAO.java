@@ -476,24 +476,6 @@ public interface NodeDAO {
 	 */
 	List<Long> getAllContainerIds(Long parentId);
 	
-
-	/**
-	 * Stream over all Nodes contained within the passed hierarchy in order of node ID.
-	 * Note: This method involves streaming over the results of a single query.  The
-	 * results will not be kept in memory.
-	 * 
-	 * @param containers must be the full list of container node ID (projects and folders). See: {@link #getAllContainerIds(Long)}
-	 * @param callback hierarchy data of each node within the containers.
-	 */
-	void streamOverHierarchy(List<Long> containers, Callback<NodeHierarchy> callback);
-	
-	/**
-	 * Batch update a given hierarchy.
-	 * 
-	 * @param batch
-	 */
-	void batchUpdateHierarchy(ArrayList<NodeHierarchy> batch);
-	
 	/**
 	 * Lookup a nodeId using its alias.
 	 * @param alias

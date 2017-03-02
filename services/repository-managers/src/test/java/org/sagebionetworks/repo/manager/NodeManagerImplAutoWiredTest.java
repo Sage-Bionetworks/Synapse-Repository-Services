@@ -159,12 +159,12 @@ public class NodeManagerImplAutoWiredTest {
 			ACL_SCHEME expectedSchem = entityBootstrapper.getChildAclSchemeForPath(parentPaht);
 			if(ACL_SCHEME.INHERIT_FROM_PARENT == expectedSchem){
 				// This node should inherit from its parent
-				String benefactorId = inheritanceDAO.getBenefactor(id);
-				String parentBenefactor = inheritanceDAO.getBenefactor(newNode.getParentId());
+				String benefactorId = inheritanceDAO.getBenefactorCached(id);
+				String parentBenefactor = inheritanceDAO.getBenefactorCached(newNode.getParentId());
 				assertEquals("This node should inherit from its parent",parentBenefactor, benefactorId);
 			}else if(ACL_SCHEME.GRANT_CREATOR_ALL == expectedSchem){
 				// This node should inherit from itself
-				String benefactorId = inheritanceDAO.getBenefactor(id);
+				String benefactorId = inheritanceDAO.getBenefactorCached(id);
 				assertEquals("This node should inherit from its parent",id, benefactorId);
 				AccessControlList acl = aclDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);

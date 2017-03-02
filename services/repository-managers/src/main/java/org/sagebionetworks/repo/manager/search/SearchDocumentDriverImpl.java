@@ -124,7 +124,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException, IOException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
-		String benefactorId = nodeInheritanceDao.getBenefactor(node.getId());
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(node.getId());
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
@@ -214,9 +214,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// The description contains the entity description and all wiki page
 		// text
 		StringBuilder descriptionValue = new StringBuilder();
-		if (node.getDescription() != null) {
-			descriptionValue.append(node.getDescription());
-		}
 		if (wikiPagesText != null) {
 			descriptionValue.append(wikiPagesText);
 		}

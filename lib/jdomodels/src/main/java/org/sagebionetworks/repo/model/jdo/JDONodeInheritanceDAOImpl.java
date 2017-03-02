@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,6 +17,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +26,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
+	private static final String SQL_COUNT_NODE = "SELECT COUNT(*) FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String SELECT_ENTITY_BENEFACTOR_FUNCTION = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String SELECT_BENEFICIARIES = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_BENEFACTOR_ID+" = ?";
 	private static final String SELECT_BENEFACTOR = "SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	
@@ -65,7 +66,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	}
 
 	@Override
-	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
+	public String getBenefactorCached(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
 			long benefactorId = jdbcTemplate.queryForObject(SELECT_BENEFACTOR, Long.class, KeyFactory.stringToKey(beneficiaryId));
 			return KeyFactory.keyToString(benefactorId);
@@ -98,5 +99,25 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		dboBasicDao.update(beneficiary);
 	}
 
+	@Override
+	public String getBenefactor(String beneficiaryId) {
+		Long id = KeyFactory.stringToKey(beneficiaryId);
+		Long benefactorId = jdbcTemplate.queryForObject(SELECT_ENTITY_BENEFACTOR_FUNCTION, Long.class, id);
+		if(benefactorId == null){
+			if(!doesNodeExist(beneficiaryId)){
+				throw new NotFoundException("Entity: "+beneficiaryId+" does not exist");
+			}else{
+				throw new IllegalStateException("Benefactor not found for: "+beneficiaryId);
+			}
+		}
+		return KeyFactory.keyToString(benefactorId);
+	}
 
+
+	@Override
+	public boolean doesNodeExist(String id){
+		ValidateArgument.required(id, "id");
+		long count = jdbcTemplate.queryForObject(SQL_COUNT_NODE, Long.class, KeyFactory.stringToKey(id));
+		return count > 0;
+	}
 }
