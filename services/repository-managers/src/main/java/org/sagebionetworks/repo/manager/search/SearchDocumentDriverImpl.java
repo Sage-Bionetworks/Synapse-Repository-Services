@@ -124,7 +124,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException, IOException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
-		String benefactorId = nodeInheritanceDao.getBenefactorCached(node.getId());
+		String benefactorId = nodeInheritanceDao.getBenefactor(node.getId());
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();

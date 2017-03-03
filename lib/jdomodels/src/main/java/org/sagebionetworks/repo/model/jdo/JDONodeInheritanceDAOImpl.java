@@ -104,11 +104,12 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		Long id = KeyFactory.stringToKey(beneficiaryId);
 		Long benefactorId = jdbcTemplate.queryForObject(SELECT_ENTITY_BENEFACTOR_FUNCTION, Long.class, id);
 		if(benefactorId == null){
-			if(!doesNodeExist(beneficiaryId)){
-				throw new NotFoundException("Entity: "+beneficiaryId+" does not exist");
-			}else{
-				throw new IllegalStateException("Benefactor not found for: "+beneficiaryId);
-			}
+			/*
+			 * Benefactor will be null if the node does not exist or if the node
+			 * is in the trash. In either case a NotFoundException should be
+			 * thrown.
+			 */
+			throw new NotFoundException("Benefactor not found for: "+beneficiaryId);
 		}
 		return KeyFactory.keyToString(benefactorId);
 	}

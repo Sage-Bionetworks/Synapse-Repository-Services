@@ -1608,12 +1608,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		long nodeIdLong = KeyFactory.stringToKey(nodeId);
 		Long projectId = this.jdbcTemplate.queryForObject(SELECT_FUNCTION_PROJECT_ID, Long.class, nodeIdLong);
 		if(projectId == null){
-			if(!doesNodeExist(nodeIdLong)){
-				throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
-			}else{
-				// the node exists but does not have a project
-				throw new IllegalStateException("Project not found for: "+nodeId);
-			}
+			/*
+			 * ProjectId will be null if the node does not exist or if the node
+			 * is in the trash. In either case a NotFoundException should be
+			 * thrown.
+			 */
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
 		return KeyFactory.keyToString(projectId);
 	}

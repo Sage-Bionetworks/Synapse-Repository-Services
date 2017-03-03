@@ -1873,10 +1873,10 @@ public class NodeDAOImplTest {
 		}
 
 		// make sure all project ids are set
-		assertEquals(parentProjectId, nodeDao.getNode(parentProjectId).getProjectId());
-		assertEquals(parentProjectId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(parentProjectId, nodeDao.getProjectId(parentProjectId));
+		assertEquals(parentProjectId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(parentProjectId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(parentProjectId, nodeDao.getProjectId(childChilds[i]));
 		}
 
 		// make a second project
@@ -1896,26 +1896,36 @@ public class NodeDAOImplTest {
 		assertTrue(changeReturn);
 
 		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(newParentId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
 		}
 
 		// change to trash (no project) and back
 		nodeDao.changeNodeParent(childId, StackConfiguration.getTrashFolderEntityIdStatic(), true);
 
 		// make sure all project ids are set to new project
-		assertNull(nodeDao.getNode(childId).getProjectId());
+		try {
+			nodeDao.getProjectId(childId);
+			fail();
+		} catch (NotFoundException e) {
+			//expected
+		}
 		for (int i = 0; i < childChilds.length; i++) {
-			assertNull(nodeDao.getNode(childChilds[i]).getProjectId());
+			try {
+				nodeDao.getProjectId(childChilds[i]);
+				fail();
+			} catch (NotFoundException e) {
+				//expected
+			}
 		}
 
 		nodeDao.changeNodeParent(childId, newParentId, false);
 
 		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(newParentId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
 		}
 	}
 
@@ -2880,7 +2890,7 @@ public class NodeDAOImplTest {
 		nodeDao.getProjectId(doesNotExist);
 	}
 	
-	@Test (expected=IllegalStateException.class)
+	@Test (expected=NotFoundException.class)
 	public void testGetProjectNodeExistsWithNoProject(){
 		// create a node that is not in a project.
 		Node node = NodeTestUtils.createNew("someNode", creatorUserGroupId);
