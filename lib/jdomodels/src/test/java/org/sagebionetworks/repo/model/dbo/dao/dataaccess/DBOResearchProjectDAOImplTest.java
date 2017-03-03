@@ -115,6 +115,19 @@ public class DBOResearchProjectDAOImplTest {
 		dto.setProjectLead("new projectLead");
 		assertEquals(dto, researchProjectDao.update(dto));
 
+		// change ownership
+		String newOwnerId = "333";
+		String modifiedBy = "999";
+		long modifiedOn = System.currentTimeMillis();
+		String newEtag = "newEtag";
+		researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
+		ResearchProject newDto = researchProjectDao.get(dto.getAccessRequirementId(), newOwnerId);
+		assertEquals(dto.getId(), newDto.getId());
+		assertEquals(newOwnerId, newDto.getOwnerId());
+		assertEquals(modifiedBy, newDto.getModifiedBy());
+		assertEquals(modifiedOn, newDto.getModifiedOn().getTime());
+		assertEquals(newEtag, newDto.getEtag());
+
 		// insert another one with the same accessRequirementId & createdBy
 		try {
 			researchProjectDao.create(dto);

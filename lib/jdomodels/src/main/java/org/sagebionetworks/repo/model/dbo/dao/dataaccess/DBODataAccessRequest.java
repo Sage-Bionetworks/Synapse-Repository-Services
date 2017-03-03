@@ -25,7 +25,6 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 			new FieldColumn("modifiedBy", DATA_ACCESS_REQUEST_MODIFIED_BY),
 			new FieldColumn("modifiedOn", DATA_ACCESS_REQUEST_MODIFIED_ON),
 			new FieldColumn("etag", DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
-			new FieldColumn("accessors", DATA_ACCESS_REQUEST_ACCESSORS),
 			new FieldColumn("requestSerialized", DATA_ACCESS_REQUEST_REQUEST_SERIALIZED)
 		};
 
@@ -37,15 +36,14 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 	private Long modifiedBy;
 	private Long modifiedOn;
 	private String etag;
-	private String accessors;
 	private byte[] requestSerialized;
 
 	@Override
 	public String toString() {
 		return "DBODataAccessRequest [id=" + id + ", accessRequirementId=" + accessRequirementId
 				+ ", researchProjectId=" + researchProjectId + ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag + ", accessors="
-				+ accessors + ", requestSerialized=" + Arrays.toString(requestSerialized) + "]";
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag
+				+ ", requestSerialized=" + Arrays.toString(requestSerialized) + "]";
 	}
 
 	@Override
@@ -53,7 +51,6 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((accessors == null) ? 0 : accessors.hashCode());
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
@@ -78,11 +75,6 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 			if (other.accessRequirementId != null)
 				return false;
 		} else if (!accessRequirementId.equals(other.accessRequirementId))
-			return false;
-		if (accessors == null) {
-			if (other.accessors != null)
-				return false;
-		} else if (!accessors.equals(other.accessors))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -188,14 +180,6 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 		this.etag = etag;
 	}
 
-	public String getAccessors() {
-		return accessors;
-	}
-
-	public void setAccessors(String accessors) {
-		this.accessors = accessors;
-	}
-
 	public byte[] getRequestSerialized() {
 		return requestSerialized;
 	}
@@ -219,7 +203,6 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 				dbo.setModifiedBy(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_BY));
 				dbo.setModifiedOn(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_ON));
 				dbo.setEtag(rs.getString(DATA_ACCESS_REQUEST_ETAG));
-				dbo.setAccessors(rs.getString(DATA_ACCESS_REQUEST_ACCESSORS));
 				Blob blob = rs.getBlob(DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
 				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
 				return dbo;

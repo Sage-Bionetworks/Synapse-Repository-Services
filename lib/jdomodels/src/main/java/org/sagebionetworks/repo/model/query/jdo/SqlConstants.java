@@ -850,7 +850,6 @@ public class SqlConstants {
 	public static final String DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
 	public static final String DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
 	public static final String DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
-	public static final String DATA_ACCESS_REQUEST_ACCESSORS = 					"ACCESSORS";
 	public static final String DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
 
 	// This seems to be the name of the id column for all tables.

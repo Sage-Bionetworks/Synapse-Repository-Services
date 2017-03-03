@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
-import java.sql.Blob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,6 +28,8 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 			+ " WHERE "+DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID+" = ?"
 			+ " AND "+DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
 
+	private static final RowMapper<DBODataAccessRequest> MAPPER = new DBODataAccessRequest().getTableMapping();
+
 	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessRequestInterface create(DataAccessRequestInterface toCreate) {
@@ -43,24 +42,7 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	@Override
 	public DataAccessRequestInterface getCurrentRequest(String accessRequirementId, String userId)
 			throws NotFoundException {
-		List<DBODataAccessRequest> dboList = jdbcTemplate.query(SQL_GET, new RowMapper<DBODataAccessRequest>(){
-			@Override
-			public DBODataAccessRequest mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBODataAccessRequest dbo = new DBODataAccessRequest();
-				dbo.setId(rs.getLong(DATA_ACCESS_REQUEST_ID));
-				dbo.setAccessRequirementId(rs.getLong(DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
-				dbo.setResearchProjectId(rs.getLong(DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
-				dbo.setCreatedBy(rs.getLong(DATA_ACCESS_REQUEST_CREATED_BY));
-				dbo.setCreatedOn(rs.getLong(DATA_ACCESS_REQUEST_CREATED_ON));
-				dbo.setModifiedBy(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_BY));
-				dbo.setModifiedOn(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_ON));
-				dbo.setEtag(rs.getString(DATA_ACCESS_REQUEST_ETAG));
-				dbo.setAccessors(rs.getString(DATA_ACCESS_REQUEST_ACCESSORS));
-				Blob blob = rs.getBlob(DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
-				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
-				return dbo;
-			}
-		}, accessRequirementId, userId);
+		List<DBODataAccessRequest> dboList = jdbcTemplate.query(SQL_GET, MAPPER, accessRequirementId, userId);
 		if (dboList.isEmpty()) {
 			throw new NotFoundException();
 		}
