@@ -120,8 +120,7 @@ public class DBOResearchProjectDAOImplTest {
 		String modifiedBy = "999";
 		long modifiedOn = System.currentTimeMillis();
 		String newEtag = "newEtag";
-		researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
-		ResearchProject newDto = researchProjectDao.get(dto.getAccessRequirementId(), newOwnerId);
+		ResearchProject newDto = researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
 		assertEquals(dto.getId(), newDto.getId());
 		assertEquals(newOwnerId, newDto.getOwnerId());
 		assertEquals(modifiedBy, newDto.getModifiedBy());

@@ -43,7 +43,7 @@ public interface ResearchProjectDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public void changeOwnership(String researchProjectId, String newOwnerId,
+	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId,
 			String modifiedBy, Long modifiedOn, String etag) throws NotFoundException;
 
 	/**
@@ -52,4 +52,12 @@ public interface ResearchProjectDAO {
 	 * @param id
 	 */
 	void delete(String id);
+
+	/**
+	 * Retrieve a ResearchProject given its ID.
+	 * 
+	 * @param researchProjectId
+	 * @return
+	 */
+	public ResearchProject get(String researchProjectId);
 }
