@@ -1,32 +1,20 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
-import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -50,10 +38,6 @@ public class IT510SynapseJavaClientSearchTest {
 	 * All objects are added to this project.
 	 */
 	private static Project project;
-	private static List<Folder> dataList;
-	private static long entitesWithDistictValue = 5;
-	private static String distictValue1;
-	private static String distictValue2;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -70,32 +54,11 @@ public class IT510SynapseJavaClientSearchTest {
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
-		// Update this user's profile to contain a display name
-		UserProfile profile = synapse.getMyProfile();
-		synapse.updateMyProfile(profile);
-		
-		// Setup all of the objects for this test.
+		// Setup a project for this test.
 		project = new Project();
 		project.setDescription("This is a base project to hold entites for test: "+IT510SynapseJavaClientSearchTest.class.getName());
 		project = synapse.createEntity(project);
-		List<String> idsToWaitFor = new LinkedList<String>();
-		idsToWaitFor.add(project.getId());
-		// We use the project's etag as a distict string
-		distictValue1 = project.getEtag();
-		distictValue2 = project.getId();
-		dataList = new LinkedList<Folder>();
-		// Add some data with unique Strings
-		for(int i=0; i<entitesWithDistictValue; i++){
-			Folder data = new Folder();
-			data.setParentId(project.getId());
-			// Use the etag as a description.
-			data.setDescription(distictValue1+" "+distictValue2);
-			data = synapse.createEntity(data);
-			idsToWaitFor.add(data.getId());
-			dataList.add(data);
-		}
-		// Wait for all IDs to show up in the search index.
-		waitForIds(idsToWaitFor);
+
 	}
 	
 	@AfterClass
@@ -113,20 +76,12 @@ public class IT510SynapseJavaClientSearchTest {
 		adminSynapse.deleteUser(userToDelete);
 	}
 	
-	/**
-	 * Wait for ids to be published to the search index.
-	 * @param idList
-	 * @throws UnsupportedEncodingException
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 * @throws InterruptedException
-	 */
-	private static void waitForIds(List<String> idList) throws UnsupportedEncodingException, SynapseException, JSONObjectAdapterException, InterruptedException{
-		// Wait for all entities on the list
-		for(String id: idList){
-			waitForId(id);
-		}
+	@Test
+	public void testSearch() throws Exception{
+		// wait for the project to appear in the search
+		waitForId(project.getId());
 	}
+	
 
 	/**
 	 * Helper to wait for a single entity ID to be published to a search index.
@@ -157,275 +112,5 @@ public class IT510SynapseJavaClientSearchTest {
 		}
 	}
 
-	/**
-	 * @throws Exception
-	 */
-	@Ignore // This test does not seem stable.
-	@Test
-	public void testSearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("id");
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		SearchResults results = synapse.search(searchQuery);
-		assertNotNull(results);
-		assertNotNull(results.getFound());
-		assertEquals(entitesWithDistictValue, results.getFound().longValue());
-	}
 
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testAllReturnFields() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		// Lookup the first data object by its id.
-		queryTerms.add(dataList.get(0).getId());
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("id");
-		returnFields.add("name");
-		returnFields.add("path");
-		returnFields.add("description");
-		returnFields.add("etag");
-		returnFields.add("modified_on");
-		returnFields.add("created_on");
-		returnFields.add("created_by_r");
-		returnFields.add("modified_by_r");
-		returnFields.add("node_type_r");
-		searchQuery.setReturnFields(returnFields);
-
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(new Long(0) < results.getFound());
-
-		Hit hit = results.getHits().get(0);
-		assertNotNull(hit.getId());
-		assertNotNull(hit.getName());
-		assertNotNull(hit.getPath());
-		assertNotNull(hit.getDescription());
-		assertNotNull(hit.getEtag());
-		assertNotNull(hit.getModified_on());
-		assertNotNull(hit.getCreated_on());
-		assertNotNull(hit.getCreated_by());
-		assertNotNull(hit.getModified_by());
-		assertNotNull(hit.getNode_type());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Ignore // This test does not appear to be stable.
-	@Test
-	public void testFacetedSearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("id");
-		returnFields.add("name");
-		returnFields.add("description");
-		searchQuery.setReturnFields(returnFields);
-		List<String> facets = new ArrayList<String>();
-		facets.add("node_type");
-		facets.add("disease");
-		facets.add("species");
-		facets.add("tissue");
-		facets.add("platform");
-		facets.add("num_samples");
-		facets.add("created_by");
-		facets.add("modified_by");
-		facets.add("created_on");
-		facets.add("modified_on");
-		facets.add("acl");
-		facets.add("reference");
-		searchQuery.setFacet(facets);
-
-		SearchResults results = synapse.search(searchQuery);
-
-		assertNotNull(results.getHits().get(0).getName());
-		assertNotNull(results.getFacets());
-		assertEquals(entitesWithDistictValue, results.getFound().longValue());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testNoResultsFacetedSearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("id");
-		returnFields.add("name");
-		returnFields.add("description");
-		searchQuery.setReturnFields(returnFields);
-		List<String> facets = new ArrayList<String>();
-		facets.add("node_type");
-		facets.add("disease");
-		facets.add("species");
-		facets.add("tissue");
-		facets.add("platform");
-		facets.add("num_samples");
-		facets.add("created_by");
-		facets.add("modified_by");
-		facets.add("created_on");
-		facets.add("modified_on");
-		facets.add("acl");
-		facets.add("reference");
-		searchQuery.setFacet(facets);
-		KeyValue doesNotExist = new KeyValue();
-		doesNotExist.setKey("node_type");
-		doesNotExist.setValue("DoesNotExist");
-		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
-		booleanQuery.add(doesNotExist);
-		searchQuery.setBooleanQuery(booleanQuery);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertEquals(new Long(0), results.getFound());
-		assertEquals(0, results.getHits().size());
-		assertEquals(facets.size(), results.getFacets().size());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testMultiWordFreeTextSearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1+" "+distictValue2);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(1 <= results.getFound());
-
-		// try url-escaped space too
-		queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1+"+"+distictValue2);
-		searchQuery.setQueryTerm(queryTerms);
-		results = synapse.search(searchQuery);
-
-		assertTrue(1 <= results.getFound());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testBooleanQuerySearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> queryTerms = new ArrayList<String>();
-		queryTerms.add(distictValue1);
-		searchQuery.setQueryTerm(queryTerms);
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("name");
-		searchQuery.setReturnFields(returnFields);
-		KeyValue booleanQueryClause = new KeyValue();
-		booleanQueryClause.setKey("node_type");
-		booleanQueryClause.setValue("folder");
-		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
-		booleanQuery.add(booleanQueryClause);
-		searchQuery.setBooleanQuery(booleanQuery);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(1 <= results.getFound());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testParentIdBooleanQuerySearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		KeyValue booleanQueryClause = new KeyValue();
-		booleanQueryClause.setKey("parent_id");
-		booleanQueryClause.setValue(project.getId());
-		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
-		booleanQuery.add(booleanQueryClause);
-		searchQuery.setBooleanQuery(booleanQuery);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(5 <= results.getFound());
-	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Ignore
-	@Test
-	public void testUpdateACLBooleanQuerySearch() throws Exception {
-		SearchQuery searchQuery = new SearchQuery();
-		KeyValue booleanQueryClause = new KeyValue();
-		booleanQueryClause.setKey("update_acl");
-		booleanQueryClause.setValue("Sage Curators");
-		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
-		booleanQuery.add(booleanQueryClause);
-		searchQuery.setBooleanQuery(booleanQuery);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(1 <= results.getFound());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDescription() throws Exception {
-
-		// When descriptions are not null, make sure they are not just an empty
-		// json array (this was an old bug)
-
-		SearchQuery searchQuery = new SearchQuery();
-		List<String> returnFields = new ArrayList<String>();
-		returnFields.add("description");
-		searchQuery.setReturnFields(returnFields);
-		KeyValue booleanQueryClause = new KeyValue();
-		booleanQueryClause.setKey("node_type");
-		booleanQueryClause.setValue("*");
-		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
-		booleanQuery.add(booleanQueryClause);
-		searchQuery.setBooleanQuery(booleanQuery);
-		SearchResults results = synapse.search(searchQuery);
-
-		assertTrue(1 <= results.getFound());
-
-		for (Hit hit : results.getHits()) {
-			String description = hit.getDescription();
-			if (null != description) {
-				assertFalse("[]".equals(description));
-			}
-		}
-	}
-	
-	@Test
-	public void testBadSearch() throws IOException, JSONException, JSONObjectAdapterException, InterruptedException {
-		// First run query
-		SearchQuery query = new SearchQuery();
-		query.setBooleanQuery(new LinkedList<KeyValue>());
-		KeyValue kv = new KeyValue();
-		kv.setKey("ugh");
-		kv.setValue(project.getId());
-		query.getBooleanQuery().add(kv);
-		// this should throw an error
-		try{
-			synapse.search(query);
-			fail("This was a bad query");
-		}catch (SynapseException e) {
-			// did we get the expected message.
-			assertTrue(e.getMessage(), e.getMessage().indexOf("Syntax error in query: field (ugh) does not exist.") >= 0);
-			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") >= 0);
-		}
-	}
 }
