@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -38,6 +39,8 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 
 	@Autowired
 	private NodeDAO nodeDAO;
+	@Autowired
+	private NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -95,11 +98,11 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	 * @param node
 	 * @return
 	 */
-	public static NodeRecord buildNodeRecord(Node node) {
+	public static NodeRecord buildNodeRecord(Node node, String benefactorId, String projectId) {
 		NodeRecord record = new NodeRecord();
 		record.setId(node.getId());
-		record.setBenefactorId(node.getBenefactorId());
-		record.setProjectId(node.getProjectId());
+		record.setBenefactorId(benefactorId);
+		record.setProjectId(projectId);
 		record.setParentId(node.getParentId());
 		record.setNodeType(node.getNodeType());
 		record.setCreatedOn(node.getCreatedOn());
@@ -126,7 +129,9 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			} else {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
-					NodeRecord record = buildNodeRecord(node);
+					String benefactorId = nodeInheritanceDao.getBenefactor(message.getObjectId());
+					String projectId = nodeDAO.getProjectId(message.getObjectId());
+					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
 					record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 					nonDeleteRecords.add(objectRecord);
