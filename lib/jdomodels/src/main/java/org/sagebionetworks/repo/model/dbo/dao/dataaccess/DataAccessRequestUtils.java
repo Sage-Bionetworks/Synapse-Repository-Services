@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
@@ -21,7 +19,6 @@ public class DataAccessRequestUtils {
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setEtag(dto.getEtag());
-		dbo.setAccessors(convertListToString(dto.getAccessors()));
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -35,7 +32,6 @@ public class DataAccessRequestUtils {
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setEtag(dbo.getEtag());
-		dto.setAccessors(convertStringToList(dbo.getAccessors()));
 		return dto;
 	}
 
@@ -53,29 +49,5 @@ public class DataAccessRequestUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-	}
-
-	public static String convertListToString(List<String> accessors) {
-		String result = "";
-		if (accessors == null || accessors.isEmpty()) {
-			return result;
-		}
-		result = accessors.get(0);
-		for (int i = 1; i < accessors.size(); i++) {
-			result += ","+accessors.get(i);
-		}
-		return result;
-	}
-
-	public static List<String> convertStringToList(String accessorsString) {
-		List<String> result = new ArrayList<String>();
-		if (accessorsString == null || accessorsString.equals("")) {
-			return result;
-		}
-		String[] accessors = accessorsString.split(REGEX);
-		for (int i = 0; i < accessors.length; i++) {
-			result.add(accessors[i]);
-		}
-		return result;
 	}
 }
