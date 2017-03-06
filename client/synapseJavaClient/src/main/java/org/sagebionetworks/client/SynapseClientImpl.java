@@ -25,6 +25,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
@@ -94,6 +95,8 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -489,6 +492,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Multi-part upload, so any file chunk must be at least this size.
 	 */
 	public static final int MINIMUM_CHUNK_SIZE_BYTES = ((int) Math.pow(2, 20)) * 5;
+
+	private static final String RESEARCH_PROJECT = "/researchProject";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -4873,5 +4878,42 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public SubscriberCount getSubscriberCount(Topic topic) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), SUBSCRIPTION+"/subscribers/count", topic, SubscriberCount.class);
+	}
+
+	@Override
+	public ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException {
+		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
+		if (toCreateOrUpdate.getId() == null) {
+			return postJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT, toCreateOrUpdate, ResearchProject.class);
+		} else {
+			return putJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT+"/"+toCreateOrUpdate.getId(), toCreateOrUpdate, ResearchProject.class);
+		}
+	}
+
+	@Override
+	public ResearchProject getResearchProject(String accessRequirementId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/researchProject";
+		return getJSONEntity(getRepoEndpoint(), url, ResearchProject.class);
+	}
+
+	@Override
+	public ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException {
+		try {
+			return getResearchProject(accessRequirementId);
+		} catch (SynapseNotFoundException e) {
+			return new ResearchProject();
+		}
+	}
+
+	@Override
+	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws SynapseException {
+		ValidateArgument.required(researchProjectId, "researchProjectId");
+		ValidateArgument.required(newOwnerId, "newOwnerId");
+		String url = RESEARCH_PROJECT + "/" + researchProjectId + "/updateOwnership";
+		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
+		request.setNewOwnerId(newOwnerId);
+		request.setResearchProjectId(researchProjectId);
+		return putJSONEntity(getRepoEndpoint(), url, request, ResearchProject.class);
 	}
 }

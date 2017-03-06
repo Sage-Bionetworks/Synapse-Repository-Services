@@ -73,6 +73,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -2682,5 +2683,42 @@ public interface SynapseClient extends BaseClient {
 	 */
 	ColumnModelPage getPossibleColumnModelsForViewScope(ViewScope scope,
 			String nextPageToken) throws SynapseException;
+
+	/**
+	 * Create new or update an existing ResearchProject.
+	 * 
+	 * @param toCreateOrUpdate
+	 * @return
+	 * @throws SynapseException
+	 */
+	ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException;
+
+	/**
+	 * Retrieve an existing ResearchProject.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ResearchProject getResearchProject(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Retrieve the current ResearchProject to update.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Request to change the ownership of an existing ResearchProject.
+	 * 
+	 * @param researchProjectId
+	 * @param newOwnerId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws SynapseException;
 
 }

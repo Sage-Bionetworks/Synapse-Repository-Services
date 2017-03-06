@@ -96,7 +96,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.RESEARCH_PROJECT_ID_UPDATE_OWNERSHIP, method = RequestMethod.PUT)
-	public @ResponseBody ResearchProject update(
+	public @ResponseBody ResearchProject changeOwnership(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ChangeOwnershipRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().changeOwnership(userId, request);
