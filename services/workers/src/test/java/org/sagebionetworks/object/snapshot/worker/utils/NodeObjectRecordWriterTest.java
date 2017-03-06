@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -48,6 +49,8 @@ public class NodeObjectRecordWriterTest {
 
 	@Mock
 	private NodeDAO mockNodeDAO;
+	@Mock
+	private NodeInheritanceDAO mockNodeInheritanceDAO;
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
@@ -72,6 +75,7 @@ public class NodeObjectRecordWriterTest {
 		MockitoAnnotations.initMocks(this);
 		writer = new NodeObjectRecordWriter();
 		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
+		ReflectionTestUtils.setField(writer, "nodeInheritanceDao", mockNodeInheritanceDAO);
 		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(writer, "accessRequirementManager", mockAccessRequirementManager);
 		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityPermissionManager);
@@ -241,8 +245,6 @@ public class NodeObjectRecordWriterTest {
 	public void buildNodeRecordTest() {
 		Node node = new Node();
 		node.setId("id");
-		node.setBenefactorId("benefactorId");
-		node.setProjectId("projectId");
 		node.setParentId("parentId");
 		node.setNodeType(EntityType.file);
 		node.setCreatedOn(new Date(0));
@@ -252,10 +254,10 @@ public class NodeObjectRecordWriterTest {
 		node.setVersionNumber(3L);
 		node.setFileHandleId("fileHandleId");
 		node.setName("name");
-		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node);
+		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node,"benefactorId", "projectId");
 		assertEquals(node.getId(), record.getId());
-		assertEquals(node.getBenefactorId(), record.getBenefactorId());
-		assertEquals(node.getProjectId(), record.getProjectId());
+		assertEquals("benefactorId", record.getBenefactorId());
+		assertEquals("projectId", record.getProjectId());
 		assertEquals(node.getParentId(), record.getParentId());
 		assertEquals(node.getNodeType(), record.getNodeType());
 		assertEquals(node.getCreatedOn(), record.getCreatedOn());

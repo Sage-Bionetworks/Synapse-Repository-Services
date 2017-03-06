@@ -846,7 +846,6 @@ public class MessageManagerImplTest {
 		child.setName(UUID.randomUUID().toString());
 		child.setNodeType(EntityType.project);
 		child.setParentId(node.getId());
-		child.setProjectId(node.getId());
 		childId = nodeManager.createNewNode(child, testUser);
 		
 		// Creator can share
