@@ -36,22 +36,29 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	@Override
 	public ResearchProject create(UserInfo userInfo, ResearchProject toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(toCreate, "ResearchProject");
-		ValidateArgument.required(toCreate.getAccessRequirementId(), "ResearchProject.accessRequirementId");
-		ValidateArgument.requirement(toCreate.getProjectLead() != null
-				&& toCreate.getProjectLead().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toCreate.getInstitution() != null
-				&& toCreate.getInstitution().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toCreate.getIntendedDataUseStatement() != null
-				&& toCreate.getIntendedDataUseStatement().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		validateResearchProject(toCreate);
 		ValidateArgument.requirement(accessRequirementDao.get(toCreate.getAccessRequirementId()).getConcreteType()
 				.equals(ACTAccessRequirement.class.getName()),
 				"A ResearchProject can only associate with an ACTAccessRequirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return researchProjectDao.create(toCreate);
+	}
+
+	/**
+	 * @param toValidate
+	 */
+	public void validateResearchProject(ResearchProject toValidate) {
+		ValidateArgument.required(toValidate, "ResearchProject");
+		ValidateArgument.required(toValidate.getAccessRequirementId(), "ResearchProject.accessRequirementId");
+		ValidateArgument.requirement(toValidate.getProjectLead() != null
+				&& toValidate.getProjectLead().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
+				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		ValidateArgument.requirement(toValidate.getInstitution() != null
+				&& toValidate.getInstitution().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
+				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		ValidateArgument.requirement(toValidate.getIntendedDataUseStatement() != null
+				&& toValidate.getIntendedDataUseStatement().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
+				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
 	}
 
 	public ResearchProject prepareCreationFields(ResearchProject toCreate, String createdBy) {
@@ -76,17 +83,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate)
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(toUpdate, "ResearchProject");
-		ValidateArgument.required(toUpdate.getAccessRequirementId(), "ResearchProject.accessRequirementId");
-		ValidateArgument.requirement(toUpdate.getProjectLead() != null
-				&& toUpdate.getProjectLead().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toUpdate.getInstitution() != null
-				&& toUpdate.getInstitution().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
-		ValidateArgument.requirement(toUpdate.getIntendedDataUseStatement() != null
-				&& toUpdate.getIntendedDataUseStatement().length() > EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT,
-				"ResearchProject.projectLead must contains more than "+EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT+" characters.");
+		validateResearchProject(toUpdate);
 
 		ResearchProject original = researchProjectDao.get(toUpdate.getId());
 
