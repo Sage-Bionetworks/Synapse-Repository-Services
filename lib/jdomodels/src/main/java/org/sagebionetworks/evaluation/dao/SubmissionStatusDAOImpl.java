@@ -95,22 +95,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	}
 	
 	@Override
-	public List<SubmissionStatus> list(List<String> ids) throws DatastoreException, NotFoundException {
-		if (ids==null || ids.size()<1) {
-			return Collections.emptyList();
-		}
-		Set<String> idSet = new LinkedHashSet<String>(ids);
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idSet);
-		List<SubmissionStatusDBO> dbos = namedJdbcTemplate.query(SELECT_BY_IDS, param, SUBSTATUS_ROW_MAPPER);
-		if (dbos.size()<idSet.size()) throw new NotFoundException("Expected submission statuses for "+idSet+
-				" but only found results for "+dbos.size());
-		List<SubmissionStatus> result = new ArrayList<SubmissionStatus>();
-		for (SubmissionStatusDBO dbo : dbos) result.add(SubmissionUtils.convertDboToDto(dbo));
-		return result;
-	}
-	
-	@Override
 	@WriteTransaction
 	public void update(List<SubmissionStatus> batch)
 			throws DatastoreException, InvalidModelException,
