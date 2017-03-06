@@ -604,6 +604,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
+		
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -628,6 +630,16 @@ public class SubmissionManagerTest {
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 	}
 	
+	@Test
+	public void testGetALLSubmissionStatus() throws Exception {
+		when(mockSubmissionDAO.getAllBundlesByEvaluation(EVAL_ID, 100L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
+		List<SubmissionStatus> actual = submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+		verify(mockSubmissionDAO).getAllBundlesByEvaluation(EVAL_ID, 100L, 0L);
+		List<SubmissionStatus> expected = Collections.singletonList(subStatus);
+		assertEquals(expected, actual);
+	}
+	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
@@ -637,6 +649,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -660,6 +674,7 @@ public class SubmissionManagerTest {
 		annots.setLongAnnos(null);
 		annots.setDoubleAnnos(null);
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 	}
 	
 	private static Annotations createDummyAnnotations() {		

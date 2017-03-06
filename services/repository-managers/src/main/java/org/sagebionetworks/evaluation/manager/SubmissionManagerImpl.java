@@ -332,9 +332,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		
 		// ensure Submission exists and validate access rights
-		Submission submission = getSubmission(userInfo, submissionStatus.getId());
-		String evalId = submission.getEvaluationId();
-		
+		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();		
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
 		
 		validateContent(submissionStatus, evalId);
@@ -483,10 +481,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		} else {
 			bundles = submissionDAO.getAllBundlesByEvaluationAndStatus(evalId, status, limit, offset);
 		}
-		for (SubmissionBundle bundle : bundles) {
-			Submission sub = bundle.getSubmission();
-			SubmissionStatus subStatus = bundle.getSubmissionStatus();
-			if (!includePrivateAnnos) {
+		if (!includePrivateAnnos) {
+			for (SubmissionBundle bundle : bundles) {
+				SubmissionStatus subStatus = bundle.getSubmissionStatus();
 				Annotations annos = subStatus.getAnnotations();
 				if (annos != null) {
 					subStatus.setAnnotations(removePrivateAnnos(annos));

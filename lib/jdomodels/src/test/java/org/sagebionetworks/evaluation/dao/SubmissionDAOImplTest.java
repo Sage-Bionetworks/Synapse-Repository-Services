@@ -27,6 +27,7 @@ import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -279,6 +280,21 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
+    public void testGetBundle() throws Exception {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
+     	
+     	SubmissionBundle bundle = submissionDAO.getBundle(SUBMISSION_ID);
+    	
+     	assertEquals(submissionDAO.get(SUBMISSION_ID), bundle.getSubmission());
+     	SubmissionStatus status = bundle.getSubmissionStatus();
+     	assertEquals(SUBMISSION_ID, status.getId());
+     	assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
+     	assertEquals(submission.getEntityId(), status.getEntityId());
+     	assertEquals(submission.getVersionNumber(), status.getVersionNumber());
+    }
+    
+    @Test
     public void testCRDWithContributors() throws Exception{
         long initialCount = submissionDAO.getCount();
  
@@ -414,6 +430,30 @@ public class SubmissionDAOImplTest {
     	assertEquals(retrieved, submission2);
     }
     
+    @Test
+    public void testGetAllBundlesByEvaluation() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
+     	
+    	// evalId should have submissions
+    	List<SubmissionBundle> bundles = submissionDAO.getAllBundlesByEvaluation(evalId, 10, 0);
+    	assertEquals(1, bundles.size());
+    	assertEquals(bundles.size(), submissionDAO.getCountByEvaluation(evalId));
+    	SubmissionBundle bundle = bundles.get(0);
+    	submission.setCreatedOn(bundle.getSubmission().getCreatedOn());
+    	assertEquals(bundle.getSubmission(), submission);
+    	
+     	SubmissionStatus status = bundle.getSubmissionStatus();
+     	assertEquals(SUBMISSION_ID, status.getId());
+     	assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
+     	assertEquals(submission.getEntityId(), status.getEntityId());
+     	assertEquals(submission.getVersionNumber(), status.getVersionNumber());
+    	
+    	// evalId_does_not_exist should not have any submissions
+    	bundles = submissionDAO.getAllBundlesByEvaluation(EVALID_DOES_NOT_EXIST, 10, 0);
+    	assertEquals(0, bundles.size());
+    }
+    
     private void createSubmissionStatus(String id, SubmissionStatusEnum status) {
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
@@ -423,7 +463,7 @@ public class SubmissionDAOImplTest {
     	submissionStatusDAO.create(subStatus);
     }
     
-   @Test
+    @Test
     public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
     	submissionDAO.create(submission);
     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
@@ -445,6 +485,18 @@ public class SubmissionDAOImplTest {
     	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED, 10, 0);
     	assertEquals(0, subs.size());
     	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED));
+    }
+    
+    @Test
+    public void testGetAllBundlesByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
+     	
+    	List<SubmissionBundle> bundles = submissionDAO.getAllBundlesByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED, 10, 0);
+    	assertEquals(Collections.singletonList(submissionDAO.getBundle(SUBMISSION_ID)), bundles);
+    	
+    	bundles = submissionDAO.getAllBundlesByEvaluationAndStatus(evalId, SubmissionStatusEnum.CLOSED, 10, 0);
+    	assertTrue(bundles.isEmpty());
     }
     
    @Test
@@ -502,6 +554,18 @@ public class SubmissionDAOImplTest {
         // need to nullify the contributor createdOn dates to be able to compare to 'submission2'
      	nullifyContributorCreatedOn(retrieved);
    	assertEquals(retrieved, submission2);
+    }
+    
+    @Test
+    public void testGetAllBundlesByEvaluationAndUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+    	submissionDAO.create(submission);
+     	createSubmissionStatus(SUBMISSION_ID, SubmissionStatusEnum.RECEIVED);
+     	
+    	List<SubmissionBundle> bundles = submissionDAO.getAllBundlesByEvaluationAndUser(evalId, userId, 10, 0);
+    	assertEquals(Collections.singletonList(submissionDAO.getBundle(SUBMISSION_ID)), bundles);
+    	
+    	bundles = submissionDAO.getAllBundlesByEvaluationAndUser(evalId, userId2, 10, 0);
+    	assertTrue(bundles.isEmpty());
     }
     
     @Test
