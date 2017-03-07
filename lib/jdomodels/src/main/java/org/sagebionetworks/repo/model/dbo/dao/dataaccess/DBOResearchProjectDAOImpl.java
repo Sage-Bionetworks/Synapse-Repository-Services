@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,8 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	public static final String SQL_GET_USING_ID = "SELECT *"
 			+ " FROM "+TABLE_RESEARCH_PROJECT
 			+ " WHERE "+RESEARCH_PROJECT_ID+" = ?";
+
+	public static final String SQL_GET_USING_ID_FOR_UPDATE = SQL_GET_USING_ID + " FOR UPDATE";
 
 	public static final String SQL_CHANGE_OWNERSHIP = "UPDATE "+TABLE_RESEARCH_PROJECT
 			+ " SET "+RESEARCH_PROJECT_OWNER_ID+" = ?, "
@@ -88,6 +92,22 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	public ResearchProject get(String researchProjectId) {
 		try {
 			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET_USING_ID, MAPPER, researchProjectId);
+			ResearchProject dto = new ResearchProject();
+			ResearchProjectUtils.copyDboToDto(dbo, dto);
+			return dto;
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public ResearchProject getForUpdate(String researchProjectId, String etag) {
+		try {
+			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET_USING_ID, MAPPER, researchProjectId);
+			if (!dbo.getEtag().equals(etag)) {
+				throw new ConflictingUpdateException();
+			}
 			ResearchProject dto = new ResearchProject();
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
