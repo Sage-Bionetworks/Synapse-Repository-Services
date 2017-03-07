@@ -156,11 +156,18 @@ public class DBOResearchProjectDAOImplTest {
 		});
 		assertEquals(newDto, locked);
 
-		try {
-			researchProjectDao.getForUpdate(dto.getId());
-			fail("should require transaction");
-		} catch (IllegalTransactionStateException e) {
-			// as expected
-		}
+		assertEquals(newDto.getOwnerId(), researchProjectDao.getOwnerId(dto.getId()));
+	}
+
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getForUpdate(dto.getId());
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetOwnerNotExist() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getOwnerId(dto.getId());
 	}
 }

@@ -34,6 +34,10 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
 	public static final String SQL_GET_USING_ID_FOR_UPDATE = SQL_GET_USING_ID + " FOR UPDATE";
 
+	public static final String SQL_GET_OWNER_ID = "SELECT "+RESEARCH_PROJECT_OWNER_ID
+			+ " FROM "+TABLE_RESEARCH_PROJECT
+			+ " WHERE "+RESEARCH_PROJECT_ID+" = ?";
+
 	public static final String SQL_CHANGE_OWNERSHIP = "UPDATE "+TABLE_RESEARCH_PROJECT
 			+ " SET "+RESEARCH_PROJECT_OWNER_ID+" = ?, "
 			+ RESEARCH_PROJECT_MODIFIED_BY+" = ?, "
@@ -107,6 +111,15 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 			ResearchProject dto = new ResearchProject();
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
+	}
+
+	@Override
+	public String getOwnerId(String researchProjectId) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_OWNER_ID, String.class, researchProjectId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}
