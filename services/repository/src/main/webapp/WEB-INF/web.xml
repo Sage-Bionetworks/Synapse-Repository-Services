@@ -221,6 +221,8 @@
 		<url-pattern>/repo/v1/teams</url-pattern>
 		<!-- This is the uri for looking up team members by name fragment -->
 		<url-pattern>/repo/v1/teamMembers/*</url-pattern>
+		<!-- This is the uri for looking up team member count by name fragment -->
+		<url-pattern>/repo/v1/teamMembers/count/*</url-pattern>
 	</filter-mapping>
 
 	<!-- Rather than using multiple DispatcherServlet each with their own Spring 

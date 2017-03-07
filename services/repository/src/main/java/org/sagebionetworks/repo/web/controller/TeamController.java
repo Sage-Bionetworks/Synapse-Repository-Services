@@ -356,6 +356,27 @@ public class TeamController extends BaseController {
 	}
 	
 	/**
+	 * Retrieve the number of Team members matching the supplied name prefix.  If the prefix 
+	 * is omitted then the number of members in the team is returned.
+	 * <br>
+	 * Note:  This service has JSONP support:  If the request parameter "callback=jsMethod" is included (where 
+	 * 'jsMethod' is any function name you wish), then the response body will be wrapped in "jsMethod(...);".
+	 * @param id the id of the Team of interest
+	 * @param fragment a prefix of the user's first or last name or email address (optional)
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBERS_COUNT_ID, method = RequestMethod.GET)
+	public  @ResponseBody 
+	TeamMemberCount getTeamMemberCount(
+			@PathVariable String id,
+			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().getMemberCount(id, fragment);
+	}
+	
+	/**
 	 * Returns the TeamMember info for a team and a given list of members' principal IDs.
 	 * 
 	 * Invalid IDs in the list are ignored:  The results list is simply
