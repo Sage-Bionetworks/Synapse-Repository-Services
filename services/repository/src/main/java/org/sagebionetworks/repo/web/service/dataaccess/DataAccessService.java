@@ -9,7 +9,7 @@ public interface DataAccessService {
 
 	ResearchProject update(Long userId, ResearchProject toUpdate);
 
-	ResearchProject get(Long userId, String accessRequirementId);
+	ResearchProject getUserOwnResearchProject(Long userId, String accessRequirementId);
 
 	ResearchProject changeOwnership(Long userId, ChangeOwnershipRequest request);
 

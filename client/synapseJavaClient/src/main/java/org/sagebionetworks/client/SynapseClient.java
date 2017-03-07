@@ -2700,7 +2700,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ResearchProject getResearchProject(String accessRequirementId) throws SynapseException;
+	ResearchProject getUserOwnResearchProject(String accessRequirementId) throws SynapseException;
 
 	/**
 	 * Retrieve the current ResearchProject to update.

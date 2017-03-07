@@ -54,7 +54,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	}
 
 	@Override
-	public ResearchProject get(String accessRequirementId, String ownerId) throws NotFoundException {
+	public ResearchProject getUserOwnResearchProject(String accessRequirementId, String ownerId) throws NotFoundException {
 		try {
 			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET, MAPPER, accessRequirementId, ownerId);
 			ResearchProject dto = new ResearchProject();

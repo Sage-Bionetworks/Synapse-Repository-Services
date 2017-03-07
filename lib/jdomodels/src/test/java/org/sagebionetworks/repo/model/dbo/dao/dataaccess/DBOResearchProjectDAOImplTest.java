@@ -108,7 +108,7 @@ public class DBOResearchProjectDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.get(dto.getAccessRequirementId(), dto.getOwnerId());
+		researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
 	}
 
 	@Test
@@ -119,7 +119,7 @@ public class DBOResearchProjectDAOImplTest {
 		assertEquals(dto, researchProjectDao.create(dto));
 
 		// should get back the same object
-		ResearchProject created = researchProjectDao.get(dto.getAccessRequirementId(), dto.getOwnerId());
+		ResearchProject created = researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
 		assertEquals(dto, created);
 
 		// update

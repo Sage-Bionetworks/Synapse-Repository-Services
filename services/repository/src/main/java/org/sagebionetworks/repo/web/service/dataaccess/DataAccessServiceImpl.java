@@ -27,9 +27,9 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public ResearchProject get(Long userId, String accessRequirementId) {
+	public ResearchProject getUserOwnResearchProject(Long userId, String accessRequirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return researchProjectManager.get(user, accessRequirementId);
+		return researchProjectManager.getUserOwnResearchProject(user, accessRequirementId);
 	}
 
 	@Override

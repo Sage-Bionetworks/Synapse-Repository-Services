@@ -73,7 +73,7 @@ public class ResearchProjectManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockIdGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID)).thenReturn(3L);
 		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
-		when(mockResearchProjectDao.get(accessRequirementId, userId)).thenReturn(researchProject);
+		when(mockResearchProjectDao.getUserOwnResearchProject(accessRequirementId, userId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.getForUpdate(researchProjectId, etag)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
@@ -199,24 +199,24 @@ public class ResearchProjectManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetWithNullUserInfo() {
-		manager.get(null, accessRequirementId);
+		manager.getUserOwnResearchProject(null, accessRequirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetWithNullAccessRequirementId() {
-		manager.get(mockUser, null);
+		manager.getUserOwnResearchProject(mockUser, null);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testGetNotFound() {
-		when(mockResearchProjectDao.get(anyString(), anyString())).thenThrow(new NotFoundException());
-		manager.get(mockUser, accessRequirementId);
+		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException());
+		manager.getUserOwnResearchProject(mockUser, accessRequirementId);
 	}
 
 	@Test
 	public void testGet() {
-		assertEquals(researchProject, manager.get(mockUser, accessRequirementId));
-		verify(mockResearchProjectDao).get(accessRequirementId, userId);
+		assertEquals(researchProject, manager.getUserOwnResearchProject(mockUser, accessRequirementId));
+		verify(mockResearchProjectDao).getUserOwnResearchProject(accessRequirementId, userId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

@@ -4891,7 +4891,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ResearchProject getResearchProject(String accessRequirementId) throws SynapseException {
+	public ResearchProject getUserOwnResearchProject(String accessRequirementId) throws SynapseException {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/researchProject";
 		return getJSONEntity(getRepoEndpoint(), url, ResearchProject.class);
@@ -4900,9 +4900,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException {
 		try {
-			return getResearchProject(accessRequirementId);
-		} catch (SynapseNotFoundException e) {
-			return new ResearchProject();
+			return getUserOwnResearchProject(accessRequirementId);
+		} catch (SynapseClientException e) {
+			if (e.getCause() instanceof SynapseNotFoundException) {
+				return new ResearchProject();
+			} else {
+				throw e;
+			}
 		}
 	}
 

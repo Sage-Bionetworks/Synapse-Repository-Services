@@ -69,7 +69,7 @@ public class DataAccessController extends BaseController {
 	}
 
 	/**
-	 * Retrieve an existing ResearchProject.
+	 * Retrieve an existing ResearchProject that the user owns.
 	 * Only the owner of the researchProject can perform this action.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
@@ -79,10 +79,10 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT, method = RequestMethod.GET)
-	public @ResponseBody ResearchProject get(
+	public @ResponseBody ResearchProject getUserOwnResearchProject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String accessRequirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().get(userId, accessRequirementId);
+		return serviceProvider.getDataAccessService().getUserOwnResearchProject(userId, accessRequirementId);
 	}
 
 	/**

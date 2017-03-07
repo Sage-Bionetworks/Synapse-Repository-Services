@@ -70,11 +70,11 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	}
 
 	@Override
-	public ResearchProject get(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
+	public ResearchProject getUserOwnResearchProject(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 
-		return researchProjectDao.get(accessRequirementId, userInfo.getId().toString());
+		return researchProjectDao.getUserOwnResearchProject(accessRequirementId, userInfo.getId().toString());
 	}
 
 	@WriteTransactionReadCommitted

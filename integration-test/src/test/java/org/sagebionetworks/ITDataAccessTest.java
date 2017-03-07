@@ -89,12 +89,12 @@ public class ITDataAccessTest {
 		rp.setAccessRequirementId(accessRequirement.getId().toString());
 		ResearchProject created = synapseOne.createOrUpdate(rp);
 
-		assertEquals(created, synapseOne.getResearchProject(accessRequirement.getId().toString()));
+		assertEquals(created, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
 
 		created.setIntendedDataUseStatement("new intendedDataUseStatement");
 		ResearchProject updated = synapseOne.createOrUpdate(created);
 
-		assertEquals(updated, synapseOne.getResearchProject(accessRequirement.getId().toString()));
+		assertEquals(updated, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		ResearchProject changedOwner = adminSynapse.changeOwnership(updated.getId(), adminId);

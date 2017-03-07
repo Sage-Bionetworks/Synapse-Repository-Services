@@ -21,7 +21,7 @@ public interface ResearchProjectDAO {
 	 * @return
 	 * @throws NotFoundException if the ResearchProject cannot be found.
 	 */
-	public ResearchProject get(String accessRequirementId, String ownerId) throws NotFoundException;
+	public ResearchProject getUserOwnResearchProject(String accessRequirementId, String ownerId) throws NotFoundException;
 
 	/**
 	 * Update an existing ResearchProject.
