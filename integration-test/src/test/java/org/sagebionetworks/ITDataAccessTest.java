@@ -1,8 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.junit.After;
@@ -18,13 +17,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -66,9 +61,6 @@ public class ITDataAccessTest {
 		try {
 			adminSynapse.deleteAndPurgeEntityById(project.getId());
 		} catch (SynapseNotFoundException e) {}
-		try {
-			adminSynapse.deleteAccessRequirement(accessRequirement.getId());
-		} catch (SynapseNotFoundException e) {}
 	}
 
 	@AfterClass
@@ -97,7 +89,7 @@ public class ITDataAccessTest {
 		assertEquals(updated, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		ResearchProject changedOwner = adminSynapse.changeOwnership(updated.getId(), adminId);
+		assertEquals(adminId, adminSynapse.changeOwnership(updated.getId(), adminId).getOwnerId());
 	}
 
 }

@@ -4901,12 +4901,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException {
 		try {
 			return getUserOwnResearchProject(accessRequirementId);
-		} catch (SynapseClientException e) {
-			if (e.getCause() instanceof SynapseNotFoundException) {
-				return new ResearchProject();
-			} else {
-				throw e;
-			}
+		} catch (SynapseNotFoundException e) {
+			return new ResearchProject();
 		}
 	}
 
