@@ -36,4 +36,13 @@ public interface DataAccessRequestDAO {
 	 * used for tests
 	 */
 	void truncateAll();
+
+	/**
+	 * Retrieve the current DataAccessRequest for update.
+	 * 
+	 * @param id
+	 * @effect this call will put a lock on the returned object.
+	 * @return
+	 */
+	public DataAccessRequestInterface getForUpdate(String id);
 }

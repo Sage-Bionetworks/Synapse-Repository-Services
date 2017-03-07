@@ -27,6 +27,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -49,6 +54,10 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Autowired
 	private IdGenerator idGenerator;
+
+	@Autowired
+	private PlatformTransactionManager txManager;
+	private TransactionTemplate transactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -87,6 +96,8 @@ public class DBODataAccessRequestDAOImplTest {
 		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
+
+		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@After
@@ -116,7 +127,7 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Test
 	public void testCRUD() {
-		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		final DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
 		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
@@ -137,6 +148,21 @@ public class DBODataAccessRequestDAOImplTest {
 		} catch (IllegalArgumentException e){
 			// as expected
 		}
+
+		// test get for update
+		DataAccessRenewal locked = transactionTemplate.execute(new TransactionCallback<DataAccessRenewal>() {
+			@Override
+			public DataAccessRenewal doInTransaction(TransactionStatus status) {
+				// Try to lock both nodes out of order
+				return (DataAccessRenewal) dataAccessRequestDao.getForUpdate(dto.getId());
+			}
+		});
+		assertEquals(dto, locked);
 	}
 
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		dataAccessRequestDao.getForUpdate(dto.getId());
+	}
 }
