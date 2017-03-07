@@ -933,4 +933,116 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).get(subWithId.getId());
 		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
 	}
+	
+	
+	// tests of limit and offset checks
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitLow() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitHigh() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationOffsetNeg() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 100, -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitLow() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitHigh() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationOffsetNeg() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 100, -1);
+	}
+
+
+
+
 }

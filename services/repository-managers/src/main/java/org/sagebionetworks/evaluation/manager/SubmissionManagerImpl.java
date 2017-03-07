@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -105,6 +104,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private DockerCommitDao dockerCommitDao;
 	
+	public static final long MAX_LIMIT = 100L;
+
 	private static final int MAX_BATCH_SIZE = 500;
 	
 	public static final String TEAM_SUBMISSION_NOTIFICATION_TEMPLATE = "message/teamSubmissionNotificationTemplate.html";
@@ -455,6 +456,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		
 		return getAllSubmissionsPrivate(evalId, status, limit, offset);
@@ -499,6 +503,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
@@ -518,6 +525,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		
 		return getAllSubmissionBundlesPrivate(evalId, status, limit, offset, true);
@@ -528,6 +538,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		String principalId = userInfo.getId().toString();
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		return submissionDAO.getAllByEvaluationAndUser(evalId, principalId, limit, offset);
 	}
 	
@@ -537,6 +550,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
+		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+
 		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 
 		String principalId = userInfo.getId().toString();

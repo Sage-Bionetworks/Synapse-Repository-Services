@@ -48,8 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class EvaluationServiceImpl implements EvaluationService {
-	public static final long MAX_LIMIT = 100L;
-
 	@Autowired
 	private ServiceProvider serviceProvider;
 	@Autowired
@@ -262,9 +260,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -275,9 +270,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -288,9 +280,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -301,9 +290,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<Submission> res = submissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -314,9 +300,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionBundle> res = submissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
