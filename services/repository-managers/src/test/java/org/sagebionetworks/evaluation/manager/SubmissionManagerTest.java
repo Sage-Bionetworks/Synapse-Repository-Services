@@ -59,7 +59,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -92,6 +91,7 @@ public class SubmissionManagerTest {
 	private Submission subWithId;
 	private Submission sub2WithId;
 	private SubmissionStatus subStatus;
+	private SubmissionBundle submissionBundle;
 	private SubmissionStatusBatch batch;
 	
 	private IdGenerator mockIdGenerator;
@@ -211,6 +211,10 @@ public class SubmissionManagerTest {
         subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
         subStatus.setAnnotations(createDummyAnnotations());
         
+        submissionBundle = new SubmissionBundle();
+        submissionBundle.setSubmission(subWithId);
+        submissionBundle.setSubmissionStatus(subStatus);
+        
         batch = new SubmissionStatusBatch();
         List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>();
         statuses.add(subStatus);
@@ -267,7 +271,7 @@ public class SubmissionManagerTest {
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
 
-    	when(mockSubmissionStatusDAO.list(eq(Collections.singletonList(SUB_ID)))).thenReturn(Collections.singletonList(subStatus));
+    	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
 
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
@@ -536,8 +540,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetAllSubmissionBundles() throws Exception {
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
-		when(mockSubmissionDAO.getAllByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
-			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getAllBundlesByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
 		when(mockSubmissionDAO.getCountByEvaluationAndStatus(EVAL_ID, statusEnum)).thenReturn(1L);
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getAllSubmissionBundles(ownerInfo, EVAL_ID, statusEnum, 10L, 0L);
@@ -546,14 +550,13 @@ public class SubmissionManagerTest {
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
 		assertEquals(Collections.singletonList(expected), queryResults);
-		verify(mockSubmissionDAO).getAllByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
-		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
+		verify(mockSubmissionDAO).getAllBundlesByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
 	}
 	
 	@Test
 	public void testGetMyOwnSubmissionBundles() throws Exception {
-		when(mockSubmissionDAO.getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
-			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getAllBundlesByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
 		when(mockSubmissionDAO.getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString())).thenReturn(1L);
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10L, 0L);
@@ -561,8 +564,7 @@ public class SubmissionManagerTest {
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
 		assertEquals(Collections.singletonList(expected), queryResults);
-		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
-		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
+		verify(mockSubmissionDAO).getAllBundlesByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
 	}
 	
 	@Test
@@ -602,6 +604,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
+		
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -626,6 +630,16 @@ public class SubmissionManagerTest {
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 	}
 	
+	@Test
+	public void testGetALLSubmissionStatus() throws Exception {
+		when(mockSubmissionDAO.getAllBundlesByEvaluation(EVAL_ID, 100L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
+		List<SubmissionStatus> actual = submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+		verify(mockSubmissionDAO).getAllBundlesByEvaluation(EVAL_ID, 100L, 0L);
+		List<SubmissionStatus> expected = Collections.singletonList(subStatus);
+		assertEquals(expected, actual);
+	}
+	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
@@ -635,6 +649,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -658,6 +674,7 @@ public class SubmissionManagerTest {
 		annots.setLongAnnos(null);
 		annots.setDoubleAnnos(null);
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 	}
 	
 	private static Annotations createDummyAnnotations() {		

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -181,4 +182,21 @@ public interface SubmissionDAO {
 	 * @return
 	 */
 	String getCreatedBy(String submissionId);
+	
+	
+	SubmissionBundle getBundle(String id);
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluation(String evalId, long limit,
+			long offset) throws DatastoreException, NotFoundException;
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluationAndStatus(String evalId,
+			SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
+			String principalId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
 }
