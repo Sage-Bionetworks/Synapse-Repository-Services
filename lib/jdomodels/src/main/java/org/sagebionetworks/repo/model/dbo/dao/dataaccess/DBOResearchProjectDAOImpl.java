@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -102,12 +101,9 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
 	@MandatoryWriteTransaction
 	@Override
-	public ResearchProject getForUpdate(String researchProjectId, String etag) {
+	public ResearchProject getForUpdate(String researchProjectId) {
 		try {
-			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET_USING_ID, MAPPER, researchProjectId);
-			if (!dbo.getEtag().equals(etag)) {
-				throw new ConflictingUpdateException();
-			}
+			DBOResearchProject dbo = jdbcTemplate.queryForObject(SQL_GET_USING_ID_FOR_UPDATE, MAPPER, researchProjectId);
 			ResearchProject dto = new ResearchProject();
 			ResearchProjectUtils.copyDboToDto(dbo, dto);
 			return dto;
