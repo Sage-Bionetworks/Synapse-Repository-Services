@@ -438,7 +438,6 @@ public class SubmissionDAOImplTest {
     	// evalId should have submissions
     	List<SubmissionBundle> bundles = submissionDAO.getAllBundlesByEvaluation(evalId, 10, 0);
     	assertEquals(1, bundles.size());
-    	assertEquals(bundles.size(), submissionDAO.getCountByEvaluation(evalId));
     	SubmissionBundle bundle = bundles.get(0);
     	submission.setCreatedOn(bundle.getSubmission().getCreatedOn());
     	assertEquals(bundle.getSubmission(), submission);
