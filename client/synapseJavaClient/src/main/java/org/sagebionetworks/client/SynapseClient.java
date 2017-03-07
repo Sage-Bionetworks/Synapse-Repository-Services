@@ -2704,6 +2704,7 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Retrieve the current ResearchProject to update.
+	 * If one does not exist, an empty ResearchProject will be returned.
 	 * 
 	 * @param accessRequirementId
 	 * @return
