@@ -75,6 +75,7 @@ public class ResearchProjectManagerImplTest {
 		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockResearchProjectDao.get(accessRequirementId, userId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
+		when(mockResearchProjectDao.getForUpdate(researchProjectId, etag)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockResearchProjectDao.changeOwnership(anyString(), anyString(), anyString(), anyLong(), anyString()))
 				.thenReturn(researchProject);
@@ -259,7 +260,7 @@ public class ResearchProjectManagerImplTest {
 	@Test (expected = NotFoundException.class)
 	public void testUpdateNotFound() {
 		ResearchProject toUpdate = createNewResearchProject();
-		when(mockResearchProjectDao.get(anyString())).thenThrow(new NotFoundException());
+		when(mockResearchProjectDao.getForUpdate(anyString(), anyString())).thenThrow(new NotFoundException());
 		manager.update(mockUser, toUpdate);
 	}
 
@@ -295,6 +296,7 @@ public class ResearchProjectManagerImplTest {
 	public void testUpdateWithOutdatedEtag() {
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setEtag("oldEtag");
+		when(mockResearchProjectDao.getForUpdate(researchProjectId, "oldEtag")).thenThrow(new ConflictingUpdateException());
 		manager.update(mockUser, toUpdate);
 	}
 

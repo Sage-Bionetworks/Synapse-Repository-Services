@@ -8,7 +8,6 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
@@ -85,7 +84,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateResearchProject(toUpdate);
 
-		ResearchProject original = researchProjectDao.get(toUpdate.getId());
+		ResearchProject original = researchProjectDao.getForUpdate(toUpdate.getId(), toUpdate.getEtag());
 
 		ValidateArgument.requirement(toUpdate.getOwnerId().equals(original.getOwnerId())
 				&& toUpdate.getCreatedBy().equals(original.getCreatedBy())
@@ -95,9 +94,6 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 		if (!original.getOwnerId().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
-		}
-		if (!toUpdate.getEtag().equals(original.getEtag())) {
-			throw new ConflictingUpdateException();
 		}
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
