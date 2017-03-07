@@ -25,7 +25,7 @@ public interface ResearchProjectManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public ResearchProject get(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
+	public ResearchProject getUserOwnResearchProject(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
 
 	/**
 	 * Update an existing ResearchProject.

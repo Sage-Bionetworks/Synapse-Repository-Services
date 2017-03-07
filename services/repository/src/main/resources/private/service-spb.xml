@@ -169,4 +169,7 @@
 		</property>
 	</bean>
 
+	<bean id="dataAccessService"
+		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
+		scope="singleton" />	
 </beans>

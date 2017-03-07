@@ -21,7 +21,7 @@ public interface ResearchProjectDAO {
 	 * @return
 	 * @throws NotFoundException if the ResearchProject cannot be found.
 	 */
-	public ResearchProject get(String accessRequirementId, String ownerId) throws NotFoundException;
+	public ResearchProject getUserOwnResearchProject(String accessRequirementId, String ownerId) throws NotFoundException;
 
 	/**
 	 * Update an existing ResearchProject.
@@ -43,7 +43,7 @@ public interface ResearchProjectDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public void changeOwnership(String researchProjectId, String newOwnerId,
+	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId,
 			String modifiedBy, Long modifiedOn, String etag) throws NotFoundException;
 
 	/**
@@ -52,4 +52,21 @@ public interface ResearchProjectDAO {
 	 * @param id
 	 */
 	void delete(String id);
+
+	/**
+	 * Retrieve a ResearchProject given its ID.
+	 * 
+	 * @param researchProjectId
+	 * @return
+	 */
+	public ResearchProject get(String researchProjectId);
+
+	/**
+	 * Retrieve a ResearchProject given its ID and etag.
+	 * 
+	 * @param researchProjectId
+	 * @effect this call will put a lock on the returned ResearchProject.
+	 * @return
+	 */
+	public ResearchProject getForUpdate(String researchProjectId, String etag);
 }

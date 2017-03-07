@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.subscription.SubscriptionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
@@ -75,6 +76,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private SubscriptionService subscriptionService;
 	@Autowired
 	private DockerService dockerService;
+	@Autowired
+	private DataAccessService dataAccessService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -196,5 +199,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public DockerService getDockerService() {
 		return dockerService;
 	}
-	
+	@Override
+	public DataAccessService getDataAccessService() {
+		return dataAccessService;
+	}
 }
