@@ -93,6 +93,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	+ " FROM "+ TABLE_USER_GROUP +" LEFT OUTER JOIN "+TABLE_GROUP_MEMBERS
 		+ " ON "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" = "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_GROUP_ID
 	+ " WHERE "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" IN ( :"+IDS_PARAM+" )";
+	
+	private static final String SQL_GET_COUNT_MEMBERS ="SELECT COUNT(*) FROM "+
+			TABLE_GROUP_MEMBERS+ " WHERE "+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	
@@ -107,6 +110,13 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		UserGroupUtils.copyDboToDto(dbos, members);
 		return members;
+	}
+	
+	@Override
+	public long getMemberCount(String groupId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, groupId);
+		return namedJdbcTemplate.queryForObject(SQL_GET_COUNT_MEMBERS, param, Long.class);
 	}
 
 	@WriteTransaction

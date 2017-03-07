@@ -15,6 +15,13 @@ public interface GroupMembersDAO {
 			throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the members of a given group
+	 * @param groupId
+	 * @return  the number of members of the given group
+	 */
+	public long getMemberCount(String groupId);
+	
+	/**
 	 * Adds the list of principal IDs to the group
 	 */
 	public void addMembers(String groupId, List<String> memberIds) 

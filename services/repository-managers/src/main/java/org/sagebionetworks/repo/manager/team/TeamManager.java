@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -62,12 +63,19 @@ public interface TeamManager {
 	/**
 	 * 
 	 * @param teamId
+	 * @return
+	 */
+	public TeamMemberCount countMembers(String teamId);
+	/**
+	 * 
+	 * @param teamId
 	 * @param memberIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
+	
 	/**
 	 * 
 	 * @param teamId

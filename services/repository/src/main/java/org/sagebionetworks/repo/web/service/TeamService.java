@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -141,6 +142,14 @@ public interface TeamService {
 	 */
 	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
 
+	/**
+	 * 
+	 * @param id
+	 * @param fragment
+	 * @return
+	 */
+	public TeamMemberCount getMemberCount(String id, String fragment);
+	
 	/**
 	 * 
 	 * @param teamId
