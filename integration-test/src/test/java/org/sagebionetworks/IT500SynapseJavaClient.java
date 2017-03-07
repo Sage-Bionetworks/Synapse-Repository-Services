@@ -1104,7 +1104,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
-		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
 		
 		// while we're at it, check the 'getTeamMember' service
 		assertEquals(tm, synapseOne.getTeamMember(updatedTeam.getId(), myPrincipalId));
@@ -1149,7 +1149,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
-		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), myDisplayName));
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), myDisplayName));
 		
 		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singletonList(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
@@ -1172,6 +1172,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(3L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
+		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
+
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
