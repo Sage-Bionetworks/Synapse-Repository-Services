@@ -81,8 +81,8 @@ public class DataAccessController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT, method = RequestMethod.GET)
 	public @ResponseBody ResearchProject getUserOwnResearchProject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String accessRequirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getUserOwnResearchProject(userId, accessRequirementId);
+			@PathVariable String requirementId) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getUserOwnResearchProject(userId, requirementId);
 	}
 
 	/**
