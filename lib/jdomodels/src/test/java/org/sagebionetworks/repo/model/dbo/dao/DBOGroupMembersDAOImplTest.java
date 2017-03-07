@@ -85,6 +85,8 @@ public class DBOGroupMembersDAOImplTest {
 		
 		List<UserGroup> groups = groupMembersDAO.getUsersGroups(testUserOne.getId());
 		assertEquals("No groups initially", 0, groups.size());
+		
+		assertEquals(0L, groupMembersDAO.getMemberCount(testGroup.getId()));
 	}
 	
 	@Test
@@ -130,6 +132,8 @@ public class DBOGroupMembersDAOImplTest {
 		assertTrue("User one should be in the retrieved member list", newMembers.contains(testUserOne));
 		assertTrue("User two should be in the retrieved member list", newMembers.contains(testUserTwo));
 		assertTrue("User three should be in the retrieved member list", newMembers.contains(testUserThree));
+		
+		assertEquals(3L, groupMembersDAO.getMemberCount(testGroup.getId()));
 		
 		// Verify that the parent group's etag has changed
 		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));

@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -1034,5 +1035,14 @@ public class TeamManagerImplTest {
 		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
 		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
 		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+	}
+	
+	@Test
+	public void testCountMembers() throws Exception {
+		TeamMemberCount expected = new TeamMemberCount();
+		expected.setCount(42L);
+		when(mockGroupMembersDAO.getMemberCount(TEAM_ID)).thenReturn(expected.getCount());
+		assertEquals(expected, teamManagerImpl.countMembers(TEAM_ID));
+		verify(mockGroupMembersDAO).getMemberCount(TEAM_ID);
 	}
 }
