@@ -20,7 +20,7 @@ import com.google.common.collect.Maps;
 /**
  * Basic implementation.
  * 
- * @author John
+ * @author marcel-blonk
  * 
  */
 public class LogServiceImpl implements LogService {
