@@ -84,7 +84,7 @@ public class DataAccessRequestManagerImplTest {
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID)).thenReturn(4L);
-		when(mockDataAccessRequestDao.create(any(DataAccessRequestInterface.class))).thenReturn(request);
+		when(mockDataAccessRequestDao.create(any(DataAccessRequest.class))).thenReturn(request);
 		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockDataAccessRequestDao.update(any(DataAccessRequestInterface.class))).thenReturn(request);
@@ -307,6 +307,28 @@ public class DataAccessRequestManagerImplTest {
 		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);
 		verify(mockDataAccessRequestDao).update(captor.capture());
 		DataAccessRequest updated = captor.getValue();
+		assertEquals(requestId, updated.getId());
+		assertEquals(userId, updated.getCreatedBy());
+		assertEquals(userId, updated.getModifiedBy());
+		assertEquals("777", updated.getDucFileHandleId());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateDataAccessRenewalNotRequired() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
+		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
+		manager.update(mockUser, toUpdate);
+	}
+
+	@Test
+	public void testUpdateDataAccessRenewalRequired() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
+		toUpdate.setDucFileHandleId("777");
+		assertEquals(request, manager.update(mockUser, toUpdate));
+		ArgumentCaptor<DataAccessRenewal> captor = ArgumentCaptor.forClass(DataAccessRenewal.class);
+		verify(mockDataAccessRequestDao).update(captor.capture());
+		DataAccessRenewal updated = captor.getValue();
 		assertEquals(requestId, updated.getId());
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());

@@ -42,15 +42,15 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		ValidateArgument.requirement(accessRequirementDao.get(toCreate.getAccessRequirementId())
 				.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"A DataAccessRequest can only associate with an ACTAccessRequirement.");
-		toCreate = (DataAccessRequest) prepareCreationFields(toCreate, userInfo.getId().toString());
-		return (DataAccessRequest) dataAccessRequestDao.create(toCreate);
+		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
+		return dataAccessRequestDao.create(toCreate);
 	}
 
-	public DataAccessRequestInterface prepareCreationFields(DataAccessRequestInterface toCreate, String createdBy) {
+	public DataAccessRequest prepareCreationFields(DataAccessRequest toCreate, String createdBy) {
 		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		toCreate.setCreatedBy(createdBy);
 		toCreate.setCreatedOn(new Date());
-		toCreate = prepareUpdateFields(toCreate, createdBy);
+		toCreate = (DataAccessRequest) prepareUpdateFields(toCreate, createdBy);
 		return toCreate;
 	}
 
@@ -58,6 +58,7 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		toUpdate.setModifiedBy(modifiedBy);
 		toUpdate.setModifiedOn(new Date());
 		toUpdate.setEtag(UUID.randomUUID().toString());
+		toUpdate.setConcreteType(toUpdate.getClass().getName());
 		return toUpdate;
 	}
 
@@ -107,6 +108,7 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setEtag(current.getEtag());
+		renewal.setConcreteType(DataAccessRenewal.class.getName());
 		return renewal;
 	}
 
@@ -129,6 +131,12 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
 
+		if (toUpdate instanceof DataAccessRenewal) {
+			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(toUpdate.getAccessRequirementId());
+			ValidateArgument.requirement(requirement.getIsAnnualReviewRequired()
+					/* && has approved submission */,
+					"Can only update to a DataAccessRenewal after a submission is approved and the requirement requires renewal.");
+		}
 		String researchProjectOwnerId = researchProjectDao.getOwnerId(toUpdate.getResearchProjectId());
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())
