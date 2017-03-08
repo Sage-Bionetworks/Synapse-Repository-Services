@@ -79,8 +79,11 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	public DataAccessRequestInterface getDataAccessRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
 		DataAccessRequestInterface current = getUserOwnCurrentRequest(userInfo, accessRequirementId);
+		if (current instanceof DataAccessRenewal) {
+			return current;
+		}
 		ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(accessRequirementId);
-		if (requirement.getIsAnnualReviewRequired() && !(current instanceof DataAccessRenewal)) {
+		if (requirement.getIsAnnualReviewRequired() /*TODO: && has approved submission*/) {
 			return createRenewalFromRequest(current);
 		}
 		return current;

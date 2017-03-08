@@ -7,6 +7,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.util.Date;
 
@@ -58,6 +59,7 @@ public class DataAccessRequestManagerImplTest {
 	private Date modifiedOn;
 	private String etag;
 	private DataAccessRequest request;
+	private DataAccessRenewal renewal;
 
 
 	@Before
@@ -78,6 +80,7 @@ public class DataAccessRequestManagerImplTest {
 		modifiedOn = new Date();
 		etag = "etag";
 		request = createNewRequest();
+		renewal = manager.createRenewalFromRequest(request);
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID)).thenReturn(4L);
@@ -208,6 +211,13 @@ public class DataAccessRequestManagerImplTest {
 		assertEquals(request.getAccessors(), renewal.getAccessors());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+	}
+
+	@Test
+	public void testGetForUpdateAlreadyHasRenewal() {
+		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(renewal);
+		assertEquals(renewal, manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId));
+		verifyZeroInteractions(mockAccessRequirement);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
