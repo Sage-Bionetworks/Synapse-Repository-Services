@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -11,7 +12,7 @@ public interface DataAccessRequestDAO {
 	 * @param toCreate
 	 * @return
 	 */
-	public DataAccessRequestInterface create(DataAccessRequestInterface toCreate);
+	public DataAccessRequest create(DataAccessRequest toCreate);
 
 	/**
 	 * Retrieve the current request that the user created (or own) for the given accessRequirementId.

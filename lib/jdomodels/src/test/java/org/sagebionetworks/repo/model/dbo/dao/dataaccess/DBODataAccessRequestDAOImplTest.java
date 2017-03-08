@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -121,24 +121,24 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
-		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 	}
 
 	@Test
 	public void testCRUD() {
-		final DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		final DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
 		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		assertEquals(dto, dataAccessRequestDao.create(dto));
 
 		// should get back the same object
-		DataAccessRenewal created = (DataAccessRenewal) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		DataAccessRequest created = (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
 
 		// update
-		dto.setSummaryOfUse("new summaryOfUse");
+		dto.setAccessors(Arrays.asList("666"));
 		assertEquals(dto, dataAccessRequestDao.update(dto));
 
 		// insert another one with the same accessRequirementId & createdBy
@@ -150,11 +150,11 @@ public class DBODataAccessRequestDAOImplTest {
 		}
 
 		// test get for update
-		DataAccessRenewal locked = transactionTemplate.execute(new TransactionCallback<DataAccessRenewal>() {
+		DataAccessRequest locked = transactionTemplate.execute(new TransactionCallback<DataAccessRequest>() {
 			@Override
-			public DataAccessRenewal doInTransaction(TransactionStatus status) {
+			public DataAccessRequest doInTransaction(TransactionStatus status) {
 				// Try to lock both nodes out of order
-				return (DataAccessRenewal) dataAccessRequestDao.getForUpdate(dto.getId());
+				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(dto.getId());
 			}
 		});
 		assertEquals(dto, locked);
@@ -162,7 +162,7 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
-		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dataAccessRequestDao.getForUpdate(dto.getId());
 	}
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -35,11 +36,11 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessRequestInterface create(DataAccessRequestInterface toCreate) {
+	public DataAccessRequest create(DataAccessRequest toCreate) {
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toCreate, dbo);
 		basicDao.createNew(dbo);
-		return getUserOwnCurrentRequest(toCreate.getAccessRequirementId(), toCreate.getCreatedBy());
+		return (DataAccessRequest) getUserOwnCurrentRequest(toCreate.getAccessRequirementId(), toCreate.getCreatedBy());
 	}
 
 	@Override
