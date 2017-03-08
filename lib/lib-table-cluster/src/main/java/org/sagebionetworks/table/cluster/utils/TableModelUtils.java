@@ -1005,13 +1005,17 @@ public class TableModelUtils {
 	 */
 	public static int calculateActualRowSize(SparseRowDto row){
 		// row ID + row version.
-		int bytes = ColumnConstants.MAX_INTEGER_BYTES_AS_STRING*2;
+		int bytes = ColumnConstants.MINIMUM_ROW_SIZE;
 		if(row.getValues() != null){
 			for(String key: row.getValues().keySet()){
+				// Include references to both the key and value and arrays
+				bytes += ColumnConstants.MINUMUM_ROW_VALUE_SIZE;
+				// Include the size of the key
+				bytes += key.length()*(ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
 				String value = row.getValues().get(key);
 				if (value != null) {
 					bytes += value.length()
-							* ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8;
+							* (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8);
 				}
 			}
 		}
