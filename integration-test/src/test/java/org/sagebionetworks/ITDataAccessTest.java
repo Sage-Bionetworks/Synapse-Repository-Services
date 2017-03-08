@@ -99,10 +99,10 @@ public class ITDataAccessTest {
 		request.setResearchProjectId(updated.getId());
 		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
 
-		assertEquals(created, synapseOne.getUserOwnCurrentRequest(accessRequirement.getId().toString()));
+		assertEquals(createdRequest, synapseOne.getUserOwnCurrentRequest(accessRequirement.getId().toString()));
 
 		createdRequest.setAccessors(Arrays.asList(adminId));
-		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
+		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
 
 		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 	}
