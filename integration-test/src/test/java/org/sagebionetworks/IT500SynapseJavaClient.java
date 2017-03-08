@@ -1174,7 +1174,7 @@ public class IT500SynapseJavaClient {
 
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4)));
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4)));
 		
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
