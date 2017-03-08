@@ -1060,7 +1060,7 @@ public class TableModelUtilsTest {
 		values.put("2", null);
 		values.put("3", "muchLonger");
 		row.setValues(values);
-		int expectedBytes = 488;
+		int expectedBytes = 448;
 		int actualBytes = TableModelUtils.calculateActualRowSize(row);
 		assertEquals(expectedBytes, actualBytes);
 	}
