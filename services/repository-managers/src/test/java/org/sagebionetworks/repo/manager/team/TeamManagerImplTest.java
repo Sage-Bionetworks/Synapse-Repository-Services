@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -54,7 +55,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -1039,7 +1039,7 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testCountMembers() throws Exception {
-		TeamMemberCount expected = new TeamMemberCount();
+		Count expected = new Count();
 		expected.setCount(42L);
 		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(expected.getCount());
 		assertEquals(expected, teamManagerImpl.countMembers(TEAM_ID));

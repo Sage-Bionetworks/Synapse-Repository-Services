@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -74,7 +75,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
@@ -3931,7 +3931,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri = TEAM_MEMBERS + "/count/" + teamId + "?" + NAME_FRAGMENT_FILTER
 					+ "=" + urlEncode(fragment) ;
 		}
-		TeamMemberCount tmc = getJSONEntity(getRepoEndpoint(), uri, TeamMemberCount.class);
+		Count tmc = getJSONEntity(getRepoEndpoint(), uri, Count.class);
 		return tmc.getCount();
 	}
 	

@@ -7,12 +7,12 @@ import java.util.Map;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -65,7 +65,7 @@ public interface TeamManager {
 	 * @param teamId
 	 * @return
 	 */
-	public TeamMemberCount countMembers(String teamId);
+	public Count countMembers(String teamId);
 	/**
 	 * 
 	 * @param teamId

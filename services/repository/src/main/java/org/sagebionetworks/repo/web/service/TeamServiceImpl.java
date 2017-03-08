@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -23,7 +24,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -158,14 +158,14 @@ public class TeamServiceImpl implements TeamService {
 	 * @param fragment
 	 * @return
 	 */
-	public TeamMemberCount getMemberCount(String teamId, String fragment) {
+	public Count getMemberCount(String teamId, String fragment) {
 		// if there is no prefix provided, we just to a regular paginated query
 		// against the database and return the result.  We also clear out the private fields.
 		if (fragment==null || fragment.trim().length()==0) {
 			return teamManager.countMembers(teamId);
 		}
 		Long teamIdLong = Long.parseLong(teamId);
-		TeamMemberCount result = new TeamMemberCount();
+		Count result = new Count();
 		result.setCount(principalPrefixDAO.countTeamMembersForPrefix(fragment, teamIdLong));
 		return result;
 	}

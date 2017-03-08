@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -19,7 +20,6 @@ import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -370,7 +370,7 @@ public class TeamController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_MEMBERS_COUNT_ID, method = RequestMethod.GET)
 	public  @ResponseBody 
-	TeamMemberCount getTeamMemberCount(
+	Count getTeamMemberCount(
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment
 			) throws NotFoundException {

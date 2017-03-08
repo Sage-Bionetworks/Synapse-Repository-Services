@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -50,7 +51,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMemberCount;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -363,9 +363,9 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	@Override
-	public TeamMemberCount countMembers(String teamId) throws DatastoreException {
+	public Count countMembers(String teamId) throws DatastoreException {
 		ValidateArgument.required(teamId, "teamId");
-		TeamMemberCount result = new TeamMemberCount();
+		Count result = new Count();
 		result.setCount(teamDAO.getMembersCount(teamId));
 		return result;
 	}

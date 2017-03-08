@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -1099,7 +1100,6 @@ public class IT500SynapseJavaClient {
 		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = waitForTeamMembers(updatedTeam.getId(), null, 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
@@ -1146,10 +1146,9 @@ public class IT500SynapseJavaClient {
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = myProfile.getUserName();
 		members = waitForTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), myDisplayName));
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
-		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), myDisplayName));
 		
 		List<TeamMember> teamMembers = synapseOne.listTeamMembers(updatedTeam.getId(), Collections.singletonList(Long.parseLong(myPrincipalId)));
 		assertEquals(members.getResults(), teamMembers);
@@ -1169,14 +1168,13 @@ public class IT500SynapseJavaClient {
 
 		// query for team members.  should get creator as well as new member back
 		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);
-		assertEquals(3L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
 		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
 
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4)));
 		
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1186,7 +1184,6 @@ public class IT500SynapseJavaClient {
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		
 		members = waitForTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1258,16 +1255,16 @@ public class IT500SynapseJavaClient {
 	
 	private PaginatedResults<TeamMember> waitForTeamMembers(String teamId, String prefix, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
-		while(true){
-			PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(teamId, prefix, limit, offset);
-			if(members.getTotalNumberOfResults() < 1){
+		while (true){
+			long count = synapseOne.countTeamMembers(teamId, prefix);
+			if(count < 1L){
 				System.out.println("Waiting for principal prefix worker");
 				Thread.sleep(1000);
 				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
 					fail("Timed out waiting for principal prefix worker.");
 				}
 			}else{
-				return members;
+				return synapseOne.getTeamMembers(teamId, prefix, limit, offset);
 			}
 		}
 	}
