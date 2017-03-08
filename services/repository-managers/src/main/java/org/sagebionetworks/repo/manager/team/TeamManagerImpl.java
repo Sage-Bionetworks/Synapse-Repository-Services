@@ -366,7 +366,7 @@ public class TeamManagerImpl implements TeamManager {
 	public TeamMemberCount countMembers(String teamId) throws DatastoreException {
 		ValidateArgument.required(teamId, "teamId");
 		TeamMemberCount result = new TeamMemberCount();
-		result.setCount(groupMembersDAO.getMemberCount(teamId));
+		result.setCount(teamDAO.getMembersCount(teamId));
 		return result;
 	}
 	

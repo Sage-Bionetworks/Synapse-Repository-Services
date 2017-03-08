@@ -1041,8 +1041,8 @@ public class TeamManagerImplTest {
 	public void testCountMembers() throws Exception {
 		TeamMemberCount expected = new TeamMemberCount();
 		expected.setCount(42L);
-		when(mockGroupMembersDAO.getMemberCount(TEAM_ID)).thenReturn(expected.getCount());
+		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(expected.getCount());
 		assertEquals(expected, teamManagerImpl.countMembers(TEAM_ID));
-		verify(mockGroupMembersDAO).getMemberCount(TEAM_ID);
+		verify(mockTeamDAO).getMembersCount(TEAM_ID);
 	}
 }
