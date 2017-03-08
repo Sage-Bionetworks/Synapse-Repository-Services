@@ -78,15 +78,19 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	@Override
 	public DataAccessRequestInterface getDataAccessRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
-		DataAccessRequestInterface current = getUserOwnCurrentRequest(userInfo, accessRequirementId);
-		if (current instanceof DataAccessRenewal) {
+		try {
+			DataAccessRequestInterface current = getUserOwnCurrentRequest(userInfo, accessRequirementId);
+			if (current instanceof DataAccessRenewal) {
+				return current;
+			}
+			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(accessRequirementId);
+			if (requirement.getIsAnnualReviewRequired() /*TODO: && has approved submission*/) {
+				return createRenewalFromRequest(current);
+			}
 			return current;
+		} catch (NotFoundException e) {
+			return new DataAccessRequest();
 		}
-		ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(accessRequirementId);
-		if (requirement.getIsAnnualReviewRequired() /*TODO: && has approved submission*/) {
-			return createRenewalFromRequest(current);
-		}
-		return current;
 	}
 
 	public DataAccessRenewal createRenewalFromRequest(DataAccessRequestInterface current) {

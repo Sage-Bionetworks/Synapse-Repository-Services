@@ -188,6 +188,12 @@ public class DataAccessRequestManagerImplTest {
 	}
 
 	@Test
+	public void testGetForUpdateNotFound() {
+		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenThrow(new NotFoundException());
+		assertEquals(new DataAccessRequest(), manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId));
+	}
+
+	@Test
 	public void testGetForUpdateNotRequireRenewal() {
 		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
 		assertEquals(request, manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId));
