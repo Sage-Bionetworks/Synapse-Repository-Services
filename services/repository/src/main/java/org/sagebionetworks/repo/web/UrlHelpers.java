@@ -956,6 +956,11 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + RESEARCH_PROJECT;
 	public static final String RESEARCH_PROJECT_ID_UPDATE_OWNERSHIP = RESEARCH_PROJECT_ID + "/updateOwnership";
 
+	public static final String DATA_ACCESS_REQUEST ="/dataAccessRequest";
+	public static final String DATA_ACCESS_REQUEST_ID = DATA_ACCESS_REQUEST + "/{id}";
+	public static final String ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + DATA_ACCESS_REQUEST;
+	public static final String ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE = ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST+"ForUpdate";
+
 	/**
 	 * APIs for DynamoDB related operations.
 	 */
