@@ -39,11 +39,11 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toCreate, dbo);
 		basicDao.createNew(dbo);
-		return getCurrentRequest(toCreate.getAccessRequirementId(), toCreate.getCreatedBy());
+		return getUserOwnCurrentRequest(toCreate.getAccessRequirementId(), toCreate.getCreatedBy());
 	}
 
 	@Override
-	public DataAccessRequestInterface getCurrentRequest(String accessRequirementId, String userId)
+	public DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId, String userId)
 			throws NotFoundException {
 		try {
 			DBODataAccessRequest dbo = jdbcTemplate.queryForObject(SQL_GET, MAPPER, accessRequirementId, userId);
@@ -60,7 +60,7 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toUpdate, dbo);
 		basicDao.update(dbo);
-		return getCurrentRequest(toUpdate.getAccessRequirementId(), toUpdate.getCreatedBy());
+		return getUserOwnCurrentRequest(toUpdate.getAccessRequirementId(), toUpdate.getCreatedBy());
 	}
 
 	@Override

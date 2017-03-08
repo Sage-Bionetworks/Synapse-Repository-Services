@@ -122,7 +122,7 @@ public class DBODataAccessRequestDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
 		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
-		dataAccessRequestDao.getCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 	}
 
 	@Test
@@ -134,7 +134,7 @@ public class DBODataAccessRequestDAOImplTest {
 		assertEquals(dto, dataAccessRequestDao.create(dto));
 
 		// should get back the same object
-		DataAccessRenewal created = (DataAccessRenewal) dataAccessRequestDao.getCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		DataAccessRenewal created = (DataAccessRenewal) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
 
 		// update

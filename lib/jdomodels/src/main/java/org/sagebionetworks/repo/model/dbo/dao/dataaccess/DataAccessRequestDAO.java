@@ -21,7 +21,7 @@ public interface DataAccessRequestDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public DataAccessRequestInterface getCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
+	public DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
 
 	/**
 	 * Update an existing DataAccessRequest.
