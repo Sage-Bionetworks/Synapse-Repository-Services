@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Assume;
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -96,6 +99,8 @@ import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -1310,6 +1315,90 @@ public class TableEntityManagerTest {
 		// should not be upgraded since it already has.
 		verify(mockTruthDao, never()).upgradeToNewChangeSet(anyString(), anyLong(), any(SparseChangeSetDto.class));
 		verify(mockColumnModelDao, never()).getColumnIdsForObject(anyString());
+	}
+	
+	/**
+	 * Test added for PLFM-4284 which was caused by incorrect row size
+	 * calculations.
+	 * @throws Exception
+	 */
+	@Test
+	public void testRowSize() throws Exception{
+		int numberColumns = 200;
+		int numberRows = 1000;
+		int stringSize = 50;
+		List<String[]> input = new LinkedList<>();
+		for(int rowIndex=0; rowIndex<numberRows; rowIndex++){
+			String[] row = new String[numberColumns];
+			input.add(row);
+			for(int colIndex=0; colIndex<numberColumns; colIndex++){
+				char[] chars = new char[stringSize];
+				Arrays.fill(chars, 'a');
+				row[colIndex] = new String(chars);
+			}
+		}
+		CSVReader reader = TableModelTestUtils.createReader(input);
+		List<ColumnModel> columns = new LinkedList<>();
+		// Create some columns
+		for(int i=0; i<numberColumns; i++){
+			columns.add(TableModelTestUtils.createColumn(i));
+		}
+		// Create the iterator.
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null, null);
+		long startMemory = getMemoryUsed();
+		List<SparseRowDto> rows = new LinkedList<>();
+		for(int i=0; i<numberRows; i++){
+			rows.add(iterator.next());
+		}
+		long endMemory = getMemoryUsed();
+		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
+		long sizePerRow = (endMemory - startMemory)/numberRows;
+		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
+		assertTrue("Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes",calcuatedSize > sizePerRow);
+	}
+	
+	/**
+	 * Test added for PLFM-4284 which was caused by incorrect row size
+	 * calculations for empty rows.
+	 * @throws Exception
+	 */
+	@Test
+	public void testRowSizeNullValues() throws Exception{
+		int numberColumns = 200;
+		int numberRows = 1000;
+		List<String[]> input = new LinkedList<>();
+		for(int rowIndex=0; rowIndex<numberRows; rowIndex++){
+			String[] row = new String[numberColumns];
+			input.add(row);
+		}
+		CSVReader reader = TableModelTestUtils.createReader(input);
+		List<ColumnModel> columns = new LinkedList<>();
+		// Create some columns
+		for(int i=0; i<numberColumns; i++){
+			columns.add(TableModelTestUtils.createColumn(i));
+		}
+		// Create the iterator.
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null, null);
+		long startMemory = getMemoryUsed();
+		List<SparseRowDto> rows = new LinkedList<>();
+		for(int i=0; i<numberRows; i++){
+			rows.add(iterator.next());
+		}
+		long endMemory = getMemoryUsed();
+		int calcuatedSize = TableModelUtils.calculateActualRowSize(rows.get(0));
+		long sizePerRow = (endMemory - startMemory)/numberRows;
+		System.out.println("Measured size: "+sizePerRow+" bytes, calculated size: "+calcuatedSize+" bytes");
+		assertTrue("Calculated memory: "+calcuatedSize+" bytes actual memory: "+sizePerRow+" bytes",calcuatedSize > sizePerRow);
+	}
+	
+	/**
+	 * Calculate the current used memory.
+	 * 
+	 * @return
+	 */
+	public long getMemoryUsed(){
+		System.gc();
+		return Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 	}
 	
 	public void testGetTableSchema(){

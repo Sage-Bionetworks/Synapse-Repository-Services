@@ -96,4 +96,19 @@ public class ColumnConstants {
 	 */
 	public static final Long DEFAULT_STRING_SIZE = 50L;
 	
+	/**
+	 * Size of a 64 bit reference in bytes.
+	 */
+	public static final int SIZE_OF_REFERENCE_BYTES = 64/8;
+	
+	/**
+	 * The minimum size of a row includes rowId & versionNumber as strings plus three 64 bit references.
+	 */
+	public static final int MINIMUM_ROW_SIZE = MAX_INTEGER_BYTES_AS_STRING*2+SIZE_OF_REFERENCE_BYTES*3;
+	
+	/**
+	 * The minimum size of a rows value.
+	 */
+	public static final int MINUMUM_ROW_VALUE_SIZE = SIZE_OF_REFERENCE_BYTES*4+80;
+	
 }
