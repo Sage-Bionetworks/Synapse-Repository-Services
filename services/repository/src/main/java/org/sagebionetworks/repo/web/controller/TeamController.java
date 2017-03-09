@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -353,6 +354,27 @@ public class TeamController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getMembers(id, fragment, limit, offset);
+	}
+	
+	/**
+	 * Retrieve the number of Team members matching the supplied name prefix.  If the prefix 
+	 * is omitted then the number of members in the team is returned.
+	 * <br>
+	 * Note:  This service has JSONP support:  If the request parameter "callback=jsMethod" is included (where 
+	 * 'jsMethod' is any function name you wish), then the response body will be wrapped in "jsMethod(...);".
+	 * @param id the id of the Team of interest
+	 * @param fragment a prefix of the user's first or last name or email address (optional)
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBERS_COUNT_ID, method = RequestMethod.GET)
+	public  @ResponseBody 
+	Count getTeamMemberCount(
+			@PathVariable String id,
+			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().getMemberCount(id, fragment);
 	}
 	
 	/**

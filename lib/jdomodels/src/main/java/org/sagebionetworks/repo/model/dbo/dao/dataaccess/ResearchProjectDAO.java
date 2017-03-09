@@ -68,5 +68,13 @@ public interface ResearchProjectDAO {
 	 * @effect this call will put a lock on the returned ResearchProject.
 	 * @return
 	 */
-	public ResearchProject getForUpdate(String researchProjectId, String etag);
+	public ResearchProject getForUpdate(String researchProjectId);
+
+	/**
+	 * Retrieve the ownerId for a given research project ID
+	 * 
+	 * @param researchProjectId
+	 * @return
+	 */
+	public String getOwnerId(String researchProjectId);
 }

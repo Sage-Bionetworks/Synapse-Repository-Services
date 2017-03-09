@@ -73,6 +73,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -1412,6 +1413,15 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
 	
 	/**
+	 * 
+	 * @param teamId
+	 * @param fragment
+	 * @return the number of members in the given team, optionally filtered by the given prefix
+	 * @throws SynapseException
+	 */
+	long countTeamMembers(String teamId, String fragment) throws SynapseException;
+	
+	/**
 	 * Return the TeamMember object for the given team and member
 	 * @param teamId
 	 * @param memberId
@@ -2704,6 +2714,7 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Retrieve the current ResearchProject to update.
+	 * If one does not exist, an empty ResearchProject will be returned.
 	 * 
 	 * @param accessRequirementId
 	 * @return
@@ -2721,4 +2732,33 @@ public interface SynapseClient extends BaseClient {
 	 */
 	ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws SynapseException;
 
+	/**
+	 * Create new or update an existing DataAccessRequestInterface.
+	 * 
+	 * @param toCreateOrUpdate
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
+
+	/**
+	 * Retrieve an existing DataAccessRequestInterface.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Retrieve the current DataAccessRequestInterface to update.
+	 * If one does not exist, an empty DataAccessRequest will be returned.
+	 * If a submission associated with the request is approved, and the requirement
+	 * requires renewal, a refilled DataAccessRenewal is returned.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
 }

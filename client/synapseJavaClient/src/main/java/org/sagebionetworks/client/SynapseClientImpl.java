@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -96,6 +97,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -494,6 +497,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final int MINIMUM_CHUNK_SIZE_BYTES = ((int) Math.pow(2, 20)) * 5;
 
 	private static final String RESEARCH_PROJECT = "/researchProject";
+	private static final String DATA_ACCESS_REQUEST = "/dataAccessRequest";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -3919,6 +3923,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getPaginatedResults(getRepoEndpoint(), uri, TeamMember.class);
 	}
 
+	/**
+	 * 
+	 * @param teamId
+	 * @param fragment
+	 * @return the number of members in the given team, optionally filtered by the given prefix
+	 * @throws SynapseException
+	 */
+	@Override
+	public long countTeamMembers(String teamId, String fragment) throws SynapseException {
+		String uri = null;
+		if (fragment == null) {
+			uri = TEAM_MEMBERS + "/count/" + teamId;
+		} else {
+			uri = TEAM_MEMBERS + "/count/" + teamId + "?" + NAME_FRAGMENT_FILTER
+					+ "=" + urlEncode(fragment) ;
+		}
+		Count tmc = getJSONEntity(getRepoEndpoint(), uri, Count.class);
+		return tmc.getCount();
+	}
+	
 	@Override
 	public List<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException {
 		IdList idList = new IdList();
@@ -4915,5 +4939,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setNewOwnerId(newOwnerId);
 		request.setResearchProjectId(researchProjectId);
 		return putJSONEntity(getRepoEndpoint(), url, request, ResearchProject.class);
+	}
+
+	@Override
+	public DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate)
+			throws SynapseException {
+		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
+		if (toCreateOrUpdate.getId() == null) {
+			return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST, toCreateOrUpdate, DataAccessRequest.class);
+		} else {
+			return putJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST+"/"+toCreateOrUpdate.getId(), toCreateOrUpdate, toCreateOrUpdate.getClass());
+		}
+	}
+
+	@Override
+	public DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequest";
+		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
+	}
+
+	@Override
+	public DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequestForUpdate";
+		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
 	}
 }

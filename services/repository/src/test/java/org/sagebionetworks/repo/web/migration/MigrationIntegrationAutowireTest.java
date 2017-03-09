@@ -85,7 +85,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
@@ -366,7 +366,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 	
 	private void createDataAccessRequest() {
-		DataAccessRenewal dto = new DataAccessRenewal();
+		DataAccessRequest dto = new DataAccessRequest();
 		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
@@ -376,8 +376,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		dto.setModifiedOn(new Date());
 		dto.setEtag("etag");
 		dto.setAccessors(Arrays.asList(adminUserIdString));
-		dto.setPublication("publication");
-		dto.setSummaryOfUse("summaryOfUse");
 		dataAccessRequestDAO.create(dto);
 	}
 

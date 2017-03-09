@@ -25,7 +25,7 @@ public interface DataAccessRequestManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public DataAccessRequestInterface getCurrent(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
+	public DataAccessRequestInterface getUserOwnCurrentRequest(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
 
 	/**
 	 * Retrieve a DataAccessRequest object suitable for update, which has the original one created by or has associated research project owned by the user, for a given accessRequirementId.
