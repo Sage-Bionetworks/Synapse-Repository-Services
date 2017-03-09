@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -58,7 +59,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationType;
@@ -71,6 +71,7 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -354,14 +355,19 @@ public class TeamManagerImpl implements TeamManager {
 		return teamDAO.list(ids);
 	}
 
-	/**
-	 * 
-	 */
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
 			long offset) throws DatastoreException {
 		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
+	}
+	
+	@Override
+	public Count countMembers(String teamId) throws DatastoreException {
+		ValidateArgument.required(teamId, "teamId");
+		Count result = new Count();
+		result.setCount(teamDAO.getMembersCount(teamId));
+		return result;
 	}
 	
 	@Override

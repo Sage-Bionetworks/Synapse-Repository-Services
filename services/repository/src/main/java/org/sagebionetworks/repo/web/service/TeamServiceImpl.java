@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -150,6 +151,25 @@ public class TeamServiceImpl implements TeamService {
 		List<TeamMember> members = listTeamMembers(Arrays.asList(teamIdLong), memberIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(members, limit, offset);
 	}
+	
+	/**
+	 * 
+	 * @param id
+	 * @param fragment
+	 * @return
+	 */
+	public Count getMemberCount(String teamId, String fragment) {
+		// if there is no prefix provided, we just to a regular paginated query
+		// against the database and return the result.  We also clear out the private fields.
+		if (fragment==null || fragment.trim().length()==0) {
+			return teamManager.countMembers(teamId);
+		}
+		Long teamIdLong = Long.parseLong(teamId);
+		Count result = new Count();
+		result.setCount(principalPrefixDAO.countTeamMembersForPrefix(fragment, teamIdLong));
+		return result;
+	}
+
 	
 	@Override
 	public ListWrapper<TeamMember> listTeamMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException {
