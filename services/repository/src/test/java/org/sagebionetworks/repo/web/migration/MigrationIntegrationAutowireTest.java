@@ -585,9 +585,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		evaluation.setSubmissionReceiptMessage("receipt");
 		evaluation = serviceProvider.getEvaluationService().createEvaluation(adminUserId, evaluation);
 
-		// initialize Participants
-		serviceProvider.getEvaluationService().addParticipant(adminUserId, evaluation.getId());
-
 		// initialize Submissions
 		submission = new Submission();
 		submission.setName("submission1");

@@ -359,27 +359,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@Test
-	public void testParticipantRoundTrip() throws SynapseException {
-		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = synapseOne.createEvaluation(eval1);
-		evaluationsToDelete.add(eval1.getId());
-		
-		// query for someone having SUBMIT privileges
-		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(0, 100);
-		assertEquals(1, evals.getTotalNumberOfResults());
-				assertEquals(1, evals.getResults().size());
-		eval1=synapseOne.getEvaluation(eval1.getId());
-		assertEquals(eval1, evals.getResults().iterator().next());
-		
-		// check that filtering parameter works
-		evals = synapseOne.getAvailableEvaluationsPaginated(0, 100, Arrays.asList(new String[]{eval1.getId()}));
-		assertEquals(1, evals.getTotalNumberOfResults());
-				assertEquals(1, evals.getResults().size());
-		eval1=synapseOne.getEvaluation(eval1.getId());
-		assertEquals(eval1, evals.getResults().iterator().next());
-	}
-	
-	@Test
 	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
@@ -718,20 +697,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 			// expected
 		}
 		assertEquals(initialCount, synapseOne.getAllSubmissions(eval1.getId(), 100, 0).getResults().size());
-	}
-	
-	@Test
-	public void testEvaluationsParticipantsPaginated() throws SynapseException {
-		Long initialEvaluationCount = synapseOne.getAvailableEvaluationsPaginated(100, 0).getTotalNumberOfResults();
-		
-		// create objects
-		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = synapseOne.createEvaluation(eval1);
-		assertNotNull(eval1.getId());
-		evaluationsToDelete.add(eval1.getId());
-		eval2 = synapseOne.createEvaluation(eval2);
-		assertNotNull(eval2.getId());
-		evaluationsToDelete.add(eval2.getId());
 	}
 	
 	@Test
