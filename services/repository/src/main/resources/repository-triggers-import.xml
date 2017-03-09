@@ -5,5 +5,6 @@
 
 	<import resource="classpath:private/repo-log-sweep-trigger-spb.xml" />
 	<import resource="classpath:private/throttle-cache-trigger-spb.xml" />
+	<import resource="classpath:private/memory-logger-trigger-spb.xml" />
 
 </beans>

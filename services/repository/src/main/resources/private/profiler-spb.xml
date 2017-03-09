@@ -16,7 +16,6 @@
 		<property name="handlers">
 			<list>
 				<bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
-				<bean name="perThreadProfiler" class="org.sagebionetworks.profiler.PerThreadHandler" />
 			</list>
 		</property>
 		<property name="shouldLogPerformance">
