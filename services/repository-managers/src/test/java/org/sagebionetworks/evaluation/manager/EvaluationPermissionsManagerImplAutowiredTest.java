@@ -545,7 +545,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Now if we have unmet requirements, adding just the ACL is not enough
 		AccessRequirementDAO mockAccessRequirementDao = mock(AccessRequirementDAO.class);
-		when(mockAccessRequirementDao.unmetAccessRequirements(
+		when(mockAccessRequirementDao.getAllUnmetAccessRequirements(
 				any(List.class), any(RestrictableObjectType.class), any(Collection.class), any(List.class))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
 		AccessRequirementDAO original = (AccessRequirementDAO) ReflectionTestUtils.getField(evaluationPermissionsManager, "accessRequirementDAO");

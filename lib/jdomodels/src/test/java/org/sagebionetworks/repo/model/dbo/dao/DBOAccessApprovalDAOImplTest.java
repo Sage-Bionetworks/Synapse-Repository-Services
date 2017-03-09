@@ -175,12 +175,12 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testUnmetARsForEvaluation() throws Exception {
 		// Logic for unmet requirements doesn't reflect ownership at the DAO level.  It's factored in at the manager level.
 		// Therefore, the owner see unmet ARs for herself..
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
+		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		// ... just as someone else does, if they haven't signed the ToU
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
@@ -196,7 +196,7 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		// no unmet requirement anymore ...
 		assertTrue(
-				accessRequirementDAO.unmetAccessRequirements(
+				accessRequirementDAO.getAllUnmetAccessRequirements(
 						Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), 
 						participateAndDownload).isEmpty()
@@ -213,26 +213,26 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// no unmet requirements for ficticious node ID
 		assertTrue(
-				accessRequirementDAO.unmetAccessRequirements(
+				accessRequirementDAO.getAllUnmetAccessRequirements(
 						Collections.singletonList("syn7890"), RestrictableObjectType.ENTITY, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						downloadAccessType).isEmpty()
 				);
 		// no unmet requirement for other type of access
 		assertTrue(
-				accessRequirementDAO.unmetAccessRequirements(
+				accessRequirementDAO.getAllUnmetAccessRequirements(
 						Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY,
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						updateAccessType).isEmpty()
@@ -250,18 +250,18 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		// no unmet requirement anymore ...
 		assertTrue(
-				accessRequirementDAO.unmetAccessRequirements(
+				accessRequirementDAO.getAllUnmetAccessRequirements(
 						Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						downloadAccessType).isEmpty()
 				);
 		// ... but for a different (ficticious) user, the requirement isn't met...
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the second node
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node2.getId()), RestrictableObjectType.ENTITY,
+		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node2.getId()), RestrictableObjectType.ENTITY,
 				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());

@@ -118,7 +118,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
 	@Override
-	public List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
+	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);

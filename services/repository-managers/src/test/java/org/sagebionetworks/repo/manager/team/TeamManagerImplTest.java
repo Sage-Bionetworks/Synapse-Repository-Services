@@ -463,7 +463,7 @@ public class TeamManagerImplTest {
 		for (Long id : userInfo.getGroups()) {
 			principalIds.add(id);
 		}
-		when(mockAccessRequirementDAO.unmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
 	}
 	
 	@Test

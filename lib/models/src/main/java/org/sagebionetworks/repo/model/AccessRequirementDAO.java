@@ -68,7 +68,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
 	 * @throws DatastoreException
 	 */
-	List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
+	List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
 			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
 
 	long getCount() throws DatastoreException;

@@ -183,7 +183,7 @@ public class DBOAccessRequirementDAOImplTest {
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<ACCESS_TYPE> downloadAccessType = new ArrayList<ACCESS_TYPE>();
 		downloadAccessType.add(ACCESS_TYPE.DOWNLOAD);
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, principalIds, downloadAccessType);
+		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, principalIds, downloadAccessType);
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
@@ -249,12 +249,12 @@ public class DBOAccessRequirementDAOImplTest {
 		// check the 'unmet' access requirements
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
+		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(1, arIds.size());
 		assertEquals(accessRequirement.getId(), arIds.get(0));
 		// including an irrelevant node ID in the ID list doesn't change the result
-		arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+		arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(1, arIds.size());
 		assertEquals(accessRequirement.getId(), arIds.get(0));
@@ -322,7 +322,7 @@ public class DBOAccessRequirementDAOImplTest {
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<String> ids = new ArrayList<String>();
 		ids.add(node.getId());
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				RestrictableObjectType.ENTITY, principalIds, 
 				Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(1, arIds.size());
@@ -330,7 +330,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		// check that it works to retrieve from multiple nodes
 		ids.add(node2.getId());
-		arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+		arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				RestrictableObjectType.ENTITY, principalIds, 
 				Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(2, arIds.size());

@@ -48,7 +48,7 @@ public class AccessRequirementUtil {
 			principalIds.add(ug);
 		}
 		
-		return accessRequirementDAO.unmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
+		return accessRequirementDAO.getAllUnmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 
 	public static List<Long> unmetUploadAccessRequirementIdsForEntity(
@@ -64,7 +64,7 @@ public class AccessRequirementUtil {
 			principalIds.add(ug);
 		}
 		
-		return accessRequirementDAO.unmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
+		return accessRequirementDAO.getAllUnmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 	
 	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {

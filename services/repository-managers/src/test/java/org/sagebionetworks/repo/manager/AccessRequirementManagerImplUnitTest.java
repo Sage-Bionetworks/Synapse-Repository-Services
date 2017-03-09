@@ -180,13 +180,13 @@ public class AccessRequirementManagerImplUnitTest {
 		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
 		mockNode.setNodeType(EntityType.file);
 		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
-		when(accessRequirementDAO.unmetAccessRequirements(
+		when(accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(TEST_ENTITY_ID), 
 				RestrictableObjectType.ENTITY, 
 				Collections.singleton(userInfo.getId()), 
 				Collections.singletonList(DOWNLOAD))).
 				thenReturn(Collections.singletonList(mockDownloadARId));
-		when(accessRequirementDAO.unmetAccessRequirements(
+		when(accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(TEST_ENTITY_ID), 
 				RestrictableObjectType.ENTITY, 
 				Collections.singleton(userInfo.getId()), 

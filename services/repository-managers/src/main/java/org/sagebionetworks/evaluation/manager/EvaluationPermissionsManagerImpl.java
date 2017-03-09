@@ -211,7 +211,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	
 	private boolean hasUnmetAccessRequirements(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) throws NotFoundException {
 		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
-			List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
+			List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
 					Collections.singletonList(evalId), RestrictableObjectType.EVALUATION, userInfo.getGroups(), 
 					Collections.singletonList(accessType));
 			if (!unmetRequirements.isEmpty()) return true;
