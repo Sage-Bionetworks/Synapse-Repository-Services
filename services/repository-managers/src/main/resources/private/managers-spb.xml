@@ -500,4 +500,7 @@
 	<bean id="researchProjectManager"
 		class="org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManagerImpl"
 		scope="singleton" />
+	<bean id="dataAccessRequestManager"
+		class="org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManagerImpl"
+		scope="singleton" />
 </beans>

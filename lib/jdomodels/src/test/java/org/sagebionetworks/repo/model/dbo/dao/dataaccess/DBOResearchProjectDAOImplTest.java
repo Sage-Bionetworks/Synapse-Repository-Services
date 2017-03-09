@@ -14,7 +14,6 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -27,6 +26,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -147,24 +147,27 @@ public class DBOResearchProjectDAOImplTest {
 		}
 
 		// test get for update
-		ResearchProject locked = getForUpdateInTransaction(newDto.getId(), newDto.getEtag());
-		assertEquals(newDto, locked);
-
-		try {
-			getForUpdateInTransaction(dto.getId(), "some fake etag");
-			fail("should fail because etag does not match");
-		} catch (ConflictingUpdateException e) {
-			// as expected
-		}
-	}
-
-	private ResearchProject getForUpdateInTransaction(final String id, final String etag) {
-		return transactionTemplate.execute(new TransactionCallback<ResearchProject>() {
+		ResearchProject locked = transactionTemplate.execute(new TransactionCallback<ResearchProject>() {
 			@Override
 			public ResearchProject doInTransaction(TransactionStatus status) {
 				// Try to lock both nodes out of order
-				return researchProjectDao.getForUpdate(id, etag);
+				return researchProjectDao.getForUpdate(dto.getId());
 			}
 		});
+		assertEquals(newDto, locked);
+
+		assertEquals(newDto.getOwnerId(), researchProjectDao.getOwnerId(dto.getId()));
+	}
+
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getForUpdate(dto.getId());
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetOwnerNotExist() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getOwnerId(dto.getId());
 	}
 }

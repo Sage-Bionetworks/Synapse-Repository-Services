@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -11,7 +12,7 @@ public interface DataAccessRequestDAO {
 	 * @param toCreate
 	 * @return
 	 */
-	public DataAccessRequestInterface create(DataAccessRequestInterface toCreate);
+	public DataAccessRequest create(DataAccessRequest toCreate);
 
 	/**
 	 * Retrieve the current request that the user created (or own) for the given accessRequirementId.
@@ -21,7 +22,7 @@ public interface DataAccessRequestDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public DataAccessRequestInterface getCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
+	public DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId, String userId) throws NotFoundException;
 
 	/**
 	 * Update an existing DataAccessRequest.
@@ -36,4 +37,13 @@ public interface DataAccessRequestDAO {
 	 * used for tests
 	 */
 	void truncateAll();
+
+	/**
+	 * Retrieve the current DataAccessRequest for update.
+	 * 
+	 * @param id
+	 * @effect this call will put a lock on the returned object.
+	 * @return
+	 */
+	public DataAccessRequestInterface getForUpdate(String id);
 }

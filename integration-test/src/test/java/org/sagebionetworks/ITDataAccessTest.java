@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -90,6 +91,20 @@ public class ITDataAccessTest {
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		assertEquals(adminId, adminSynapse.changeOwnership(updated.getId(), adminId).getOwnerId());
+
+		DataAccessRequest request = new DataAccessRequest();
+		assertEquals(request, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+
+		request.setAccessRequirementId(accessRequirement.getId().toString());
+		request.setResearchProjectId(updated.getId());
+		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
+
+		assertEquals(createdRequest, synapseOne.getUserOwnCurrentRequest(accessRequirement.getId().toString()));
+
+		createdRequest.setAccessors(Arrays.asList(adminId));
+		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
+
+		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 	}
 
 }
