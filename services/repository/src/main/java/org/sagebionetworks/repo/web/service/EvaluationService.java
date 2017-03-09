@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -63,7 +62,6 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
@@ -121,31 +119,6 @@ public interface EvaluationService {
 	 */
 	public void deleteEvaluation(Long userId, String evalId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	////// Methods for managing participants //////
-
-	/**
-	 * Add self as a Participant to a Evaluation.
-	 * 
-	 * @param userName
-	 * @param evalId
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Participant addParticipant(Long userId, String evalId)
-			throws NotFoundException;
-
-	/**
-	 * Get all Participants for a given Evaluation.
-	 * 
-	 * @param evalId
-	 * @return
-	 * @throws NumberFormatException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<Participant> getAllParticipants(Long userId, String evalId, long limit, long offset, HttpServletRequest request)
-			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	////// Methods for managing submissions //////
 
