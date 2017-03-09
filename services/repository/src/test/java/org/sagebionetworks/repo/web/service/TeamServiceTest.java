@@ -130,14 +130,22 @@ public class TeamServiceTest {
 		PaginatedResults<TeamMember> pr = teamService.getMembers("101", "Smith", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
+		
+		assertEquals(1L, teamService.getMemberCount("101", "Smith").getCount().longValue());
+		
 		// test first name match, different case
 		pr = teamService.getMembers("101", "john", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
+
+		assertEquals(1L, teamService.getMemberCount("101", "john").getCount().longValue());
+
 		// no match
 		pr = teamService.getMembers("101", "bas", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
-	}
+
+		assertEquals(0L, teamService.getMemberCount("101", "bas").getCount().longValue());
+}
 	
 	@Test
 	public void testGetTeamNoFragment() throws Exception {
@@ -167,6 +175,12 @@ public class TeamServiceTest {
 		when(mockTeamManager.listMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
 		verify(mockTeamManager).listMembers("101", 1, 0);
+	}
+
+	@Test
+	public void testGetTeamMemberCountNoFragment() throws Exception {
+		teamService.getMemberCount("101", null);
+		verify(mockTeamManager).countMembers("101");
 	}
 
 	@Test (expected=IllegalArgumentException.class)

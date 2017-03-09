@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -1034,5 +1035,14 @@ public class TeamManagerImplTest {
 		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
 		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
 		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+	}
+	
+	@Test
+	public void testCountMembers() throws Exception {
+		Count expected = new Count();
+		expected.setCount(42L);
+		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(expected.getCount());
+		assertEquals(expected, teamManagerImpl.countMembers(TEAM_ID));
+		verify(mockTeamDAO).getMembersCount(TEAM_ID);
 	}
 }

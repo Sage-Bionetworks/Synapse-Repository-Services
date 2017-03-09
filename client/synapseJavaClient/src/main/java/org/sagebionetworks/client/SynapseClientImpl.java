@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -3914,6 +3915,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getPaginatedResults(getRepoEndpoint(), uri, TeamMember.class);
 	}
 
+	/**
+	 * 
+	 * @param teamId
+	 * @param fragment
+	 * @return the number of members in the given team, optionally filtered by the given prefix
+	 * @throws SynapseException
+	 */
+	@Override
+	public long countTeamMembers(String teamId, String fragment) throws SynapseException {
+		String uri = null;
+		if (fragment == null) {
+			uri = TEAM_MEMBERS + "/count/" + teamId;
+		} else {
+			uri = TEAM_MEMBERS + "/count/" + teamId + "?" + NAME_FRAGMENT_FILTER
+					+ "=" + urlEncode(fragment) ;
+		}
+		Count tmc = getJSONEntity(getRepoEndpoint(), uri, Count.class);
+		return tmc.getCount();
+	}
+	
 	@Override
 	public List<TeamMember> listTeamMembers(String teamId, List<Long> ids) throws SynapseException {
 		IdList idList = new IdList();
