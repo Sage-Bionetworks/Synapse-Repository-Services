@@ -5,8 +5,8 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_C
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
@@ -31,8 +31,11 @@ import java.util.UUID;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
+import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
@@ -41,17 +44,16 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class SubmissionDAOImpl implements SubmissionDAO {
 
@@ -86,6 +88,26 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID;
 
+	private static final String BUNDLES_BY_EVALUATION_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION + " s, " +
+			SQLConstants.TABLE_SUBSTATUS + " r " +
+			" WHERE s."+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID +
+			" AND s." + SQLConstants.COL_SUBMISSION_ID + "= r."+ SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+
+	private static final String BUNDLES_BY_EVAL_AND_STATUS_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION + " s, " +
+			SQLConstants.TABLE_SUBSTATUS + " r " +
+			" WHERE s."+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID +
+			" AND s." + SQLConstants.COL_SUBMISSION_ID + "= r."+ SQLConstants.COL_SUBSTATUS_SUBMISSION_ID+
+			" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
+
+	private static final String BUNDLES_BY_EVAL_AND_USER_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION + " s, " +
+			SQLConstants.TABLE_SUBSTATUS + " r " +
+			" WHERE s."+ SQLConstants.COL_SUBMISSION_EVAL_ID + "=:"+ EVAL_ID +
+			" AND s." + SQLConstants.COL_SUBMISSION_ID + "= r."+ SQLConstants.COL_SUBSTATUS_SUBMISSION_ID+
+			" AND s." + SQLConstants.COL_SUBMISSION_USER_ID + "=:" + USER_ID;
+
 	private static final String BY_EVAL_AND_USER_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID +
@@ -104,6 +126,22 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String SELECT_BY_EVALUATION_SQL = 
 			SELECT_ALL + BY_EVALUATION_SQL + LIMIT_OFFSET;
 
+	private static final String SELECT_BUNDLE_SQL = 
+			SELECT_ALL + " FROM "+ SQLConstants.TABLE_SUBMISSION + " n" +
+					" INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r" +
+					" ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + 
+					SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
+					" WHERE n."+ SQLConstants.COL_SUBMISSION_ID + "=:"+ ID;
+	
+	private static final String SELECT_BUNDLES_BY_EVALUATION_SQL = 
+			SELECT_ALL + BUNDLES_BY_EVALUATION_SQL + LIMIT_OFFSET;
+	
+	private static final String SELECT_BUNDLES_BY_EVAL_AND_STATUS_SQL = 
+			SELECT_ALL + BUNDLES_BY_EVAL_AND_STATUS_SQL + LIMIT_OFFSET;
+	
+	private static final String SELECT_BUNDLES_BY_EVAL_AND_USER_SQL = 
+			SELECT_ALL + BUNDLES_BY_EVAL_AND_USER_SQL + LIMIT_OFFSET;
+	
 	private static final String SELECT_BY_EVAL_AND_USER_SQL = 
 			SELECT_ALL + BY_EVAL_AND_USER_SQL + LIMIT_OFFSET;
 
@@ -194,6 +232,26 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final RowMapper<SubmissionDBO> SUBMISSION_ROW_MAPPER = 
 			((new SubmissionDBO()).getTableMapping());
+	
+	private static final RowMapper<SubmissionStatusDBO> SUBMISSION_STATUS_ROW_MAPPER = 
+			((new SubmissionStatusDBO()).getTableMapping());
+	
+	private static final RowMapper<SubmissionBundle> BUNDLE_ROW_MAPPER = new RowMapper<SubmissionBundle>(){
+		@Override
+		public SubmissionBundle mapRow(ResultSet rs, int rowNum)
+				throws SQLException {
+			SubmissionBundle result = new SubmissionBundle();
+			SubmissionDBO submissionDbo = SUBMISSION_ROW_MAPPER.mapRow(rs, rowNum);
+			Submission submissionDto = new Submission();
+			SubmissionUtils.copyDboToDto(submissionDbo, submissionDto);
+			result.setSubmission(submissionDto);
+			SubmissionStatusDBO statusDbo = SUBMISSION_STATUS_ROW_MAPPER.mapRow(rs, rowNum);
+			SubmissionStatus statusDto = SubmissionUtils.convertDboToDto(statusDbo);
+			result.setSubmissionStatus(statusDto);
+			statusDto.setEntityId(submissionDto.getEntityId());
+			statusDto.setVersionNumber(submissionDto.getVersionNumber());
+			return result;
+		}};
 
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
@@ -287,6 +345,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			contributorDtos.add(SubmissionUtils.convertDboToDto(dbo));
 		}
 	}
+	
+	private void insertContributorsInBundles(List<SubmissionBundle> bundles) {
+		List<Submission> submissions = new ArrayList<Submission>(bundles.size());
+		for (SubmissionBundle bundle : bundles) {
+			submissions.add(bundle.getSubmission());
+		}
+		insertContributors(submissions);
+	}
+
 
 	@Override
 	public Submission get(String id) throws DatastoreException, NotFoundException {
@@ -298,6 +365,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(Collections.singletonList(dto));
 		return dto;
 	}
+	
+	@Override
+	public SubmissionBundle getBundle(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, id);
+		SubmissionBundle dto = namedJdbcTemplate.queryForObject(SELECT_BUNDLE_SQL, param, BUNDLE_ROW_MAPPER);
+		insertContributorsInBundles(Collections.singletonList(dto));
+		return dto;
+	}
+
+
 
 	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
@@ -346,6 +424,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 
 	@Override
+	public List<SubmissionBundle> getAllBundlesByEvaluation(String evalId, long limit, long offset) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
+		param.addValue(EVAL_ID, evalId);		
+		List<SubmissionBundle> dtos = namedJdbcTemplate.query(SELECT_BUNDLES_BY_EVALUATION_SQL, param, BUNDLE_ROW_MAPPER);
+		insertContributorsInBundles(dtos);
+		return dtos;
+	}
+
+	@Override
 	public long getCountByEvaluation(String evalId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(EVAL_ID, evalId);
@@ -370,6 +459,21 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		return dtos;
 	}
 
+
+	@Override
+	public List<SubmissionBundle> getAllBundlesByEvaluationAndUser(
+			String evalId, String principalId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
+		param.addValue(EVAL_ID, evalId);		
+		param.addValue(USER_ID, principalId);
+		List<SubmissionBundle> dtos = namedJdbcTemplate.query(SELECT_BUNDLES_BY_EVAL_AND_USER_SQL, param, BUNDLE_ROW_MAPPER);
+		insertContributorsInBundles(dtos);
+		return dtos;
+	}
+	
 	@Override
 	public long getCountByEvaluationAndUser(String evalId, String userId) throws DatastoreException, NotFoundException {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -395,6 +499,20 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		insertContributors(dtos);
 		return dtos;
 	}
+	
+	@Override
+	public List<SubmissionBundle> getAllBundlesByEvaluationAndStatus(String evalId, SubmissionStatusEnum status, long limit, long offset) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
+		param.addValue(EVAL_ID, evalId);		
+		param.addValue(STATUS, status.ordinal());
+		List<SubmissionBundle> dtos = namedJdbcTemplate.query(SELECT_BUNDLES_BY_EVAL_AND_STATUS_SQL, param, BUNDLE_ROW_MAPPER);
+		insertContributorsInBundles(dtos);
+		return dtos;
+	}
+
+
 
 	@Override
 	public long getCountByEvaluationAndStatus(String evalId, SubmissionStatusEnum status) throws DatastoreException, NotFoundException {

@@ -32,15 +32,6 @@ public interface SubmissionStatusDAO {
 			NotFoundException;
 	
 	/**
-	 * List the SubmissionStatus objects for the given ids.
-	 * Any invalid IDs are skipped.
-	 * @param ids
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public List<SubmissionStatus> list(List<String> ids) throws DatastoreException;
-
-	/**
 	 * 
 	 * @param batch
 	 * @throws DatastoreException

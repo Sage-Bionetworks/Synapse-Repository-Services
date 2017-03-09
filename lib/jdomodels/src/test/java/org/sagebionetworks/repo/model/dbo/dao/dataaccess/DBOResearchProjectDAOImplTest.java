@@ -26,6 +26,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -45,6 +50,10 @@ public class DBOResearchProjectDAOImplTest {
 
 	@Autowired
 	private IdGenerator idGenerator;
+
+	@Autowired
+	private PlatformTransactionManager txManager;
+	private TransactionTemplate transactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -75,6 +84,8 @@ public class DBOResearchProjectDAOImplTest {
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
 		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.ACTAccessRequirements");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
+
+		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@After
@@ -97,7 +108,7 @@ public class DBOResearchProjectDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.get(dto.getAccessRequirementId(), dto.getOwnerId());
+		researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
 	}
 
 	@Test
@@ -108,7 +119,7 @@ public class DBOResearchProjectDAOImplTest {
 		assertEquals(dto, researchProjectDao.create(dto));
 
 		// should get back the same object
-		ResearchProject created = researchProjectDao.get(dto.getAccessRequirementId(), dto.getOwnerId());
+		ResearchProject created = researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
 		assertEquals(dto, created);
 
 		// update
@@ -120,8 +131,7 @@ public class DBOResearchProjectDAOImplTest {
 		String modifiedBy = "999";
 		long modifiedOn = System.currentTimeMillis();
 		String newEtag = "newEtag";
-		researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
-		ResearchProject newDto = researchProjectDao.get(dto.getAccessRequirementId(), newOwnerId);
+		ResearchProject newDto = researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
 		assertEquals(dto.getId(), newDto.getId());
 		assertEquals(newOwnerId, newDto.getOwnerId());
 		assertEquals(modifiedBy, newDto.getModifiedBy());
@@ -135,6 +145,29 @@ public class DBOResearchProjectDAOImplTest {
 		} catch (IllegalArgumentException e){
 			// as expected
 		}
+
+		// test get for update
+		ResearchProject locked = transactionTemplate.execute(new TransactionCallback<ResearchProject>() {
+			@Override
+			public ResearchProject doInTransaction(TransactionStatus status) {
+				// Try to lock both nodes out of order
+				return researchProjectDao.getForUpdate(dto.getId());
+			}
+		});
+		assertEquals(newDto, locked);
+
+		assertEquals(newDto.getOwnerId(), researchProjectDao.getOwnerId(dto.getId()));
 	}
 
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getForUpdate(dto.getId());
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testGetOwnerNotExist() {
+		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
+		researchProjectDao.getOwnerId(dto.getId());
+	}
 }

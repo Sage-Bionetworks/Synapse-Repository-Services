@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -27,6 +27,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -49,6 +54,10 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Autowired
 	private IdGenerator idGenerator;
+
+	@Autowired
+	private PlatformTransactionManager txManager;
+	private TransactionTemplate transactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -87,6 +96,8 @@ public class DBODataAccessRequestDAOImplTest {
 		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
+
+		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@After
@@ -110,24 +121,24 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
-		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
-		dataAccessRequestDao.getCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
+		dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 	}
 
 	@Test
 	public void testCRUD() {
-		DataAccessRenewal dto = DataAccessRequestTestUtils.createNewDataAccessRenewal();
+		final DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
 		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		assertEquals(dto, dataAccessRequestDao.create(dto));
 
 		// should get back the same object
-		DataAccessRenewal created = (DataAccessRenewal) dataAccessRequestDao.getCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		DataAccessRequest created = (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
 
 		// update
-		dto.setSummaryOfUse("new summaryOfUse");
+		dto.setAccessors(Arrays.asList("666"));
 		assertEquals(dto, dataAccessRequestDao.update(dto));
 
 		// insert another one with the same accessRequirementId & createdBy
@@ -137,6 +148,21 @@ public class DBODataAccessRequestDAOImplTest {
 		} catch (IllegalArgumentException e){
 			// as expected
 		}
+
+		// test get for update
+		DataAccessRequest locked = transactionTemplate.execute(new TransactionCallback<DataAccessRequest>() {
+			@Override
+			public DataAccessRequest doInTransaction(TransactionStatus status) {
+				// Try to lock both nodes out of order
+				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(dto.getId());
+			}
+		});
+		assertEquals(dto, locked);
 	}
 
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
+		dataAccessRequestDao.getForUpdate(dto.getId());
+	}
 }

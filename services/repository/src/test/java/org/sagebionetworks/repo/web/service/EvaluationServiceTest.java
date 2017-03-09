@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,7 +28,6 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
@@ -102,54 +104,12 @@ public class EvaluationServiceTest {
 		assertEquals(result, mtuArg.getValue());		
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionsLimitLow() {
-
-		// Call under test
-		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionsLimitHigh() {
-
-		// Call under test
-		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionsOffsetNeg() {
-
-		// Call under test
-		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
-	}
-
 	@Test
 	public void testGetAllSubmissions() {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getAllSubmissions(any(UserInfo.class), anyString(), any(SubmissionStatusEnum.class), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getAllSubmissions(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionBundlesLimitLow() {
-
-		// Call under test
-		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionBundlesLimitHigh() {
-
-		// Call under test
-		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionBundlesOffsetNeg() {
-
-		// Call under test
-		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
 	}
 
 	@Test
@@ -160,27 +120,6 @@ public class EvaluationServiceTest {
 		evaluationService.getAllSubmissionBundles(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionStatusesLimitLow() {
-
-		// Call under test
-		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, -1, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionStatusesLimitHigh() {
-
-		// Call under test
-		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 101, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testGetAllSubmissionStatusesOffsetNeg() {
-
-		// Call under test
-		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 100, -1, null);
-	}
-
 	@Test
 	public void testGetAllSubmissionStatuses() {
 		List<SubmissionStatus> expectedRes = new LinkedList<SubmissionStatus>();
@@ -189,54 +128,12 @@ public class EvaluationServiceTest {
 		evaluationService.getAllSubmissionStatuses(null, null, SubmissionStatusEnum.OPEN, 11, 0, null);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionsByEvaluationLimitLow() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, -1, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionsByEvaluationLimitHigh() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 101, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionsByEvaluationOffsetNeg() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 100, -1, null);
-	}
-
 	@Test
 	public void testgetMyOwnSubmissionsByEvaluation() {
 		List<Submission> expectedRes = new LinkedList<Submission>();
 		when(mockSubmissionManager.getMyOwnSubmissionsByEvaluation(any(UserInfo.class), anyString(), anyLong(), anyLong())).thenReturn(expectedRes);
 		// Call under test
 		evaluationService.getMyOwnSubmissionsByEvaluation(null, null, 11, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionBundlesByEvaluationLimitLow() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, -1, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionBundlesByEvaluationLimitHigh() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 101, 0, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testgetMyOwnSubmissionBundlesByEvaluationOffsetNeg() {
-
-		// Call under test
-		evaluationService.getMyOwnSubmissionBundlesByEvaluation(null, null, 100, -1, null);
 	}
 
 	@Test
