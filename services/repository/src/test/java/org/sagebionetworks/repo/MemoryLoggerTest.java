@@ -110,18 +110,33 @@ public class MemoryLoggerTest {
 	public void testTimerFiredPeriod(){
 		long startTime = MemoryLogger.PUBLISH_PERIOD_MS;
 		when(clock.currentTimeMillis()).thenReturn(startTime, startTime+1, startTime+2, startTime+3);
+		validateStatsReset();
 		// The first time the timer is fired should be under the period
 		memoryLogger.onTimerFired();
 		verify(consumer, never()).addProfileData(any(ProfileData.class));
 		reset(consumer);
 		// fire again should trigger a publish
 		memoryLogger.onTimerFired();
+		validateStatsReset();
 		verify(consumer, times(2)).addProfileData(any(ProfileData.class));
 		reset(consumer);
 		// After publish it should not publish again
 		memoryLogger.onTimerFired();
+		assertEquals(1L, memoryLogger.getCount());
 		memoryLogger.onTimerFired();
+		assertEquals(2L, memoryLogger.getCount());
 		verify(consumer, never()).addProfileData(any(ProfileData.class));
-		
 	}
+	
+	/**
+	 * Validate the MemroryLogger stats have been reset.
+	 * 
+	 */
+	void validateStatsReset(){
+		assertEquals(0L, memoryLogger.getCount());
+		assertEquals(0L, memoryLogger.getSum());
+		assertEquals(0L, memoryLogger.getMaximum());
+		assertEquals(Long.MAX_VALUE, memoryLogger.getMinimum());
+	}
+	
 }

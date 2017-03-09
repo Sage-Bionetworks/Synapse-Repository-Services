@@ -128,4 +128,20 @@ public class MemoryLogger {
 		return pd;
 	}
 
+	public long getMaximum() {
+		return maximum;
+	}
+
+	public long getMinimum() {
+		return minimum;
+	}
+
+	public long getCount() {
+		return count;
+	}
+
+	public long getSum() {
+		return sum;
+	}
+
 }
