@@ -39,16 +39,6 @@ public interface AccessRequirementManager {
 	 *  get a page of the access requirements for an entity
 	 */
 	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	/**
-	 *  get a page of the unmet access requirements
-	 *  This API includes an authorization check to see if
-	 *  the user is allowed to READ the entity
-	 * @param offset 
-	 * @param limit 
-	 *  
-	 */
-	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType, Long limit, Long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 *  update an access requirement

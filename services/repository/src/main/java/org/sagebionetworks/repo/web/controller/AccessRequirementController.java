@@ -144,17 +144,16 @@ public class AccessRequirementController extends BaseController {
 	
 
 	/**
-	 * Retrieve paginated list of unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
+	 * Retrieve all unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
 	 * @param entityId the id of the entity whose unmet Access Requirements are retrieved
 	 * @param accessType the type of access to filter on
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -162,14 +161,12 @@ public class AccessRequirementController extends BaseController {
 	 getUnfulfilledEntityAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType, limit, offset);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
 	}
 
 	/**
@@ -200,18 +197,17 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Retrieve a paginated list of unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
+	 * Retrieve all unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
 	 * @param userId
 	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
 	 * @param accessType the type of access to filter on
 	 * @param request
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -219,14 +215,12 @@ public class AccessRequirementController extends BaseController {
 	 getUnfulfilledTeamAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = true) ACCESS_TYPE accessType,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = true) ACCESS_TYPE accessType
 	) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType, limit, offset);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
 	}
 
 	/**

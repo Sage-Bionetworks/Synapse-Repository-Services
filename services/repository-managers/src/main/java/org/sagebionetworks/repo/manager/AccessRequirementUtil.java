@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;

@@ -120,10 +120,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			SELECT_FOR_SUBJECT_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
 			+OFFSET_PARAM+" :"+OFFSET_PARAM;
 
-	private static final String SELECT_UNMET_REQUIREMENTS_SQL_WITH_LIMIT_OFFSET =
-			SELECT_UNMET_REQUIREMENTS_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
-					+OFFSET_PARAM+" :"+OFFSET_PARAM;
-
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
@@ -334,12 +330,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		populateSubjectAccessRequirement(acessRequirementId, subjectIds);
 	}
 
-
 	@Override
-	public List<AccessRequirement> getAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type,
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<String> subjectIds, RestrictableObjectType type,
 			Long limit, Long offset) throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
-		if (subjectIds.isEmpty()) return dtos;
+		if (subjectIds.isEmpty()) {
+			return dtos;
+		}
 		List<Long> subjectIdsAsLong = new ArrayList<Long>();
 		for (String id: subjectIds) {
 			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
@@ -356,51 +354,4 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 		return dtos;
 	}
-
-
-	@Override
-	public List<Long> getUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType,
-			Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes, Long limit, Long offset)
-			throws DatastoreException {
-		if (subjectIds.isEmpty()) {
-			return new ArrayList<Long>();
-		}
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		List<String> accessTypeStrings = new ArrayList<String>();
-		for (ACCESS_TYPE type : accessTypes) {
-			accessTypeStrings.add(type.toString());
-		}
-		List<Long> subjectIdsAsLong = new ArrayList<Long>();
-		for (String id: subjectIds) {
-			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
-		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
-		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
-		param.addValue(LIMIT_PARAM, limit);
-		param.addValue(OFFSET_PARAM, offset);
-
-		List<Long> arIds = namedJdbcTemplate.query(
-				SELECT_UNMET_REQUIREMENTS_SQL_WITH_LIMIT_OFFSET, param, new RowMapper<Long>(){
-			@Override
-			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
-				if (rs.wasNull()) { // no access approval, so this is one of the requirements we've been looking for
-					return rs.getLong(UNMET_REQUIREMENTS_AR_COL_ID);
-				} else {
-					return null; 
-				}
-			}
-		});
-		// now jus strip out the nulls and return the list
-		List<Long> result = new ArrayList<Long>();
-		for (Long arId : arIds) {
-			if (arId!=null) {
-				result.add(arId);
-			}
-		}
-		return result;
-	}
-	
 }

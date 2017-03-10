@@ -85,19 +85,4 @@ public interface AccessRequirementDAO {
 	public List<AccessRequirement> getAccessRequirementsForSubject(
 			List<String> subjectIds, RestrictableObjectType type, Long limit,
 			Long offset) throws DatastoreException;
-
-	/**
-	 * Retrieve a page of unmet AccessRequirements.
-	 * 
-	 * @param subject the subject of the access restriction
-	 * @param principalIds the principalIds (user and groups) to which a user belongs
-	 * @param accessType
-	 * @param limit
-	 * @param offset
-	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
-	 * @throws DatastoreException
-	 */
-	List<Long> getUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
-			Collection<ACCESS_TYPE> accessTypes, Long limit, Long offset) throws DatastoreException;
-
 }

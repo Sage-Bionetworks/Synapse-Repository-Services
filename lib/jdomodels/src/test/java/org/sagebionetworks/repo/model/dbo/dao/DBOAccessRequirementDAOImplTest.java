@@ -258,10 +258,6 @@ public class DBOAccessRequirementDAOImplTest {
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
 		assertEquals(1, arIds.size());
 		assertEquals(accessRequirement.getId(), arIds.get(0));
-		arIds = accessRequirementDAO.getUnmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
-				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()), 10L, 0L);
-		assertEquals(1, arIds.size());
-		assertEquals(accessRequirement.getId(), arIds.get(0));
 		// including an irrelevant node ID in the ID list doesn't change the result
 		arIds = accessRequirementDAO.getAllUnmetAccessRequirements(ids, 
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));

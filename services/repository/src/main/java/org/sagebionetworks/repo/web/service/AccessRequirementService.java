@@ -17,7 +17,7 @@ public interface AccessRequirementService {
 			String entityId) throws Exception;
 
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType, Long limit, Long offset)
+			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 	

@@ -200,9 +200,9 @@ public class AccessRequirementManagerImplUnitTest {
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
 		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
-		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
-		result = arm.getUnmetAccessRequirements(userInfo, subjectId, UPLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
 		assertEquals(Collections.singletonList(uploadAR), result);
 	}
 
@@ -261,5 +261,47 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, null, 0L);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(DEFAULT_LIMIT), eq(0L));
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, null);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(10L), eq(DEFAULT_OFFSET));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectOverMaxLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 51L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectZeroLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 0L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectNegativeOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
 	}
 }

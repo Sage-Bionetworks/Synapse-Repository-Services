@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,10 +28,8 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -376,10 +373,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
-		assertEquals(1, ars.size());
-		
-		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -392,10 +386,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
-		assertEquals(1, ars.size());
-		
-		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -408,7 +399,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -420,7 +411,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, ars.size());
 	}
 	
