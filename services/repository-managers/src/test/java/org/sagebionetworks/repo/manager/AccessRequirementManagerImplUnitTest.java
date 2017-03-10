@@ -9,6 +9,8 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
@@ -27,7 +29,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -199,9 +200,9 @@ public class AccessRequirementManagerImplUnitTest {
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
 		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
-		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
+		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(Collections.singletonList(downloadAR), result);
-		result = arm.getUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
+		result = arm.getUnmetAccessRequirements(userInfo, subjectId, UPLOAD, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(Collections.singletonList(uploadAR), result);
 	}
 
