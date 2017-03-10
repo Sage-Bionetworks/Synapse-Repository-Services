@@ -5,7 +5,7 @@ import org.sagebionetworks.repo.model.LogEntry;
 /**
  * Abstraction for a AsynchronousJobServices
  * 
- * @author John
+ * @author marcel-blonk
  *
  */
 public interface LogService {

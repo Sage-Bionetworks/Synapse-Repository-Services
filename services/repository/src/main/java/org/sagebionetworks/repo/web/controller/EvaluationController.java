@@ -11,7 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -214,7 +213,6 @@ public class EvaluationController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -385,80 +383,6 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		serviceProvider.getEvaluationService().deleteEvaluation(userId, evalId);
-	}
-	
-	/**
-	 * Joins as a Participant in a specified Evaluation.
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.PARTICIPATE</a> on the specified Evaluation, and must have satisfied all
-	 * access requirements on the Evaluation.
-	 * </p>
-	 * Note:  This service is deprecated.
-	 * 
-	 * @param evalId - the ID of the specified Evaluation
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.POST)
-	public @ResponseBody
-	Participant createParticipant(
-			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException
-	{
-		return serviceProvider.getEvaluationService().addParticipant(userId, evalId);
-	}
-
-	/**
-	 * Gets all Participants for a specified Evaluation. 
-	 * 
-	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
-	 * </p>
-	 * Note:  This service is deprecated.
-	 * 
-	 * @param offset
-	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
-	 * @param limit
-	 *            Limits the number of entities that will be fetched for this
-	 *            page. When null it will default to 10.
-	 * @param evalId
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@Deprecated
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<Participant> getAllParticipants(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@PathVariable String evalId,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException 
-	{
-		return serviceProvider.getEvaluationService().getAllParticipants(userId, evalId, limit, offset, request);
 	}
 
 	/**

@@ -90,14 +90,6 @@ public class SubmissionFileHandleDBOTest {
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
         
-        // Initialize a new Participant
-        ParticipantDBO participant = new ParticipantDBO();
-        participant.setUserId(userId);
-        participant.setEvalId(evalId);
-        participant.setCreatedOn(System.currentTimeMillis());
-        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
-        dboBasicDao.createNew(participant);
-        
         // Initialize a new Submission
         SubmissionDBO submission = new SubmissionDBO();
         submission.setId(submissionId);
@@ -119,12 +111,6 @@ public class SubmissionFileHandleDBOTest {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
             dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
-            
-            // delete Participant
-            params = new MapSqlParameterSource();
-            params.addValue("userId", userId);
-            params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();

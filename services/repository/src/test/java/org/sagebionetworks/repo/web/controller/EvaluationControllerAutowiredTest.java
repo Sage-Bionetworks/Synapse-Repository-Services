@@ -20,7 +20,6 @@ import org.junit.Test;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -43,7 +42,6 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -65,9 +63,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private EvaluationDAO evaluationDAO;
 	
 	@Autowired
-	private ParticipantDAO participantDAO;
-	
-	@Autowired
 	private SubmissionDAO submissionDAO;
 	
 	@Autowired
@@ -87,20 +82,16 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	
 	private Evaluation eval1;
 	private Evaluation eval2;
-	private Participant part1;
-	private Participant part2;
 	private Submission sub1;
 	private Submission sub2;
 	
 	private List<String> evaluationsToDelete;
-	private List<Participant> participantsToDelete;
 	private List<String> submissionsToDelete;
 	private List<String> nodesToDelete;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		evaluationsToDelete = new ArrayList<String>();
-		participantsToDelete = new ArrayList<Participant>();
 		submissionsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
 		
@@ -129,12 +120,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
         eval2.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval2.setStatus(EvaluationStatus.PLANNED);
         
-        // initialize Participants
-        part1 = new Participant();
-        part1.setUserId(adminUserId.toString());
-        part2 = new Participant();
-        part2.setUserId(testUserId.toString());		
-        
         // initialize Submissions
         sub1 = new Submission();
         sub1.setName("submission1");
@@ -157,14 +142,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 				submissionDAO.delete(id);
 			} catch (Exception e) {}
 		}
-		
-		// clean up participants
-		for (Participant part : participantsToDelete) {
-			try {
-				participantDAO.delete(part.getUserId(), part.getEvaluationId());
-			} catch (Exception e) {}
-		}
-		
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
@@ -266,9 +243,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
 		assertNotNull(acl);
 		
-		// join
-		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
-		participantsToDelete.add(part1);
 		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String nodeId = createNode("An entity", userInfo);
 		assertNotNull(nodeId);
@@ -335,12 +309,10 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void testSubmissionUnauthorized() throws Exception {		
+	public void testSubmissionUnauthorized() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
-		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
-		participantsToDelete.add(part1);
 		UserInfo ownerInfo = userManager.getUserInfo(adminUserId);
 		String nodeId = createNode("An entity", ownerInfo);
 		assertNotNull(nodeId);
@@ -364,9 +336,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
 		
-		part1 = entityServletHelper.createParticipant(adminUserId, eval1.getId());
-		assertNotNull(part1);
-		participantsToDelete.add(part1);
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.PARTICIPATE);
@@ -378,14 +347,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
 		assertNotNull(acl);
-		part2 = entityServletHelper.createParticipant(testUserId, eval1.getId());
-		assertNotNull(part2);
-		participantsToDelete.add(part2);
-		
-		// fetch eval1 and verify that eTag has been updated
-		String oldEtag = eval1.getEtag();
-		eval1 = entityServletHelper.getEvaluation(testUserId, eval1.getId());
-		assertFalse("Etag was not updated", oldEtag.equals(eval1.getEtag()));
 		
 		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String node1 = createNode("entity1", userInfo);
@@ -425,16 +386,6 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		}
-		
-		// paginated participants
-		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(adminUserId, eval1.getId());
-		assertEquals(2, parts.getTotalNumberOfResults());
-		for (Participant p : parts.getResults()) {
-			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
-		}
-		
-		parts = entityServletHelper.getAllParticipants(adminUserId, eval2.getId());
-		assertEquals(0, parts.getTotalNumberOfResults());
 		
 		// paginated submissions
 		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), null);
