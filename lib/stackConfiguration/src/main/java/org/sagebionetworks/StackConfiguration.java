@@ -87,8 +87,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public static boolean isProductionStack() {
-		return isProduction(singleton().getStack());
+	public boolean isProductionStack() {
+		return isProduction(getStack());
 	}
 	
 	/**
