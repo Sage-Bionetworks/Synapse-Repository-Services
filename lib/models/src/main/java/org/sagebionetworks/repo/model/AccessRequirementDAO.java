@@ -33,7 +33,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type) throws DatastoreException;
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type) throws DatastoreException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.

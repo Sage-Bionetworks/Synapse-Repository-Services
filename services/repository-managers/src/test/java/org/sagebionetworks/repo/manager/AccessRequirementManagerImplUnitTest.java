@@ -154,7 +154,7 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		List<AccessRequirement> ars = Arrays.asList(new AccessRequirement[]{createExpectedAR()});
-		when(accessRequirementDAO.getForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
+		when(accessRequirementDAO.getAllAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -197,7 +197,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
 		uploadAR.setId(mockUploadARId);
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
-		when(accessRequirementDAO.getForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
+		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
 		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);

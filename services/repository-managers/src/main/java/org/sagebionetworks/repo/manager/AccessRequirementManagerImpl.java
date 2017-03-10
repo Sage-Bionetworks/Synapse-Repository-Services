@@ -124,7 +124,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
+		List<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
 		
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
@@ -155,7 +155,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		} else {
 			subjectIds.add(subjectId.getId());
 		}
-		return accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
+		return accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, subjectId.getType());
 	}
 
 	@Override
@@ -196,7 +196,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
 		if (!unmetARIds.isEmpty()) {
-			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
+			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, subjectId.getType());
 			for (Long unmetId : unmetARIds) { // typically there will be just one id here
 				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
 					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);

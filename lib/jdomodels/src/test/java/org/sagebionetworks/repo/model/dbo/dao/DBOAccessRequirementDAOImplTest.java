@@ -176,7 +176,7 @@ public class DBOAccessRequirementDAOImplTest {
 			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);			
 			ars.add(accessRequirementDAO.create(accessRequirement));
 		}
-		List<AccessRequirement> ars2 = accessRequirementDAO.getForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
+		List<AccessRequirement> ars2 = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
 		assertEquals(ars, ars2);
 		
 		List<Long> principalIds = new ArrayList<Long>();
@@ -234,7 +234,7 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, clone);
 				
 		// Get by Node Id
-		Collection<AccessRequirement> ars = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
+		Collection<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
 		
@@ -242,7 +242,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<String> ids = new ArrayList<String>();
 		ids.add(subjectId.getId());
 		ids.add(KeyFactory.keyToString(KeyFactory.stringToKey(subjectId.getId())-100L));
-		ars = accessRequirementDAO.getForSubject(ids, subjectId.getType());
+		ars = accessRequirementDAO.getAllAccessRequirementsForSubject(ids, subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
 		
@@ -306,7 +306,7 @@ public class DBOAccessRequirementDAOImplTest {
 		List<String> nodeIds = new ArrayList<String>();
 		nodeIds.add(node.getId());
 		nodeIds.add(node2.getId());
-		ars = accessRequirementDAO.getForSubject(nodeIds, RestrictableObjectType.ENTITY);
+		ars = accessRequirementDAO.getAllAccessRequirementsForSubject(nodeIds, RestrictableObjectType.ENTITY);
 		assertEquals(2, ars.size());
 		boolean found1 = false;
 		boolean found2 = false;

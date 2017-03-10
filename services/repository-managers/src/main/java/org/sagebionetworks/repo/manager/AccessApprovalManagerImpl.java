@@ -114,7 +114,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		} else {
 			subjectIds.add(subjectId.getId());
 		}
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
+		List<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
