@@ -130,10 +130,10 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		
 		// now let's apply an access requirement to "syn987" that does not apply to the benefactor
-		when(mockAccessRequirementDAO.unmetAccessRequirements(
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, certifiedUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
-		when(mockAccessRequirementDAO.unmetAccessRequirements(
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		

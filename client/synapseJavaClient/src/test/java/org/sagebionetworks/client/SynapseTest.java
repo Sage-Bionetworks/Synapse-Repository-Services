@@ -23,9 +23,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -35,7 +33,6 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -330,22 +327,7 @@ public class SynapseTest {
 		Activity clone = synapse.getActivity(id);
 		assertNotNull(clone);
 		assertEquals(act, clone);
-	}	
-	
-	@Test
-	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
-		PaginatedResults<AccessRequirement> result = 
-			new PaginatedResults<AccessRequirement>();
-		JSONObjectAdapter adapter = result.writeToJSONObject(new JSONObjectAdapterImpl());
-		configureMockHttpResponse(200, adapter.toJSONString());
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		subjectId.setId("12345");
-		PaginatedResults<AccessRequirement> clone = 
-			synapse.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
-		assertNotNull(clone);
-		assertEquals(result, clone);
-	}	
+	}
 	
 	@Test
 	public void testPutActivity() throws Exception {

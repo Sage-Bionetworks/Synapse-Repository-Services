@@ -27,7 +27,7 @@ public interface AccessRequirementService {
 			NotFoundException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId)
+			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 	

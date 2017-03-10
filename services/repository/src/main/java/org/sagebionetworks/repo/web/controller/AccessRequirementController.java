@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -10,6 +9,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -144,7 +144,7 @@ public class AccessRequirementController extends BaseController {
 	
 
 	/**
-	 * Retrieve paginated list of unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
+	 * Retrieve all unfulfilled Access Requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
 	 * @param entityId the id of the entity whose unmet Access Requirements are retrieved
 	 * @param accessType the type of access to filter on
@@ -153,6 +153,7 @@ public class AccessRequirementController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -172,6 +173,8 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
 	 * @param userId
 	 * @param entityId the id of the entity whose Access Requirements are retrieved
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -183,64 +186,18 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = ID_PATH_VARIABLE) String entityId
+				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
-	}
-	
-	/**
-	 * Retrieve a paginated list of unfulfilled Access Requirements (of type DOWNLOAD or PARTICIPATE) for an Evaluation queue.
-	 * @param userId
-	 * @param evaluationId the id of the Evaluation whose unmet Access Requirements are retrieved
-	 * @param accessType the type of access to filter on
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getUnfulfilledEvaluationAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
 	}
 
 	/**
-	 * Retrieve paginated list of ALL Access Requirements associated with an Evaluation queue.
-	 * @param userId
-	 * @param evaluationId the id of the Evaluation whose Access Requirements are retrieved
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_EVALUATION_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getEvaluationAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
-	}
-
-	/**
-	 * Retrieve a paginated list of unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
+	 * Retrieve all unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
 	 * @param userId
 	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
 	 * @param accessType the type of access to filter on
@@ -250,6 +207,7 @@ public class AccessRequirementController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -270,6 +228,8 @@ public class AccessRequirementController extends BaseController {
 	 * @param userId
 	 * @param id the ID of the Team whose Access Requirements are retrieved.
 	 * @param request
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -281,11 +241,14 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getTeamAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+				@PathVariable String id,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+				) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
 	}
 
 	/**

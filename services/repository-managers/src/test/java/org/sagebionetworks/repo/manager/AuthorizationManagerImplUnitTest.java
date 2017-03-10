@@ -153,7 +153,7 @@ public class AuthorizationManagerImplUnitTest {
 		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
 		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 
-		when(mockAccessRequirementDAO.unmetAccessRequirements(
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				any(List.class),
 				any(RestrictableObjectType.class), any(Collection.class), eq(participateAndDownload))).
 				thenReturn(new ArrayList<Long>());
@@ -626,22 +626,22 @@ public class AuthorizationManagerImplUnitTest {
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		AccessRequirement ar = new TermsOfUseAccessRequirement();
 		ars.add(ar);
-		when(mockAccessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
-		when(mockAccessRequirementDAO.getForSubject(newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
+		when(mockAccessRequirementDAO.getAllAccessRequirementsForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
+		when(mockAccessRequirementDAO.getAllAccessRequirementsForSubject(newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
 		
 		// since 'ars' list doesn't change, will return true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).getAuthorized());
 		verify(mockNodeDao).getEntityPath(parentId);
-		verify(mockAccessRequirementDAO).getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
+		verify(mockAccessRequirementDAO).getAllAccessRequirementsForSubject(ancestorIds, RestrictableObjectType.ENTITY);
 		
 		// making MORE restrictive is OK
 		List<AccessRequirement> mt = new ArrayList<AccessRequirement>(); // i.e, an empty list
-		when(mockAccessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(mt);
+		when(mockAccessRequirementDAO.getAllAccessRequirementsForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(mt);
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).getAuthorized());
 
 		// but making less restrictive is NOT OK
-		when(mockAccessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
-		when(mockAccessRequirementDAO.getForSubject(newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(mt);
+		when(mockAccessRequirementDAO.getAllAccessRequirementsForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
+		when(mockAccessRequirementDAO.getAllAccessRequirementsForSubject(newAncestorIds, RestrictableObjectType.ENTITY)).thenReturn(mt);
 		assertFalse(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId, newParentId).getAuthorized());
 		
 		// but if the user is an admin, will be true

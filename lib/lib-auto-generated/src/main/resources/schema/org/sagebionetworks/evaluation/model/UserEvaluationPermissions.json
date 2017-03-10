@@ -24,7 +24,7 @@
 		},
 		"canParticipate": {
 			"type": "boolean",
-			"description": "Can the user participate in this evaluation?"
+			"description": "This field is deprecated and should not being used."
 		},
 		"canSubmit": {
 			"type": "boolean",

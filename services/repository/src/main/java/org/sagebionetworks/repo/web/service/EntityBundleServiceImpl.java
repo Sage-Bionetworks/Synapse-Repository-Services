@@ -7,6 +7,8 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -41,6 +43,12 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Autowired
 	ServiceProvider serviceProvider;
+
+	@Autowired
+	UserManager userManager;
+
+	@Autowired
+	AccessRequirementManager accessRequirementManager;
 	
 	public EntityBundleServiceImpl() {}
 	
@@ -94,8 +102,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setPath(ep);
 		}
 		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			PaginatedResults<EntityHeader> paginatedResuls = serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request);
-			eb.setReferencedBy(paginatedResuls.getResults());
+			throw new IllegalArgumentException("ENTITY_REFERENCEDBY is deprecated.");
 		}
 		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
 			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId, request));
@@ -120,11 +127,16 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
+		// EntityBundle.ACCESS_REQUIREMENTS && EntityBundle.UNMET_ACCESS_REQUIREMENTS
+		// will be deprecated after ACT feature
+		// TODO: throw IllegalArgumentException
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId).getResults());
+			eb.setAccessRequirements(accessRequirementManager.getAllAccessRequirementsForSubject(
+					userManager.getUserInfo(userId), subjectId));
 		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, ACCESS_TYPE.DOWNLOAD).getResults());
+			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
+					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
 		}
 		List<FileHandle> fileHandles = null;
 		if ((mask & (EntityBundle.FILE_HANDLES | EntityBundle.FILE_NAME)) > 0 ) {

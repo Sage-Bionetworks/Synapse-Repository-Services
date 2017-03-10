@@ -124,7 +124,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 					EntityBundle.ANNOTATIONS |
 					EntityBundle.PERMISSIONS |
 					EntityBundle.ENTITY_PATH |
-					EntityBundle.ENTITY_REFERENCEDBY |
 					EntityBundle.HAS_CHILDREN |
 					EntityBundle.ACL;
 		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, adminUserId);
@@ -144,9 +143,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		EntityPath path = eb.getPath();
 		assertNotNull("Path was requested, but null in bundle", path);
 		assertNotNull("Invalid path", path.getPath());
-		
-		List<EntityHeader> rb = eb.getReferencedBy();
-		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
 		
 		Boolean hasChildren = eb.getHasChildren();
 		assertNotNull("HasChildren was requested, but null in bundle", hasChildren);
