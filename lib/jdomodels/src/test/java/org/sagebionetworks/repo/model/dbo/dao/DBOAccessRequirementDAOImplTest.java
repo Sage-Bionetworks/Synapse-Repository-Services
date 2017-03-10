@@ -178,7 +178,9 @@ public class DBOAccessRequirementDAOImplTest {
 		}
 		List<AccessRequirement> ars2 = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
 		assertEquals(ars, ars2);
-		
+		List<AccessRequirement> ars3 = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertEquals(ars, ars3);
+
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<ACCESS_TYPE> downloadAccessType = new ArrayList<ACCESS_TYPE>();
@@ -237,6 +239,9 @@ public class DBOAccessRequirementDAOImplTest {
 		Collection<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
+		ars = accessRequirementDAO.getAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType(), 10L, 0L);
+		assertEquals(1, ars.size());
+		assertEquals(accessRequirement, ars.iterator().next());
 		
 		// including an irrelevant  ID in the ID list doesn't change the result
 		List<String> ids = new ArrayList<String>();
@@ -251,6 +256,10 @@ public class DBOAccessRequirementDAOImplTest {
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<Long> arIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
 				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
+		assertEquals(1, arIds.size());
+		assertEquals(accessRequirement.getId(), arIds.get(0));
+		arIds = accessRequirementDAO.getUnmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
+				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()), 10L, 0L);
 		assertEquals(1, arIds.size());
 		assertEquals(accessRequirement.getId(), arIds.get(0));
 		// including an irrelevant node ID in the ID list doesn't change the result

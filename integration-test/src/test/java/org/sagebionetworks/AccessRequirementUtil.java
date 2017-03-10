@@ -19,8 +19,7 @@ public class AccessRequirementUtil {
 		assertTrue(ar instanceof TermsOfUseAccessRequirement);
 		TermsOfUseAccessRequirement tou2 = (TermsOfUseAccessRequirement)ar;
 		assertEquals(tou.getAccessType(), tou2.getAccessType());
-		assertEquals(tou.getSubjectIds(), tou2.getSubjectIds());	
+		assertEquals(tou.getSubjectIds(), tou2.getSubjectIds());
 	}
-	
 
 }

@@ -199,10 +199,10 @@ public class IT500SynapseJavaClient {
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
 				if (!bootstrappedTeams.contains(team.getId())) {
-					synapseOne.deleteTeam(team.getId());
+					adminSynapse.deleteTeam(team.getId());
 				}
 			}
-		} while (numTeams > getBootstrapCountPlus(0));		
+		} while (numTeams > getBootstrapCountPlus(0));
 	}
 	
 	@After
@@ -501,7 +501,6 @@ public class IT500SynapseJavaClient {
 				EntityBundle.ANNOTATIONS |
 				EntityBundle.PERMISSIONS |
 				EntityBundle.ENTITY_PATH |
-				EntityBundle.ENTITY_REFERENCEDBY |
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
@@ -1284,21 +1283,21 @@ public class IT500SynapseJavaClient {
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
 		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.TEAM);
-		subjectId.setId(createdTeam.getId());
-		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		rod.setId(createdTeam.getId());
+		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		tou = adminSynapse.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
@@ -1307,15 +1306,15 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 	}
 
 	@Test

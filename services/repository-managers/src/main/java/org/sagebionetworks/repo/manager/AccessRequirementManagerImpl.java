@@ -237,7 +237,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Override
 	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo,
-			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType,
+			RestrictableObjectDescriptor rod, ACCESS_TYPE accessType,
 			Long limit, Long offset) throws DatastoreException, NotFoundException {
 
 		if (limit == null) {
@@ -251,18 +251,18 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(offset >= 0L, "offset must be at least 0");
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<String> subjectIds = new ArrayList<String>();
-		subjectIds.add(subjectId.getId());
+		subjectIds.add(rod.getId());
 		List<Long> unmetARIds = null;
-		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+		if (RestrictableObjectType.ENTITY==rod.getType()) {
 			unmetARIds = new ArrayList<Long>();
-			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
+			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), false);
 			if (accessType==null || accessType==ACCESS_TYPE.DOWNLOAD) {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
-						userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
+						userInfo, rod.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
 			} else if (accessType==ACCESS_TYPE.UPLOAD) {
 				List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
-				entityAndAncestorIds.add(subjectId.getId());
+				entityAndAncestorIds.add(rod.getId());
 				unmetARIds.addAll(AccessRequirementUtil.
 				unmetUploadAccessRequirementIdsForEntity(userInfo, 
 							entityAndAncestorIds, nodeDao, accessRequirementDAO));
@@ -271,21 +271,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			}
 		} else {
 			if (accessType==null) {
-				if (subjectId.getType()==RestrictableObjectType.EVALUATION) {
+				if (rod.getType()==RestrictableObjectType.EVALUATION) {
 					accessType = ACCESS_TYPE.SUBMIT;
 				} else {
 					throw new IllegalArgumentException("accessType is required.");	
 				}
 			}
 			unmetARIds = accessRequirementDAO.getUnmetAccessRequirements(
-					Collections.singletonList(subjectId.getId()), subjectId.getType(), userInfo.getGroups(), 
+					Collections.singletonList(rod.getId()), rod.getType(), userInfo.getGroups(), 
 					Collections.singletonList(accessType), limit, offset);
 		}
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
 		if (!unmetARIds.isEmpty()) {
-			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, subjectId.getType());
+			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, rod.getType());
 			for (Long unmetId : unmetARIds) { // typically there will be just one id here
 				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
 					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
