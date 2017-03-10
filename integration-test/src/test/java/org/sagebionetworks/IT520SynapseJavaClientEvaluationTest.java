@@ -951,7 +951,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertFalse(uep2.getCanChangePermissions());
 		assertFalse(uep2.getCanDelete());
 		assertFalse(uep2.getCanEdit());
-		assertFalse(uep2.getCanParticipate());
 		assertFalse(uep2.getCanPublicRead());
 		assertFalse(uep2.getCanView());
 

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -188,54 +187,6 @@ public class AccessRequirementController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
-	}
-	
-	/**
-	 * Retrieve a paginated list of unfulfilled Access Requirements (of type DOWNLOAD or PARTICIPATE) for an Evaluation queue.
-	 * @param userId
-	 * @param evaluationId the id of the Evaluation whose unmet Access Requirements are retrieved
-	 * @param accessType the type of access to filter on
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getUnfulfilledEvaluationAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			@RequestParam(value = AuthorizationConstants.ACCESS_TYPE_PARAM, required = false) ACCESS_TYPE accessType
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
-	}
-
-	/**
-	 * Retrieve paginated list of ALL Access Requirements associated with an Evaluation queue.
-	 * @param userId
-	 * @param evaluationId the id of the Evaluation whose Access Requirements are retrieved
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_EVALUATION_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getEvaluationAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 

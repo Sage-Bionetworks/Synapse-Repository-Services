@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;		
+	private AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
