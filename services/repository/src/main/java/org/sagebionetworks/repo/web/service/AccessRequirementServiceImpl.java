@@ -55,13 +55,14 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	
 	@Override
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) 
+			Long userId, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType,
+			Long limit, Long offset) 
 			throws DatastoreException, UnauthorizedException, 
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 	
 		List<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
+			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType, limit, offset);
 
 		// This services is not actually paginated so PaginatedResults is being misused.
 		return PaginatedResults.createMisusedPaginatedResults(results);
@@ -80,13 +81,13 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId) 
+			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		List<AccessRequirement> results = 
-			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
+			accessRequirementManager.getAllAccessRequirementsForSubject(userInfo, subjectId);
 		
 		// This services is not actually paginated so PaginatedResults is being misused.
 		return PaginatedResults.createMisusedPaginatedResults(results);
