@@ -90,7 +90,7 @@ public class NodeObjectRecordWriterTest {
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
 				.thenReturn(mockUserInfo);
 		when(mockAccessRequirementManager
-				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.getAllAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
 				.thenReturn(args);
 		when(mockEntityPermissionManager.getUserPermissionsForEntity(mockUserInfo, node.getId()))
 				.thenReturn(mockPermissions);
@@ -167,7 +167,7 @@ public class NodeObjectRecordWriterTest {
 		args = new ArrayList<AccessRequirement>();
 		args.add(new PostMessageContentAccessRequirement());
 		when(mockAccessRequirementManager
-				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.getAllAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
 				.thenReturn(args);
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(false);
@@ -193,7 +193,7 @@ public class NodeObjectRecordWriterTest {
 		args = new ArrayList<AccessRequirement>();
 		args.add(new ACTAccessRequirement());
 		when(mockAccessRequirementManager
-				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.getAllAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
 				.thenReturn(args);
 		
 		// not public
@@ -221,7 +221,7 @@ public class NodeObjectRecordWriterTest {
 		args.add(new ACTAccessRequirement());
 		args.add(new TermsOfUseAccessRequirement());
 		when(mockAccessRequirementManager
-				.getAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
+				.getAllAccessRequirementsForSubject((UserInfo) Mockito.any(), (RestrictableObjectDescriptor) Mockito.any()))
 				.thenReturn(args);
 		// not public
 		when(mockPermissions.getCanPublicRead()).thenReturn(true);
