@@ -280,9 +280,6 @@
 	<bean id="submissionEligibilityManager" class="org.sagebionetworks.evaluation.manager.SubmissionEligibilityManagerImpl" 
 		scope="singleton" />
 		
-	<bean id="participantManager" class="org.sagebionetworks.evaluation.manager.ParticipantManagerImpl" 
-		scope="singleton" />
-		
 	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
 		scope="singleton" />
 

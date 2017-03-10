@@ -85,14 +85,6 @@ public class SubmissionDBOTest {
         evaluation.setCreatedOn(System.currentTimeMillis());
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
-        
-        // Initialize a new Participant
-        ParticipantDBO participant = new ParticipantDBO();
-        participant.setUserId(userId);
-        participant.setEvalId(evalId);
-        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
-        participant.setCreatedOn(System.currentTimeMillis());
-        dboBasicDao.createNew(participant);
     }
     
     @After
@@ -102,12 +94,6 @@ public class SubmissionDBOTest {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
             dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
-            
-            // delete participant
-            params = new MapSqlParameterSource();
-            params.addValue("userId", userId);
-            params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();

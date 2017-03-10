@@ -307,7 +307,6 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION_SUBMISSIONS);
-		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_CONTRIBUTOR);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);

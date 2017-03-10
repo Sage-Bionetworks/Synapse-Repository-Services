@@ -18,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -38,7 +37,6 @@ public class EvaluationServiceTest {
 	private ServiceProvider mockServiceProvider;
 	private EntityBundleService mockEntityBundleService;
 	private EvaluationManager mockEvaluationManager;
-	private ParticipantManager mockParticipantManager;
 	private SubmissionManager mockSubmissionManager;
 	private EvaluationPermissionsManager mockEvaluationPermissionsManager;
 	private UserManager mockUserManager;
@@ -51,7 +49,6 @@ public class EvaluationServiceTest {
 	public void before() throws Exception {
 		mockServiceProvider = Mockito.mock(ServiceProvider.class);
 		mockEvaluationManager = Mockito.mock(EvaluationManager.class);
-		mockParticipantManager = Mockito.mock(ParticipantManager.class);
 		mockSubmissionManager = Mockito.mock(SubmissionManager.class);
 		mockEvaluationPermissionsManager = Mockito.mock(EvaluationPermissionsManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
@@ -62,7 +59,6 @@ public class EvaluationServiceTest {
 		this.evaluationService = new EvaluationServiceImpl(
 				mockServiceProvider,
 				mockEvaluationManager,
-				mockParticipantManager,
 				mockSubmissionManager,
 				mockEvaluationPermissionsManager,
 				mockUserManager,

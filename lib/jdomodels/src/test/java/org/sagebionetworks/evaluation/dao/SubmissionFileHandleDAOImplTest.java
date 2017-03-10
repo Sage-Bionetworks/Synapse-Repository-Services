@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -27,7 +26,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -48,9 +46,6 @@ public class SubmissionFileHandleDAOImplTest {
     
     @Autowired
     private SubmissionFileHandleDAO submissionFileHandleDAO;
-    
-    @Autowired
-    private ParticipantDAO participantDAO;
     
     @Autowired
     private EvaluationDAO evaluationDAO;
@@ -140,13 +135,6 @@ public class SubmissionFileHandleDAOImplTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
-        // create a Participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
-        
         // create a Submission
         Submission submission = new Submission();
         submission.setCreatedOn(new Date());
@@ -176,9 +164,6 @@ public class SubmissionFileHandleDAOImplTest {
 		try {
 			submissionDAO.delete(submissionId2);
 		} catch (NotFoundException e)  {};
-		try {
-			participantDAO.delete(userId, evalId);
-		} catch (NotFoundException e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
