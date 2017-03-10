@@ -40,7 +40,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	@Override
 	public void sendEmail(SendEmailRequest emailRequest) {
-		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendEmail(emailRequest);
 		} else {
 			writeToFile(emailRequest);
@@ -49,7 +49,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	
 	@Override
 	public void sendRawEmail(SendRawEmailRequest sendRawEmailRequest) {
-		if (StackConfiguration.isProductionStack() || StackConfiguration.getDeliverEmail()) {
+		if (StackConfiguration.singleton().isProductionStack() || StackConfiguration.getDeliverEmail()) {
 			amazonSESClient.sendRawEmail(sendRawEmailRequest);
 		} else {
 			writeToFile(sendRawEmailRequest);

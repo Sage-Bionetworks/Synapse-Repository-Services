@@ -1,12 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Date;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.Consumer;
@@ -14,13 +10,10 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-
 /**
  * Basic implementation.
  * 
- * @author John
+ * @author marcel-blonk
  * 
  */
 public class LogServiceImpl implements LogService {
