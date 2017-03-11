@@ -360,6 +360,11 @@ public class DataAccessRequestManagerImplTest {
 		manager.createOrUpdate(mockUser, null);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateOrUpdateWithDataAccessRenewalNullId() {
+		manager.createOrUpdate(mockUser, new DataAccessRenewal());
+	}
+
 	@Test
 	public void testCreateOrUpdateWithNullId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());

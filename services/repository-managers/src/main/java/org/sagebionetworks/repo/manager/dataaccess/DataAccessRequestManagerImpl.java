@@ -135,6 +135,8 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
 
+		// TODO: validate that there is no SUBMITTED submission
+		// TODO: validate that if there is APPROVED submission and requirement requires renewal, toUpdate must be DataAccessRenewal
 		if (toUpdate instanceof DataAccessRenewal) {
 			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(toUpdate.getAccessRequirementId());
 			ValidateArgument.requirement(requirement.getIsAnnualReviewRequired()
