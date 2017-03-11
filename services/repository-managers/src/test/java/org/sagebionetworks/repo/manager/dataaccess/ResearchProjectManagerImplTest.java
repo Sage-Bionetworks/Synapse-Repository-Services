@@ -201,10 +201,12 @@ public class ResearchProjectManagerImplTest {
 		manager.getUserOwnResearchProjectForUpdate(mockUser, null);
 	}
 
-	@Test (expected = NotFoundException.class)
+	@Test
 	public void testGetNotFound() {
 		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException());
-		manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
+		ResearchProject rp = manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
+		assertNotNull(rp);
+		assertEquals(accessRequirementId, rp.getAccessRequirementId());
 	}
 
 	@Test
@@ -298,6 +300,43 @@ public class ResearchProjectManagerImplTest {
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setIntendedDataUseStatement("new intendedDataUseStatement");
 		assertEquals(researchProject, manager.update(mockUser, toUpdate));
+		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
+		verify(mockResearchProjectDao).update(captor.capture());
+		ResearchProject updated = captor.getValue();
+		assertEquals(researchProjectId, updated.getId());
+		assertEquals(userId, updated.getCreatedBy());
+		assertEquals(userId, updated.getModifiedBy());
+		assertEquals(projectLead, updated.getProjectLead());
+		assertEquals(institution, updated.getInstitution());
+		assertEquals("new intendedDataUseStatement", updated.getIntendedDataUseStatement());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateOrUpdateWithNullResearchProject() {
+		manager.createOrUpdate(mockUser, null);
+	}
+
+	@Test
+	public void testCreateOrUpdateWithNullId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
+		researchProject.setId(null);
+		assertEquals(researchProject, manager.createOrUpdate(mockUser, researchProject));
+		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
+		verify(mockResearchProjectDao).create(captor.capture());
+		ResearchProject toCreate = captor.getValue();
+		assertEquals(researchProjectId, toCreate.getId());
+		assertEquals(userId, toCreate.getCreatedBy());
+		assertEquals(userId, toCreate.getModifiedBy());
+		assertEquals(projectLead, toCreate.getProjectLead());
+		assertEquals(institution, toCreate.getInstitution());
+		assertEquals(idu, toCreate.getIntendedDataUseStatement());
+	}
+
+	@Test
+	public void testCreateOrUpdateWithId() {
+		ResearchProject toUpdate = createNewResearchProject();
+		toUpdate.setIntendedDataUseStatement("new intendedDataUseStatement");
+		assertEquals(researchProject, manager.createOrUpdate(mockUser, toUpdate));
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).update(captor.capture());
 		ResearchProject updated = captor.getValue();

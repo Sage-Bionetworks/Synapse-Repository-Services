@@ -87,8 +87,15 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 			}
 			return current;
 		} catch (NotFoundException e) {
-			return new DataAccessRequest();
+			return createNewDataAccessRequest(accessRequirementId);
 		}
+	}
+
+	private DataAccessRequestInterface createNewDataAccessRequest(String accessRequirementId) {
+		DataAccessRequest request = new DataAccessRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setConcreteType(DataAccessRequest.class.getName());
+		return request;
 	}
 
 	public DataAccessRenewal createRenewalFromRequest(DataAccessRequestInterface current) {
