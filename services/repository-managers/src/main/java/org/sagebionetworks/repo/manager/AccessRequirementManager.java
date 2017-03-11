@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -34,15 +33,12 @@ public interface AccessRequirementManager {
 	/**
 	 *  get all the access requirements for an entity
 	 */
-	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
-	
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
+
 	/**
-	 *  get all the unmet access requirements
-	 *  This API includes an authorization check to see if
-	 *  the user is allowed to READ the entity
-	 *  
+	 *  get a page of the access requirements for an entity
 	 */
-	public List<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 *  update an access requirement
@@ -68,4 +64,8 @@ public interface AccessRequirementManager {
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo,
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
+
+	// will be removed after the ACT feature
+	public List<AccessRequirement> getAllUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId,
+			ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 }

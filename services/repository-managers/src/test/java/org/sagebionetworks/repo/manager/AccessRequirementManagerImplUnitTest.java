@@ -9,6 +9,8 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
+import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
@@ -27,7 +29,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -154,7 +155,7 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		List<AccessRequirement> ars = Arrays.asList(new AccessRequirement[]{createExpectedAR()});
-		when(accessRequirementDAO.getForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
+		when(accessRequirementDAO.getAllAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -180,13 +181,13 @@ public class AccessRequirementManagerImplUnitTest {
 		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
 		mockNode.setNodeType(EntityType.file);
 		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
-		when(accessRequirementDAO.unmetAccessRequirements(
+		when(accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(TEST_ENTITY_ID), 
 				RestrictableObjectType.ENTITY, 
 				Collections.singleton(userInfo.getId()), 
 				Collections.singletonList(DOWNLOAD))).
 				thenReturn(Collections.singletonList(mockDownloadARId));
-		when(accessRequirementDAO.unmetAccessRequirements(
+		when(accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(TEST_ENTITY_ID), 
 				RestrictableObjectType.ENTITY, 
 				Collections.singleton(userInfo.getId()), 
@@ -197,11 +198,11 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
 		uploadAR.setId(mockUploadARId);
 		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
-		when(accessRequirementDAO.getForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
+		when(accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
 			thenReturn(arList);
-		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
+		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
-		result = arm.getUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
+		result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
 		assertEquals(Collections.singletonList(uploadAR), result);
 	}
 
@@ -260,5 +261,47 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, null, 0L);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(DEFAULT_LIMIT), eq(0L));
+	}
+
+	@Test
+	public void testGetAccessRequirementsForSubjectWithNullOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, null);
+		verify(accessRequirementDAO).getAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY), eq(10L), eq(DEFAULT_OFFSET));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectOverMaxLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 51L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectZeroLimit() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 0L, 0L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementsForSubjectNegativeOffset() {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("1");
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
 	}
 }

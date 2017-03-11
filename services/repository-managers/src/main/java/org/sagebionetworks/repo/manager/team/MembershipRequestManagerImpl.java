@@ -92,7 +92,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
-		List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
+		List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();

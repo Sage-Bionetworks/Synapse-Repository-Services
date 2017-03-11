@@ -28,10 +28,8 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -351,7 +349,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
 		assertEquals(1, ars.size());
 	}
 	
@@ -362,7 +360,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
 		assertEquals(1, ars.size());
 	}
 	
@@ -375,10 +373,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1, ars.size());
-		
-		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -391,26 +386,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1, ars.size());
-		
-		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(1, ars.size());
-	}
-	
-	@Test
-	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
-		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		UserInfo otherUserInfo = testUserInfo;
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(adminEvaluation.getId());
-		rod.setType(RestrictableObjectType.EVALUATION);
-		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
-		assertEquals(1, ars.size());
-		
-		ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(otherUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -423,7 +399,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, ars.size());
 	}
 	
@@ -435,20 +411,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
+		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
 		assertEquals(0, ars.size());
-	}
-	
-	// evaluation owner gets no special treatment
-	@Test
-	public void testGetUnmetEvaluationAccessRequirementsOwner() throws Exception {
-		ar = newEvaluationAccessRequirement(evaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(evaluation.getId());
-		rod.setType(RestrictableObjectType.EVALUATION);
-		List<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod, ACCESS_TYPE.PARTICIPATE);
-		assertEquals(1, ars.size());
 	}
 	
 	@Test
@@ -460,7 +424,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
 		assertEquals(0, ars.size());
 	}
 	

@@ -10,12 +10,8 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
@@ -23,16 +19,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -46,10 +38,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
-	@Autowired
-	private NodeDAO nodeDao;
-	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
 	private UserManager userManager;
 
@@ -165,9 +153,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
 			return AuthorizationManagerUtil.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
 		
-		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
-			return AuthorizationManagerUtil.accessDenied("User has unmet access restrictions for Evaluation "+evalId);
-		
 		return AuthorizationManagerUtil.AUTHORIZED;
 	}
 
@@ -196,7 +181,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).getAuthorized());
 		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).getAuthorized());
 		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized());
-		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE).getAuthorized());
 		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).getAuthorized());
 		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).getAuthorized());
 		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).getAuthorized());
@@ -207,17 +191,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	
 	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
 		return AuthorizationUtils.isUserAnonymous(userInfo) && !READ.equals(accessType);
-	}
-	
-	private boolean hasUnmetAccessRequirements(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) throws NotFoundException {
-		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
-			List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
-					Collections.singletonList(evalId), RestrictableObjectType.EVALUATION, userInfo.getGroups(), 
-					Collections.singletonList(accessType));
-			if (!unmetRequirements.isEmpty()) return true;
-		}
-		return false;
-		
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {

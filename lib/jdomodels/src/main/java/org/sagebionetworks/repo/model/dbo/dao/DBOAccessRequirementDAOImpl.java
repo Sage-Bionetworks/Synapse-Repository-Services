@@ -53,6 +53,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
  *
  */
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
+	public static final String LIMIT_PARAM = "LIMIT";
+	public static final String OFFSET_PARAM = "OFFSET";
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -73,7 +75,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
 		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
 		" order by "+SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-
 
 	private static final String SELECT_FOR_SAR_SQL = "select * from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
 	COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
@@ -114,11 +115,16 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
 				UNMET_REQUIREMENTS_SQL_SUFFIX;
 
+
+	private static final String SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET =
+			SELECT_FOR_SUBJECT_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
+			+OFFSET_PARAM+" :"+OFFSET_PARAM;
+
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
 	@Override
-	public List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
+	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
@@ -248,7 +254,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		if (subjectIds.isEmpty()) return dtos;
 		List<Long> subjectIdsAsLong = new ArrayList<Long>();
@@ -323,5 +329,29 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		// ... now populate with the updated values
 		populateSubjectAccessRequirement(acessRequirementId, subjectIds);
 	}
-	
+
+	@Override
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<String> subjectIds, RestrictableObjectType type,
+			Long limit, Long offset) throws DatastoreException {
+		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) {
+			return dtos;
+		}
+		List<Long> subjectIdsAsLong = new ArrayList<Long>();
+		for (String id: subjectIds) {
+			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		param.addValue(LIMIT_PARAM, limit);
+		param.addValue(OFFSET_PARAM, offset);
+		List<DBOAccessRequirement> dbos = namedJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET, param, accessRequirementRowMapper);
+		for (DBOAccessRequirement dbo : dbos) {
+			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
+			dtos.add(dto);
+		}
+		return dtos;
+	}
 }

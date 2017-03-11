@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -51,7 +50,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -61,12 +59,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -112,7 +106,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private List<String> evaluationsToDelete;
 	private List<String> submissionsToDelete;
 	private List<String> entitiesToDelete;
-	private List<Long> accessRequirementsToDelete;
 	private List<String> teamsToDelete;
 	private Challenge challenge;
 
@@ -144,7 +137,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();
-		accessRequirementsToDelete = new ArrayList<Long>();
 		
 		// create Entities
 		project = synapseOne.createEntity(new Project());
@@ -221,14 +213,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 				adminSynapse.deleteSubmission(id);
 			} catch (SynapseNotFoundException e) {}
 		}
-		
-		// clean up Access Requirements
-		for (Long id : accessRequirementsToDelete) {
-			try {
-				adminSynapse.deleteAccessRequirement(id);
-			} catch (SynapseNotFoundException e) {}
-		}
-		
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
@@ -267,62 +251,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
 	}
-	
-	@Test
-	public void testEvaluationRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		int initialCount = synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size();
-		
-		// Create Evaluation
-		eval1 = synapseOne.createEvaluation(eval1);		
-		assertNotNull(eval1.getEtag());
-		assertNotNull(eval1.getId());
-		evaluationsToDelete.add(eval1.getId());
-		int newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size());
 
-		// Create AccessRestriction
-		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
-		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		subjectId.setId(eval1.getId());
-		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		tou = adminSynapse.createAccessRequirement(tou);
-		assertNotNull(tou.getId());
-		accessRequirementsToDelete.add(tou.getId());
-		
-		// Query AccessRestriction
-		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
-		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
-		
-		// Create AccessApproval
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setRequirementId(tou.getId());
-		synapseTwo.createAccessApproval(aa);
-		
-		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
-		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
-		
-		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
-		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
-		assertTrue(paginatedResults.getResults().isEmpty());
-	}
-	
 	@Test
 	public void testEvaluationRoundTrip() throws SynapseException, UnsupportedEncodingException {
 		int initialCount = synapseOne.getAvailableEvaluationsPaginated(0, 100).getResults().size();
 		
 		// Create
-		eval1 = synapseOne.createEvaluation(eval1);		
+		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
@@ -951,7 +886,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertFalse(uep2.getCanChangePermissions());
 		assertFalse(uep2.getCanDelete());
 		assertFalse(uep2.getCanEdit());
-		assertFalse(uep2.getCanParticipate());
 		assertFalse(uep2.getCanPublicRead());
 		assertFalse(uep2.getCanView());
 
