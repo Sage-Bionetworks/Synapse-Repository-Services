@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
 
@@ -73,8 +73,8 @@ public class ITDataAccessTest {
 
 	@Test
 	public void test() throws SynapseException {
-		ResearchProject rp = new ResearchProject();
-		assertEquals(rp, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
+		ResearchProject rp = synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString());
+		assertNotNull(rp);
 		// create
 		rp.setInstitution("Sage");
 		rp.setProjectLead("Bruce");

@@ -152,6 +152,7 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		return dataAccessRequestDao.update(toUpdate);
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessRequestInterface createOrUpdate(UserInfo userInfo, DataAccessRequestInterface toCreateOrUpdate) {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");

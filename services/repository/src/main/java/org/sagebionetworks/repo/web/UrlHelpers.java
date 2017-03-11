@@ -953,7 +953,8 @@ public class UrlHelpers {
 
 	// Data Access Services
 	public static final String RESEARCH_PROJECT = "/researchProject";
-	public static final String ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + RESEARCH_PROJECT;
+	public static final String ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/researchProjectForUpdate";
 
 	public static final String DATA_ACCESS_REQUEST ="/dataAccessRequest";
 	public static final String ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE = 

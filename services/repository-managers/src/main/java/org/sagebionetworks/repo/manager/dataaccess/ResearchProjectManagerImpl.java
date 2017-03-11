@@ -117,6 +117,7 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		return toUpdate;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public ResearchProject createOrUpdate(UserInfo userInfo, ResearchProject toCreateOrUpdate) {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
