@@ -88,7 +88,6 @@ public class DataAccessRequestManagerImplTest {
 		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockDataAccessRequestDao.update(any(DataAccessRequestInterface.class))).thenReturn(request);
-		when(mockResearchProjectDao.getOwnerId(researchProjectId)).thenReturn(userId);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 	}
 

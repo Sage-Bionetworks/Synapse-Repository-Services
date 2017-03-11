@@ -82,15 +82,12 @@ public class ITDataAccessTest {
 		rp.setAccessRequirementId(accessRequirement.getId().toString());
 		ResearchProject created = synapseOne.createOrUpdate(rp);
 
-		assertEquals(created, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
+		assertEquals(created, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
 		created.setIntendedDataUseStatement("new intendedDataUseStatement");
 		ResearchProject updated = synapseOne.createOrUpdate(created);
 
-		assertEquals(updated, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
-
-		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		assertEquals(adminId, adminSynapse.changeOwnership(updated.getId(), adminId).getOwnerId());
+		assertEquals(updated, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
 		DataAccessRequest request = new DataAccessRequest();
 		assertEquals(request, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
@@ -99,8 +96,9 @@ public class ITDataAccessTest {
 		request.setResearchProjectId(updated.getId());
 		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
 
-		assertEquals(createdRequest, synapseOne.getUserOwnCurrentRequest(accessRequirement.getId().toString()));
+		assertEquals(createdRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 
+		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		createdRequest.setAccessors(Arrays.asList(adminId));
 		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
 

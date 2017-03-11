@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -29,8 +28,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	private IdGenerator idGenerator;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
-	@Autowired
-	private ResearchProjectDAO researchProjectDao;
 	@Autowired
 	private DataAccessRequestDAO dataAccessRequestDao;
 
@@ -137,15 +134,25 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 					/* && has approved submission */,
 					"Can only update to a DataAccessRenewal after a submission is approved and the requirement requires renewal.");
 		}
-		String researchProjectOwnerId = researchProjectDao.getOwnerId(toUpdate.getResearchProjectId());
 
-		if (!original.getCreatedBy().equals(userInfo.getId().toString())
-				&& !researchProjectOwnerId.equals(userInfo.getId().toString())) {
+		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
 		}
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		return dataAccessRequestDao.update(toUpdate);
+	}
+
+	@Override
+	public DataAccessRequestInterface createOrUpdate(UserInfo userInfo, DataAccessRequestInterface toCreateOrUpdate) {
+		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
+		if (toCreateOrUpdate.getId() == null) {
+			ValidateArgument.requirement(toCreateOrUpdate instanceof DataAccessRequest, 
+					"Cannot create a request of type "+toCreateOrUpdate.getClass().getSimpleName().toString());
+			return create(userInfo, (DataAccessRequest) toCreateOrUpdate);
+		} else {
+			return update(userInfo, toCreateOrUpdate);
+		}
 	}
 
 }

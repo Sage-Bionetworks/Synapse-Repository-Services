@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -25,7 +24,7 @@ public interface ResearchProjectManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public ResearchProject getUserOwnResearchProject(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
+	public ResearchProject getUserOwnResearchProjectForUpdate(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
 
 	/**
 	 * Update an existing ResearchProject.
@@ -40,14 +39,11 @@ public interface ResearchProjectManager {
 	public ResearchProject update(UserInfo userInfo, ResearchProject toUpdate) throws NotFoundException, UnauthorizedException; 
 
 	/**
-	 * Change the ownership of an existing ResearchProject.
-	 * Only ACT member can perform this action.
+	 * Create or update a ResearchProject
 	 * 
-	 * @param userInfo
-	 * @param request
+	 * @param user
+	 * @param toCreateOrUpdate
 	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
 	 */
-	public ResearchProject changeOwnership(UserInfo userInfo, ChangeOwnershipRequest request)  throws NotFoundException, UnauthorizedException;
+	public ResearchProject createOrUpdate(UserInfo user, ResearchProject toCreateOrUpdate);
 }

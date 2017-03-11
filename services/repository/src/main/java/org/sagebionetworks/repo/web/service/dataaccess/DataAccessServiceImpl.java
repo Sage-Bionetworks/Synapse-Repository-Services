@@ -4,8 +4,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,45 +18,21 @@ public class DataAccessServiceImpl implements DataAccessService{
 	private DataAccessRequestManager dataAccessRequestManager;
 
 	@Override
-	public ResearchProject create(Long userId, ResearchProject toCreate) {
+	public ResearchProject createOrUpdate(Long userId, ResearchProject toCreateOrUpdate) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return researchProjectManager.create(user, toCreate);
+		return researchProjectManager.createOrUpdate(user, toCreateOrUpdate);
 	}
 
 	@Override
-	public ResearchProject update(Long userId, ResearchProject toUpdate) {
+	public ResearchProject getUserOwnResearchProjectForUpdate(Long userId, String accessRequirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return researchProjectManager.update(user, toUpdate);
+		return researchProjectManager.getUserOwnResearchProjectForUpdate(user, accessRequirementId);
 	}
 
 	@Override
-	public ResearchProject getUserOwnResearchProject(Long userId, String accessRequirementId) {
+	public DataAccessRequestInterface createOrUpdate(Long userId, DataAccessRequestInterface toCreateOrUpdate) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return researchProjectManager.getUserOwnResearchProject(user, accessRequirementId);
-	}
-
-	@Override
-	public ResearchProject changeOwnership(Long userId, ChangeOwnershipRequest request) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return researchProjectManager.changeOwnership(user, request);
-	}
-
-	@Override
-	public DataAccessRequest create(Long userId, DataAccessRequest toCreate) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessRequestManager.create(user, toCreate);
-	}
-
-	@Override
-	public DataAccessRequestInterface update(Long userId, DataAccessRequestInterface toUpdate) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessRequestManager.update(user, toUpdate);
-	}
-
-	@Override
-	public DataAccessRequestInterface getUserOwnCurrentRequest(Long userId, String requirementId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessRequestManager.getUserOwnCurrentRequest(user, requirementId);
+		return dataAccessRequestManager.createOrUpdate(user, toCreateOrUpdate);
 	}
 
 	@Override

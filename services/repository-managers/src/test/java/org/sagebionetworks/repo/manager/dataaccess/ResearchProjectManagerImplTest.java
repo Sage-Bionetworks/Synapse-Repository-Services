@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -77,8 +76,6 @@ public class ResearchProjectManagerImplTest {
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
-		when(mockResearchProjectDao.changeOwnership(anyString(), anyString(), anyString(), anyLong(), anyString()))
-				.thenReturn(researchProject);
 	}
 
 	private ResearchProject createNewResearchProject() {
@@ -88,7 +85,6 @@ public class ResearchProjectManagerImplTest {
 		dto.setCreatedOn(createdOn);
 		dto.setModifiedBy(userId);
 		dto.setModifiedOn(modifiedOn);
-		dto.setOwnerId(userId);
 		dto.setEtag(etag);
 		dto.setProjectLead(projectLead);
 		dto.setInstitution(institution);
@@ -171,7 +167,6 @@ public class ResearchProjectManagerImplTest {
 		ResearchProject toCreate = captor.getValue();
 		assertEquals(researchProjectId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
-		assertEquals(userId, toCreate.getOwnerId());
 		assertEquals(userId, toCreate.getModifiedBy());
 		assertEquals(projectLead, toCreate.getProjectLead());
 		assertEquals(institution, toCreate.getInstitution());
@@ -192,30 +187,29 @@ public class ResearchProjectManagerImplTest {
 		ResearchProject prepared = manager.prepareCreationFields(researchProject, createdBy);
 		assertEquals(createdBy, prepared.getModifiedBy());
 		assertEquals(createdBy, prepared.getCreatedBy());
-		assertEquals(createdBy, prepared.getOwnerId());
 		assertFalse(prepared.getEtag().equals(etag));
 		assertEquals(researchProjectId, prepared.getId());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetWithNullUserInfo() {
-		manager.getUserOwnResearchProject(null, accessRequirementId);
+		manager.getUserOwnResearchProjectForUpdate(null, accessRequirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetWithNullAccessRequirementId() {
-		manager.getUserOwnResearchProject(mockUser, null);
+		manager.getUserOwnResearchProjectForUpdate(mockUser, null);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testGetNotFound() {
 		when(mockResearchProjectDao.getUserOwnResearchProject(anyString(), anyString())).thenThrow(new NotFoundException());
-		manager.getUserOwnResearchProject(mockUser, accessRequirementId);
+		manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId);
 	}
 
 	@Test
 	public void testGet() {
-		assertEquals(researchProject, manager.getUserOwnResearchProject(mockUser, accessRequirementId));
+		assertEquals(researchProject, manager.getUserOwnResearchProjectForUpdate(mockUser, accessRequirementId));
 		verify(mockResearchProjectDao).getUserOwnResearchProject(accessRequirementId, userId);
 	}
 
@@ -265,13 +259,6 @@ public class ResearchProjectManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateOwnerId() {
-		ResearchProject toUpdate = createNewResearchProject();
-		toUpdate.setOwnerId("222");
-		manager.update(mockUser, toUpdate);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testUpdateCreatedBy() {
 		ResearchProject toUpdate = createNewResearchProject();
 		toUpdate.setCreatedBy("333");
@@ -316,55 +303,9 @@ public class ResearchProjectManagerImplTest {
 		ResearchProject updated = captor.getValue();
 		assertEquals(researchProjectId, updated.getId());
 		assertEquals(userId, updated.getCreatedBy());
-		assertEquals(userId, updated.getOwnerId());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals(projectLead, updated.getProjectLead());
 		assertEquals(institution, updated.getInstitution());
 		assertEquals("new intendedDataUseStatement", updated.getIntendedDataUseStatement());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void changeOwnershipWithNullUserInfo() {
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		manager.changeOwnership(null, request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void changeOwnershipWithNullRequest() {
-		manager.changeOwnership(mockUser, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void changeOwnershipWithNullResearchProjectId() {
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		request.setNewOwnerId("666");
-		manager.changeOwnership(mockUser, request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void changeOwnershipWithNullNewOwnerId() {
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		request.setResearchProjectId(researchProjectId);
-		manager.changeOwnership(mockUser, request);
-	}
-
-	@Test (expected = UnauthorizedException.class)
-	public void changeOwnershipUnauthorized() {
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		request.setNewOwnerId("666");
-		request.setResearchProjectId(researchProjectId);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
-		manager.changeOwnership(mockUser, request);
-	}
-
-	@Test
-	public void changeOwnership() {
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		String newOwnerId = "666";
-		request.setNewOwnerId(newOwnerId);
-		request.setResearchProjectId(researchProjectId);
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
-		assertEquals(researchProject, manager.changeOwnership(mockUser, request));
-		verify(mockResearchProjectDao).changeOwnership(eq(researchProjectId), eq(newOwnerId), eq(userId), anyLong(), anyString());
 	}
 }

@@ -23,7 +23,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 			new FieldColumn("createdOn", RESEARCH_PROJECT_CREATED_ON),
 			new FieldColumn("modifiedBy", RESEARCH_PROJECT_MODIFIED_BY),
 			new FieldColumn("modifiedOn", RESEARCH_PROJECT_MODIFIED_ON),
-			new FieldColumn("ownerId", RESEARCH_PROJECT_OWNER_ID),
 			new FieldColumn("etag", RESEARCH_PROJECT_ETAG).withIsEtag(true),
 			new FieldColumn("projectLead", RESEARCH_PROJECT_PROJECT_LEAD),
 			new FieldColumn("institution", RESEARCH_PROJECT_INSTITUTION),
@@ -36,7 +35,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 	private Long createdOn;
 	private Long modifiedBy;
 	private Long modifiedOn;
-	private Long ownerId;
 	private String etag;
 	private String projectLead;
 	private String institution;
@@ -90,14 +88,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 		this.modifiedOn = modifiedOn;
 	}
 
-	public Long getOwnerId() {
-		return ownerId;
-	}
-
-	public void setOwnerId(Long ownerId) {
-		this.ownerId = ownerId;
-	}
-
 	public String getEtag() {
 		return etag;
 	}
@@ -134,8 +124,8 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 	public String toString() {
 		return "DBOResearchProject [id=" + id + ", accessRequirementId=" + accessRequirementId + ", createdBy="
 				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", ownerId=" + ownerId + ", etag=" + etag + ", projectLead=" + projectLead + ", institution="
-				+ institution + ", idu=" + Arrays.toString(idu) + "]";
+				+ ", etag=" + etag + ", projectLead=" + projectLead + ", institution=" + institution + ", idu="
+				+ Arrays.toString(idu) + "]";
 	}
 
 	@Override
@@ -151,7 +141,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 		result = prime * result + ((institution == null) ? 0 : institution.hashCode());
 		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + ((projectLead == null) ? 0 : projectLead.hashCode());
 		return result;
 	}
@@ -207,11 +196,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 				return false;
 		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
-		if (ownerId == null) {
-			if (other.ownerId != null)
-				return false;
-		} else if (!ownerId.equals(other.ownerId))
-			return false;
 		if (projectLead == null) {
 			if (other.projectLead != null)
 				return false;
@@ -233,7 +217,6 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 				dbo.setCreatedOn(rs.getLong(RESEARCH_PROJECT_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(RESEARCH_PROJECT_MODIFIED_BY));
 				dbo.setModifiedOn(rs.getLong(RESEARCH_PROJECT_MODIFIED_ON));
-				dbo.setOwnerId(rs.getLong(RESEARCH_PROJECT_OWNER_ID));
 				dbo.setEtag(rs.getString(RESEARCH_PROJECT_ETAG));
 				dbo.setProjectLead(rs.getString(RESEARCH_PROJECT_PROJECT_LEAD));
 				dbo.setInstitution(rs.getString(RESEARCH_PROJECT_INSTITUTION));
