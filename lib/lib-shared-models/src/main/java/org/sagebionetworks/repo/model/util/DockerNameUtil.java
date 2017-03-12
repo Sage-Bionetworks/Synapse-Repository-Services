@@ -33,7 +33,7 @@ public class DockerNameUtil {
 	public static final String NameRegexp = "("+hostnameRegexp+REPO_NAME_PATH_SEP+")?"+PathRegexp;
 	
 	public static void validateName(String name) {
-		if(!Pattern.matches("^"+NameRegexp+"$", name))
+		if(name.endsWith("/") || !Pattern.matches("^"+NameRegexp+"$", name))
 			throw new IllegalArgumentException("Invalid repository name: "+name);		
 	}
 	
