@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
 
@@ -73,8 +73,8 @@ public class ITDataAccessTest {
 
 	@Test
 	public void test() throws SynapseException {
-		ResearchProject rp = new ResearchProject();
-		assertEquals(rp, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
+		ResearchProject rp = synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString());
+		assertNotNull(rp);
 		// create
 		rp.setInstitution("Sage");
 		rp.setProjectLead("Bruce");
@@ -82,25 +82,23 @@ public class ITDataAccessTest {
 		rp.setAccessRequirementId(accessRequirement.getId().toString());
 		ResearchProject created = synapseOne.createOrUpdate(rp);
 
-		assertEquals(created, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
+		assertEquals(created, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
 		created.setIntendedDataUseStatement("new intendedDataUseStatement");
 		ResearchProject updated = synapseOne.createOrUpdate(created);
 
-		assertEquals(updated, synapseOne.getUserOwnResearchProject(accessRequirement.getId().toString()));
+		assertEquals(updated, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
-		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		assertEquals(adminId, adminSynapse.changeOwnership(updated.getId(), adminId).getOwnerId());
-
-		DataAccessRequest request = new DataAccessRequest();
-		assertEquals(request, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+		DataAccessRequest request = (DataAccessRequest) synapseOne.getRequestForUpdate(accessRequirement.getId().toString());
+		assertNotNull(request);
 
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(updated.getId());
 		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
 
-		assertEquals(createdRequest, synapseOne.getUserOwnCurrentRequest(accessRequirement.getId().toString()));
+		assertEquals(createdRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 
+		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		createdRequest.setAccessors(Arrays.asList(adminId));
 		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
 

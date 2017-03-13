@@ -833,7 +833,6 @@ public class SqlConstants {
 	public static final String RESEARCH_PROJECT_CREATED_ON = 				"CREATED_ON";
 	public static final String RESEARCH_PROJECT_MODIFIED_BY = 				"MODIFIED_BY";
 	public static final String RESEARCH_PROJECT_MODIFIED_ON = 				"MODIFIED_ON";
-	public static final String RESEARCH_PROJECT_OWNER_ID = 					"OWNER_ID";
 	public static final String RESEARCH_PROJECT_ETAG = 						"ETAG";
 	public static final String RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
 	public static final String RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";

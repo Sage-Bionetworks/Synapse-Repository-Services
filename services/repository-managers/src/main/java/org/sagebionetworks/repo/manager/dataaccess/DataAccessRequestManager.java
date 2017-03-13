@@ -48,4 +48,13 @@ public interface DataAccessRequestManager {
 	 * @throws UnauthorizedException
 	 */
 	public DataAccessRequestInterface update(UserInfo userInfo, DataAccessRequestInterface toUpdate) throws NotFoundException, UnauthorizedException;
+
+	/**
+	 * Create or update a DataAccessRequest
+	 * 
+	 * @param user
+	 * @param toCreateOrUpdate
+	 * @return
+	 */
+	public DataAccessRequestInterface createOrUpdate(UserInfo user, DataAccessRequestInterface toCreateOrUpdate);
 }

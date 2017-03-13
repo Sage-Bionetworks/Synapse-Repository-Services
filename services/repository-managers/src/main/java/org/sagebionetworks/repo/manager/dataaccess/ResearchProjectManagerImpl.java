@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -64,18 +63,26 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject prepareCreationFields(ResearchProject toCreate, String createdBy) {
 		toCreate.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		toCreate.setCreatedBy(createdBy);
-		toCreate.setOwnerId(createdBy);
 		toCreate.setCreatedOn(new Date());
 		toCreate = prepareUpdateFields(toCreate, createdBy);
 		return toCreate;
 	}
 
 	@Override
-	public ResearchProject getUserOwnResearchProject(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
+	public ResearchProject getUserOwnResearchProjectForUpdate(UserInfo userInfo, String accessRequirementId) throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		try {
+			return researchProjectDao.getUserOwnResearchProject(accessRequirementId, userInfo.getId().toString());
+		} catch (NotFoundException e) {
+			return createNewResearchProject(accessRequirementId);
+		}
+	}
 
-		return researchProjectDao.getUserOwnResearchProject(accessRequirementId, userInfo.getId().toString());
+	private ResearchProject createNewResearchProject(String accessRequirementId) {
+		ResearchProject rp = new ResearchProject();
+		rp.setAccessRequirementId(accessRequirementId);
+		return rp;
 	}
 
 	@WriteTransactionReadCommitted
@@ -90,13 +97,12 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 			throw new ConflictingUpdateException();
 		}
 
-		ValidateArgument.requirement(toUpdate.getOwnerId().equals(original.getOwnerId())
-				&& toUpdate.getCreatedBy().equals(original.getCreatedBy())
+		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId()),
-				"OwnerId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
+				"accessRequirementId, createdOn and createdBy fields cannot be editted.");
 
-		if (!original.getOwnerId().equals(userInfo.getId().toString())) {
+		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
 		}
 
@@ -113,19 +119,12 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ResearchProject changeOwnership(UserInfo userInfo, ChangeOwnershipRequest request)
-			throws NotFoundException, UnauthorizedException {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(request, "ChangeOwnershipRequest");
-		ValidateArgument.required(request.getResearchProjectId(), "ChangeOwnershipRequest.researchProjectId");
-		ValidateArgument.required(request.getNewOwnerId(), "ChangeOwnershipRequest.newOwnerId");
-
-		if(!(authorizationManager.isACTTeamMemberOrAdmin(userInfo))){
-			throw new UnauthorizedException("Only an ACT member can change ownership of a ResearchProject");
+	public ResearchProject createOrUpdate(UserInfo userInfo, ResearchProject toCreateOrUpdate) {
+		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
+		if (toCreateOrUpdate.getId() == null) {
+			return create(userInfo, toCreateOrUpdate);
+		} else {
+			return update(userInfo, toCreateOrUpdate);
 		}
-		return researchProjectDao.changeOwnership(request.getResearchProjectId(),
-				request.getNewOwnerId(), userInfo.getId().toString(),
-				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
-
 }

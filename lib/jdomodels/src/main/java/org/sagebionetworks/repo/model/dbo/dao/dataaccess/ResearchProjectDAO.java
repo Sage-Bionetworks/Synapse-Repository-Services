@@ -33,20 +33,6 @@ public interface ResearchProjectDAO {
 	public ResearchProject update(ResearchProject toUpdate) throws NotFoundException;
 
 	/**
-	 * Update the ownership of an existing ResearchProject.
-	 * 
-	 * @param researchProjectId
-	 * @param newOwnerId
-	 * @param modifiedBy
-	 * @param modifiedOn
-	 * @param etag
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId,
-			String modifiedBy, Long modifiedOn, String etag) throws NotFoundException;
-
-	/**
 	 * Delete a ResearchProject given its ID.
 	 * 
 	 * @param id
@@ -70,11 +56,4 @@ public interface ResearchProjectDAO {
 	 */
 	public ResearchProject getForUpdate(String researchProjectId);
 
-	/**
-	 * Retrieve the ownerId for a given research project ID
-	 * 
-	 * @param researchProjectId
-	 * @return
-	 */
-	public String getOwnerId(String researchProjectId);
 }
