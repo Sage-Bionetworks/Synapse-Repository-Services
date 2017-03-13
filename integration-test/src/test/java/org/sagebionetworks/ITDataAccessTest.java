@@ -89,8 +89,8 @@ public class ITDataAccessTest {
 
 		assertEquals(updated, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
-		DataAccessRequest request = new DataAccessRequest();
-		assertEquals(request, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+		DataAccessRequest request = (DataAccessRequest) synapseOne.getRequestForUpdate(accessRequirement.getId().toString());
+		assertNotNull(request);
 
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(updated.getId());
