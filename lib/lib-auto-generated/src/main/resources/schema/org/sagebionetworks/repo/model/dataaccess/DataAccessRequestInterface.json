@@ -42,7 +42,7 @@
 		},
 		"attachments": {
 			"type": "array",
-			"description": "The list of file handle ID of attached files to this request.",
+			"description": "The set of file handle ID of attached files to this request.",
 			"uniqueItems": false,
 			"items": {
 				"type": "string"
@@ -50,7 +50,7 @@
 		},
 		"accessors": {
 			"type": "array",
-			"description": "The list of user ID who will gain access to the data set once the request is approved.",
+			"description": "The set of user ID who will gain access to the data set once the request is approved.",
 			"uniqueItems": false,
 			"items": {
 				"type": "string"
