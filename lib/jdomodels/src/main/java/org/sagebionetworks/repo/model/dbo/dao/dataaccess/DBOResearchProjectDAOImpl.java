@@ -21,16 +21,16 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	private JdbcTemplate jdbcTemplate;
 
 	public static final String SQL_DELETE = "DELETE FROM "+TABLE_RESEARCH_PROJECT
-			+" WHERE "+RESEARCH_PROJECT_ID+" = ?";
+			+" WHERE "+COL_RESEARCH_PROJECT_ID+" = ?";
 
 	public static final String SQL_GET = "SELECT *"
 			+ " FROM "+TABLE_RESEARCH_PROJECT
-			+ " WHERE "+RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID+" = ?"
-			+ " AND "+RESEARCH_PROJECT_CREATED_BY+" = ?";
+			+ " WHERE "+COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID+" = ?"
+			+ " AND "+COL_RESEARCH_PROJECT_CREATED_BY+" = ?";
 
 	public static final String SQL_GET_USING_ID = "SELECT *"
 			+ " FROM "+TABLE_RESEARCH_PROJECT
-			+ " WHERE "+RESEARCH_PROJECT_ID+" = ?";
+			+ " WHERE "+COL_RESEARCH_PROJECT_ID+" = ?";
 
 	public static final String SQL_GET_USING_ID_FOR_UPDATE = SQL_GET_USING_ID + " FOR UPDATE";
 

@@ -25,12 +25,12 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 
 	public static final String SQL_GET = "SELECT *"
 			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
-			+ " WHERE "+DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID+" = ?"
-			+ " AND "+DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID+" = ?"
+			+ " AND "+COL_DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
 
 	public static final String SQL_GET_FOR_UPDATE = "SELECT *"
 			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
-			+ " WHERE "+DATA_ACCESS_REQUEST_ID+" = ? FOR UPDATE";
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ? FOR UPDATE";
 
 	private static final RowMapper<DBODataAccessRequest> MAPPER = new DBODataAccessRequest().getTableMapping();
 
