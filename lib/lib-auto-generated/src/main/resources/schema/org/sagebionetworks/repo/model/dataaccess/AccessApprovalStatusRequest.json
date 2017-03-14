@@ -1,0 +1,12 @@
+{
+	"description": "An access approval status request. This request is used to ask for access approval status for a list of access requirement IDs.",
+	"properties": {
+		"accessRequirementIdList": {
+			"type": "array",
+			"uniqueItems":false,
+			"items": {
+				"type":"string"
+			}
+		}
+	}
+}

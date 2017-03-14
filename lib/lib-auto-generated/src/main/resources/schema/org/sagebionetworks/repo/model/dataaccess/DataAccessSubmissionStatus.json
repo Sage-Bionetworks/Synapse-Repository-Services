@@ -1,0 +1,22 @@
+{
+	"description": "The status of a DataAccessSubmission.",
+	"properties": {
+		"submissionId":{
+			"type": "string",
+			"description": "The ID of the DataAccessSubmission."
+		},
+		"rejectedReason": {
+			"type": "string",
+            "description": "The reason the submission is rejected, if it's rejected."
+		},
+		"state":{
+			"description": "The state of the requested DataAccessSubmission.",
+            "$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState"
+		},
+		"reviewedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the DataAccessSubmission was reviewed."
+		}
+	}
+}
