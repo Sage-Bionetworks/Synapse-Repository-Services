@@ -1,16 +1,19 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -35,6 +39,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 
@@ -211,12 +219,68 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
 			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn,
+		// First step is to determine the distinct projects that both users can see.
+		Set<Long> currentUserGroups;
+		Set<Long> userToGetForGroups = currentUser.getGroups();
+		switch (type) {
+		case MY_PROJECTS:
+		case OTHER_USER_PROJECTS:
+			currentUserGroups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			break;
+		case MY_CREATED_PROJECTS:
+			currentUserGroups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			break;
+		case MY_PARTICIPATED_PROJECTS:
+			currentUserGroups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			break;
+		case MY_TEAM_PROJECTS:
+			currentUserGroups = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+			userToGetForGroups = getGroupsMinusPublicAndSelf(currentUser.getGroups(), currentUser.getId());
+			break;
+		case TEAM_PROJECTS:
+			long teamId = Long.parseLong(teamToFetch.getId());
+			currentUserGroups = Sets.newHashSet(teamId);
+			break;
+		default:
+			throw new NotImplementedException("project list type " + type + " not yet implemented");
+		}
+		// Determine the projects the current user's group can see.
+		Set<Long> currentsProjects = authorizationManager.getAccessibleBenefactorsOfType(EntityType.project, currentUserGroups);
+		// Determine the projects the user-to-get-for's group can see.
+		Set<Long> userToGetProjects = authorizationManager.getAccessibleBenefactorsOfType(EntityType.project, userToGetForGroups);
+		// Only include the intersection of the projects that both groups can see.
+		Set<Long> projectIntersection = Sets.intersection(currentsProjects, userToGetProjects);
+		// Get the set of project IDs that both groups of users can see.
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(currentUser.getId(), projectIntersection, type, sortColumn,
 				sortDirection, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+	}
+	
+	private static final Predicate<Long> PUBLIC_GROUPS = new Predicate<Long>() {
+		@Override
+		public boolean apply(Long input) {
+			return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
+					&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
+					&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
+		}
+	};
+
+	private Set<Long> getGroupsMinusPublic(Set<Long> usersGroups){
+		Set<Long> groups = Sets.newHashSet(Sets.filter(usersGroups, PUBLIC_GROUPS));
+		return groups;
+	}
+
+	private Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
+		Set<Long> groups = Sets.newHashSet(Sets.filter(usersGroups, Predicates.and(PUBLIC_GROUPS, new Predicate<Long>() {
+			@Override
+			public boolean apply(Long input) {
+				return input.longValue() != userId;
+			}
+		})));
+		return groups;
 	}
 
 	@WriteTransaction

@@ -1427,75 +1427,35 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return refs;
 	}
 
-	private static final Predicate<Long> PUBLIC_GROUPS = new Predicate<Long>() {
-		@Override
-		public boolean apply(Long input) {
-			return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
-					&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
-					&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
-		}
-	};
-
-	private Collection<Long> getGroupsMinusPublic(Set<Long> usersGroups){
-		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, PUBLIC_GROUPS));
-		return groups;
-	}
-
-	private Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
-		Set<Long> groups = Sets.newHashSet(Sets.filter(usersGroups, Predicates.and(PUBLIC_GROUPS, new Predicate<Long>() {
-			@Override
-			public boolean apply(Long input) {
-				return input.longValue() != userId;
-			}
-		})));
-		return groups;
-	}
-
 	@Override
-	public List<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
+	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
 				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
-		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(projectIds, "projectIds");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects
 
 		Map<String, Object> parameters = Maps.newHashMap();
-		parameters.put(USER_ID_PARAM_NAME, userToGetInfoFor.getId().toString());
+		parameters.put("projectIds", projectIds);
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 
-		Collection<Long> groups;
-		Set<Long> auth2Groups = currentUser.getGroups();
-		boolean auth2IsAdmin = currentUser.isAdmin();
 		String whereClause;
 		switch (type) {
 		case MY_PROJECTS:
 		case OTHER_USER_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+		case MY_TEAM_PROJECTS:
+		case TEAM_PROJECTS:
 			whereClause = "";
 			break;
 		case MY_CREATED_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			whereClause = SELECT_CREATED + userToGetInfoFor.getId();
+			whereClause = SELECT_CREATED + userId;
 			break;
 		case MY_PARTICIPATED_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			whereClause = SELECT_NOT_CREATED + userToGetInfoFor.getId();
-			break;
-		case MY_TEAM_PROJECTS:
-			groups = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			auth2IsAdmin = false;
-			auth2Groups = getGroupsMinusPublicAndSelf(currentUser.getGroups(), currentUser.getId());
-			whereClause = "";
-			break;
-		case TEAM_PROJECTS:
-			long teamId = Long.parseLong(teamToFetch.getId());
-			groups = Sets.newHashSet(teamId);
-			whereClause = "";
+			whereClause = SELECT_NOT_CREATED + userId;
 			break;
 		default:
 			throw new NotImplementedException("project list type " + type + " not yet implemented");
 		}
-		String authForLookup = QueryUtils.buildAuthorizationSelect(groups, parameters, 0);
-		int groupCount = groups.size();
 
 		String sortOrder;
 		switch (sortColumn) {
@@ -1509,15 +1469,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new NotImplementedException("project list sort column " + sortColumn + " not yet implemented");
 		}
 
-		String auth2 = QueryUtils.buildAuthorizationFilter(auth2IsAdmin, auth2Groups, parameters, "n", groupCount);
-
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
-
-		String whereClause2 = "";
-		if (!auth2.isEmpty()) {
-			whereClause2 = " where " + auth2;
-		}
-
 		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
 				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
 
