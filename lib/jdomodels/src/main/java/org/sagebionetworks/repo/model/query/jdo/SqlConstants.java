@@ -852,7 +852,24 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
 
 	// DataAccessSubmission
-	
+	public static final String DDL_DATA_ACCESS_SUBMISSION = 						"schema/DataAccessSubmission-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION = 						"DATA_ACCESS_SUBMISSION";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID = 	"DATA_ACCESS_REQUEST_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_BY = 			"SUBMITTED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_ON = 			"SUBMITTED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_REVIEWED_BY = 			"REVIEWED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_REVIEWED_ON = 			"REVIEWED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATE = 					"STATE";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
+
+	// DataAccessSubmissionAccessors
+	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"schema/DataAccessSubmissionAccessor-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"DATA_ACCESS_SUBMISSION_ACCESSOR";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 	"ACCESSOR_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID = 	"SUBMISSION_ID";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
