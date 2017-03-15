@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -75,4 +76,11 @@ public interface VerificationDAO {
 	 * @return the user who submitted the verification request
 	 */
 	public long getVerificationSubmitter(long verificationId);
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return true if all users have validated profiles; false otherwise.
+	 */
+	public boolean haveValidatedProfiles(Set<String> userIds);
 }
