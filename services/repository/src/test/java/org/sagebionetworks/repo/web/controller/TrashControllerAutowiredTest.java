@@ -260,7 +260,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		Assert.assertEquals(2, results.getResults().size());
 		
 		//purge leaves (i.e. the child)
-		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L/*minimum days in trash, days*/, 10L/*max number to delete*/);
 		
 		//make sure the parent is still in the trashcan
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
@@ -271,7 +271,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		
 		
 		//delete leaves again to clean up trash can
-		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L, Long.parseLong(ServiceConstants.DEFAULT_DAYS_IN_TRASH_CAN));
+		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L/*minimum days in trash, days*/, 10L/*max number to delete*/);
 		
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(0, results.getTotalNumberOfResults());
