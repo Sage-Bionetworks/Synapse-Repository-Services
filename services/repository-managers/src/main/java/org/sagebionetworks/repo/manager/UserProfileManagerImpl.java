@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -34,6 +33,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -44,41 +44,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
-	
 	@Autowired
 	private FavoriteDAO favoriteDAO;
-	
 	@Autowired
 	private NodeDAO nodeDao;
-
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private AmazonS3Client s3Client;
-	@Autowired
 	private FileHandleManager fileHandleManager;
 	
-
-	public UserProfileManagerImpl() {
-	}
-
-	/**
-	 * Used by unit tests
-	 */
-	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO, FavoriteDAO favoriteDAO, PrincipalAliasDAO principalAliasDAO,
-			AuthorizationManager authorizationManager,
-			AmazonS3Client s3Client,
-			FileHandleManager fileHandleManager) {
-		super();
-		this.userProfileDAO = userProfileDAO;
-		this.favoriteDAO = favoriteDAO;
-		this.principalAliasDAO = principalAliasDAO;
-		this.authorizationManager = authorizationManager;
-		this.s3Client = s3Client;
-		this.fileHandleManager = fileHandleManager;
-	}
 
 	@Override
 	public UserProfile getUserProfile(String ownerId)
@@ -234,9 +210,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			break;
 		case MY_TEAM_PROJECTS:
 			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			callerPrincipalIds = getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
 			break;
 		case TEAM_PROJECTS:
+			// this case requires a team
+			ValidateArgument.required(teamToFetch, "teamToFetch");
 			long teamId = Long.parseLong(teamToFetch.getId());
 			userToGetPrincipalIds = Sets.newHashSet(teamId);
 			break;
