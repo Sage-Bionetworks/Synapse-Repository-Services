@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,25 +9,32 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -36,16 +42,25 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.collect.Sets;
 
 public class UserProfileManagerImplUnitTest {
 
+	@Mock
 	UserProfileDAO mockProfileDAO;
+	@Mock
 	UserGroupDAO mockUserGroupDAO;
+	@Mock
 	UserManager mockUserManager;
+	@Mock
 	FavoriteDAO mockFavoriteDAO;
+	@Mock
 	PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
 	AuthorizationManager mockAuthorizationManager;
+	@Mock
 	AmazonS3Client mockS3Client;
+	@Mock
 	FileHandleManager mockFileHandleManager;
 	
 	UserProfileManager userProfileManager;
@@ -54,23 +69,23 @@ public class UserProfileManagerImplUnitTest {
 	UserInfo adminUserInfo;
 	UserProfile userProfile;
 	
+	UserInfo caller;
+	UserInfo userToGetInfoFor;
+	Team teamToFetch;
+	ProjectListType type;
+	ProjectListSortColumn sortColumn;
+	SortDirection sortDirection;
+	Long limit;
+	Long offset;
+	
 	private static final Long userId = 9348725L;
 	private static final Long adminUserId = 823746L;
 	private static final String USER_EMAIL = "foo@bar.org";
 	private static final String USER_OPEN_ID = "http://myspace.com/foo";
-	
-	private Random rand = new Random();
-	
+
 	@Before
 	public void before() throws Exception {
-		mockProfileDAO = Mockito.mock(UserProfileDAO.class);
-		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockFavoriteDAO = Mockito.mock(FavoriteDAO.class);
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
-		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
+		MockitoAnnotations.initMocks(this);
 		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockFavoriteDAO, mockPrincipalAliasDAO, mockAuthorizationManager, mockS3Client,mockFileHandleManager);
 		
 		
@@ -127,6 +142,24 @@ public class UserProfileManagerImplUnitTest {
 		aliases.add(alias);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(Collections.singleton(userId))).thenReturn(aliases);
+		
+		caller = new UserInfo(false, 123L);
+		caller.setGroups(Sets.newHashSet(1L, 2L, 3L, caller.getId(),
+				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		userToGetInfoFor = new UserInfo(false, 456L);
+		userToGetInfoFor.setGroups(Sets.newHashSet(4L, 5L, 6L,
+				userToGetInfoFor.getId(),
+				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
+				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		teamToFetch = null;
+		type = ProjectListType.MY_CREATED_PROJECTS;
+		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		sortDirection = SortDirection.ASC;
+		limit = 10L;
+		offset = 0L;
 		
 	}
 	
@@ -206,21 +239,6 @@ public class UserProfileManagerImplUnitTest {
 		assertEquals(userProfile, upClone);
 	}
 	
-	@Ignore
-	@Test
-	public void testUpdateOwnUserProfile() throws Exception {
-		// Get a copy of a UserProfile to update
-		String ownerId = userInfo.getId().toString();
-		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
-		assertEquals(userProfile, upClone);
-		
-		// Change a field
-		String newURL = "http://"+rand.nextLong(); // just a random long number
-		upClone.setRStudioUrl(newURL);
-		upClone.setUserName("jamesBond");
-		upClone = userProfileManager.updateUserProfile(userInfo, upClone);
-	}
-	
 	@Test(expected=UnauthorizedException.class)
 	public void testUpdateOthersUserProfile() throws Exception {
 		String ownerId = userInfo.getId().toString();
@@ -232,5 +250,47 @@ public class UserProfileManagerImplUnitTest {
 		// ... but we can't update it, since we are not the owner or an admin
 		// the following step will fail
 		userProfileManager.updateUserProfile(userInfo, upClone);
+	}
+	
+	@Test
+	public void testGetGroupsMinusPublic(){
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
+		// should get a new copy
+		assertFalse(results == caller.getGroups());
+		assertEquals(caller.getGroups().size()-3, results.size());
+		// the following groups should have been removed.
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		// The user's id should still be in the set
+		assertTrue(results.contains(caller.getId()));
+	}
+	
+	@Test
+	public void testGetGroupsMinusPublicAndSelf(){
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertTrue(caller.getGroups().contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(caller.getGroups(), caller.getId());
+		// should get a new copy
+		assertFalse(results == caller.getGroups());
+		assertEquals(caller.getGroups().size()-4, results.size());
+		// the following groups should have been removed.
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		// The user's id should also be removed
+		assertFalse(results.contains(caller.getId()));
+	}
+	
+	@Test
+	public void testGetProjects(){
+
+		finsh
+		// call under test
+		userProfileManager.getProjects(caller, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
 	}
 }

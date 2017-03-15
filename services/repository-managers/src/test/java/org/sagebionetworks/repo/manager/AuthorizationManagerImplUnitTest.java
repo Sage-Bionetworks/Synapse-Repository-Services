@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -833,5 +835,56 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockThreadDao.getProjectId(threadId)).thenReturn(projectId);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIds(){
+		Set<Long> expectedProjectIds = Sets.newHashSet(555L);
+		Set<Long> principalIds = Sets.newHashSet(123L);
+		when(mockAclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ)).thenReturn(expectedProjectIds);
+		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
+		assertEquals(expectedProjectIds,results);
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIdsEmpty(){
+		Set<Long> principalIds = new HashSet<>();
+		Set<Long> results = authorizationManager.getAccessibleProjectIds(principalIds);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+		verify(mockAclDAO, never()).getAccessibleProjectIds(any(Set.class), any(ACCESS_TYPE.class));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAccessibleProjectIdsNullPrincipals(){
+		Set<Long> principalIds = null;
+		authorizationManager.getAccessibleProjectIds(principalIds);
+	}
+	
+	/**
+	 * This method cannot be called with PUBLIC_GROUP
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAccessibleProjectIdsWithPublic(){
+		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue());
+		authorizationManager.getAccessibleProjectIds(principalIds);
+	}
+	
+	/**
+	 * This method cannot be called with AUTHENTICATED_USERS_GROUP
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAccessibleProjectIdsWithAuthenticated(){
+		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue());
+		authorizationManager.getAccessibleProjectIds(principalIds);
+	}
+	
+	/**
+	 * This method cannot be called with CERTIFIED_USERS.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAccessibleProjectIdsWithCertified(){
+		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
+		authorizationManager.getAccessibleProjectIds(principalIds);
 	}
 }

@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
@@ -490,5 +492,23 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		}
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
+	}
+
+	@Override
+	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
+		ValidateArgument.required(principalIds, "principalIds");
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("PUBLIC cannot be included in the passed princpalIds");
+		}
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("AUTHENTICATED_USERS_GROUP cannot be included in the passed princpalIds");
+		}
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("CERTIFIED_USERS cannot be included in the passed princpalIds");
+		}
+		if(principalIds.isEmpty()){
+			return new HashSet<>(0);
+		}
+		return this.aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
 	}
 }

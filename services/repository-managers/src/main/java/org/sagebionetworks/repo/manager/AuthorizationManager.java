@@ -219,8 +219,14 @@ public interface AuthorizationManager {
 			SubscriptionObjectType objectType) throws DatastoreException,
 			NotFoundException;
 
-	public Set<Long> getAccessibleBenefactorsOfType(EntityType project,
-			Set<Long> currentUserGroups);
+	/**
+	 * Get the set of project IDs that that are visible to the passed set of
+	 * principal IDs. 
+	 * 
+	 * @param principalIds
+	 * @return
+	 */
+	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
 
 
 }

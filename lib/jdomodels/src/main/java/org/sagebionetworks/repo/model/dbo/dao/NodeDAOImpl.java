@@ -1,13 +1,50 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +62,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -44,15 +80,12 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -75,8 +108,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -88,6 +119,56 @@ import com.google.common.collect.Sets;
  *
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
+
+	private static final String BIND_NODE_IDS =  "bNodeIds";
+	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
+	private static final String SELECT_PROJECTS_STATS = "SELECT n."
+			+ COL_NODE_ID
+			+ ", n."
+			+ COL_NODE_NAME
+			+ ", n."
+			+ COL_NODE_TYPE
+			+ ", COALESCE(ps."
+			+ COL_PROJECT_STAT_LAST_ACCESSED
+			+ ", n."
+			+ COL_NODE_CREATED_ON
+			+ ") AS "
+			+ COL_PROJECT_STAT_LAST_ACCESSED
+			+ ", r."
+			+ COL_REVISION_MODIFIED_BY
+			+ ", r."
+			+ COL_REVISION_MODIFIED_ON
+			+ " FROM "
+			+ TABLE_NODE
+			+ " n JOIN "
+			+ TABLE_REVISION
+			+ " r ON n."
+			+ COL_NODE_ID
+			+ " = r."
+			+ COL_REVISION_OWNER_NODE
+			+ " AND n."
+			+ COL_CURRENT_REV
+			+ " = r."
+			+ COL_REVISION_NUMBER
+			+ " LEFT JOIN "
+			+ TABLE_PROJECT_STAT
+			+ " ps ON n."
+			+ COL_NODE_ID
+			+ " = ps."
+			+ COL_PROJECT_STAT_PROJECT_ID
+			+ " AND ps."
+			+ COL_PROJECT_STAT_USER_ID
+			+ " = :"
+			+ BIND_PROJECT_STAT_USER_ID
+			+ " WHERE n."
+			+ COL_NODE_TYPE
+			+ " = '"
+			+ EntityType.project.name()
+			+ "' AND n."
+			+ COL_NODE_ID
+			+ " IN (:"
+			+ BIND_NODE_IDS
+			+ ")";
 
 	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R."+COL_REVISION_OWNER_NODE+", R."+COL_REVISION_NUMBER+", R."+COL_REVISION_ACTIVITY_ID+", R."+COL_REVISION_LABEL+", R."+COL_REVISION_COMMENT+", R."+COL_REVISION_MODIFIED_BY+", R."+COL_REVISION_MODIFIED_ON+", R."+COL_REVISION_FILE_HANDLE_ID+", R."+COL_REVISION_COLUMN_MODEL_IDS+", R."+COL_REVISION_SCOPE_IDS+", R."+COL_REVISION_REF_BLOB;
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+" AND N."+COL_NODE_ID+"= ?";
@@ -143,35 +224,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
 
-	private static final String SELECT_PROJECTS_SQL1 =
-		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE +
-				", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
-				", r." + COL_REVISION_MODIFIED_BY + ", r." + COL_REVISION_MODIFIED_ON +
-		" from (" +
-			" select distinct n." + COL_NODE_PROJECT_ID +
-				" from ( ";
-	private static final String SELECT_PROJECTS_SQL3 =
-		" ) acls" +
-			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
-			" where n." + COL_NODE_PROJECT_ID + " is not null" +
-				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID +
-		" ) pids" +
-		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID +
-		" join " + TABLE_REVISION + " r on n." + COL_NODE_ID + " = r." + COL_REVISION_OWNER_NODE + " and r." + COL_REVISION_NUMBER + " = n." + COL_CURRENT_REV;
-
+	private static final String BIND_CREATED_BY = "bCreatedBy";
 	private static final String SELECT_CREATED =
-		"   and n." + COL_NODE_CREATED_BY + " = ";
+		" AND n." + COL_NODE_CREATED_BY + " = :"+BIND_CREATED_BY;
 	private static final String SELECT_NOT_CREATED =
-		"   and n." + COL_NODE_CREATED_BY + " <> ";
-
-	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
-		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
-
+		" AND n." + COL_NODE_CREATED_BY + " <> :"+BIND_CREATED_BY;
+	
 	private static final String SELECT_PROJECTS_ORDER =
-		" order by " + LAST_ACCESSED_OR_CREATED;
+		" ORDER BY " + LAST_ACCESSED_OR_CREATED;
 
 	private static final String SELECT_NAME_ORDER =
-		" order by n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
+		" ORDER BY n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -1433,47 +1496,72 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(projectIds, "projectIds");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		if(projectIds.isEmpty()){
+			return new LinkedList<>();
+		}
 		// get one page of projects
-
 		Map<String, Object> parameters = Maps.newHashMap();
-		parameters.put("projectIds", projectIds);
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-
-		String whereClause;
+		parameters.put(BIND_NODE_IDS, projectIds);
+		parameters.put(BIND_PROJECT_STAT_USER_ID, userId);
+		StringBuilder sqlBuilder = new StringBuilder(SELECT_PROJECTS_STATS);
+		// some types add an additional condition.
+		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
+		sqlBuilder.append(additionalCondition);
+		// order and paging
+		String orgerAndPaging = getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		sqlBuilder.append(orgerAndPaging);
+		return getProjectHeaders(parameters, sqlBuilder.toString());
+	}
+	
+	/**
+	 * Get the the additional condition for a project stats query based on type.
+	 * @param type
+	 * @return
+	 */
+	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type){
 		switch (type) {
 		case MY_PROJECTS:
 		case OTHER_USER_PROJECTS:
 		case MY_TEAM_PROJECTS:
 		case TEAM_PROJECTS:
-			whereClause = "";
-			break;
+			return "";
 		case MY_CREATED_PROJECTS:
-			whereClause = SELECT_CREATED + userId;
-			break;
+			parameters.put(BIND_CREATED_BY, userId);
+			return SELECT_CREATED;
 		case MY_PARTICIPATED_PROJECTS:
-			whereClause = SELECT_NOT_CREATED + userId;
-			break;
+			parameters.put(BIND_CREATED_BY, userId);
+			return SELECT_NOT_CREATED;
 		default:
 			throw new NotImplementedException("project list type " + type + " not yet implemented");
 		}
-
-		String sortOrder;
+	}
+	
+	/**
+	 * Build the ORDER BY and paging for a project stats query.
+	 * @param parameters
+	 * @param sortColumn
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static String getProjectStatsOderByAndPaging(Map<String, Object> parameters, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset){
+		StringBuilder builder = new StringBuilder();
 		switch (sortColumn) {
 		case LAST_ACTIVITY:
-			sortOrder = SELECT_PROJECTS_ORDER;
+			builder.append(SELECT_PROJECTS_ORDER);
 			break;
 		case PROJECT_NAME:
-			sortOrder = SELECT_NAME_ORDER;
+			builder.append(SELECT_NAME_ORDER);
 			break;
 		default:
 			throw new NotImplementedException("project list sort column " + sortColumn + " not yet implemented");
 		}
-
+		builder.append(" ").append(sortDirection.name());
+		builder.append(" ");
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
-				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
-
-		return getProjectHeaders(parameters, selectSql);
+		builder.append(pagingSql);
+		return builder.toString();
 	}
 
 	private List<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql) {
