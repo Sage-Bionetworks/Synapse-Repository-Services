@@ -94,6 +94,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		+ " ON "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" = "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_GROUP_ID
 	+ " WHERE "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" IN ( :"+IDS_PARAM+" )";
 
+	private static final String SQL_COUNT_MEMBERS = "SELECT COUNT(DISTINCT "+COL_GROUP_MEMBERS_MEMBER_ID+")"
+			+ " FROM "+TABLE_GROUP_MEMBERS
+			+ " WHERE "+COL_GROUP_MEMBERS_GROUP_ID+" = :"+GROUP_ID_PARAM_NAME
+			+ " AND "+COL_GROUP_MEMBERS_MEMBER_ID+ " IN ( :"+IDS_PARAM+" )";
+
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	
 	@Override
@@ -233,5 +238,17 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(IDS_PARAM, principalIds);
 		return namedParameterJdbcTemplate.queryForObject(SQL_GET_COUNT_ALL_INDIVIDUALS, params, Long.class);
+	}
+
+	@Override
+	public boolean areMemberOf(String groupId, Set<String> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return false;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM, userIds);
+		params.addValue(GROUP_ID_PARAM_NAME, groupId);
+		Integer count = namedParameterJdbcTemplate.queryForObject(SQL_COUNT_MEMBERS, params, Integer.class);
+		return count.equals(userIds.size());
 	}
 }
