@@ -227,6 +227,4 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
-
-
 }
