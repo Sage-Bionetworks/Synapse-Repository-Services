@@ -860,7 +860,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_BY = 			"SUBMITTED_BY";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_ON = 			"SUBMITTED_ON";
 	public static final String COL_DATA_ACCESS_SUBMISSION_REVIEWED_BY = 			"REVIEWED_BY";
-	public static final String COL_DATA_ACCESS_SUBMISSION_REVIEWED_ON = 			"REVIEWED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_MODIFIED_ON = 			"MODIFIED_ON";
 	public static final String COL_DATA_ACCESS_SUBMISSION_STATE = 					"STATE";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";

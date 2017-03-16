@@ -25,7 +25,7 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 			new FieldColumn("submittedBy", COL_DATA_ACCESS_SUBMISSION_SUBMITTED_BY),
 			new FieldColumn("submittedOn", COL_DATA_ACCESS_SUBMISSION_SUBMITTED_ON),
 			new FieldColumn("reviewedBy", COL_DATA_ACCESS_SUBMISSION_REVIEWED_BY),
-			new FieldColumn("reviewedOn", COL_DATA_ACCESS_SUBMISSION_REVIEWED_ON),
+			new FieldColumn("modifiedOn", COL_DATA_ACCESS_SUBMISSION_MODIFIED_ON),
 			new FieldColumn("state", COL_DATA_ACCESS_SUBMISSION_STATE),
 			new FieldColumn("etag", COL_DATA_ACCESS_SUBMISSION_ETAG).withIsEtag(true),
 			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED)
@@ -37,7 +37,7 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 	private Long submittedBy;
 	private Long submittedOn;
 	private Long reviewedBy;
-	private Long reviewedOn;
+	private Long modifiedOn;
 	private DataAccessSubmissionState state;
 	private String etag;
 	private byte[] submissionSerialized;
@@ -46,7 +46,7 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 	public String toString() {
 		return "DBODataAccessSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId
 				+ ", dataAccessRequestId=" + dataAccessRequestId + ", submittedBy=" + submittedBy + ", submittedOn="
-				+ submittedOn + ", reviewedBy=" + reviewedBy + ", reviewedOn=" + reviewedOn + ", state=" + state
+				+ submittedOn + ", reviewedBy=" + reviewedBy + ", reviewedOn=" + modifiedOn + ", state=" + state
 				+ ", etag=" + etag + ", submissionSerialized=" + Arrays.toString(submissionSerialized) + "]";
 	}
 
@@ -59,7 +59,7 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((reviewedBy == null) ? 0 : reviewedBy.hashCode());
-		result = prime * result + ((reviewedOn == null) ? 0 : reviewedOn.hashCode());
+		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result + Arrays.hashCode(submissionSerialized);
 		result = prime * result + ((submittedBy == null) ? 0 : submittedBy.hashCode());
@@ -101,10 +101,10 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 				return false;
 		} else if (!reviewedBy.equals(other.reviewedBy))
 			return false;
-		if (reviewedOn == null) {
-			if (other.reviewedOn != null)
+		if (modifiedOn == null) {
+			if (other.modifiedOn != null)
 				return false;
-		} else if (!reviewedOn.equals(other.reviewedOn))
+		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
 		if (state != other.state)
 			return false;
@@ -172,11 +172,11 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 	}
 
 	public Long getReviewedOn() {
-		return reviewedOn;
+		return modifiedOn;
 	}
 
 	public void setReviewedOn(Long reviewedOn) {
-		this.reviewedOn = reviewedOn;
+		this.modifiedOn = reviewedOn;
 	}
 
 	public DataAccessSubmissionState getState() {
@@ -216,7 +216,7 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 				dbo.setSubmittedBy(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTED_BY));
 				dbo.setSubmittedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTED_ON));
 				dbo.setReviewedBy(rs.getLong(COL_DATA_ACCESS_SUBMISSION_REVIEWED_BY));
-				dbo.setReviewedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_REVIEWED_ON));
+				dbo.setReviewedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_MODIFIED_ON));
 				dbo.setState(DataAccessSubmissionState.valueOf(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATE)));
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ETAG));
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);

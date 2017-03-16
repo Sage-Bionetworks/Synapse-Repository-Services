@@ -58,10 +58,10 @@
 			"format": "date-time",
 			"description": "The date this submission was created."
 		},
-		"reviewedOn": {
+		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this submission was reviewed."
+			"description": "The date this submission was reviewed or was cancelled."
 		},
 		"submittedBy": {
 			"type": "string",
