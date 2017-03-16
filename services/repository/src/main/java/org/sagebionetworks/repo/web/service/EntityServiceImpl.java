@@ -540,21 +540,6 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getEntityReferences(Long userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(offset == null){
-			offset = DEFAULT_OFFSET;
-		}
-		if(limit == null){
-			limit = DEFAULT_LIMIT;
-		}
-		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
-		List<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, (long) offset, (long) limit);
-		return PaginatedResults.createWithLimitAndOffset(results, (long)limit, (long)offset);
-	}
-
-	@Override
 	public UserEntityPermissions getUserEntityPermissions(Long userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);

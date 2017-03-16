@@ -12,13 +12,14 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Validate that authorization checks are in place.
@@ -42,44 +44,52 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public class NodeManagerAuthorizationTest {
 	
+	@Mock
 	private NodeDAO mockNodeDao = null;
+	@Mock
 	private AuthorizationManager mockAuthDao = null;
-	private NodeManagerImpl nodeManager = null;
+	@Mock
 	private AccessControlListDAO mockAclDao = null;
+	@Mock
 	private Node mockNode;
+	@Mock
 	private Annotations mockAnnotations;
+	@Mock
 	private NamedAnnotations mockNamed;
+	@Mock
 	private UserGroup mockUserGroup;
+	@Mock
 	private UserInfo mockUserInfo;	
+	@Mock
 	private EntityBootstrapper mockEntityBootstrapper;
+	@Mock
 	private NodeInheritanceManager mockInheritanceManager;
+	@Mock
 	private ActivityManager mockActivityManager;
+	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;;
+	
+	private NodeManagerImpl nodeManager = null;
 
 	@Before
 	public void before() throws NotFoundException, DatastoreException{
-		mockNodeDao = Mockito.mock(NodeDAO.class);
-		mockAuthDao = Mockito.mock(AuthorizationManager.class);
-		// Say no to everything.
-		mockAclDao = Mockito.mock(AccessControlListDAO.class);
-		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
-		mockInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-		mockActivityManager = Mockito.mock(ActivityManager.class);
-		mockProjectSettingsManager = Mockito.mock(ProjectSettingsManager.class);
+		MockitoAnnotations.initMocks(this);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null,
-				mockActivityManager, mockProjectSettingsManager);
+		nodeManager = new NodeManagerImpl();
+		ReflectionTestUtils.setField(nodeManager, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthDao);
+		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
+		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
+		ReflectionTestUtils.setField(nodeManager, "nodeInheritanceManager", mockInheritanceManager);
+		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
+		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", mockProjectSettingsManager);
 		// The mocks user for tests
-		mockNode = Mockito.mock(Node.class);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("BobTheNode");
-		mockAnnotations = Mockito.mock(Annotations.class);
 		when(mockAnnotations.getEtag()).thenReturn("12");
-		mockNamed = Mockito.mock(NamedAnnotations.class);
 		when(mockNamed.getEtag()).thenReturn("12");
 
 		// UserGroup
-		mockUserGroup = Mockito.mock(UserGroup.class);
 		when(mockUserGroup.getId()).thenReturn("123");
 		mockUserInfo = new UserInfo(false, 123L);
 		

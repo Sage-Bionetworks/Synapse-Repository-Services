@@ -45,14 +45,6 @@ public class SqlConstants {
 	public static final String COL_REVISION_COLUMN_MODEL_IDS= "COLUMN_MODEL_IDS";
 	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
-
-	// The Reference table
-	public static final String TABLE_REFERENCE						= "JDOREFERENCE";
-	public static final String COL_REFERENCE_OWNER_NODE				= "REF_OWNER_NODE_ID";
-	public static final String COL_REFERENCE_TARGET_NODE			= "REF_TARGET_NODE_ID";
-	public static final String COL_REFERENCE_TARGET_REVISION_NUMBER	= "REF_TARGET_REV_NUM";
-	public static final String COL_REFERENCE_GROUP_NAME				= "REF_GROUP_NAME";
-	public static final String DDL_FILE_REFERENCE					= "schema/Reference-ddl.sql";
 	
 	// Annotations tables
 	public static final String TABLE_ANNOTATIONS_OWNER	= "ANNOTATIONS_OWNER";
