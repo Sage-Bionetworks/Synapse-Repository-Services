@@ -36,4 +36,10 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	public DataAccessSubmission getForUpdate(String submissionId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

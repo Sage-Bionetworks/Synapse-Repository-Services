@@ -55,4 +55,12 @@ public interface DataAccessSubmissionDAO {
 	 * false otherwise.
 	 */
 	public boolean hasSubmissionWithState(String userId, String accessRequirementId, DataAccessSubmissionState state);
+
+	/**
+	 * Retrieve a submission
+	 * 
+	 * @param submissionId
+	 * @return
+	 */
+	public DataAccessSubmission getForUpdate(String submissionId);
 }

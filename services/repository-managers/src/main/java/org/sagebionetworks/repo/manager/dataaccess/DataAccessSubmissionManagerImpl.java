@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -47,6 +49,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	@Autowired
 	private VerificationDAO verificationDao;
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -147,20 +150,44 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@Override
 	public DataAccessSubmissionStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		return dataAccessSubmissionDao.getStatus(accessRequirementId, userInfo.getId().toString());
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(submissionId, "submissionId");
+		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(submissionId);
+		ValidateArgument.requirement(submission.getSubmittedBy().equals(userInfo.getId().toString()),
+				"Can only cancel submission you submitted.");
+		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
+						"Cannot cancel a submission with "+submission.getState()+" state.");
+		return dataAccessSubmissionDao.cancel(submissionId, userInfo.getId().toString(),
+				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessSubmission updateStatus(UserInfo userInfo, SubmissionStateChangeRequest request) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getSubmissionId(), "submissionId");
+		ValidateArgument.required(request.getNewState(), "newState");
+		ValidateArgument.requirement(request.getNewState().equals(DataAccessSubmissionState.APPROVED)
+				|| request.getNewState().equals(DataAccessSubmissionState.REJECTED),
+				"Do not support changing to state: "+request.getNewState());
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(request.getSubmissionId());
+		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
+						"Cannot change state of a submission with "+submission.getState()+" state.");
+		return dataAccessSubmissionDao.updateStatus(request.getSubmissionId(),
+				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
+				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
 
 }
