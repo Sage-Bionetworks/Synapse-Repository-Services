@@ -63,10 +63,11 @@ public class DBODataAccessRequestDAOImplTest {
 	private Node node = null;
 	private ACTAccessRequirement accessRequirement = null;
 	private ResearchProject researchProject = null;
+	private String toDelete;
 
 	@Before
 	public void before() {
-		dataAccessRequestDao.truncateAll();
+		toDelete = null;
 
 		// create a user
 		individualGroup = new UserGroup();
@@ -102,8 +103,9 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@After
 	public void after() {
-		dataAccessRequestDao.truncateAll();
-
+		if (toDelete != null) {
+			dataAccessRequestDao.delete(toDelete);
+		}
 		if (researchProject != null) {
 			researchProjectDao.delete(researchProject.getId());
 		}
@@ -136,6 +138,8 @@ public class DBODataAccessRequestDAOImplTest {
 		// should get back the same object
 		DataAccessRequest created = (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
+		assertEquals(dto, (DataAccessRequest) dataAccessRequestDao.get(dto.getId()));
+		toDelete = dto.getId();
 
 		// update
 		dto.setAccessors(Arrays.asList("666"));
