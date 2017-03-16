@@ -350,5 +350,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
 	<bean id="dataAccessRequestDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequestDAOImpl" />
+	<bean id="dataAccessSubmissionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionDAOImpl" />
 	
 </beans>
