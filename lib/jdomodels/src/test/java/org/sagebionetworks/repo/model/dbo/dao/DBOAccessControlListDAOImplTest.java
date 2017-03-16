@@ -518,4 +518,66 @@ public class DBOAccessControlListDAOImplTest {
 	public void testGetAllUserGroupsForNoAcl(){
 		assertEquals(new HashSet<String>(), aclDAO.getPrincipalIds("-1", ObjectType.ENTITY, ACCESS_TYPE.READ));
 	}
+	
+	@Test
+	public void testGetAccessibleProjectIds(){
+		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(group.getId()), Long.parseLong(group.getId()));
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertEquals(1, projectIds.size());
+		assertTrue(projectIds.contains(KeyFactory.stringToKey(node.getId())));
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIdsNotAccessible(){
+		// principals that does not exist
+		Set<Long> principalIs = Sets.newHashSet(-123L);
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertTrue(projectIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIdsNonProject(){
+		// create a resource on which to apply permissions
+		Node folder = new Node();
+		folder.setName("foo");
+		folder.setCreatedOn(new Date());
+		folder.setCreatedByPrincipalId(createdById);
+		folder.setModifiedOn(new Date());
+		folder.setModifiedByPrincipalId(modifiedById);
+		folder.setNodeType(EntityType.folder);
+		folder = nodeDAO.createNewNode(folder);
+		nodeList.add(folder);
+		
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(false);
+		ug.setId(userGroupDAO.create(ug).toString());
+		assertNotNull(ug.getId());
+		groupList.add(ug);
+		
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(folder.getId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(group.getId()));
+		//ra.setDisplayName(group.getName());
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ
+				})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		aclDAO.create(acl, ObjectType.ENTITY);
+		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
+		assertNotNull(acl);
+		
+		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(ug.getId()));
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertTrue(projectIds.isEmpty());
+	}
 }
