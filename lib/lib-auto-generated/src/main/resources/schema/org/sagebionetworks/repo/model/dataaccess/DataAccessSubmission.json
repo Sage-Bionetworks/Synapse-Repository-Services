@@ -78,6 +78,10 @@
 		"rejectedReason": {
 			"type": "string",
             "description": "The reason this submission is rejected, if it's rejected."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a request is updated it is used to detect when a client's current representation of a request is out-of-date."
 		}
 	}
 }
