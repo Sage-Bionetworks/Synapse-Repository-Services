@@ -106,6 +106,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		if(!con.getAutoCommit()) throw new RuntimeException("The connections from this datasources should be set to auto-commit");
 		// First make sure the table exists
 		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionUrl();
+		System.out.println("\n\n******\n\tIdGeneratorDatabaseConnectionUrl: "+connectionString+"\n\n*******");
 		String schema = getSchemaFromConnectionString(connectionString);
 		// Make sure we have a table for each type
 		for(TYPE type: TYPE.values()){
