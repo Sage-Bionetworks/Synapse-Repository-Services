@@ -1,11 +1,6 @@
-# customize each private build here
-user=$1
-org_sagebionetworks_stack_iam_id=$2
-org_sagebionetworks_stack_iam_key=$3
-org_sagebionetworks_stackEncryptionKey=$4
 
 stack=dev
-user_name=${stack}${user}
+rds_user_name=${stack}${user}
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
 
@@ -27,23 +22,15 @@ mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 
 # could we pass these via the maven command line instead of the settings file?
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-<settings><profiles><profile><properties>\
-<org.sagebionetworks.table.enabled>false</org.sagebionetworks.table.enabled>\
-<org.sagebionetworks.repository.database.connection.url>\
-jdbc:mysql://${rds_container_name}/${user_name}\
-</org.sagebionetworks.repository.database.connection.url>\
-<org.sagebionetworks.id.generator.database.connection.url>\
-jdbc:mysql://${rds_container_name}/${user_name}\
-</org.sagebionetworks.id.generator.database.connection.url>\
-</properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+<settings><profiles><profile><properties></properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
 
 # start up rds container
 docker run --name ${rds_container_name} \
 -e MYSQL_ROOT_PASSWORD=default-pw \
--e MYSQL_DATABASE=${user_name} \
--e MYSQL_USER=${user_name} \
--e MYSQL_PASSWORD=platform \
+-e MYSQL_DATABASE=${rds_user_name} \
+-e MYSQL_USER=${rds_user_name} \
+-e MYSQL_PASSWORD=${rds_password} \
 -v /etc/localtime:/etc/localtime:ro \
 -d mysql:5.6
 
@@ -56,14 +43,15 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
+-Dorg.sagebionetworks.repository.database.connection.url="jdbc:mysql://${rds_container_name}/${rds_user_name}" \
+-Dorg.sagebionetworks.id.generator.database.connection.url="jdbc:mysql://${rds_container_name}/${rds_user_name}" \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 -Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} \
 -Dorg.sagebionetworks.stack.iam.key=${org_sagebionetworks_stack_iam_key} \
 -Dorg.sagebionetworks.stack.instance=${user} \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
--Dorg.sagebionetworks.repositoryservice.endpoint=http://localhost:8080/services-repository-develop-SNAPSHOT/repo/v1 \
--Dorg.sagebionetworks.fileservice.endpoint=http://localhost:8080/services-repository-develop-SNAPSHOT/file/v1 \
+-Dorg.sagebionetworks.table.enabled=false \
 -Duser.home=/root"
 
 
