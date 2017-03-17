@@ -127,6 +127,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

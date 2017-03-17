@@ -67,9 +67,9 @@
 			"type": "string",
 			"description": "The ID of the user that submit this submission."
 		},
-		"reviewedBy": {
+		"modifiedBy": {
 			"type": "string",
-			"description": "The ID of the user that reviewed this submission."
+			"description": "The ID of the user that last modified the status of this submission."
 		},
 		"state":{
 			"description": "The state of this DataAccessSubmission.",

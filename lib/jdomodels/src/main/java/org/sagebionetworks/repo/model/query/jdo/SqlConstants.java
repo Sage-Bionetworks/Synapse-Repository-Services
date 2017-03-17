@@ -857,13 +857,21 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_ID = 						"ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID = 	"DATA_ACCESS_REQUEST_ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_BY = 			"SUBMITTED_BY";
-	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTED_ON = 			"SUBMITTED_ON";
-	public static final String COL_DATA_ACCESS_SUBMISSION_REVIEWED_BY = 			"REVIEWED_BY";
-	public static final String COL_DATA_ACCESS_SUBMISSION_MODIFIED_ON = 			"MODIFIED_ON";
-	public static final String COL_DATA_ACCESS_SUBMISSION_STATE = 					"STATE";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_ON = 				"CREATED_ON";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
+
+	// DataAccessSubmissionStatus
+	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_STATUS = 				"DATA_ACCESS_SUBMISSION_STATUS";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID = 	"SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY = 		"MODIFIED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON = 		"MODIFIED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_STATE = 			"STATE";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_REASON = 			"REASON";
 
 	// DataAccessSubmissionAccessors
 	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"schema/DataAccessSubmissionAccessor-ddl.sql";
