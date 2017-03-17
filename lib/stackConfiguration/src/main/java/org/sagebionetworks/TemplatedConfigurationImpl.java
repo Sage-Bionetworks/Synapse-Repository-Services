@@ -8,9 +8,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 /**
  * @author deflaux
  *
@@ -41,7 +38,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	@Override
 	public void reloadConfiguration() {
 		defaultStackProperties = new Properties();
-		stackPropertyOverrides = new Properties();
+		stackPropertyOverrides = new Properties(System.getProperties());
 		requiredProperties = new Properties();
 
 		// Load the default properties from the classpath.
