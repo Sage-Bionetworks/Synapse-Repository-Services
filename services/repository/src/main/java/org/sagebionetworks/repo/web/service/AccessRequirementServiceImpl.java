@@ -86,7 +86,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		List<AccessRequirement> results = 
-			accessRequirementManager.getAllAccessRequirementsForSubject(userInfo, subjectId);
+			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId, limit, offset);
 		
 		// This services is not actually paginated so PaginatedResults is being misused.
 		return PaginatedResults.createMisusedPaginatedResults(results);

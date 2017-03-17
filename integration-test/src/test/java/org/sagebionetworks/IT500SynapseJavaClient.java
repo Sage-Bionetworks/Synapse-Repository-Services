@@ -1296,6 +1296,9 @@ public class IT500SynapseJavaClient {
 		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 10L);
+		assertTrue(paginatedResults.getResults().isEmpty());
+
 		// Query Unmet AccessRestriction
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
