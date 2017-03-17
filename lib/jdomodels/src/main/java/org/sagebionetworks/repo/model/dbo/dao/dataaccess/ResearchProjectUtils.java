@@ -15,7 +15,6 @@ public class ResearchProjectUtils {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
-		dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
 		dbo.setEtag(dto.getEtag());
 		dbo.setProjectLead(dto.getProjectLead());
 		dbo.setInstitution(dto.getInstitution());
@@ -29,7 +28,6 @@ public class ResearchProjectUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
-		dto.setOwnerId(dbo.getOwnerId().toString());
 		dto.setEtag(dbo.getEtag());
 		dto.setProjectLead(dbo.getProjectLead());
 		dto.setInstitution(dbo.getInstitution());

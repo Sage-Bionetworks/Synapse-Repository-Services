@@ -2704,15 +2704,6 @@ public interface SynapseClient extends BaseClient {
 	ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException;
 
 	/**
-	 * Retrieve an existing ResearchProject.
-	 * 
-	 * @param accessRequirementId
-	 * @return
-	 * @throws SynapseException
-	 */
-	ResearchProject getUserOwnResearchProject(String accessRequirementId) throws SynapseException;
-
-	/**
 	 * Retrieve the current ResearchProject to update.
 	 * If one does not exist, an empty ResearchProject will be returned.
 	 * 
@@ -2723,16 +2714,6 @@ public interface SynapseClient extends BaseClient {
 	ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException;
 
 	/**
-	 * Request to change the ownership of an existing ResearchProject.
-	 * 
-	 * @param researchProjectId
-	 * @param newOwnerId
-	 * @return
-	 * @throws SynapseException
-	 */
-	ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws SynapseException;
-
-	/**
 	 * Create new or update an existing DataAccessRequestInterface.
 	 * 
 	 * @param toCreateOrUpdate
@@ -2740,15 +2721,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
-
-	/**
-	 * Retrieve an existing DataAccessRequestInterface.
-	 * 
-	 * @param accessRequirementId
-	 * @return
-	 * @throws SynapseException
-	 */
-	DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId) throws SynapseException;
 
 	/**
 	 * Retrieve the current DataAccessRequestInterface to update.

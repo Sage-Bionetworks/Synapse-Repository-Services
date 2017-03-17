@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -29,7 +30,6 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -41,8 +41,6 @@ public class DataAccessRequestManagerImplTest {
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
-	@Mock
-	private ResearchProjectDAO mockResearchProjectDao;
 	@Mock
 	private DataAccessRequestDAO mockDataAccessRequestDao;
 	@Mock
@@ -69,7 +67,6 @@ public class DataAccessRequestManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 		ReflectionTestUtils.setField(manager, "dataAccessRequestDao", mockDataAccessRequestDao);
 
 		userId = "1";
@@ -88,7 +85,6 @@ public class DataAccessRequestManagerImplTest {
 		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockDataAccessRequestDao.update(any(DataAccessRequestInterface.class))).thenReturn(request);
-		when(mockResearchProjectDao.getOwnerId(researchProjectId)).thenReturn(userId);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 	}
 
@@ -190,7 +186,10 @@ public class DataAccessRequestManagerImplTest {
 	@Test
 	public void testGetForUpdateNotFound() {
 		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenThrow(new NotFoundException());
-		assertEquals(new DataAccessRequest(), manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId));
+		request = (DataAccessRequest) manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId);
+		assertNotNull(request);
+		assertEquals(accessRequirementId, request.getAccessRequirementId());
+		assertEquals(DataAccessRequest.class.getName(), request.getConcreteType());
 	}
 
 	@Test
@@ -356,5 +355,40 @@ public class DataAccessRequestManagerImplTest {
 		assertNull(renewal.getPublication());
 	}
 
-	
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateOrUpdateWithNullRequest() {
+		manager.createOrUpdate(mockUser, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateOrUpdateWithDataAccessRenewalNullId() {
+		manager.createOrUpdate(mockUser, new DataAccessRenewal());
+	}
+
+	@Test
+	public void testCreateOrUpdateWithNullId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
+		request.setId(null);
+		assertEquals(request, manager.createOrUpdate(mockUser, request));
+		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);
+		verify(mockDataAccessRequestDao).create(captor.capture());
+		DataAccessRequest toCreate = captor.getValue();
+		assertEquals(requestId, toCreate.getId());
+		assertEquals(userId, toCreate.getCreatedBy());
+		assertEquals(userId, toCreate.getModifiedBy());
+	}
+
+	@Test
+	public void testCreateOrUpdateWithId() {
+		DataAccessRequest toUpdate = createNewRequest();
+		toUpdate.setDucFileHandleId("777");
+		assertEquals(request, manager.createOrUpdate(mockUser, toUpdate));
+		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);
+		verify(mockDataAccessRequestDao).update(captor.capture());
+		DataAccessRequest updated = captor.getValue();
+		assertEquals(requestId, updated.getId());
+		assertEquals(userId, updated.getCreatedBy());
+		assertEquals(userId, updated.getModifiedBy());
+		assertEquals("777", updated.getDucFileHandleId());
+	}
 }

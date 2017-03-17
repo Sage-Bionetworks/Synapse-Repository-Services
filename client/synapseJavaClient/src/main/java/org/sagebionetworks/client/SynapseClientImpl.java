@@ -97,7 +97,6 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dataaccess.ChangeOwnershipRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -4907,56 +4906,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
-		if (toCreateOrUpdate.getId() == null) {
-			return postJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT, toCreateOrUpdate, ResearchProject.class);
-		} else {
-			return putJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT+"/"+toCreateOrUpdate.getId(), toCreateOrUpdate, ResearchProject.class);
-		}
-	}
-
-	@Override
-	public ResearchProject getUserOwnResearchProject(String accessRequirementId) throws SynapseException {
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/researchProject";
-		return getJSONEntity(getRepoEndpoint(), url, ResearchProject.class);
+		return postJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT, toCreateOrUpdate, ResearchProject.class);
 	}
 
 	@Override
 	public ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException {
-		try {
-			return getUserOwnResearchProject(accessRequirementId);
-		} catch (SynapseNotFoundException e) {
-			return new ResearchProject();
-		}
-	}
-
-	@Override
-	public ResearchProject changeOwnership(String researchProjectId, String newOwnerId) throws SynapseException {
-		ValidateArgument.required(researchProjectId, "researchProjectId");
-		ValidateArgument.required(newOwnerId, "newOwnerId");
-		String url = RESEARCH_PROJECT + "/" + researchProjectId + "/updateOwnership";
-		ChangeOwnershipRequest request = new ChangeOwnershipRequest();
-		request.setNewOwnerId(newOwnerId);
-		request.setResearchProjectId(researchProjectId);
-		return putJSONEntity(getRepoEndpoint(), url, request, ResearchProject.class);
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/researchProjectForUpdate";
+		return getJSONEntity(getRepoEndpoint(), url, ResearchProject.class);
 	}
 
 	@Override
 	public DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate)
 			throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
-		if (toCreateOrUpdate.getId() == null) {
-			return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST, toCreateOrUpdate, DataAccessRequest.class);
-		} else {
-			return putJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST+"/"+toCreateOrUpdate.getId(), toCreateOrUpdate, toCreateOrUpdate.getClass());
-		}
-	}
-
-	@Override
-	public DataAccessRequestInterface getUserOwnCurrentRequest(String accessRequirementId) throws SynapseException {
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequest";
-		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
+		return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST, toCreateOrUpdate, DataAccessRequest.class);
 	}
 
 	@Override

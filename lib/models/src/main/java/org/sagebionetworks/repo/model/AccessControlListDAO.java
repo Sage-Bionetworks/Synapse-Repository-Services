@@ -120,4 +120,14 @@ public interface AccessControlListDAO  {
 	 */
 	public Set<String> getPrincipalIds(String objectId, ObjectType objectType, ACCESS_TYPE accessType);
 
+	/**
+	 * Get the projectIds that can be read by the passed principal ids.
+	 * 
+	 * @param principalIds
+	 * @param read
+	 * @return
+	 */
+	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
+			ACCESS_TYPE read);
+
 }

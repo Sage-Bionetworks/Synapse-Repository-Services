@@ -14,7 +14,6 @@ public class ResearchProjectTestUtils {
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("4");
 		dto.setModifiedOn(new Date());
-		dto.setOwnerId("5");
 		dto.setEtag("etag");
 		dto.setProjectLead("projectLead");
 		dto.setInstitution("institution");

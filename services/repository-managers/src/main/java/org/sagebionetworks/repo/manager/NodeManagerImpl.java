@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -72,38 +71,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private EntityBootstrapper entityBootstrapper;	
 	@Autowired
 	private NodeInheritanceManager nodeInheritanceManager;	
-	@Autowired
-	private ReferenceDao referenceDao;
 	@Autowired 
 	private ActivityManager activityManager;
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
-
-	/**
-	 * This is used for unit test.
-	 * 
-	 * @param nodeDao
-	 * @param authDoa
-	 * @param projectSettingsManager
-	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper,
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager,
-			ProjectSettingsManager projectSettingsManager) {
-		this.nodeDao = nodeDao;
-		this.authorizationManager = authDoa;
-		this.aclDAO = aclDao;
-		this.entityBootstrapper = entityBootstrapper;
-		this.nodeInheritanceManager = nodeInheritanceManager;
-		this.referenceDao = referenceDao;
-		this.activityManager = activityManager;
-		this.projectSettingsManager = projectSettingsManager;
-	}
-	
-	/**
-	 * Used by Spring
-	 */
-	public NodeManagerImpl(){
-	}
 	
 	/*
 	 * (non-Javadoc)
@@ -653,13 +624,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			}
 		}
 		return filtered;
-	}
-
-	@Override
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Long offset, Long limit)
-			throws NotFoundException, DatastoreException {
-		UserInfo.validateUserInfo(userInfo);
-		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
 	}
 
 	@Override

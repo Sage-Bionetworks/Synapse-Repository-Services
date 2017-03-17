@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -84,7 +83,6 @@ import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -363,6 +361,9 @@ public class NodeDAOImplTest {
 		Node toCreate = privateCreateNewDistinctModifier("available");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
+		// add an acl for this node.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -372,10 +373,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testIsNodeAvailableAndInTrash(){
 		Node toCreate = privateCreateNewDistinctModifier("available");
+		toCreate.setParentId(""+TRASH_FOLDER_ID);
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		// put the node in the trash
-		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
+//		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -1429,6 +1431,9 @@ public class NodeDAOImplTest {
 		Long parentBenefactor = KeyFactory.stringToKey(parentId);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
+		// add an acl for the parent
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(parentId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node child = privateCreateNew("child");
 		child.setNodeType(EntityType.folder);
@@ -2529,260 +2534,161 @@ public class NodeDAOImplTest {
 		assertEquals(id2, results.get(0).getId());
 		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
 	}
-
+	
 	@Test
-	public void testGetProjectHeadersReturnInfo() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, false);
-
-		Date before = new Date();
-		Thread.sleep(2);
-
-		String owned = createProject("testGetProjectHeaders.name1", user1);
-		toDelete.add(owned);
-		Node ownedProject = nodeDao.getNode(owned);
-		// now add ACL for the user
-		addReadAcl(owned, user1);
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(1, projectHeaders.size());
-		ProjectHeader header = projectHeaders.get(0);
-		assertEquals(ownedProject.getName(), header.getName());
-		assertEquals(owned, header.getId());
-
-		Thread.sleep(2);
-		Date between = new Date();
-		Thread.sleep(2);
-
-		assertTrue(header.getLastActivity().after(before));
-		assertTrue(header.getLastActivity().before(between));
-
-		// touching project stats
-		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-
-		Thread.sleep(2);
-
-		ownedProject.setModifiedByPrincipalId(Long.parseLong(user2));
-		ownedProject.setModifiedOn(new Date());
-		nodeDao.updateNode(ownedProject);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user2), new Date());
-		projectStatsDAO.update(projectStat);
-
-		List<ProjectHeader> projectHeadersAfter = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(1, projectHeadersAfter.size());
-		ProjectHeader headerAfter = projectHeadersAfter.get(0);
-		assertEquals(ownedProject.getName(), headerAfter.getName());
-		assertEquals(owned, headerAfter.getId());
-		assertNotNull(headerAfter.getLastActivity());
-
-		assertEquals(user2, headerAfter.getModifiedBy().toString());
-		assertTrue(headerAfter.getModifiedOn().after(headerAfter.getLastActivity()));
-
-		Thread.sleep(2);
-		Date after = new Date();
-
-		assertTrue(headerAfter.getLastActivity().after(between));
-		assertTrue(headerAfter.getLastActivity().before(after));
+	public void testGetProjectStatAdditionalConditionMY_CREATED_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals(" AND n.CREATED_BY = :bCreatedBy", result);
+		assertEquals(userId, parameters.get("bCreatedBy"));
 	}
-
-	private static final Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
-		@Override
-		public String apply(ProjectHeader input) {
-			return input.getId();
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_PARTICIPATED_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_PARTICIPATED_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals(" AND n.CREATED_BY <> :bCreatedBy", result);
+		assertEquals(userId, parameters.get("bCreatedBy"));
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_TEAM_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_TEAM_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionOTHER_USER_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.OTHER_USER_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionTEAM_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.TEAM_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	/**
+	 * Must work for each type.
+	 */
+	@Test
+	public void testGetProjectStatAdditionalConditionEachType(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		for(ProjectListType type : ProjectListType.values()){
+			String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+			assertNotNull(result);
 		}
-	};
-
+	}
+	
 	@Test
-	public void testGetProjectHeaders() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, false);
-		UserInfo user2Info = createUserInfo(user2, false);
-		UserInfo user3Info = createUserInfo(user3, false);
-
-		createProjects();
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
-
-		// sort opposite direction
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.ASC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(owned, participate, groupParticipate, subFolderProject2, publicProject), projectIds);
-
-		// sort by name
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.DESC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
-
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-
-		List<String> projectIds2 = Lists.newArrayList();
-		for (long i = 0; i < 5; i++) {
-			projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-					ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 1L, i);
-			assertEquals(1L, projectHeaders.size());
-			projectIds2.add(projectHeaders.get(0).getId());
+	public void testGetProjectStatsOderByAndPagingLAST_ACTIVITY(){
+		Map<String, Object> parameters = new HashMap<>();
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 1L;
+		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		assertEquals(" ORDER BY coalesce(ps.LAST_ACCESSED, n.CREATED_ON) ASC limit :limitVal offset :offsetVal", result);
+		assertEquals(limit, parameters.get("limitVal"));
+		assertEquals(offset, parameters.get("offsetVal"));
+	}
+	
+	@Test
+	public void testGetProjectStatsOderByAndPagingPROJECT_NAME(){
+		Map<String, Object> parameters = new HashMap<>();
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.PROJECT_NAME;
+		SortDirection sortDirection = SortDirection.DESC;
+		Long limit = 10L;
+		Long offset = 1L;
+		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		assertEquals(" ORDER BY n.NAME COLLATE 'latin1_general_ci' DESC limit :limitVal offset :offsetVal", result);
+		assertEquals(limit, parameters.get("limitVal"));
+		assertEquals(offset, parameters.get("offsetVal"));
+	}
+	
+	@Test
+	public void testGetProjectStatsOderByAndPagingEachType(){
+		Map<String, Object> parameters = new HashMap<>();
+		SortDirection sortDirection = SortDirection.DESC;
+		Long limit = 10L;
+		Long offset = 1L;
+		for(ProjectListSortColumn sortColumn: ProjectListSortColumn.values()){
+			String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+			assertNotNull(result);
 		}
-		assertEquals(projectIds, projectIds2);
-
-		// change sorting by touching project stats
-		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(participate), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-		Thread.sleep(2);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-		// project stat for other user should not matter
-		Thread.sleep(2);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(groupParticipate), KeyFactory.stringToKey(user2), new Date(2000));
-		projectStatsDAO.update(projectStat);
-
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject2, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// created by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(owned, publicProject), Lists.transform(projectHeaders, transformToId));
-
-		// direct participation by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(participate, subFolderProject2, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// participate via team by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// user3 only has access to group project
-		projectHeaders = nodeDao.getProjectHeaders(user3Info, user1Info, null, ProjectListType.OTHER_USER_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group projects, and only user1 can access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group project and user3 cannot access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user3Info, user3Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
 	}
-
+	
+	
 	@Test
-	public void testGetProjectHeadersAsAdmin() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, true);
-		UserInfo user2Info = createUserInfo(user2, false);
-		UserInfo user3Info = createUserInfo(user3, false);
-
-		createProjects();
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, subFolderProject, groupParticipate, participate, owned), projectIds);
-
-		// created by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(publicProject, owned), Lists.transform(projectHeaders, transformToId));
-
-		// direct participation by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate, participate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// participate via team by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group projects, and only user1 can access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
+	public void testGetProjectHeaders() throws Exception{
+		Long user1Id = Long.parseLong(user1);
+		Node projectOne = createProject("testGetProjectHeaders.one", user1);
+		Node projectTwo = createProject("testGetProjectHeaders.two", user1);
+		Node projectThree = createProject("testGetProjectHeaders.three", user1);
+		Set<Long> projectIds = Sets.newHashSet(KeyFactory.stringToKey(projectTwo.getId()), KeyFactory.stringToKey(projectThree.getId()));
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 0L;
+		// call under test
+		List<ProjectHeader> results = nodeDao.getProjectHeaders(user1Id, projectIds, type, sortColumn, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		ProjectHeader first = results.get(0);
+		assertEquals(projectTwo.getId(), first.getId());
+		assertEquals(projectTwo.getName(), first.getName());
+		assertEquals(projectTwo.getCreatedByPrincipalId(), first.getModifiedBy());
+		assertEquals(projectTwo.getModifiedOn(), first.getModifiedOn());
+		
+		ProjectHeader second = results.get(0);
+		assertEquals(second.getId(), second.getId());
 	}
-
+	
 	@Test
-	public void testGetMyProjectHeaders() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, true);
-
-		String first = createProject("aaa1", user1);
-		toDelete.add(first);
-		addReadAcl(first, user1);
-
-		String second = createProject("AAA2", user1);
-		toDelete.add(second);
-		addReadAcl(second, user1);
-
-		String third = createProject("bbb", user1);
-		toDelete.add(third);
-		addReadAcl(third, user1);
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_CREATED_PROJECTS, ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100L, 0L);
-		assertEquals(Lists.newArrayList(first, second, third), Lists.transform(projectHeaders, transformToId));
+	public void testGetProjectHeadersEmpty() throws Exception{
+		Long user1Id = Long.parseLong(user1);
+		// empty project ids should return an empty set.
+		Set<Long> projectIds = new HashSet<>();
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 0L;
+		// call under test
+		List<ProjectHeader> results = nodeDao.getProjectHeaders(user1Id, projectIds, type, sortColumn, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 
-	private void createProjects() throws Exception, NotFoundException {
-		owned = createProject("testGetProjectHeaders.1.owned", user1);
-		toDelete.add(owned);
-		Node ownedProject = nodeDao.getNode(owned);
-		ownedProject.setVersionLabel("2nd");
-		// create 2nd version
-		nodeDao.createNewVersion(ownedProject);
-		ownedProject = nodeDao.getNode(owned);
-		// now add ACL for the user
-		addReadAcl(owned, user1);
-
-		participate = createProject("testGetProjectHeaders.2.participate", user2);
-		addReadAcl(participate, user1);
-
-		groupParticipate = createProject("testGetProjectHeaders.3.groupParticipate", user2);
-		addReadAcl(groupParticipate, group);
-
-		nooneOwns = createProject("testGetProjectHeaders.4.nooneOwns", user2);
-
-		subFolderProject = createProject("testGetProjectHeaders.5.subFolderProject", user2);
-		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
-		folder.setParentId(subFolderProject);
-		folder.setNodeType(EntityType.folder);
-		String ownerFolder = this.nodeDao.createNew(folder);
-		toDelete.add(ownerFolder);
-		addReadAcl(ownerFolder, group);
-
-		subFolderProject2 = createProject("testGetProjectHeaders.6.subFolderProject2", user2);
-		addReadAcl(subFolderProject2, user1);
-		folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1a", Long.parseLong(user1));
-		folder.setParentId(subFolderProject2);
-		folder.setNodeType(EntityType.folder);
-		ownerFolder = this.nodeDao.createNew(folder);
-		toDelete.add(ownerFolder);
-		addReadAcl(ownerFolder, group);
-
-		trashed = createProject("testGetProjectHeaders.7.trashed", user2, StackConfiguration.getTrashFolderEntityIdStatic());
-
-		publicProject = createProject("testGetProjectHeaders.8.publicProject", user1);
-		addReadAcl(publicProject, user1, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
-
-		publicProject2 = createProject("testGetProjectHeaders.9.publicProject2", user2);
-		addReadAcl(publicProject2, user2, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString(), BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS
-						.getPrincipalId().toString());
-	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNodeLongNameTooLong() throws DatastoreException, InvalidModelException, NotFoundException {
@@ -3115,51 +3021,19 @@ public class NodeDAOImplTest {
 		
 		return resutls;
 	}
-	
-	private UserInfo createUserInfo(String user, boolean isAdmin) throws NotFoundException {
-		UserInfo userInfo = new UserInfo(isAdmin, Long.parseLong(user));
-		Set<Long> groups = new HashSet<Long>();
-		groups.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		groups.add(Long.parseLong(user));
-		groups.add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		// Add all groups the user belongs to
-		List<UserGroup> groupFromDAO = groupMembersDAO.getUsersGroups(user);
-		for (UserGroup ug : groupFromDAO) {
-			groups.add(Long.parseLong(ug.getId()));
-		}
-		userInfo.setGroups(groups);
-		return userInfo;
-	}
 
-	private String createProject(String projectName, String user) throws Exception {
+	private Node createProject(String projectName, String user) throws Exception {
 		return createProject(projectName, user, StackConfiguration.getRootFolderEntityIdStatic());
 	}
 
-	private String createProject(String projectName, String user, String parentId) throws Exception {
+	private Node createProject(String projectName, String user, String parentId) throws Exception {
 		Thread.sleep(2); // ensure ordering by creation date
 		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
 		project.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
 		project.setParentId(parentId);
-		String projectId = this.nodeDao.createNew(project);
-		toDelete.add(projectId);
-		nodeInheritanceDAO.addBeneficiary(projectId, projectId);
-		return projectId;
-	}
-
-	private void addReadAcl(String entity, String... usersToAdd) throws Exception {
-		Set<ResourceAccess> ras = Sets.newHashSet();
-		for (String userToAdd : usersToAdd) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-			ra.setPrincipalId(Long.parseLong(userToAdd));
-			ras.add(ra);
-		}
-		AccessControlList acl = new AccessControlList();
-		acl.setResourceAccess(ras);
-		acl.setId(entity);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
-		nodeInheritanceDAO.addBeneficiary(entity, entity);
+		project = this.nodeDao.createNewNode(project);
+		toDelete.add(project.getProjectId());
+		return project;
 	}
 
 

@@ -108,7 +108,7 @@ public class DBOResearchProjectDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
+		researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getCreatedBy());
 	}
 
 	@Test
@@ -119,24 +119,12 @@ public class DBOResearchProjectDAOImplTest {
 		assertEquals(dto, researchProjectDao.create(dto));
 
 		// should get back the same object
-		ResearchProject created = researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getOwnerId());
+		ResearchProject created = researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
 
 		// update
 		dto.setProjectLead("new projectLead");
 		assertEquals(dto, researchProjectDao.update(dto));
-
-		// change ownership
-		String newOwnerId = "333";
-		String modifiedBy = "999";
-		long modifiedOn = System.currentTimeMillis();
-		String newEtag = "newEtag";
-		ResearchProject newDto = researchProjectDao.changeOwnership(dto.getId(), newOwnerId, modifiedBy, modifiedOn, newEtag);
-		assertEquals(dto.getId(), newDto.getId());
-		assertEquals(newOwnerId, newDto.getOwnerId());
-		assertEquals(modifiedBy, newDto.getModifiedBy());
-		assertEquals(modifiedOn, newDto.getModifiedOn().getTime());
-		assertEquals(newEtag, newDto.getEtag());
 
 		// insert another one with the same accessRequirementId & createdBy
 		try {
@@ -154,20 +142,12 @@ public class DBOResearchProjectDAOImplTest {
 				return researchProjectDao.getForUpdate(dto.getId());
 			}
 		});
-		assertEquals(newDto, locked);
-
-		assertEquals(newDto.getOwnerId(), researchProjectDao.getOwnerId(dto.getId()));
+		assertEquals(dto, locked);
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
 		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
 		researchProjectDao.getForUpdate(dto.getId());
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetOwnerNotExist() {
-		ResearchProject dto = ResearchProjectTestUtils.createNewDto();
-		researchProjectDao.getOwnerId(dto.getId());
 	}
 }

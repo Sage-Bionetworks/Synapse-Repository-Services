@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -58,6 +60,8 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 
 	@Autowired
 	private TeamDAO teamDAO;
+	@Autowired
+	private UserProfileManager userProfileManager;
 
 
 	@Override
@@ -145,11 +149,11 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 		UserInfo adminUser = new UserInfo(true,	BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		long limit = Long.MAX_VALUE;
 		long offset = 0;
-		List<ProjectHeader> headers = nodeDao.getProjectHeaders(adminUser,
-				adminUser, team, ProjectListType.TEAM_PROJECTS,
+		PaginatedResults<ProjectHeader> headers = userProfileManager.getProjects(adminUser,
+				null, team, ProjectListType.TEAM_PROJECTS,
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC,
 				limit, offset);
-		for (ProjectHeader projectHeader : headers) {
+		for (ProjectHeader projectHeader : headers.getResults()) {
 			for (long member : members) {
 				ProjectStat projectStat = new ProjectStat(
 						KeyFactory.stringToKey(projectHeader.getId()), member,

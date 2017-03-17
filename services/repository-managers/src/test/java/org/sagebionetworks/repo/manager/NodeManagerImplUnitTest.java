@@ -19,14 +19,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -39,15 +40,14 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -60,32 +60,38 @@ import com.google.common.collect.Sets;
  */
 public class NodeManagerImplUnitTest {
 	
+	@Mock
 	private NodeDAO mockNodeDao = null;
+	@Mock
 	private AuthorizationManager mockAuthManager = null;
-	private NodeManagerImpl nodeManager = null;
+	@Mock
 	private AccessControlListDAO mockAclDao = null;
+	@Mock
 	private EntityBootstrapper mockEntityBootstrapper;
+	@Mock
 	private NodeInheritanceManager mockNodeInheritanceManager = null;
-	private ReferenceDao mockReferenceDao = null;
+	@Mock
 	private ActivityManager mockActivityManager;
+	@Mock
 	private ProjectSettingsManager projectSettingsManager;
+	
+	private NodeManagerImpl nodeManager = null;
 		
 	private UserInfo mockUserInfo;
 	private UserInfo anonUserInfo;
 
 	@Before
 	public void before() throws Exception {
-		mockNodeDao = Mockito.mock(NodeDAO.class);
-		mockAuthManager = Mockito.mock(AuthorizationManager.class);
-		mockAclDao = Mockito.mock(AccessControlListDAO.class);
-		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
-		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-		mockReferenceDao = Mockito.mock(ReferenceDao.class);
-		mockActivityManager = Mockito.mock(ActivityManager.class);
-		projectSettingsManager = Mockito.mock(ProjectSettingsManager.class);
+		MockitoAnnotations.initMocks(this);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthManager, mockAclDao, mockEntityBootstrapper, mockNodeInheritanceManager,
-				mockReferenceDao, mockActivityManager, projectSettingsManager);
+		nodeManager = new NodeManagerImpl();
+		ReflectionTestUtils.setField(nodeManager, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthManager);
+		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
+		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
+		ReflectionTestUtils.setField(nodeManager, "nodeInheritanceManager", mockNodeInheritanceManager);
+		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
+		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", projectSettingsManager);
 
 		mockUserInfo = new UserInfo(false, 101L);
 		
@@ -416,15 +422,6 @@ public class NodeManagerImplUnitTest {
 		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
 		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertEquals(copy, annos);
-	}
-	
-	@Test
-	public void testGetReferences() throws Exception {
-		List<EntityHeader> expected = new ArrayList<EntityHeader>();
-		Long id = 101L;
-		UserInfo userInfo = anonUserInfo;
-		when(mockReferenceDao.getReferrers(id, null, userInfo, null, null)).thenReturn(expected);
-		List<EntityHeader> actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
 	}
 	
 	/**

@@ -387,7 +387,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		researchProject.setCreatedOn(new Date());
 		researchProject.setModifiedBy(adminUserIdString);
 		researchProject.setModifiedOn(new Date());
-		researchProject.setOwnerId(adminUserIdString);
 		researchProject.setEtag("etag");
 		researchProject.setProjectLead("projectLead");
 		researchProject.setInstitution("institution");
