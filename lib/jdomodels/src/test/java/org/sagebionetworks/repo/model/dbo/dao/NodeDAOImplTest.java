@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -84,7 +83,6 @@ import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -363,6 +361,9 @@ public class NodeDAOImplTest {
 		Node toCreate = privateCreateNewDistinctModifier("available");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
+		// add an acl for this node.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -372,10 +373,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testIsNodeAvailableAndInTrash(){
 		Node toCreate = privateCreateNewDistinctModifier("available");
+		toCreate.setParentId(""+TRASH_FOLDER_ID);
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		// put the node in the trash
-		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
+//		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -1429,6 +1431,9 @@ public class NodeDAOImplTest {
 		Long parentBenefactor = KeyFactory.stringToKey(parentId);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
+		// add an acl for the parent
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(parentId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node child = privateCreateNew("child");
 		child.setNodeType(EntityType.folder);
