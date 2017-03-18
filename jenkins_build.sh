@@ -43,7 +43,7 @@ docker run -i --rm --name ${build_container_name} \
 -v /var/lib/jenkins/${JOB_NAME}/.m2:/root/.m2 \
 -v /var/lib/jenkins/workspace/${JOB_NAME}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
--w /repo/lib/id-generator \
+-w /repo \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
 -DJDBC_CONNECTION_STRING=jdbc:mysql://${rds_container_name}/${rds_user_name} \
