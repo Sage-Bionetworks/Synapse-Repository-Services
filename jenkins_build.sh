@@ -43,10 +43,10 @@ docker run -i --rm --name ${build_container_name} \
 -v /var/lib/jenkins/${JOB_NAME}/.m2:/root/.m2 \
 -v /var/lib/jenkins/workspace/${JOB_NAME}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
--w /repo \
+-w /repo/lib/id-generator \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
+-DJDBC_CONNECTION_STRING=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 -Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} \
