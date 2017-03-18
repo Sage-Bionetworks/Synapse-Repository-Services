@@ -28,36 +28,12 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
-	private DBOReferenceDao dboReferenceDao;
-	@Autowired
 	private DBOAnnotationsDao dboAnnotationsDao;
 	@Autowired
 	FileHandleDao fileMetadataDao;
 	
 
 	Set<String> typesToMirror = new HashSet<String>(0);
-
-	/**
-	 * Used by Spring's IoC
-	 */
-	public AsynchronousDAOImpl(){}
-
-	/**
-	 * This constructor is used by unit tests.
-	 * @param nodeDao
-	 * @param dboReferenceDao
-	 * @param dboAnnotationsDao
-	 * @param fileMetadataDao
-	 * @param wikiPageDao
-	 */
-	public AsynchronousDAOImpl(NodeDAO nodeDao, DBOReferenceDao dboReferenceDao,
-		DBOAnnotationsDao dboAnnotationsDao, FileHandleDao fileMetadataDao) {
-	super();
-	this.nodeDao = nodeDao;
-	this.dboReferenceDao = dboReferenceDao;
-	this.dboAnnotationsDao = dboAnnotationsDao;
-	this.fileMetadataDao = fileMetadataDao;
-}
 
 	@WriteTransaction
 	@Override
@@ -80,7 +56,6 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	public boolean deleteEntity(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
-		dboReferenceDao.deleteReferenceByOwnderId(nodeId);
 		dboAnnotationsDao.deleteAnnotationsByOwnerId(nodeId);
 		return true;
 	}
@@ -94,11 +69,6 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	void replaceAll(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
-		// When an entity is created we need to update all daos.
-		Reference reference = nodeDao.getNodeReference(id);
-		if(reference != null){
-			dboReferenceDao.replaceReference(nodeId, reference);
-		}
 		// Storage locations
 		NamedAnnotations namedAnnos = nodeDao.getAnnotations(id);
 		// Annotations

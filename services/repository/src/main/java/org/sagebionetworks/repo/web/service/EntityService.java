@@ -497,25 +497,6 @@ public interface EntityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Get the entities which refer to the given version of the given entity
-	 * 
-	 * @param userId
-	 * @param entityId
-	 * @param versionNumber
-	 * @param offset
-	 *            ONE based pagination param
-	 * @param limit
-	 *            pagination param
-	 * @request
-	 * @return the headers of the entities which have references to 'entityId'
-	 * 
-	 */
-	public PaginatedResults<EntityHeader> getEntityReferences(Long userId,
-			String entityId, Integer versionNumber, Integer offset,
-			Integer limit, HttpServletRequest request)
-			throws NotFoundException, DatastoreException;
-
-	/**
 	 * Get the permission for a given user and entity combination.
 	 * 
 	 * @param userId

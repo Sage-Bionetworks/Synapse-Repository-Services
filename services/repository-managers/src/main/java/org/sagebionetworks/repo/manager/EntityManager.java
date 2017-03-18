@@ -281,13 +281,6 @@ public interface EntityManager {
 			throws NotFoundException, DatastoreException;
 
 	/**
-	 * @param userInfo
-	 * @param entityId
-	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
-	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Long offset, Long limit) throws NotFoundException, DatastoreException;
-
-	/**
 	 * Validate that the user has read access.
 	 * 
 	 * @param userId

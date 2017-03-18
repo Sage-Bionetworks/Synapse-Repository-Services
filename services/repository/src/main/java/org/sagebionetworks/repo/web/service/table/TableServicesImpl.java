@@ -132,9 +132,11 @@ public class TableServicesImpl implements TableServices {
 		// we expect there to be null entries, but the file handle manager does not
 		List<String> idsList = Lists.newArrayListWithCapacity(columns.size() * rowSet.getRows().size());
 		for (Row row : rowSet.getRows()) {
-			for (String id : row.getValues()) {
-				if (id != null) {
-					idsList.add(id);
+			if(row.getValues() != null){
+				for (String id : row.getValues()) {
+					if (id != null) {
+						idsList.add(id);
+					}
 				}
 			}
 		}
@@ -148,18 +150,20 @@ public class TableServicesImpl implements TableServices {
 
 		// insert the file handles in order. Null ids will give null file handles
 		for (Row row : rowSet.getRows()) {
-			FileHandleResults rowHandles = new FileHandleResults();
-			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(columns.size()));
-			for (String id : row.getValues()) {
-				FileHandle fh;
-				if (id != null) {
-					fh = fileHandles.get(id);
-				} else {
-					fh = null;
+			if(row.getValues() != null){
+				FileHandleResults rowHandles = new FileHandleResults();
+				rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(columns.size()));
+				for (String id : row.getValues()) {
+					FileHandle fh;
+					if (id != null) {
+						fh = fileHandles.get(id);
+					} else {
+						fh = null;
+					}
+					rowHandles.getList().add(fh);
 				}
-				rowHandles.getList().add(fh);
+				results.getRows().add(rowHandles);
 			}
-			results.getRows().add(rowHandles);
 		}
 		return results;
 	}
