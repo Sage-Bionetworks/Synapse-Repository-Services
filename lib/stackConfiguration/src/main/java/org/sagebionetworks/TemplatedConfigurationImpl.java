@@ -43,12 +43,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	@Override
 	public void reloadConfiguration() {
 		defaultStackProperties = new Properties();
-		stackPropertyOverrides = new Properties(System.getProperties());
-		log.error("Here are the System properties:");
+		stackPropertyOverrides = new Properties();
 		for (Object propertyName : System.getProperties().keySet()) {
-			log.error("\t"+propertyName+": "+System.getProperties().get(propertyName));
+			stackPropertyOverrides.setProperty((String)propertyName,
+					(String)System.getProperties().get(propertyName));
 		}
-		
 		
 		requiredProperties = new Properties();
 
