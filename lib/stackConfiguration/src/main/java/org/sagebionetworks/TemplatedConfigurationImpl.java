@@ -8,6 +8,9 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * @author deflaux
  *
@@ -35,10 +38,18 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		this.templatePropertiesFilename = templatePropertiesFilename;
 	}
 
+	static private Log log = LogFactory.getLog(TemplatedConfigurationImpl.class);	
+
 	@Override
 	public void reloadConfiguration() {
 		defaultStackProperties = new Properties();
 		stackPropertyOverrides = new Properties(System.getProperties());
+		log.error("Here are the System properties:");
+		for (Object propertyName : System.getProperties().keySet()) {
+			log.error("\t"+propertyName+": "+System.getProperties().get(propertyName));
+		}
+		
+		
 		requiredProperties = new Properties();
 
 		// Load the default properties from the classpath.
