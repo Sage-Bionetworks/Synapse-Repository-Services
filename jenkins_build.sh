@@ -21,7 +21,21 @@ clean_up_container ${rds_container_name}
 mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 
 # ultimately this line can be removed
-rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+#rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+
+echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+<settings><profiles><profile><properties>\
+<org.sagebionetworks.repository.database.connection.url>jdbc:mysql://${rds_container_name}/${rds_user_name}</org.sagebionetworks.repository.database.connection.url>\
+<org.sagebionetworks.id.generator.database.connection.url>jdbc:mysql://${rds_container_name}/${rds_user_name}</org.sagebionetworks.id.generator.database.connection.url>\
+<org.sagebionetworks.stackEncryptionKey>${org_sagebionetworks_stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>\
+<org.sagebionetworks.stack.iam.id>${org_sagebionetworks_stack_iam_id}</org.sagebionetworks.stack.iam.id>\
+<org.sagebionetworks.stack.iam.key>${org_sagebionetworks_stack_iam_key}</org.sagebionetworks.stack.iam.key>\
+<org.sagebionetworks.stack.instance>${user}</org.sagebionetworks.stack.instance>\
+<org.sagebionetworks.developer>${user}</org.sagebionetworks.developer>\
+<org.sagebionetworks.stack>${stack}</org.sagebionetworks.stack>\
+<org.sagebionetworks.table.enabled>false</org.sagebionetworks.table.enabled>\
+</properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+
 
 # start up rds container
 docker run --name ${rds_container_name} \
@@ -41,6 +55,7 @@ docker run -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -DJDBC_CONNECTION_STRING=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
