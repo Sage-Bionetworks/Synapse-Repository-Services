@@ -8,9 +8,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * @author deflaux
  *
@@ -37,8 +34,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		this.defaultPropertiesFilename = defaultPropertiesFilename;
 		this.templatePropertiesFilename = templatePropertiesFilename;
 	}
-
-	static private Log log = LogFactory.getLog(TemplatedConfigurationImpl.class);	
 
 	@Override
 	public void reloadConfiguration() {

@@ -23,11 +23,6 @@ mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 # ultimately this line can be removed
 rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
-# could we pass these via the maven command line instead of the settings file?
-#echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-#<settings><profiles><profile><properties></properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
-
-
 # start up rds container
 docker run --name ${rds_container_name} \
 -e MYSQL_ROOT_PASSWORD=default-pw \
