@@ -11,12 +11,21 @@ if [ $(docker ps --format {{.Names}} -af name=$1) ]; then
 fi
 }
 
+clean_up_network() {
+if [ $(docker network ls | grep $1) ]; then
+  docker network rm $1
+fi
+}
+
 # remove build container, if any
 build_container_name=${JOB_NAME}-build
 clean_up_container ${build_container_name}
 # remove rds container, if any
 rds_container_name=${JOB_NAME}-rds
 clean_up_container ${rds_container_name}
+# remove the network if it's still there from last time
+network_name=${JOB_NAME}
+clean_up_network ${network_name}
 
 mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 
@@ -36,9 +45,11 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
 <org.sagebionetworks.table.enabled>false</org.sagebionetworks.table.enabled>\
 </properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
+docker network create --driver bridge ${network_name}
 
 # start up rds container
 docker run --name ${rds_container_name} \
+--network=${network_name} \
 -e MYSQL_ROOT_PASSWORD=default-pw \
 -e MYSQL_DATABASE=${rds_user_name} \
 -e MYSQL_USER=${rds_user_name} \
@@ -48,6 +59,7 @@ docker run --name ${rds_container_name} \
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
+--network=${network_name} \
 --link ${rds_container_name}:${rds_container_name} \
 -v /var/lib/jenkins/${JOB_NAME}/.m2:/root/.m2 \
 -v /var/lib/jenkins/workspace/${JOB_NAME}:/repo \
@@ -71,4 +83,6 @@ bash -c "mvn clean install \
 clean_up_container ${build_container_name}
 
 clean_up_container ${rds_container_name}
+
+clean_up_network ${network_name}
 
