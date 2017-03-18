@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -17,7 +16,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODataAccessSubmissionStatus implements MigratableDatabaseObject<DBODataAccessSubmissionStatus, DBODataAccessSubmissionStatus>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("submisionId", COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID).withIsBackupId(true),
+			new FieldColumn("submisionId", COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn("createdBy", COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY),
 			new FieldColumn("createdOn", COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_ON),
 			new FieldColumn("modifiedBy", COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY),
@@ -31,7 +30,7 @@ public class DBODataAccessSubmissionStatus implements MigratableDatabaseObject<D
 	private Long createdOn;
 	private Long modifiedBy;
 	private Long modifiedOn;
-	private DataAccessSubmissionState state;
+	private String state;
 	private byte[] reason;
 
 	@Override
@@ -139,11 +138,11 @@ public class DBODataAccessSubmissionStatus implements MigratableDatabaseObject<D
 		this.modifiedOn = modifiedOn;
 	}
 
-	public DataAccessSubmissionState getState() {
+	public String getState() {
 		return state;
 	}
 
-	public void setState(DataAccessSubmissionState state) {
+	public void setState(String state) {
 		this.state = state;
 	}
 
@@ -167,7 +166,7 @@ public class DBODataAccessSubmissionStatus implements MigratableDatabaseObject<D
 				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY));
 				dbo.setModifiedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON));
-				dbo.setState(DataAccessSubmissionState.valueOf(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE)));
+				dbo.setState(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE));
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_STATUS_REASON);
 				if (!rs.wasNull()) {
 					dbo.setReason(blob.getBytes(1, (int) blob.length()));

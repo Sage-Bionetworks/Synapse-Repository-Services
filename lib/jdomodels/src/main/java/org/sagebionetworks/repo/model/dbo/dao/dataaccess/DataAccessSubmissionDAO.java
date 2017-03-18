@@ -63,4 +63,19 @@ public interface DataAccessSubmissionDAO {
 	 * @return
 	 */
 	public DataAccessSubmission getForUpdate(String submissionId);
+
+	/**
+	 * Retrieving a submission given its ID
+	 * 
+	 * @param submissionId
+	 * @return
+	 */
+	public DataAccessSubmission getSubmission(String submissionId);
+
+	/**
+	 * use for test
+	 * 
+	 * @param id
+	 */
+	public void delete(String id);
 }

@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class DataAccessSubmissionUtils {
@@ -49,8 +50,10 @@ public class DataAccessSubmissionUtils {
 			dbo.setCreatedOn(dto.getSubmittedOn().getTime());
 			dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 			dbo.setModifiedOn(dto.getModifiedOn().getTime());
-			dbo.setState(dto.getState());
-			dbo.setReason(dto.getRejectedReason().getBytes("UTF-8"));
+			dbo.setState(dto.getState().toString());
+			if (dto.getRejectedReason() != null) {
+				dbo.setReason(dto.getRejectedReason().getBytes("UTF-8"));
+			}
 			return dbo;
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException();
@@ -67,7 +70,7 @@ public class DataAccessSubmissionUtils {
 			dto.setEtag(dbo.getEtag());
 			dto.setModifiedBy(status.getModifiedBy().toString());
 			dto.setModifiedOn(new Date(status.getModifiedOn()));
-			dto.setState(status.getState());
+			dto.setState(DataAccessSubmissionState.valueOf(status.getState()));
 			dto.setRejectedReason(new String(status.getReason(), "UTF-8"));
 			return dto;
 		} catch (UnsupportedEncodingException e) {

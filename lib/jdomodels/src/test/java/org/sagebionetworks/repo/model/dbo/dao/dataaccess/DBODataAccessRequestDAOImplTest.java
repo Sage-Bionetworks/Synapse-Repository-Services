@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -56,7 +55,6 @@ public class DBODataAccessRequestDAOImplTest {
 	private IdGenerator idGenerator;
 
 	@Autowired
-	private PlatformTransactionManager txManager;
 	private TransactionTemplate transactionTemplate;
 
 	private UserGroup individualGroup = null;
@@ -97,8 +95,6 @@ public class DBODataAccessRequestDAOImplTest {
 		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
-
-		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@After
@@ -157,7 +153,6 @@ public class DBODataAccessRequestDAOImplTest {
 		DataAccessRequest locked = transactionTemplate.execute(new TransactionCallback<DataAccessRequest>() {
 			@Override
 			public DataAccessRequest doInTransaction(TransactionStatus status) {
-				// Try to lock both nodes out of order
 				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(dto.getId());
 			}
 		});

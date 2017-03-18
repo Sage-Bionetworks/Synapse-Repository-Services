@@ -13,10 +13,10 @@
 			"description": "The state of the requested DataAccessSubmission.",
             "$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState"
 		},
-		"reviewedOn": {
+		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date the DataAccessSubmission was reviewed."
+			"description": "The date the DataAccessSubmission' status was last modified."
 		}
 	}
 }

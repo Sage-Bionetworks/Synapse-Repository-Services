@@ -30,7 +30,7 @@ public class DataAccessSubmissionUtilsTest {
 		DataAccessSubmission newDto = DataAccessSubmissionUtils.copyDboToDto(dbo, status);
 		assertEquals(dto, newDto);
 
-		status.setState(DataAccessSubmissionState.APPROVED);
+		status.setState("APPROVED");
 		newDto = DataAccessSubmissionUtils.copyDboToDto(dbo, status);
 		dto.setState(DataAccessSubmissionState.APPROVED);
 		assertEquals(dto, newDto);
