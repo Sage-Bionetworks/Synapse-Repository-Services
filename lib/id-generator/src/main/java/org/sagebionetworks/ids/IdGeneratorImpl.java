@@ -104,7 +104,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionUrl();
-		log.info("\n\n******\n\tIdGeneratorDatabaseConnectionUrl: "+connectionString+"\n\n*******");
+		log.error("\n\n******\n\tIdGeneratorDatabaseConnectionUrl: "+connectionString+"\n\n*******");
 		// Validate that the transacion manager is using auto-commit
 		DataSource ds = idGeneratorJdbcTemplate.getDataSource();
 		if(ds == null) throw new RuntimeException("Failed to get the datasource from the transaction manager");
