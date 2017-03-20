@@ -39,11 +39,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public void reloadConfiguration() {
 		defaultStackProperties = new Properties();
 		stackPropertyOverrides = new Properties();
-		for (Object propertyName : System.getProperties().keySet()) {
-			stackPropertyOverrides.setProperty((String)propertyName,
-					(String)System.getProperties().get(propertyName));
-		}
-		
 		requiredProperties = new Properties();
 
 		// Load the default properties from the classpath.
@@ -54,6 +49,12 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 				requiredProperties);
 		// Try loading the settings file
 		addSettingsPropertiesToSystem(stackPropertyOverrides);
+		
+		for (Object propertyName : System.getProperties().keySet()) {
+			stackPropertyOverrides.setProperty((String)propertyName,
+					(String)System.getProperties().get(propertyName));
+		}
+		
 		// These three properties are required. If they are null, an exception
 		// will be thrown
 		getEncryptionKey();

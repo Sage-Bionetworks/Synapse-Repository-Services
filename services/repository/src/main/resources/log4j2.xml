@@ -58,7 +58,7 @@
 		<logger name="org.sagebionetworks" level="info" additivity="true">
 			<appender-ref ref="repository" />
 		</logger>
-		<root level="info">
+		<root level="error">
 			<appender-ref ref="Console" />
 		</root>
 	</loggers>
