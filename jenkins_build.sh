@@ -67,7 +67,7 @@ docker run -i --rm --name ${build_container_name} \
 -v /var/lib/jenkins/${JOB_NAME}/.m2:/root/.m2 \
 -v /var/lib/jenkins/workspace/${JOB_NAME}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
--e MAVEN_OPTS='-Xms256m -Xmx2048m -XX:MaxPermSize=512m'\
+-e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
 -w /repo \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
