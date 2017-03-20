@@ -32,6 +32,9 @@ mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 # ultimately this line can be removed
 #rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
+# most of the build works without creating settings.xml, 
+# but the integration tests fail.  Maybe it's a problem
+# passing system properties to the tomcat container.
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
 <settings><profiles><profile><properties>\
 <org.sagebionetworks.repository.database.connection.url>jdbc:mysql://${rds_container_name}/${rds_user_name}</org.sagebionetworks.repository.database.connection.url>\
@@ -64,6 +67,7 @@ docker run -i --rm --name ${build_container_name} \
 -v /var/lib/jenkins/${JOB_NAME}/.m2:/root/.m2 \
 -v /var/lib/jenkins/workspace/${JOB_NAME}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
+-e MAVEN_OPTS='-Xms256m -Xmx2048m -XX:MaxPermSize=512m'\
 -w /repo \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
