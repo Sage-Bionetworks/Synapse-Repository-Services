@@ -65,7 +65,7 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
--Dorg.sagebionetworks.table.cluster.schema.0=${user}tables \
+-Dorg.sagebionetworks.table.cluster.schema.0=${rds_user_name} \
 -Duser.home=/root"
 
 
