@@ -44,6 +44,9 @@ docker run --name ${rds_container_name} \
 -v /etc/localtime:/etc/localtime:ro \
 -d mysql:5.6
 
+# make sure RDS is ready to go
+sleep 10
+
 tables_schema_name=${rds_user_name}tables
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "CREATE SCHEMA ${tables_schema_name};"
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';"
