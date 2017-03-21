@@ -12,7 +12,7 @@ fi
 }
 
 clean_up_network() {
-if [ $(docker network ls | grep $1) ]; then
+if [ $(docker network ls | grep -q $1 && echo $?) ]; then
   docker network rm $1
 fi
 }
@@ -30,7 +30,7 @@ clean_up_network ${network_name}
 mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 
 # ultimately this line can be removed
-rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+rm -f /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
 docker network create --driver bridge ${network_name}
 
@@ -43,6 +43,13 @@ docker run --name ${rds_container_name} \
 -e MYSQL_PASSWORD=${rds_password} \
 -v /etc/localtime:/etc/localtime:ro \
 -d mysql:5.6
+
+# make sure RDS is ready to go
+sleep 10
+
+tables_schema_name=${rds_user_name}tables
+docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "CREATE SCHEMA ${tables_schema_name};"
+docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';"
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
@@ -64,8 +71,8 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
--Dorg.sagebionetworks.table.cluster.endpoint.0=hud-dev-db2.cdusmwdhqvso.us-east-1.rds.amazonaws.com \
--Dorg.sagebionetworks.table.cluster.schema.0=huddevtables \
+-Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
+-Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Duser.home=/root"
 
 
