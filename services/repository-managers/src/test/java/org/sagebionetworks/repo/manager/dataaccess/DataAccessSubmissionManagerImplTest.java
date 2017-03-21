@@ -257,6 +257,8 @@ public class DataAccessSubmissionManagerImplTest {
 		assertNotNull(captured.getEtag());
 		assertNotNull(captured.getSubmittedOn());
 		assertEquals(userId, captured.getSubmittedBy());
+		assertNotNull(captured.getModifiedOn());
+		assertEquals(userId, captured.getModifiedBy());
 		assertEquals(mockResearchProject, captured.getResearchProjectSnapshot());
 		assertEquals(requestId, captured.getDataAccessRequestId());
 		assertEquals(accessRequirementId, captured.getAccessRequirementId());

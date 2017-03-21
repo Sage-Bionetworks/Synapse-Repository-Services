@@ -86,11 +86,14 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -273,6 +276,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	@Autowired
 	private DataAccessRequestDAO dataAccessRequestDAO;
+
+	@Autowired
+	private DataAccessSubmissionDAO dataAccessSubmissionDAO;
 	
 	private Team team;
 
@@ -316,6 +322,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private String threadId;
 
 	private ResearchProject researchProject;
+	private DataAccessRequest dataAccessRequest;
 
 	@Before
 	public void before() throws Exception {
@@ -363,20 +370,36 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createThrottleRule();
 		createResearchProject();
 		createDataAccessRequest();
+		createDataAccessSubmission();
 	}
 	
+	private void createDataAccessSubmission() {
+		DataAccessSubmission submission = new DataAccessSubmission();
+		submission.setAccessRequirementId(accessRequirement.getId().toString());
+		submission.setDataAccessRequestId(dataAccessRequest.getId());
+		submission.setSubmittedBy(adminUserIdString);
+		submission.setSubmittedOn(new Date());
+		submission.setModifiedBy(adminUserIdString);
+		submission.setModifiedOn(new Date());
+		submission.setAccessors(Arrays.asList(adminUserIdString));
+		submission.setEtag(UUID.randomUUID().toString());
+		submission.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		dataAccessSubmissionDAO.create(submission);
+	}
+
 	private void createDataAccessRequest() {
-		DataAccessRequest dto = new DataAccessRequest();
-		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
-		dto.setAccessRequirementId(accessRequirement.getId().toString());
-		dto.setResearchProjectId(researchProject.getId());
-		dto.setCreatedBy(adminUserIdString);
-		dto.setCreatedOn(new Date());
-		dto.setModifiedBy(adminUserIdString);
-		dto.setModifiedOn(new Date());
-		dto.setEtag("etag");
-		dto.setAccessors(Arrays.asList(adminUserIdString));
-		dataAccessRequestDAO.create(dto);
+		dataAccessRequest = new DataAccessRequest();
+		dataAccessRequest.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		dataAccessRequest.setAccessRequirementId(accessRequirement.getId().toString());
+		dataAccessRequest.setResearchProjectId(researchProject.getId());
+		dataAccessRequest.setCreatedBy(adminUserIdString);
+		dataAccessRequest.setCreatedOn(new Date());
+		dataAccessRequest.setModifiedBy(adminUserIdString);
+		dataAccessRequest.setModifiedOn(new Date());
+		dataAccessRequest.setEtag("etag");
+		dataAccessRequest.setAccessors(Arrays.asList(adminUserIdString));
+		dataAccessRequestDAO.create(dataAccessRequest);
 	}
 
 	private void createResearchProject() {

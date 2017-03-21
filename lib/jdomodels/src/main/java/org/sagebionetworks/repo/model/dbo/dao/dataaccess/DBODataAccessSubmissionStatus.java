@@ -198,7 +198,7 @@ public class DBODataAccessSubmissionStatus implements MigratableDatabaseObject<D
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.DATA_ACCESS_SUBMISSION;
+		return MigrationType.DATA_ACCESS_SUBMISSION_STATUS;
 	}
 
 	@Override

@@ -145,6 +145,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		submissionToCreate.setEtag(UUID.randomUUID().toString());
 		submissionToCreate.setSubmittedBy(userInfo.getId().toString());
 		submissionToCreate.setSubmittedOn(new Date());
+		submissionToCreate.setModifiedBy(userInfo.getId().toString());
+		submissionToCreate.setModifiedOn(new Date());
 		submissionToCreate.setState(DataAccessSubmissionState.SUBMITTED);
 	}
 

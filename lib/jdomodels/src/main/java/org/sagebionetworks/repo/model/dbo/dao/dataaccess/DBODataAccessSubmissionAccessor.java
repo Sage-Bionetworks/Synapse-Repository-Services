@@ -114,7 +114,7 @@ public class DBODataAccessSubmissionAccessor implements MigratableDatabaseObject
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.DATA_ACCESS_SUBMISSION;
+		return MigrationType.DATA_ACCESS_SUBMISSION_ACCESSOR;
 	}
 
 	@Override
