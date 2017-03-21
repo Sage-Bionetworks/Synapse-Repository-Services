@@ -94,9 +94,21 @@ public class MessageUtils {
 		}
 		bundle.setNotificationUnsubscribeEndpoint(info.getNotificationsEndpoint());
 		bundle.setUserProfileSettingEndpoint(info.getProfileSettingEndpoint());
-		bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
-		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
-		bundle.setIsNotificationMessage(info.getIsNotificationMessage());
+		if (info.getWithUnsubscribeLink() == null) {
+			bundle.setWithUnsubscribeLink(false);
+		} else {
+			bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
+		}
+		if (info.getWithProfileSettingLink() == null) {
+			bundle.setWithProfileSettingLink(false);
+		} else {
+			bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
+		}
+		if (info.getIsNotificationMessage() == null) {
+			bundle.setIsNotificationMessage(false);
+		} else {
+			bundle.setIsNotificationMessage(info.getIsNotificationMessage());
+		}
 		bundle.setTo(info.getTo());
 		bundle.setCc(info.getCc());
 		bundle.setBcc(info.getBcc());
