@@ -30,7 +30,7 @@ clean_up_network ${network_name}
 mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 
 # ultimately this line can be removed
-rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
+rm -f /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
 docker network create --driver bridge ${network_name}
 
@@ -45,8 +45,8 @@ docker run --name ${rds_container_name} \
 -d mysql:5.6
 
 tables_schema_name=${rds_user_name}tables
-exec ${rds_container_name} mysql CREATE SCHEMA `${tables_schema_name}`;
-exec ${rds_container_name} mysql GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';
+docker exec ${rds_container_name} mysql CREATE SCHEMA `${tables_schema_name}`;
+docker exec ${rds_container_name} mysql GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
