@@ -44,6 +44,10 @@ docker run --name ${rds_container_name} \
 -v /etc/localtime:/etc/localtime:ro \
 -d mysql:5.6
 
+tables_schema_name=${rds_user_name}tables
+exec ${rds_container_name} mysql CREATE SCHEMA `${tables_schema_name}`;
+exec ${rds_container_name} mysql GRANT ALL ON ${tables_schema_name}.* TO '${rds_user_name}'@'%';
+
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
 --network=${network_name} \
@@ -65,7 +69,7 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
 -Dorg.sagebionetworks.table.cluster.endpoint.0=${rds_container_name} \
--Dorg.sagebionetworks.table.cluster.schema.0=${rds_user_name} \
+-Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Duser.home=/root"
 
 
