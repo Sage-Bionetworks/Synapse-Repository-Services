@@ -8,9 +8,6 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 /**
  * @author deflaux
  *
@@ -52,6 +49,12 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 				requiredProperties);
 		// Try loading the settings file
 		addSettingsPropertiesToSystem(stackPropertyOverrides);
+		
+		for (Object propertyName : System.getProperties().keySet()) {
+			stackPropertyOverrides.setProperty((String)propertyName,
+					(String)System.getProperties().get(propertyName));
+		}
+		
 		// These three properties are required. If they are null, an exception
 		// will be thrown
 		getEncryptionKey();

@@ -127,6 +127,8 @@
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
 							<org.sagebionetworks.stack.iam.key>${org.sagebionetworks.stack.iam.key}</org.sagebionetworks.stack.iam.key>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
+							<org.sagebionetworks.repository.database.connection.url>${org.sagebionetworks.repository.database.connection.url}</org.sagebionetworks.repository.database.connection.url>
+							<org.sagebionetworks.id.generator.database.connection.url>${org.sagebionetworks.id.generator.database.connection.url}</org.sagebionetworks.id.generator.database.connection.url>
 						</systemProperties>
 					</container>
 					<configuration>
