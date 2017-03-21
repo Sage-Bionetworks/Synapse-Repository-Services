@@ -12,7 +12,7 @@ fi
 }
 
 clean_up_network() {
-if [ $(docker network ls | grep $1) ]; then
+if [ $(docker network ls | grep -q $1 && echo $?) ]; then
   docker network rm $1
 fi
 }
