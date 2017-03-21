@@ -32,22 +32,6 @@ mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
 # ultimately this line can be removed
 rm /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
 
-# most of the build works without creating settings.xml, 
-# but the integration tests fail.  Maybe it's a problem
-# passing system properties to the tomcat container.
-# echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-# <settings><profiles><profile><properties>\
-# <org.sagebionetworks.repository.database.connection.url>jdbc:mysql://${rds_container_name}/${rds_user_name}</org.sagebionetworks.repository.database.connection.url>\
-# <org.sagebionetworks.id.generator.database.connection.url>jdbc:mysql://${rds_container_name}/${rds_user_name}</org.sagebionetworks.id.generator.database.connection.url>\
-# <org.sagebionetworks.stackEncryptionKey>${org_sagebionetworks_stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>\
-# <org.sagebionetworks.stack.iam.id>${org_sagebionetworks_stack_iam_id}</org.sagebionetworks.stack.iam.id>\
-# <org.sagebionetworks.stack.iam.key>${org_sagebionetworks_stack_iam_key}</org.sagebionetworks.stack.iam.key>\
-# <org.sagebionetworks.stack.instance>${user}</org.sagebionetworks.stack.instance>\
-# <org.sagebionetworks.developer>${user}</org.sagebionetworks.developer>\
-# <org.sagebionetworks.stack>${stack}</org.sagebionetworks.stack>\
-# <org.sagebionetworks.table.enabled>false</org.sagebionetworks.table.enabled>\
-# </properties></profile></profiles></settings>" > /var/lib/jenkins/${JOB_NAME}/.m2/settings.xml
-
 docker network create --driver bridge ${network_name}
 
 # start up rds container

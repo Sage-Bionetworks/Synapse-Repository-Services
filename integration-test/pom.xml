@@ -129,8 +129,6 @@
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
 							<org.sagebionetworks.repository.database.connection.url>${org.sagebionetworks.repository.database.connection.url}</org.sagebionetworks.repository.database.connection.url>
 							<org.sagebionetworks.id.generator.database.connection.url>${org.sagebionetworks.id.generator.database.connection.url}</org.sagebionetworks.id.generator.database.connection.url>
-							<!--org.sagebionetworks.developer>${}</org.sagebionetworks.developer-->
-							<!--org.sagebionetworks.table.enabled>${}</org.sagebionetworks.table.enabled-->
 						</systemProperties>
 					</container>
 					<configuration>
