@@ -63,7 +63,7 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.stack.instance=${user} \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
--Dorg.sagebionetworks.table.enabled=false \
+-Dorg.sagebionetworks.table.enabled=true \
 -Duser.home=/root"
 
 
