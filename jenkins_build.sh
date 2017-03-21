@@ -64,6 +64,8 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
+-Dorg.sagebionetworks.table.cluster.endpoint.0=hud-dev-db2.cdusmwdhqvso.us-east-1.rds.amazonaws.com \
+-Dorg.sagebionetworks.table.cluster.schema.0=huddevtables \
 -Duser.home=/root"
 
 
