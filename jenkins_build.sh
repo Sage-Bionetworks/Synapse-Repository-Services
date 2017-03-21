@@ -56,7 +56,6 @@ docker run -i --rm --name ${build_container_name} \
 maven:3-jdk-7 \
 bash -c "mvn clean install \
 -Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
--DJDBC_CONNECTION_STRING=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${rds_container_name}/${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 -Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} \
