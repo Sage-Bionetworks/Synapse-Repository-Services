@@ -1,26 +1,10 @@
 {
 	"description": "Result of a single access approval status request.",
+	"type": "interface",
 	"properties": {
 		"accessRequirementId":{
 			"type": "string",
 			"description": "The ID of the requested AccessRequirement."
-		},
-		"accessApprovalId": {
-			"type": "string",
-            "description": "The ID of the AccessApproval associated with the requested AccessRequirement; or null if not found."
-		},
-		"submissionStatus":{
-			"description": "The status of the DataAccessSubmission associated with the requested AccessRequirement, if the requested AccessRequirement is an ACTAccessRequirement, and the user has submitted a DataAccessSubmission; null otherwise.",
-            "$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus"
-		},
-		"failureCode": {
-			"type": "string",
-			"description": "Failure code for an AccessRequirement.",
-			"name": "FailureCode",
-			"enum": [
-				"NOT_FOUND",
-				"UNAUTHORIZED"
-			]
 		}
 	}
 }

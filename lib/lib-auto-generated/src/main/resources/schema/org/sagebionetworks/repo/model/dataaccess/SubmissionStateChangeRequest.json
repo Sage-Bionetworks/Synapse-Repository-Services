@@ -7,11 +7,11 @@
 		},
 		"newState": {
 			"$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState",
-            "description": "The new status to set to the requested DataAccessSubmission."
+			"description": "The new status to set to the requested DataAccessSubmission."
 		},
 		"rejectedReason":{
-            "type": "string",
+			"type": "string",
 			"description": "The reason that the DataAccessSubmission is rejected if newState is REJECTED."
-        }
+		}
 	}
 }
