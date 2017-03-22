@@ -55,7 +55,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		toUpdate.setModifiedBy(modifiedBy);
 		toUpdate.setModifiedOn(new Date());
 		toUpdate.setEtag(UUID.randomUUID().toString());
-		toUpdate.setConcreteType(toUpdate.getClass().getName());
 		return toUpdate;
 	}
 
@@ -94,7 +93,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	private DataAccessRequestInterface createNewDataAccessRequest(String accessRequirementId) {
 		DataAccessRequest request = new DataAccessRequest();
 		request.setAccessRequirementId(accessRequirementId);
-		request.setConcreteType(DataAccessRequest.class.getName());
 		return request;
 	}
 
@@ -112,7 +110,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setEtag(current.getEtag());
-		renewal.setConcreteType(DataAccessRenewal.class.getName());
 		return renewal;
 	}
 

@@ -36,7 +36,7 @@ public interface DataAccessRequestDAO {
 	/**
 	 * used for tests
 	 */
-	void truncateAll();
+	void delete(String id);
 
 	/**
 	 * Retrieve the current DataAccessRequest for update.
@@ -46,4 +46,12 @@ public interface DataAccessRequestDAO {
 	 * @return
 	 */
 	public DataAccessRequestInterface getForUpdate(String id);
+
+	/**
+	 * Retrieve the current DataAccessRequest.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public DataAccessRequestInterface get(String id);
 }

@@ -1,0 +1,11 @@
+{
+	"description": "Results for an AccessApprovalStatusRequest.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResult"
+			}
+		}
+	}
+}

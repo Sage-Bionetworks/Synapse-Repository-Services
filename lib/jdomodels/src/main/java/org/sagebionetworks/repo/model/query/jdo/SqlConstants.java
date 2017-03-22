@@ -817,31 +817,59 @@ public class SqlConstants {
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
 	// ResearchProject
-	public static final String DDL_RESEARCH_PROJECT = 						"schema/ResearchProject-ddl.sql";
-	public static final String TABLE_RESEARCH_PROJECT = 					"RESEARCH_PROJECT";
-	public static final String RESEARCH_PROJECT_ID = 						"ID";
-	public static final String RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
-	public static final String RESEARCH_PROJECT_CREATED_BY = 				"CREATED_BY";
-	public static final String RESEARCH_PROJECT_CREATED_ON = 				"CREATED_ON";
-	public static final String RESEARCH_PROJECT_MODIFIED_BY = 				"MODIFIED_BY";
-	public static final String RESEARCH_PROJECT_MODIFIED_ON = 				"MODIFIED_ON";
-	public static final String RESEARCH_PROJECT_ETAG = 						"ETAG";
-	public static final String RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
-	public static final String RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";
-	public static final String RESEARCH_PROJECT_IDU = 						"IDU";
+	public static final String DDL_RESEARCH_PROJECT = 							"schema/ResearchProject-ddl.sql";
+	public static final String TABLE_RESEARCH_PROJECT = 						"RESEARCH_PROJECT";
+	public static final String COL_RESEARCH_PROJECT_ID = 						"ID";
+	public static final String COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_RESEARCH_PROJECT_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_RESEARCH_PROJECT_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_RESEARCH_PROJECT_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String COL_RESEARCH_PROJECT_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String COL_RESEARCH_PROJECT_ETAG = 						"ETAG";
+	public static final String COL_RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
+	public static final String COL_RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";
+	public static final String COL_RESEARCH_PROJECT_IDU = 						"IDU";
 
 	// DataAccessRequest
-	public static final String DDL_DATA_ACCESS_REQUEST = 						"schema/DataAccessRequest-ddl.sql";
-	public static final String TABLE_DATA_ACCESS_REQUEST = 						"DATA_ACCESS_REQUEST";
-	public static final String DATA_ACCESS_REQUEST_ID = 						"ID";
-	public static final String DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID = 		"ACCESS_REQUIREMENT_ID";
-	public static final String DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID = 		"RESEARCH_PROJECT_ID";
-	public static final String DATA_ACCESS_REQUEST_CREATED_BY = 				"CREATED_BY";
-	public static final String DATA_ACCESS_REQUEST_CREATED_ON = 				"CREATED_ON";
-	public static final String DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
-	public static final String DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
-	public static final String DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
-	public static final String DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+	public static final String DDL_DATA_ACCESS_REQUEST = 							"schema/DataAccessRequest-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_REQUEST = 							"DATA_ACCESS_REQUEST";
+	public static final String COL_DATA_ACCESS_REQUEST_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID = 		"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID = 		"RESEARCH_PROJECT_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_DATA_ACCESS_REQUEST_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
+	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+
+	// DataAccessSubmission
+	public static final String DDL_DATA_ACCESS_SUBMISSION = 						"schema/DataAccessSubmission-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION = 						"DATA_ACCESS_SUBMISSION";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID = 	"DATA_ACCESS_REQUEST_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
+
+	// DataAccessSubmissionStatus
+	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_STATUS = 				"DATA_ACCESS_SUBMISSION_STATUS";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID = 	"SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY = 		"MODIFIED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON = 		"MODIFIED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_STATE = 			"STATE";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_REASON = 			"REASON";
+
+	// DataAccessSubmissionAccessors
+	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"schema/DataAccessSubmissionAccessor-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"DATA_ACCESS_SUBMISSION_ACCESSOR";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 	"ACCESSOR_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID = 	"SUBMISSION_ID";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

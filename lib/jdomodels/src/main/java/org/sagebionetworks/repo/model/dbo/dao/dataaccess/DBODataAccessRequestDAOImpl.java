@@ -21,16 +21,19 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	public static final String SQL_TRUNCATE = "TRUNCATE "+TABLE_DATA_ACCESS_REQUEST;
+	public static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_REQUEST
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ?";
 
 	public static final String SQL_GET = "SELECT *"
 			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
-			+ " WHERE "+DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID+" = ?"
-			+ " AND "+DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID+" = ?"
+			+ " AND "+COL_DATA_ACCESS_REQUEST_CREATED_BY+" = ?";
 
-	public static final String SQL_GET_FOR_UPDATE = "SELECT *"
+	public static final String SQL_GET_BY_ID = "SELECT *"
 			+ " FROM "+TABLE_DATA_ACCESS_REQUEST
-			+ " WHERE "+DATA_ACCESS_REQUEST_ID+" = ? FOR UPDATE";
+			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ?";
+
+	public static final String SQL_GET_FOR_UPDATE = SQL_GET_BY_ID+" FOR UPDATE";
 
 	private static final RowMapper<DBODataAccessRequest> MAPPER = new DBODataAccessRequest().getTableMapping();
 
@@ -65,8 +68,8 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	}
 
 	@Override
-	public void truncateAll() {
-		jdbcTemplate.update(SQL_TRUNCATE);
+	public void delete(String id) {
+		jdbcTemplate.update(SQL_DELETE, id);
 	}
 
 	@MandatoryWriteTransaction
@@ -74,6 +77,17 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	public DataAccessRequestInterface getForUpdate(String id) {
 		try {
 			DBODataAccessRequest dbo = jdbcTemplate.queryForObject(SQL_GET_FOR_UPDATE, MAPPER, id);
+			DataAccessRequestInterface dto = DataAccessRequestUtils.copyDboToDto(dbo);
+			return dto;
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
+	}
+
+	@Override
+	public DataAccessRequestInterface get(String id) {
+		try {
+			DBODataAccessRequest dbo = jdbcTemplate.queryForObject(SQL_GET_BY_ID, MAPPER, id);
 			DataAccessRequestInterface dto = DataAccessRequestUtils.copyDboToDto(dbo);
 			return dto;
 		} catch (EmptyResultDataAccessException e) {

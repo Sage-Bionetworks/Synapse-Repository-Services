@@ -22,7 +22,6 @@ public class DataAccessRequestTestUtils {
 		dto.setDucFileHandleId("9");
 		dto.setIrbFileHandleId("10");
 		dto.setAttachments(Arrays.asList("11", "12"));
-		dto.setConcreteType(DataAccessRequest.class.getName());
 		return dto;
 	}
 

@@ -17,16 +17,16 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchProject, DBOResearchProject>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", RESEARCH_PROJECT_ID, true).withIsBackupId(true),
-			new FieldColumn("accessRequirementId", RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID),
-			new FieldColumn("createdBy", RESEARCH_PROJECT_CREATED_BY),
-			new FieldColumn("createdOn", RESEARCH_PROJECT_CREATED_ON),
-			new FieldColumn("modifiedBy", RESEARCH_PROJECT_MODIFIED_BY),
-			new FieldColumn("modifiedOn", RESEARCH_PROJECT_MODIFIED_ON),
-			new FieldColumn("etag", RESEARCH_PROJECT_ETAG).withIsEtag(true),
-			new FieldColumn("projectLead", RESEARCH_PROJECT_PROJECT_LEAD),
-			new FieldColumn("institution", RESEARCH_PROJECT_INSTITUTION),
-			new FieldColumn("idu", RESEARCH_PROJECT_IDU)
+			new FieldColumn("id", COL_RESEARCH_PROJECT_ID, true).withIsBackupId(true),
+			new FieldColumn("accessRequirementId", COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID),
+			new FieldColumn("createdBy", COL_RESEARCH_PROJECT_CREATED_BY),
+			new FieldColumn("createdOn", COL_RESEARCH_PROJECT_CREATED_ON),
+			new FieldColumn("modifiedBy", COL_RESEARCH_PROJECT_MODIFIED_BY),
+			new FieldColumn("modifiedOn", COL_RESEARCH_PROJECT_MODIFIED_ON),
+			new FieldColumn("etag", COL_RESEARCH_PROJECT_ETAG).withIsEtag(true),
+			new FieldColumn("projectLead", COL_RESEARCH_PROJECT_PROJECT_LEAD),
+			new FieldColumn("institution", COL_RESEARCH_PROJECT_INSTITUTION),
+			new FieldColumn("idu", COL_RESEARCH_PROJECT_IDU)
 		};
 
 	private Long id;
@@ -211,16 +211,16 @@ public class DBOResearchProject implements MigratableDatabaseObject<DBOResearchP
 			@Override
 			public DBOResearchProject mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOResearchProject dbo = new DBOResearchProject();
-				dbo.setId(rs.getLong(RESEARCH_PROJECT_ID));
-				dbo.setAccessRequirementId(rs.getLong(RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID));
-				dbo.setCreatedBy(rs.getLong(RESEARCH_PROJECT_CREATED_BY));
-				dbo.setCreatedOn(rs.getLong(RESEARCH_PROJECT_CREATED_ON));
-				dbo.setModifiedBy(rs.getLong(RESEARCH_PROJECT_MODIFIED_BY));
-				dbo.setModifiedOn(rs.getLong(RESEARCH_PROJECT_MODIFIED_ON));
-				dbo.setEtag(rs.getString(RESEARCH_PROJECT_ETAG));
-				dbo.setProjectLead(rs.getString(RESEARCH_PROJECT_PROJECT_LEAD));
-				dbo.setInstitution(rs.getString(RESEARCH_PROJECT_INSTITUTION));
-				Blob blob = rs.getBlob(RESEARCH_PROJECT_IDU);
+				dbo.setId(rs.getLong(COL_RESEARCH_PROJECT_ID));
+				dbo.setAccessRequirementId(rs.getLong(COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID));
+				dbo.setCreatedBy(rs.getLong(COL_RESEARCH_PROJECT_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(COL_RESEARCH_PROJECT_CREATED_ON));
+				dbo.setModifiedBy(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_BY));
+				dbo.setModifiedOn(rs.getLong(COL_RESEARCH_PROJECT_MODIFIED_ON));
+				dbo.setEtag(rs.getString(COL_RESEARCH_PROJECT_ETAG));
+				dbo.setProjectLead(rs.getString(COL_RESEARCH_PROJECT_PROJECT_LEAD));
+				dbo.setInstitution(rs.getString(COL_RESEARCH_PROJECT_INSTITUTION));
+				Blob blob = rs.getBlob(COL_RESEARCH_PROJECT_IDU);
 				dbo.setIdu(blob.getBytes(1, (int) blob.length()));
 				return dbo;
 			}

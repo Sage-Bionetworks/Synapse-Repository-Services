@@ -17,15 +17,15 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAccessRequest, DBODataAccessRequest>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", DATA_ACCESS_REQUEST_ID, true).withIsBackupId(true),
-			new FieldColumn("accessRequirementId", DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID),
-			new FieldColumn("researchProjectId", DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID),
-			new FieldColumn("createdBy", DATA_ACCESS_REQUEST_CREATED_BY),
-			new FieldColumn("createdOn", DATA_ACCESS_REQUEST_CREATED_ON),
-			new FieldColumn("modifiedBy", DATA_ACCESS_REQUEST_MODIFIED_BY),
-			new FieldColumn("modifiedOn", DATA_ACCESS_REQUEST_MODIFIED_ON),
-			new FieldColumn("etag", DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
-			new FieldColumn("requestSerialized", DATA_ACCESS_REQUEST_REQUEST_SERIALIZED)
+			new FieldColumn("id", COL_DATA_ACCESS_REQUEST_ID, true).withIsBackupId(true),
+			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID),
+			new FieldColumn("researchProjectId", COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID),
+			new FieldColumn("createdBy", COL_DATA_ACCESS_REQUEST_CREATED_BY),
+			new FieldColumn("createdOn", COL_DATA_ACCESS_REQUEST_CREATED_ON),
+			new FieldColumn("modifiedBy", COL_DATA_ACCESS_REQUEST_MODIFIED_BY),
+			new FieldColumn("modifiedOn", COL_DATA_ACCESS_REQUEST_MODIFIED_ON),
+			new FieldColumn("etag", COL_DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
+			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED)
 		};
 
 	private Long id;
@@ -195,15 +195,15 @@ public class DBODataAccessRequest implements MigratableDatabaseObject<DBODataAcc
 			@Override
 			public DBODataAccessRequest mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBODataAccessRequest dbo = new DBODataAccessRequest();
-				dbo.setId(rs.getLong(DATA_ACCESS_REQUEST_ID));
-				dbo.setAccessRequirementId(rs.getLong(DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
-				dbo.setResearchProjectId(rs.getLong(DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
-				dbo.setCreatedBy(rs.getLong(DATA_ACCESS_REQUEST_CREATED_BY));
-				dbo.setCreatedOn(rs.getLong(DATA_ACCESS_REQUEST_CREATED_ON));
-				dbo.setModifiedBy(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_BY));
-				dbo.setModifiedOn(rs.getLong(DATA_ACCESS_REQUEST_MODIFIED_ON));
-				dbo.setEtag(rs.getString(DATA_ACCESS_REQUEST_ETAG));
-				Blob blob = rs.getBlob(DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
+				dbo.setId(rs.getLong(COL_DATA_ACCESS_REQUEST_ID));
+				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
+				dbo.setResearchProjectId(rs.getLong(COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
+				dbo.setCreatedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_ON));
+				dbo.setModifiedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_MODIFIED_BY));
+				dbo.setModifiedOn(rs.getLong(COL_DATA_ACCESS_REQUEST_MODIFIED_ON));
+				dbo.setEtag(rs.getString(COL_DATA_ACCESS_REQUEST_ETAG));
+				Blob blob = rs.getBlob(COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
 				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
 				return dbo;
 			}

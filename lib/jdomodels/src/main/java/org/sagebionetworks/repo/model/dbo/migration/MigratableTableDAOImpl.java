@@ -204,6 +204,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
+		if (typeTpObject.containsKey(type)) {
+			throw new IllegalArgumentException("Each DBO should has its own MigrationType. Found duplicated type for: "+dbo.getClass().getName());
+		}
 		this.typeTpObject.put(type, dbo);
 		// The batch insert or update sql
 		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);

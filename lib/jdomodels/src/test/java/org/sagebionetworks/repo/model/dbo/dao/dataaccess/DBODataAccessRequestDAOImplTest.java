@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -56,17 +55,17 @@ public class DBODataAccessRequestDAOImplTest {
 	private IdGenerator idGenerator;
 
 	@Autowired
-	private PlatformTransactionManager txManager;
 	private TransactionTemplate transactionTemplate;
 
 	private UserGroup individualGroup = null;
 	private Node node = null;
 	private ACTAccessRequirement accessRequirement = null;
 	private ResearchProject researchProject = null;
+	private String toDelete;
 
 	@Before
 	public void before() {
-		dataAccessRequestDao.truncateAll();
+		toDelete = null;
 
 		// create a user
 		individualGroup = new UserGroup();
@@ -96,14 +95,13 @@ public class DBODataAccessRequestDAOImplTest {
 		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
-
-		transactionTemplate = new TransactionTemplate(txManager);
 	}
 
 	@After
 	public void after() {
-		dataAccessRequestDao.truncateAll();
-
+		if (toDelete != null) {
+			dataAccessRequestDao.delete(toDelete);
+		}
 		if (researchProject != null) {
 			researchProjectDao.delete(researchProject.getId());
 		}
@@ -136,6 +134,8 @@ public class DBODataAccessRequestDAOImplTest {
 		// should get back the same object
 		DataAccessRequest created = (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 		assertEquals(dto, created);
+		assertEquals(dto, (DataAccessRequest) dataAccessRequestDao.get(dto.getId()));
+		toDelete = dto.getId();
 
 		// update
 		dto.setAccessors(Arrays.asList("666"));
@@ -153,7 +153,6 @@ public class DBODataAccessRequestDAOImplTest {
 		DataAccessRequest locked = transactionTemplate.execute(new TransactionCallback<DataAccessRequest>() {
 			@Override
 			public DataAccessRequest doInTransaction(TransactionStatus status) {
-				// Try to lock both nodes out of order
 				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(dto.getId());
 			}
 		});
