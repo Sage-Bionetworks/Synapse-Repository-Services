@@ -2,10 +2,14 @@ package org.sagebionetworks.repo.web.service.dataaccess;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DataAccessServiceImpl implements DataAccessService{
@@ -16,6 +20,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 	private ResearchProjectManager researchProjectManager;
 	@Autowired
 	private DataAccessRequestManager dataAccessRequestManager;
+	@Autowired
+	private DataAccessSubmissionManager dataAccessSubmissionManager;
 
 	@Override
 	public ResearchProject createOrUpdate(Long userId, ResearchProject toCreateOrUpdate) {
@@ -39,6 +45,30 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public DataAccessRequestInterface getRequestForUpdate(Long userId, String requirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessRequestManager.getDataAccessRequestForUpdate(user, requirementId);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus submit(Long userId, String requestId, String etag) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.create(user, requestId, etag);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus getStatus(Long userId, String requirementId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getSubmissionStatus(user, requirementId);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus cancel(Long userId, String submissionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.cancel(user, submissionId);
+	}
+
+	@Override
+	public DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.updateStatus(user, request);
 	}
 
 }

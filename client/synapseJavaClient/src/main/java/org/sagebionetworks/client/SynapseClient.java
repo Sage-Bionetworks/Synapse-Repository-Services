@@ -74,6 +74,9 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2733,4 +2736,43 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Submit a submission
+	 * 
+	 * @param requestId
+	 * @param etag
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus submit(String requestId, String etag) throws SynapseException;
+
+	/**
+	 * Cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus cancel(String submissionId) throws SynapseException;
+
+	/**
+	 * Request to update the state of a submission.
+	 * 
+	 * @param submissionId
+	 * @param newState
+	 * @param reason
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmission updateState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
+
+	/**
+	 * Retrieve a submission status
+	 * 
+	 * @param requirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException;
 }

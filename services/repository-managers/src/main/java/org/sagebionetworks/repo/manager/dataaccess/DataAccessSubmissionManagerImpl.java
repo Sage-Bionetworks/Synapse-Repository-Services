@@ -51,17 +51,15 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId) {
+	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
+		ValidateArgument.required(etag, "etag");
 		DataAccessRequestInterface request = dataAccessRequestDao.get(requestId);
+		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
 
 		DataAccessSubmission submissionToCreate = new DataAccessSubmission();
-
-		ValidateArgument.required(request.getId(), "request's ID");
 		submissionToCreate.setDataAccessRequestId(request.getId());
-
-		ValidateArgument.required(request.getResearchProjectId(), "researchProjectId");
 		submissionToCreate.setResearchProjectSnapshot(researchProjectDao.get(request.getResearchProjectId()));
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
@@ -163,8 +161,9 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(submissionId);
-		ValidateArgument.requirement(submission.getSubmittedBy().equals(userInfo.getId().toString()),
-				"Can only cancel submission you submitted.");
+		if (!submission.getSubmittedBy().equals(userInfo.getId().toString())) {
+			throw new UnauthorizedException("Can only cancel submission you submitted.");
+		}
 		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
 						"Cannot cancel a submission with "+submission.getState()+" state.");
 		return dataAccessSubmissionDao.cancel(submissionId, userInfo.getId().toString(),
