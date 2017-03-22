@@ -50,9 +50,13 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		// Try loading the settings file
 		addSettingsPropertiesToSystem(stackPropertyOverrides);
 		
-		for (Object propertyName : System.getProperties().keySet()) {
-			stackPropertyOverrides.setProperty((String)propertyName,
-					(String)System.getProperties().get(propertyName));
+		Properties systemProperties = System.getProperties();
+		for (Object propertyName : systemProperties.keySet()) {
+			String value = (String)systemProperties.get(propertyName);
+			if (value!=null && value.length()>0) {
+				stackPropertyOverrides.setProperty((String)propertyName,
+						value);
+			}
 		}
 		
 		// These three properties are required. If they are null, an exception
