@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -106,6 +107,10 @@ public class MessageUtilsTest {
 
 		MessageToUser dto2 = new MessageToUser();
 		MessageUtils.copyDBOToDTO(content, info, recipients, dto2);
+		assertFalse(dto.equals(dto2));
+		dto.setWithProfileSettingLink(false);
+		dto.setWithUnsubscribeLink(false);
+		dto.setIsNotificationMessage(false);
 		assertEquals(dto, dto2);
 	}
 	
@@ -181,6 +186,10 @@ public class MessageUtilsTest {
 
 		MessageToUser dto2 = new MessageToUser();
 		MessageUtils.copyDBOToDTO(info, dto2);
+		assertFalse(dto.equals(dto2));
+		dto.setWithProfileSettingLink(false);
+		dto.setWithUnsubscribeLink(false);
+		dto.setIsNotificationMessage(false);
 		assertEquals(dto, dto2);
 	}
 	
