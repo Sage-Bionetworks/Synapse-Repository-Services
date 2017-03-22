@@ -75,6 +75,7 @@ public class DataAccessSubmissionManagerImplTest {
 	private String publication;
 	private String summaryOfUse;
 	private String submissionId;
+	private String etag;
 
 	@Before
 	public void before() {
@@ -99,6 +100,7 @@ public class DataAccessSubmissionManagerImplTest {
 		publication = "publication";
 		summaryOfUse = "summaryOfUse";
 		submissionId = "8";
+		etag = "etag";
 		accessors = Arrays.asList(userId);
 
 		request = new DataAccessRenewal();
@@ -111,6 +113,7 @@ public class DataAccessSubmissionManagerImplTest {
 		request.setAccessors(accessors);
 		request.setPublication(publication);
 		request.setSummaryOfUse(summaryOfUse);
+		request.setEtag(etag);
 
 		when(mockDataAccessRequestDao.get(requestId)).thenReturn(request);
 		when(mockUser.getId()).thenReturn(1L);
@@ -136,36 +139,35 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullUserInfo() {
-		manager.create(null, requestId);
+		manager.create(null, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullRequestID() {
-		manager.create(mockUser, null);
+		manager.create(mockUser, null, etag);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithNullEtag() {
+		manager.create(mockUser, requestId, null);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNonExistRequest() {
 		when(mockDataAccessRequestDao.get(requestId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNullResearchProjectID() {
-		request.setResearchProjectId(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNotExistResearchProject() {
 		when(mockResearchProjectDao.get(researchProjectId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullAccessRequirementID() {
 		request.setAccessRequirementId(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -173,55 +175,55 @@ public class DataAccessSubmissionManagerImplTest {
 		when(mockDataAccessSubmissionDao.hasSubmissionWithState(
 				userId, accessRequirementId, DataAccessSubmissionState.SUBMITTED))
 				.thenReturn(true);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNotExistAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonACTAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithDUCRequired() {
 		request.setDucFileHandleId(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithIRBRequired() {
 		request.setIrbFileHandleId(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithAttachmentsRequiredAndNullList() {
 		request.setAttachments(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithAttachmentsRequiredAndEmptyList() {
 		request.setAttachments(new LinkedList<String>());
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullAccessors() {
 		request.setAccessors(null);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithEmptyAccessorList() {
 		request.setAccessors(new LinkedList<String>());
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -230,25 +232,25 @@ public class DataAccessSubmissionManagerImplTest {
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 				new HashSet<String>(accessors)))
 				.thenReturn(false);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonValidatedProfile() {
 		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
 				.thenReturn(false);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNotRequireRenewal() {
 		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test
 	public void testCreate() {
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 		ArgumentCaptor<DataAccessSubmission> captor = ArgumentCaptor.forClass(DataAccessSubmission.class);
 		verify(mockDataAccessSubmissionDao).create(captor.capture());
 		DataAccessSubmission captured = captor.getValue();
@@ -282,8 +284,9 @@ public class DataAccessSubmissionManagerImplTest {
 		request.setIrbFileHandleId(irbFileHandleId);
 		request.setAttachments(Arrays.asList(attachmentId));
 		request.setAccessors(accessors);
+		request.setEtag(etag);
 		when(mockDataAccessRequestDao.get(requestId)).thenReturn(request);
-		manager.create(mockUser, requestId);
+		manager.create(mockUser, requestId, etag);
 		ArgumentCaptor<DataAccessSubmission> captor = ArgumentCaptor.forClass(DataAccessSubmission.class);
 		verify(mockDataAccessSubmissionDao).create(captor.capture());
 		DataAccessSubmission captured = captor.getValue();
@@ -346,8 +349,8 @@ public class DataAccessSubmissionManagerImplTest {
 		manager.cancel(mockUser, submissionId);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testCancelSubmissionNotSubmitted() {
+	@Test (expected = UnauthorizedException.class)
+	public void testCancelSubmissionUserHasNotSubmitted() {
 		DataAccessSubmission submission = new DataAccessSubmission();
 		submission.setSubmittedBy("111");
 		submission.setState(DataAccessSubmissionState.SUBMITTED);

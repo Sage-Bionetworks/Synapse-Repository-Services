@@ -26,7 +26,6 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
@@ -99,7 +98,11 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -498,6 +501,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String RESEARCH_PROJECT = "/researchProject";
 	private static final String DATA_ACCESS_REQUEST = "/dataAccessRequest";
+	private static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -4928,5 +4932,39 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequestForUpdate";
 		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus submit(String requestId, String etag) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		ValidateArgument.required(etag, "etag");
+		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission&etag="+etag;
+		return postJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus cancel(String submissionId) throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId+"/cancellation";
+		return putJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
+	}
+
+	@Override
+	public DataAccessSubmission updateState(String submissionId, DataAccessSubmissionState newState, String reason)
+			throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(newState);
+		request.setRejectedReason(reason);
+		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId;
+		return putJSONEntity(getRepoEndpoint(), url, request, DataAccessSubmission.class);
+	}
+
+	@Override
+	public DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissionStatus";
+		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionStatus.class);
 	}
 }

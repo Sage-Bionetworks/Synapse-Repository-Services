@@ -13,6 +13,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -21,6 +22,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -101,6 +105,21 @@ public class ITDataAccessTest {
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		createdRequest.setAccessors(Arrays.asList(adminId));
 		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
+
+		DataAccessSubmissionStatus status = synapseOne.submit(updatedRequest.getId(), updatedRequest.getEtag());
+		assertNotNull(status);
+
+		assertEquals(status, synapseOne.getDataAccessSubmissionStatus(accessRequirement.getId().toString()));
+
+		DataAccessSubmission submission = adminSynapse.updateState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
+		assertNotNull(submission);
+
+		try {
+			synapseOne.cancel(status.getSubmissionId());
+			fail("should not be able to cancel an approved submission");
+		} catch (SynapseBadRequestException e) {
+			// as expected
+		}
 
 		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 	}

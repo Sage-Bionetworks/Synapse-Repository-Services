@@ -12,9 +12,10 @@ public interface DataAccessSubmissionManager {
 	 * 
 	 * @param userInfo
 	 * @param requestId
+	 * @param etag 
 	 * @return
 	 */
-	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId);
+	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag);
 
 	/**
 	 * Retrieve a submission status that the user owns or is an accessor.
