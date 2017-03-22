@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -153,10 +152,6 @@ public class MessageToUserWorkerIntegrationTest {
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
 		}
-		assertFalse(message.equals(messages.get(0).getMessage()));
-		message.setIsNotificationMessage(false);
-		message.setWithProfileSettingLink(false);
-		message.setWithUnsubscribeLink(false);
 		assertEquals(message, messages.get(0).getMessage());
 	}
 	
