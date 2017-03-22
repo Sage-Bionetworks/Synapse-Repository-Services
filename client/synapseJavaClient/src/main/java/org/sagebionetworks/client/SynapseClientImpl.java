@@ -4938,7 +4938,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public DataAccessSubmissionStatus submit(String requestId, String etag) throws SynapseException {
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
-		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission&etag="+etag;
+		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
 		return postJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
 	}
 
