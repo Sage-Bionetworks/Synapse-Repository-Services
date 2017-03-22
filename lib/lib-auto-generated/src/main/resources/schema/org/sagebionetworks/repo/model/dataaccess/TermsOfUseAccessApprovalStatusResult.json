@@ -1,18 +1,18 @@
 {
-    "description":"Result of a single access approval status request for an TermsOfUseAccessRequirement.",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResult"
-        }
-    ],
-    "properties":{
-        "status":{
-            "type": "string",
-            "name": "status",
+	"description":"Result of a single access approval status request for an TermsOfUseAccessRequirement.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResult"
+		}
+	],
+	"properties":{
+		"status":{
+			"type": "string",
+			"name": "status",
 			"enum": [
 				"NOT_APPROVED",
 				"APPROVED"
 			]
-        }
-    }
+		}
+	}
 }

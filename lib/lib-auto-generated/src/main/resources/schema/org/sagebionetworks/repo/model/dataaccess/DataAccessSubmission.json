@@ -39,20 +39,20 @@
 		},
 		"researchProjectSnapshot": {
 			"description": "The snapshot of the research project associated with this submission.",
-            "$ref":"org.sagebionetworks.repo.model.dataaccess.ResearchProject"
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.ResearchProject"
 		},
-        "isRenewalSubmission": {
-            "type": "boolean",
+		"isRenewalSubmission": {
+			"type": "boolean",
 			"description": "True if this submission is a renewal submission."
-        },
+		},
 		"publication":{
-            "type":"string",
-            "description":"Link(s) to publication that used the controlled data."
-        },
-        "summaryOfUse":{
-            "type":"string",
-            "description":"Summary of how the data has been used."
-        },
+			"type":"string",
+			"description":"Link(s) to publication that used the controlled data."
+		},
+		"summaryOfUse":{
+			"type":"string",
+			"description":"Summary of how the data has been used."
+		},
 		"submittedOn": {
 			"type": "string",
 			"format": "date-time",
@@ -73,11 +73,11 @@
 		},
 		"state":{
 			"description": "The state of this DataAccessSubmission.",
-            "$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState"
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState"
 		},
 		"rejectedReason": {
 			"type": "string",
-            "description": "The reason this submission is rejected, if it's rejected."
+			"description": "The reason this submission is rejected, if it's rejected."
 		},
 		"etag": {
 			"type": "string",

@@ -1,6 +1,6 @@
 {
 	"type":"string",
-    "name": "DataAccessSubmissionOrder",
+	"name": "DataAccessSubmissionOrder",
 	"enum":[
 		"CREATED_ON",
 		"ID"
