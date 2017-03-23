@@ -7,9 +7,14 @@
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
 # rds_password - the password for the build database, common to all dev builds
+# JOB_NAME - if omitted is the the stack + user
 
 stack=dev
 rds_user_name=${stack}${user}
+
+if [ ! ${JOB_NAME} ]; then
+	JOB_NAME=${stack}${user}
+fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
 
@@ -36,7 +41,7 @@ clean_up_container ${rds_container_name}
 network_name=${JOB_NAME}
 clean_up_network ${network_name}
 
-mkdir -p /var/lib/jenkins/${JOB_NAME}/.m2/
+mkdir -p ${m2_cache_parent_folder}/.m2/
 
 # ultimately this line can be removed
 rm -f ${m2_cache_parent_folder}/.m2/settings.xml
