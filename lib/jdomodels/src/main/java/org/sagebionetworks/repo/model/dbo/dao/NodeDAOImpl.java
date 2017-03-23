@@ -680,19 +680,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
 	}
-
-	@Override
-	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		Set<String> childIds = getChildrenIds(id);
-		Set<Node> results = new HashSet<Node>();
-		// for each child get the nodes
-		for(String childId: childIds){
-			Node child = this.getNode(childId);
-			results.add(child);
-		}
-		return results;
-	}
 	
 	@Override
 	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException {

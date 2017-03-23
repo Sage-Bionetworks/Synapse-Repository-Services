@@ -17,6 +17,9 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.FieldName;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -183,17 +186,6 @@ public interface NodeManager {
 	 * @throws InvalidModelException 
 	 */
 	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, AnnotationNameSpace namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
-
-	/**
-	 * Get the children of a node
-	 * @param userId
-	 * @param parentId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 */
-	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get a list of all of the version numbers for a node.
@@ -370,5 +362,19 @@ public interface NodeManager {
 	 * @return
 	 */
 	public Set<String> getFileHandleIdsAssociatedWithFileEntity(List<String> fileHandleIds, String entityId);
+
+	/**
+	 * Get one page of children for a given parentId
+	 * @param parentId The id of the parent.
+	 * @param includeTypes The types of children to include in the results.
+	 * @param childIdsToExclude Child IDs to be excluded from the results.
+	 * @param sortBy Sort by. 
+	 * @param sortDirection Sort direction
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude, SortBy sortBy, Direction sortDirection, long limit, long offset);
 
 }

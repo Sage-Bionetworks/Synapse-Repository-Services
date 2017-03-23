@@ -1,0 +1,40 @@
+{
+    "description":"Request for EntityHeaders of the children of a given parent Entity",
+    "properties":{
+        "parentId":{
+            "type": "string",
+            "description": "The ID of the parent."
+        },
+        "nextPageToken":{
+            "type": "string",
+            "description": "Optional parameter used to fetch the next page of results.  When NULL, the first page will be returned.  The nextPageToken is provided with the results if there is another page of results."
+        },
+        "includeTypes":{
+			"type": "array",
+			"description": "The types of children to be include.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.EntityType"
+			}
+        },
+        "sortBy": {
+			"type": "string",
+			"description": "Sort children by.",
+			"name": "SortBy",
+			"id": "org.sagebionetworks.repo.model.entity.SortBy",
+			"enum": [
+				"NAME",
+				"CREATED_ON"
+			]
+		},
+		"sortDirection": {
+			"type": "string",
+			"description": "The direction of the sort",
+			"name": "Direction",
+			"id": "org.sagebionetworks.repo.model.entity.Direction",
+			"enum": [
+				"ASC",
+				"DESC"
+			]
+		}
+    }
+}

@@ -115,15 +115,6 @@ public interface NodeDAO {
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Get all of the children nodes of a given node.
-	 * @param id
-	 * @return the child nodes
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException;
-	
-	/**
 	 * Get all of the version numbers for this node.
 	 * @param id
 	 * @return a list of verison numbers

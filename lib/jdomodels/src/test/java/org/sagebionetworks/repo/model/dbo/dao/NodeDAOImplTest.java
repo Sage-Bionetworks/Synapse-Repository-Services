@@ -509,15 +509,8 @@ public class NodeDAOImplTest {
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
-
-		Set<Node> children = nodeDao.getChildren(parentId);
-		assertNotNull(children);
-		assertEquals(1, children.size());
-		Node childLoaded = children.iterator().next();
-		assertEquals(childId, childLoaded.getId());
-		assertEquals(parentId, childLoaded.getParentId());
 		// Make sure we can fetch it
-		childLoaded = nodeDao.getNode(childId);
+		Node childLoaded = nodeDao.getNode(childId);
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
 		// This child should be inheriting from its parent by default

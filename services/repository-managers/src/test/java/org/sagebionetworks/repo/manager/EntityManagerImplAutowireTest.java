@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -225,8 +226,10 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<Folder> children = entityManager.getEntityChildren(adminUserInfo, parentId, Folder.class);
-		assertNotNull(children);
+		List<Folder> children = new LinkedList<Folder>();
+		for(String childId: childrenIds){
+			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
+		}
 		assertEquals(layers, children.size());
 		Folder toUpdate = children.get(0);
 		String udpatedId = toUpdate.getId();
@@ -234,7 +237,10 @@ public class EntityManagerImplAutowireTest {
 		toUpdate.setName("updatedName");
 		// Do it again
 		entityManager.aggregateEntityUpdate(adminUserInfo, parentId, children);
-		children = entityManager.getEntityChildren(adminUserInfo, parentId, Folder.class);
+		children = new LinkedList<Folder>();
+		for(String childId: childrenIds){
+			children.add(entityManager.getEntity(adminUserInfo, childId, Folder.class));
+		}
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name

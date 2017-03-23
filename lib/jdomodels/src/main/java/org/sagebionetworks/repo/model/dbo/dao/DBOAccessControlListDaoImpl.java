@@ -571,4 +571,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		});
 		return results;
 	}
+
+	@Override
+	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
+			String parentId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

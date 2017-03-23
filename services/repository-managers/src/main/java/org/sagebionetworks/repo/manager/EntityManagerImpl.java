@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -21,15 +23,18 @@ import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -37,6 +42,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class EntityManagerImpl implements EntityManager {
 
+	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
+	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
+	
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
@@ -52,17 +60,6 @@ public class EntityManagerImpl implements EntityManager {
 	 */
 	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
 		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
-	}
-
-	public EntityManagerImpl() {
-	}
-	
-	public EntityManagerImpl(NodeManager nodeManager,
-			EntityPermissionsManager permissionsManager, UserManager userManager) {
-		super();
-		this.nodeManager = nodeManager;
-		this.entityPermissionsManager = permissionsManager;
-		this.userManager = userManager;
 	}
 
 	@WriteTransaction
@@ -424,24 +421,6 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public <T extends Entity> List<T> getEntityChildren(UserInfo userInfo,
-			String parentId, Class<? extends T> childrenClass)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		List<T> resultSet = new ArrayList<T>();
-		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
-		Iterator<Node> it = children.iterator();
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(childrenClass);
-		while (it.hasNext()) {
-			Node child = it.next();
-			if (child.getNodeType() == type) {
-				resultSet.add(this.getEntity(userInfo, child.getId(),
-						childrenClass));
-			}
-		}
-		return resultSet;
-	}
-
-	@Override
 	public EntityType getEntityType(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
@@ -590,6 +569,41 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getEntityIdForAlias(alias);
 	}
 
-
+	@Override
+	public EntityChildrenResponse getChildren(UserInfo user,
+			EntityChildrenRequest request) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(request, "EntityChildrenRequest");
+		ValidateArgument.required(request.getParentId(), "EntityChildrenRequest.parentId");
+		ValidateArgument.required(request.getIncludeTypes(), "EntityChildrenRequest.includeTypes");
+		if(request.getIncludeTypes().isEmpty()){
+			throw new IllegalArgumentException("EntityChildrenRequest.includeTypes must include at least one type");
+		}
+		if(request.getSortBy() == null){
+			request.setSortBy(DEFAULT_SORT_BY);
+		}
+		if(request.getSortDirection() == null){
+			request.setSortDirection(DEFAULT_SORT_DIRECTION);
+		}
+		// Validate the caller has read access to the parent
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+		// Find the children of this entity that the caller cannot see.
+		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
+		NextPageToken nextPage = null;
+		if(request.getNextPageToken() != null){
+			nextPage = new NextPageToken(request.getNextPageToken());
+		}else{
+			nextPage = new NextPageToken(NextPageToken.DEFAULT_LIMIT, NextPageToken.DEFAULT_OFFSET);
+		}
+		List<EntityHeader> page = nodeManager.getChildren(
+				request.getParentId(), request.getIncludeTypes(),
+				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimit()+1,
+				nextPage.getOffset());
+		EntityChildrenResponse response = new EntityChildrenResponse();
+		response.setPage(page);
+		response.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
 
 }
