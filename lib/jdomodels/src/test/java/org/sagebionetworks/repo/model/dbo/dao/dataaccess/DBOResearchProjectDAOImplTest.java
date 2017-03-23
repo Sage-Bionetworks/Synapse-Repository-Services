@@ -82,7 +82,6 @@ public class DBOResearchProjectDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.ACTAccessRequirements");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
 		transactionTemplate = new TransactionTemplate(txManager);
