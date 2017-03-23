@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -87,6 +88,20 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_SUBMISSION
 			+" WHERE "+COL_DATA_ACCESS_SUBMISSION_ID+" = ?";
+
+	private static final String SQL_LIST_SUBMISSIONS = "SELECT *"
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS
+			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
+			+ " = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?";
+
+	private static final String SQL_LIST_SUBMISSIONS_WITH_FILTER = SQL_LIST_SUBMISSIONS
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" =?";
+
+	private static final String ORDER_BY = "ORDER BY";
+	private static final String DESCENDING = "DESC";
+	private static final String LIMIT = "LIMIT";
+	private static final String OFFSET = "OFFSET";
 
 	private static final RowMapper<DataAccessSubmissionStatus> STATUS_MAPPER = new RowMapper<DataAccessSubmissionStatus>(){
 		@Override
@@ -210,5 +225,37 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@Override
 	public void delete(String id) {
 		jdbcTemplate.update(SQL_DELETE, id);
+	}
+
+	@Override
+	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
+			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
+			String query = null;
+		if (filterBy != null) {
+			query = SQL_LIST_SUBMISSIONS_WITH_FILTER;
+		} else {
+			query = SQL_LIST_SUBMISSIONS;
+		}
+		if (orderBy != null) {
+			switch(orderBy) {
+				case CREATED_ON:
+					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
+					break;
+				case MODIFIED_ON:
+					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
+					break;
+				default:
+					throw new IllegalArgumentException("Do not support order by "+orderBy.name());
+			}
+			if (isAscending != null && !isAscending) {
+				query += " "+DESCENDING;
+			}
+		}
+		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
+		if (filterBy != null) {
+			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId, filterBy.name());
+		} else {
+			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
+		}
 	}
 }
