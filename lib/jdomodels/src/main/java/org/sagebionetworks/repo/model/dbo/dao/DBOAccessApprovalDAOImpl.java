@@ -13,7 +13,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -58,6 +60,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
 		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
 		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+
+	private static final String SELECT_APPROVAL_ID_FOR_REQUIREMENTS_AND_PRINCIPAL_SQL = 
+			"SELECT "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "+COL_ACCESS_APPROVAL_ID
+			+ " FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
+			COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
+			") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
 	COL_ACCESS_APPROVAL_CREATED_BY+", "+
@@ -209,5 +217,27 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
 		namedJdbcTemplate.update(DELETE_ACCESS_APPROVAL, params);
+	}
+
+	@Override
+	public Map<String, String> getApprovalIdForRequirementsAndPrincipalId(List<String> requirementIds, String principalId) {
+		final Map<String, String> result = new HashMap<String, String>();
+		if (requirementIds.isEmpty()) {
+			return result;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, requirementIds);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalId);
+		namedJdbcTemplate.query(SELECT_APPROVAL_ID_FOR_REQUIREMENTS_AND_PRINCIPAL_SQL, params, new RowMapper<Void>(){
+
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				String requirementId = rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_ID);
+				String approvalId = rs.getString(COL_ACCESS_APPROVAL_ID);
+				result.put(requirementId, approvalId);
+				return null;
+			}
+		});
+		return result;
 	}
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -72,5 +73,14 @@ public interface AccessApprovalDAO {
 	 * @param accessorId
 	 */
 	public void delete(String accessRequirementId, String accessorId);
+
+	/**
+	 * get approval IDs for access requirement IDs and principal ID.
+	 * 
+	 * @param requirementIds
+	 * @param principalId
+	 * @return
+	 */
+	public Map<String, String> getApprovalIdForRequirementsAndPrincipalId(List<String> requirementIds, String principalId);
 
 }
