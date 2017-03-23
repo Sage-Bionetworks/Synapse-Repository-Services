@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -210,13 +211,19 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals(reason, updated.getRejectedReason());
 		assertEquals(etag, updated.getEtag());
 
+		DataAccessSubmission dto2 = createSubmission();
+		dataAccessSubmissionDao.create(dto2);
+		assertEquals(DataAccessSubmissionState.SUBMITTED, dataAccessSubmissionDao
+				.getStatus(accessRequirement.getId().toString(), user1.getId().toString()).getState());
+
 		dataAccessSubmissionDao.delete(dto.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
 	}
 
 	@Test
 	public void testHasSubmissionWithState() {
 
-		final DataAccessSubmission dto = createSubmission();
+		DataAccessSubmission dto = createSubmission();
 		dataAccessSubmissionDao.create(dto);
 
 		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
@@ -235,8 +242,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Test
 	public void testListSubmissions() {
-		final DataAccessSubmission dto1 = createSubmission();
-		final DataAccessSubmission dto2 = createSubmission();
+		DataAccessSubmission dto1 = createSubmission();
+		DataAccessSubmission dto2 = createSubmission();
 		dataAccessSubmissionDao.create(dto1);
 		dataAccessSubmissionDao.create(dto2);
 
@@ -258,6 +265,78 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertNotNull(submissions);
 		assertEquals(0, submissions.size());
 
+		dataAccessSubmissionDao.delete(dto1.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
+	}
+
+	@Test
+	public void testGetState() {
+		DataAccessSubmission dto1 = createSubmission();
+		dto1.setState(DataAccessSubmissionState.CANCELLED);
+		DataAccessSubmission dto2 = createSubmission();
+		dto2.setState(DataAccessSubmissionState.APPROVED);
+		dataAccessSubmissionDao.create(dto1);
+		dataAccessSubmissionDao.create(dto2);
+
+		// second requirement
+		ACTAccessRequirement ar2 = new ACTAccessRequirement();
+		ar2.setCreatedBy(user1.getId());
+		ar2.setCreatedOn(new Date());
+		ar2.setModifiedBy(user1.getId());
+		ar2.setModifiedOn(new Date());
+		ar2.setEtag("10");
+		ar2.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		ar2.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
+		ar2.setConcreteType("com.sagebionetworks.repo.model.ACTAccessRequirements");
+		ar2 = accessRequirementDAO.create(ar2);
+
+		Map<String, DataAccessSubmissionState> stateMap = 
+				dataAccessSubmissionDao.getSubmissionStateForRequirementIdsAndPrincipalId(
+				Arrays.asList(accessRequirement.getId().toString(), ar2.getId().toString()), user1.getId());
+
+		assertNotNull(stateMap);
+		assertTrue(stateMap.containsKey(accessRequirement.getId().toString()));
+		assertEquals(DataAccessSubmissionState.APPROVED, stateMap.get(accessRequirement.getId().toString()));
+		assertFalse(stateMap.containsKey(ar2.getId().toString()));
+
+		// create second ResearchProject 
+		ResearchProject researchProject2 = ResearchProjectTestUtils.createNewDto();
+		researchProject2.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
+		researchProject2.setAccessRequirementId(ar2.getId().toString());
+		researchProject2 = researchProjectDao.create(researchProject2);
+
+		// create second request
+		DataAccessRequest request2 = DataAccessRequestTestUtils.createNewDataAccessRequest();
+		request2.setAccessRequirementId(ar2.getId().toString());
+		request2.setResearchProjectId(researchProject.getId());
+		request2.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		request2 = dataAccessRequestDao.create(request2);
+
+		// submissions for second requirement
+		DataAccessSubmission dto3 = createSubmission();
+		dto3.setState(DataAccessSubmissionState.REJECTED);
+		dto3.setAccessRequirementId(ar2.getId().toString());
+		DataAccessSubmission dto4 = createSubmission();
+		dto4.setState(DataAccessSubmissionState.SUBMITTED);
+		dto4.setAccessRequirementId(ar2.getId().toString());
+		dataAccessSubmissionDao.create(dto3);
+		dataAccessSubmissionDao.create(dto4);
+
+		stateMap = dataAccessSubmissionDao.getSubmissionStateForRequirementIdsAndPrincipalId(
+				Arrays.asList(accessRequirement.getId().toString(), ar2.getId().toString()), user1.getId());
+
+		assertNotNull(stateMap);
+		assertTrue(stateMap.containsKey(accessRequirement.getId().toString()));
+		assertEquals(DataAccessSubmissionState.APPROVED, stateMap.get(accessRequirement.getId().toString()));
+		assertTrue(stateMap.containsKey(ar2.getId().toString()));
+		assertEquals(DataAccessSubmissionState.SUBMITTED, stateMap.get(ar2.getId().toString()));
+
+		dataAccessSubmissionDao.delete(dto3.getId());
+		dataAccessSubmissionDao.delete(dto4.getId());
+		dataAccessRequestDao.delete(request2.getId());
+		researchProjectDao.delete(researchProject2.getId());
+		accessRequirementDAO.delete(ar2.getId().toString());
 		dataAccessSubmissionDao.delete(dto1.getId());
 		dataAccessSubmissionDao.delete(dto2.getId());
 	}

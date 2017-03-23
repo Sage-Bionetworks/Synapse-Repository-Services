@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
@@ -95,4 +96,14 @@ public interface DataAccessSubmissionDAO {
 	 */
 	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
 			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
+
+	/**
+	 * Retrieve submission status for a lit of requirement IDs and principal ID.
+	 * 
+	 * @param accessRequirementIdList
+	 * @param principalId
+	 * @return
+	 */
+	public Map<String, DataAccessSubmissionState> getSubmissionStateForRequirementIdsAndPrincipalId(
+			List<String> accessRequirementIdList, String principalId);
 }
