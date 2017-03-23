@@ -8,7 +8,9 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
@@ -23,6 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
@@ -31,6 +35,9 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	private static final String SQL_GET_STATUS_FOR_USER = "SELECT "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+", "
@@ -47,7 +54,27 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?"
 			+ " AND ("+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_BY+" = ?"
 				+ " OR "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?)"
-			+ "LIMIT 1";
+			// LATEST SUBMISSION
+			+ " ORDER BY "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID+" DESC"
+			+ " LIMIT 1";
+
+	private static final String SQL_GET_STATE_FOR_REQUIREMENT_IDS = "SELECT "
+			+"S."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+", "
+			+"S2."+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE
+		+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+" AS S, "
+			+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+" AS A, "
+			+TABLE_DATA_ACCESS_SUBMISSION_STATUS+" AS S2"
+		+ " WHERE "+"S."+COL_DATA_ACCESS_SUBMISSION_ID
+			+" = "+"A."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID
+		+ " AND "+"S."+COL_DATA_ACCESS_SUBMISSION_ID
+			+" = "+"S2."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
+		+ " AND S."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" IN (:"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+")"
+		+ " AND A."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = :"+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID
+		// LASTEST SUBMISSION
+		+ " AND "+"S."+COL_DATA_ACCESS_SUBMISSION_ID+" = ("
+			+ " SELECT MAX("+COL_DATA_ACCESS_SUBMISSION_ID+")"
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+" AS S3"
+			+ " WHERE S."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = S3."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+")";
 
 	private static final String SQL_GET_STATUS_BY_ID = " SELECT *"
 			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_STATUS
@@ -257,5 +284,29 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 		} else {
 			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
 		}
+	}
+
+	@Override
+	public Map<String, DataAccessSubmissionState> getSubmissionStateForRequirementIdsAndPrincipalId(
+			List<String> requirementIds, String principalId) {
+		final Map<String, DataAccessSubmissionState> result = new HashMap<String, DataAccessSubmissionState>();
+		if (requirementIds.isEmpty()) {
+			return result;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, requirementIds);
+		params.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID, principalId);
+		namedJdbcTemplate.query(SQL_GET_STATE_FOR_REQUIREMENT_IDS, params, new RowMapper<Void>(){
+
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				String requirementId = rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID);
+				DataAccessSubmissionState state = DataAccessSubmissionState.valueOf(
+						rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE));
+				result.put(requirementId, state);
+				return null;
+			}
+		});
+		return result;
 	}
 }
