@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -26,8 +25,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class ResearchProjectManagerImplTest {
 
-	@Mock
-	private AuthorizationManager mockAuthorizationManager;
 	@Mock
 	private IdGenerator mockIdGenerator;
 	@Mock
@@ -53,7 +50,6 @@ public class ResearchProjectManagerImplTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		manager = new ResearchProjectManagerImpl();
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
