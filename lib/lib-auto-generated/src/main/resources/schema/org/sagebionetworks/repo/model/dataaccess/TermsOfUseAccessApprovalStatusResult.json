@@ -8,7 +8,7 @@
 	"properties":{
 		"status":{
 			"type": "string",
-			"name": "status",
+			"name": "TermsOfUseAccessApprovalStatus",
 			"enum": [
 				"NOT_APPROVED",
 				"APPROVED"
