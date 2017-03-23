@@ -18,11 +18,15 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessApprovalStatusResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -122,6 +126,16 @@ public class ITDataAccessTest {
 		}
 
 		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+
+		DataAccessSubmissionPage submissions = adminSynapse.listSubmission(accessRequirement.getId().toString(), null, null, null, null);
+		assertNotNull(submissions);
+		assertEquals(1, submissions.getResults().size());
+		assertEquals(submission, submissions.getResults().get(0));
+
+		AccessApprovalStatusResults results = synapseOne.getApprovalStatus(Arrays.asList(accessRequirement.getId().toString()));
+		assertNotNull(results);
+		assertEquals(1, results.getResults().size());
+		assertEquals(ACTApprovalStatus.APPROVED, ((ACTAccessApprovalStatusResult)results.getResults().get(0)).getStatus());
 	}
 
 }

@@ -118,7 +118,7 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getThreadsForForum(userId, forumId, limit, offset, sort, ascending, filter);
 	}
@@ -375,7 +375,7 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, filter);
 	}
@@ -415,7 +415,7 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.FORUM_FORUM_ID_THREAD_COUNT, method = RequestMethod.GET)
 	public @ResponseBody ThreadCount getThreadCountForForum(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String forumId) {
 		return serviceProvider.getDiscussionService().getThreadCount(userId, forumId, filter);
 	}
@@ -434,7 +434,7 @@ public class DiscussionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.THREAD_THREAD_ID_REPLY_COUNT, method = RequestMethod.GET)
 	public @ResponseBody ReplyCount getReplyCountForThread(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter,
+			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
 		return serviceProvider.getDiscussionService().getReplyCount(userId, threadId, filter);
 	}

@@ -73,8 +73,11 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -2775,4 +2778,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException;
+
+	/**
+	 * Retrieve a page of submissions.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @param filter
+	 * @param order
+	 * @param isAscending
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionPage listSubmission(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
+
+	/**
+	 * Retrieve approval status for a list of access requirement IDs.
+	 * 
+	 * @param requirementIds
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApprovalStatusResults getApprovalStatus(List<String> requirementIds) throws SynapseException;
 }

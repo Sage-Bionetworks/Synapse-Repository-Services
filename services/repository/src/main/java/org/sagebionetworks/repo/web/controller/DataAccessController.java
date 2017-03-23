@@ -2,8 +2,14 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -175,5 +181,46 @@ public class DataAccessController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().updateState(userId, request);
+	}
+
+	/**
+	 * Retrieve a list of submissions for a given access requirement ID.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @param orderBy
+	 * @param ascending
+	 * @param filterBy
+	 * @param nextPageToken
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.GET)
+	public @ResponseBody DataAccessSubmissionPage listSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DataAccessSubmissionOrder orderBy,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
+			@RequestParam(value = ServiceConstants.FILTER_PARAM, required = false) DataAccessSubmissionState filterBy,
+			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listSubmissions(userId, requirementId, nextPageToken, filterBy, orderBy, ascending);
+	}
+
+	/**
+	 * Retrieve approval status for a given requirement ID list.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_STATUS, method = RequestMethod.POST)
+	public @ResponseBody AccessApprovalStatusResults getAccessApprovalStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessApprovalStatusRequest request) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getAccessApprovalStatus(userId, request);
 	}
 }

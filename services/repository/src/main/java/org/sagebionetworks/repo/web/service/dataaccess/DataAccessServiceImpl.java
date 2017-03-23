@@ -5,8 +5,13 @@ import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -69,6 +74,19 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.updateStatus(user, request);
+	}
+
+	@Override
+	public DataAccessSubmissionPage listSubmissions(Long userId, String requirementId, String nextPageToken,
+			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.listSubmission(user, requirementId, nextPageToken, filterBy, orderBy, isAscending);
+	}
+
+	@Override
+	public AccessApprovalStatusResults getAccessApprovalStatus(Long userId, AccessApprovalStatusRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getAccessApprovalStatus(user, request);
 	}
 
 }
