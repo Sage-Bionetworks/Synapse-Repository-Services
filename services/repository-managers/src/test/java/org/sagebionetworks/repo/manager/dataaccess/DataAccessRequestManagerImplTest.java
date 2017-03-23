@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -29,20 +28,22 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DataAccessRequestManagerImplTest {
 
 	@Mock
-	private AuthorizationManager mockAuthorizationManager;
-	@Mock
 	private IdGenerator mockIdGenerator;
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
 	private DataAccessRequestDAO mockDataAccessRequestDao;
+	@Mock
+	private DataAccessSubmissionDAO mockDataAccessSubmissionDao;
 	@Mock
 	private UserInfo mockUser;
 	@Mock
@@ -64,10 +65,10 @@ public class DataAccessRequestManagerImplTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		manager = new DataAccessRequestManagerImpl();
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "dataAccessRequestDao", mockDataAccessRequestDao);
+		ReflectionTestUtils.setField(manager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 
 		userId = "1";
 		accessRequirementId = "2";
@@ -86,6 +87,7 @@ public class DataAccessRequestManagerImplTest {
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockDataAccessRequestDao.update(any(DataAccessRequestInterface.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.SUBMITTED)).thenReturn(false);
 	}
 
 	private DataAccessRequest createNewRequest() {
@@ -199,8 +201,16 @@ public class DataAccessRequestManagerImplTest {
 	}
 
 	@Test
-	public void testGetForUpdateRequireRenewal() {
+	public void testGetForUpdateRequireRenewalDoesNotHasApprovedSubmission() {
 		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.APPROVED)).thenReturn(false);
+		assertEquals(request, manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId));
+	}
+
+	@Test
+	public void testGetForUpdateRequireRenewalHasApprovedSubmission() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.APPROVED)).thenReturn(true);
 		DataAccessRenewal renewal = (DataAccessRenewal) manager.getDataAccessRequestForUpdate(mockUser, accessRequirementId);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
@@ -298,6 +308,34 @@ public class DataAccessRequestManagerImplTest {
 		manager.update(mockUser, toUpdate);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithSubmittedSubmission() {
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.SUBMITTED)).thenReturn(true);
+		manager.update(mockUser, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateDataAccessRenewalNotRequired() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
+		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
+		manager.update(mockUser, toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateDataAccessRenewalRequiredAndHasApprovedSubmission() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.APPROVED)).thenReturn(true);
+		manager.update(mockUser, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateDataAccessRenewalRequiredAndDoesNotHasApprovedSubmission() {
+		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.APPROVED)).thenReturn(false);
+		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
+		manager.update(mockUser, toUpdate);
+	}
+
 	@Test
 	public void testUpdate() {
 		DataAccessRequest toUpdate = createNewRequest();
@@ -312,15 +350,9 @@ public class DataAccessRequestManagerImplTest {
 		assertEquals("777", updated.getDucFileHandleId());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateDataAccessRenewalNotRequired() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
-		manager.update(mockUser, toUpdate);
-	}
-
 	@Test
 	public void testUpdateDataAccessRenewalRequired() {
+		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.APPROVED)).thenReturn(true);
 		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
 		DataAccessRenewal toUpdate = manager.createRenewalFromRequest(request);
 		toUpdate.setDucFileHandleId("777");

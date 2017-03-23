@@ -153,6 +153,12 @@ public class DataAccessSubmissionManagerImplTest {
 	}
 
 	@Test (expected = NotFoundException.class)
+	public void testCreateWithOutdatedEtag() {
+		when(mockDataAccessRequestDao.get(requestId)).thenThrow(new NotFoundException());
+		manager.create(mockUser, requestId, "outdated etag");
+	}
+
+	@Test (expected = NotFoundException.class)
 	public void testCreateWithNonExistRequest() {
 		when(mockDataAccessRequestDao.get(requestId)).thenThrow(new NotFoundException());
 		manager.create(mockUser, requestId, etag);
