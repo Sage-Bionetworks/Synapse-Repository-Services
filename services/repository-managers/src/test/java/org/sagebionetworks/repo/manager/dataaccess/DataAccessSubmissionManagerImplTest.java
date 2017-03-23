@@ -4,9 +4,11 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +19,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -25,6 +28,10 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessApprovalStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessApprovalStatusResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
@@ -34,10 +41,13 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessApprovalStatus;
+import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessApprovalStatusResult;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DataAccessSubmissionManagerImplTest {
@@ -58,6 +68,8 @@ public class DataAccessSubmissionManagerImplTest {
 	private GroupMembersDAO mockGroupMembersDao;
 	@Mock
 	private VerificationDAO mockVerificationDao;
+	@Mock
+	private AccessApprovalDAO mockAccessApprovalDao;
 	@Mock
 	private UserInfo mockUser;
 	@Mock
@@ -92,6 +104,7 @@ public class DataAccessSubmissionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 		ReflectionTestUtils.setField(manager, "groupMembersDao", mockGroupMembersDao);
 		ReflectionTestUtils.setField(manager, "verificationDao", mockVerificationDao);
+		ReflectionTestUtils.setField(manager, "accessApprovalDao", mockAccessApprovalDao);
 
 		userId = "1";
 		requestId = "2";
@@ -557,5 +570,76 @@ public class DataAccessSubmissionManagerImplTest {
 		verify(mockDataAccessSubmissionDao).getSubmissions(accessRequirementId,
 				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON,
 				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalStatusWithNullUserInfo() {
+		AccessApprovalStatusRequest request = new AccessApprovalStatusRequest();
+		manager.getAccessApprovalStatus(null, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalStatusWithNullRequest() {
+		manager.getAccessApprovalStatus(mockUser, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalStatusWithNullList() {
+		AccessApprovalStatusRequest request = new AccessApprovalStatusRequest();
+		manager.getAccessApprovalStatus(mockUser, request);
+	}
+
+	@Test
+	public void testGetAccessApprovalStatusWithEmptyList() {
+		AccessApprovalStatusRequest request = new AccessApprovalStatusRequest();
+		request.setAccessRequirementIdList(new LinkedList<String>());
+		AccessApprovalStatusResults results = manager.getAccessApprovalStatus(mockUser, request);
+		assertNotNull(results);
+		assertTrue(results.getResults().isEmpty());
+		verifyZeroInteractions(mockDataAccessSubmissionDao);
+		verifyZeroInteractions(mockAccessApprovalDao);
+		verifyZeroInteractions(mockAccessRequirementDao);
+	}
+
+	@Test
+	public void testGetAccessApprovalStatus() {
+		AccessApprovalStatusRequest request = new AccessApprovalStatusRequest();
+		List<String> requirementIds = Arrays.asList("1", "2", "3", "4");
+		request.setAccessRequirementIdList(requirementIds);
+		// 1 - terms of use - approved
+		// 2 - terms of use - not approved
+		// 3 - act - not submitted
+		// 4 - act - cancelled
+		Map<String, String> approvalIdMap = new HashMap<String, String>();
+		approvalIdMap.put("1", "1");
+		Map<String, String> concreteTypeMap = new HashMap<String, String>();
+		concreteTypeMap.put("1", TermsOfUseAccessRequirement.class.getName());
+		concreteTypeMap.put("2", TermsOfUseAccessRequirement.class.getName());
+		concreteTypeMap.put("3", ACTAccessRequirement.class.getName());
+		concreteTypeMap.put("4", ACTAccessRequirement.class.getName());
+		Map<String, DataAccessSubmissionState> stateMap = new HashMap<String, DataAccessSubmissionState>();
+		stateMap.put("4", DataAccessSubmissionState.CANCELLED);
+		when(mockAccessApprovalDao.getApprovalIdForRequirementsAndPrincipalId(requirementIds, userId))
+			.thenReturn(approvalIdMap);
+		when(mockAccessRequirementDao.getConcreteTypes(requirementIds))
+			.thenReturn(concreteTypeMap);
+		when(mockDataAccessSubmissionDao.getSubmissionStateForRequirementIdsAndPrincipalId(requirementIds, userId))
+			.thenReturn(stateMap);
+
+		AccessApprovalStatusResults results = manager.getAccessApprovalStatus(mockUser, request);
+		assertNotNull(results);
+		assertEquals(4, results.getResults().size());
+		assertEquals("1", results.getResults().get(0).getAccessRequirementId());
+		assertEquals("2", results.getResults().get(1).getAccessRequirementId());
+		assertEquals("3", results.getResults().get(2).getAccessRequirementId());
+		assertEquals("4", results.getResults().get(3).getAccessRequirementId());
+		assertEquals(TermsOfUseAccessApprovalStatus.APPROVED, ((TermsOfUseAccessApprovalStatusResult)results.getResults().get(0)).getStatus());
+		assertEquals(TermsOfUseAccessApprovalStatus.NOT_APPROVED, ((TermsOfUseAccessApprovalStatusResult)results.getResults().get(1)).getStatus());
+		assertEquals(ACTAccessApprovalStatus.NOT_SUBMITTED, ((ACTAccessApprovalStatusResult)results.getResults().get(2)).getStatus());
+		assertEquals(ACTAccessApprovalStatus.CANCELLED, ((ACTAccessApprovalStatusResult)results.getResults().get(3)).getStatus());
+
+		verify(mockAccessApprovalDao).getApprovalIdForRequirementsAndPrincipalId(requirementIds, userId);
+		verify(mockAccessRequirementDao).getConcreteTypes(requirementIds);
+		verify(mockDataAccessSubmissionDao).getSubmissionStateForRequirementIdsAndPrincipalId(requirementIds, userId);
 	}
 }

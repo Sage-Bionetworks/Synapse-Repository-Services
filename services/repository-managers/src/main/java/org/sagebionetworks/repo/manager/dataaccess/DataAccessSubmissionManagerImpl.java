@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -11,14 +12,21 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessApprovalStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessApprovalStatusResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
@@ -27,6 +35,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessApprovalStatus;
+import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessApprovalStatusResult;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -52,6 +62,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private AccessApprovalDAO accessApprovalDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -209,5 +221,74 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		pageResult.setResults(submissions);
 		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
 		return pageResult;
+	}
+
+	@Override
+	public AccessApprovalStatusResults getAccessApprovalStatus(UserInfo userInfo, AccessApprovalStatusRequest request){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementIdList(), "AccessApprovalStatusRequest.accessRequirementIdList");
+		AccessApprovalStatusResults results = new AccessApprovalStatusResults();
+		List<AccessApprovalStatusResult> list = new LinkedList<AccessApprovalStatusResult>();
+		results.setResults(list);
+		if (request.getAccessRequirementIdList().isEmpty()) {
+			return results;
+		}
+		Map<String, String> requirementIdToApprovalIdMap =
+				accessApprovalDao.getApprovalIdForRequirementsAndPrincipalId(request.getAccessRequirementIdList(), userInfo.getId().toString());
+		Map<String, DataAccessSubmissionState> requirementIdToSubmissionStateMap =
+				dataAccessSubmissionDao.getSubmissionStateForRequirementIdsAndPrincipalId(request.getAccessRequirementIdList(), userInfo.getId().toString());
+		Map<String, String> requirementIdToTypeMap =
+				accessRequirementDao.getConcreteTypes(request.getAccessRequirementIdList());
+		for (String requirementId : request.getAccessRequirementIdList()) {
+			if (requirementIdToTypeMap.get(requirementId).equals(ACTAccessRequirement.class.getName())) {
+				ACTAccessApprovalStatusResult result = createACTAccessApprovalStatusResult(
+						requirementIdToSubmissionStateMap, requirementId);
+				list.add(result);
+			} else if (requirementIdToTypeMap.get(requirementId).equals(TermsOfUseAccessRequirement.class.getName())) {
+				TermsOfUseAccessApprovalStatusResult result = createTermsOfUseAccessApprovalStatusResult(
+						requirementIdToApprovalIdMap, requirementId);
+				list.add(result);
+			} else {
+				throw new IllegalArgumentException("Do not support requirement type "
+						+requirementIdToTypeMap.get(requirementId)+" for requirementId "+requirementId);
+			}
+		}
+		return results;
+	}
+
+	/**
+	 * @param requirementIdToApprovalIdMap
+	 * @param requirementId
+	 * @return
+	 */
+	public TermsOfUseAccessApprovalStatusResult createTermsOfUseAccessApprovalStatusResult(
+			Map<String, String> requirementIdToApprovalIdMap, String requirementId) {
+		TermsOfUseAccessApprovalStatusResult result = new TermsOfUseAccessApprovalStatusResult();
+		result.setAccessRequirementId(requirementId);
+		if (requirementIdToApprovalIdMap.containsKey(requirementId)) {
+			result.setStatus(TermsOfUseAccessApprovalStatus.APPROVED);
+		} else {
+			result.setStatus(TermsOfUseAccessApprovalStatus.NOT_APPROVED);
+		}
+		return result;
+	}
+
+	/**
+	 * @param requirementIdToSubmissionStateMap
+	 * @param requirementId
+	 * @return
+	 */
+	public ACTAccessApprovalStatusResult createACTAccessApprovalStatusResult(
+			Map<String, DataAccessSubmissionState> requirementIdToSubmissionStateMap, String requirementId) {
+		ACTAccessApprovalStatusResult result = new ACTAccessApprovalStatusResult();
+		result.setAccessRequirementId(requirementId);
+		if (requirementIdToSubmissionStateMap.containsKey(requirementId)) {
+			DataAccessSubmissionState state = requirementIdToSubmissionStateMap.get(requirementId);
+			result.setStatus(ACTAccessApprovalStatus.valueOf(state.name()));
+		} else {
+			result.setStatus(ACTAccessApprovalStatus.NOT_SUBMITTED);
+		}
+		return result;
 	}
 }
