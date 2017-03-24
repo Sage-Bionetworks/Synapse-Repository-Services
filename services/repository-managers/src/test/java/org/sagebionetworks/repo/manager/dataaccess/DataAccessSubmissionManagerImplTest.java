@@ -25,7 +25,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -68,8 +67,6 @@ public class DataAccessSubmissionManagerImplTest {
 	@Mock
 	private VerificationDAO mockVerificationDao;
 	@Mock
-	private AccessApprovalDAO mockAccessApprovalDao;
-	@Mock
 	private UserInfo mockUser;
 	@Mock
 	private ACTAccessRequirement mockAccessRequirement;
@@ -103,7 +100,6 @@ public class DataAccessSubmissionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 		ReflectionTestUtils.setField(manager, "groupMembersDao", mockGroupMembersDao);
 		ReflectionTestUtils.setField(manager, "verificationDao", mockVerificationDao);
-		ReflectionTestUtils.setField(manager, "accessApprovalDao", mockAccessApprovalDao);
 
 		userId = "1";
 		requestId = "2";

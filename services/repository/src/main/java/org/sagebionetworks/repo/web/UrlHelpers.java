@@ -968,7 +968,6 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_SUBMISSION_ID_CANCEL = DATA_ACCESS_SUBMISSION_ID +"/cancellation";
 	public static final String ACCESS_REQUIREMENT_ID_LIST_SUBMISSION =
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/submissions";
-	public static final String ACCESS_APPROVAL_STATUS = "/accessApprovalStatus";
 
 	/**
 	 * APIs for DynamoDB related operations.
