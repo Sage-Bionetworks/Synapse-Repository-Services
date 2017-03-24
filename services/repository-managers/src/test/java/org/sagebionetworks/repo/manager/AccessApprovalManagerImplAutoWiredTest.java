@@ -216,7 +216,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
-		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setActContactInfo("send a message in a bottle");
 		return ar;

@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -98,7 +101,6 @@ public class DBODataAccessSubmissionDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.ACTAccessRequirements");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
 		// create a ResearchProject
@@ -138,9 +140,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 		}
 	}
 
-	@Test
-	public void testCRUD() {
-		final DataAccessSubmission dto = new DataAccessSubmission();
+	private DataAccessSubmission createSubmission(){
+		DataAccessSubmission dto = new DataAccessSubmission();
 		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setDataAccessRequestId(request.getId());
@@ -156,6 +157,12 @@ public class DBODataAccessSubmissionDAOImplTest {
 		dto.setModifiedOn(new Date());
 		dto.setResearchProjectSnapshot(researchProject);
 		dto.setState(DataAccessSubmissionState.SUBMITTED);
+		return dto;
+	}
+
+	@Test
+	public void testCRUD() {
+		final DataAccessSubmission dto = createSubmission();
 
 		DataAccessSubmissionStatus status = dataAccessSubmissionDao.create(dto);
 		assertNotNull(status);
@@ -191,17 +198,6 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 		assertEquals(status, dataAccessSubmissionDao.getStatus(accessRequirement.getId().toString(), user1.getId().toString()));
 
-		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
-				accessRequirement.getId().toString(), DataAccessSubmissionState.CANCELLED));
-		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user2.getId(),
-				accessRequirement.getId().toString(), DataAccessSubmissionState.CANCELLED));
-		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
-				accessRequirement.getId().toString(), DataAccessSubmissionState.SUBMITTED));
-		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
-				accessRequirement.getId().toString(), DataAccessSubmissionState.APPROVED));
-		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
-				accessRequirement.getId().toString(), DataAccessSubmissionState.REJECTED));
-
 		etag = UUID.randomUUID().toString();
 		modifiedOn = System.currentTimeMillis();
 		String reason = "no reason";
@@ -213,7 +209,62 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals(reason, updated.getRejectedReason());
 		assertEquals(etag, updated.getEtag());
 
+		DataAccessSubmission dto2 = createSubmission();
+		dataAccessSubmissionDao.create(dto2);
+		assertEquals(DataAccessSubmissionState.SUBMITTED, dataAccessSubmissionDao
+				.getStatus(accessRequirement.getId().toString(), user1.getId().toString()).getState());
+
 		dataAccessSubmissionDao.delete(dto.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
+	}
+
+	@Test
+	public void testHasSubmissionWithState() {
+
+		DataAccessSubmission dto = createSubmission();
+		dataAccessSubmissionDao.create(dto);
+
+		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.SUBMITTED));
+		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user2.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.SUBMITTED));
+		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.CANCELLED));
+		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.APPROVED));
+		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.REJECTED));
+
+		dataAccessSubmissionDao.delete(dto.getId());
+	}
+
+	@Test
+	public void testListSubmissions() {
+		DataAccessSubmission dto1 = createSubmission();
+		DataAccessSubmission dto2 = createSubmission();
+		dataAccessSubmissionDao.create(dto1);
+		dataAccessSubmissionDao.create(dto2);
+
+		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(accessRequirement.getId().toString(),
+				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON,
+				true, 10L, 0L);
+		assertNotNull(submissions);
+		assertEquals(2, submissions.size());
+		assertEquals(dto1, submissions.get(0));
+		assertEquals(dto2, submissions.get(1));
+
+		assertEquals(new HashSet<DataAccessSubmission>(submissions),
+				new HashSet<DataAccessSubmission>(dataAccessSubmissionDao.getSubmissions(
+				accessRequirement.getId().toString(), null, null, null, 10L, 0L)));
+
+		submissions = dataAccessSubmissionDao.getSubmissions(accessRequirement.getId().toString(),
+				DataAccessSubmissionState.APPROVED, DataAccessSubmissionOrder.MODIFIED_ON,
+				false, 10L, 0L);
+		assertNotNull(submissions);
+		assertEquals(0, submissions.size());
+
+		dataAccessSubmissionDao.delete(dto1.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
 	}
 
 	@Test (expected=NotFoundException.class)

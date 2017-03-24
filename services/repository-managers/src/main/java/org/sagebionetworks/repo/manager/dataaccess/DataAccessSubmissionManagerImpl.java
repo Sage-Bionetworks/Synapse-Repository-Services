@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -14,12 +15,15 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -191,4 +195,19 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
 
+	@Override
+	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId,
+			String nextPageToken, DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		NextPageToken token = new NextPageToken(nextPageToken);
+		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(accessRequirementId, filterBy, orderBy, isAscending, token.getLimitForQuery(), token.getOffset());
+		DataAccessSubmissionPage pageResult = new DataAccessSubmissionPage();
+		pageResult.setResults(submissions);
+		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
+		return pageResult;
+	}
 }

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -122,6 +123,11 @@ public class ITDataAccessTest {
 		}
 
 		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+
+		DataAccessSubmissionPage submissions = adminSynapse.listSubmission(accessRequirement.getId().toString(), null, null, null, null);
+		assertNotNull(submissions);
+		assertEquals(1, submissions.getResults().size());
+		assertEquals(submission, submissions.getResults().get(0));
 	}
 
 }

@@ -230,7 +230,7 @@ public class ServiceConstants {
 	
 	public static final String PRINCIPAL_ID = "principalId";
 
-	public static final String DISCUSSION_FILTER_PARAM = "filter";
+	public static final String FILTER_PARAM = "filter";
 
 	public static final String SUBSCRIPTION_OBJECT_TYPE_PARAM = "objectType";
 	
