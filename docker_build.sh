@@ -7,7 +7,10 @@
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
 # rds_password - the password for the build database, common to all dev builds
-# JOB_NAME - if omitted is the the stack + user
+# JOB_NAME - a unique string differenting concurrent builds.  if omitted is the stack + user
+
+# if anything fails, stop
+set -e
 
 stack=dev
 rds_user_name=${stack}${user}
@@ -59,7 +62,7 @@ docker run --name ${rds_container_name} \
 -d mysql:5.6
 
 # make sure RDS is ready to go
-sleep 10
+sleep 20
 
 tables_schema_name=${rds_user_name}tables
 docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "CREATE SCHEMA ${tables_schema_name};"
