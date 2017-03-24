@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -12,7 +11,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -169,6 +167,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setModifiedOn(new Date());
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
+		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		return accessApproval;
 	}
 	
@@ -333,31 +332,5 @@ public class DBOAccessApprovalDAOImplTest {
 		} catch (NotFoundException e) {
 			// make sure that the exception is thrown here and not before this call
 		}
-	}
-
-	@Test
-	public void testGetApprovalIds() {
-		accessApproval = newAccessApproval(individualGroup, accessRequirement);
-		accessApproval = accessApprovalDAO.create(accessApproval);
-
-		Map<String, String> map = accessApprovalDAO.getApprovalIdForRequirementsAndPrincipalId(
-				Arrays.asList(accessRequirement.getId().toString(),
-				accessRequirement2.getId().toString()), individualGroup.getId());
-		assertNotNull(map);
-		assertTrue(map.containsKey(accessRequirement.getId().toString()));
-		assertEquals(accessApproval.getId().toString(), map.get(accessRequirement.getId().toString()));
-		assertFalse(map.containsKey(accessRequirement2.getId().toString()));
-
-		accessApproval2 = newAccessApproval(individualGroup, accessRequirement2);
-		accessApproval2 = accessApprovalDAO.create(accessApproval2);
-
-		map = accessApprovalDAO.getApprovalIdForRequirementsAndPrincipalId(
-				Arrays.asList(accessRequirement.getId().toString(),
-				accessRequirement2.getId().toString()), individualGroup.getId());
-		assertNotNull(map);
-		assertTrue(map.containsKey(accessRequirement.getId().toString()));
-		assertEquals(accessApproval.getId().toString(), map.get(accessRequirement.getId().toString()));
-		assertTrue(map.containsKey(accessRequirement2.getId().toString()));
-		assertEquals(accessApproval2.getId().toString(), map.get(accessRequirement2.getId().toString()));
 	}
 }
