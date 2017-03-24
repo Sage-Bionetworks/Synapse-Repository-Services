@@ -4910,7 +4910,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException {
+	public ResearchProject createOrUpdateResearchProject(ResearchProject toCreateOrUpdate) throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
 		return postJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT, toCreateOrUpdate, ResearchProject.class);
 	}
@@ -4923,21 +4923,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate)
+	public DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate)
 			throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
 		return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST, toCreateOrUpdate, DataAccessRequest.class);
 	}
 
 	@Override
-	public DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException {
+	public DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequestForUpdate";
 		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
 	}
 
 	@Override
-	public DataAccessSubmissionStatus submit(String requestId, String etag) throws SynapseException {
+	public DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
 		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
@@ -4945,14 +4945,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessSubmissionStatus cancel(String submissionId) throws SynapseException {
+	public DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
 		ValidateArgument.required(submissionId, "submissionId");
 		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId+"/cancellation";
 		return putJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
 	}
 
 	@Override
-	public DataAccessSubmission updateState(String submissionId, DataAccessSubmissionState newState, String reason)
+	public DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason)
 			throws SynapseException {
 		ValidateArgument.required(submissionId, "submissionId");
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
@@ -4971,7 +4971,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessSubmissionPage listSubmission(String requirementId, String nextPageToken,
+	public DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken,
 			DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending)
 			throws SynapseException {
 		ValidateArgument.required(requirementId, "requirementId");
