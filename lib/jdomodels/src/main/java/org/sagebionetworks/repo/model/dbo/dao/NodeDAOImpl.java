@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -85,6 +84,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -122,6 +123,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String BIND_NODE_IDS =  "bNodeIds";
 	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
+	private static final String BIND_PARENT_ID = "bParentId";
+	private static final String BIND_NODE_TYPES = "bNodeTypes";
+	private static final String BIND_LIMIT = "bLimit";
+	private static final String BIND_OFFSET = "bOffset";
+	
 	private static final String SELECT_PROJECTS_STATS = "SELECT n."
 			+ COL_NODE_ID
 			+ ", n."
@@ -173,6 +179,19 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BENEFACTOR_ALIAS = "BENEFACTOR";
 	private static final String SQL_SELECT_BENEFACTOR = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
 	
+	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
+			"SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR+", N."+COL_CURRENT_REV+
+				" FROM "+TABLE_NODE+" N"+
+				" JOIN "+TABLE_REVISION+" R"+
+					"ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+				"WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+						" %1$s"+
+						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")"+
+						"ORDER BY %2$s %3$s"+
+						"LIMIT :"+BIND_LIMIT+" OFFSET :"+BIND_OFFSET;
+	
+	private static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
+	
 	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R."+COL_REVISION_OWNER_NODE+", R."+COL_REVISION_NUMBER+", R."+COL_REVISION_ACTIVITY_ID+", R."+COL_REVISION_LABEL+", R."+COL_REVISION_COMMENT+", R."+COL_REVISION_MODIFIED_BY+", R."+COL_REVISION_MODIFIED_ON+", R."+COL_REVISION_FILE_HANDLE_ID+", R."+COL_REVISION_COLUMN_MODEL_IDS+", R."+COL_REVISION_SCOPE_IDS+", R."+COL_REVISION_REF_BLOB;
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+" AND N."+COL_NODE_ID+"= ?";
 	private static final String SQL_SELECT_NODE_VERSION = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND R."+COL_REVISION_NUMBER+" = ? AND N."+COL_NODE_ID+"= ?";
@@ -216,12 +235,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ NODE_IDS_LIST_PARAM_NAME + ")";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
-	// selecting and counting the projects a user owns
-
-	private static final String SQL_GET_CHILD_BY_NAME = "SELECT " + COL_NODE_ID + "," + COL_NODE_NAME + "," + COL_NODE_TYPE + ","
-			+ COL_REVISION_NUMBER + "," + COL_REVISION_LABEL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON R."
-			+ COL_REVISION_OWNER_NODE + " = N." + COL_NODE_ID + " AND R." + COL_REVISION_NUMBER + " = N." + COL_CURRENT_REV + " WHERE "
-			+ COL_NODE_PARENT_ID + " = ? AND " + COL_NODE_NAME + " = ?";
 
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
@@ -281,16 +294,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-			EntityHeader entityHeader = new EntityHeader();
-			entityHeader.setId(rs.getString(COL_NODE_ID));
-			entityHeader.setName(rs.getString(COL_NODE_NAME));
-
-			EntityType entityType = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
-			entityHeader.setType(EntityTypeUtils.getEntityTypeClassName(entityType));
-
-			entityHeader.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
-			entityHeader.setVersionLabel(rs.getString(COL_REVISION_LABEL));
-			return entityHeader;
+			EntityHeader header = new EntityHeader();
+			Long entityId = rs.getLong(COL_NODE_ID);
+			header.setId(KeyFactory.keyToString(entityId));
+			EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
+			header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+			header.setName(rs.getString(COL_NODE_NAME));
+			Long currentVersion = rs.getLong(COL_CURRENT_REV);
+			header.setVersionNumber(currentVersion);
+			header.setVersionLabel(currentVersion.toString());
+			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
+			return header;
 		}
 	};
 
@@ -1007,23 +1021,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
 		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
-		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,new RowMapper<EntityHeader>() {
-			@Override
-			public EntityHeader mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				EntityHeader header = new EntityHeader();
-				Long entityId = rs.getLong(COL_NODE_ID);
-				header.setId(KeyFactory.keyToString(entityId));
-				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
-				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-				header.setName(rs.getString(COL_NODE_NAME));
-				Long currentVersion = rs.getLong(COL_CURRENT_REV);
-				header.setVersionNumber(currentVersion);
-				header.setVersionLabel(currentVersion.toString());
-				header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
-				return header;
-			}
-		});
+		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,ENTITY_HEADER_ROWMAPPER);
 	}
 
 
@@ -1035,24 +1033,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
-		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, new RowMapper<EntityHeader>() {
-
-			@Override
-			public EntityHeader mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				EntityHeader header = new EntityHeader();
-				Long entityId = rs.getLong(COL_NODE_ID);
-				header.setId(KeyFactory.keyToString(entityId));
-				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
-				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-				header.setName(rs.getString(COL_NODE_NAME));
-				Long versionNumber = rs.getLong(COL_REVISION_NUMBER);
-				header.setVersionNumber(versionNumber);
-				header.setVersionLabel(versionNumber.toString());
-				header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
-				return header;
-			}
-		});
+		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, ENTITY_HEADER_ROWMAPPER);
 
 		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
 			throw new DatastoreException("MD5 " + md5 + " maps to more than "
@@ -1278,16 +1259,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		}
 		return resutls;
-	}
-
-	@Override
-	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_GET_CHILD_BY_NAME, ENTITY_HEADER_ROWMAPPER,
-				KeyFactory.stringToKey(nodeId), childName);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Child " + childName + " of " + nodeId + " not found");
-		}
 	}
 
 	@Override
@@ -1714,6 +1685,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return dto;
 			}
 		});
+	}
+
+	@Override
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
+			SortBy sortBy, Direction sortDirection, long limit, long offset) {
+		
+		Map<String, Object> parameters = new HashMap<String, Object>(1);
+		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
+		parameters.put(BIND_NODE_TYPES , includeTypes);
+		parameters.put(BIND_NODE_IDS , childIdsToExclude);
+		parameters.put(BIND_LIMIT , limit);
+		parameters.put(BIND_OFFSET , offset);
+		// only add this condition if the values are not null
+		String excludeNodeIds = "";
+		if(!childIdsToExclude.isEmpty()){
+			excludeNodeIds = SQL_ID_NOT_IN_SET;
+		}
+		String sql = String.format(SQL_SELECT_CHIDREN_TEMPLATE, excludeNodeIds, sortBy.name(), sortDirection.name());
+		return namedParameterJdbcTemplate.query(sql,parameters,ENTITY_HEADER_ROWMAPPER);
 	}
 
 }

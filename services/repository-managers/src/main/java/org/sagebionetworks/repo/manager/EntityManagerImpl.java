@@ -590,15 +590,10 @@ public class EntityManagerImpl implements EntityManager {
 				entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
 		// Find the children of this entity that the caller cannot see.
 		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
-		NextPageToken nextPage = null;
-		if(request.getNextPageToken() != null){
-			nextPage = new NextPageToken(request.getNextPageToken());
-		}else{
-			nextPage = new NextPageToken(NextPageToken.DEFAULT_LIMIT, NextPageToken.DEFAULT_OFFSET);
-		}
+		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
 		List<EntityHeader> page = nodeManager.getChildren(
 				request.getParentId(), request.getIncludeTypes(),
-				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimit()+1,
+				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
 				nextPage.getOffset());
 		EntityChildrenResponse response = new EntityChildrenResponse();
 		response.setPage(page);

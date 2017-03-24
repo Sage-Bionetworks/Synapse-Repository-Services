@@ -793,7 +793,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset) {
-		// TODO Auto-generated method stub
-		return null;
+		// EntityManager handles all of the business logic for this call.
+		return nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
 	}
 }
