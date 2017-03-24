@@ -177,7 +177,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ ")";
 
 	private static final String BENEFACTOR_ALIAS = "BENEFACTOR";
-	private static final String SQL_SELECT_BENEFACTOR = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
 	private static final String SQL_SELECT_BENEFACTOR_N = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
 	
 	private static final String ENTITY_HEADER_SELECT = "SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR_N+", R."+COL_REVISION_NUMBER;
@@ -313,9 +312,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
 			header.setType(EntityTypeUtils.getEntityTypeClassName(type));
 			header.setName(rs.getString(COL_NODE_NAME));
-			Long currentVersion = rs.getLong(COL_REVISION_NUMBER);
-			header.setVersionNumber(currentVersion);
-			header.setVersionLabel(currentVersion.toString());
+			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
 			return header;
 		}

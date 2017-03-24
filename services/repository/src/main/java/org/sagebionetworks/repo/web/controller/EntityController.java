@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -1511,4 +1513,22 @@ public class EntityController extends BaseController {
 			@PathVariable String alias) throws NotFoundException{
 		return serviceProvider.getEntityService().getEntityIdForAlias(alias);
 	}
+	
+	/**
+	 * Get a single page of children for a given parent ID.
+	 * @param userId
+	 * @param parentId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_CHILDREN }, method = RequestMethod.POST)
+	public @ResponseBody EntityChildrenResponse getChildren(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(required=true) String parentId,
+			@RequestBody(required=true) EntityChildrenRequest request){
+		request.setParentId(parentId);
+		return serviceProvider.getEntityService().getChildren(userId, request);
+	}
 }
+
