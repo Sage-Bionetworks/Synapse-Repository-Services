@@ -2792,13 +2792,4 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DataAccessSubmissionPage listSubmission(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
-
-	/**
-	 * Retrieve approval status for a list of access requirement IDs.
-	 * 
-	 * @param requirementIds
-	 * @return
-	 * @throws SynapseException
-	 */
-	AccessApprovalStatusResults getApprovalStatus(List<String> requirementIds) throws SynapseException;
 }

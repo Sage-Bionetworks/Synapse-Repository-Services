@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
@@ -31,7 +29,5 @@ public interface DataAccessService {
 
 	DataAccessSubmissionPage listSubmissions(Long userId, String requirementId, String nextPageToken,
 			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean ascending);
-
-	AccessApprovalStatusResults getAccessApprovalStatus(Long userId, AccessApprovalStatusRequest request);
 
 }

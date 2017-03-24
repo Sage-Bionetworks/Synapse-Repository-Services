@@ -4995,12 +4995,4 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionPage.class);
 	}
-
-	@Override
-	public AccessApprovalStatusResults getApprovalStatus(List<String> requirementIds) throws SynapseException {
-		ValidateArgument.required(requirementIds, "requirementIds");
-		AccessApprovalStatusRequest request = new AccessApprovalStatusRequest();
-		request.setAccessRequirementIdList(requirementIds);
-		return postJSONEntity(getRepoEndpoint(), "/accessApprovalStatus", request, AccessApprovalStatusResults.class);
-	}
 }

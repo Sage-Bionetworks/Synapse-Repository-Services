@@ -5,8 +5,6 @@ import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
@@ -82,11 +80,4 @@ public class DataAccessServiceImpl implements DataAccessService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.listSubmission(user, requirementId, nextPageToken, filterBy, orderBy, isAscending);
 	}
-
-	@Override
-	public AccessApprovalStatusResults getAccessApprovalStatus(Long userId, AccessApprovalStatusRequest request) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessSubmissionManager.getAccessApprovalStatus(user, request);
-	}
-
 }

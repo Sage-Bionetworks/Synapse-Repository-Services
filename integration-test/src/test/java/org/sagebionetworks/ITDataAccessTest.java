@@ -131,11 +131,6 @@ public class ITDataAccessTest {
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
-
-		AccessApprovalStatusResults results = synapseOne.getApprovalStatus(Arrays.asList(accessRequirement.getId().toString()));
-		assertNotNull(results);
-		assertEquals(1, results.getResults().size());
-		assertEquals(ACTApprovalStatus.APPROVED, ((ACTAccessApprovalStatusResult)results.getResults().get(0)).getStatus());
 	}
 
 }

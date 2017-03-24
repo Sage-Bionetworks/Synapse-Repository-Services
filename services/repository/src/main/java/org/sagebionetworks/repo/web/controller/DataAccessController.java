@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.web.controller;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
@@ -206,21 +204,5 @@ public class DataAccessController extends BaseController {
 			@RequestParam(value = ServiceConstants.FILTER_PARAM, required = false) DataAccessSubmissionState filterBy,
 			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, requirementId, nextPageToken, filterBy, orderBy, ascending);
-	}
-
-	/**
-	 * Retrieve approval status for a given requirement ID list.
-	 * 
-	 * @param userId
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_STATUS, method = RequestMethod.POST)
-	public @ResponseBody AccessApprovalStatusResults getAccessApprovalStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AccessApprovalStatusRequest request) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getAccessApprovalStatus(userId, request);
 	}
 }

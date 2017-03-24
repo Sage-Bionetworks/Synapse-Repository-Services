@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalStatusResults;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
@@ -62,14 +60,5 @@ public interface DataAccessSubmissionManager {
 	 */
 	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId, String nextPageToken,
 			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, boolean isAscending);
-
-	/**
-	 * Retrieve approval status for a list of access requirements.
-	 * 
-	 * @param userInfo
-	 * @param request
-	 * @return
-	 */
-	public AccessApprovalStatusResults getAccessApprovalStatus(UserInfo userInfo, AccessApprovalStatusRequest request);
 
 }
