@@ -178,19 +178,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String BENEFACTOR_ALIAS = "BENEFACTOR";
 	private static final String SQL_SELECT_BENEFACTOR = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"("+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
+	private static final String SQL_SELECT_BENEFACTOR_N = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
+	
+	private static final String ENTITY_HEADER_SELECT = "SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR_N+", R."+COL_REVISION_NUMBER;
 	
 	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
-			"SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR+", N."+COL_CURRENT_REV+
+			ENTITY_HEADER_SELECT+
 				" FROM "+TABLE_NODE+" N"+
 				" JOIN "+TABLE_REVISION+" R"+
-					"ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
-				"WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+					" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+				" WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
 						" %1$s"+
 						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")"+
-						"ORDER BY %2$s %3$s"+
-						"LIMIT :"+BIND_LIMIT+" OFFSET :"+BIND_OFFSET;
+						" ORDER BY %2$s %3$s"+
+						" LIMIT :"+BIND_LIMIT+" OFFSET :"+BIND_OFFSET;
 	
-	private static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
+	public static final String N_NAME = "N."+COL_NODE_NAME;
+	public static final String N_CREATED_ON = "N."+COL_NODE_CREATED_ON;
+	
+	public static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
 	
 	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R."+COL_REVISION_OWNER_NODE+", R."+COL_REVISION_NUMBER+", R."+COL_REVISION_ACTIVITY_ID+", R."+COL_REVISION_LABEL+", R."+COL_REVISION_COMMENT+", R."+COL_REVISION_MODIFIED_BY+", R."+COL_REVISION_MODIFIED_ON+", R."+COL_REVISION_FILE_HANDLE_ID+", R."+COL_REVISION_COLUMN_MODEL_IDS+", R."+COL_REVISION_SCOPE_IDS+", R."+COL_REVISION_REF_BLOB;
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+" AND N."+COL_NODE_ID+"= ?";
@@ -199,7 +205,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
-	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+SQL_SELECT_BENEFACTOR+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
+	
+	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
+			ENTITY_HEADER_SELECT +
+			" FROM "+TABLE_NODE +" N" +
+			" JOIN "+TABLE_REVISION+" R"+
+			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
+	
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
@@ -279,7 +292,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
-			"SELECT N." + COL_NODE_ID + ", N."+COL_NODE_TYPE+", N."+COL_NODE_NAME+", "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS+" , R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			ENTITY_HEADER_SELECT
 			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
@@ -297,10 +310,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			EntityHeader header = new EntityHeader();
 			Long entityId = rs.getLong(COL_NODE_ID);
 			header.setId(KeyFactory.keyToString(entityId));
-			EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
+			EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
 			header.setType(EntityTypeUtils.getEntityTypeClassName(type));
 			header.setName(rs.getString(COL_NODE_NAME));
-			Long currentVersion = rs.getLong(COL_CURRENT_REV);
+			Long currentVersion = rs.getLong(COL_REVISION_NUMBER);
 			header.setVersionNumber(currentVersion);
 			header.setVersionLabel(currentVersion.toString());
 			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
@@ -1691,20 +1704,66 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset) {
-		
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(includeTypes, "includeTypes");
+		ValidateArgument.requirement(!includeTypes.isEmpty(), "Must have at least one type for includeTypes");
+		ValidateArgument.required(sortDirection, "sortDirection");
 		Map<String, Object> parameters = new HashMap<String, Object>(1);
 		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
-		parameters.put(BIND_NODE_TYPES , includeTypes);
+		parameters.put(BIND_NODE_TYPES , getTypeNames(includeTypes));
 		parameters.put(BIND_NODE_IDS , childIdsToExclude);
 		parameters.put(BIND_LIMIT , limit);
 		parameters.put(BIND_OFFSET , offset);
-		// only add this condition if the values are not null
-		String excludeNodeIds = "";
-		if(!childIdsToExclude.isEmpty()){
-			excludeNodeIds = SQL_ID_NOT_IN_SET;
-		}
-		String sql = String.format(SQL_SELECT_CHIDREN_TEMPLATE, excludeNodeIds, sortBy.name(), sortDirection.name());
+		// build the SQL from the template
+		String sql = String.format(SQL_SELECT_CHIDREN_TEMPLATE,
+				getFragmentExcludeNodeIds(childIdsToExclude),
+				getFragmentSortColumn(sortBy),
+				sortDirection.name());
 		return namedParameterJdbcTemplate.query(sql,parameters,ENTITY_HEADER_ROWMAPPER);
+	}
+	
+	/**
+	 * Convert from enums to string names.
+	 * @param includeTypes
+	 * @return
+	 */
+	public static List<String> getTypeNames(List<EntityType> includeTypes){
+		List<String> results = new LinkedList<String>();
+		for(EntityType type: includeTypes){
+			results.add(type.name());
+		}
+		return results;
+	}
+	
+	/**
+	 * When childIdsToExclude is not empty then a NOT IN () fragment is used.
+	 * 
+	 * @param childIdsToExclude
+	 * @return
+	 */
+	public static String getFragmentExcludeNodeIds(Set<Long> childIdsToExclude){
+		if(childIdsToExclude == null || childIdsToExclude.isEmpty()){
+			return "";
+		}else{
+			return SQL_ID_NOT_IN_SET;
+		}
+	}
+	
+	/**
+	 * Get the fragment of column name for a given sortBy.
+	 * @param sortBy
+	 * @return
+	 */
+	public static String getFragmentSortColumn(SortBy sortBy) {
+		ValidateArgument.required(sortBy, "sortBy");
+		switch (sortBy) {
+		case NAME:
+			return N_NAME;
+		case CREATED_ON:
+			return N_CREATED_ON;
+		default:
+			throw new IllegalArgumentException("Unknown SortBy: "+sortBy);
+		}
 	}
 
 }

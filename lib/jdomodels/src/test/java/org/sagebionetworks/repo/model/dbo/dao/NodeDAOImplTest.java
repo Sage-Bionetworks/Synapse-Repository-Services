@@ -61,6 +61,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -3064,6 +3066,166 @@ public class NodeDAOImplTest {
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;
+	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsNull(){
+		Set<Long> toExclude = null;
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsEmpty(){
+		Set<Long> toExclude = new HashSet<Long>();
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsNotEmpty(){
+		Set<Long> toExclude = Sets.newHashSet(111L);
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals(NodeDAOImpl.SQL_ID_NOT_IN_SET, result);
+	}
+	
+	@Test
+	public void testGetFragmentSortColumnName(){
+		SortBy sortBy = SortBy.NAME;
+		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
+		assertEquals(NodeDAOImpl.N_NAME, result);
+	}
+	
+	@Test
+	public void testGetFragmentSortColumnCreatedOn(){
+		SortBy sortBy = SortBy.CREATED_ON;
+		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
+		assertEquals(NodeDAOImpl.N_CREATED_ON, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFragmentSortColumnNull(){
+		SortBy sortBy = null;
+		NodeDAOImpl.getFragmentSortColumn(sortBy);
+	}
+	
+	/**
+	 * This test will fail if a new SortBy is added without
+	 * extending the method.
+	 */
+	@Test
+	public void testGetFragmentSortColumnAllTypes(){
+		// All known types should work
+		for(SortBy sort: SortBy.values()){
+			String result = NodeDAOImpl.getFragmentSortColumn(sort);
+			assertNotNull(result);
+		}
+	}
+	
+	@Test
+	public void testGetChildrenNoResults(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		List<EntityHeader> results = nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullParentId(){
+		String parentId = null;
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullTypes(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = null;
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenEmptyTypes(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = new LinkedList<EntityType>();
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullSortByt(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = null;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullDirection(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.CREATED_ON;
+		Direction sortDirection = null;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test
+	public void testGetChildren(){
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		// Add an ACL to the project for the benefactor
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		
+		Node folder1 = nodes.get(1);
+		Node folder2 = nodes.get(2);
+		
+		String parentId = project.getId();
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.folder);
+		// exclude folder 1.
+		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder1.getId()), 111L);
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		List<EntityHeader> results = nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		EntityHeader header = results.get(0);
+		assertEquals(folder2.getName(), header.getName());
+		assertEquals(folder2.getId(), header.getId());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), header.getType());
+		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
+		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
+		assertEquals(KeyFactory.stringToKey(folder2.getBenefactorId()), header.getBenefactorId());
 	}
 
 }
