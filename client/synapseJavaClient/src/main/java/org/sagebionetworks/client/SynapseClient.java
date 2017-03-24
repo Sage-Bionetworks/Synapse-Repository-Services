@@ -2706,7 +2706,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException;
+	ResearchProject createOrUpdateResearchProject(ResearchProject toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current ResearchProject to update.
@@ -2725,7 +2725,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
+	DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current DataAccessRequestInterface to update.
@@ -2737,7 +2737,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
+	DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException;
 
 	/**
 	 * Submit a submission
@@ -2747,7 +2747,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus submit(String requestId, String etag) throws SynapseException;
+	DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
 
 	/**
 	 * Cancel a submission.
@@ -2756,7 +2756,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus cancel(String submissionId) throws SynapseException;
+	DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.
@@ -2767,7 +2767,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmission updateState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
+	DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
 
 	/**
 	 * Retrieve a submission status
@@ -2790,5 +2790,5 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionPage listSubmission(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
+	DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
 }

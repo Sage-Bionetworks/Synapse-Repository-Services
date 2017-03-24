@@ -85,46 +85,46 @@ public class ITDataAccessTest {
 		rp.setProjectLead("Bruce");
 		rp.setIntendedDataUseStatement("intendedDataUseStatement");
 		rp.setAccessRequirementId(accessRequirement.getId().toString());
-		ResearchProject created = synapseOne.createOrUpdate(rp);
+		ResearchProject created = synapseOne.createOrUpdateResearchProject(rp);
 
 		assertEquals(created, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
 		created.setIntendedDataUseStatement("new intendedDataUseStatement");
-		ResearchProject updated = synapseOne.createOrUpdate(created);
+		ResearchProject updated = synapseOne.createOrUpdateResearchProject(created);
 
 		assertEquals(updated, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
-		DataAccessRequest request = (DataAccessRequest) synapseOne.getRequestForUpdate(accessRequirement.getId().toString());
+		DataAccessRequest request = (DataAccessRequest) synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString());
 		assertNotNull(request);
 
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(updated.getId());
-		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdate(request);
+		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(request);
 
-		assertEquals(createdRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+		assertEquals(createdRequest, synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		createdRequest.setAccessors(Arrays.asList(adminId));
-		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdate(createdRequest);
+		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(createdRequest);
 
-		DataAccessSubmissionStatus status = synapseOne.submit(updatedRequest.getId(), updatedRequest.getEtag());
+		DataAccessSubmissionStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
 		assertNotNull(status);
 
 		assertEquals(status, synapseOne.getDataAccessSubmissionStatus(accessRequirement.getId().toString()));
 
-		DataAccessSubmission submission = adminSynapse.updateState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
+		DataAccessSubmission submission = adminSynapse.updateDataAccessSubmissionState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
 		assertNotNull(submission);
 
 		try {
-			synapseOne.cancel(status.getSubmissionId());
+			synapseOne.cancelDataAccessSubmission(status.getSubmissionId());
 			fail("should not be able to cancel an approved submission");
 		} catch (SynapseBadRequestException e) {
 			// as expected
 		}
 
-		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+		assertEquals(updatedRequest, synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString()));
 
-		DataAccessSubmissionPage submissions = adminSynapse.listSubmission(accessRequirement.getId().toString(), null, null, null, null);
+		DataAccessSubmissionPage submissions = adminSynapse.listDataAccessSubmissions(accessRequirement.getId().toString(), null, null, null, null);
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
