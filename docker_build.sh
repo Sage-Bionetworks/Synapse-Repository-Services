@@ -46,9 +46,6 @@ clean_up_network ${network_name}
 
 mkdir -p ${m2_cache_parent_folder}/.m2/
 
-# ultimately this line can be removed
-rm -f ${m2_cache_parent_folder}/.m2/settings.xml
-
 docker network create --driver bridge ${network_name}
 
 # start up rds container
