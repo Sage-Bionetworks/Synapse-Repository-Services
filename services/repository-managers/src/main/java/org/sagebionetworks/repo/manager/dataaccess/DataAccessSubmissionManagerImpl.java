@@ -197,7 +197,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@Override
 	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId,
-			String nextPageToken, DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, boolean isAscending){
+			String nextPageToken, DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {

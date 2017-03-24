@@ -59,6 +59,6 @@ public interface DataAccessSubmissionManager {
 	 * @return
 	 */
 	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId, String nextPageToken,
-			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, boolean isAscending);
+			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending);
 
 }

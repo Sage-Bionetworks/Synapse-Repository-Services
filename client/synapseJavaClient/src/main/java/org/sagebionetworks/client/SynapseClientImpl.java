@@ -4989,7 +4989,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url += "nextPageToken="+nextPageToken;
 		}
 		if (url.endsWith("&") || url.endsWith("?")) {
-			url = url.substring(0, url.length()-2);
+			url = url.substring(0, url.length()-1);
 		}
 		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionPage.class);
 	}
