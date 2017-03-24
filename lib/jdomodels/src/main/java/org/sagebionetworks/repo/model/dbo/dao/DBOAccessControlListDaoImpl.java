@@ -1,18 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.SELECT_RESOURCE_INTERSECTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,9 +47,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
-
-import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.*;
-
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.AclModificationMessage;
 import org.sagebionetworks.repo.model.message.AclModificationType;
@@ -69,6 +72,29 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	static private Log log = LogFactory
 			.getLog(DBOAccessControlListDaoImpl.class);
 	private static final String IDS_PARAM_NAME = "ids_param";
+	private static final String BIND_PARENT_ID = "bParentId";
+	private static final String BIND_GROUP_IDS = "bGroupIds";
+	
+	private static final String SELECT_NON_VISIBLE_CHILDREN =
+			"SELECT N1."+COL_NODE_ID+
+				" FROM "+TABLE_NODE+" N1"+
+					" JOIN "+TABLE_ACCESS_CONTROL_LIST+" A"+
+						" ON (N1."+COL_NODE_ID+" = A."+COL_ACL_OWNER_ID+
+							" AND N1."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+							" AND A."+COL_ACL_OWNER_TYPE+" = '"+ObjectType.ENTITY.name()+"')"+
+				" WHERE N1."+COL_NODE_ID+" NOT IN ("+
+							"SELECT DISTINCT N2."+COL_NODE_ID+
+								" FROM "+TABLE_NODE+" N2"+
+									" JOIN "+TABLE_ACCESS_CONTROL_LIST+" A2"+
+										" ON (N2."+COL_NODE_ID+" = A2."+COL_ACL_OWNER_ID+
+											" AND N2."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+											" AND A2."+COL_ACL_OWNER_TYPE+" = '"+ObjectType.ENTITY.name()+"')"+
+									" JOIN "+TABLE_RESOURCE_ACCESS+" RA"+
+										" ON (A2."+COL_ACL_ID+" = RA."+COL_RESOURCE_ACCESS_OWNER+
+											" AND RA."+COL_RESOURCE_ACCESS_GROUP_ID+" IN (:"+BIND_GROUP_IDS+"))"+
+									" JOIN "+TABLE_RESOURCE_ACCESS_TYPE+" AC"+
+										" ON (RA."+COL_RESOURCE_ACCESS_ID+" = AC."+COL_RESOURCE_ACCESS_TYPE_ID+
+											" AND AC."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" = '"+ACCESS_TYPE.READ.name()+"'))";
 
 	private static final String SELECT_DISTINCT_VISIBLE_PROJECT_IDS = "SELECT distinct acl."
 			+ COL_ACL_OWNER_ID
@@ -575,7 +601,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
 			String parentId) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(groups, "groups");
+		ValidateArgument.requirement(!groups.isEmpty(), "Must have at least one group ID");
+		ValidateArgument.required(parentId, "parentId");
+		Map<String, Object> namedParameters = new HashMap<String, Object>(1);
+		namedParameters.put(BIND_PARENT_ID, KeyFactory.stringToKey(parentId));
+		namedParameters.put(BIND_GROUP_IDS, groups);
+		final Set<Long> results = new HashSet<>();
+		namedParameterJdbcTemplate.query(SELECT_NON_VISIBLE_CHILDREN, namedParameters, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				results.add(rs.getLong(COL_NODE_ID));
+			}
+		});
+		return results;
 	}
 }
