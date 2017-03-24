@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -86,12 +85,4 @@ public interface AccessRequirementDAO {
 	public List<AccessRequirement> getAccessRequirementsForSubject(
 			List<String> subjectIds, RestrictableObjectType type, Long limit,
 			Long offset) throws DatastoreException;
-
-	/**
-	 * Retrieve concreteTypes for a list of access requirements.
-	 * 
-	 * @param accessRequirementIdList
-	 * @return
-	 */
-	public Map<String, String> getConcreteTypes(List<String> accessRequirementIdList);
 }

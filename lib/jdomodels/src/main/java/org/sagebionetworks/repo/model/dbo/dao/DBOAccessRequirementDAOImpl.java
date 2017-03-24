@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
@@ -19,15 +18,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -42,7 +38,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -124,12 +119,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final String SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET =
 			SELECT_FOR_SUBJECT_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
 			+OFFSET_PARAM+" :"+OFFSET_PARAM;
-
-	private static final String SQL_GET_SERIALIZED_ENTITY = "SELECT "
-			+ COL_ACCESS_REQUIREMENT_ID+", "
-			+ COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY
-			+ " FROM "+TABLE_ACCESS_REQUIREMENT
-			+ " WHERE "+COL_ACCESS_REQUIREMENT_ID+" IN (:"+COL_ACCESS_REQUIREMENT_ID+")";
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -364,35 +353,5 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			dtos.add(dto);
 		}
 		return dtos;
-	}
-
-
-	@Override
-	public Map<String, String> getConcreteTypes(List<String> requirementIds) {
-		final Map<String, String> result = new HashMap<String, String>();
-		if (requirementIds.isEmpty()) {
-			return result;
-		}
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_ACCESS_REQUIREMENT_ID, requirementIds);
-		namedJdbcTemplate.query(SQL_GET_SERIALIZED_ENTITY, params, new RowMapper<Void>(){
-
-			@Override
-			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String requirementId = rs.getString(COL_ACCESS_REQUIREMENT_ID);
-				try {
-					Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
-					if(blob != null){
-						byte[] bytes = blob.getBytes(1, (int) blob.length());
-						AccessRequirement ar = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(bytes);
-						result.put(requirementId, ar.getConcreteType());
-					}
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				return null;
-			}
-		});
-		return result;
 	}
 }

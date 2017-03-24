@@ -10,9 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,7 +20,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -150,6 +147,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -357,30 +355,4 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 
-	@Test
-	public void testGetConcreteTypes() {
-		List<String> requirementIds = new LinkedList<String>();
-		TermsOfUseAccessRequirement tou = newEntityAccessRequirement(individualGroup, node, "foo_");
-		requirementIds.add(accessRequirementDAO.create(tou).getId().toString());
-		ACTAccessRequirement act = new ACTAccessRequirement();
-		act.setCreatedBy(individualGroup.getId().toString());
-		act.setCreatedOn(new Date());
-		act.setModifiedBy(individualGroup.getId().toString());
-		act.setModifiedOn(new Date());
-		act.setEtag("10");
-		act.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		act.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod}));
-		requirementIds.add(accessRequirementDAO.create(act).getId().toString());
-
-		Map<String, String> map = accessRequirementDAO.getConcreteTypes(requirementIds);
-		assertNotNull(map);
-		assertTrue(map.containsKey(requirementIds.get(0)));
-		assertEquals(TermsOfUseAccessRequirement.class.getName(), map.get(requirementIds.get(0)));
-		assertTrue(map.containsKey(requirementIds.get(1)));
-		assertEquals(ACTAccessRequirement.class.getName(), map.get(requirementIds.get(1)));
-
-		accessRequirementDAO.delete(requirementIds.get(0));
-		accessRequirementDAO.delete(requirementIds.get(1));
-	}
 }
