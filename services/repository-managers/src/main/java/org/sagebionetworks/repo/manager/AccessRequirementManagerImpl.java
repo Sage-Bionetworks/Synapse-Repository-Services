@@ -105,7 +105,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		// create the 'lock down' access requirement'
 		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
-		accessRequirement.setConcreteType("org.sagebionetworks.repo.model.ACTAccessRequirement");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
