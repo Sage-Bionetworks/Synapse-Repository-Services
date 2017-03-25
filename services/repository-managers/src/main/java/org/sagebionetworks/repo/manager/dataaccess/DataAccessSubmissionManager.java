@@ -2,9 +2,8 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
@@ -51,14 +50,9 @@ public interface DataAccessSubmissionManager {
 	 * List a page of submissions for a given access requirement.
 	 * 
 	 * @param userInfo
-	 * @param accessRequirementId
-	 * @param nextPageToken
-	 * @param filterBy
-	 * @param orderBy
-	 * @param isAscending
+	 * @param request
 	 * @return
 	 */
-	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId, String nextPageToken,
-			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending);
+	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, DataAccessSubmissionPageRequest request);
 
 }

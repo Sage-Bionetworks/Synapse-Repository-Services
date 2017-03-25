@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -533,32 +534,40 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testListSubmissionsWithNullUserInfo() {
-		manager.listSubmission(null, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(null, new DataAccessSubmissionPageRequest());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testListSubmissionsWithNullRequest() {
+		manager.listSubmission(mockUser, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testListSubmissionsWithNullAccessRequirementId() {
-		manager.listSubmission(mockUser, null, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(mockUser, new DataAccessSubmissionPageRequest());
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testListSubmissionsUnauthorized() {
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
-		manager.listSubmission(mockUser, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(mockUser, request);
 	}
 
 	@Test
 	public void testListSubmissionsAuthorized() {
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setFilterBy(DataAccessSubmissionState.SUBMITTED);
+		request.setOrderBy(DataAccessSubmissionOrder.CREATED_ON);
+		request.setIsAscending(true);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<DataAccessSubmission> list = new LinkedList<DataAccessSubmission>();
 		when(mockDataAccessSubmissionDao.getSubmissions(accessRequirementId,
 				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON,
-				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list );
-		DataAccessSubmissionPage page = manager.listSubmission(mockUser, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
+		DataAccessSubmissionPage page = manager.listSubmission(mockUser, request);
 		assertNotNull(page);
 		assertEquals(page.getResults(), list);
 

@@ -2,9 +2,8 @@ package org.sagebionetworks.repo.web.service.dataaccess;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -27,7 +26,6 @@ public interface DataAccessService {
 
 	DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request);
 
-	DataAccessSubmissionPage listSubmissions(Long userId, String requirementId, String nextPageToken,
-			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean ascending);
+	DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request);
 
 }

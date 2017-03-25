@@ -22,8 +22,8 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -196,15 +196,17 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	}
 
 	@Override
-	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId,
-			String nextPageToken, DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending){
+	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, DataAccessSubmissionPageRequest request){
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementId(), "accessRequirementId");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
-		NextPageToken token = new NextPageToken(nextPageToken);
-		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(accessRequirementId, filterBy, orderBy, isAscending, token.getLimitForQuery(), token.getOffset());
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(
+				request.getAccessRequirementId(), request.getFilterBy(), request.getOrderBy(),
+				request.getIsAscending(), token.getLimitForQuery(), token.getOffset());
 		DataAccessSubmissionPage pageResult = new DataAccessSubmissionPage();
 		pageResult.setResults(submissions);
 		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));

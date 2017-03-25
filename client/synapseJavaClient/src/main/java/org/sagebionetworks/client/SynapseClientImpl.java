@@ -101,6 +101,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -4975,22 +4976,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending)
 			throws SynapseException {
 		ValidateArgument.required(requirementId, "requirementId");
-		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissions?";
-		if (filter != null) {
-			url += "filter="+filter.name()+"&";
-		}
-		if (order != null) {
-			url += "sort="+order.name()+"&";
-		}
-		if (isAscending != null) {
-			url += "ascending="+isAscending.toString()+"&";
-		}
-		if (nextPageToken != null) {
-			url += "nextPageToken="+nextPageToken;
-		}
-		if (url.endsWith("&") || url.endsWith("?")) {
-			url = url.substring(0, url.length()-1);
-		}
-		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionPage.class);
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(requirementId);
+		request.setFilterBy(filter);
+		request.setOrderBy(order);
+		request.setIsAscending(isAscending);
+		request.setNextPageToken(nextPageToken);
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissions";
+		return postJSONEntity(getRepoEndpoint(), url, request, DataAccessSubmissionPage.class);
 	}
 }
