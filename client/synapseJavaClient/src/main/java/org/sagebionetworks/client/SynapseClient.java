@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -2551,6 +2553,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EntityId getEntityIdByAlias(String alias) throws SynapseException;
+	
+	/**
+	 * Get a page of children for an Entity.
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException;
 
 	/**
 	 * Pin a thread

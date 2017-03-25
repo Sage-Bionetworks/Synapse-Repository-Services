@@ -7,15 +7,12 @@ import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.model.NextPageToken.*;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_DIRECTION;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -240,11 +238,26 @@ public class EntityManagerImplUnitTest {
 		entityManager.getChildren(mockUser, childRequest);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * Null parentId is used to list projects.
+	 */
+	@Test
 	public void testGetChildrenNullParentId(){
 		childRequest.setParentId(null);
+		childRequest.setIncludeTypes(null);
 		// call under test
-		entityManager.getChildren(mockUser, childRequest);
+		EntityChildrenResponse response = entityManager.getChildren(mockUser, childRequest);
+		assertNotNull(response);
+		// hasAcces should not be called for root.
+		verify(mockPermissionsManager, never()).hasAccess(anyString(), any(ACCESS_TYPE.class), any(UserInfo.class));
+		verify(mockPermissionsManager).getNonvisibleChildren(mockUser, EntityManagerImpl.ROOT_ID);
+		verify(mockNodeManager).getChildren(
+				EntityManagerImpl.ROOT_ID,
+				EntityManagerImpl.PROJECT_ONLY,
+				new HashSet<Long>(),
+				SortBy.NAME, Direction.ASC,
+				NextPageToken.DEFAULT_LIMIT+1,
+				NextPageToken.DEFAULT_OFFSET);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

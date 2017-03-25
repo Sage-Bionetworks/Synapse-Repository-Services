@@ -3,7 +3,7 @@
     "properties":{
         "parentId":{
             "type": "string",
-            "description": "The ID of the parent."
+            "description": "The ID of the parent.  Set to null to list projects."
         },
         "nextPageToken":{
             "type": "string",
@@ -11,14 +11,14 @@
         },
         "includeTypes":{
 			"type": "array",
-			"description": "The types of children to be include.",
+			"description": "The types of children to be include. Must include at least one type.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.EntityType"
 			}
         },
         "sortBy": {
 			"type": "string",
-			"description": "Sort children by.",
+			"description": "How results should be sorted.",
 			"name": "SortBy",
 			"id": "org.sagebionetworks.repo.model.entity.SortBy",
 			"enum": [
@@ -28,7 +28,7 @@
 		},
 		"sortDirection": {
 			"type": "string",
-			"description": "The direction of the sort",
+			"description": "The direction of the result sort.",
 			"name": "Direction",
 			"id": "org.sagebionetworks.repo.model.entity.Direction",
 			"enum": [

@@ -54,6 +54,8 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -4762,6 +4764,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(alias, "alias");
 		String url = ENTITY+"/alias/"+alias;
 		return getJSONEntity(getRepoEndpoint(), url, EntityId.class);
+	}
+	
+	@Override
+	public EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException{
+		ValidateArgument.required(request, "request");
+		String url = ENTITY+"/children";
+		return getJSONEntity(getRepoEndpoint(), url, EntityChildrenResponse.class);
 	}
 
 	@Override

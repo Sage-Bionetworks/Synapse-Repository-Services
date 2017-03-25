@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -37,6 +38,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Lists;
+
 /**
  *
  */
@@ -44,6 +47,8 @@ public class EntityManagerImpl implements EntityManager {
 
 	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
 	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
+	public static final String ROOT_ID = StackConfiguration.getRootFolderEntityIdStatic();
+	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
 	
 	@Autowired
 	NodeManager nodeManager;
@@ -574,7 +579,11 @@ public class EntityManagerImpl implements EntityManager {
 			EntityChildrenRequest request) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(request, "EntityChildrenRequest");
-		ValidateArgument.required(request.getParentId(), "EntityChildrenRequest.parentId");
+		if(request.getParentId() == null){
+			// Null parentId is used to list projects.
+			request.setParentId(ROOT_ID);
+			request.setIncludeTypes(PROJECT_ONLY);
+		}
 		ValidateArgument.required(request.getIncludeTypes(), "EntityChildrenRequest.includeTypes");
 		if(request.getIncludeTypes().isEmpty()){
 			throw new IllegalArgumentException("EntityChildrenRequest.includeTypes must include at least one type");
@@ -585,9 +594,12 @@ public class EntityManagerImpl implements EntityManager {
 		if(request.getSortDirection() == null){
 			request.setSortDirection(DEFAULT_SORT_DIRECTION);
 		}
-		// Validate the caller has read access to the parent
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+		if(!ROOT_ID.equals(request.getParentId())){
+			// Validate the caller has read access to the parent
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+		}
+
 		// Find the children of this entity that the caller cannot see.
 		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
 		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());

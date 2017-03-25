@@ -1515,7 +1515,7 @@ public class EntityController extends BaseController {
 	}
 	
 	/**
-	 * Get a single page of children for a given parent ID.
+	 * Get a page of children for a given parent ID.
 	 * @param userId
 	 * @param parentId
 	 * @param request
@@ -1525,9 +1525,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_CHILDREN }, method = RequestMethod.POST)
 	public @ResponseBody EntityChildrenResponse getChildren(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(required=true) String parentId,
 			@RequestBody(required=true) EntityChildrenRequest request){
-		request.setParentId(parentId);
 		return serviceProvider.getEntityService().getChildren(userId, request);
 	}
 }

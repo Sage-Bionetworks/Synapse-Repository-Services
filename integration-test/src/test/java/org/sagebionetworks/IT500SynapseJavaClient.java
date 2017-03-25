@@ -53,6 +53,8 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -99,6 +101,7 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.util.SerializationUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -1842,5 +1845,33 @@ public class IT500SynapseJavaClient {
 		EntityId lookupId = synapseOne.getEntityIdByAlias(project.getAlias());
 		assertNotNull(lookupId);
 		assertEquals(project.getId(), lookupId.getId());
+	}
+	
+	@Test
+	public void testGetEntityChildern() throws SynapseException{
+		EntityChildrenRequest request = new EntityChildrenRequest();
+		request.setParentId(project.getId());
+		request.setIncludeTypes(Lists.newArrayList(EntityType.folder));
+		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals(1, response.getPage().size());
+		EntityHeader header = response.getPage().get(0);
+		assertNotNull(header);
+		assertEquals(dataset.getId(), header.getId());
+	}
+	
+	@Test
+	public void testGetEntityChildernProjects() throws SynapseException{
+		EntityChildrenRequest request = new EntityChildrenRequest();
+		// null parentId should get projects.
+		request.setParentId(null);
+		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertTrue(response.getPage().size() > 0);
+		EntityHeader header = response.getPage().get(0);
+		assertNotNull(header);
+		assertEquals(Project.class.getName(), header.getType());
 	}
 }
