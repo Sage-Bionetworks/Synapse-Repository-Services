@@ -76,6 +76,11 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2711,7 +2716,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException;
+	ResearchProject createOrUpdateResearchProject(ResearchProject toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current ResearchProject to update.
@@ -2730,7 +2735,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
+	DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current DataAccessRequestInterface to update.
@@ -2742,5 +2747,58 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
+	DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Submit a submission
+	 * 
+	 * @param requestId
+	 * @param etag
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
+
+	/**
+	 * Cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
+
+	/**
+	 * Request to update the state of a submission.
+	 * 
+	 * @param submissionId
+	 * @param newState
+	 * @param reason
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
+
+	/**
+	 * Retrieve a submission status
+	 * 
+	 * @param requirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException;
+
+	/**
+	 * Retrieve a page of submissions.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @param filter
+	 * @param order
+	 * @param isAscending
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
 }

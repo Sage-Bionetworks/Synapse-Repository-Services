@@ -8,7 +8,7 @@
 	"properties":{
 		"status":{
 			"type": "string",
-			"name": "status",
+			"name": "ACTAccessApprovalStatus",
 			"enum": [
 				"NOT_SUBMITTED",
 				"SUBMITTED",

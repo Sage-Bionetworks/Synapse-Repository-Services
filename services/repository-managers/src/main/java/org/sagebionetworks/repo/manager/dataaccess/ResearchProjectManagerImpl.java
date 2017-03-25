@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -22,8 +21,6 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	public static final int EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT = 0;
 
-	@Autowired
-	private AuthorizationManager authorizationManager;
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
