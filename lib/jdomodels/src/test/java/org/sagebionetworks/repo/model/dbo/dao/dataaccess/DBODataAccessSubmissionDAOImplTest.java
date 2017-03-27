@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -164,7 +164,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 	public void testCRUD() {
 		final DataAccessSubmission dto = createSubmission();
 
-		DataAccessSubmissionStatus status = dataAccessSubmissionDao.create(dto);
+		ACTAccessRequirementStatus status = dataAccessSubmissionDao.create(dto);
 		assertNotNull(status);
 		assertEquals(DataAccessSubmissionState.SUBMITTED, status.getState());
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
@@ -196,12 +196,12 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertNull(cancelled.getRejectedReason());
 		assertEquals(etag, cancelled.getEtag());
 
-		assertEquals(status, dataAccessSubmissionDao.getStatus(accessRequirement.getId().toString(), user1.getId().toString()));
+		assertEquals(status, dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
 
 		etag = UUID.randomUUID().toString();
 		modifiedOn = System.currentTimeMillis();
 		String reason = "no reason";
-		DataAccessSubmission updated = dataAccessSubmissionDao.updateStatus(dto.getId(),
+		DataAccessSubmission updated = dataAccessSubmissionDao.updateSubmissionStatus(dto.getId(),
 				DataAccessSubmissionState.REJECTED, reason, user2.getId(), modifiedOn, etag);
 		assertEquals(DataAccessSubmissionState.REJECTED, updated.getState());
 		assertEquals(modifiedOn, (Long) updated.getModifiedOn().getTime());
@@ -212,7 +212,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 		DataAccessSubmission dto2 = createSubmission();
 		dataAccessSubmissionDao.create(dto2);
 		assertEquals(DataAccessSubmissionState.SUBMITTED, dataAccessSubmissionDao
-				.getStatus(accessRequirement.getId().toString(), user1.getId().toString()).getState());
+				.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()).getState());
 
 		dataAccessSubmissionDao.delete(dto.getId());
 		dataAccessSubmissionDao.delete(dto2.getId());
@@ -274,7 +274,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Test (expected=NotFoundException.class)
 	public void testGetStatusNotFound() {
-		dataAccessSubmissionDao.getStatus(accessRequirement.getId().toString(), user1.getId().toString());
+		dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

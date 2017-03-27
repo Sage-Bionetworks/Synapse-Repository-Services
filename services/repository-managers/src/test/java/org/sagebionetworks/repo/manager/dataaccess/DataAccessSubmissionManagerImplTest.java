@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
@@ -338,15 +338,15 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Test (expected = NotFoundException.class)
 	public void testGetStatusNotFound() {
-		when(mockDataAccessSubmissionDao.getStatus(accessRequirementId, userId))
+		when(mockDataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
 				.thenThrow(new NotFoundException());
 		manager.getSubmissionStatus(mockUser, accessRequirementId);
 	}
 
 	@Test
 	public void testGetStatus() {
-		DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
-		when(mockDataAccessSubmissionDao.getStatus(accessRequirementId, userId))
+		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+		when(mockDataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
 				.thenReturn(status);
 		assertEquals(status, manager.getSubmissionStatus(mockUser, accessRequirementId));
 	}
@@ -409,7 +409,7 @@ public class DataAccessSubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
-		DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
+		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
 		when(mockDataAccessSubmissionDao.cancel(eq(submissionId), eq(userId), anyLong(), anyString()))
 				.thenReturn(status);
 		assertEquals(status, manager.cancel(mockUser, submissionId));
@@ -526,7 +526,7 @@ public class DataAccessSubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
-		when(mockDataAccessSubmissionDao.updateStatus(eq(submissionId),
+		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(DataAccessSubmissionState.REJECTED), eq(reason), eq(userId),
 				anyLong(), anyString())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));

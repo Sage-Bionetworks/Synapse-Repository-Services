@@ -78,7 +78,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2747,7 +2747,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
+	ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
 
 	/**
 	 * Cancel a submission.
@@ -2756,7 +2756,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
+	ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.
@@ -2776,7 +2776,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException;
+	ACTAccessRequirementStatus getACTAccessRequirementStatus(String requirementId) throws SynapseException;
 
 	/**
 	 * Retrieve a page of submissions.

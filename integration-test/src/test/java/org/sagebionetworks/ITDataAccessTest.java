@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -107,10 +107,10 @@ public class ITDataAccessTest {
 		createdRequest.setAccessors(Arrays.asList(adminId));
 		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(createdRequest);
 
-		DataAccessSubmissionStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
+		ACTAccessRequirementStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
 		assertNotNull(status);
 
-		assertEquals(status, synapseOne.getDataAccessSubmissionStatus(accessRequirement.getId().toString()));
+		assertEquals(status, synapseOne.getACTAccessRequirementStatus(accessRequirement.getId().toString()));
 
 		DataAccessSubmission submission = adminSynapse.updateDataAccessSubmissionState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
 		assertNotNull(submission);

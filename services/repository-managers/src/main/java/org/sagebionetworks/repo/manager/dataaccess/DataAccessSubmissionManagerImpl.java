@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
@@ -55,7 +55,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag) {
+	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
@@ -153,15 +153,15 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	}
 
 	@Override
-	public DataAccessSubmissionStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId) {
+	public ACTAccessRequirementStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		return dataAccessSubmissionDao.getStatus(accessRequirementId, userInfo.getId().toString());
+		return dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userInfo.getId().toString());
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId) {
+	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(submissionId);
@@ -190,7 +190,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(request.getSubmissionId());
 		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
-		return dataAccessSubmissionDao.updateStatus(request.getSubmissionId(),
+		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
