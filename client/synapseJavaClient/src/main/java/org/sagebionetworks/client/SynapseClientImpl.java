@@ -4776,7 +4776,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException{
 		ValidateArgument.required(request, "request");
 		String url = ENTITY+"/children";
-		return getJSONEntity(getRepoEndpoint(), url, EntityChildrenResponse.class);
+		return postJSONEntity(getRepoEndpoint(), url, request, EntityChildrenResponse.class);
 	}
 
 	@Override
