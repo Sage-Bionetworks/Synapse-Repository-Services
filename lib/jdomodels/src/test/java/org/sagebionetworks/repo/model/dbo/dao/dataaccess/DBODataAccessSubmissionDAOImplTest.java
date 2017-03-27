@@ -166,6 +166,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 		ACTAccessRequirementStatus status = dataAccessSubmissionDao.create(dto);
 		assertNotNull(status);
+		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
+		assertEquals(user1.getId(), status.getSubmittedBy());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, status.getState());
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
 		assertEquals(dto.getId(), status.getSubmissionId());
@@ -272,9 +274,16 @@ public class DBODataAccessSubmissionDAOImplTest {
 		dataAccessSubmissionDao.getSubmission(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetStatusNotFound() {
-		dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
+		ACTAccessRequirementStatus status = dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
+		assertNotNull(status);
+		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
+		assertEquals(DataAccessSubmissionState.NOT_SUBMITTED, status.getState());
+		assertNull(status.getModifiedOn());
+		assertNull(status.getRejectedReason());
+		assertNull(status.getSubmissionId());
+		assertNull(status.getSubmittedBy());
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)
