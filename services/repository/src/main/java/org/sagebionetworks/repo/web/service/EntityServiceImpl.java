@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
@@ -682,5 +684,13 @@ public class EntityServiceImpl implements EntityService {
 		EntityId id = new EntityId();
 		id.setId(entityId);
 		return id;
+	}
+
+	@Override
+	public EntityChildrenResponse getChildren(Long userId,
+			EntityChildrenRequest request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getChildren(userInfo, request);
 	}
 }

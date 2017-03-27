@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -655,5 +657,14 @@ public interface EntityService {
 	 * @return
 	 */
 	public EntityId getEntityIdForAlias(String alias);
+	
+	/**
+	 * Get the Entity children for a given parent id.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	public EntityChildrenResponse getChildren(Long userId, EntityChildrenRequest request);
 
 }

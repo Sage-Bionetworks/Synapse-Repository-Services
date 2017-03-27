@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
@@ -135,19 +137,6 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 */
 	public List<EntityHeader> getEntityHeader(UserInfo userInfo, List<Reference> references) throws NotFoundException, DatastoreException, UnauthorizedException;
-	
-	/**
-	 * Get the children of of an entity.
-	 * @param <T>
-	 * @param userInfo
-	 * @param parentId
-	 * @param childrenClass
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> List<T> getEntityChildren(UserInfo userInfo, String parentId, Class<? extends T> childrenClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	
 	/**
@@ -427,4 +416,13 @@ public interface EntityManager {
 	 * @return
 	 */
 	public String getEntityIdForAlias(String alias);
+	
+	/**
+	 * A consistent query to get a page children for a given container.
+	 *  
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	public EntityChildrenResponse getChildren(UserInfo user, EntityChildrenRequest request);
 }

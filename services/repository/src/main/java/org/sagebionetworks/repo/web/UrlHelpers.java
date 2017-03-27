@@ -197,6 +197,8 @@ public class UrlHelpers {
 
 	public static final String ENTITY_ALIAS = ENTITY + "/alias" + "/{alias}";
 	
+	public static final String ENTITY_CHILDREN = ENTITY+"/children";
+	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
@@ -360,11 +362,6 @@ public class UrlHelpers {
 	 * Gets the parent for the specified node.
 	 */
 	public static final String ENTITY_PARENT = ENTITY_ID + "/parent";
-
-	/**
-	 * Gets the children for the specified node.
-	 */
-	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";
 
 	/**
 	 * For trash can APIs.

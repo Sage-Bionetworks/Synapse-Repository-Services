@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -113,15 +115,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get all of the children nodes of a given node.
-	 * @param id
-	 * @return the child nodes
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get all of the version numbers for this node.
@@ -268,15 +261,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the child node of a node by name
-	 * 
-	 * @param nodeId
-	 * @param childName
-	 * @return
-	 */
-	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -507,4 +491,19 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<EntityDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
+
+	/**
+	 * 
+	 * @param parentId
+	 * @param includeTypes
+	 * @param childIdsToExclude
+	 * @param sortBy
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
+			SortBy sortBy, Direction sortDirection, long limit, long offset);
 }
