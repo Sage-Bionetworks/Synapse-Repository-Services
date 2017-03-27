@@ -20,15 +20,6 @@ public interface DataAccessSubmissionManager {
 	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag);
 
 	/**
-	 * Retrieve a submission status that the user owns or is an accessor.
-	 * 
-	 * @param userInfo
-	 * @param accessRequirementId
-	 * @return
-	 */
-	public ACTAccessRequirementStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId);
-
-	/**
 	 * Cancel a submission.
 	 * 
 	 * @param userInfo

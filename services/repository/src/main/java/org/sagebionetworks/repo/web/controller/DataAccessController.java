@@ -130,22 +130,6 @@ public class DataAccessController extends BaseController {
 	}
 
 	/**
-	 * Retrieve the status of the most current submission.
-	 * 
-	 * @param userId - The ID of the user who is making the request.
-	 * @param requirementId - The ID of the AccessRequirement to look for.
-	 * @return
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_SUBMISSION_STATUS, method = RequestMethod.GET)
-	public @ResponseBody ACTAccessRequirementStatus getStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getStatus(userId, requirementId);
-	}
-
-	/**
 	 * Cancel a submission.
 	 * Only the user who created this submission can cancel it.
 	 * 

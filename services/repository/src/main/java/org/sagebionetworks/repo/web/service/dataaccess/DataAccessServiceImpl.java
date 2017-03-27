@@ -56,12 +56,6 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public ACTAccessRequirementStatus getStatus(Long userId, String requirementId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessSubmissionManager.getSubmissionStatus(user, requirementId);
-	}
-
-	@Override
 	public ACTAccessRequirementStatus cancel(Long userId, String submissionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.cancel(user, submissionId);

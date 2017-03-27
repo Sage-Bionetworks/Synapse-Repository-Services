@@ -4965,13 +4965,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ACTAccessRequirementStatus getACTAccessRequirementStatus(String requirementId) throws SynapseException {
-		ValidateArgument.required(requirementId, "requirementId");
-		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissionStatus";
-		return getJSONEntity(getRepoEndpoint(), url, ACTAccessRequirementStatus.class);
-	}
-
-	@Override
 	public DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken,
 			DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending)
 			throws SynapseException {

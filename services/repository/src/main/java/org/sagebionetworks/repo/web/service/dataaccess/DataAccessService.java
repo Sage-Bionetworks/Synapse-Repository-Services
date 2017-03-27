@@ -20,8 +20,6 @@ public interface DataAccessService {
 
 	ACTAccessRequirementStatus submit(Long userId, String requestId, String etag);
 
-	ACTAccessRequirementStatus getStatus(Long userId, String requirementId);
-
 	ACTAccessRequirementStatus cancel(Long userId, String submissionId);
 
 	DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request);

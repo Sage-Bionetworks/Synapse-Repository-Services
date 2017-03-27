@@ -327,31 +327,6 @@ public class DataAccessSubmissionManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetStatusWithNullUserInfo() {
-		manager.getSubmissionStatus(null, accessRequirementId);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetStatusWithNullAccessRequirementId() {
-		manager.getSubmissionStatus(mockUser, null);
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetStatusNotFound() {
-		when(mockDataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
-				.thenThrow(new NotFoundException());
-		manager.getSubmissionStatus(mockUser, accessRequirementId);
-	}
-
-	@Test
-	public void testGetStatus() {
-		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
-		when(mockDataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
-				.thenReturn(status);
-		assertEquals(status, manager.getSubmissionStatus(mockUser, accessRequirementId));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testCancelNullUserInfo() {
 		manager.cancel(null, submissionId);
 	}

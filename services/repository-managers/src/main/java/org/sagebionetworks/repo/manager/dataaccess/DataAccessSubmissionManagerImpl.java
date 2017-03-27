@@ -152,13 +152,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		submissionToCreate.setState(DataAccessSubmissionState.SUBMITTED);
 	}
 
-	@Override
-	public ACTAccessRequirementStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		return dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userInfo.getId().toString());
-	}
-
 	@WriteTransactionReadCommitted
 	@Override
 	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId) {

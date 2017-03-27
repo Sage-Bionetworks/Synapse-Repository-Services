@@ -2770,15 +2770,6 @@ public interface SynapseClient extends BaseClient {
 	DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
 
 	/**
-	 * Retrieve a submission status
-	 * 
-	 * @param requirementId
-	 * @return
-	 * @throws SynapseException
-	 */
-	ACTAccessRequirementStatus getACTAccessRequirementStatus(String requirementId) throws SynapseException;
-
-	/**
 	 * Retrieve a page of submissions.
 	 * Only ACT member can perform this action.
 	 * 
