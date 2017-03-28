@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -288,12 +289,20 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
+				if (backup.getConcreteType() == null) {
+					AccessRequirement dto = AccessRequirementUtils.copyDboToDto(backup, null);
+					backup.setConcreteType(dto.getConcreteType());
+				}
 				return backup;
 			}
 			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
+				if (dbo.getConcreteType() == null) {
+					AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, null);
+					dbo.setConcreteType(dto.getConcreteType());
+				}
 				return dbo;
 			}};
 	}
