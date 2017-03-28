@@ -94,6 +94,7 @@ import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -385,7 +386,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setEtag(UUID.randomUUID().toString());
 		submission.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
-		dataAccessSubmissionDAO.create(submission);
+		dataAccessSubmissionDAO.create(submission, DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(submission, idGenerator));
 	}
 
 	private void createDataAccessRequest() {

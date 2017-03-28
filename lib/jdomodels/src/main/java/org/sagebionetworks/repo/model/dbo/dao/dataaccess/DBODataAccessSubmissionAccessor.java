@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION_ACCESSOR;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,24 +15,34 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBODataAccessSubmissionAccessor implements MigratableDatabaseObject<DBODataAccessSubmissionAccessor, DBODataAccessSubmissionAccessor>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("submissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID, true).withIsBackupId(true),
-			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID, true)
+			new FieldColumn("id", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID).withIsBackupId(true),
+			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID, true),
+			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID, true),
+			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID),
+			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG).withIsEtag(true)
 		};
 
-	private Long submissionId;
+	private Long currentSubmissionId;
+	private Long accessRequirementId;
 	private Long accessorId;
+	private Long id;
+	private String etag;
 
 	@Override
 	public String toString() {
-		return "DBODataAccessSubmissionAccessor [submissionId=" + submissionId + ", accessorId=" + accessorId + "]";
+		return "DBODataAccessSubmissionAccessor [currentSubmissionId=" + currentSubmissionId + ", accessRequirementId="
+				+ accessRequirementId + ", accessorId=" + accessorId + ", id=" + id + ", etag=" + etag + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
 		result = prime * result + ((accessorId == null) ? 0 : accessorId.hashCode());
-		result = prime * result + ((submissionId == null) ? 0 : submissionId.hashCode());
+		result = prime * result + ((currentSubmissionId == null) ? 0 : currentSubmissionId.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		return result;
 	}
 
@@ -48,25 +55,48 @@ public class DBODataAccessSubmissionAccessor implements MigratableDatabaseObject
 		if (getClass() != obj.getClass())
 			return false;
 		DBODataAccessSubmissionAccessor other = (DBODataAccessSubmissionAccessor) obj;
+		if (accessRequirementId == null) {
+			if (other.accessRequirementId != null)
+				return false;
+		} else if (!accessRequirementId.equals(other.accessRequirementId))
+			return false;
 		if (accessorId == null) {
 			if (other.accessorId != null)
 				return false;
 		} else if (!accessorId.equals(other.accessorId))
 			return false;
-		if (submissionId == null) {
-			if (other.submissionId != null)
+		if (currentSubmissionId == null) {
+			if (other.currentSubmissionId != null)
 				return false;
-		} else if (!submissionId.equals(other.submissionId))
+		} else if (!currentSubmissionId.equals(other.currentSubmissionId))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
 			return false;
 		return true;
 	}
 
-	public Long getSubmissionId() {
-		return submissionId;
+	public Long getCurrentSubmissionId() {
+		return currentSubmissionId;
 	}
 
-	public void setSubmissionId(Long submissionId) {
-		this.submissionId = submissionId;
+	public void setCurrentSubmissionId(Long currentSubmissionId) {
+		this.currentSubmissionId = currentSubmissionId;
+	}
+
+	public Long getAccessRequirementId() {
+		return accessRequirementId;
+	}
+
+	public void setAccessRequirementId(Long accessRequirementId) {
+		this.accessRequirementId = accessRequirementId;
 	}
 
 	public Long getAccessorId() {
@@ -77,6 +107,22 @@ public class DBODataAccessSubmissionAccessor implements MigratableDatabaseObject
 		this.accessorId = accessorId;
 	}
 
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	@Override
 	public TableMapping<DBODataAccessSubmissionAccessor> getTableMapping() {
 		return new TableMapping<DBODataAccessSubmissionAccessor>(){
@@ -84,8 +130,11 @@ public class DBODataAccessSubmissionAccessor implements MigratableDatabaseObject
 			@Override
 			public DBODataAccessSubmissionAccessor mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBODataAccessSubmissionAccessor dbo = new DBODataAccessSubmissionAccessor();
+				dbo.setId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
 				dbo.setAccessorId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID));
-				dbo.setSubmissionId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID));
+				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID));
+				dbo.setCurrentSubmissionId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID));
+				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG));
 				return dbo;
 			}
 

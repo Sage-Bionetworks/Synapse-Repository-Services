@@ -5,7 +5,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
@@ -31,12 +34,15 @@ public class DataAccessSubmissionUtils {
 		}
 	}
 
-	public static List<DBODataAccessSubmissionAccessor> getDBOAccessors(DataAccessSubmission dto) {
+	public static List<DBODataAccessSubmissionAccessor> createDBODataAccessSubmissionAccessor(DataAccessSubmission dto, IdGenerator idGenerator) {
 		List<DBODataAccessSubmissionAccessor> accessors = new ArrayList<DBODataAccessSubmissionAccessor>();
 		for (String userId : dto.getAccessors()) {
 			DBODataAccessSubmissionAccessor dbo = new DBODataAccessSubmissionAccessor();
+			dbo.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
 			dbo.setAccessorId(Long.parseLong(userId));
-			dbo.setSubmissionId(Long.parseLong(dto.getId()));
+			dbo.setCurrentSubmissionId(Long.parseLong(dto.getId()));
+			dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
+			dbo.setEtag(UUID.randomUUID().toString());
 			accessors.add(dbo);
 		}
 		return accessors;

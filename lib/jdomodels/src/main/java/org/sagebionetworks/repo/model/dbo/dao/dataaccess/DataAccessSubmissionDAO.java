@@ -35,9 +35,10 @@ public interface DataAccessSubmissionDAO {
 	 * Create a submission.
 	 * 
 	 * @param submissionToCreate
+	 * @param accessors
 	 * @return
 	 */
-	public ACTAccessRequirementStatus create(DataAccessSubmission submissionToCreate);
+	public ACTAccessRequirementStatus create(DataAccessSubmission submissionToCreate, List<DBODataAccessSubmissionAccessor> accessors);
 
 	/**
 	 * Cancel a submission.
@@ -95,4 +96,9 @@ public interface DataAccessSubmissionDAO {
 	 */
 	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
 			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
+
+	/**
+	 * for test only
+	 */
+	void truncateAllAccessors();
 }

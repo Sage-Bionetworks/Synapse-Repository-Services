@@ -27,8 +27,10 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
@@ -68,7 +70,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);
-		return dataAccessSubmissionDao.create(submissionToCreate);
+		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(submissionToCreate, idGenerator);
+		return dataAccessSubmissionDao.create(submissionToCreate, accessors);
 	}
 
 	/**
