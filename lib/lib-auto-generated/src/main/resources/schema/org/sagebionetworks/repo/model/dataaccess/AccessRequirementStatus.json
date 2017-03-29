@@ -5,6 +5,10 @@
 		"accessRequirementId":{
 			"type": "string",
 			"description": "The ID of the requested AccessRequirement."
+		},
+		"concreteType":{
+			"type": "string",
+			"description":"Indicates which implementation of AccessRequirementStatus this object represents."
 		}
 	}
 }
