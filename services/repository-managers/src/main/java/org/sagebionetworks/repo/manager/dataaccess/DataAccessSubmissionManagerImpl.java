@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,11 +12,14 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -55,6 +59,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private AccessApprovalDAO accessApprovalDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -207,5 +213,34 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		pageResult.setResults(submissions);
 		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
 		return pageResult;
+	}
+
+	@Override
+	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
+		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
+			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
+			status.setAccessRequirementId(accessRequirementId);
+			List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
+					Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
+			if (approvals.isEmpty()) {
+				status.setIsApproved(false);
+			} else if (approvals.size() == 1 
+					&& approvals.get(0) instanceof TermsOfUseAccessApproval
+					&& approvals.get(0).getAccessorId().equals(userInfo.getId().toString())
+					&& approvals.get(0).getRequirementId().toString().equals(accessRequirementId)) {
+				status.setIsApproved(true);
+			} else {
+				throw new IllegalStateException();
+			}
+			return status;
+		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
+			return dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(
+					accessRequirementId, userInfo.getId().toString());
+		} else {
+			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
+		}
 	}
 }
