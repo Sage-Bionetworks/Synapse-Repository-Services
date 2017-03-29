@@ -867,10 +867,13 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_REASON = 			"REASON";
 
 	// DataAccessSubmissionAccessors
-	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"schema/DataAccessSubmissionAccessor-ddl.sql";
-	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 				"DATA_ACCESS_SUBMISSION_ACCESSOR";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 	"ACCESSOR_ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID = 	"SUBMISSION_ID";
+	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"schema/DataAccessSubmissionAccessor-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"DATA_ACCESS_SUBMISSION_ACCESSOR";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID = 					"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 			"ACCESSOR_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG = 				"ETAG";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

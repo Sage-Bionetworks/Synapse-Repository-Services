@@ -209,6 +209,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

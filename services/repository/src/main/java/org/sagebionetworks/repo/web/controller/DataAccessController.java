@@ -2,13 +2,11 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -123,28 +121,12 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
-	public @ResponseBody DataAccessSubmissionStatus submit(
+	public @ResponseBody ACTAccessRequirementStatus submit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requestId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM) String etag)
 					throws NotFoundException {
 		return serviceProvider.getDataAccessService().submit(userId, requestId, etag);
-	}
-
-	/**
-	 * Retrieve the status of the most current submission.
-	 * 
-	 * @param userId - The ID of the user who is making the request.
-	 * @param requirementId - The ID of the AccessRequirement to look for.
-	 * @return
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_SUBMISSION_STATUS, method = RequestMethod.GET)
-	public @ResponseBody DataAccessSubmissionStatus getStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getStatus(userId, requirementId);
 	}
 
 	/**
@@ -158,7 +140,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
-	public @ResponseBody DataAccessSubmissionStatus cancel(
+	public @ResponseBody ACTAccessRequirementStatus cancel(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().cancel(userId, submissionId);
@@ -186,23 +168,15 @@ public class DataAccessController extends BaseController {
 	 * Only ACT member can perform this action.
 	 * 
 	 * @param userId
-	 * @param requirementId
-	 * @param orderBy
-	 * @param ascending
-	 * @param filterBy
-	 * @param nextPageToken
+	 * @param dataAccessSubmissionPageRequest
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody DataAccessSubmissionPage listSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DataAccessSubmissionOrder orderBy,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
-			@RequestParam(value = ServiceConstants.FILTER_PARAM, required = false) DataAccessSubmissionState filterBy,
-			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listSubmissions(userId, requirementId, nextPageToken, filterBy, orderBy, ascending);
+			@RequestBody DataAccessSubmissionPageRequest dataAccessSubmissionPageRequest) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listSubmissions(userId, dataAccessSubmissionPageRequest);
 	}
 }

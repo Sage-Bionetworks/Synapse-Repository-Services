@@ -233,7 +233,6 @@ public class DBODataAccessSubmission implements MigratableDatabaseObject<DBOData
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBODataAccessSubmissionAccessor());
 		list.add(new DBODataAccessSubmissionStatus());
 		return list;
 	}

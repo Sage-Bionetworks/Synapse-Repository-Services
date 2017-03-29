@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,10 +39,12 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -146,6 +149,7 @@ public class DataAccessSubmissionManagerImplTest {
 		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
 				.thenReturn(true);
 		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID)).thenReturn(8L);
+		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ACCESSOR_ID)).thenReturn(1L, 2L, 3L, 4L, 5L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -268,9 +272,10 @@ public class DataAccessSubmissionManagerImplTest {
 	@Test
 	public void testCreate() {
 		manager.create(mockUser, requestId, etag);
-		ArgumentCaptor<DataAccessSubmission> captor = ArgumentCaptor.forClass(DataAccessSubmission.class);
-		verify(mockDataAccessSubmissionDao).create(captor.capture());
-		DataAccessSubmission captured = captor.getValue();
+		ArgumentCaptor<DataAccessSubmission> submissionCaptor = ArgumentCaptor.forClass(DataAccessSubmission.class);
+		ArgumentCaptor<List> accessorsCaptor = ArgumentCaptor.forClass(List.class);
+		verify(mockDataAccessSubmissionDao).create(submissionCaptor.capture(), accessorsCaptor.capture());
+		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
 		assertEquals(submissionId, captured.getId());
 		assertNotNull(captured.getEtag());
@@ -289,6 +294,19 @@ public class DataAccessSubmissionManagerImplTest {
 		assertEquals(publication, captured.getPublication());
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
+
+		List<DBODataAccessSubmissionAccessor> accessorsCaptured = accessorsCaptor.getValue();
+		assertNotNull(accessorsCaptured);
+		assertEquals(accessors.size(), accessorsCaptured.size());
+		Set<String> accessorSet = new HashSet<String>();
+		for (DBODataAccessSubmissionAccessor dbo : accessorsCaptured) {
+			assertNotNull(dbo.getId());
+			assertNotNull(dbo.getEtag());
+			assertEquals(submissionId, dbo.getCurrentSubmissionId().toString());
+			assertEquals(accessRequirementId, dbo.getAccessRequirementId().toString());
+			accessorSet.add(dbo.getAccessorId().toString());
+		}
+		assertEquals(new HashSet<String>(accessors), accessorSet);
 	}
 
 	@Test
@@ -304,9 +322,10 @@ public class DataAccessSubmissionManagerImplTest {
 		request.setEtag(etag);
 		when(mockDataAccessRequestDao.get(requestId)).thenReturn(request);
 		manager.create(mockUser, requestId, etag);
-		ArgumentCaptor<DataAccessSubmission> captor = ArgumentCaptor.forClass(DataAccessSubmission.class);
-		verify(mockDataAccessSubmissionDao).create(captor.capture());
-		DataAccessSubmission captured = captor.getValue();
+		ArgumentCaptor<DataAccessSubmission> submissionCaptor = ArgumentCaptor.forClass(DataAccessSubmission.class);
+		ArgumentCaptor<List> accessorsCaptor = ArgumentCaptor.forClass(List.class);
+		verify(mockDataAccessSubmissionDao).create(submissionCaptor.capture(), accessorsCaptor.capture());
+		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
 		assertEquals(submissionId, captured.getId());
 		assertNotNull(captured.getEtag());
@@ -323,31 +342,19 @@ public class DataAccessSubmissionManagerImplTest {
 		assertNull(captured.getPublication());
 		assertNull(captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
-	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetStatusWithNullUserInfo() {
-		manager.getSubmissionStatus(null, accessRequirementId);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetStatusWithNullAccessRequirementId() {
-		manager.getSubmissionStatus(mockUser, null);
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetStatusNotFound() {
-		when(mockDataAccessSubmissionDao.getStatus(accessRequirementId, userId))
-				.thenThrow(new NotFoundException());
-		manager.getSubmissionStatus(mockUser, accessRequirementId);
-	}
-
-	@Test
-	public void testGetStatus() {
-		DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
-		when(mockDataAccessSubmissionDao.getStatus(accessRequirementId, userId))
-				.thenReturn(status);
-		assertEquals(status, manager.getSubmissionStatus(mockUser, accessRequirementId));
+		List<DBODataAccessSubmissionAccessor> accessorsCaptured = accessorsCaptor.getValue();
+		assertNotNull(accessorsCaptured);
+		assertEquals(accessors.size(), accessorsCaptured.size());
+		Set<String> accessorSet = new HashSet<String>();
+		for (DBODataAccessSubmissionAccessor dbo : accessorsCaptured) {
+			assertNotNull(dbo.getId());
+			assertNotNull(dbo.getEtag());
+			assertEquals(submissionId, dbo.getCurrentSubmissionId().toString());
+			assertEquals(accessRequirementId, dbo.getAccessRequirementId().toString());
+			accessorSet.add(dbo.getAccessorId().toString());
+		}
+		assertEquals(new HashSet<String>(accessors), accessorSet);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -408,7 +415,7 @@ public class DataAccessSubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
-		DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
+		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
 		when(mockDataAccessSubmissionDao.cancel(eq(submissionId), eq(userId), anyLong(), anyString()))
 				.thenReturn(status);
 		assertEquals(status, manager.cancel(mockUser, submissionId));
@@ -525,7 +532,7 @@ public class DataAccessSubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
-		when(mockDataAccessSubmissionDao.updateStatus(eq(submissionId),
+		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(DataAccessSubmissionState.REJECTED), eq(reason), eq(userId),
 				anyLong(), anyString())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
@@ -533,32 +540,40 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testListSubmissionsWithNullUserInfo() {
-		manager.listSubmission(null, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(null, new DataAccessSubmissionPageRequest());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testListSubmissionsWithNullRequest() {
+		manager.listSubmission(mockUser, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testListSubmissionsWithNullAccessRequirementId() {
-		manager.listSubmission(mockUser, null, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(mockUser, new DataAccessSubmissionPageRequest());
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testListSubmissionsUnauthorized() {
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(false);
-		manager.listSubmission(mockUser, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+		manager.listSubmission(mockUser, request);
 	}
 
 	@Test
 	public void testListSubmissionsAuthorized() {
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setFilterBy(DataAccessSubmissionState.SUBMITTED);
+		request.setOrderBy(DataAccessSubmissionOrder.CREATED_ON);
+		request.setIsAscending(true);
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
 		List<DataAccessSubmission> list = new LinkedList<DataAccessSubmission>();
 		when(mockDataAccessSubmissionDao.getSubmissions(accessRequirementId,
 				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON,
-				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list );
-		DataAccessSubmissionPage page = manager.listSubmission(mockUser, accessRequirementId, null,
-				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON, true);
+				true, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list);
+		DataAccessSubmissionPage page = manager.listSubmission(mockUser, request);
 		assertNotNull(page);
 		assertEquals(page.getResults(), list);
 
