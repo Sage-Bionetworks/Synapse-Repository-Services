@@ -1,5 +1,5 @@
 {
-	"description": "Result of a single access approval status request.",
+	"description": "The status of a user meeting an AccessRequirement.",
 	"type": "interface",
 	"properties": {
 		"accessRequirementId":{

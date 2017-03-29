@@ -5,7 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 
 public interface DataAccessSubmissionDAO {
 
@@ -16,7 +16,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public DataAccessSubmissionStatus getStatus(String accessRequirementId, String userId);
+	public ACTAccessRequirementStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId);
 
 	/**
 	 * Update the state of a submission.
@@ -27,7 +27,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public DataAccessSubmission updateStatus(String submissionId,
+	public DataAccessSubmission updateSubmissionStatus(String submissionId,
 			DataAccessSubmissionState newState, String reason, String userId,
 			Long timestamp, String etag);
 
@@ -35,9 +35,10 @@ public interface DataAccessSubmissionDAO {
 	 * Create a submission.
 	 * 
 	 * @param submissionToCreate
+	 * @param accessors
 	 * @return
 	 */
-	public DataAccessSubmissionStatus create(DataAccessSubmission submissionToCreate);
+	public ACTAccessRequirementStatus create(DataAccessSubmission submissionToCreate, List<DBODataAccessSubmissionAccessor> accessors);
 
 	/**
 	 * Cancel a submission.
@@ -48,7 +49,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param etag
 	 * @return
 	 */
-	public DataAccessSubmissionStatus cancel(String submissionId, String userId,
+	public ACTAccessRequirementStatus cancel(String submissionId, String userId,
 			Long timestamp, String etag);
 
 	/**
@@ -95,4 +96,9 @@ public interface DataAccessSubmissionDAO {
 	 */
 	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
 			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
+
+	/**
+	 * for test only
+	 */
+	void truncateAllAccessors();
 }

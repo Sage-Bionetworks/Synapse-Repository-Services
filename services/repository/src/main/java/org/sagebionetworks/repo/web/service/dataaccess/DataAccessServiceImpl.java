@@ -7,10 +7,9 @@ import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,19 +50,13 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public DataAccessSubmissionStatus submit(Long userId, String requestId, String etag) {
+	public ACTAccessRequirementStatus submit(Long userId, String requestId, String etag) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.create(user, requestId, etag);
 	}
 
 	@Override
-	public DataAccessSubmissionStatus getStatus(Long userId, String requirementId) {
-		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessSubmissionManager.getSubmissionStatus(user, requirementId);
-	}
-
-	@Override
-	public DataAccessSubmissionStatus cancel(Long userId, String submissionId) {
+	public ACTAccessRequirementStatus cancel(Long userId, String submissionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.cancel(user, submissionId);
 	}
@@ -75,9 +68,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public DataAccessSubmissionPage listSubmissions(Long userId, String requirementId, String nextPageToken,
-			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending) {
+	public DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessSubmissionManager.listSubmission(user, requirementId, nextPageToken, filterBy, orderBy, isAscending);
+		return dataAccessSubmissionManager.listSubmission(user, request);
 	}
 }

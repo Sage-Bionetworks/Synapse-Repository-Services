@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -76,6 +76,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Before
 	public void before() {
+		dataAccessSubmissionDao.truncateAllAccessors();
+
 		// create a user
 		user1 = new UserGroup();
 		user1.setIsIndividual(true);
@@ -119,6 +121,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@After
 	public void after() {
+		dataAccessSubmissionDao.truncateAllAccessors();
+
 		if (request != null) {
 			dataAccessRequestDao.delete(request.getId());
 		}
@@ -163,9 +167,12 @@ public class DBODataAccessSubmissionDAOImplTest {
 	@Test
 	public void testCRUD() {
 		final DataAccessSubmission dto = createSubmission();
+		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(dto, idGenerator);
 
-		DataAccessSubmissionStatus status = dataAccessSubmissionDao.create(dto);
+		ACTAccessRequirementStatus status = dataAccessSubmissionDao.create(dto, accessors);
 		assertNotNull(status);
+		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
+		assertEquals(user1.getId(), status.getSubmittedBy());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, status.getState());
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
 		assertEquals(dto.getId(), status.getSubmissionId());
@@ -196,12 +203,12 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertNull(cancelled.getRejectedReason());
 		assertEquals(etag, cancelled.getEtag());
 
-		assertEquals(status, dataAccessSubmissionDao.getStatus(accessRequirement.getId().toString(), user1.getId().toString()));
+		assertEquals(status, dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
 
 		etag = UUID.randomUUID().toString();
 		modifiedOn = System.currentTimeMillis();
 		String reason = "no reason";
-		DataAccessSubmission updated = dataAccessSubmissionDao.updateStatus(dto.getId(),
+		DataAccessSubmission updated = dataAccessSubmissionDao.updateSubmissionStatus(dto.getId(),
 				DataAccessSubmissionState.REJECTED, reason, user2.getId(), modifiedOn, etag);
 		assertEquals(DataAccessSubmissionState.REJECTED, updated.getState());
 		assertEquals(modifiedOn, (Long) updated.getModifiedOn().getTime());
@@ -210,10 +217,12 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals(etag, updated.getEtag());
 
 		DataAccessSubmission dto2 = createSubmission();
-		dataAccessSubmissionDao.create(dto2);
+		accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(dto2, idGenerator);
+		dataAccessSubmissionDao.create(dto2, accessors);
 		assertEquals(DataAccessSubmissionState.SUBMITTED, dataAccessSubmissionDao
-				.getStatus(accessRequirement.getId().toString(), user1.getId().toString()).getState());
+				.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()).getState());
 
+		dataAccessSubmissionDao.truncateAllAccessors();
 		dataAccessSubmissionDao.delete(dto.getId());
 		dataAccessSubmissionDao.delete(dto2.getId());
 	}
@@ -222,7 +231,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 	public void testHasSubmissionWithState() {
 
 		DataAccessSubmission dto = createSubmission();
-		dataAccessSubmissionDao.create(dto);
+		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(dto, idGenerator);
+		dataAccessSubmissionDao.create(dto, accessors);
 
 		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), DataAccessSubmissionState.SUBMITTED));
@@ -235,6 +245,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), DataAccessSubmissionState.REJECTED));
 
+		dataAccessSubmissionDao.truncateAllAccessors();
 		dataAccessSubmissionDao.delete(dto.getId());
 	}
 
@@ -242,8 +253,10 @@ public class DBODataAccessSubmissionDAOImplTest {
 	public void testListSubmissions() {
 		DataAccessSubmission dto1 = createSubmission();
 		DataAccessSubmission dto2 = createSubmission();
-		dataAccessSubmissionDao.create(dto1);
-		dataAccessSubmissionDao.create(dto2);
+		List<DBODataAccessSubmissionAccessor> accessorList1 = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(dto1, idGenerator);
+		List<DBODataAccessSubmissionAccessor> accessorList2 = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(dto2, idGenerator);
+		dataAccessSubmissionDao.create(dto1, accessorList1);
+		dataAccessSubmissionDao.create(dto2, accessorList2);
 
 		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(accessRequirement.getId().toString(),
 				DataAccessSubmissionState.SUBMITTED, DataAccessSubmissionOrder.CREATED_ON,
@@ -263,6 +276,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertNotNull(submissions);
 		assertEquals(0, submissions.size());
 
+		dataAccessSubmissionDao.truncateAllAccessors();
 		dataAccessSubmissionDao.delete(dto1.getId());
 		dataAccessSubmissionDao.delete(dto2.getId());
 	}
@@ -272,9 +286,16 @@ public class DBODataAccessSubmissionDAOImplTest {
 		dataAccessSubmissionDao.getSubmission(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 	}
 
-	@Test (expected=NotFoundException.class)
+	@Test
 	public void testGetStatusNotFound() {
-		dataAccessSubmissionDao.getStatus(accessRequirement.getId().toString(), user1.getId().toString());
+		ACTAccessRequirementStatus status = dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
+		assertNotNull(status);
+		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
+		assertEquals(DataAccessSubmissionState.NOT_SUBMITTED, status.getState());
+		assertNull(status.getModifiedOn());
+		assertNull(status.getRejectedReason());
+		assertNull(status.getSubmissionId());
+		assertNull(status.getSubmittedBy());
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)
