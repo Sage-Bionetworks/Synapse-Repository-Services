@@ -13,6 +13,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -35,6 +36,9 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	private static final String SQL_GET_STATUS_FOR_USER = "SELECT "
 				+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID+", "
@@ -108,8 +112,6 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	private static final String DESCENDING = "DESC";
 	private static final String LIMIT = "LIMIT";
 	private static final String OFFSET = "OFFSET";
-
-	private static final String SQL_TRUNCATE_ALL_ACCESSORS = "TRUNCATE TABLE "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR;
 
 	private static final RowMapper<ACTAccessRequirementStatus> STATUS_MAPPER = new RowMapper<ACTAccessRequirementStatus>(){
 		@Override
@@ -191,10 +193,11 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirementStatus create(DataAccessSubmission toCreate, List<DBODataAccessSubmissionAccessor> accessors) {
+	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission toCreate) {
 		DBODataAccessSubmission dboSubmission = new DBODataAccessSubmission();
 		DataAccessSubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
 		DBODataAccessSubmissionStatus status = DataAccessSubmissionUtils.getDBOStatus(toCreate);
+		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(toCreate, idGenerator);
 		basicDao.createNew(dboSubmission);
 		basicDao.createNew(status);
 		basicDao.createOrUpdateBatch(accessors);
@@ -270,10 +273,4 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
 		}
 	}
-
-	@Override
-	public void truncateAllAccessors() {
-		jdbcTemplate.update(SQL_TRUNCATE_ALL_ACCESSORS);
-	}
-
 }
