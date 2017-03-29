@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -178,5 +179,21 @@ public class DataAccessController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody DataAccessSubmissionPageRequest dataAccessSubmissionPageRequest) throws NotFoundException {
 		return serviceProvider.getDataAccessService().listSubmissions(userId, dataAccessSubmissionPageRequest);
+	}
+
+	/**
+	 * Retrieve an access requirement status for a given access requirement ID.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_STATUS, method = RequestMethod.GET)
+	public @ResponseBody AccessRequirementStatus getAccessRequirementStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getAccessRequirementStatus(userId, requirementId);
 	}
 }

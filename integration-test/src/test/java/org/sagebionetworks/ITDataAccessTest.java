@@ -110,6 +110,8 @@ public class ITDataAccessTest {
 		ACTAccessRequirementStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
 		assertNotNull(status);
 
+		assertEquals(status, synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString()));
+
 		DataAccessSubmission submission = adminSynapse.updateDataAccessSubmissionState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
 		assertNotNull(submission);
 
