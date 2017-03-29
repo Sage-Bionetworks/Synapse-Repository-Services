@@ -25,6 +25,7 @@ public class AccessRequirementUtils {
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setAccessType(dto.getAccessType().name());
+		dbo.setConcreteType(dto.getConcreteType());
 		copyToSerializedField(dto, dbo);
 	}
 
