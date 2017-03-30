@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -58,6 +59,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
 		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
 		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+
+	private static final String SELECT_MET_ACCESS_REQUIREMENT_COUNT =
+			"SELECT COUNT(*)"
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
+			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
 	COL_ACCESS_APPROVAL_CREATED_BY+", "+
@@ -209,5 +216,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
 		namedJdbcTemplate.update(DELETE_ACCESS_APPROVAL, params);
+	}
+
+	@Override
+	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId) {
+		if (requirementIdSet.isEmpty()) {
+			return false;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();		
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, requirementIdSet);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
+		return requirementIdSet.size() > namedJdbcTemplate.queryForObject(SELECT_MET_ACCESS_REQUIREMENT_COUNT, params, Integer.class);
 	}
 }
