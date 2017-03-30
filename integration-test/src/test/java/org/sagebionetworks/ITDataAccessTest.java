@@ -104,11 +104,14 @@ public class ITDataAccessTest {
 		assertEquals(createdRequest, synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		createdRequest.setAccessors(Arrays.asList(adminId));
+		String userId = synapseOne.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
+		createdRequest.setAccessors(Arrays.asList(adminId, userId));
 		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(createdRequest);
 
 		ACTAccessRequirementStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
 		assertNotNull(status);
+
+		assertEquals(status, synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString()));
 
 		DataAccessSubmission submission = adminSynapse.updateDataAccessSubmissionState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
 		assertNotNull(submission);

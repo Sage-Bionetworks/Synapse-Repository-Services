@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
 public interface DataAccessSubmissionManager {
@@ -45,5 +46,14 @@ public interface DataAccessSubmissionManager {
 	 * @return
 	 */
 	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, DataAccessSubmissionPageRequest request);
+
+	/**
+	 * Retrieve the status of a user meeting an access requirement
+	 * 
+	 * @param userInfo
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId);
 
 }

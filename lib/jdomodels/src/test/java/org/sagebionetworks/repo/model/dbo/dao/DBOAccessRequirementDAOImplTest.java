@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -147,7 +148,6 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -163,7 +163,6 @@ public class DBOAccessRequirementDAOImplTest {
 		RestrictableObjectDescriptor erod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
 		RestrictableObjectDescriptor nrod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod, nrod, erod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -281,6 +280,9 @@ public class DBOAccessRequirementDAOImplTest {
 			// We expected this exception
 		}
 
+		assertEquals(accessRequirement.getClass().getName(),
+				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
+
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
@@ -355,4 +357,8 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 
+	@Test (expected = NotFoundException.class)
+	public void testGetConcreteTypeNotFound() {
+		accessRequirementDAO.getConcreteType("1");
+	}
 }

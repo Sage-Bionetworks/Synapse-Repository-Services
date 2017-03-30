@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -64,6 +66,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	private static final String SELECT_ALL_IDS_SQL = 
 		"SELECT "+SqlConstants.COL_ACCESS_REQUIREMENT_ID+" FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT;
@@ -119,6 +124,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final String SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET =
 			SELECT_FOR_SUBJECT_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
 			+OFFSET_PARAM+" :"+OFFSET_PARAM;
+
+	private static final String SELECT_CONCRETE_TYPE = "SELECT "+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+" FROM "+TABLE_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = ?";
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -353,5 +362,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+
+	@Override
+	public String getConcreteType(String accessRequirementId) {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_CONCRETE_TYPE, String.class, accessRequirementId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 }

@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,5 +72,11 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.listSubmission(user, request);
+	}
+
+	@Override
+	public AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getAccessRequirementStatus(user, requirementId);
 	}
 }

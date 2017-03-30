@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2792,4 +2793,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
+
+	/**
+	 * Retrieve the status for a given access requirement.
+	 * 
+	 * @param requirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException;
 }
