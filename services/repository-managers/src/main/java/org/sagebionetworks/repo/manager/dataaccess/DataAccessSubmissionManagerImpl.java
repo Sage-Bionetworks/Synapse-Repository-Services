@@ -132,6 +132,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
 					"Accessors must have validated profiles.");
 		}
+		ValidateArgument.requirement(accessors.contains(userInfo.getId().toString()),
+				"Submitter has to be an accessor.");
 		submissionToCreate.setAccessors(new LinkedList<String>(accessors));
 
 		if (!actAR.getIsAnnualReviewRequired() && request instanceof DataAccessRenewal) {
