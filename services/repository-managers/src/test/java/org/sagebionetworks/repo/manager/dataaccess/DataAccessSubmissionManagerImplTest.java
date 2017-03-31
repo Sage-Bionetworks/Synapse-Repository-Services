@@ -25,6 +25,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -496,7 +497,7 @@ public class DataAccessSubmissionManagerImplTest {
 	}
 
 	@Test
-	public void testUpdateStatus() {
+	public void testUpdateStatusRejected() {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(DataAccessSubmissionState.REJECTED);
@@ -513,6 +514,39 @@ public class DataAccessSubmissionManagerImplTest {
 				eq(DataAccessSubmissionState.REJECTED), eq(reason), eq(userId),
 				anyLong())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
+	}
+
+	@Test
+	public void testUpdateStatusApproved() {
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(DataAccessSubmissionState.APPROVED);
+		String reason = "rejectedReason";
+		request.setRejectedReason(reason);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		DataAccessSubmission submission = new DataAccessSubmission();
+		submission.setSubmittedBy(userId);
+		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		submission.setAccessRequirementId(accessRequirementId);
+		submission.setAccessors(Arrays.asList(userId));
+		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
+				eq(DataAccessSubmissionState.APPROVED), eq(reason), eq(userId),
+				anyLong())).thenReturn(submission);
+		assertEquals(submission, manager.updateStatus(mockUser, request));
+		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockAccessApprovalDao).createBatch(captor.capture());
+		List<AccessApproval> approvals = captor.getValue();
+		assertEquals(1, approvals.size());
+		assertTrue(approvals.get(0) instanceof ACTAccessApproval);
+		ACTAccessApproval approval = (ACTAccessApproval) approvals.get(0);
+		assertEquals(userId, approval.getAccessorId());
+		assertEquals(ACTApprovalStatus.APPROVED, approval.getApprovalStatus());
+		assertEquals(userId, approval.getCreatedBy());
+		assertNotNull(approval.getCreatedOn());
+		assertEquals(userId, approval.getModifiedBy());
+		assertNotNull(approval.getModifiedOn());
+		assertEquals(accessRequirementId, approval.getRequirementId().toString());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
