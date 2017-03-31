@@ -341,4 +341,13 @@ public class DBOAccessApprovalDAOImplTest {
 			// make sure that the exception is thrown here and not before this call
 		}
 	}
+
+	@Test
+	public void testCreateBatch() {
+		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
+		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+	}
 }

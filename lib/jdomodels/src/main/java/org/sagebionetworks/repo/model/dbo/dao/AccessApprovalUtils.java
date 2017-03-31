@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -53,5 +57,29 @@ public class AccessApprovalUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+
+	public static List<DBOAccessApproval> copyDtosToDbos(List<AccessApproval> dtos, boolean forCreation, IdGenerator idGenerator) {
+		List<DBOAccessApproval> dbos = new LinkedList<DBOAccessApproval>();
+		for (AccessApproval dto : dtos) {
+			DBOAccessApproval dbo = new DBOAccessApproval();
+			copyDtoToDbo(dto, dbo);
+			if (forCreation && dbo.getId() == null) {
+				dbo.setId(idGenerator.generateNewId());
+			}
+			if (forCreation && dbo.geteTag() == null) {
+				dbo.seteTag(UUID.randomUUID().toString());
+			}
+			dbos.add(dbo);
+		}
+		return dbos;
+	}
+
+	public static List<AccessApproval> copyDbosToDtos(List<DBOAccessApproval> dbos) {
+		List<AccessApproval> dtos = new LinkedList<AccessApproval>();
+		for (DBOAccessApproval dbo : dbos) {
+			dtos.add(copyDboToDto(dbo));
+		}
+		return dtos;
 	}
 }
