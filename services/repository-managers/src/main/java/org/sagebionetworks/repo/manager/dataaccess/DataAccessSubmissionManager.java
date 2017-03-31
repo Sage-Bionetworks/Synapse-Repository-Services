@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
 public interface DataAccessSubmissionManager {
@@ -18,16 +18,7 @@ public interface DataAccessSubmissionManager {
 	 * @param etag 
 	 * @return
 	 */
-	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag);
-
-	/**
-	 * Retrieve a submission status that the user owns or is an accessor.
-	 * 
-	 * @param userInfo
-	 * @param accessRequirementId
-	 * @return
-	 */
-	public DataAccessSubmissionStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId);
+	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag);
 
 	/**
 	 * Cancel a submission.
@@ -36,7 +27,7 @@ public interface DataAccessSubmissionManager {
 	 * @param submissionId
 	 * @return
 	 */
-	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId);
+	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId);
 
 	/**
 	 * Update the state of a submission.
@@ -51,14 +42,18 @@ public interface DataAccessSubmissionManager {
 	 * List a page of submissions for a given access requirement.
 	 * 
 	 * @param userInfo
-	 * @param accessRequirementId
-	 * @param nextPageToken
-	 * @param filterBy
-	 * @param orderBy
-	 * @param isAscending
+	 * @param request
 	 * @return
 	 */
-	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId, String nextPageToken,
-			DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending);
+	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, DataAccessSubmissionPageRequest request);
+
+	/**
+	 * Retrieve the status of a user meeting an access requirement
+	 * 
+	 * @param userInfo
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId);
 
 }

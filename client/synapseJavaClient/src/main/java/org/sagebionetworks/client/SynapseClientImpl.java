@@ -103,8 +103,10 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -4946,18 +4948,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
+	public ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
 		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
-		return postJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
+		return postJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
 	}
 
 	@Override
-	public DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
+	public ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
 		ValidateArgument.required(submissionId, "submissionId");
 		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId+"/cancellation";
-		return putJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
+		return putJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
 	}
 
 	@Override
@@ -4973,33 +4975,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessSubmissionStatus getDataAccessSubmissionStatus(String requirementId) throws SynapseException {
-		ValidateArgument.required(requirementId, "requirementId");
-		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissionStatus";
-		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionStatus.class);
-	}
-
-	@Override
 	public DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken,
 			DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending)
 			throws SynapseException {
 		ValidateArgument.required(requirementId, "requirementId");
-		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissions?";
-		if (filter != null) {
-			url += "filter="+filter.name()+"&";
-		}
-		if (order != null) {
-			url += "sort="+order.name()+"&";
-		}
-		if (isAscending != null) {
-			url += "ascending="+isAscending.toString()+"&";
-		}
-		if (nextPageToken != null) {
-			url += "nextPageToken="+nextPageToken;
-		}
-		if (url.endsWith("&") || url.endsWith("?")) {
-			url = url.substring(0, url.length()-1);
-		}
-		return getJSONEntity(getRepoEndpoint(), url, DataAccessSubmissionPage.class);
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(requirementId);
+		request.setFilterBy(filter);
+		request.setOrderBy(order);
+		request.setIsAscending(isAscending);
+		request.setNextPageToken(nextPageToken);
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissions";
+		return postJSONEntity(getRepoEndpoint(), url, request, DataAccessSubmissionPage.class);
+	}
+
+	@Override
+	public AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/status";
+		return getJSONEntity(getRepoEndpoint(), url, AccessRequirementStatus.class);
 	}
 }

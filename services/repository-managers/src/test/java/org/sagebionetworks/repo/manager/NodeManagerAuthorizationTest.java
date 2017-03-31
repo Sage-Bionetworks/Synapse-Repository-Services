@@ -87,6 +87,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getNodeType()).thenReturn(EntityType.project);
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		when(mockAnnotations.getEtag()).thenReturn("12");
+		when(mockNode.getParentId()).thenReturn("syn456");
 		when(mockNamed.getEtag()).thenReturn("12");
 
 		// UserGroup
@@ -121,7 +122,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
 		when(mockEntityBootstrapper.getChildAclSchemeForPath(any(String.class))).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeDao.createNewNode(mockNode)).thenReturn(mockNode);
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);

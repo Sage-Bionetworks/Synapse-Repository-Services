@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,22 +12,28 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -52,10 +59,12 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
 	private VerificationDAO verificationDao;
+	@Autowired
+	private AccessApprovalDAO accessApprovalDao;
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag) {
+	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
@@ -68,7 +77,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);
-		return dataAccessSubmissionDao.create(submissionToCreate);
+		return dataAccessSubmissionDao.createSubmission(submissionToCreate);
 	}
 
 	/**
@@ -152,16 +161,9 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		submissionToCreate.setState(DataAccessSubmissionState.SUBMITTED);
 	}
 
-	@Override
-	public DataAccessSubmissionStatus getSubmissionStatus(UserInfo userInfo, String accessRequirementId) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		return dataAccessSubmissionDao.getStatus(accessRequirementId, userInfo.getId().toString());
-	}
-
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId) {
+	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(submissionId);
@@ -190,24 +192,55 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(request.getSubmissionId());
 		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
-		return dataAccessSubmissionDao.updateStatus(request.getSubmissionId(),
+		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis(), UUID.randomUUID().toString());
 	}
 
 	@Override
-	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, String accessRequirementId,
-			String nextPageToken, DataAccessSubmissionState filterBy, DataAccessSubmissionOrder orderBy, Boolean isAscending){
+	public DataAccessSubmissionPage listSubmission(UserInfo userInfo, DataAccessSubmissionPageRequest request){
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementId(), "accessRequirementId");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
-		NextPageToken token = new NextPageToken(nextPageToken);
-		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(accessRequirementId, filterBy, orderBy, isAscending, token.getLimitForQuery(), token.getOffset());
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<DataAccessSubmission> submissions = dataAccessSubmissionDao.getSubmissions(
+				request.getAccessRequirementId(), request.getFilterBy(), request.getOrderBy(),
+				request.getIsAscending(), token.getLimitForQuery(), token.getOffset());
 		DataAccessSubmissionPage pageResult = new DataAccessSubmissionPage();
 		pageResult.setResults(submissions);
 		pageResult.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
 		return pageResult;
+	}
+
+	@Override
+	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
+		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
+			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
+			status.setAccessRequirementId(accessRequirementId);
+			List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
+					Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
+			if (approvals.isEmpty()) {
+				status.setIsApproved(false);
+			} else if (approvals.size() == 1 
+					&& approvals.get(0) instanceof TermsOfUseAccessApproval
+					&& approvals.get(0).getAccessorId().equals(userInfo.getId().toString())
+					&& approvals.get(0).getRequirementId().toString().equals(accessRequirementId)) {
+				status.setIsApproved(true);
+			} else {
+				throw new IllegalStateException();
+			}
+			return status;
+		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
+			return dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(
+					accessRequirementId, userInfo.getId().toString());
+		} else {
+			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
+		}
 	}
 }
