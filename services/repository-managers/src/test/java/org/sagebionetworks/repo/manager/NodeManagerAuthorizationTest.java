@@ -88,6 +88,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		when(mockAnnotations.getEtag()).thenReturn("12");
 		when(mockNamed.getEtag()).thenReturn("12");
+		when(mockNode.getProjectId()).thenReturn("syn123");
 
 		// UserGroup
 		when(mockUserGroup.getId()).thenReturn("123");
