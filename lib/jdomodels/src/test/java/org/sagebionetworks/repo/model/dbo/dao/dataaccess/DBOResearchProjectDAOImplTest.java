@@ -120,7 +120,7 @@ public class DBOResearchProjectDAOImplTest {
 
 		// update
 		dto.setProjectLead("new projectLead");
-		ResearchProject updated = researchProjectDao.update(dto);
+		final ResearchProject updated = researchProjectDao.update(dto);
 		dto.setEtag(updated.getEtag());
 		assertEquals(dto, updated);
 
@@ -137,10 +137,11 @@ public class DBOResearchProjectDAOImplTest {
 			@Override
 			public ResearchProject doInTransaction(TransactionStatus status) {
 				// Try to lock both nodes out of order
-				return researchProjectDao.getForUpdate(dto.getId());
+				return researchProjectDao.getForUpdate(updated.getId());
 			}
 		});
-		assertEquals(dto, locked);
+		assertEquals(updated, locked);
+		dto = updated;
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

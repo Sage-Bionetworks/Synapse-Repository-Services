@@ -119,7 +119,7 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Test
 	public void testCRUD() {
-		final DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
+		DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
 		DataAccessRequest created = dataAccessRequestDao.create(dto);
@@ -135,7 +135,7 @@ public class DBODataAccessRequestDAOImplTest {
 
 		// update
 		dto.setAccessors(Arrays.asList("666"));
-		DataAccessRequestInterface updated = dataAccessRequestDao.update(dto);
+		final DataAccessRequestInterface updated = dataAccessRequestDao.update(dto);
 		dto.setEtag(updated.getEtag());
 		assertEquals(dto, updated);
 
@@ -151,10 +151,10 @@ public class DBODataAccessRequestDAOImplTest {
 		DataAccessRequest locked = transactionTemplate.execute(new TransactionCallback<DataAccessRequest>() {
 			@Override
 			public DataAccessRequest doInTransaction(TransactionStatus status) {
-				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(dto.getId());
+				return (DataAccessRequest) dataAccessRequestDao.getForUpdate(updated.getId());
 			}
 		});
-		assertEquals(dto, locked);
+		assertEquals(updated, locked);
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)
