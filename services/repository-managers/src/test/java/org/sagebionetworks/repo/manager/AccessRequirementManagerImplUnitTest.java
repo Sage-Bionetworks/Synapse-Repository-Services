@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyObject;
@@ -17,16 +19,22 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -34,6 +42,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -41,6 +51,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -52,29 +63,39 @@ import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 
 public class AccessRequirementManagerImplUnitTest {
 
+	@Mock
 	private JiraClient jiraClient;
 	private static final String TEST_PRINCIPAL_ID = "1010101";
 	private static final String TEST_ENTITY_ID = "syn98786543";
-	
+
+	@Mock
 	private AccessRequirementDAO accessRequirementDAO;
+	@Mock
+	private AccessApprovalDAO accessApprovalDAO;
+	@Mock
 	private NodeDAO nodeDao;
+	@Mock
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
+	@Mock
 	private NotificationEmailDAO notificationEmailDao;
 
 	
 	@Before
 	public void setUp() throws Exception {
-		accessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
-		nodeDao = Mockito.mock(NodeDAO.class);
-		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
+		MockitoAnnotations.initMocks(this);
+		arm = new AccessRequirementManagerImpl();
+		ReflectionTestUtils.setField(arm, "accessRequirementDAO", accessRequirementDAO);
+		ReflectionTestUtils.setField(arm, "accessApprovalDAO", accessApprovalDAO);
+		ReflectionTestUtils.setField(arm, "nodeDao", nodeDao);
+		ReflectionTestUtils.setField(arm, "notificationEmailDao", notificationEmailDao);
+		ReflectionTestUtils.setField(arm, "authorizationManager", authorizationManager);
+		ReflectionTestUtils.setField(arm, "jiraClient", jiraClient);
+
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.com");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
-		jiraClient = Mockito.mock(JiraClient.class);
-		arm = new AccessRequirementManagerImpl(accessRequirementDAO, nodeDao, authorizationManager, jiraClient, notificationEmailDao);
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
@@ -302,5 +323,88 @@ public class AccessRequirementManagerImplUnitTest {
 		rod.setId("1");
 		rod.setType(RestrictableObjectType.ENTITY);
 		arm.getAccessRequirementsForSubject(userInfo, rod, 10L, -1L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRestrictionInformationWithNullUserInfo() {
+		arm.getRestrictionInformation(null, TEST_ENTITY_ID);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRestrictionInformationWithNullEntityId() {
+		arm.getRestrictionInformation(userInfo, null);
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithZeroAR() {
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(new HashSet<String>());
+		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
+		assertFalse(info.getHasUnmetAccessRequirement());
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithToU() {
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(true);
+		stats.setHasACT(false);
+		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
+		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+		assertTrue(info.getHasUnmetAccessRequirement());
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithACT() {
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(false);
+		stats.setHasACT(true);
+		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
+		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
+		assertFalse(info.getHasUnmetAccessRequirement());
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithBoth() {
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		set.add("2");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(true);
+		stats.setHasACT(true);
+		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
+		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
+		assertFalse(info.getHasUnmetAccessRequirement());
+	}
+
+	@Test (expected = IllegalStateException.class)
+	public void testGetRestrictionInformationWithIllegalState() {
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		set.add("2");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(false);
+		stats.setHasACT(false);
+		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats);
+		arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 	}
 }

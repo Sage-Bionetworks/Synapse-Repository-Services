@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -72,5 +73,14 @@ public interface AccessApprovalDAO {
 	 * @param accessorId
 	 */
 	public void delete(String accessRequirementId, String accessorId);
+
+	/**
+	 * Return true if there is an unmet access requirement for the given user; false otherwise.
+	 * 
+	 * @param requirementIdSet
+	 * @param userId
+	 * @return
+	 */
+	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId);
 
 }

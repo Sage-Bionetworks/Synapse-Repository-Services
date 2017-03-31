@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
+import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
@@ -25,6 +27,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 	private DataAccessRequestManager dataAccessRequestManager;
 	@Autowired
 	private DataAccessSubmissionManager dataAccessSubmissionManager;
+	@Autowired
+	private AccessRequirementManager accessRequirementManager;
 
 	@Override
 	public ResearchProject createOrUpdate(Long userId, ResearchProject toCreateOrUpdate) {
@@ -78,5 +82,11 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getAccessRequirementStatus(user, requirementId);
+	}
+
+	@Override
+	public RestrictionInformation getRestrictionInformation(Long userId, String entityId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return accessRequirementManager.getRestrictionInformation(user, entityId);
 	}
 }
