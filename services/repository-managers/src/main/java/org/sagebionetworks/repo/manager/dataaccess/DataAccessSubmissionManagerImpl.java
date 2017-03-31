@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -45,8 +43,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	@Autowired
-	private IdGenerator idGenerator;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
@@ -154,8 +150,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	 * @param submissionToCreate
 	 */
 	public void prepareCreationFields(UserInfo userInfo, DataAccessSubmission submissionToCreate) {
-		submissionToCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
-		submissionToCreate.setEtag(UUID.randomUUID().toString());
 		submissionToCreate.setSubmittedBy(userInfo.getId().toString());
 		submissionToCreate.setSubmittedOn(new Date());
 		submissionToCreate.setModifiedBy(userInfo.getId().toString());
@@ -196,7 +190,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
-				System.currentTimeMillis(), UUID.randomUUID().toString());
+				System.currentTimeMillis());
 	}
 
 	@Override

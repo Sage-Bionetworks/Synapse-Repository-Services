@@ -2,6 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.util.UUID;
+
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -19,6 +23,9 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	public static final String SQL_DELETE = "DELETE FROM "+TABLE_RESEARCH_PROJECT
 			+" WHERE "+COL_RESEARCH_PROJECT_ID+" = ?";
@@ -39,6 +46,9 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public ResearchProject create(ResearchProject toCreate) {
+		toCreate.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
+		toCreate.setEtag(UUID.randomUUID().toString());
+		
 		DBOResearchProject dbo = new DBOResearchProject();
 		ResearchProjectUtils.copyDtoToDbo(toCreate, dbo);
 		basicDao.createNew(dbo);
@@ -62,6 +72,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	public ResearchProject update(ResearchProject toUpdate) throws NotFoundException {
 		DBOResearchProject dbo = new DBOResearchProject();
 		ResearchProjectUtils.copyDtoToDbo(toUpdate, dbo);
+		dbo.setEtag(UUID.randomUUID().toString());
 		basicDao.update(dbo);
 		return get(toUpdate.getId());
 	}

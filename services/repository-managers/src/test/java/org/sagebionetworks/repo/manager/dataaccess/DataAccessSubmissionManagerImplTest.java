@@ -22,8 +22,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -60,8 +58,6 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
-	@Mock
-	private IdGenerator mockIdGenerator;
 	@Mock
 	private ResearchProjectDAO mockResearchProjectDao;
 	@Mock
@@ -103,7 +99,6 @@ public class DataAccessSubmissionManagerImplTest {
 		MockitoAnnotations.initMocks(this);
 		manager = new DataAccessSubmissionManagerImpl();
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "dataAccessRequestDao", mockDataAccessRequestDao);
@@ -156,8 +151,6 @@ public class DataAccessSubmissionManagerImplTest {
 				.thenReturn(true);
 		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
 				.thenReturn(true);
-		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID)).thenReturn(8L);
-		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ACCESSOR_ID)).thenReturn(1L, 2L, 3L, 4L, 5L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -290,8 +283,6 @@ public class DataAccessSubmissionManagerImplTest {
 		verify(mockDataAccessSubmissionDao).createSubmission(submissionCaptor.capture());
 		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
-		assertEquals(submissionId, captured.getId());
-		assertNotNull(captured.getEtag());
 		assertNotNull(captured.getSubmittedOn());
 		assertEquals(userId, captured.getSubmittedBy());
 		assertNotNull(captured.getModifiedOn());
@@ -326,8 +317,6 @@ public class DataAccessSubmissionManagerImplTest {
 		verify(mockDataAccessSubmissionDao).createSubmission(submissionCaptor.capture());
 		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
-		assertEquals(submissionId, captured.getId());
-		assertNotNull(captured.getEtag());
 		assertNotNull(captured.getSubmittedOn());
 		assertEquals(userId, captured.getSubmittedBy());
 		assertEquals(mockResearchProject, captured.getResearchProjectSnapshot());
@@ -517,10 +506,12 @@ public class DataAccessSubmissionManagerImplTest {
 		DataAccessSubmission submission = new DataAccessSubmission();
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		submission.setAccessRequirementId(accessRequirementId);
+		submission.setAccessors(Arrays.asList(userId));
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(DataAccessSubmissionState.REJECTED), eq(reason), eq(userId),
-				anyLong(), anyString())).thenReturn(submission);
+				anyLong())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 	}
 

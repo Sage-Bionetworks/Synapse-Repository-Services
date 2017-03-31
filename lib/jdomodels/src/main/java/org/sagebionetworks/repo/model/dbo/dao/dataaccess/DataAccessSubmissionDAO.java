@@ -28,8 +28,7 @@ public interface DataAccessSubmissionDAO {
 	 * @return
 	 */
 	public DataAccessSubmission updateSubmissionStatus(String submissionId,
-			DataAccessSubmissionState newState, String reason, String userId,
-			Long timestamp, String etag);
+			DataAccessSubmissionState newState, String reason, String userId, Long timestamp);
 
 	/**
 	 * Create a submission.

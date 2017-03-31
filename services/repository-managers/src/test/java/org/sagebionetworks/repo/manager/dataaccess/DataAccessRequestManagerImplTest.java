@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
@@ -17,8 +16,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -36,8 +33,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class DataAccessRequestManagerImplTest {
 
-	@Mock
-	private IdGenerator mockIdGenerator;
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
@@ -65,7 +60,6 @@ public class DataAccessRequestManagerImplTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		manager = new DataAccessRequestManagerImpl();
-		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "dataAccessRequestDao", mockDataAccessRequestDao);
 		ReflectionTestUtils.setField(manager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
@@ -81,7 +75,6 @@ public class DataAccessRequestManagerImplTest {
 		renewal = manager.createRenewalFromRequest(request);
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID)).thenReturn(4L);
 		when(mockDataAccessRequestDao.create(any(DataAccessRequest.class))).thenReturn(request);
 		when(mockDataAccessRequestDao.getUserOwnCurrentRequest(accessRequirementId, userId)).thenReturn(request);
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
@@ -150,7 +143,6 @@ public class DataAccessRequestManagerImplTest {
 		String modifiedBy = "111";
 		DataAccessRequest prepared = (DataAccessRequest) manager.prepareUpdateFields(request, modifiedBy);
 		assertEquals(modifiedBy, prepared.getModifiedBy());
-		assertFalse(prepared.getEtag().equals(etag));
 	}
 
 	@Test
@@ -159,7 +151,6 @@ public class DataAccessRequestManagerImplTest {
 		DataAccessRequest prepared = (DataAccessRequest) manager.prepareCreationFields(request, createdBy);
 		assertEquals(createdBy, prepared.getModifiedBy());
 		assertEquals(createdBy, prepared.getCreatedBy());
-		assertFalse(prepared.getEtag().equals(etag));
 		assertEquals(requestId, prepared.getId());
 	}
 
@@ -405,7 +396,6 @@ public class DataAccessRequestManagerImplTest {
 		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);
 		verify(mockDataAccessRequestDao).create(captor.capture());
 		DataAccessRequest toCreate = captor.getValue();
-		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
 	}

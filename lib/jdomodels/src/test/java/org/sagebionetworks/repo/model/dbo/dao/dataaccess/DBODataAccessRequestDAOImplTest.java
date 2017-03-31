@@ -9,8 +9,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -20,6 +18,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -50,9 +49,6 @@ public class DBODataAccessRequestDAOImplTest {
 
 	@Autowired
 	private DataAccessRequestDAO dataAccessRequestDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
@@ -91,7 +87,6 @@ public class DBODataAccessRequestDAOImplTest {
 
 		// create a ResearchProject
 		researchProject = ResearchProjectTestUtils.createNewDto();
-		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
 	}
@@ -127,18 +122,22 @@ public class DBODataAccessRequestDAOImplTest {
 		final DataAccessRequest dto = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
-		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
-		assertEquals(dto, dataAccessRequestDao.create(dto));
+		DataAccessRequest created = dataAccessRequestDao.create(dto);
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+		assertEquals(dto, created);
 
 		// should get back the same object
-		DataAccessRequest created = (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
-		assertEquals(dto, created);
+		assertEquals(dto, (DataAccessRequest) dataAccessRequestDao.getUserOwnCurrentRequest(
+				dto.getAccessRequirementId(), dto.getCreatedBy()));
 		assertEquals(dto, (DataAccessRequest) dataAccessRequestDao.get(dto.getId()));
 		toDelete = dto.getId();
 
 		// update
 		dto.setAccessors(Arrays.asList("666"));
-		assertEquals(dto, dataAccessRequestDao.update(dto));
+		DataAccessRequestInterface updated = dataAccessRequestDao.update(dto);
+		dto.setEtag(updated.getEtag());
+		assertEquals(dto, updated);
 
 		// insert another one with the same accessRequirementId & createdBy
 		try {

@@ -9,11 +9,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -175,10 +177,10 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmission updateSubmissionStatus(String submissionId, DataAccessSubmissionState newState, String reason,
-			String userId, Long timestamp, String etag) {
+	public DataAccessSubmission updateSubmissionStatus(String submissionId,
+			DataAccessSubmissionState newState, String reason, String userId, Long timestamp) {
 		jdbcTemplate.update(SQL_UPDATE_STATUS, newState.toString(), userId, timestamp, reason, submissionId);
-		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, etag, submissionId);
+		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, UUID.randomUUID().toString(), submissionId);
 		return getSubmission(submissionId);
 	}
 
@@ -194,6 +196,8 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission toCreate) {
+		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessSubmission dboSubmission = new DBODataAccessSubmission();
 		DataAccessSubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
 		DBODataAccessSubmissionStatus status = DataAccessSubmissionUtils.getDBOStatus(toCreate);
