@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -59,6 +60,9 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 				} else if (metadata instanceof ExternalFileHandle) {
 					// we need to add support for this
 					log.warn("Currently do not support previews for ExternalFileHandles");
+				} else if (metadata instanceof ProxyFileHandle) {
+					// we need to add support for this
+					log.warn("Currently do not support previews for ProxyFileHandles");
 				} else {
 					// We will never be able to process such a message.
 					throw new IllegalArgumentException("Unknown file type: "

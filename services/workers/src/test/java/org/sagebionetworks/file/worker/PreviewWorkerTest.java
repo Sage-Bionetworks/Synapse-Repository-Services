@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -88,6 +89,16 @@ public class PreviewWorkerTest {
 	public void testExternalFileMessage() throws Exception{
 		// We do not create previews for previews.
 		ExternalFileHandle meta = new ExternalFileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		// Fire!
+		worker.run(mockProgressCallback, change);
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
+	}
+	
+	@Test
+	public void testProxyFileMessage() throws Exception{
+		// We do not create previews for previews.
+		ProxyFileHandle meta = new ProxyFileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// Fire!
 		worker.run(mockProgressCallback, change);
