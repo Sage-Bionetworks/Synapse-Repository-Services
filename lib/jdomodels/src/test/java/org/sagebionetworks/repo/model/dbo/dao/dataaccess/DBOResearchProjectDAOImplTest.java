@@ -9,8 +9,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -47,9 +45,6 @@ public class DBOResearchProjectDAOImplTest {
 
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
 
 	@Autowired
 	private PlatformTransactionManager txManager;
@@ -113,17 +108,21 @@ public class DBOResearchProjectDAOImplTest {
 	@Test
 	public void testCRUD() {
 		dto = ResearchProjectTestUtils.createNewDto();
-		dto.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
-		assertEquals(dto, researchProjectDao.create(dto));
+		ResearchProject created = researchProjectDao.create(dto);
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+		assertEquals(dto, created);
 
 		// should get back the same object
-		ResearchProject created = researchProjectDao.getUserOwnResearchProject(dto.getAccessRequirementId(), dto.getCreatedBy());
-		assertEquals(dto, created);
+		assertEquals(dto, researchProjectDao.getUserOwnResearchProject(
+				dto.getAccessRequirementId(), dto.getCreatedBy()));
 
 		// update
 		dto.setProjectLead("new projectLead");
-		assertEquals(dto, researchProjectDao.update(dto));
+		final ResearchProject updated = researchProjectDao.update(dto);
+		dto.setEtag(updated.getEtag());
+		assertEquals(dto, updated);
 
 		// insert another one with the same accessRequirementId & createdBy
 		try {
@@ -138,10 +137,11 @@ public class DBOResearchProjectDAOImplTest {
 			@Override
 			public ResearchProject doInTransaction(TransactionStatus status) {
 				// Try to lock both nodes out of order
-				return researchProjectDao.getForUpdate(dto.getId());
+				return researchProjectDao.getForUpdate(updated.getId());
 			}
 		});
-		assertEquals(dto, locked);
+		assertEquals(updated, locked);
+		dto = updated;
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

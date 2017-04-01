@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
-import java.util.UUID;
-
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -21,8 +17,6 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 
 	public static final int EXCLUSIVE_LOWER_BOUND_CHAR_LIMIT = 0;
 
-	@Autowired
-	private IdGenerator idGenerator;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
@@ -58,7 +52,6 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	}
 
 	public ResearchProject prepareCreationFields(ResearchProject toCreate, String createdBy) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		toCreate.setCreatedBy(createdBy);
 		toCreate.setCreatedOn(new Date());
 		toCreate = prepareUpdateFields(toCreate, createdBy);
@@ -110,7 +103,6 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 	public ResearchProject prepareUpdateFields(ResearchProject toUpdate, String modifiedBy) {
 		toUpdate.setModifiedBy(modifiedBy);
 		toUpdate.setModifiedOn(new Date());
-		toUpdate.setEtag(UUID.randomUUID().toString());
 		return toUpdate;
 	}
 

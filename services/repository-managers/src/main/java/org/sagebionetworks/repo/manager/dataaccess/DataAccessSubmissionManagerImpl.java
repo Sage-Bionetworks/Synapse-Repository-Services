@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -45,8 +45,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	@Autowired
-	private IdGenerator idGenerator;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
@@ -154,8 +152,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	 * @param submissionToCreate
 	 */
 	public void prepareCreationFields(UserInfo userInfo, DataAccessSubmission submissionToCreate) {
-		submissionToCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
-		submissionToCreate.setEtag(UUID.randomUUID().toString());
 		submissionToCreate.setSubmittedBy(userInfo.getId().toString());
 		submissionToCreate.setSubmittedOn(new Date());
 		submissionToCreate.setModifiedBy(userInfo.getId().toString());
@@ -194,9 +190,31 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(request.getSubmissionId());
 		ValidateArgument.requirement(submission.getState().equals(DataAccessSubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
+		if (request.getNewState().equals(DataAccessSubmissionState.APPROVED)) {
+			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString());
+			accessApprovalDao.createBatch(approvalsToCreate);
+		}
 		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
-				System.currentTimeMillis(), UUID.randomUUID().toString());
+				System.currentTimeMillis());
+	}
+
+	public List<AccessApproval> createApprovalForSubmission(DataAccessSubmission submission, String createdBy) {
+		Date createdOn = new Date();
+		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
+		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
+		for (String accessor : submission.getAccessors()) {
+			ACTAccessApproval approval = new ACTAccessApproval();
+			approval.setAccessorId(accessor);
+			approval.setApprovalStatus(ACTApprovalStatus.APPROVED);
+			approval.setCreatedBy(createdBy);
+			approval.setCreatedOn(createdOn);
+			approval.setModifiedBy(createdBy);
+			approval.setModifiedOn(createdOn);
+			approval.setRequirementId(requirementId);
+			approvals.add(approval);
+		}
+		return approvals;
 	}
 
 	@Override

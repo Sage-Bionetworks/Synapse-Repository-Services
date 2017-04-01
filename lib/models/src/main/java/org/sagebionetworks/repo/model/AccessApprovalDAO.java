@@ -83,4 +83,10 @@ public interface AccessApprovalDAO {
 	 */
 	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId);
 
+	/**
+	 * Create a batch of access approval
+	 * 
+	 * @param approvalsToCreate - objects to be created
+	 */
+	public List<AccessApproval> createBatch(List<AccessApproval> approvalsToCreate);
 }

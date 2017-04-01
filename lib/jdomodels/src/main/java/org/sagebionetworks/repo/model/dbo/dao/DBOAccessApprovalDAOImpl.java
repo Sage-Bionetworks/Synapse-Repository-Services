@@ -33,8 +33,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
@@ -61,7 +60,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final String SELECT_MET_ACCESS_REQUIREMENT_COUNT =
-			"SELECT COUNT(*)"
+			"SELECT COUNT(DISTINCT "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
@@ -81,7 +80,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -89,7 +88,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException,
 			InvalidModelException {
@@ -145,7 +144,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dtos;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
@@ -227,5 +226,13 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, requirementIdSet);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
 		return requirementIdSet.size() > namedJdbcTemplate.queryForObject(SELECT_MET_ACCESS_REQUIREMENT_COUNT, params, Integer.class);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public List<AccessApproval> createBatch(List<AccessApproval> dtos) {
+		List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(dtos, true/*for creation*/, idGenerator);
+		dbos = basicDao.createBatch(dbos);
+		return AccessApprovalUtils.copyDbosToDtos(dbos);
 	}
 }

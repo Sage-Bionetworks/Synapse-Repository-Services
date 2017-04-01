@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
-import java.util.UUID;
-
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -23,8 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 
-	@Autowired
-	private IdGenerator idGenerator;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
@@ -45,7 +39,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	}
 
 	public DataAccessRequest prepareCreationFields(DataAccessRequest toCreate, String createdBy) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		toCreate.setCreatedBy(createdBy);
 		toCreate.setCreatedOn(new Date());
 		toCreate = (DataAccessRequest) prepareUpdateFields(toCreate, createdBy);
@@ -55,7 +48,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	public DataAccessRequestInterface prepareUpdateFields(DataAccessRequestInterface toUpdate, String modifiedBy) {
 		toUpdate.setModifiedBy(modifiedBy);
 		toUpdate.setModifiedOn(new Date());
-		toUpdate.setEtag(UUID.randomUUID().toString());
 		return toUpdate;
 	}
 
