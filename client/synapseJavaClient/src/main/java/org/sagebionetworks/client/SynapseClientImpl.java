@@ -26,7 +26,6 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
@@ -54,6 +53,8 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -74,6 +75,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -99,7 +101,15 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -498,6 +508,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String RESEARCH_PROJECT = "/researchProject";
 	private static final String DATA_ACCESS_REQUEST = "/dataAccessRequest";
+	private static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -4763,6 +4774,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = ENTITY+"/alias/"+alias;
 		return getJSONEntity(getRepoEndpoint(), url, EntityId.class);
 	}
+	
+	@Override
+	public EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException{
+		ValidateArgument.required(request, "request");
+		String url = ENTITY+"/children";
+		return postJSONEntity(getRepoEndpoint(), url, request, EntityChildrenResponse.class);
+	}
 
 	@Override
 	public ThreadCount getThreadCountForForum(String forumId, DiscussionFilter filter) throws SynapseException {
@@ -4904,7 +4922,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException {
+	public ResearchProject createOrUpdateResearchProject(ResearchProject toCreateOrUpdate) throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
 		return postJSONEntity(getRepoEndpoint(), RESEARCH_PROJECT, toCreateOrUpdate, ResearchProject.class);
 	}
@@ -4917,16 +4935,72 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate)
+	public DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate)
 			throws SynapseException {
 		ValidateArgument.required(toCreateOrUpdate, "toCreateOrUpdate");
 		return postJSONEntity(getRepoEndpoint(), DATA_ACCESS_REQUEST, toCreateOrUpdate, DataAccessRequest.class);
 	}
 
 	@Override
-	public DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException {
+	public DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String url = ACCESS_REQUIREMENT + "/" + accessRequirementId + "/dataAccessRequestForUpdate";
 		return getJSONEntity(getRepoEndpoint(), url, DataAccessRequestInterface.class);
+	}
+
+	@Override
+	public ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		ValidateArgument.required(etag, "etag");
+		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
+		return postJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
+	}
+
+	@Override
+	public ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId+"/cancellation";
+		return putJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
+	}
+
+	@Override
+	public DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason)
+			throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(newState);
+		request.setRejectedReason(reason);
+		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId;
+		return putJSONEntity(getRepoEndpoint(), url, request, DataAccessSubmission.class);
+	}
+
+	@Override
+	public DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken,
+			DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending)
+			throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		DataAccessSubmissionPageRequest request = new DataAccessSubmissionPageRequest();
+		request.setAccessRequirementId(requirementId);
+		request.setFilterBy(filter);
+		request.setOrderBy(order);
+		request.setIsAscending(isAscending);
+		request.setNextPageToken(nextPageToken);
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/submissions";
+		return postJSONEntity(getRepoEndpoint(), url, request, DataAccessSubmissionPage.class);
+	}
+
+	@Override
+	public AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/status";
+		return getJSONEntity(getRepoEndpoint(), url, AccessRequirementStatus.class);
+	}
+
+	@Override
+	public RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = ENTITY + "/" + entityId + "/restrictionInformation";
+		return getJSONEntity(getRepoEndpoint(), url, RestrictionInformation.class);
 	}
 }

@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +29,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
+
+import com.google.common.collect.Sets;
 
 public class EntityPermissionsManagerImplUnitTest {
 	
@@ -64,7 +67,10 @@ public class EntityPermissionsManagerImplUnitTest {
 	private StackConfiguration mockStackConfiguration;
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
-
+	@Mock
+	private UserInfo mockUser;
+	Set<Long> mockUsersGroups;
+	Set<Long> nonvisibleIds;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@Before
@@ -137,6 +143,12 @@ public class EntityPermissionsManagerImplUnitTest {
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		
+		when(mockUser.getId()).thenReturn(111L);
+		when(mockUser.isAdmin()).thenReturn(false);
+		mockUsersGroups = Sets.newHashSet(444L,555L);
+		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
+		nonvisibleIds = Sets.newHashSet(888L,999L);
+		when(mockAclDAO.getNonVisibleChilrenOfEntity(anySetOf(Long.class), anyString())).thenReturn(nonvisibleIds);
 	}
 
 	@Test
@@ -295,17 +307,40 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getCanModerate());
 		
 	}
+
+	@Test
+	public void testGetNonvisibleChildrenNonAdmin(){
+		String parentId = "syn123";
+		// call under test
+		Set<Long> results = entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		verify(mockAclDAO).getNonVisibleChilrenOfEntity(mockUsersGroups, parentId);
+		assertEquals(nonvisibleIds, results);
+	}
 	
-
-
+	@Test
+	public void testGetNonvisibleChildrenAdmin(){
+		when(mockUser.isAdmin()).thenReturn(true);
+		String parentId = "syn123";
+		// call under test
+		Set<Long> results = entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+		// should not hit the dao.
+		verify(mockAclDAO, never()).getNonVisibleChilrenOfEntity(anySetOf(Long.class), anyString());
+		// empty results.
+		assertEquals(new HashSet<Long>(), results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetNonvisibleChildrenNullUser(){
+		String parentId = "syn123";
+		mockUser = null;
+		// call under test
+		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetNonvisibleChildrenNullParentId(){
+		String parentId = null;
+		// call under test
+		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+	}
 }
-
-
-
-
-
-
-
-
-
-

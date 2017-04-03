@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
-import java.util.UUID;
-
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -14,7 +9,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -23,13 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
 	private DataAccessRequestDAO dataAccessRequestDao;
+	@Autowired
+	private DataAccessSubmissionDAO dataAccessSubmissionDao;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -44,7 +39,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	}
 
 	public DataAccessRequest prepareCreationFields(DataAccessRequest toCreate, String createdBy) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
 		toCreate.setCreatedBy(createdBy);
 		toCreate.setCreatedOn(new Date());
 		toCreate = (DataAccessRequest) prepareUpdateFields(toCreate, createdBy);
@@ -54,7 +48,6 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 	public DataAccessRequestInterface prepareUpdateFields(DataAccessRequestInterface toUpdate, String modifiedBy) {
 		toUpdate.setModifiedBy(modifiedBy);
 		toUpdate.setModifiedOn(new Date());
-		toUpdate.setEtag(UUID.randomUUID().toString());
 		return toUpdate;
 	}
 
@@ -81,7 +74,10 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 				return current;
 			}
 			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(accessRequirementId);
-			if (requirement.getIsAnnualReviewRequired() /*TODO: && has approved submission*/) {
+			if (requirement.getIsAnnualReviewRequired()
+					&& dataAccessSubmissionDao.hasSubmissionWithState(
+					userInfo.getId().toString(), accessRequirementId,
+					DataAccessSubmissionState.APPROVED)) {
 				return createRenewalFromRequest(current);
 			}
 			return current;
@@ -132,17 +128,30 @@ public class DataAccessRequestManagerImpl implements DataAccessRequestManager{
 				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
 
-		// TODO: validate that there is no SUBMITTED submission
-		// TODO: validate that if there is APPROVED submission and requirement requires renewal, toUpdate must be DataAccessRenewal
-		if (toUpdate instanceof DataAccessRenewal) {
-			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(toUpdate.getAccessRequirementId());
-			ValidateArgument.requirement(requirement.getIsAnnualReviewRequired()
-					/* && has approved submission */,
-					"Can only update to a DataAccessRenewal after a submission is approved and the requirement requires renewal.");
-		}
-
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
+		}
+
+		ValidateArgument.requirement(!dataAccessSubmissionDao.hasSubmissionWithState(
+				userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
+				DataAccessSubmissionState.SUBMITTED),
+				"A submission has been created. User needs to cancel the created submission or wait for an ACT member to review it before create another submission.");
+
+		ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(toUpdate.getAccessRequirementId());
+		if (requirement.getIsAnnualReviewRequired()) {
+			boolean hasApprovedSubmission = dataAccessSubmissionDao.hasSubmissionWithState(
+					userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
+					DataAccessSubmissionState.APPROVED);
+			if (toUpdate instanceof DataAccessRenewal) {
+				ValidateArgument.requirement(hasApprovedSubmission,
+						"Can only create/update a renewal request after a submission is approved.");
+			} else {
+				ValidateArgument.requirement(!hasApprovedSubmission,
+						"The AccessRequirement requires renewal.");
+			}
+		} else {
+			ValidateArgument.requirement(toUpdate instanceof DataAccessRequest,
+					"AccessRequirement does not require renewal.");
 		}
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());

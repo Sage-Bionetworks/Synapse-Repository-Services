@@ -1,7 +1,14 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
 public interface DataAccessService {
 
@@ -12,5 +19,17 @@ public interface DataAccessService {
 	DataAccessRequestInterface createOrUpdate(Long userId, DataAccessRequestInterface toCreateOrUpdate);
 
 	DataAccessRequestInterface getRequestForUpdate(Long userId, String requirementId);
+
+	ACTAccessRequirementStatus submit(Long userId, String requestId, String etag);
+
+	ACTAccessRequirementStatus cancel(Long userId, String submissionId);
+
+	DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request);
+
+	DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request);
+
+	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
+
+	RestrictionInformation getRestrictionInformation(Long userId, String entityId);
 
 }

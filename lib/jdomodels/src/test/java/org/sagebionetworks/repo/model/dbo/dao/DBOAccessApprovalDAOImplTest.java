@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -10,7 +11,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -223,6 +226,9 @@ public class DBOAccessApprovalDAOImplTest {
 				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
+		Set<String> arSet = new HashSet<String>();
+		arSet.add(accessRequirement.getId().toString());
+		assertTrue(accessApprovalDAO.hasUnmetAccessRequirement(arSet, individualGroup.getId()));
 		// no unmet requirements for ficticious node ID
 		assertTrue(
 				accessRequirementDAO.getAllUnmetAccessRequirements(
@@ -255,6 +261,8 @@ public class DBOAccessApprovalDAOImplTest {
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						downloadAccessType).isEmpty()
 				);
+		assertFalse(accessApprovalDAO.hasUnmetAccessRequirement(arSet, individualGroup.getId()));
+		
 		// ... but for a different (ficticious) user, the requirement isn't met...
 		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 				Arrays.asList(new Long[]{8888L}), downloadAccessType);
@@ -332,5 +340,14 @@ public class DBOAccessApprovalDAOImplTest {
 		} catch (NotFoundException e) {
 			// make sure that the exception is thrown here and not before this call
 		}
+	}
+
+	@Test
+	public void testCreateBatch() {
+		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
+		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
 	}
 }

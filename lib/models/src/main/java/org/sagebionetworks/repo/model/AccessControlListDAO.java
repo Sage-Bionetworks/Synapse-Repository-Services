@@ -130,4 +130,15 @@ public interface AccessControlListDAO  {
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds,
 			ACCESS_TYPE read);
 
+	/**
+	 * Get the ids of the children of the given entity that the passed
+	 * set of groups does not have the read permission.
+	 * 
+	 * @param groups
+	 * @param parentId
+	 * @return
+	 */
+	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
+			String parentId);
+
 }

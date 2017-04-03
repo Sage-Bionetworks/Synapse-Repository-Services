@@ -11,7 +11,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.StackConfiguration;
@@ -39,6 +41,7 @@ import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
@@ -455,5 +458,15 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, entityType, ACCESS_TYPE.CREATE, userInfo);
+	}
+
+	@Override
+	public Set<Long> getNonvisibleChildren(UserInfo user, String parentId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(parentId, "parentId");
+		if(user.isAdmin()){
+			return new HashSet<Long>(0);
+		}
+		return aclDAO.getNonVisibleChilrenOfEntity(user.getGroups(), parentId);
 	}
 }

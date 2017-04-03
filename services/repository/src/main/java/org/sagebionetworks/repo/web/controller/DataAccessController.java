@@ -2,8 +2,15 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -103,5 +110,107 @@ public class DataAccessController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRequestForUpdate(userId, requirementId);
+	}
+
+	/**
+	 * Submit a DataAccessSubmission using information from a DataAccessRequest.
+	 * 
+	 * @param userId - The ID of the user who is making the request.
+	 * @param requestId - The ID of the DataAccessRequest that is used to create the submission.
+	 * @param etag - The etag og the DataAccessRequest. Etag must match the current etag of the DataAccessRequest.
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
+	public @ResponseBody ACTAccessRequirementStatus submit(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId,
+			@RequestParam(value = AuthorizationConstants.ETAG_PARAM) String etag)
+					throws NotFoundException {
+		return serviceProvider.getDataAccessService().submit(userId, requestId, etag);
+	}
+
+	/**
+	 * Cancel a submission.
+	 * Only the user who created this submission can cancel it.
+	 * 
+	 * @param userId - The ID of the user who is making the request.
+	 * @param submissionId - The ID of the submission to cancel.
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
+	public @ResponseBody ACTAccessRequirementStatus cancel(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String submissionId) throws NotFoundException {
+		return serviceProvider.getDataAccessService().cancel(userId, submissionId);
+	}
+
+	/**
+	 * Request to update a submission' state.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
+	public @ResponseBody DataAccessSubmission updateState(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
+		return serviceProvider.getDataAccessService().updateState(userId, request);
+	}
+
+	/**
+	 * Retrieve a list of submissions for a given access requirement ID.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param dataAccessSubmissionPageRequest
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
+	public @ResponseBody DataAccessSubmissionPage listSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DataAccessSubmissionPageRequest dataAccessSubmissionPageRequest) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listSubmissions(userId, dataAccessSubmissionPageRequest);
+	}
+
+	/**
+	 * Retrieve an access requirement status for a given access requirement ID.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_STATUS, method = RequestMethod.GET)
+	public @ResponseBody AccessRequirementStatus getAccessRequirementStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getAccessRequirementStatus(userId, requirementId);
+	}
+
+	/**
+	 * Retrieve restriction information on an entity
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_RESTRICTION_INFORMATION, method = RequestMethod.GET)
+	public @ResponseBody RestrictionInformation getRestrictionInformation(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, id);
 	}
 }

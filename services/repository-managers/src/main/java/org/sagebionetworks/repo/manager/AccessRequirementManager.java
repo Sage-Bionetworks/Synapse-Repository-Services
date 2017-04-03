@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -68,4 +69,13 @@ public interface AccessRequirementManager {
 	// will be removed after the ACT feature
 	public List<AccessRequirement> getAllUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId,
 			ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Retrieve restriction information for an entity
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 */
+	public RestrictionInformation getRestrictionInformation(UserInfo userInfo, String entityId);
 }

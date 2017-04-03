@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -56,6 +58,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
@@ -74,6 +77,12 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2551,6 +2560,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EntityId getEntityIdByAlias(String alias) throws SynapseException;
+	
+	/**
+	 * Get a page of children for an Entity.
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException;
 
 	/**
 	 * Pin a thread
@@ -2701,7 +2718,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ResearchProject createOrUpdate(ResearchProject toCreateOrUpdate) throws SynapseException;
+	ResearchProject createOrUpdateResearchProject(ResearchProject toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current ResearchProject to update.
@@ -2720,7 +2737,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface createOrUpdate(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
+	DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
 
 	/**
 	 * Retrieve the current DataAccessRequestInterface to update.
@@ -2732,5 +2749,67 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
+	DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException;
+
+	/**
+	 * Submit a submission
+	 * 
+	 * @param requestId
+	 * @param etag
+	 * @return
+	 * @throws SynapseException
+	 */
+	ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
+
+	/**
+	 * Cancel a submission.
+	 * 
+	 * @param submissionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
+
+	/**
+	 * Request to update the state of a submission.
+	 * 
+	 * @param submissionId
+	 * @param newState
+	 * @param reason
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
+
+	/**
+	 * Retrieve a page of submissions.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @param filter
+	 * @param order
+	 * @param isAscending
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
+
+	/**
+	 * Retrieve the status for a given access requirement.
+	 * 
+	 * @param requirementId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException;
+
+	/**
+	 * Retrieve the restriction information on an entity.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException;
 }

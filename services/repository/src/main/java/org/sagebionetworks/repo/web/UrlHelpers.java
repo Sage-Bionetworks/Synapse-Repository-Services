@@ -197,6 +197,8 @@ public class UrlHelpers {
 
 	public static final String ENTITY_ALIAS = ENTITY + "/alias" + "/{alias}";
 	
+	public static final String ENTITY_CHILDREN = ENTITY+"/children";
+	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
@@ -360,11 +362,6 @@ public class UrlHelpers {
 	 * Gets the parent for the specified node.
 	 */
 	public static final String ENTITY_PARENT = ENTITY_ID + "/parent";
-
-	/**
-	 * Gets the children for the specified node.
-	 */
-	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";
 
 	/**
 	 * For trash can APIs.
@@ -959,6 +956,16 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_REQUEST ="/dataAccessRequest";
 	public static final String ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE = 
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID +"/dataAccessRequestForUpdate";
+
+	public static final String DATA_ACCESS_REQUEST_ID_SUBMISSION = DATA_ACCESS_REQUEST+"/{requestId}/submission";
+	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
+	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
+	public static final String DATA_ACCESS_SUBMISSION_ID_CANCEL = DATA_ACCESS_SUBMISSION_ID +"/cancellation";
+	public static final String ACCESS_REQUIREMENT_ID_LIST_SUBMISSION =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/submissions";
+	public static final String ACCESS_REQUIREMENT_ID_STATUS =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/status";
+	public static final String ENTITY_ID_RESTRICTION_INFORMATION = ENTITY_ID + "/restrictionInformation";
 
 	/**
 	 * APIs for DynamoDB related operations.

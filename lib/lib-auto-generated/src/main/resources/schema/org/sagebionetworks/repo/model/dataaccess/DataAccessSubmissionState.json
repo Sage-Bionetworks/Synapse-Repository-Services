@@ -1,10 +1,11 @@
 {
-    "description":"The state of a DataAccessSubmission.",
-    "type":"string",
-    "enum":[
-        "SUBMITTED",
-        "APPROVED",
-        "REJECTED",
-        "CANCELLED"
-    ]
+	"description":"The state of a DataAccessSubmission.",
+	"type":"string",
+	"enum":[
+		"NOT_SUBMITTED",
+		"SUBMITTED",
+		"APPROVED",
+		"REJECTED",
+		"CANCELLED"
+	]
 }

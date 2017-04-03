@@ -85,4 +85,21 @@ public interface AccessRequirementDAO {
 	public List<AccessRequirement> getAccessRequirementsForSubject(
 			List<String> subjectIds, RestrictableObjectType type, Long limit,
 			Long offset) throws DatastoreException;
+
+	/**
+	 * Retrieve the concreteType of an access requirement.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public String getConcreteType(String accessRequirementId);
+
+	/**
+	 * Retrieve the statistic of access requirements for a given subject ID
+	 * 
+	 * @param subjectID
+	 * @param type
+	 * @return
+	 */
+	public AccessRequirementStats getAccessRequirementStats(String subjectID, RestrictableObjectType type);
 }

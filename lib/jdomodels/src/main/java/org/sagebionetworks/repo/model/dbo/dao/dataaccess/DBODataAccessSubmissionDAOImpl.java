@@ -9,10 +9,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -22,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
@@ -31,26 +36,38 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	@Autowired
+	private IdGenerator idGenerator;
+
 	private static final String SQL_GET_STATUS_FOR_USER = "SELECT "
+				+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_REASON
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS
+			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID
+				+" = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID+" = ?"
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?";
+
+	private static final String SQL_GET_STATUS_BY_ID = " SELECT "
+				+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+", "
+				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_REASON
 			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "
-				+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_STATUS
 			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
-				+" = "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID
-			+ " AND "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
 				+" = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?"
-			+ " AND ("+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_BY+" = ?"
-				+ " OR "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?)"
-			+ "LIMIT 1";
-
-	private static final String SQL_GET_STATUS_BY_ID = " SELECT *"
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_STATUS
-			+ " WHERE "+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+" = ?";
+			+" AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+" = ?";
 
 	private static final String SQL_UPDATE_SUBMISSION_ETAG = "UPDATE "+TABLE_DATA_ACCESS_SUBMISSION
 			+ " SET "+COL_DATA_ACCESS_SUBMISSION_ETAG+" = ?"
@@ -73,26 +90,38 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	private static final String SQL_GET_SUBMISSION_FOR_UPDATE = SQL_GET_SUBMISSION_BY_ID + " FOR UPDATE";
 
 	private static final String SQL_HAS_STATE = "SELECT COUNT(*)"
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "
-				+TABLE_DATA_ACCESS_SUBMISSION_STATUS+", "
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+", "
 				+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR
-			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
-				+" = "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_SUBMISSION_ID
-			+ " AND "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
+			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR+"."+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID
 				+" = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
 			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = ?"
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?"
-			+ " AND ("+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_BY+" = ?"
-				+ " OR "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?)";
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID+" = ?"
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?";
 
 	private static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_SUBMISSION
 			+" WHERE "+COL_DATA_ACCESS_SUBMISSION_ID+" = ?";
 
-	private static final RowMapper<DataAccessSubmissionStatus> STATUS_MAPPER = new RowMapper<DataAccessSubmissionStatus>(){
+	private static final String SQL_LIST_SUBMISSIONS = "SELECT *"
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS
+			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
+			+ " = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?";
+
+	private static final String SQL_LIST_SUBMISSIONS_WITH_FILTER = SQL_LIST_SUBMISSIONS
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" =?";
+
+	private static final String ORDER_BY = "ORDER BY";
+	private static final String DESCENDING = "DESC";
+	private static final String LIMIT = "LIMIT";
+	private static final String OFFSET = "OFFSET";
+
+	private static final RowMapper<ACTAccessRequirementStatus> STATUS_MAPPER = new RowMapper<ACTAccessRequirementStatus>(){
 		@Override
-		public DataAccessSubmissionStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
+		public ACTAccessRequirementStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
+			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+			status.setAccessRequirementId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID));
 			status.setSubmissionId(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID));
+			status.setSubmittedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY));
 			status.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
 			status.setState(DataAccessSubmissionState.valueOf(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE)));
 			Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_STATUS_REASON);
@@ -135,20 +164,23 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	};
 
 	@Override
-	public DataAccessSubmissionStatus getStatus(String accessRequirementId, String userId) {
+	public ACTAccessRequirementStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId) {
 		try {
-			return jdbcTemplate.queryForObject(SQL_GET_STATUS_FOR_USER, STATUS_MAPPER, accessRequirementId, userId, userId);
+			return jdbcTemplate.queryForObject(SQL_GET_STATUS_FOR_USER, STATUS_MAPPER, accessRequirementId, userId);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException();
+			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+			status.setAccessRequirementId(accessRequirementId);
+			status.setState(DataAccessSubmissionState.NOT_SUBMITTED);
+			return status;
 		}
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmission updateStatus(String submissionId, DataAccessSubmissionState newState, String reason,
-			String userId, Long timestamp, String etag) {
+	public DataAccessSubmission updateSubmissionStatus(String submissionId,
+			DataAccessSubmissionState newState, String reason, String userId, Long timestamp) {
 		jdbcTemplate.update(SQL_UPDATE_STATUS, newState.toString(), userId, timestamp, reason, submissionId);
-		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, etag, submissionId);
+		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, UUID.randomUUID().toString(), submissionId);
 		return getSubmission(submissionId);
 	}
 
@@ -163,26 +195,28 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus create(DataAccessSubmission toCreate) {
+	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission toCreate) {
+		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessSubmission dboSubmission = new DBODataAccessSubmission();
 		DataAccessSubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
-		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.getDBOAccessors(toCreate);
 		DBODataAccessSubmissionStatus status = DataAccessSubmissionUtils.getDBOStatus(toCreate);
+		List<DBODataAccessSubmissionAccessor> accessors = DataAccessSubmissionUtils.createDBODataAccessSubmissionAccessor(toCreate, idGenerator);
 		basicDao.createNew(dboSubmission);
-		basicDao.createBatch(accessors);
 		basicDao.createNew(status);
+		basicDao.createOrUpdateBatch(accessors);
 		return getSubmissionStatus(toCreate.getId());
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public DataAccessSubmissionStatus cancel(String submissionId, String userId, Long timestamp, String etag) {
+	public ACTAccessRequirementStatus cancel(String submissionId, String userId, Long timestamp, String etag) {
 		jdbcTemplate.update(SQL_UPDATE_STATUS, DataAccessSubmissionState.CANCELLED.toString(), userId, timestamp, null, submissionId);
 		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, etag, submissionId);
 		return getSubmissionStatus(submissionId);
 	}
 
-	private DataAccessSubmissionStatus getSubmissionStatus(String submissionId) {
+	private ACTAccessRequirementStatus getSubmissionStatus(String submissionId) {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_STATUS_BY_ID, STATUS_MAPPER, submissionId);
 		} catch (EmptyResultDataAccessException e) {
@@ -192,7 +226,7 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@Override
 	public boolean hasSubmissionWithState(String userId, String accessRequirementId, DataAccessSubmissionState state) {
-		Integer count = jdbcTemplate.queryForObject(SQL_HAS_STATE, Integer.class, state.toString(), accessRequirementId, userId, userId);
+		Integer count = jdbcTemplate.queryForObject(SQL_HAS_STATE, Integer.class, state.toString(), accessRequirementId, userId);
 		return !count.equals(0);
 	}
 
@@ -210,5 +244,37 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@Override
 	public void delete(String id) {
 		jdbcTemplate.update(SQL_DELETE, id);
+	}
+
+	@Override
+	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
+			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
+			String query = null;
+		if (filterBy != null) {
+			query = SQL_LIST_SUBMISSIONS_WITH_FILTER;
+		} else {
+			query = SQL_LIST_SUBMISSIONS;
+		}
+		if (orderBy != null) {
+			switch(orderBy) {
+				case CREATED_ON:
+					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
+					break;
+				case MODIFIED_ON:
+					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
+					break;
+				default:
+					throw new IllegalArgumentException("Do not support order by "+orderBy.name());
+			}
+			if (isAscending != null && !isAscending) {
+				query += " "+DESCENDING;
+			}
+		}
+		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
+		if (filterBy != null) {
+			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId, filterBy.name());
+		} else {
+			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
+		}
 	}
 }

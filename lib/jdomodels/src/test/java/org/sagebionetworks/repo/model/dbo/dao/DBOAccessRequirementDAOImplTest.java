@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -20,8 +21,10 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,6 +37,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -147,7 +151,6 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -163,7 +166,6 @@ public class DBOAccessRequirementDAOImplTest {
 		RestrictableObjectDescriptor erod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
 		RestrictableObjectDescriptor nrod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod, nrod, erod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
@@ -281,6 +283,9 @@ public class DBOAccessRequirementDAOImplTest {
 			// We expected this exception
 		}
 
+		assertEquals(accessRequirement.getClass().getName(),
+				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
+
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
@@ -355,4 +360,53 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 
+	@Test (expected = NotFoundException.class)
+	public void testGetConcreteTypeNotFound() {
+		accessRequirementDAO.getConcreteType("1");
+	}
+
+	@Test
+	public void testGetAccessRequirementStats() {
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		assertNotNull(stats);
+		assertFalse(stats.getHasToU());
+		assertFalse(stats.getHasACT());
+		assertTrue(stats.getRequirementIdSet().isEmpty());
+
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy(individualGroup.getId());
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(individualGroup.getId());
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setEtag("etag");
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setSubjectIds(Arrays.asList(rod));
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+
+		stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		assertNotNull(stats);
+		assertTrue(stats.getHasToU());
+		assertFalse(stats.getHasACT());
+		assertTrue(stats.getRequirementIdSet().contains(accessRequirement.getId().toString()));
+
+		ACTAccessRequirement accessRequirement2 = new ACTAccessRequirement();
+		accessRequirement2.setCreatedBy(individualGroup.getId());
+		accessRequirement2.setCreatedOn(new Date());
+		accessRequirement2.setModifiedBy(individualGroup.getId());
+		accessRequirement2.setModifiedOn(new Date());
+		accessRequirement2.setEtag("etag");
+		accessRequirement2.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement2.setSubjectIds(Arrays.asList(rod));
+		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
+
+		stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		assertNotNull(stats);
+		assertTrue(stats.getHasToU());
+		assertTrue(stats.getHasACT());
+		assertTrue(stats.getRequirementIdSet().contains(accessRequirement.getId().toString()));
+		assertTrue(stats.getRequirementIdSet().contains(accessRequirement2.getId().toString()));
+
+		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
 }

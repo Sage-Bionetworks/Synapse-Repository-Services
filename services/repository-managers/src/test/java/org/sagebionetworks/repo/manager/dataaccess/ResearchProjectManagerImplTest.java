@@ -10,9 +10,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -26,10 +23,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class ResearchProjectManagerImplTest {
 
-	@Mock
-	private AuthorizationManager mockAuthorizationManager;
-	@Mock
-	private IdGenerator mockIdGenerator;
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
@@ -53,8 +46,6 @@ public class ResearchProjectManagerImplTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		manager = new ResearchProjectManagerImpl();
-		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 
@@ -70,7 +61,6 @@ public class ResearchProjectManagerImplTest {
 		researchProject = createNewResearchProject();
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockIdGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID)).thenReturn(3L);
 		when(mockResearchProjectDao.create(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockResearchProjectDao.getUserOwnResearchProject(accessRequirementId, userId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
@@ -178,7 +168,6 @@ public class ResearchProjectManagerImplTest {
 		String modifiedBy = "111";
 		ResearchProject prepared = manager.prepareUpdateFields(researchProject, modifiedBy);
 		assertEquals(modifiedBy, prepared.getModifiedBy());
-		assertFalse(prepared.getEtag().equals(etag));
 	}
 
 	@Test
@@ -187,7 +176,6 @@ public class ResearchProjectManagerImplTest {
 		ResearchProject prepared = manager.prepareCreationFields(researchProject, createdBy);
 		assertEquals(createdBy, prepared.getModifiedBy());
 		assertEquals(createdBy, prepared.getCreatedBy());
-		assertFalse(prepared.getEtag().equals(etag));
 		assertEquals(researchProjectId, prepared.getId());
 	}
 
@@ -324,7 +312,6 @@ public class ResearchProjectManagerImplTest {
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).create(captor.capture());
 		ResearchProject toCreate = captor.getValue();
-		assertEquals(researchProjectId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
 		assertEquals(projectLead, toCreate.getProjectLead());

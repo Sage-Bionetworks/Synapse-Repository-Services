@@ -4,6 +4,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -42,6 +44,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private Long modifiedBy;
 	private long modifiedOn;
 	private String accessType;
+	private String concreteType;
 	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -52,6 +55,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_MODIFIED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
+		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
 		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
 		};
 
@@ -70,6 +74,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
 				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_ON));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
+				ar.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
 				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
 				if(blob != null){
 					ar.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
@@ -167,6 +172,16 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public void setModifiedOn(long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
+
+	public String getConcreteType() {
+		return concreteType;
+	}
+
+
+	public void setConcreteType(String concreteType) {
+		this.concreteType = concreteType;
+	}
+
 
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
@@ -274,12 +289,20 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
+				if (backup.getConcreteType() == null) {
+					AccessRequirement dto = AccessRequirementUtils.copyDboToDto(backup, null);
+					backup.setConcreteType(dto.getConcreteType());
+				}
 				return backup;
 			}
 			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
+				if (dbo.getConcreteType() == null) {
+					AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, null);
+					dbo.setConcreteType(dto.getConcreteType());
+				}
 				return dbo;
 			}};
 	}

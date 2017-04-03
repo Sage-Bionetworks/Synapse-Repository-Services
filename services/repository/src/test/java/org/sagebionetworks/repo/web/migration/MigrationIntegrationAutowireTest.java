@@ -385,7 +385,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setEtag(UUID.randomUUID().toString());
 		submission.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
-		dataAccessSubmissionDAO.create(submission);
+		dataAccessSubmissionDAO.createSubmission(submission);
 	}
 
 	private void createDataAccessRequest() {

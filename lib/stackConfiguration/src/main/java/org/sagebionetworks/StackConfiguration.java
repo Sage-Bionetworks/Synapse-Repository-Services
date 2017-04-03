@@ -1589,4 +1589,14 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.synapse.base.url");
 	}
+
+	/**
+	 * The maximum number of entities per container.
+	 * 
+	 * @return
+	 */
+	public static Long getMaximumNumberOfEntitiesPerContainer() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.synapse.max.entities.per.container"));
+	}
 }

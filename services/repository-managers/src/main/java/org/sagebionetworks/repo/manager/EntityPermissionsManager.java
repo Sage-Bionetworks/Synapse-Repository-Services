@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -145,4 +147,12 @@ public interface EntityPermissionsManager {
 	 * @throws DatastoreException
 	 */
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the set of children IDs that the caller does not have read access for a given parentId.
+	 * @param user
+	 * @param parentId
+	 * @return
+	 */
+	public Set<Long> getNonvisibleChildren(UserInfo user, String parentId);
 }
