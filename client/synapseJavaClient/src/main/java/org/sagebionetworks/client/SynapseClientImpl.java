@@ -4725,6 +4725,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public Subscription subscribeAll(SubscriptionObjectType toSubscribe) throws SynapseException {
+		ValidateArgument.required(toSubscribe, "toSubscribe");
+		String url = SUBSCRIPTION+ALL+"?subscriptionObjectType="+toSubscribe;
+		return postJSONEntity(getRepoEndpoint(), url, null, Subscription.class);
+	}
+
+	@Override
 	public SubscriptionPagedResults getAllSubscriptions(
 			SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException {
 		ValidateArgument.required(limit, "limit");
