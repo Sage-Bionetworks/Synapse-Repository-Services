@@ -1,9 +1,12 @@
 package org.sagebionetworks.evaluation.dao;
 
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.BIND_VAR_PREFIX;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
@@ -22,7 +25,6 @@ import java.util.UUID;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -39,16 +41,15 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationDAOImpl implements EvaluationDAO {
 	
@@ -66,34 +67,26 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;
-	private static final String STATUS = DBOConstants.PARAM_EVALUATION_STATUS;
 	private static final String CONTENT_SOURCE = DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
 	
-	private static final String OFFSET_AND_LIMIT = 
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
+			"SELECT DISTINCT e.* FROM " + AUTHORIZATION_SQL_TABLES+", "+TABLE_EVALUATION+" e ";
+		
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
+			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_BY_CONTENT_SOURCE = 
-			"SELECT * FROM "+SQLConstants.TABLE_EVALUATION+
-			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE+
-			OFFSET_AND_LIMIT;
+	private static final String SELECT_AVAILABLE_EVALUATIONS_FILTER =
+			" and e."+COL_EVALUATION_ID+" in (:"+COL_EVALUATION_ID+")";
 	
-	private static final String COUNT_BY_CONTENT_SOURCE = 
-			"SELECT COUNT(*) FROM "+SQLConstants.TABLE_EVALUATION+
-			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
+	private static final String SELECT_AVAILABLE_CONTENT_SOURCE_FILTER =
+			" and "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
 			" WHERE "+ COL_EVALUATION_NAME + "=:" + NAME;
-	
-	private static final String SELECT_ALL_SQL_PAGINATED = 
-			"SELECT * FROM "+ TABLE_EVALUATION +
-			OFFSET_AND_LIMIT;
-	
-	private static final String SELECT_BY_STATUS_SQL_PAGINATED = 
-			"SELECT * FROM "+ TABLE_EVALUATION +
-			" WHERE " + COL_EVALUATION_STATUS + "=:" + STATUS +
-			OFFSET_AND_LIMIT;
 	
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_EVALUATION_ETAG + " FROM " +
 														TABLE_EVALUATION +" WHERE ID = ?";
@@ -162,53 +155,64 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public List<Evaluation> getByContentSource(String id, long limit, long offset) 
+	public List<Evaluation> getByContentSource(String id, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);	
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, params, rowMapper);
-		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		copyDbosToDtos(dbos, dtos);
-		return dtos;
-	}
-
-	@Override
-	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
+		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(BIND_VAR_PREFIX+i, principalIds.get(i));	
+		}
+		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, param, rowMapper);
+		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
+		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
-	}
-
-	@Override
-	public List<Evaluation> getInRange(long limit, long offset,
-			EvaluationStatus status) throws DatastoreException,
-			NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(STATUS, status.ordinal());
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, param, rowMapper);
-		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		copyDbosToDtos(dbos, dtos);
-		return dtos;
-	}
-
-	@Override
-	public long getCount() throws DatastoreException {
-		return basicDao.getCount(EvaluationDBO.class);
 	}
 	
+	/**
+	 * return the evaluations in which the user (given as a list of principal Ids)
+	 * has the given access type
+	 */
 	@Override
-	public long getCountByContentSource(String id) throws DatastoreException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
-		return namedJdbcTemplate.queryForObject(COUNT_BY_CONTENT_SOURCE, params, Long.class);
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
+		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(BIND_VAR_PREFIX+i, principalIds.get(i));	
+		}
+		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
+		if (evaluationIds==null || evaluationIds.isEmpty()) {
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+		} else {
+			param.addValue(COL_EVALUATION_ID, evaluationIds);
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+		}
+
+		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
+		List<Evaluation> dtos = new ArrayList<Evaluation>();
+		copyDbosToDtos(dbos, dtos);
+		return dtos;
 	}
 
 	@Override
@@ -226,7 +230,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
 		dbo.seteTag(newEtag);
 		
-		// TODO: detect and log NO-OP update
 		basicDao.update(dbo);
 	}
 
@@ -390,92 +393,5 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// Create a Select for update query
 		return jdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
-	
-	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
-		"SELECT DISTINCT e.* FROM " + AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES+", "+TABLE_EVALUATION+" e ";
-	
-	// parameters here are LIMIT and OFFSET
-	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
-			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
-			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
-			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	// parameters here are LIMIT, OFFSET and EVALUATION_IDS
-	private static final String SELECT_AVAILABLE_EVALUATIONS_FILTERED_PAGINATED_SUFFIX =
-			" and e."+COL_EVALUATION_ID+" in (:"+COL_EVALUATION_ID+
-			") and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
-			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
-			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
-		"SELECT count(distinct e."+COL_EVALUATION_ID+") FROM " + AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES+", "+TABLE_EVALUATION+" e ";
 
-	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
-			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
-			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
-
-	private static final String SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX =
-			" and e."+COL_EVALUATION_ID+" in (:"+COL_EVALUATION_ID+
-			") and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
-			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
-
-	/**
-	 * return the evaluations in which the user (given as a list of principal Ids)
-	 * is either the owner or is a participant
-	 */
-	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
-		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		// parameters here are 
-		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
-		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
-		for (int i=0; i<principalIds.size(); i++) {
-			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
-		}
-		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
-		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
-		if (evaluationIds==null || evaluationIds.isEmpty()) {
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
-		} else {
-			param.addValue(COL_EVALUATION_ID, evaluationIds);
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_PAGINATED_SUFFIX);
-		}
-
-		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
-		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		copyDbosToDtos(dbos, dtos);
-		return dtos;
-	}
-
-	@Override
-	public long getAvailableCount(List<Long> principalIds, List<Long> evaluationIds) throws DatastoreException {
-		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		// parameters here are 
-		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
-		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
-		for (int i=0; i<principalIds.size(); i++) {
-			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
-		}
-		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
-		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
-		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
-		if (evaluationIds==null || evaluationIds.isEmpty()) {
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
-		} else {
-			param.addValue(COL_EVALUATION_ID, evaluationIds);
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
-		}
-		return namedJdbcTemplate.queryForObject(sql.toString(), param, Long.class);
-	}
 }

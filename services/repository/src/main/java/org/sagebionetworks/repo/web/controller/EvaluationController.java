@@ -198,9 +198,6 @@ public class EvaluationController extends BaseController {
 	 * permission.
 	 * </p> 
 	 * 
-	 * <b>Note:</b> This method is deprecated and should not be used.
-	 * </p>
-	 * 
 	 * @param offset
 	 *            The offset index determines where this page will start from.
 	 *            An index of 0 is the first entity. When null it will default
@@ -213,18 +210,16 @@ public class EvaluationController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			HttpServletRequest request
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset);
 	}
 	
 	/**

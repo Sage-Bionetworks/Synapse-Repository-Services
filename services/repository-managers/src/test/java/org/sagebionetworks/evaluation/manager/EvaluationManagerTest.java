@@ -122,10 +122,8 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
-    	when(mockEvaluationDAO.getByContentSource(eq(EVALUATION_CONTENT_SOURCE), anyLong(), anyLong())).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getCountByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(1L);
-    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), any(List.class))).thenReturn(1L);
+    	when(mockEvaluationDAO.getByContentSource(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong())).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
