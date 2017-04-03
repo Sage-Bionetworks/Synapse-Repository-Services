@@ -88,7 +88,7 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		Long id = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
 		String messageKey = uploadDao.uploadThreadMessage(createThread.getMessageMarkdown(), createThread.getForumId(), id.toString());
 		DiscussionThreadBundle thread = threadDao.createThread(createThread.getForumId(), id.toString(), createThread.getTitle(), messageKey, userInfo.getId());
-		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(),  ChangeType.CREATE, userInfo.getId());
+		transactionalMessenger.sendMessageAfterCommit(""+id, ObjectType.THREAD, thread.getEtag(), ChangeType.CREATE, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), id.toString(), SubscriptionObjectType.THREAD);
 		List<DiscussionThreadEntityReference> entityRefs = DiscussionUtils.getEntityReferences(createThread.getMessageMarkdown(), thread.getId());
 		entityRefs.addAll(DiscussionUtils.getEntityReferences(createThread.getTitle(), thread.getId()));

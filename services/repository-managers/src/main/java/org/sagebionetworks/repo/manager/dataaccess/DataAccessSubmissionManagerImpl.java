@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -38,6 +39,8 @@ import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStat
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
@@ -63,6 +66,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	private AccessApprovalDAO accessApprovalDao;
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -81,6 +86,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		prepareCreationFields(userInfo, submissionToCreate);
 		ACTAccessRequirementStatus status = dataAccessSubmissionDao.createSubmission(submissionToCreate);
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
+		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(), ObjectType.DATA_ACCESS_SUBMISSION, ChangeType.CREATE, userInfo.getId());
 		return status;
 	}
 
@@ -200,9 +206,11 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString());
 			accessApprovalDao.createBatch(approvalsToCreate);
 		}
-		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
+		submission = dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis());
+		transactionalMessenger.sendMessageAfterCommit(submission.getId(), ObjectType.DATA_ACCESS_SUBMISSION_STATUS, submission.getEtag(), ChangeType.UPDATE, userInfo.getId());
+		return submission;
 	}
 
 	public List<AccessApproval> createApprovalForSubmission(DataAccessSubmission submission, String createdBy) {
