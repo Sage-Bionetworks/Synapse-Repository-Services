@@ -28,6 +28,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class SubscriptionManagerImpl implements SubscriptionManager {
+	public static final String ALL_OBJECT_IDS = "0";
 
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
@@ -47,8 +48,17 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(toSubscribe.getObjectType(), "Topic.objectType");
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canSubscribe(userInfo, toSubscribe.getObjectId(), toSubscribe.getObjectType()));
-		Subscription sub = subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
-		return sub;
+		return subscriptionDao.create(userInfo.getId().toString(), toSubscribe.getObjectId(), toSubscribe.getObjectType());
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public Subscription subscribeAll(UserInfo userInfo, SubscriptionObjectType toSubscribe) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(toSubscribe, "toSubscribe");
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canSubscribe(userInfo, ALL_OBJECT_IDS, toSubscribe));
+		return subscriptionDao.create(userInfo.getId().toString(), ALL_OBJECT_IDS, toSubscribe);
 	}
 
 	@Override
