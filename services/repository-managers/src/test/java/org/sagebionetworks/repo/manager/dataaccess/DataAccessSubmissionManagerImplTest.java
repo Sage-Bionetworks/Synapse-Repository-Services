@@ -5,10 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +34,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
@@ -52,6 +50,7 @@ import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStat
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -79,6 +78,10 @@ public class DataAccessSubmissionManagerImplTest {
 	private ACTAccessRequirement mockAccessRequirement;
 	@Mock
 	private ResearchProject mockResearchProject;
+	@Mock
+	private SubscriptionDAO mockSubscriptionDao;
+	@Mock
+	private ACTAccessRequirementStatus mockStatus;
 
 	private DataAccessSubmissionManager manager;
 	private DataAccessRenewal request;
@@ -107,6 +110,7 @@ public class DataAccessSubmissionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "groupMembersDao", mockGroupMembersDao);
 		ReflectionTestUtils.setField(manager, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(manager, "accessApprovalDao", mockAccessApprovalDao);
+		ReflectionTestUtils.setField(manager, "subscriptionDao", mockSubscriptionDao);
 
 		userId = "1";
 		requestId = "2";
@@ -152,6 +156,10 @@ public class DataAccessSubmissionManagerImplTest {
 				.thenReturn(true);
 		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
 				.thenReturn(true);
+
+		when(mockDataAccessSubmissionDao.createSubmission(any(DataAccessSubmission.class)))
+				.thenReturn(mockStatus);
+		when(mockStatus.getSubmissionId()).thenReturn(submissionId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -279,6 +287,7 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Test
 	public void testCreate() {
+		
 		manager.create(mockUser, requestId, etag);
 		ArgumentCaptor<DataAccessSubmission> submissionCaptor = ArgumentCaptor.forClass(DataAccessSubmission.class);
 		verify(mockDataAccessSubmissionDao).createSubmission(submissionCaptor.capture());
@@ -299,6 +308,7 @@ public class DataAccessSubmissionManagerImplTest {
 		assertEquals(publication, captured.getPublication());
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
+		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 	}
 
 	@Test
@@ -331,6 +341,7 @@ public class DataAccessSubmissionManagerImplTest {
 		assertNull(captured.getPublication());
 		assertNull(captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
+		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
