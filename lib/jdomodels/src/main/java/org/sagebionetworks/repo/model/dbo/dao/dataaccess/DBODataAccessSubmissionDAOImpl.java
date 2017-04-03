@@ -115,6 +115,11 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	private static final String LIMIT = "LIMIT";
 	private static final String OFFSET = "OFFSET";
 
+	private static final String SQL_IS_ACCESSOR = "SELECT COUNT(*)"
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR
+			+ " WHERE "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID+" = ?"
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?";
+
 	private static final RowMapper<ACTAccessRequirementStatus> STATUS_MAPPER = new RowMapper<ACTAccessRequirementStatus>(){
 		@Override
 		public ACTAccessRequirementStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -276,5 +281,10 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 		} else {
 			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
 		}
+	}
+
+	@Override
+	public boolean isAccessor(String submissionId, String userId) {
+		return jdbcTemplate.queryForObject(SQL_IS_ACCESSOR, Integer.class, submissionId, userId) > 0;
 	}
 }

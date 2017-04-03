@@ -389,4 +389,35 @@ public class SubscriptionManagerImplTest {
 		assertNotNull(count);
 		assertEquals((Long) 10L, count.getCount());
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeAllWithNullUserInfo() {
+		manager.subscribeAll(null, SubscriptionObjectType.THREAD);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testSubscribeAllWithNullSubscriptionObjectType() {
+		manager.subscribeAll(userInfo, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testSubscribeAllUnauthorized() {
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		manager.subscribeAll(userInfo, SubscriptionObjectType.THREAD);
+	}
+
+	@Test
+	public void testSubscribeAllAuthorized() {
+		when(mockAuthorizationManager
+				.canSubscribe(userInfo, SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockDao
+				.create(userId.toString(), SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD))
+				.thenReturn(sub);
+		assertEquals(sub, manager.subscribeAll(userInfo, SubscriptionObjectType.THREAD));
+		verify(mockAuthorizationManager).canSubscribe(userInfo, SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD);
+		verify(mockDao).create(userId.toString(), SubscriptionManagerImpl.ALL_OBJECT_IDS, SubscriptionObjectType.THREAD);
+	}
 }

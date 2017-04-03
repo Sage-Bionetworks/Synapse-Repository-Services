@@ -107,6 +107,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 		request = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(researchProject.getId());
+		request.setAccessors(Arrays.asList(user1.getId()));
 		request = dataAccessRequestDao.create(request);
 	}
 
@@ -163,6 +164,9 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
 		assertEquals(dto.getId(), status.getSubmissionId());
 		assertNull(status.getRejectedReason());
+
+		assertTrue(dataAccessSubmissionDao.isAccessor(status.getSubmissionId(), user1.getId()));
+		assertFalse(dataAccessSubmissionDao.isAccessor(status.getSubmissionId(), user2.getId()));
 
 		assertEquals(dto, dataAccessSubmissionDao.getSubmission(dto.getId()));
 		DataAccessSubmission locked = transactionTemplate.execute(new TransactionCallback<DataAccessSubmission>() {

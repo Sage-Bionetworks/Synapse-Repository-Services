@@ -94,4 +94,13 @@ public interface DataAccessSubmissionDAO {
 	 */
 	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
 			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset);
+
+	/**
+	 * Return true if userId is an accessor of submissionId
+	 * 
+	 * @param submissionId
+	 * @param userId
+	 * @return
+	 */
+	public boolean isAccessor(String submissionId, String userId);
 }
