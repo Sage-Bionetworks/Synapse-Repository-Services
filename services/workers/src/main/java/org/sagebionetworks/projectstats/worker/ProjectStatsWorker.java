@@ -10,7 +10,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -25,9 +24,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.AclModificationMessage;
-import org.sagebionetworks.repo.model.message.DefaultModificationMessage;
 import org.sagebionetworks.repo.model.message.ModificationMessage;
-import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.TeamModificationMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -110,20 +107,6 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 				} else {
 					// ignore other types of objects
 				}
-			} else if (modificationMessage instanceof DefaultModificationMessage) {
-				Long projectId = null;
-				if (modificationMessage.getObjectType() == ObjectType.ENTITY) {
-					projectId = getProjectIdFromEntityId(modificationMessage.getObjectId());
-				} else {
-					throw new IllegalArgumentException("cannot handle type " + modificationMessage.getObjectType());
-				}
-
-				if (projectId != null) {
-					ProjectStat projectStat = new ProjectStat(projectId, modificationMessage.getUserId(), modificationMessage.getTimestamp());
-					projectStatsDao.update(projectStat);
-				}
-			} else if (modificationMessage instanceof NodeSettingsModificationMessage) {
-				// nothing to do here
 			} else {
 				throw new IllegalArgumentException("cannot handle modification type " + modificationMessage.getClass().getName());
 			}
@@ -145,7 +128,7 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 		}
 	}
 
-	private void updateProjectStats(final Team team, Date timestamp, long... members) {
+	private void updateProjectStats(final Team team, Date timestamp, long member) {
 		UserInfo adminUser = new UserInfo(true,	BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		long limit = Long.MAX_VALUE;
 		long offset = 0;
@@ -154,12 +137,10 @@ public class ProjectStatsWorker implements MessageDrivenRunner {
 				ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC,
 				limit, offset);
 		for (ProjectHeader projectHeader : headers.getResults()) {
-			for (long member : members) {
-				ProjectStat projectStat = new ProjectStat(
-						KeyFactory.stringToKey(projectHeader.getId()), member,
-						timestamp);
-				projectStatsDao.update(projectStat);
-			}
+			ProjectStat projectStat = new ProjectStat(
+					KeyFactory.stringToKey(projectHeader.getId()), member,
+					timestamp);
+			projectStatsDao.update(projectStat);
 		}
 	}
 

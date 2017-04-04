@@ -27,7 +27,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
  * Unit (mocked) test for TransactionalMessengerImpl.
- * @author jmhill
  *
  */
 public class TransactionalMessengerImplTest {
@@ -100,18 +99,6 @@ public class TransactionalMessengerImplTest {
 		MessageKey fourth = new MessageKey(message);
 		assertNotSame(fourth, two);
 		assertNotSame(two, fourth);
-
-		ModificationMessage modificationMessage = new DefaultModificationMessage();
-		modificationMessage.setObjectId("123");
-		modificationMessage.setObjectType(ObjectType.ACTIVITY);
-		MessageKey fifth = new MessageKey(modificationMessage);
-		assertNotSame(fourth, fifth);
-
-		modificationMessage = new DefaultModificationMessage();
-		modificationMessage.setObjectId("123");
-		modificationMessage.setObjectType(ObjectType.ACTIVITY);
-		MessageKey sixth = new MessageKey(modificationMessage);
-		assertEquals(fifth, sixth);
 	}
 	
 	@Test

@@ -113,5 +113,13 @@ public interface UserGroupDAO {
 	 */
 	public List<UserGroup> getAllPrincipals();
 
+	/**
+	 * Is the principal identified by the provided ID an individual?
+	 * 
+	 * @param principalId
+	 * @return
+	 */
+	public boolean isIndividual(Long principalId);
+
 
 }

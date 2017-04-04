@@ -149,4 +149,11 @@ public interface TeamDAO {
 	 */
 	long getAdminMemberCount(String teamId) throws DatastoreException;
 
+	/**
+	 * Get the IDs of all members in this team.
+	 * @param teamId
+	 * @return
+	 */
+	public Set<Long> getMemberIds(Long teamId);
+
 }

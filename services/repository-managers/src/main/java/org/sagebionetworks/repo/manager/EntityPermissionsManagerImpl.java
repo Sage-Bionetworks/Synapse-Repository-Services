@@ -11,12 +11,14 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -32,17 +34,24 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.AclModificationMessage;
+import org.sagebionetworks.repo.model.message.AclModificationType;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
@@ -67,6 +76,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private StackConfiguration configuration;
 	@Autowired
 	private PermissionDao permissionDao;
+	@Autowired
+	private ProjectStatsManager projectStatsManager;
 
 
 	@Override
@@ -80,6 +91,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		AccessControlList acl = aclDAO.get(nodeId, ObjectType.ENTITY);
 		return acl;
 	}
+	
+	private static final Function<ResourceAccess, Long> RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER = new Function<ResourceAccess, Long>() {
+		@Override
+		public Long apply(ResourceAccess input) {
+			return input.getPrincipalId();
+		}
+	};
 		
 	@WriteTransaction
 	@Override
@@ -93,10 +111,34 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+		
+		AccessControlList oldAcl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		
 		aclDAO.update(acl, ObjectType.ENTITY);
+		
+		// Now we compare the old and the new acl to see what might have
+		// changed, so we can send notifications out.
+		// We only care about principals being added or removed, not what
+		// exactly has happened.
+		Set<Long> oldPrincipals = Transform.toSet(
+				oldAcl.getResourceAccess(),
+				RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER);
+		Set<Long> newPrincipals = Transform.toSet(acl.getResourceAccess(),
+				RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER);
+
+		SetView<Long> addedPrincipals = Sets.difference(newPrincipals,
+				oldPrincipals);
+		
+		Date now = new Date();
+		for (Long principal : addedPrincipals) {
+			// update the stats for each new principal
+			projectStatsManager.updateProjectStats(principal, rId, ObjectType.ENTITY, now);
+		}
+		
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
+
 
 	@WriteTransaction
 	@Override

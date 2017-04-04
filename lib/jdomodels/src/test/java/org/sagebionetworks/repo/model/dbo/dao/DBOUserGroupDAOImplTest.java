@@ -63,6 +63,30 @@ public class DBOUserGroupDAOImplTest {
 		assertEquals(1+initialCount, userGroupDAO.getCount());
 	}
 	
+	@Test (expected=NotFoundException.class)
+	public void testIsIndividualDoesNotExist(){
+		userGroupDAO.isIndividual(-1L);
+	}
+	
+	@Test
+	public void testIsIndividualTrue() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(true);
+		Long principalId = userGroupDAO.create(group);
+		assertNotNull(principalId);
+		groupsToDelete.add(principalId.toString());
+		assertTrue(userGroupDAO.isIndividual(principalId));
+	}
+	
+	@Test
+	public void testIsIndividualFalse() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		Long principalId = userGroupDAO.create(group);
+		assertNotNull(principalId);
+		groupsToDelete.add(principalId.toString());
+		assertFalse(userGroupDAO.isIndividual(principalId));
+	}
 
 
 	@Test
