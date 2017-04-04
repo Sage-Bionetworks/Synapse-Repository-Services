@@ -75,6 +75,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -4724,6 +4725,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public Subscription subscribeAll(SubscriptionObjectType toSubscribe) throws SynapseException {
+		ValidateArgument.required(toSubscribe, "toSubscribe");
+		String url = SUBSCRIPTION+ALL+"?"+OBJECT_TYPE_PARAM+"="+toSubscribe;
+		return postJSONEntity(getRepoEndpoint(), url, null, Subscription.class);
+	}
+
+	@Override
 	public SubscriptionPagedResults getAllSubscriptions(
 			SubscriptionObjectType objectType, Long limit, Long offset) throws SynapseException {
 		ValidateArgument.required(limit, "limit");
@@ -4994,5 +5002,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(requirementId, "requirementId");
 		String url = ACCESS_REQUIREMENT + "/" + requirementId + "/status";
 		return getJSONEntity(getRepoEndpoint(), url, AccessRequirementStatus.class);
+	}
+
+	@Override
+	public RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		String url = ENTITY + "/" + entityId + "/restrictionInformation";
+		return getJSONEntity(getRepoEndpoint(), url, RestrictionInformation.class);
 	}
 }

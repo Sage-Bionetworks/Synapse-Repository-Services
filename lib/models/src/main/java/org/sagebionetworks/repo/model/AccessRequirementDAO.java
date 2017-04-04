@@ -93,4 +93,13 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public String getConcreteType(String accessRequirementId);
+
+	/**
+	 * Retrieve the statistic of access requirements for a given subject ID
+	 * 
+	 * @param subjectID
+	 * @param type
+	 * @return
+	 */
+	public AccessRequirementStats getAccessRequirementStats(String subjectID, RestrictableObjectType type);
 }

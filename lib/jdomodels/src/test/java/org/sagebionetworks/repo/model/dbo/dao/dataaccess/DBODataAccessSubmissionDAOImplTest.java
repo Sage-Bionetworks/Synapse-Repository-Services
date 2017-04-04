@@ -12,8 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -62,9 +60,6 @@ public class DBODataAccessSubmissionDAOImplTest {
 	private DataAccessSubmissionDAO dataAccessSubmissionDao;
 
 	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
 	private TransactionTemplate transactionTemplate;
 
 	private UserGroup user1 = null;
@@ -105,7 +100,6 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 		// create a ResearchProject
 		researchProject = ResearchProjectTestUtils.createNewDto();
-		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject = researchProjectDao.create(researchProject);
 
@@ -113,7 +107,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 		request = DataAccessRequestTestUtils.createNewDataAccessRequest();
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(researchProject.getId());
-		request.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		request.setAccessors(Arrays.asList(user1.getId()));
 		request = dataAccessRequestDao.create(request);
 	}
 
@@ -142,13 +136,11 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	private DataAccessSubmission createSubmission(){
 		DataAccessSubmission dto = new DataAccessSubmission();
-		dto.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setDataAccessRequestId(request.getId());
 		dto.setAccessors(Arrays.asList(user1.getId()));
 		dto.setAttachments(Arrays.asList("1"));
 		dto.setDucFileHandleId("2");
-		dto.setEtag(UUID.randomUUID().toString());
 		dto.setIrbFileHandleId("3");
 		dto.setIsRenewalSubmission(false);
 		dto.setSubmittedBy(user1.getId());
@@ -172,6 +164,9 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
 		assertEquals(dto.getId(), status.getSubmissionId());
 		assertNull(status.getRejectedReason());
+
+		assertTrue(dataAccessSubmissionDao.isAccessor(status.getSubmissionId(), user1.getId()));
+		assertFalse(dataAccessSubmissionDao.isAccessor(status.getSubmissionId(), user2.getId()));
 
 		assertEquals(dto, dataAccessSubmissionDao.getSubmission(dto.getId()));
 		DataAccessSubmission locked = transactionTemplate.execute(new TransactionCallback<DataAccessSubmission>() {
@@ -204,12 +199,11 @@ public class DBODataAccessSubmissionDAOImplTest {
 		modifiedOn = System.currentTimeMillis();
 		String reason = "no reason";
 		DataAccessSubmission updated = dataAccessSubmissionDao.updateSubmissionStatus(dto.getId(),
-				DataAccessSubmissionState.REJECTED, reason, user2.getId(), modifiedOn, etag);
+				DataAccessSubmissionState.REJECTED, reason, user2.getId(), modifiedOn);
 		assertEquals(DataAccessSubmissionState.REJECTED, updated.getState());
 		assertEquals(modifiedOn, (Long) updated.getModifiedOn().getTime());
 		assertEquals(user2.getId(), updated.getModifiedBy());
 		assertEquals(reason, updated.getRejectedReason());
-		assertEquals(etag, updated.getEtag());
 
 		DataAccessSubmission dto2 = createSubmission();
 		dataAccessSubmissionDao.createSubmission(dto2);
@@ -271,7 +265,7 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Test (expected=NotFoundException.class)
 	public void testGetByIdNotFound() {
-		dataAccessSubmissionDao.getSubmission(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		dataAccessSubmissionDao.getSubmission("0");
 	}
 
 	@Test
@@ -288,6 +282,6 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
-		dataAccessSubmissionDao.getForUpdate(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		dataAccessSubmissionDao.getForUpdate("0");
 	}
 }

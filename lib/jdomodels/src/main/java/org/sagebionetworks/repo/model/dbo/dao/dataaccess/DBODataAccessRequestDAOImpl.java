@@ -2,6 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.util.UUID;
+
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -20,6 +24,9 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private IdGenerator idGenerator;
 
 	public static final String SQL_DELETE = "DELETE FROM "+TABLE_DATA_ACCESS_REQUEST
 			+ " WHERE "+COL_DATA_ACCESS_REQUEST_ID+" = ?";
@@ -40,6 +47,8 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessRequest create(DataAccessRequest toCreate) {
+		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toCreate, dbo);
 		basicDao.createNew(dbo);
@@ -63,6 +72,7 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	public DataAccessRequestInterface update(DataAccessRequestInterface toUpdate) throws NotFoundException {
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toUpdate, dbo);
+		dbo.setEtag(UUID.randomUUID().toString());
 		basicDao.update(dbo);
 		return getUserOwnCurrentRequest(toUpdate.getAccessRequirementId(), toUpdate.getCreatedBy());
 	}

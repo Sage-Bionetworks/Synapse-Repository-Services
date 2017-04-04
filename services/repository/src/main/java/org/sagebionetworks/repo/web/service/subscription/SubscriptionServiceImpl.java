@@ -73,4 +73,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 		return subscriptionManager.getSubscriberCount(userInfo, topic);
 	}
 
+	@Override
+	public Subscription subscribeAll(Long userId, SubscriptionObjectType objectType) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return subscriptionManager.subscribeAll(userInfo, objectType);
+	}
+
 }

@@ -128,6 +128,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
 	
+	private static final String SQL_COUNT_CHILDREN = 
+			"SELECT COUNT("+COL_NODE_ID+")"
+			+ " FROM "+TABLE_NODE+""
+					+ " WHERE "+COL_NODE_PARENT_ID+" = ?";
+	
 	private static final String SELECT_PROJECTS_STATS = "SELECT n."
 			+ COL_NODE_ID
 			+ ", n."
@@ -1762,6 +1767,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		default:
 			throw new IllegalArgumentException("Unknown SortBy: "+sortBy);
 		}
+	}
+
+	@Override
+	public long getChildCount(String parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		return jdbcTemplate.queryForObject(SQL_COUNT_CHILDREN, Long.class, KeyFactory.stringToKey(parentId));
 	}
 
 }

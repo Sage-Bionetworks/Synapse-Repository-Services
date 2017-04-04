@@ -3227,5 +3227,19 @@ public class NodeDAOImplTest {
 		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
 		assertEquals(KeyFactory.stringToKey(folder2.getBenefactorId()), header.getBenefactorId());
 	}
+	
+	@Test
+	public void testGetChildCount(){
+		List<Node> nodes = createHierarchy();
+		Node project = nodes.get(0);
+		long childCount = nodeDao.getChildCount(project.getId());
+		assertEquals(3L, childCount);
+	}
+	
+	@Test
+	public void testGetChildCountDoesNotExist(){
+		long childCount = nodeDao.getChildCount("syn111");
+		assertEquals(0L, childCount);
+	}
 
 }

@@ -8,8 +8,10 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -17,6 +19,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -35,6 +39,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
+
+	@Autowired
+	private AccessApprovalDAO accessApprovalDAO;
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -287,5 +294,27 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			actAR.setIsIDUPublic(false);
 		}
 		return actAR;
+	}
+
+	@Override
+	public RestrictionInformation getRestrictionInformation(UserInfo userInfo, String entityId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		RestrictionInformation info = new RestrictionInformation();
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(entityId, RestrictableObjectType.ENTITY);
+		if (stats.getRequirementIdSet().isEmpty()) {
+			info.setRestrictionLevel(RestrictionLevel.OPEN);
+			info.setHasUnmetAccessRequirement(false);
+		} else {
+			if (stats.getHasACT()) {
+				info.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT);
+			} else if (stats.getHasToU()) {
+				info.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE);
+			} else {
+				throw new IllegalStateException("Access Requirement does not contain either ACT or ToU: "+stats.getRequirementIdSet().toString());
+			}
+			info.setHasUnmetAccessRequirement(accessApprovalDAO.hasUnmetAccessRequirement(stats.getRequirementIdSet(), userInfo.getId().toString()));
+		}
+		return info;
 	}
 }

@@ -5,13 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.anyCollection;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,23 +22,23 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
@@ -45,8 +46,6 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
-import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
@@ -60,8 +59,6 @@ public class DataAccessSubmissionManagerImplTest {
 
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
-	@Mock
-	private IdGenerator mockIdGenerator;
 	@Mock
 	private ResearchProjectDAO mockResearchProjectDao;
 	@Mock
@@ -103,7 +100,6 @@ public class DataAccessSubmissionManagerImplTest {
 		MockitoAnnotations.initMocks(this);
 		manager = new DataAccessSubmissionManagerImpl();
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "idGenerator", mockIdGenerator);
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "dataAccessRequestDao", mockDataAccessRequestDao);
@@ -156,8 +152,6 @@ public class DataAccessSubmissionManagerImplTest {
 				.thenReturn(true);
 		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
 				.thenReturn(true);
-		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID)).thenReturn(8L);
-		when(mockIdGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ACCESSOR_ID)).thenReturn(1L, 2L, 3L, 4L, 5L);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -277,6 +271,12 @@ public class DataAccessSubmissionManagerImplTest {
 		manager.create(mockUser, requestId, etag);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithSubmitterIsNotAccessor() {
+		when(mockUser.getId()).thenReturn(2L);
+		manager.create(mockUser, requestId, etag);
+	}
+
 	@Test
 	public void testCreate() {
 		manager.create(mockUser, requestId, etag);
@@ -284,8 +284,6 @@ public class DataAccessSubmissionManagerImplTest {
 		verify(mockDataAccessSubmissionDao).createSubmission(submissionCaptor.capture());
 		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
-		assertEquals(submissionId, captured.getId());
-		assertNotNull(captured.getEtag());
 		assertNotNull(captured.getSubmittedOn());
 		assertEquals(userId, captured.getSubmittedBy());
 		assertNotNull(captured.getModifiedOn());
@@ -320,8 +318,6 @@ public class DataAccessSubmissionManagerImplTest {
 		verify(mockDataAccessSubmissionDao).createSubmission(submissionCaptor.capture());
 		DataAccessSubmission captured = submissionCaptor.getValue();
 		assertNotNull(captured);
-		assertEquals(submissionId, captured.getId());
-		assertNotNull(captured.getEtag());
 		assertNotNull(captured.getSubmittedOn());
 		assertEquals(userId, captured.getSubmittedBy());
 		assertEquals(mockResearchProject, captured.getResearchProjectSnapshot());
@@ -501,7 +497,7 @@ public class DataAccessSubmissionManagerImplTest {
 	}
 
 	@Test
-	public void testUpdateStatus() {
+	public void testUpdateStatusRejected() {
 		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
 		request.setSubmissionId(submissionId);
 		request.setNewState(DataAccessSubmissionState.REJECTED);
@@ -511,11 +507,46 @@ public class DataAccessSubmissionManagerImplTest {
 		DataAccessSubmission submission = new DataAccessSubmission();
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		submission.setAccessRequirementId(accessRequirementId);
+		submission.setAccessors(Arrays.asList(userId));
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(DataAccessSubmissionState.REJECTED), eq(reason), eq(userId),
-				anyLong(), anyString())).thenReturn(submission);
+				anyLong())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
+	}
+
+	@Test
+	public void testUpdateStatusApproved() {
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(DataAccessSubmissionState.APPROVED);
+		String reason = "rejectedReason";
+		request.setRejectedReason(reason);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		DataAccessSubmission submission = new DataAccessSubmission();
+		submission.setSubmittedBy(userId);
+		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		submission.setAccessRequirementId(accessRequirementId);
+		submission.setAccessors(Arrays.asList(userId));
+		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockDataAccessSubmissionDao.updateSubmissionStatus(eq(submissionId),
+				eq(DataAccessSubmissionState.APPROVED), eq(reason), eq(userId),
+				anyLong())).thenReturn(submission);
+		assertEquals(submission, manager.updateStatus(mockUser, request));
+		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockAccessApprovalDao).createBatch(captor.capture());
+		List<AccessApproval> approvals = captor.getValue();
+		assertEquals(1, approvals.size());
+		assertTrue(approvals.get(0) instanceof ACTAccessApproval);
+		ACTAccessApproval approval = (ACTAccessApproval) approvals.get(0);
+		assertEquals(userId, approval.getAccessorId());
+		assertEquals(ACTApprovalStatus.APPROVED, approval.getApprovalStatus());
+		assertEquals(userId, approval.getCreatedBy());
+		assertNotNull(approval.getCreatedOn());
+		assertEquals(userId, approval.getModifiedBy());
+		assertNotNull(approval.getModifiedOn());
+		assertEquals(accessRequirementId, approval.getRequirementId().toString());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

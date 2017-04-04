@@ -24,18 +24,23 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -128,6 +133,15 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final String SELECT_CONCRETE_TYPE = "SELECT "+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
 			+" FROM "+TABLE_ACCESS_REQUIREMENT
 			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = ?";
+
+	private static final String SELECT_ACCESS_REQUIREMENT_STATS = "SELECT "
+				+COL_ACCESS_REQUIREMENT_ID+", "
+				+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+" FROM "+TABLE_ACCESS_REQUIREMENT+", "
+				+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" = ?"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = ?";
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -371,5 +385,29 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}
+	}
+
+	@Override
+	public AccessRequirementStats getAccessRequirementStats(String subjectId, RestrictableObjectType type) {
+		final AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setHasACT(false);
+		stats.setHasToU(false);
+		final Set<String> requirementIdSet = new HashSet<String>();
+		stats.setRequirementIdSet(requirementIdSet);
+		jdbcTemplate.query(SELECT_ACCESS_REQUIREMENT_STATS, new RowMapper<Void>(){
+
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				requirementIdSet.add(rs.getString(COL_ACCESS_REQUIREMENT_ID));
+				String type = rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE);
+				if (type.equals(TermsOfUseAccessRequirement.class.getName())) {
+					stats.setHasToU(true);
+				} else if (type.equals(ACTAccessRequirement.class.getName())) {
+					stats.setHasACT(true);
+				}
+				return null;
+			}
+		}, KeyFactory.stringToKey(subjectId), type.name());
+		return stats;
 	}
 }

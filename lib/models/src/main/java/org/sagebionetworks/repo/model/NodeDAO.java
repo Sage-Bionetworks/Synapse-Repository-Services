@@ -506,4 +506,12 @@ public interface NodeDAO {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
 			SortBy sortBy, Direction sortDirection, long limit, long offset);
+
+	/**
+	 * Count the number of children in this container.
+	 * 
+	 * @param parentId
+	 * @return
+	 */
+	public long getChildCount(String parentId);
 }
