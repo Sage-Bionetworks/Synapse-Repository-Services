@@ -1331,7 +1331,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try {
 			jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
 		} catch (DuplicateKeyException e) {
-			throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
+			if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) {
+				throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
+			}
 		}
 
 		return true;
