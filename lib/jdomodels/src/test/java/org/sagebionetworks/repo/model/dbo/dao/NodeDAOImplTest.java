@@ -2086,7 +2086,7 @@ public class NodeDAOImplTest {
 		assertEquals(childId2, oldNode2.getId());
 		assertEquals(parentProjectId2, oldNode2.getParentId());
 		
-		// Change child2's parents to parentProject2
+		// Change child2's parents to parentProject1 --> conflict on name 'child'
 		boolean changed = nodeDao.changeNodeParent(childId2, parentProjectId1, false);
 	}
 
