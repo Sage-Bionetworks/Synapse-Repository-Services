@@ -148,7 +148,7 @@ public class EvaluationDAOImplTest {
 		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(0, retrieved.size());
 
-		
+		// now provide the permission to READ
 		AccessControlList acl = newACL(evalId, EVALUATION_OWNER_ID, ACCESS_TYPE.READ);
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
@@ -289,6 +289,11 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
+		
+		
+		// Note:  The evaluation isn't returned for the wrong access type
+		assertFalse(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null).isEmpty());
+		assertTrue(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.READ, 10, 0, null).isEmpty());
    }
     
     @Test
