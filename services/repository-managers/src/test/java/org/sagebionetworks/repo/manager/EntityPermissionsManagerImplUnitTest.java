@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,15 +20,18 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.Sets;
@@ -69,6 +73,9 @@ public class EntityPermissionsManagerImplUnitTest {
 	private ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
 	private UserInfo mockUser;
+	@Mock
+	private ProjectStatsManager mockProjectStatsManager;
+	
 	Set<Long> mockUsersGroups;
 	Set<Long> nonvisibleIds;
 
@@ -342,5 +349,29 @@ public class EntityPermissionsManagerImplUnitTest {
 		String parentId = null;
 		// call under test
 		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+	}
+	
+	@Test
+	public void testUpdateAcl(){
+		String entityId = "syn123";
+		Long addedPrincipalId = 444L;
+		AccessControlList oldAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		AccessControlList updatedAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		// add access to another User
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(addedPrincipalId);
+		updatedAcl.getResourceAccess().add(access);
+		
+		when(mockNodeInheritanceManager.getBenefactor(entityId)).thenReturn(entityId);
+		when(mockAclDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS)).
+		thenReturn(true);
+		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
+		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		
+		// call under test
+		entityPermissionsManager.updateACL(updatedAcl, mockUser);
+		// project stats should be called for all new users
+		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
 	}
 }
