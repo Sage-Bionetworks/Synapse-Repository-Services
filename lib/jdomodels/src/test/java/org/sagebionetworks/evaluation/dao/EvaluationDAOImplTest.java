@@ -144,11 +144,20 @@ public class EvaluationDAOImplTest {
 		assertNotNull(evalId);
 		toDelete.add(evalId);
 		
+		// no permission to access
+		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		assertEquals(0, retrieved.size());
+
+		
+		AccessControlList acl = newACL(evalId, EVALUATION_OWNER_ID, ACCESS_TYPE.READ);
+		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
+		acl.setId(aclId);
+		aclToDelete = acl;
+		
 		// Get it
 		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
-		assertEquals(0, retrieved.size()); // TODO add to the ACL so it returns 1
+		assertEquals(1, retrieved.size());
 		
-		if (false) { // TODO
 		Evaluation created = retrieved.get(0);
 		assertEquals(evalId, created.getId());
 		assertEquals(EVALUATION_NAME, created.getName());
@@ -156,7 +165,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
-		}
 	}
 
 	@Test
@@ -198,6 +206,19 @@ public class EvaluationDAOImplTest {
         }
     }
     
+    private static AccessControlList newACL(String evaluationId, long participantId, ACCESS_TYPE accessType) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(evaluationId);
+		acl.setCreationDate(new Date());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(participantId);
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{accessType})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		return acl;
+    }
+    
     @Test
     public void testGetAvailable() throws DatastoreException, NotFoundException {        
         // Create it
@@ -232,15 +253,7 @@ public class EvaluationDAOImplTest {
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
-		AccessControlList acl = new AccessControlList();
-		acl.setId(eval.getId());
-		acl.setCreationDate(new Date());
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(participantId);
-		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
+		AccessControlList acl = newACL(eval.getId(), participantId, ACCESS_TYPE.SUBMIT);
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;
@@ -263,10 +276,10 @@ public class EvaluationDAOImplTest {
 		assertTrue(evalList.isEmpty());
 		
 		// PLFM-2312 problem with repeated entries
-		ra = new ResourceAccess();
+		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
-		ras = acl.getResourceAccess();
+		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ras.add(ra);
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		// should still find just one result, even though I'm in the ACL twice
