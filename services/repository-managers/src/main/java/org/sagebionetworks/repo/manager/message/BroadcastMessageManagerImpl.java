@@ -144,7 +144,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			Topic topic)
 			throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		Set<String> mentionedUserIds = builder.getRelatedUsers();
-		if (mentionedUserIds.isEmpty()) {
+		if (mentionedUserIds == null || mentionedUserIds.isEmpty()) {
 			return;
 		}
 		// remove mentioned users who subscribed to the topic
