@@ -34,11 +34,6 @@ public interface TransactionalMessenger {
 	public void sendMessageAfterCommit(ChangeMessage message);
 
 	/**
-	 * Send a modification message after the current transaction commits
-	 */
-	public void sendModificationMessageAfterCommit(ModificationMessage message);
-
-	/**
 	 * Register an observer that will be notified when there is a message after a commit.
 	 * 
 	 * @param observer

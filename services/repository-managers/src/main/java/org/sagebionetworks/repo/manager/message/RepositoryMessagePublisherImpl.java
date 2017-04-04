@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.message;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -13,7 +12,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.Message;
-import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -129,18 +127,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		messageQueue.add(message);
 	}
 
-	/**
-	 * This is the method that the TransactionalMessenger will call after a transaction is committed. This is our chance
-	 * to push these messages to our AWS topic.
-	 */
-	@Override
-	public void fireModificationMessage(ModificationMessage message) {
-		ValidateArgument.required(message, "ModificationMessage");
-		ValidateArgument.required(message.getUserId(), "ModificationMessage.modificationInfo.userId");
-		// Add the message to a queue
-		messageQueue.add(message);
-	}
-
 	@Override
 	public String getTopicName(ObjectType type){
 		return getTopicInfoLazy(type).getName();
@@ -171,9 +157,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 				if (queueItem instanceof ChangeMessage) {
 					ChangeMessage message = (ChangeMessage) queueItem;
 					publishToTopic(message);
-				} else if (queueItem instanceof ModificationMessage){
-					ModificationMessage message = (ModificationMessage) queueItem;
-					publishToModificationTopic(message);
 				} else {
 					throw new IllegalArgumentException("Unknown message type " + queueItem.getClass().getName());
 				}
@@ -269,17 +252,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		messages.setList(batch);
 		// publish the batch to to the topic
 		publish(messages, topicArn);
-	}
-
-	
-	/**
-	 * Publish the message.
-	 * @param message
-	 */
-	@Override
-	public void publishToModificationTopic(ModificationMessage message) {
-		String topicArn = getModificationTopicInfoLazy().getArn();
-		publish(message, topicArn);
 	}
 
 	private void publish(JSONEntity message, String topicArn) {

@@ -145,20 +145,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		sendMessageAfterCommit(message);
 	}
 
-	@Override
-	public void sendModificationMessageAfterCommit(ModificationMessage message) {
-		ValidateArgument.required(message.getObjectId(), "objectId");
-		ValidateArgument.required(message.getObjectType(), "objectType");
-
-		Long userId = currentUserIdThreadLocal.get();
-		if (userId != null && !AuthorizationUtils.isUserAnonymous(userId.longValue())) {
-			message.setTimestamp(clock.now());
-			message.setUserId(userId);
-
-			appendToBoundMessages(message);
-		}
-	}
-
 	private <T extends Message> void appendToBoundMessages(T message) {
 		// Make sure we are in a transaction.
 		if (!transactionSynchronizationManager.isSynchronizationActive())
@@ -235,9 +221,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				for (Message message : currentMessages.values()) {
 					if (message instanceof ChangeMessage) {
 						observer.fireChangeMessage((ChangeMessage) message);
-					} else if (message instanceof ModificationMessage) {
-						observer.fireModificationMessage((ModificationMessage) message);
-					} else {
+					}  else {
 						throw new IllegalArgumentException("Unknown message type " + message.getClass().getName());
 					}
 					if (log.isTraceEnabled()) {
