@@ -86,7 +86,8 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		prepareCreationFields(userInfo, submissionToCreate);
 		ACTAccessRequirementStatus status = dataAccessSubmissionDao.createSubmission(submissionToCreate);
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(), ObjectType.DATA_ACCESS_SUBMISSION, ChangeType.CREATE, userInfo.getId());
+		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
+				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
 		return status;
 	}
 
