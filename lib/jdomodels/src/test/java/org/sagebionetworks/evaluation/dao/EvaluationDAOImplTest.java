@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -97,7 +98,6 @@ public class EvaluationDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {        
         // Create it
-		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
 		toDelete.add(evalId);
@@ -110,7 +110,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
-		assertEquals(1 + initialCount, evaluationDAO.getCount());
 		
 		// Update it
 		created.setName(EVALUATION_NAME_2);
@@ -130,14 +129,14 @@ public class EvaluationDAOImplTest {
 		} catch (NotFoundException e) {
 			// Expected
 		}
-		assertEquals(initialCount, evaluationDAO.getCount());
 		assertNull(evaluationDAO.lookupByName(updated.getName()));
 	}
 	
 	@Test
 	public void testGetByContentSource() throws Exception {
+		List<Long> principalIds = Collections.singletonList(EVALUATION_OWNER_ID);
 		// Get nothing
-		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, 10, 0);
+		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// Create one
@@ -145,8 +144,18 @@ public class EvaluationDAOImplTest {
 		assertNotNull(evalId);
 		toDelete.add(evalId);
 		
+		// no permission to access
+		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		assertEquals(0, retrieved.size());
+
+		// now provide the permission to READ
+		AccessControlList acl = newACL(evalId, EVALUATION_OWNER_ID, ACCESS_TYPE.READ);
+		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
+		acl.setId(aclId);
+		aclToDelete = acl;
+		
 		// Get it
-		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, 10, 0);
+		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(1, retrieved.size());
 		
 		Evaluation created = retrieved.get(0);
@@ -173,7 +182,6 @@ public class EvaluationDAOImplTest {
     @Test
     public void testSameName() throws Exception{ 
         // Create it
-		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
 		toDelete.add(evalId);
@@ -185,7 +193,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(EVALUATION_OWNER_ID.toString(), clone.getOwnerId());
 		assertEquals(EVALUATION_CONTENT_SOURCE, clone.getContentSource());
 		assertEquals(EvaluationStatus.PLANNED, clone.getStatus());
-		assertEquals(1 + initialCount, evaluationDAO.getCount());
 		
 		// Create clone with same name
 		clone.setId(evalId + 1);
@@ -199,18 +206,17 @@ public class EvaluationDAOImplTest {
         }
     }
     
-    @Test
-    public void testGetInRange() throws DatastoreException, NotFoundException {        
-        // Create it
-		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
-		assertNotNull(evalId);
-		toDelete.add(evalId);
-		
-		// Get it
-		eval = evaluationDAO.get(evalId);
-		List<Evaluation> evalList = evaluationDAO.getInRange(10, 0);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));		
+    private static AccessControlList newACL(String evaluationId, long participantId, ACCESS_TYPE accessType) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(evaluationId);
+		acl.setCreationDate(new Date());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(participantId);
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{accessType})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		return acl;
     }
     
     @Test
@@ -235,90 +241,60 @@ public class EvaluationDAOImplTest {
 		// those who have not joined do not get this result
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
 		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
 		// check that the filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId)})));		
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
-		AccessControlList acl = new AccessControlList();
-		acl.setId(eval.getId());
-		acl.setCreationDate(new Date());
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(participantId);
-		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
+		AccessControlList acl = newACL(eval.getId(), participantId, ACCESS_TYPE.SUBMIT);
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;
 		
 		// As a participant, I can find:
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
 		// make sure filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId)})));
 		// filtering with 'eval 2' causes no results to come back
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
 		assertEquals(0, evalList.size());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId2)})));
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
-		
 		
 		// PLFM-2312 problem with repeated entries
-		ra = new ResourceAccess();
+		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
-		ras = acl.getResourceAccess();
+		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ras.add(ra);
 		aclDAO.update(acl, ObjectType.EVALUATION);
 		// should still find just one result, even though I'm in the ACL twice
 		pids = Arrays.asList(new Long[] {
 				participantId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
+		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
+		
+		
+		// Note:  The evaluation isn't returned for the wrong access type
+		assertFalse(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null).isEmpty());
+		assertTrue(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.READ, 10, 0, null).isEmpty());
    }
-    
-    @Test
-    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {        
-        // Create it
-		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
-		assertNotNull(evalId);
-		toDelete.add(evalId);
-		
-		// Get it
-		eval = evaluationDAO.get(evalId);
-		List<Evaluation> evalList = evaluationDAO.getInRange(10, 0, EvaluationStatus.PLANNED);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
-		
-		// Verify filtering by status
-		evalList = evaluationDAO.getInRange(10, 0, EvaluationStatus.OPEN);
-		assertEquals(0, evalList.size());
-    }
     
     @Test
     public void testDtoToDbo() {

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
@@ -201,13 +202,6 @@ public class DiscussionBroadcastMessageBuilderTest {
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
 				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
 		assertEquals(userIdSet, builder.getRelatedUsers());
-	}
-
-	@Test
-	public void testBuildEmailForSubscriber() throws Exception{
-		when(mockMarkdownDao.convertMarkdown(anyString(), anyString())).thenReturn("content");
-		SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
-		assertNotNull(emailRequest);
 	}
 
 	@Test

@@ -70,10 +70,40 @@ public class BroadcastMessageWorkerTest {
 	}
 
 	@Test
-	public void testSkipBoardcastForUpdateEvent() throws RecoverableMessageException, Exception {
+	public void testSkipBoardcastForThreadUpdateEvent() throws RecoverableMessageException, Exception {
 		ChangeMessage fakeMessage = new ChangeMessage();
 		fakeMessage.setChangeType(ChangeType.UPDATE);
 		fakeMessage.setObjectType(ObjectType.THREAD);
+		worker.run(mockCallback, fakeMessage);
+		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+	}
+
+	@Test
+	public void testSkipBoardcastForForumUpdateEvent() throws RecoverableMessageException, Exception {
+		ChangeMessage fakeMessage = new ChangeMessage();
+		fakeMessage.setChangeType(ChangeType.UPDATE);
+		fakeMessage.setObjectType(ObjectType.REPLY);
+		worker.run(mockCallback, fakeMessage);
+		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+	}
+
+	@Test
+	public void testSkipBoardcastForSubmissionUpdateEvent() throws RecoverableMessageException, Exception {
+		ChangeMessage fakeMessage = new ChangeMessage();
+		fakeMessage.setChangeType(ChangeType.UPDATE);
+		fakeMessage.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION);
+		worker.run(mockCallback, fakeMessage);
+		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));
+	}
+
+	@Test
+	public void testSkipBoardcastForSubmissionStatusCreateEvent() throws RecoverableMessageException, Exception {
+		ChangeMessage fakeMessage = new ChangeMessage();
+		fakeMessage.setChangeType(ChangeType.CREATE);
+		fakeMessage.setObjectType(ObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		worker.run(mockCallback, fakeMessage);
 		verify(mockUserManager, never()).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		verify(mockBroadcastManager, never()).broadcastMessage(any(UserInfo.class), eq(mockCallback), eq(fakeMessage));

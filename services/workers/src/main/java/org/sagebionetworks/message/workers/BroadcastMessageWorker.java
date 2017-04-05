@@ -31,10 +31,25 @@ public class BroadcastMessageWorker implements ChangeMessageDrivenRunner{
 	@Override
 	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
 			throws RecoverableMessageException {
-		if (message.getChangeType() != ChangeType.CREATE) {
-			// only broadcast create events
-			return;
+		switch (message.getObjectType()) {
+			case THREAD:
+			case REPLY:
+			case DATA_ACCESS_SUBMISSION:
+				if (message.getChangeType() != ChangeType.CREATE) {
+					// only broadcast create events
+					return;
+				}
+				break;
+			case DATA_ACCESS_SUBMISSION_STATUS:
+				if (message.getChangeType() != ChangeType.UPDATE) {
+					// only broadcast update events
+					return;
+				}
+				break;
+			default:
+				throw new IllegalArgumentException("Do not support object type: "+message.getObjectType());
 		}
+		
 		UserInfo admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		log.info("broadcasting "+message.getChangeType()+" "+message.getObjectType());
 		try {

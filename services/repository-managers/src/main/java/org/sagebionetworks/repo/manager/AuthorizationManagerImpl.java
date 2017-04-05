@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -92,6 +93,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private SubmissionDAO submissionDAO;
 	@Autowired
 	private MessageManager messageManager;
+	@Autowired
+	private DataAccessSubmissionDAO dataAccessSubmissionDao;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -490,6 +493,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case THREAD:
 				String projectId = threadDao.getProjectId(objectId);
 				return canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+			case DATA_ACCESS_SUBMISSION:
+				if (isACTTeamMemberOrAdmin(userInfo)) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Only ACT member can follow this topic.");
+				}
+			case DATA_ACCESS_SUBMISSION_STATUS:
+				if (dataAccessSubmissionDao.isAccessor(objectId, userInfo.getId().toString())) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Only accessors can follow this topic.");
+				}
 		}
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
 	}

@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
@@ -107,6 +108,10 @@ public class AuthorizationManagerImplUnitTest {
 	private EvaluationPermissionsManager mockEvaluationPermissionsManager;
 	@Mock
 	private MessageManager mockMessageManager;
+	@Mock
+	private DataAccessSubmissionDAO mockDataAccessSubmissionDao;
+	@Mock
+	private UserInfo mockACTUser;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -121,6 +126,7 @@ public class AuthorizationManagerImplUnitTest {
 	private String projectId;
 	private DiscussionThreadBundle bundle;
 	private Forum forum;
+	private String submissionId;
 
 	@Before
 	public void setUp() throws Exception {
@@ -143,6 +149,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "submissionDAO", mockSubmissionDAO);
 		ReflectionTestUtils.setField(authorizationManager, "evaluationPermissionsManager", mockEvaluationPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "messageManager", mockMessageManager);
+		ReflectionTestUtils.setField(authorizationManager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -174,6 +181,8 @@ public class AuthorizationManagerImplUnitTest {
 		forum.setId(forumId);
 		forum.setProjectId(projectId);
 		when(mockThreadDao.getThread(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
+
+		submissionId = "111";
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -836,7 +845,42 @@ public class AuthorizationManagerImplUnitTest {
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(userInfo, threadId, SubscriptionObjectType.THREAD));
 	}
-	
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionUnauthorized() {
+		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION).getAuthorized());
+	}
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionAdminAuthorized() {
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(adminUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
+	}
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionACTAuthorized() {
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(TeamConstants.ACT_TEAM_ID);
+		when(mockACTUser.getGroups()).thenReturn(groups);
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(mockACTUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
+	}
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionStatusUnauthorized() {
+		when(mockDataAccessSubmissionDao.isAccessor(submissionId, userInfo.getId().toString()))
+				.thenReturn(false);
+		assertFalse(authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS).getAuthorized());
+	}
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionStatusAuthorized() {
+		when(mockDataAccessSubmissionDao.isAccessor(submissionId, userInfo.getId().toString()))
+				.thenReturn(true);
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(userInfo, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
+	}
+
 	@Test
 	public void testGetAccessibleProjectIds(){
 		Set<Long> expectedProjectIds = Sets.newHashSet(555L);

@@ -2480,6 +2480,15 @@ public interface SynapseClient extends BaseClient {
 	Subscription subscribe(Topic toSubscribe) throws SynapseException;
 
 	/**
+	 * Subscribe to all topics of the same SubscriptionObjectType
+	 * 
+	 * @param toSubscribe
+	 * @return
+	 * @throws SynapseException 
+	 */
+	Subscription subscribeAll(SubscriptionObjectType toSubscribe) throws SynapseException;
+
+	/**
 	 * Retrieve all subscriptions one has
 	 * 
 	 * @param objectType
