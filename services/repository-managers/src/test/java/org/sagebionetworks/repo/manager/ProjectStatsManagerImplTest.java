@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.Set;
@@ -10,11 +14,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
-import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -42,7 +46,7 @@ public class ProjectStatsManagerImplTest {
 	UserGroupDAO mockUserGroupDao;
 	
 	@Mock
-	TeamDAO mockTeamDao;
+	GroupMembersDAO mockGroupMemberDao;
 	
 	ProjectStatsManagerImpl manager;
 	
@@ -60,7 +64,7 @@ public class ProjectStatsManagerImplTest {
 		ReflectionTestUtils.setField(manager, "v2wikiPageDao", mockV2wikiPageDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "userGroupDao", mockUserGroupDao);
-		ReflectionTestUtils.setField(manager, "teamDao", mockTeamDao);
+		ReflectionTestUtils.setField(manager, "groupMemberDao", mockGroupMemberDao);
 		
 		projectId = 456L;
 		projectIdString = KeyFactory.keyToString(projectId);
@@ -123,7 +127,7 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(userId, entityId, type, activityDate);
 		verify(mockProjectStatDao).update(new ProjectStat(projectId, userId, activityDate));
-		verify(mockTeamDao, never()).getMemberIds(anyLong());
+		verify(mockGroupMemberDao, never()).getMemberIds(anyLong());
 	}
 	
 	@Test
@@ -132,7 +136,7 @@ public class ProjectStatsManagerImplTest {
 		when(mockUserGroupDao.isIndividual(principalId)).thenReturn(false);
 		Long memberIdOne = 111L;
 		Long memberIdTwo = 222L;
-		when(mockTeamDao.getMemberIds(principalId)).thenReturn(Sets.newHashSet(memberIdOne, memberIdTwo));
+		when(mockGroupMemberDao.getMemberIds(principalId)).thenReturn(Sets.newHashSet(memberIdOne, memberIdTwo));
 		
 		ObjectType type = ObjectType.ENTITY;
 		Date activityDate = new Date(1);
