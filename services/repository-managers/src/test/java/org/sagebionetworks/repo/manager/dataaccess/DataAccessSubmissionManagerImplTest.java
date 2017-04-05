@@ -317,7 +317,8 @@ public class DataAccessSubmissionManagerImplTest {
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION, ChangeType.CREATE, userIdLong);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(submissionId),
+				eq(ObjectType.DATA_ACCESS_SUBMISSION), anyString(), eq(ChangeType.CREATE), eq(userIdLong));
 	}
 
 	@Test
@@ -351,7 +352,8 @@ public class DataAccessSubmissionManagerImplTest {
 		assertNull(captured.getSummaryOfUse());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, captured.getState());
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION, ChangeType.CREATE, userIdLong);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(submissionId),
+				eq(ObjectType.DATA_ACCESS_SUBMISSION), anyString(), eq(ChangeType.CREATE), eq(userIdLong));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
