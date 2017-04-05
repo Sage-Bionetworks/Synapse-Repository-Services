@@ -37,4 +37,14 @@ public interface ProjectStatsManager {
 	 */
 	String getProjectForObject(String objectId, ObjectType objectType);
 
+	/**
+	 * When a member is added to a team the new member's project stats
+	 * are bumped for each project visible to the team.
+	 *   
+	 * @param teamId
+	 * @param memberId
+	 * @param activityDate
+	 */
+	void memberAddedToTeam(Long teamId, Long memberId, Date activityDate);
+
 }

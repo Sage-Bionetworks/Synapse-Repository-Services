@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.NodeSettingsModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -101,12 +100,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			}
 		}
 		String projectSettingsId = dbo.getId().toString();
-
-		NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
-		nodeSettingsModificationMessage.setObjectId(dto.getProjectId());
-		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
-		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
-		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
 		transactionalMessenger.sendMessageAfterCommit(projectSettingsId, ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.CREATE);
 
 		return projectSettingsId;
@@ -174,18 +167,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@WriteTransaction
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		try {
-			DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-					new SinglePrimaryKeySqlParameterSource(id));
-
-			NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
-			nodeSettingsModificationMessage.setObjectId(id);
-			nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
-			nodeSettingsModificationMessage.setProjectSettingsType(projectSetting.getType());
-			transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
-		} catch (NotFoundException e) {
-			// ignore, it's probable already deleted
-		}
 		basicDao.deleteObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PROJECT_SETTING, ChangeType.DELETE);
 	}
@@ -219,13 +200,6 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		boolean success = basicDao.update(dbo);
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating project setting in database.");
-
-		NodeSettingsModificationMessage nodeSettingsModificationMessage = new NodeSettingsModificationMessage();
-		nodeSettingsModificationMessage.setObjectId(dto.getProjectId());
-		nodeSettingsModificationMessage.setObjectType(ObjectType.ENTITY);
-		nodeSettingsModificationMessage.setProjectSettingsType(dto.getSettingsType());
-		transactionalMessenger.sendModificationMessageAfterCommit(nodeSettingsModificationMessage);
-
 		// re-get, so we don't clobber the object we put in the dbo directly with setData
 		dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()));
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, dbo.getEtag(), ChangeType.UPDATE);

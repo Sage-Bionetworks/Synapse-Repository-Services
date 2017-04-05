@@ -106,7 +106,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 	@Override
 	@Deprecated
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset, HttpServletRequest request) 
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<Evaluation> res = evaluationManager.getInRange(userInfo, limit, offset);

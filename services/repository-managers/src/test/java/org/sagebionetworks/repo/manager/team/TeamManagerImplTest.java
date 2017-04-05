@@ -26,11 +26,14 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.ProjectStatsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -64,8 +67,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.TeamModificationMessage;
-import org.sagebionetworks.repo.model.message.TeamModificationType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
@@ -73,26 +74,45 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 public class TeamManagerImplTest {
+	@Mock
 	private TeamManagerImpl teamManagerImpl;
+	@Mock
 	private AuthorizationManager mockAuthorizationManager;
+	@Mock
 	private DBOBasicDao mockBasicDAO;
+	@Mock
 	private TeamDAO mockTeamDAO;
+	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
+	@Mock
 	private UserGroupDAO mockUserGroupDAO;
+	@Mock
 	private AccessControlListDAO mockAclDAO;
+	@Mock
 	private FileHandleManager mockFileHandleManager;
+	@Mock
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO;
+	@Mock
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private AccessRequirementDAO mockAccessRequirementDAO;
+	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
 	private PrincipalManager mockPrincipalManager;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
+	private ProjectStatsManager mockProjectStatsManager;
 	
 	private UserInfo userInfo;
 	private UserInfo adminInfo;
@@ -102,37 +122,25 @@ public class TeamManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
-		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		mockGroupMembersDAO = Mockito.mock(GroupMembersDAO.class);
-		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
-		mockBasicDAO = Mockito.mock(DBOBasicDao.class);
-		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
-		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
-		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
-		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
-		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		teamManagerImpl = new TeamManagerImpl(
-				mockAuthorizationManager,
-				mockTeamDAO,
-				mockBasicDAO,
-				mockGroupMembersDAO,
-				mockUserGroupDAO,
-				mockAclDAO,
-				mockFileHandleManager,
-				mockMembershipInvtnSubmissionDAO,
-				mockMembershipRqstSubmissionDAO, 
-				mockUserManager,
-				mockAccessRequirementDAO,
-				mockPrincipalAliasDAO,
-				mockPrincipalManager,
-				mockUserProfileManager,
-				mockTransactionalMessenger);
+		MockitoAnnotations.initMocks(this);
+		teamManagerImpl = new TeamManagerImpl();
+		
+		ReflectionTestUtils.setField(teamManagerImpl, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(teamManagerImpl, "teamDAO", mockTeamDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "groupMembersDAO", mockGroupMembersDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "userGroupDAO", mockUserGroupDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "aclDAO", mockAclDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "fileHandleManager", mockFileHandleManager);
+		ReflectionTestUtils.setField(teamManagerImpl, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "membershipRqstSubmissionDAO", mockMembershipRqstSubmissionDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(teamManagerImpl, "accessRequirementDAO", mockAccessRequirementDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "principalManager", mockPrincipalManager);
+		ReflectionTestUtils.setField(teamManagerImpl, "basicDao", mockBasicDAO);
+		ReflectionTestUtils.setField(teamManagerImpl, "userProfileManager", mockUserProfileManager);
+		ReflectionTestUtils.setField(teamManagerImpl, "projectStatsManager", mockProjectStatsManager);
+		
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		UserProfile up = new UserProfile();
 		up.setFirstName("foo");
@@ -602,12 +610,7 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-		TeamModificationMessage expectedMessage = new TeamModificationMessage();
-		expectedMessage.setObjectId(TEAM_ID);
-		expectedMessage.setObjectType(ObjectType.TEAM);
-		expectedMessage.setMemberId(987L);
-		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
-		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
+		verify(mockProjectStatsManager).memberAddedToTeam(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), any(Date.class));
 	}
 	
 	@Test
@@ -667,12 +670,6 @@ public class TeamManagerImplTest {
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
 		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
-		TeamModificationMessage expectedMessage = new TeamModificationMessage();
-		expectedMessage.setObjectId(TEAM_ID);
-		expectedMessage.setObjectType(ObjectType.TEAM);
-		expectedMessage.setMemberId(987L);
-		expectedMessage.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
-		verify(mockTransactionalMessenger).sendModificationMessageAfterCommit(expectedMessage);
 		assertEquals(1, acl.getResourceAccess().size());
 	}
 	

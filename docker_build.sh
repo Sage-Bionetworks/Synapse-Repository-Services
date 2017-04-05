@@ -51,6 +51,7 @@ docker network create --driver bridge ${network_name}
 # start up rds container
 docker run --name ${rds_container_name} \
 --network=${network_name} \
+-m 1500M \
 -e MYSQL_ROOT_PASSWORD=default-pw \
 -e MYSQL_DATABASE=${rds_user_name} \
 -e MYSQL_USER=${rds_user_name} \
@@ -67,6 +68,7 @@ docker exec ${rds_container_name} mysql -uroot -pdefault-pw -sN -e "GRANT ALL ON
 
 # create build container and run build
 docker run -i --rm --name ${build_container_name} \
+-m 5500M \
 --network=${network_name} \
 --link ${rds_container_name}:${rds_container_name} \
 -v ${m2_cache_parent_folder}/.m2:/root/.m2 \

@@ -62,8 +62,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset,
-			HttpServletRequest request) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations in which the user has SUBMIT permission, within a given range
