@@ -183,6 +183,10 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockThreadDao.getThread(Mockito.anyLong(), Mockito.any(DiscussionFilter.class))).thenReturn(bundle);
 
 		submissionId = "111";
+
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(TeamConstants.ACT_TEAM_ID);
+		when(mockACTUser.getGroups()).thenReturn(groups);
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -493,21 +497,11 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessUserProfile() throws Exception {
 		assertTrue(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.CREATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.MODERATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, userInfo.getId().toString(), ObjectType.USER_PROFILE, ACCESS_TYPE.UPLOAD).getAuthorized());
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.USER_PROFILE, type).getAuthorized());
+			}
+		}
 	}
 
 	@Test
@@ -532,21 +526,11 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessEvaluationSubmissionNonDownload() throws Exception {
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.CREATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.MODERATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, ACCESS_TYPE.UPLOAD).getAuthorized());
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.EVALUATION_SUBMISSIONS, type).getAuthorized());
+			}
+		}
 	}
 
 	@Test
@@ -564,21 +548,49 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessMessageNonDownload() throws Exception {
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CHANGE_PERMISSIONS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CHANGE_SETTINGS).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.CREATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.DELETE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.DELETE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.MODERATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.PARTICIPATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.READ).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.SEND_MESSAGE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.SUBMIT).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPDATE).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPDATE_SUBMISSION).getAuthorized());
-		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, ACCESS_TYPE.UPLOAD).getAuthorized());
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.MESSAGE, type).getAuthorized());
+			}
+		}
+	}
+
+	@Test
+	public void testCanAccessDataAccessRequestUnauthorized() throws Exception {
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessDataAccessRequestAuthorized() throws Exception {
+		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_REQUEST, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessDataAccessRequestNonDownload() throws Exception {
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_REQUEST, type).getAuthorized());
+			}
+		}
+	}
+
+	@Test
+	public void testCanAccessDataAccessSubmissionUnauthorized() throws Exception {
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessDataAccessSubmissionAuthorized() throws Exception {
+		assertTrue(authorizationManager.canAccess(mockACTUser, "1", ObjectType.DATA_ACCESS_SUBMISSION, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessDataAccessSubmissionNonDownload() throws Exception {
+		for (ACCESS_TYPE type : ACCESS_TYPE.values()) {
+			if (!type.equals(ACCESS_TYPE.DOWNLOAD)) {
+				assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.DATA_ACCESS_SUBMISSION, type).getAuthorized());
+			}
+		}
 	}
 	
 	@Test
@@ -865,9 +877,6 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanSubscribeDataAccessSubmissionACTAuthorized() {
-		Set<Long> groups = new HashSet<Long>();
-		groups.add(TeamConstants.ACT_TEAM_ID);
-		when(mockACTUser.getGroups()).thenReturn(groups);
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(mockACTUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
 	}
