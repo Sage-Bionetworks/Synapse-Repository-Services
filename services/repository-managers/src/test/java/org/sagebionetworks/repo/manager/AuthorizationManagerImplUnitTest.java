@@ -110,6 +110,8 @@ public class AuthorizationManagerImplUnitTest {
 	private MessageManager mockMessageManager;
 	@Mock
 	private DataAccessSubmissionDAO mockDataAccessSubmissionDao;
+	@Mock
+	private UserInfo mockACTUser;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -850,9 +852,18 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCanSubscribeDataAccessSubmissionAuthorized() {
+	public void testCanSubscribeDataAccessSubmissionAdminAuthorized() {
 		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
 				authorizationManager.canSubscribe(adminUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
+	}
+
+	@Test
+	public void testCanSubscribeDataAccessSubmissionACTAuthorized() {
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(TeamConstants.ACT_TEAM_ID);
+		when(mockACTUser.getGroups()).thenReturn(groups);
+		assertEquals(AuthorizationManagerUtil.AUTHORIZED,
+				authorizationManager.canSubscribe(mockACTUser, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
 	}
 
 	@Test

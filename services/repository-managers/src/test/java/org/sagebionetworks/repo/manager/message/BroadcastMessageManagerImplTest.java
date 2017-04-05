@@ -195,6 +195,15 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserProfileDao, never()).getUserNotificationInfo(any(Set.class));
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testSendMessageToNonSubscribersNullRelatedUsers() throws Exception {
+		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(null);
+		manager.sendMessageToNonSubscribers(mockCallback, change, mockBroadcastMessageBuilder, new ArrayList<String>(), topic);
+		verify(mockBroadcastMessageBuilder).getRelatedUsers();
+		verify(mockUserProfileDao, never()).getUserNotificationInfo(any(Set.class));
+	}
+
 	@Test
 	public void testSendMessageToNonSubscribersNoneReceiveNotification() throws Exception {
 		Set<String> userIds = new HashSet<String>();
@@ -206,6 +215,7 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserProfileDao).getUserNotificationInfo(userIds);
 		verify(mockUserManager, never()).getUserInfo(anyLong());
 	}
+	
 
 	@Test
 	public void testSendMessageToNonSubscribersAllWithPermission() throws Exception {
