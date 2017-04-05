@@ -209,6 +209,18 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
 				</entry>
+				<entry key="AccessRequirement">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
+				</entry>
+				<entry key="DataAccessRequest">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestFileHandleAssociationProvider" />
+				</entry>
+				<entry key="DataAccessSubmission">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
