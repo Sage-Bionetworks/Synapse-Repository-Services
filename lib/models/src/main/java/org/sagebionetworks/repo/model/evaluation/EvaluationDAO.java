@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.evaluation;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -33,36 +33,13 @@ public interface EvaluationDAO {
 	/**
 	 * Retrieves all evaluations (subject to limit and offset) drawing content from the project
 	 */
-	public List<Evaluation> getByContentSource(String id, long limit, long offset) throws DatastoreException, NotFoundException;
+	public List<Evaluation> getByContentSource(String id, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) throws DatastoreException, NotFoundException;
 	
-	/**
-	 * Get all Evaluations, in a given range. Note that Evaluations of all
-	 * states are returned.
-	 */
-	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException;
-
 	/**
 	 * @return the Evaluations that any of the given principalIds may participate in, optionally filtered by a 
 	 * given list of Evaluations
 	 */
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
-
-	/**
-	 * Get all Evaluations, in a given range, filtered by EvaluationStatus.
-	 */
-	public List<Evaluation> getInRange(long limit, long offset, EvaluationStatus status) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the total count of Evaluations in the system
-	 */
-	public long getCount() throws DatastoreException;
-	
-	/**
-	 * Gets the total count of evaluations tied to a project
-	 */
-	public long getCountByContentSource(String id) throws DatastoreException;
-	
-	public long getAvailableCount(List<Long> principalIds, List<Long> evaluationIds) throws DatastoreException;
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
 
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,
