@@ -102,6 +102,7 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -1326,7 +1327,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// this means we need to update all the children also
 			updateProjectForAllChildren(node.getId(), desiredProjectId);
 		}
-		jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		
+		try {
+			jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		} catch (DuplicateKeyException e) {
+			if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) {
+				throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
+			}
+		}
+
 		return true;
 	}
 	

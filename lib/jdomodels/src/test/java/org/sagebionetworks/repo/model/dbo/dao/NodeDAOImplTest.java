@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -2043,6 +2044,50 @@ public class NodeDAOImplTest {
 		assertNotNull(newNode);
 		assertEquals(childId, newNode.getId());
 		assertEquals(parentProjectId, newNode.getParentId());
+	}
+	
+	@Test(expected=NameConflictException.class)
+	public void testChangeNodeParentDuplicateName() throws Exception {
+		// Make a parent-child project/folder
+		Node node = privateCreateNew("parentProject1");
+		node.setNodeType(EntityType.project);
+		String parentProjectId1 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId1);
+		assertNotNull(parentProjectId1);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId1);
+		String childId1 = nodeDao.createNew(node);
+		toDelete.add(childId1);
+		assertNotNull(childId1);
+		
+		// Make another parent-child project/folder
+		node = privateCreateNew("parentProject2");
+		node.setNodeType(EntityType.project);
+		String parentProjectId2 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId2);
+		assertNotNull(parentProjectId2);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId2);
+		String childId2 = nodeDao.createNew(node);
+		toDelete.add(childId2);
+		assertNotNull(childId2);
+		
+		//check current state of nodes
+		Node oldNode1 = nodeDao.getNode(childId1);
+		assertNotNull(oldNode1);
+		assertEquals(childId1, oldNode1.getId());
+		assertEquals(parentProjectId1, oldNode1.getParentId());
+		Node oldNode2 = nodeDao.getNode(childId2);
+		assertNotNull(oldNode2);
+		assertEquals(childId2, oldNode2.getId());
+		assertEquals(parentProjectId2, oldNode2.getParentId());
+		
+		// Change child2's parents to parentProject1 --> conflict on name 'child'
+		boolean changed = nodeDao.changeNodeParent(childId2, parentProjectId1, false);
 	}
 
 	@Test
