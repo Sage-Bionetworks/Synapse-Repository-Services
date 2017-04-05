@@ -115,7 +115,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				if (accessType==ACCESS_TYPE.READ) {
+				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);

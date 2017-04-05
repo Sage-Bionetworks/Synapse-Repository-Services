@@ -399,6 +399,12 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
+	public void testCanAccessEntityAccessRequirementWithDownload() throws Exception {
+		AccessRequirement ar = createEntityAccessRequirement();
+		assertTrue(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+
+	@Test
 	public void testCanAccessEvaluationAccessRequirement() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
 		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).getAuthorized());
