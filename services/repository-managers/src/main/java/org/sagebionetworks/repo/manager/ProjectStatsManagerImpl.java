@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Date;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectStat;
@@ -31,7 +32,7 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 	@Autowired
 	V2WikiPageDao v2wikiPageDao;
 	@Autowired
-	TeamDAO teamDao;
+	GroupMembersDAO groupMemberDao;
 	@Autowired
 	UserGroupDAO userGroupDao;
 	
@@ -85,7 +86,7 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 				projectStatDao.update(new ProjectStat(projectId, principalId, activityDate));
 			}else{
 				// team so update for each member
-				Set<Long> memberIds = teamDao.getMemberIds(principalId);
+				Set<Long> memberIds = groupMemberDao.getMemberIds(principalId);
 				for(Long memberId: memberIds){
 					projectStatDao.update(new ProjectStat(projectId, memberId, activityDate));
 				}

@@ -48,11 +48,9 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -140,11 +138,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			SELECT_MEMBERS_OF_TEAM_CORE+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	private static final String SELECT_MEMBER_IDS = 
-			"SELECT "+COL_GROUP_MEMBERS_MEMBER_ID+
-			" FROM "+TABLE_GROUP_MEMBERS+
-			" WHERE "+COL_GROUP_MEMBERS_GROUP_ID+" = ?";
 	
 	private static final String SELECT_SINGLE_MEMBER_OF_TEAM =
 			SELECT_MEMBERS_OF_TEAM_CORE+
@@ -560,19 +553,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
 		return namedJdbcTemplate.queryForObject(SELECT_MEMBERS_OF_TEAM_COUNT, param, Long.class);
-	}
-
-	@Override
-	public Set<Long> getMemberIds(Long teamId) {
-		ValidateArgument.required(teamId, "teamId");
-		final HashSet<Long> results = new HashSet<Long>();
-		jdbcTemplate.query(SELECT_MEMBER_IDS, new RowCallbackHandler(){
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				results.add(rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
-				
-			}}, teamId);
-		return results;
 	}
 
 }
