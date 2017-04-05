@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.message.DataAccessSubmissionStatusMessageBuilderFactory.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +40,7 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new DataAccessSubmissionStatusBroadcastMessageBuilder(APPROVED_TITLE, APPROVED_TEMPLATE,
+		builder = new DataAccessSubmissionStatusBroadcastMessageBuilder(
 				objectId, null, requirementId, mockMarkdownDao, false);
 	}
 
@@ -58,7 +57,7 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilderTest {
 	@Test
 	public void testBuildRawBodyForRejectedMessage(){
 		rejectedReason = "some reason";
-		builder = new DataAccessSubmissionStatusBroadcastMessageBuilder(REJECTED_TITLE, REJECTED_TEMPLATE,
+		builder = new DataAccessSubmissionStatusBroadcastMessageBuilder(
 				objectId, rejectedReason, requirementId, mockMarkdownDao, true);
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);

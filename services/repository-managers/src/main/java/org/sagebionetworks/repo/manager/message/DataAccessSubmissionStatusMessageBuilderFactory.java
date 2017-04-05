@@ -10,17 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DataAccessSubmissionStatusMessageBuilderFactory implements MessageBuilderFactory {
 
-	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
-	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request.\n"
-			// TODO: verify this link with Jay
-			+"[View your request](https://www.synapse.org/#!Synapse:%1$s)";
-
-	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
-	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
-			+ ">%1$s\n"
-			// TODO: verify this link with Jay
-			+ "Please visit [your request](https://www.synapse.org/#!Synapse:%2$s) and update information.\n\n";
-
 	@Autowired
 	private MarkdownDao markdownDao;
 	@Autowired
@@ -36,9 +25,8 @@ public class DataAccessSubmissionStatusMessageBuilderFactory implements MessageB
 				|| submission.getState().equals(DataAccessSubmissionState.APPROVED),
 				"DataAccessSubmissionState not supported: "+submission.getState());
 		boolean isRejected = submission.getState().equals(DataAccessSubmissionState.REJECTED);
-		return new DataAccessSubmissionStatusBroadcastMessageBuilder(APPROVED_TITLE, APPROVED_TEMPLATE,
-					objectId, submission.getRejectedReason(), submission.getAccessRequirementId(),
-					markdownDao, isRejected);
+		return new DataAccessSubmissionStatusBroadcastMessageBuilder(objectId,
+				submission.getRejectedReason(), submission.getAccessRequirementId(), markdownDao, isRejected);
 	}
 
 }
