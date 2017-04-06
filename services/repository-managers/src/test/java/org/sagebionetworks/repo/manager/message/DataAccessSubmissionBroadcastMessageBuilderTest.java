@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.message.DataAccessSubmissionMessageBuilderFactory.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,8 +41,7 @@ public class DataAccessSubmissionBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new DataAccessSubmissionBroadcastMessageBuilder(TITLE, EMAIL_TEMPLATE,
-				actorUsername, actorUserId, UNSUBSCRIBE, mockMarkdownDao);
+		builder = new DataAccessSubmissionBroadcastMessageBuilder(actorUsername, actorUserId, mockMarkdownDao);
 	}
 
 	@Test

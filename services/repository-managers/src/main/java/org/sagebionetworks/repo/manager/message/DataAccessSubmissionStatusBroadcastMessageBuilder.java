@@ -20,6 +20,17 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 public class DataAccessSubmissionStatusBroadcastMessageBuilder implements BroadcastMessageBuilder{
 
 	public static final String GREETING = "Hello %1$s,\n\n";
+	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
+	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request.\n"
+			// TODO: verify this link with Jay
+			+"[View your request](https://www.synapse.org/#!Synapse:%1$s)";
+
+	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
+	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
+			+ ">%1$s\n"
+			// TODO: verify this link with Jay
+			+ "Please visit [your request](https://www.synapse.org/#!Synapse:%2$s) and update information.\n\n";
+
 	private String subject;
 	private String emailTemplate;
 	private String submissionId;
@@ -28,15 +39,17 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilder implements Broadc
 	private boolean isRejected;
 	private MarkdownDao markdownDao;
 
-	DataAccessSubmissionStatusBroadcastMessageBuilder(String subject, String emailTemplate,
-			String submissionId, String rejectedReason, String requirementId,
-			MarkdownDao markdownDao, boolean isRejected) {
-		this.subject = subject;
-		this.emailTemplate = emailTemplate;
+	DataAccessSubmissionStatusBroadcastMessageBuilder(String submissionId,
+			String rejectedReason, String requirementId, MarkdownDao markdownDao, boolean isRejected) {
 		this.submissionId = submissionId;
 		this.isRejected = isRejected;
 		if (isRejected) {
 			this.rejectedReason = rejectedReason;
+			this.subject = REJECTED_TITLE;
+			this.emailTemplate = REJECTED_TEMPLATE;
+		} else {
+			this.subject = APPROVED_TITLE;
+			this.emailTemplate = APPROVED_TEMPLATE;
 		}
 		this.requirementId = requirementId;
 		this.markdownDao = markdownDao;
