@@ -71,7 +71,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// Create the evaluation
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
-		eval.setId(idGenerator.generateNewId(IdType.EVALUATION).toString());
+		eval.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		eval.setCreatedOn(new Date());
 		String principalId = userInfo.getId().toString();
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));

@@ -119,7 +119,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	@Override
 	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException,
 	InvalidModelException {
-		if (dto.getId()==null) dto.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION).toString());
+		if (dto.getId()==null) dto.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID).toString());
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
 		dbo = basicDao.createNew(dbo);

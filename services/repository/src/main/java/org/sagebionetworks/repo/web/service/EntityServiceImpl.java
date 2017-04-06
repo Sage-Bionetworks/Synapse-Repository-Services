@@ -218,7 +218,7 @@ public class EntityServiceImpl implements EntityService {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Create a new id for this entity
-		long newId = idGenerator.generateNewId(IdType.ENTITY);
+		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		newEntity.setId(KeyFactory.keyToString(newId));
 		EventType eventType = EventType.CREATE;
 		// Fire the event

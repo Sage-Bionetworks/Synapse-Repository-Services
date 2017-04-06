@@ -57,7 +57,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			}
 		} catch (EmptyResultDataAccessException e) {
 			dbo = new DBOProjectStat();
-			dbo.setId(idGenerator.generateNewId(IdType.PROJECT_STATS));
+			dbo.setId(idGenerator.generateNewId(IdType.PROJECT_STATS_ID));
 			dbo.setProjectId(projectStat.getProjectId());
 			dbo.setUserId(projectStat.getUserId());
 			dbo.setLastAccessed(projectStat.getLastAccessed());

@@ -112,7 +112,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	InvalidModelException {
 		DBOMembershipRqstSubmission dbo = new DBOMembershipRqstSubmission();
 		MembershipRqstSubmissionUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_REQUEST_SUBMISION));
+		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_REQUEST_SUBMISION_ID));
 		dbo = basicDao.createNew(dbo);
 		MembershipRqstSubmission result = MembershipRqstSubmissionUtils.copyDboToDto(dbo);
 		return result;

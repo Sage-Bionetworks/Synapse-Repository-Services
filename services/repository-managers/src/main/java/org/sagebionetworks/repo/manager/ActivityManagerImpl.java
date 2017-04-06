@@ -53,7 +53,7 @@ public class ActivityManagerImpl implements ActivityManager {
 			throws DatastoreException, InvalidModelException {		
 
 		// for idGenerator based id on create, regardless of what is passed
-		activity.setId(idGenerator.generateNewId(IdType.ACTIVITY).toString());
+		activity.setId(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
 
 		populateCreationFields(userInfo, activity);
 		return activityDAO.create(activity);

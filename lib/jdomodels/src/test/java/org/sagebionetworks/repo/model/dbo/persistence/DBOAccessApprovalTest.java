@@ -68,7 +68,7 @@ public class DBOAccessApprovalTest {
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_APPROVAL));
+		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 		ar = dboBasicDao.createNew(accessRequirement);
 	}
 	
@@ -121,7 +121,7 @@ public class DBOAccessApprovalTest {
 	
 	@Test
 	public void testCRUD() throws Exception{
-		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar, idGenerator.generateNewId(IdType.ACCESS_APPROVAL)));
+		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar, idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID)));
 		// Create a new object		
 		
 		// Create it
