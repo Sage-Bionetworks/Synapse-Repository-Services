@@ -11,8 +11,8 @@
 		"TeamAttachment",
 		"SubmissionAttachment",
 		"VerificationSubmission",
-		"AccessRequirement",
-		"DataAccessRequest",
-		"DataAccessSubmission"
+		"AccessRequirementAttachment",
+		"DataAccessRequestAttachment",
+		"DataAccessSubmissionAttachment"
 	]
 }
