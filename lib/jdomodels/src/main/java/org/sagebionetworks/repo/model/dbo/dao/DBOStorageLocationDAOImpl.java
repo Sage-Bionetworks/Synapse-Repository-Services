@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -37,7 +37,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.base.Function;
@@ -120,8 +119,8 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		if (basicDao.getObjectByPrimaryKeyIfExists(DBOStorageLocation.class, params) == null) {
 			try {
 				// make sure we skip the first couple of IDs
-				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
-				idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID);
+				idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID);
+				idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID);
 				S3StorageLocationSetting defaultStorageLocationSetting = (S3StorageLocationSetting) DBOStorageLocationDAOImpl
 						.getDefaultStorageLocationSetting();
 				defaultStorageLocationSetting.setCreatedOn(new Date());
@@ -143,7 +142,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 	public Long create(StorageLocationSetting dto) {
 		DBOStorageLocation dbo = CONVERT_STORAGE_LOCATION_TO_DBO.apply(dto);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId(TYPE.STORAGE_LOCATION_ID));
+			dbo.setId(idGenerator.generateNewId(IdType.STORAGE_LOCATION_ID));
 		}
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());

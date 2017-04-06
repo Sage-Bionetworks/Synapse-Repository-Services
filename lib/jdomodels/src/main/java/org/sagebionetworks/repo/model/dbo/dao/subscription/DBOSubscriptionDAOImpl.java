@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -189,7 +189,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
-		long subscriptionId = idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID);
+		long subscriptionId = idGenerator.generateNewId(IdType.SUBSCRIPTION_ID);
 		jdbcTemplate.update(SQL_INSERT_IGNORE, subscriptionId, subscriberId, objectId, objectType.name(), new Date().getTime());
 		return get(subscriberId, objectId, objectType);
 	}
@@ -312,7 +312,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			@Override
 			public void setValues(PreparedStatement ps, String subscriberId)
 					throws SQLException {
-				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
+				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(IdType.SUBSCRIPTION_ID).toString()));
 				ps.setLong(2, Long.parseLong(subscriberId));
 				ps.setLong(3, Long.parseLong(objectId));
 				ps.setString(4, objectType.name());

@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DockerCommitDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -97,7 +97,7 @@ public class DockerCommitDaoImpl implements DockerCommitDao {
 		
 		DBODockerCommit dbo = new DBODockerCommit();
 		long nodeId = KeyFactory.stringToKey(entityId);
-		dbo.setMigrationId(idGenerator.generateNewId(TYPE.DOCKER_COMMIT_ID));
+		dbo.setMigrationId(idGenerator.generateNewId(IdType.DOCKER_COMMIT_ID));
 		dbo.setOwner(nodeId);
 		dbo.setTag(commit.getTag());
 		dbo.setDigest(commit.getDigest());

@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -46,7 +46,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeDAOImpl implements ChallengeDAO {
@@ -160,7 +159,7 @@ public class DBOChallengeDAOImpl implements ChallengeDAO {
 	public Challenge create(Challenge dto) throws DatastoreException {
 		validateChallenge(dto);
 		DBOChallenge dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_ID));
+		dbo.setId(idGenerator.generateNewId(IdType.CHALLENGE_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallenge created = basicDao.createNew(dbo);

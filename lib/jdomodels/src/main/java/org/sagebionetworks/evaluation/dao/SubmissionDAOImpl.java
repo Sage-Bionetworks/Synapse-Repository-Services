@@ -39,7 +39,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -288,7 +288,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private SubmissionContributorDBO createContributorDbo(String principalId, Date createdOn, String submissionid) {
 		SubmissionContributorDBO dbo = new SubmissionContributorDBO();
-		dbo.setId(idGenerator.generateNewId(TYPE.SUBMISSION_CONTRIBUTOR_ID));
+		dbo.setId(idGenerator.generateNewId(IdType.SUBMISSION_CONTRIBUTOR_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setCreatedOn(createdOn);
 		dbo.setPrincipalId(Long.parseLong(principalId));

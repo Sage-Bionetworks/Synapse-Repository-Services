@@ -42,7 +42,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -247,12 +247,12 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		dbo.setMarkdownVersion(new Long(0));
 		
 		if(wikiPage.getId() == null) {
-			dbo.setId(idGenerator.generateNewId(TYPE.WIKI_ID));
+			dbo.setId(idGenerator.generateNewId(IdType.WIKI_ID));
 		} else {
 			// If an id was provided then it must not exist
 			if(doesExist(wikiPage.getId())) throw new IllegalArgumentException("A wiki page already exists with ID: "+wikiPage.getId());
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(wikiPage.getId()), TYPE.WIKI_ID);
+			idGenerator.reserveId(new Long(wikiPage.getId()), IdType.WIKI_ID);
 		}
 		
 		// Check for parent cycle

@@ -18,7 +18,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -84,7 +84,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta1.setContentMd5("md5");
 		meta1.setCreatedBy("" + userId);
 		meta1.setFileName("preview.jpg");
-		meta1.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta1.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta1.setEtag(UUID.randomUUID().toString());
 		PreviewFileHandle meta2 = new PreviewFileHandle();
 		meta2.setBucketName("bucketName");
@@ -94,7 +94,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta2.setContentMd5("md5");
 		meta2.setCreatedBy("" + userId);
 		meta2.setFileName("preview.jpg");
-		meta2.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta2.setEtag(UUID.randomUUID().toString());
 		PreviewFileHandle meta3 = new PreviewFileHandle();
 		meta3.setBucketName("bucketName");
@@ -104,7 +104,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta3.setContentMd5("md5");
 		meta3.setCreatedBy("" + userId);
 		meta3.setFileName("preview.jpg");
-		meta3.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta3.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta3.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

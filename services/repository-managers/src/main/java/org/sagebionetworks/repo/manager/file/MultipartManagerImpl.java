@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -203,7 +203,7 @@ public class MultipartManagerImpl implements MultipartManager {
 		ObjectMetadata current = s3Client.getObjectMetadata(MultipartUtils.getBucket(storageLocationSetting), token.getKey());
 		// Capture the content length
 		fileHandle.setContentSize(current.getContentLength());
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// By default, previews are generated
 		if (ccfr.getShouldPreviewBeGenerated() != null && !ccfr.getShouldPreviewBeGenerated()) {
 			fileHandle.setPreviewId(fileHandle.getId());
@@ -249,7 +249,7 @@ public class MultipartManagerImpl implements MultipartManager {
 			meta = this.s3Client.getObjectMetadata(results.getBucketName(), results.getKey());
 			handle.setContentSize(meta.getContentLength());
 
-			handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			// Save the file handle
 			handle = (S3FileHandle) fileHandleDao.createFile(handle);
 			// done

@@ -24,7 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -113,7 +113,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		attachOne.setContentMd5("md5");
 		attachOne.setCreatedBy(creatorUserGroupId);
 		attachOne.setFileName(longFileNamePrefix+".txt1");
-		attachOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		attachOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		attachOne.setEtag(UUID.randomUUID().toString());
 
 		attachTwo = new S3FileHandle();
@@ -124,7 +124,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		attachTwo.setContentMd5("md52");
 		attachTwo.setCreatedBy(creatorUserGroupId);
 		attachTwo.setFileName(longFileNamePrefix+".txt2");
-		attachTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		attachTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		attachTwo.setEtag(UUID.randomUUID().toString());
 		
 		//Create different markdown content
@@ -136,7 +136,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		markdownOne.setContentMd5("md53");
 		markdownOne.setCreatedBy(creatorUserGroupId);
 		markdownOne.setFileName("markdown1");
-		markdownOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownOne.setEtag(UUID.randomUUID().toString());
 		
 		markdownTwo = new S3FileHandle();
@@ -147,7 +147,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		markdownTwo.setContentMd5("md54");
 		markdownTwo.setCreatedBy(creatorUserGroupId);
 		markdownTwo.setFileName("markdown2");
-		markdownTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownTwo.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

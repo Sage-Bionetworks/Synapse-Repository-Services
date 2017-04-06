@@ -33,7 +33,7 @@ import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -221,7 +221,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		AccessControlListUtils.validateACL(acl);
 
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl,
-				idGenerator.generateNewId(TYPE.ACL_ID), ownerType);
+				idGenerator.generateNewId(IdType.ACL_ID), ownerType);
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
@@ -245,7 +245,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		for (ResourceAccess ra : resourceAccess) {
 			DBOResourceAccess dboRa = new DBOResourceAccess();
 			// assign an id
-			dboRa.setId(idGenerator.generateNewId(TYPE.ACL_RES_ACC_ID));
+			dboRa.setId(idGenerator.generateNewId(IdType.ACL_RES_ACC_ID));
 			dboRa.setOwner(dboId);
 			if (ra.getPrincipalId() == null) {
 				throw new IllegalArgumentException(

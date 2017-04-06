@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -90,7 +90,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		long now = System.currentTimeMillis();
 		status.setStartedByUserId(userId);
-		status.setJobId(idGenerator.generateNewId(TYPE.ASYNCH_JOB_STATUS_ID).toString());
+		status.setJobId(idGenerator.generateNewId(IdType.ASYNCH_JOB_STATUS_ID).toString());
 		status.setEtag(UUID.randomUUID().toString());
 		status.setChangedOn(new Date(now));
 		status.setStartedOn(new Date(now));

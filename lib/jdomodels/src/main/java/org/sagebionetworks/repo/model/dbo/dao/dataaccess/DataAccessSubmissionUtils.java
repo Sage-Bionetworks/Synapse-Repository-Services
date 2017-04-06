@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
@@ -38,7 +38,7 @@ public class DataAccessSubmissionUtils {
 		List<DBODataAccessSubmissionAccessor> accessors = new ArrayList<DBODataAccessSubmissionAccessor>();
 		for (String userId : dto.getAccessors()) {
 			DBODataAccessSubmissionAccessor dbo = new DBODataAccessSubmissionAccessor();
-			dbo.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
+			dbo.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
 			dbo.setAccessorId(Long.parseLong(userId));
 			dbo.setCurrentSubmissionId(Long.parseLong(dto.getId()));
 			dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));

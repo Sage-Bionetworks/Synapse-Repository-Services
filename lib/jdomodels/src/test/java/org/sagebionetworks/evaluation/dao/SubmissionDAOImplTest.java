@@ -32,7 +32,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -167,7 +167,7 @@ public class SubmissionDAOImplTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy("" + userId);
 		meta.setFileName("preview.jpg");
-		meta.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		meta.setEtag(UUID.randomUUID().toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		

@@ -35,7 +35,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -120,7 +120,7 @@ public class MultipartManagerV2ImplTest {
 		
 		fileHandle = new S3FileHandle();
 		fileHandle.setId("9999");
-		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(9999L);
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(9999L);
 		when(mockFileHandleDao.createFile(any(S3FileHandle.class))).thenReturn(fileHandle);
 		
 		// setup a completed upload.
