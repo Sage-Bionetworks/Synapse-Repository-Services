@@ -243,8 +243,12 @@ public class DBOAccessApprovalDAOImplTest {
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						updateAccessType).isEmpty()
 				);
-		
-		
+
+		List<AccessApproval> approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
+				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(approvals);
+		assertTrue(approvals.isEmpty());
+
 		// Create a new object
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		
@@ -253,7 +257,13 @@ public class DBOAccessApprovalDAOImplTest {
 		String id = accessApproval.getId().toString();
 		assertNotNull(id);
 		assertNotNull(accessApproval.getEtag());
-		
+
+		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
+				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(approvals);
+		assertEquals(1, approvals.size());
+		assertEquals(accessApproval, approvals.get(0));
+
 		// no unmet requirement anymore ...
 		assertTrue(
 				accessRequirementDAO.getAllUnmetAccessRequirements(

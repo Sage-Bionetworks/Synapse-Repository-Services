@@ -23,7 +23,7 @@ public interface AccessApprovalService {
 			NotFoundException;
 
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
-			RestrictableObjectDescriptor subjectId)
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	public void deleteAccessApproval(Long userId, String approvalId)

@@ -31,6 +31,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
+	public static final Long DEFAULT_LIMIT = 50L;
+	public static final Long MAX_LIMIT = 50L;
+	public static final Long DEFAULT_OFFSET = 0L;
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
@@ -98,27 +101,29 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.create(accessApproval);
 	}
 
-	@Deprecated
 	@Override
-	public List<AccessApproval> getAccessApprovalsForSubject(
-			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
-			NotFoundException, UnauthorizedException {
-		
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ));
-		
+	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo,
+			RestrictableObjectDescriptor rod, Long limit, Long offset)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccessAccessApprovalsForSubject(userInfo, rod, ACCESS_TYPE.READ));
 
+		if (limit == null) {
+			limit = DEFAULT_LIMIT;
+		}
+		if (offset == null) {
+			offset = DEFAULT_OFFSET;
+		}
+		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT,
+				"Limit must be between 0 and "+MAX_LIMIT);
+		ValidateArgument.requirement(offset >= 0, "Offset must be at least 0");
 		List<String> subjectIds = new ArrayList<String>();
-		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
+		if (RestrictableObjectType.ENTITY==rod.getType()) {
+			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
 		} else {
-			subjectIds.add(subjectId.getId());
+			subjectIds.add(rod.getId());
 		}
-		List<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, subjectId.getType());
-		List<AccessApproval> aas = new ArrayList<AccessApproval>();
-		for (AccessRequirement ar : ars) {
-			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
-		}
-		return aas;
+		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
 	}
 
 	@WriteTransaction
