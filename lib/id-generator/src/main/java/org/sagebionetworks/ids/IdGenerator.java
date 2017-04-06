@@ -20,4 +20,14 @@ public interface IdGenerator {
 	 */
 	public void reserveId(Long idToLock, IdType type);
 	
+	/**
+	 * Generate a batch of new IDs with a single call.
+	 * All IDs are guaranteed to contiguous. to be in 
+	 * 
+	 * @param type The type of IDs to generate.
+	 * @param count The total number of IDs to generate.
+	 * @return
+	 */
+	public BatchOfIds generateBatchNewIds(IdType type, int count);
+	
 }

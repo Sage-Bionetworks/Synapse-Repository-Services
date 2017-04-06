@@ -68,5 +68,19 @@ public class IdGeneratorImplTest {
 		Long next = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(next.longValue(), id.longValue()+1);
 	}
+	
+	@Test
+	public void testGenerateBatchNewIds(){
+		Long startId = idGenerator.generateNewId(IdType.ENTITY_ID);
+		int count = 3;
+		// Call under test
+		BatchOfIds range = idGenerator.generateBatchNewIds(IdType.ENTITY_ID, count);
+		assertNotNull(range);
+		assertEquals(new Long(startId+1L), range.getFirstId());
+		assertEquals(new Long(startId+count), range.getLastId());
+		// next Id should be after range
+		Long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
+		assertEquals(new Long(range.getLastId()+1), nextId);
+	}
 
 }

@@ -12,6 +12,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 
@@ -23,6 +24,8 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
  */
 public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
+	private static final String UNLOCK_TABLES = "UNLOCK TABLES";
+
 	// Create table template
 	private static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE %1$S (ID bigint(20) NOT NULL AUTO_INCREMENT, CREATED_ON bigint(20) NOT NULL, PRIMARY KEY (ID)) ENGINE=InnoDB AUTO_INCREMENT=0";
 
@@ -30,6 +33,8 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	public static String SCHEMA_FILE = "domain-id-schema.sql";
 	// Insert a single row into the database
 	public static final String INSERT_SQL = "INSERT INTO %1$S (CREATED_ON) VALUES (?)";
+	
+	public static final String LOCK_TABLES_TEMPLATE = "LOCK TABLES %1$S WRITE";
 	
 	// This version sets the value to insert.  This is used to reserve the ID and all values less than the ID.
 	public static final String INSERT_SQL_INCREMENT = "INSERT INTO %1$S (ID, CREATED_ON) VALUES (?, ?)";
@@ -131,6 +136,30 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		int index = connectionString.lastIndexOf("/");
 		if(index < 0) throw new RuntimeException("Failed to extract the schema from the ID database connection string");
 		return connectionString.substring(index+1, connectionString.length());
+	}
+
+	@NewWriteTransaction
+	@Override
+	public BatchOfIds generateBatchNewIds(IdType type, int count) {
+		if(type == null){
+			throw new IllegalArgumentException("Type cannot be null");
+		}
+		if(count < 2){
+			throw new IllegalArgumentException("Count must be at least two.");
+		}
+		// We must lock the table to ensure no other inserts occur.
+		idGeneratorJdbcTemplate.update(String.format(LOCK_TABLES_TEMPLATE, type.name()));
+		try {
+			// Get the first ID
+			Long firstId = generateNewId(type);
+			Long lastId = firstId+(count-1);
+			long now = System.currentTimeMillis();
+			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL_INCREMENT, type.name()), lastId, now);
+			return new BatchOfIds(firstId, lastId);
+		} finally  {
+			// unconditionally release the locks held by this session.
+			idGeneratorJdbcTemplate.update(UNLOCK_TABLES);
+		}
 	}
 
 }
