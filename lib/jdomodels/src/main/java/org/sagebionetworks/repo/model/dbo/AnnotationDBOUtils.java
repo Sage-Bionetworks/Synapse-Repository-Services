@@ -166,7 +166,11 @@ public class AnnotationDBOUtils {
 		// does not specify the getValue() method
 		if (anno instanceof StringAnnotation) {
 			StringAnnotation sa = (StringAnnotation) anno;
-			dbo.setValue(sa.getValue());
+			String stringValue = sa.getValue();
+			if((null != stringValue) && stringValue.length() > SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH){
+				stringValue = stringValue.substring(0, SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH-1);
+			}
+			dbo.setValue(stringValue);
 		} else if (anno instanceof DoubleAnnotation) {
 			DoubleAnnotation da = (DoubleAnnotation) anno;
 			if (da.getValue() != null) {
