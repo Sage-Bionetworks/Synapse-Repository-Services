@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -135,7 +135,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			VerificationSubmission dto) throws DatastoreException {
-		dto.setId(idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION_ID).toString());
+		dto.setId(idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID).toString());
 		DBOVerificationSubmission dbo = copyVerificationDTOtoDBO(dto);
 		DBOVerificationSubmission created = basicDao.createNew(dbo);
 		VerificationState initialState = new VerificationState();
@@ -194,7 +194,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
-		long stateId = idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION_ID);
+		long stateId = idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID);
 		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, stateId, newState);
 		basicDao.createNew(dbo);
 	}

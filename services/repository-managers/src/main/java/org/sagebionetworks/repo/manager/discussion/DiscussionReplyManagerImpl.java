@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -68,7 +68,7 @@ public class DiscussionReplyManagerImpl implements DiscussionReplyManager {
 			throw new UnauthorizedException(ANONYMOUS_ACCESS_DENIED_REASON);
 		}
 		DiscussionThreadBundle thread = threadManager.getThread(userInfo, threadId);
-		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		String replyId = idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString();
 		String messageKey = uploadDao.uploadReplyMessage(createReply.getMessageMarkdown(), thread.getForumId(), threadId, replyId);
 		DiscussionReplyBundle reply = replyDao.createReply(threadId, replyId, messageKey, userInfo.getId());
 		subscriptionDao.create(userInfo.getId().toString(), threadId, SubscriptionObjectType.THREAD);

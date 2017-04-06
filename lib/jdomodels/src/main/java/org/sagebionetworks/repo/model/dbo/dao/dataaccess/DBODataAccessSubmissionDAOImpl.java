@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -201,7 +201,7 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission toCreate) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessSubmission dboSubmission = new DBODataAccessSubmission();
 		DataAccessSubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);

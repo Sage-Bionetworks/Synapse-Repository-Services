@@ -15,7 +15,7 @@ import org.apache.http.entity.ContentType;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -125,7 +125,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		metadata.setContentMD5(hexMD5);
 		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), in, metadata);
 		handle.setEtag(UUID.randomUUID().toString());
-		handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save the metadata
 		handle = (S3FileHandle) fileMetadataDao.createFile(handle);
 		

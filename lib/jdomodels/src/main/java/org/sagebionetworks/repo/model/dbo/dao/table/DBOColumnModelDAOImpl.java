@@ -27,7 +27,7 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -143,7 +143,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			return getColumnModel(existingId);
 		}
 		// This is a new unique hash.
-		Long id = idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID);
+		Long id = idGenerator.generateNewId(IdType.COLUMN_MODEL_ID);
 		dbo.setId(id);
 		// Save it.
 		basicDao.createNew(dbo);

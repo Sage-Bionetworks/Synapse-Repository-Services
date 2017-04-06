@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -169,7 +169,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		// Bootstraped users will have IDs already assigned.
 		if(dbo.getId() == null){
 			// We allow the ID generator to create all other IDs
-			dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ID));
+			dbo.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ID));
 		}
 		
 		try {
@@ -255,7 +255,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@WriteTransaction
 	public void bootstrapUsers() throws Exception {
 		// Reserver an ID well above the current
-		idGenerator.reserveId(3318977l, TYPE.PRINCIPAL_ID);
+		idGenerator.reserveId(3318977l, IdType.PRINCIPAL_ID);
 		
 		// Boot strap all users and groups
 		if (this.bootstrapPrincipals == null) {

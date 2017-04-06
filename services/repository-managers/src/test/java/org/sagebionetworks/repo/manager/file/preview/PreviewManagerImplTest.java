@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -98,7 +98,7 @@ public class PreviewManagerImplTest {
 		testMetadata = (S3FileHandle) stubFileMetadataDao.createFile(testMetadata);
 
 		ReflectionTestUtils.setField(previewManager, "idGenerator", mockIdGenerator);
-		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(789L);
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(789L);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

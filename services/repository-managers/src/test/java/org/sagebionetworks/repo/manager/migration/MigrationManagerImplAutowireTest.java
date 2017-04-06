@@ -22,7 +22,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -138,11 +138,11 @@ public class MigrationManagerImplAutowireTest {
 		startCount = fileHandleDao.getCount();
 		
 		// The one will have a preview
-		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		withPreview.setFileName("withPreview.txt");
 		startId = Integer.parseInt(withPreview.getId());
 		// The Preview
-		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview = TestUtils.createPreviewFileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setFileName("preview.txt");
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

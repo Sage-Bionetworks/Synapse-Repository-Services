@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
 import static org.junit.Assert.*;
 import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.*;
-import static org.sagebionetworks.repo.model.dbo.dao.discussion.DBODiscussionReplyDAOImpl.MAX_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -79,10 +78,10 @@ public class DBODiscussionReplyDAOImplTest {
 		Forum dto = forumDao.createForum(projectId);
 		forumId = dto.getId();
 		// create a thread
-		threadIdLong = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		threadIdLong = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		threadId = threadIdLong.toString();
 		threadDao.createThread(forumId, threadId, "title", "messageKey", userId);
-		replyIdLong = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID);
+		replyIdLong = idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID);
 		replyId = replyIdLong.toString();
 	}
 
@@ -264,7 +263,7 @@ public class DBODiscussionReplyDAOImplTest {
 		List<DiscussionReplyBundle> list = new ArrayList<DiscussionReplyBundle>();
 		for (int i = 0; i < numberOfReplies; i++) {
 			Thread.sleep(1000);
-			Long replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID);
+			Long replyId = idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID);
 			list.add(replyDao.createReply(threadId, replyId.toString(), UUID.randomUUID().toString(), userId));
 		}
 		return list;
@@ -336,7 +335,7 @@ public class DBODiscussionReplyDAOImplTest {
 	@Test
 	public void testGetThreadReplyStats() throws InterruptedException {
 		// create another thread
-		Long threadIdLong2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadIdLong2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		String threadId2 = threadIdLong2.toString();
 		threadDao.createThread(forumId, threadId2, "title", "messageKey2", userId);
 
@@ -377,32 +376,32 @@ public class DBODiscussionReplyDAOImplTest {
 		assertTrue(activeAuthors.isEmpty());
 
 		List<Long> users = createUsers(6);
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(0));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(0));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(1));
 
 		activeAuthors = replyDao.getActiveAuthors(threadIdLong);
 		assertEquals(activeAuthors,
 				Arrays.asList(users.get(0).toString(), users.get(1).toString()));
 
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(1));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(2));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(2));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(3));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(3));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(4));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(4));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(5));
 
 		activeAuthors = replyDao.getActiveAuthors(threadIdLong);
@@ -421,29 +420,29 @@ public class DBODiscussionReplyDAOImplTest {
 		assertTrue(activeAuthors.isEmpty());
 
 		List<Long> users = createUsers(6);
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(0));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(0));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(1));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(1));
-		DiscussionReplyBundle reply = replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		DiscussionReplyBundle reply = replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(2));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(2));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(3));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(3));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(4));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(4));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(5));
-		replyDao.createReply(threadId, idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString(),
+		replyDao.createReply(threadId, idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString(),
 				UUID.randomUUID().toString(), users.get(5));
 		replyDao.markReplyAsDeleted(Long.parseLong(reply.getId()));
 

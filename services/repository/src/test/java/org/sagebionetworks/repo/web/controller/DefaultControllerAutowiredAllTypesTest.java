@@ -23,7 +23,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -142,7 +142,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		handleOne = (S3FileHandle) fileMetadataDao.createFile(handleOne);
 		// create a column model

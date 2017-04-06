@@ -28,7 +28,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -157,7 +157,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		 * (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
 		 */
 		long nowMs = (System.currentTimeMillis() / 1000) * 1000;
-		changeDbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
+		changeDbo.setChangeNumber(idGenerator.generateNewId(IdType.CHANGE_ID));
 		changeDbo.setTimeStamp(new Timestamp(nowMs));
 		// create or update the change.
 		basicDao.createOrUpdate(changeDbo);

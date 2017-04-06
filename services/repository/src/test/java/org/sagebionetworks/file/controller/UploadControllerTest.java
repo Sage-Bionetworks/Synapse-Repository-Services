@@ -14,7 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -55,7 +55,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		handleTwo = new PreviewFileHandle();
@@ -65,7 +65,7 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setKey("previewFileKey");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("bar.txt");
-		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
