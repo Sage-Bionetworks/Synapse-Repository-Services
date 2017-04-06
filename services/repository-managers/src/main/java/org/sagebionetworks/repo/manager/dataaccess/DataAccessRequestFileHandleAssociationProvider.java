@@ -19,7 +19,7 @@ public class DataAccessRequestFileHandleAssociationProvider implements FileHandl
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
 		DataAccessRequestInterface request = dataAccessRequestDao.get(objectId);
-		if (!request.getAttachments().isEmpty()) {
+		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
 			associatedIds.addAll(request.getAttachments());
 		}
 		if (request.getDucFileHandleId() != null) {

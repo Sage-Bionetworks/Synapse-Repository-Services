@@ -51,6 +51,21 @@ public class DataAccessSubmissionFileHandleAssociationProviderTest {
 	}
 
 	@Test
+	public void testGetFileHandleIdsAssociatedWithObjectForACTAccessRequirementNullAttachment() {
+		String SubmissionId = "1";
+		String duc = "2";
+		String irb = "3";
+		when(mockDataAccessSubmission.getDucFileHandleId()).thenReturn(duc);
+		when(mockDataAccessSubmission.getIrbFileHandleId()).thenReturn(irb);
+		when(mockDataAccessSubmissionDao.getSubmission(SubmissionId)).thenReturn(mockDataAccessSubmission);
+		Set<String> associated = provider.getFileHandleIdsAssociatedWithObject(
+				Arrays.asList(duc, "5"), SubmissionId);
+		assertTrue(associated.contains(duc));
+		assertFalse(associated.contains(irb));
+		assertFalse(associated.contains("5"));
+	}
+
+	@Test
 	public void testGetObjectTypeForAssociatedType() {
 		assertEquals(ObjectType.DATA_ACCESS_SUBMISSION, provider.getAuthorizationObjectTypeForAssociatedObjectType());
 	}

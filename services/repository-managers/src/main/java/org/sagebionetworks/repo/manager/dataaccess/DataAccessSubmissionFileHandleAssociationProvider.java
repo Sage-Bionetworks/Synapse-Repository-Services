@@ -18,15 +18,15 @@ public class DataAccessSubmissionFileHandleAssociationProvider implements FileHa
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
-		DataAccessSubmission request = dataAccessSubmissionDao.getSubmission(objectId);
-		if (!request.getAttachments().isEmpty()) {
-			associatedIds.addAll(request.getAttachments());
+		DataAccessSubmission submission = dataAccessSubmissionDao.getSubmission(objectId);
+		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {
+			associatedIds.addAll(submission.getAttachments());
 		}
-		if (request.getDucFileHandleId() != null) {
-			associatedIds.add(request.getDucFileHandleId());
+		if (submission.getDucFileHandleId() != null) {
+			associatedIds.add(submission.getDucFileHandleId());
 		}
-		if (request.getIrbFileHandleId() != null) {
-			associatedIds.add(request.getIrbFileHandleId());
+		if (submission.getIrbFileHandleId() != null) {
+			associatedIds.add(submission.getIrbFileHandleId());
 		}
 		associatedIds.retainAll(fileHandleIds);
 		return associatedIds;
