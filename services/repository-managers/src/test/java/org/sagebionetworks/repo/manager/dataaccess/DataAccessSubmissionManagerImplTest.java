@@ -569,7 +569,6 @@ public class DataAccessSubmissionManagerImplTest {
 		assertTrue(approvals.get(0) instanceof ACTAccessApproval);
 		ACTAccessApproval approval = (ACTAccessApproval) approvals.get(0);
 		assertEquals(userId, approval.getAccessorId());
-		assertEquals(ACTApprovalStatus.APPROVED, approval.getApprovalStatus());
 		assertEquals(userId, approval.getCreatedBy());
 		assertNotNull(approval.getCreatedOn());
 		assertEquals(userId, approval.getModifiedBy());
