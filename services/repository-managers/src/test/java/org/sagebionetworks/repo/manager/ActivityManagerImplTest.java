@@ -63,7 +63,7 @@ public class ActivityManagerImplTest {
 	@Test
 	public void testCreateActivity() throws Exception {
 		String id = "123";
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY)).thenReturn(new Long(id));
+		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(new Long(id));
 		
 		activityManager.createActivity(normalUserInfo, new Activity());
 		
@@ -81,7 +81,7 @@ public class ActivityManagerImplTest {
 	@Test
 	public void testCreateActivityFakePeople() throws Exception {
 		String id = "123";
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY)).thenReturn(new Long(id));
+		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(new Long(id));
 		Activity act = new Activity();
 		String noOneUserId = "noone!";
 		act.setCreatedBy(noOneUserId);
@@ -153,7 +153,7 @@ public class ActivityManagerImplTest {
 	@Test
 	public void testUpdateActivityFakePeople() throws Exception {
 		String id = "123";
-		when(mockIdGenerator.generateNewId(IdType.ACTIVITY)).thenReturn(new Long(id));
+		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(new Long(id));
 		
 		// from database Activity
 		Activity act = newTestActivity(id);

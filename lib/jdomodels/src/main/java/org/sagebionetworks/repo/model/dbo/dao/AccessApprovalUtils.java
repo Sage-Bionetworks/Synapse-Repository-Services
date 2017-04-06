@@ -66,7 +66,7 @@ public class AccessApprovalUtils {
 			DBOAccessApproval dbo = new DBOAccessApproval();
 			copyDtoToDbo(dto, dbo);
 			if (forCreation) {
-				dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL));
+				dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 				dbo.seteTag(UUID.randomUUID().toString());
 			}
 			dbos.add(dbo);

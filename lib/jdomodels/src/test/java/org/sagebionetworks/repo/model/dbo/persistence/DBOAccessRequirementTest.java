@@ -97,7 +97,7 @@ public class DBOAccessRequirementTest {
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_REQUIRMENT));
+		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_REQUIRMENT_ID));
 		
 		// Create it
 		DBOAccessRequirement clone = dboBasicDao.createNew(accessRequirement);

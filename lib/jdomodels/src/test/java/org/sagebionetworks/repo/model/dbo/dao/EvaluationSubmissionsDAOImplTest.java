@@ -75,7 +75,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		nodeIdToDelete = nodeDAO.createNew(node);
 		
 		Evaluation evaluation = new Evaluation();
-		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION).toString());
+		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		evaluation.setContentSource(nodeIdToDelete);
 		evaluation.setName("evaluation name");
 		evaluation.setOwnerId(ownerId.toString());

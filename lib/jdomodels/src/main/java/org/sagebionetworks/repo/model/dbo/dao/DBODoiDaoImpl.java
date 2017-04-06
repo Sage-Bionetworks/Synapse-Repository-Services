@@ -79,7 +79,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 
 		DBODoi dbo = new DBODoi();
-		dbo.setId(idGenerator.generateNewId(IdType.DOI));
+		dbo.setId(idGenerator.generateNewId(IdType.DOI_ID));
 		dbo.setETag(UUID.randomUUID().toString());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 		dbo.setObjectType(objectType);

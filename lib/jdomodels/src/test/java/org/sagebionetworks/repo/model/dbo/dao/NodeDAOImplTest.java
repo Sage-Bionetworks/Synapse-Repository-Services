@@ -462,7 +462,7 @@ public class NodeDAOImplTest {
 	public void testCreateWithId() throws Exception{
 		// Create a new node with an ID that is beyond the current max of the 
 		// ID generator.
-		long idLong = idGenerator.generateNewId(IdType.ENTITY) + 10;
+		long idLong = idGenerator.generateNewId(IdType.ENTITY_ID) + 10;
 		String idString = KeyFactory.keyToString(new Long(idLong));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(idString);
@@ -471,14 +471,14 @@ public class NodeDAOImplTest {
 		// The id should be the same as what we provided
 		assertEquals(idString, fetchedId);
 		// Also make sure the ID generator was increment to reserve this ID.
-		long nextId = idGenerator.generateNewId(IdType.ENTITY);
+		long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(idLong+1, nextId);
 	}
 	
 	@Test
 	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
 		// Create a node with a specific id
-		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY)+10));
+		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY_ID)+10));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(id);
 		String fetchedId = nodeDao.createNew(toCreate);
@@ -1509,7 +1509,7 @@ public class NodeDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
-		long id = idGenerator.generateNewId(IdType.ENTITY);
+		long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
 	}
 	
@@ -3069,7 +3069,7 @@ public class NodeDAOImplTest {
 	private Node createProject(String projectName, String user, String parentId) throws Exception {
 		Thread.sleep(2); // ensure ordering by creation date
 		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
-		project.setId(KeyFactory.keyToString(idGenerator.generateNewId(IdType.ENTITY)));
+		project.setId(KeyFactory.keyToString(idGenerator.generateNewId(IdType.ENTITY_ID)));
 		project.setParentId(parentId);
 		project = this.nodeDao.createNewNode(project);
 		toDelete.add(project.getProjectId());

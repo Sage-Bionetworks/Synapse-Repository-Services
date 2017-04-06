@@ -85,7 +85,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	public EvaluationSubmissions createForEvaluation(long evaluationId)
 			throws DatastoreException {
 		EvaluationSubmissionsDBO dbo = new EvaluationSubmissionsDBO();
-		dbo.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION));
+		dbo.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID));
 		dbo.setEvaluationId(evaluationId);
 		// Generate a new eTag and CREATE message
 		dbo.setEtag(UUID.randomUUID().toString());

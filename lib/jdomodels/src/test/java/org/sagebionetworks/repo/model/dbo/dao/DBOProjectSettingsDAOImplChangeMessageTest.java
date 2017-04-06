@@ -47,7 +47,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		dbo.setType(ProjectSettingsType.upload);
 		dbo.setEtag("etag");
 
-		Mockito.when(mockIdGenerator.generateNewId(IdType.PROJECT_SETTINGS)).thenReturn(projectSettingId);
+		Mockito.when(mockIdGenerator.generateNewId(IdType.PROJECT_SETTINGS_ID)).thenReturn(projectSettingId);
 		Mockito.when(mockBasicDao.createNew(dbo)).thenReturn(dbo);
 
 		Mockito.when(mockBasicDao.getObjectByPrimaryKey(
@@ -59,7 +59,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 	@Test
 	public void testCreate() {
 		projectSettingDao.create(projectSetting);
-		Mockito.verify(mockIdGenerator, Mockito.never()).generateNewId(IdType.PROJECT_SETTINGS);
+		Mockito.verify(mockIdGenerator, Mockito.never()).generateNewId(IdType.PROJECT_SETTINGS_ID);
 		Mockito.verify(mockBasicDao).createNew(Mockito.eq(dbo));
 		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				Mockito.eq(projectSettingId.toString()),

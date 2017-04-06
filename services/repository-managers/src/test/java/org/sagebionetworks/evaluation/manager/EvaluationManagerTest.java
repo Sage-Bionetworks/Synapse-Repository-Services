@@ -117,7 +117,7 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
 
     	// configure mocks
-    	when(mockIdGenerator.generateNewId(IdType.EVALUATION)).thenReturn(Long.parseLong(EVALUATION_ID));
+    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);

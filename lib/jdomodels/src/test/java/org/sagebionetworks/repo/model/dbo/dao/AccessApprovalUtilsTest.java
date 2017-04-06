@@ -61,7 +61,7 @@ public class AccessApprovalUtilsTest {
 	public void testCopyDtosToDbosForCreation() {
 		IdGenerator mockIdGenerator = Mockito.mock(IdGenerator.class);
 		AccessApproval dto = createDTO();
-		when(mockIdGenerator.generateNewId(IdType.ACCESS_APPROVAL)).thenReturn(1L);
+		when(mockIdGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID)).thenReturn(1L);
 		List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(Arrays.asList(dto), true, mockIdGenerator);
 		assertNotNull(dbos);
 		assertEquals(1, dbos.size());

@@ -246,7 +246,7 @@ public class SubmissionManagerTest {
       	mockEvaluationDAO = mock(EvaluationDAO.class);
       	mockDockerCommitDao = mock(DockerCommitDao.class);
 
-    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION)).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);

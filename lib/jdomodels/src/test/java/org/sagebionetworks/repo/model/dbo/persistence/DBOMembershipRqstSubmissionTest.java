@@ -64,7 +64,7 @@ public class DBOMembershipRqstSubmissionTest {
 			IdGenerator idGenerator, 
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipRqstSubmission request = new DBOMembershipRqstSubmission();
-		request.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_REQUEST_SUBMISION));
+		request.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_REQUEST_SUBMISION_ID));
 		request.setCreatedOn(System.currentTimeMillis());
 		request.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();

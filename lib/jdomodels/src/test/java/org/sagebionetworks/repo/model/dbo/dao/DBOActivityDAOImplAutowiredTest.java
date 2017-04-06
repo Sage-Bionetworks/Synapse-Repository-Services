@@ -122,7 +122,7 @@ public class DBOActivityDAOImplAutowiredTest {
 	 * @throws Exception
 	 */
 	private boolean exerciseCreate() throws Exception {
-		Activity toCreate = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString(), altUserGroupId);
+		Activity toCreate = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString(), altUserGroupId);
 		String id;
 		try {
 			id = activityDao.create(toCreate);
@@ -176,7 +176,7 @@ public class DBOActivityDAOImplAutowiredTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateWithExistingId() throws Exception{
-		String sameId = idGenerator.generateNewId(IdType.ACTIVITY).toString();
+		String sameId = idGenerator.generateNewId(IdType.ACTIVITY_ID).toString();
 		Activity toCreate = newTestActivity(sameId);
 		String id = activityDao.create(toCreate);
 		toDelete.add(id);
@@ -193,7 +193,7 @@ public class DBOActivityDAOImplAutowiredTest {
 
 	@Test
 	public void testUpdate() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString());		
+		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
 		activityDao.create(act);
 		toDelete.add(act.getId().toString());
 		String firstEtag = act.getEtag();
@@ -208,7 +208,7 @@ public class DBOActivityDAOImplAutowiredTest {
 
 	@Test
 	public void testGet() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString());		
+		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
 		activityDao.create(act);
 		toDelete.add(act.getId().toString());
 		Activity getAct = activityDao.get(act.getId().toString());		
@@ -225,7 +225,7 @@ public class DBOActivityDAOImplAutowiredTest {
 	
 	@Test(expected=NotFoundException.class)
 	public void testDelete() throws Exception {
-		String id = idGenerator.generateNewId(IdType.ACTIVITY).toString();
+		String id = idGenerator.generateNewId(IdType.ACTIVITY_ID).toString();
 		Activity act = newTestActivity(id);		
 		activityDao.create(act);
 		toDelete.add(id.toString()); // just in case
@@ -238,7 +238,7 @@ public class DBOActivityDAOImplAutowiredTest {
 	
 	@Test
 	public void testDoesActivityExist() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString());		
+		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
 		activityDao.create(act);
 		toDelete.add(act.getId().toString());
 		assertTrue(activityDao.doesActivityExist(act.getId().toString()));				
@@ -252,7 +252,7 @@ public class DBOActivityDAOImplAutowiredTest {
 	@Test
 	public void testGetEntitiesGeneratedBy() throws Exception {
 		// create two activites
-		Activity act1 = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString());		
+		Activity act1 = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
 		activityDao.create(act1);
 		toDelete.add(act1.getId().toString());
 
@@ -316,7 +316,7 @@ public class DBOActivityDAOImplAutowiredTest {
 		
 	@Test
 	public void testDeleteActivityRevisionForeignKeyConstraint() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY).toString());		
+		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
 		activityDao.create(act);
 		toDelete.add(act.getId().toString());
 

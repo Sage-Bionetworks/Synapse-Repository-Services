@@ -36,7 +36,7 @@ public class IdGeneratorImplTest {
 		int toCreate = 1;
 		for(int i=0; i<toCreate;i++){
 			long start = System.currentTimeMillis();
-			Long id = idGenerator.generateNewId(IdType.ENTITY);
+			Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 			long end = System.currentTimeMillis();
 			assertTrue(unique.add(id));
 			System.out.println("ID: "+id+" in "+(end-start)+" ms");
@@ -46,25 +46,25 @@ public class IdGeneratorImplTest {
 	@Test
 	public void testReserveId(){
 		// Start with the current ID.
-		Long id = idGenerator.generateNewId(IdType.ENTITY);
+		Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 		// Reserve this ID + 10
 		Long reserved = id+10;
-		idGenerator.reserveId(reserved, IdType.ENTITY);
+		idGenerator.reserveId(reserved, IdType.ENTITY_ID);
 		// Now get make sure the next ID is greater than the reserve
-		Long next = idGenerator.generateNewId(IdType.ENTITY);
+		Long next = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(next.longValue(), reserved.longValue()+1);
 	}
 	
 	@Test
 	public void testReserveIdLessThan(){
 		// Start with the current ID.
-		Long id = idGenerator.generateNewId(IdType.ENTITY);
+		Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 		// Reserve this ID
 		Long reserved = id;
 		// This time the ID is already reserved so this method should be a wash.
-		idGenerator.reserveId(reserved, IdType.ENTITY);
+		idGenerator.reserveId(reserved, IdType.ENTITY_ID);
 		// The next ID should just be the ID + 1
-		Long next = idGenerator.generateNewId(IdType.ENTITY);
+		Long next = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(next.longValue(), id.longValue()+1);
 	}
 

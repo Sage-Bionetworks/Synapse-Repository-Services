@@ -105,7 +105,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL));
+			dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 		}
 		if (dbo.geteTag() == null) {
 			dbo.seteTag(UUID.randomUUID().toString());

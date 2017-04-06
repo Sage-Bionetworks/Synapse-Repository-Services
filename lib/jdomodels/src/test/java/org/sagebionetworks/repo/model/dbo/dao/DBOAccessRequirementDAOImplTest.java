@@ -97,7 +97,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	public static Evaluation createNewEvaluation(String name, String ownerId, IdGenerator idGenerator, String contentSource) {
 		Evaluation evaluation = new Evaluation();
-		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION).toString());
+		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		evaluation.setContentSource(contentSource);
 		evaluation.setOwnerId(ownerId);
 		evaluation.setStatus(EvaluationStatus.OPEN);

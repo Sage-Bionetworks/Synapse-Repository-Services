@@ -243,7 +243,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setEntityBundleJSON(joa.toJSONString());
 		
 		// always generate a unique ID
-		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION).toString());
+		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
 				
 		// set creation date
 		submission.setCreatedOn(now);

@@ -54,7 +54,7 @@ public class DBORevisionTest {
 		toDelete = new LinkedList<Long>();
 		// Create a node to create revisions of.
 		node = new DBONode();
-		node.setId(idGenerator.generateNewId(IdType.ENTITY));
+		node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		toDelete.add(node.getId());
 		node.setBenefactorId(node.getId());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
