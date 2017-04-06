@@ -1,12 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,9 +17,11 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +36,8 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
  *
  */
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
+	public static final String LIMIT_PARAM = "LIMIT";
+	public static final String OFFSET_PARAM = "OFFSET";
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -49,7 +47,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
+
+	private static final String SELECT_ACCESS_APPROVALS_FOR_SUBJECTS =
+			"SELECT *"
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+				+ " JOIN "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+				+ " ON "+TABLE_ACCESS_APPROVAL+"."+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+				+ " = "+TABLE_SUBJECT_ACCESS_REQUIREMENT+"."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+ " WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+ " AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
+			+ " LIMIT :"+LIMIT_PARAM
+			+ " OFFSET :"+OFFSET_PARAM;
+
 	private static final String SELECT_FOR_REQUIREMENT_SQL = 
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
 		COL_ACCESS_APPROVAL_REQUIREMENT_ID+"=:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
@@ -234,5 +243,21 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(dtos, true/*for creation*/, idGenerator);
 		dbos = basicDao.createBatch(dbos);
 		return AccessApprovalUtils.copyDbosToDtos(dbos);
+	}
+
+	@Override
+	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type, long limit, long offset) {
+		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIdList));
+		params.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		params.addValue(LIMIT_PARAM, limit);
+		params.addValue(OFFSET_PARAM, offset);
+		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACCESS_APPROVALS_FOR_SUBJECTS, params, rowMapper);
+		for (DBOAccessApproval dbo : dbos) {
+			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
+			dtos.add(dto);
+		}
+		return dtos;
 	}
 }

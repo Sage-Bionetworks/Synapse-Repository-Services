@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -363,11 +362,11 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
 
-		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, aas.size());
 		
 		AccessApproval retrieved = accessApprovalManager.getAccessApproval(adminUserInfo, aa.getId().toString());
@@ -375,13 +374,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		
 		// node B inherits the ARs and AAs from Node A
 		rod.setId(nodeBId);
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, aas.size());
 		
 		TermsOfUseAccessApproval aaB = newToUAccessApproval(arB.getId(), adminUserInfo.getId().toString());
 		aaB = accessApprovalManager.createAccessApproval(adminUserInfo, aaB);
 		
-		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(2, aas.size());
 	}
 	
@@ -405,7 +404,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
 	}
 	
