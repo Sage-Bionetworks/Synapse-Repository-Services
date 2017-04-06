@@ -1,5 +1,8 @@
 package org.sagebionetworks.ids;
 
+/**
+ * Enumeration that defines the ID sequence for each type of object.
+ */
 public enum IdType {
 	
 	FILE_IDS(null),
@@ -49,9 +52,22 @@ public enum IdType {
 	
 	/**
 	 * 
-	 * @param startingId The ID sequence will start from this number.  Ignored if null.
+	 * @param startingId The ID that the sequence for this type will start from. 
+	 * If null the sequence will start from one.
 	 */
 	IdType(Long startingId){
 		this.startingId = startingId;
 	}
+
+	/**
+	 * The ID that the sequence for this type will start from. If null the
+	 * sequence will start from one.
+	 * 
+	 * @return
+	 */
+	public Long getStartingId() {
+		return startingId;
+	}
+	
+	
 }

@@ -39,6 +39,7 @@ public class IdGeneratorImplTest {
 			Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 			long end = System.currentTimeMillis();
 			assertTrue(unique.add(id));
+			assertTrue("All IDs must be larger than the starting ID.",id > IdType.ENTITY_ID.getStartingId());
 			System.out.println("ID: "+id+" in "+(end-start)+" ms");
 		}
 	}
