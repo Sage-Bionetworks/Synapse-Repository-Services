@@ -83,26 +83,30 @@ public class AccessApprovalController extends BaseController {
 
 
 	/**
-	 * Retrieve the Access Approvals for the given Entity.  This service is only available to the ACT.
+	 * Retrieve the Access Approvals for the given Entity. This service is only available to the ACT.
 	 * 
 	 * @param userId
 	 * @param entityId the entity of interest
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEntityAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value= ID_PATH_VARIABLE) String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+				@PathVariable(value= ID_PATH_VARIABLE) String entityId,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
 	}
 
 	/**
@@ -110,22 +114,27 @@ public class AccessApprovalController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param evaluationId the evaluation of interest
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
+				@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
 	}
 
 	/**
@@ -133,6 +142,8 @@ public class AccessApprovalController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param id the Team of interest
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -143,12 +154,14 @@ public class AccessApprovalController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getTeamAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id
+				@PathVariable String id,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
 	}
 
 	/**
