@@ -20,9 +20,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACTAccessApproval;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessApprovalUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -281,12 +284,24 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
+				AccessApproval dto = AccessApprovalUtils.copyDboToDto(backup);
+				if (dto instanceof ACTAccessApproval) {
+					ACTAccessApproval act = (ACTAccessApproval) dto;
+					act.setApprovalStatus(null);
+					AccessApprovalUtils.copyToSerializedField(act, backup);
+				}
 				return backup;
 			}
 
 			@Override
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
+				AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
+				if (dto instanceof ACTAccessApproval) {
+					ACTAccessApproval act = (ACTAccessApproval) dto;
+					act.setApprovalStatus(null);
+					AccessApprovalUtils.copyToSerializedField(act, dbo);
+				}
 				return dbo;
 			}};
 	}
