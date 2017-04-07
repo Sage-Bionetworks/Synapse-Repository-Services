@@ -376,7 +376,7 @@ public class AdministrationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVALS, method = RequestMethod.POST)
-	public Count deleteAccessApprovals(
+	public @ResponseBody Count deleteAccessApprovals(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody IdList toDelete) 
 			throws UnauthorizedException, NotFoundException {
