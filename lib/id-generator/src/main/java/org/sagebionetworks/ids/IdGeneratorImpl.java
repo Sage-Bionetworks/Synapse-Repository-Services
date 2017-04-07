@@ -65,6 +65,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	@NewWriteTransaction
 	@Override
 	public Long generateNewId(IdType type) {
+		// Acquire the semaphore lock for this type for concurrency.
 		lockOnType(type);
 		// Create a new time
 		final long now = System.currentTimeMillis();
