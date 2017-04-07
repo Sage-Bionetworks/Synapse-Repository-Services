@@ -153,7 +153,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
 		
-		when(idGenerator.generateNewId(IdType.DOCKER_REPOSITORY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
+		when(idGenerator.generateNewId(IdType.ENTITY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
 		
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
 	}

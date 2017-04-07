@@ -252,7 +252,7 @@ public class DockerManagerImpl implements DockerManager {
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
 					// Create a new id for this entity
-					long newId = idGenerator.generateNewId(IdType.DOCKER_REPOSITORY_ID);
+					long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
 					entity.setId(KeyFactory.keyToString(newId));
 					entityManager.createEntity(userInfo, entity, null);
 					entityId =  KeyFactory.keyToString(newId);
