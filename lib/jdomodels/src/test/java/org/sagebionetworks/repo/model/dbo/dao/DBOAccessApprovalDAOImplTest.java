@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -353,11 +354,18 @@ public class DBOAccessApprovalDAOImplTest {
 	}
 
 	@Test
-	public void testCreateBatch() {
+	public void testCreateAndDeleteBatch() {
 		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
-		accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
+		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
 		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+
+		List<Long> toDelete = new LinkedList<Long>();
+		toDelete.add(created.get(0).getId());
+		toDelete.add(created.get(1).getId());
+
+		assertEquals(2, accessApprovalDAO.deleteBatch(toDelete));
+		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
 	}
 }

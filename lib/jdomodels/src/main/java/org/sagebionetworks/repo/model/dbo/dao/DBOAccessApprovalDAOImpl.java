@@ -86,6 +86,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
+	private static final String DELETE_ACCESS_APPROVALS = "DELETE"
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_ID+" IN (:"+COL_ACCESS_APPROVAL_ID+")";
+
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
 
@@ -259,5 +263,13 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public int deleteBatch(List<Long> toDelete) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_ID, toDelete);
+		return namedJdbcTemplate.update(DELETE_ACCESS_APPROVALS, params);
 	}
 }

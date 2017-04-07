@@ -808,6 +808,8 @@ public class IT500SynapseJavaClient {
 			// The service is wired up.
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
+
+		assertEquals((Long)0L, adminSynapse.deleteAccessApprovals(Arrays.asList(created.getId())));
 	}
 
 	@Test
