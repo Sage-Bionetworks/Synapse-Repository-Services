@@ -155,23 +155,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public List<Evaluation> getByContentSource(String id, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) 
+	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
-		// parameters here are 
-		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
-		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
-		for (int i=0; i<principalIds.size(); i++) {
-			param.addValue(BIND_VAR_PREFIX+i, principalIds.get(i));	
-		}
+		param.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		param.addValue(BIND_VAR_PREFIX, principalIds);
 		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere());
 		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
@@ -186,28 +181,21 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * has the given access type
 	 */
 	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
+	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		// parameters here are 
-		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
-		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
-		for (int i=0; i<principalIds.size(); i++) {
-			param.addValue(BIND_VAR_PREFIX+i, principalIds.get(i));	
-		}
+		param.addValue(BIND_VAR_PREFIX, principalIds);	
 		param.addValue(ACCESS_TYPE_BIND_VAR, accessType.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
-		if (evaluationIds==null || evaluationIds.isEmpty()) {
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
-		} else {
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere());
+		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
-			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 		}
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
 		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();

@@ -133,10 +133,10 @@ public class EvaluationDAOImplTest {
 	}
 	
 	@Test
-	public void testGetByContentSource() throws Exception {
+	public void testgetAccessibleEvaluationsForProject() throws Exception {
 		List<Long> principalIds = Collections.singletonList(EVALUATION_OWNER_ID);
 		// Get nothing
-		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		List<Evaluation> retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// Create one
@@ -145,7 +145,7 @@ public class EvaluationDAOImplTest {
 		toDelete.add(evalId);
 		
 		// no permission to access
-		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(0, retrieved.size());
 
 		// now provide the permission to READ
@@ -155,7 +155,7 @@ public class EvaluationDAOImplTest {
 		aclToDelete = acl;
 		
 		// Get it
-		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
+		retrieved = evaluationDAO.getAccessibleEvaluationsForProject(EVALUATION_CONTENT_SOURCE, principalIds, ACCESS_TYPE.READ, 10, 0);
 		assertEquals(1, retrieved.size());
 		
 		Evaluation created = retrieved.get(0);
@@ -241,14 +241,14 @@ public class EvaluationDAOImplTest {
 		// those who have not joined do not get this result
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
 		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
 		// check that the filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertTrue(evalList.isEmpty());
 
 		// Now join the Evaluation by
@@ -260,19 +260,19 @@ public class EvaluationDAOImplTest {
 		
 		// As a participant, I can find:
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		// make sure filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		// filtering with 'eval 2' causes no results to come back
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
 		assertEquals(0, evalList.size());
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertTrue(evalList.isEmpty());
 		
 		// PLFM-2312 problem with repeated entries
@@ -286,14 +286,14 @@ public class EvaluationDAOImplTest {
 		pids = Arrays.asList(new Long[] {
 				participantId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
-		evalList = evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
+		evalList = evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		
 		
 		// Note:  The evaluation isn't returned for the wrong access type
-		assertFalse(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.SUBMIT, 10, 0, null).isEmpty());
-		assertTrue(evaluationDAO.getAvailableInRange(pids, ACCESS_TYPE.READ, 10, 0, null).isEmpty());
+		assertFalse(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.SUBMIT, 10, 0, null).isEmpty());
+		assertTrue(evaluationDAO.getAccessibleEvaluations(pids, ACCESS_TYPE.READ, 10, 0, null).isEmpty());
    }
     
     @Test

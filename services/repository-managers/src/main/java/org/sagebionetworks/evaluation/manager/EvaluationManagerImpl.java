@@ -102,20 +102,20 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
 		
-		return evaluationDAO.getByContentSource(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, limit, offset);
+		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, limit, offset);
 	}
 
 	@Override
 	public List<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		return evaluationDAO.getAvailableInRange(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, 
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, 
 				limit, offset, null);
 	}
 
 	@Override
 	public List<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
-		return evaluationDAO.getAvailableInRange(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, 
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, 
 				limit, offset, evaluationIds);
 	}
 
