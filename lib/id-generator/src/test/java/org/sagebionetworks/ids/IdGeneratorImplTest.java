@@ -19,14 +19,6 @@ public class IdGeneratorImplTest {
 	
 	@Autowired
 	IdGenerator idGenerator;
-	
-	@Test
-	public void testGetSchema(){
-		String schema = "someScheamName";
-		String connection = "jdbc:mysql://someaddresss:someport/"+schema;
-		String results = IdGeneratorImpl.getSchemaFromConnectionString(connection);
-		assertEquals(schema, results);
-	}
 		
 	@Test
 	public void testNewId(){
