@@ -19,7 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -98,7 +98,7 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		fileHandle1.setEtag("etag");
 		fileHandle1.setFileName("foo.bar");
 		fileHandle1.setContentMd5("md5");
-		fileHandle1.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle1.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle1.setEtag(UUID.randomUUID().toString());
 		
 		fileHandle2 = new S3FileHandle();
@@ -111,7 +111,7 @@ public class EntityServiceImplAutowiredTestNew extends AbstractAutowiredControll
 		fileHandle2.setEtag("etag");
 		fileHandle2.setFileName("two.txt");
 		fileHandle2.setContentMd5("md5");
-		fileHandle2.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle2.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

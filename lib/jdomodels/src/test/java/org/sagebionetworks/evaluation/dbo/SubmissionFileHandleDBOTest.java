@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -69,7 +69,7 @@ public class SubmissionFileHandleDBOTest {
 		meta.setCreatedBy("" + userId);
 		meta.setFileName("preview.jpg");
 		meta.setEtag(UUID.randomUUID().toString());
-		meta.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		meta.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandleId = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node

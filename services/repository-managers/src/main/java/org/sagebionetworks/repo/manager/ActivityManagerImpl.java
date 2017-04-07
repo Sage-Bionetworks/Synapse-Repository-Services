@@ -5,6 +5,7 @@ import java.util.Date;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -52,7 +53,7 @@ public class ActivityManagerImpl implements ActivityManager {
 			throws DatastoreException, InvalidModelException {		
 
 		// for idGenerator based id on create, regardless of what is passed
-		activity.setId(idGenerator.generateNewId().toString());
+		activity.setId(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
 
 		populateCreationFields(userInfo, activity);
 		return activityDAO.create(activity);

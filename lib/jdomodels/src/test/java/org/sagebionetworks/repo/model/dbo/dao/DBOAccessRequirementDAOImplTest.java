@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -96,7 +97,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	public static Evaluation createNewEvaluation(String name, String ownerId, IdGenerator idGenerator, String contentSource) {
 		Evaluation evaluation = new Evaluation();
-		evaluation.setId(idGenerator.generateNewId().toString());
+		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		evaluation.setContentSource(contentSource);
 		evaluation.setOwnerId(ownerId);
 		evaluation.setStatus(EvaluationStatus.OPEN);

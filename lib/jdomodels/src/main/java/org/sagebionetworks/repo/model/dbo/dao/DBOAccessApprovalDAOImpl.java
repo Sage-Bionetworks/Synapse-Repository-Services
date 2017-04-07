@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -117,7 +118,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 		}
 		if (dbo.geteTag() == null) {
 			dbo.seteTag(UUID.randomUUID().toString());

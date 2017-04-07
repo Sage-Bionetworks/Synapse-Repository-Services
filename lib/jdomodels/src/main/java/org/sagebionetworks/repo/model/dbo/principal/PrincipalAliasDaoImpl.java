@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -129,11 +129,11 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 					dbo.setId(allOfTypeType.get(0).getAliasId());
 				}else{
 					// We do not already have an alias of this type to issue a new a new ID.
-					dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ALIAS_ID));
+					dbo.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ALIAS_ID));
 				}
 			}else{
 				// Multiple aliases are allowed for this type so issue a new ID.
-				dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ALIAS_ID));
+				dbo.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ALIAS_ID));
 			}
 		}
 		dbo.setEtag(UUID.randomUUID().toString());
@@ -292,7 +292,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		alias.setEtag(UUID.randomUUID().toString());
 		DBOPrincipalAlias dbo = AliasUtils.createDBOFromDTO(alias);
 		basicDao.createOrUpdate(dbo);
-		idGenerator.reserveId(boot.getAliasId(), TYPE.PRINCIPAL_ALIAS_ID);
+		idGenerator.reserveId(boot.getAliasId(), IdType.PRINCIPAL_ALIAS_ID);
 	}
 
 	@Override

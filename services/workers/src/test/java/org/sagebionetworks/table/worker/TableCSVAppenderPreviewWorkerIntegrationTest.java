@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -144,7 +144,7 @@ public class TableCSVAppenderPreviewWorkerIntegrationTest {
 		fileHandle.setContentType("text/csv");
 		fileHandle.setCreatedBy(""+adminUserInfo.getId());
 		fileHandle.setFileName("ToAppendToTable.csv");
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle.setPreviewId(fileHandle.getId());
 		// Upload the File to S3

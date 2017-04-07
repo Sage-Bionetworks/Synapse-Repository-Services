@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -82,7 +82,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOneHandle.setKey("mainFileKey");
 		fileOneHandle.setEtag("etag");
 		fileOneHandle.setFileName("foo.bar");
-		fileOneHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileOneHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileOneHandle.setEtag(UUID.randomUUID().toString());
 	
 		// Create a preview
@@ -93,7 +93,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		fileOnePreviewHandle.setKey("previewFileKey");
 		fileOnePreviewHandle.setEtag("etag");
 		fileOnePreviewHandle.setFileName("bar.txt");
-		fileOnePreviewHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileOnePreviewHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileOnePreviewHandle.setEtag(UUID.randomUUID().toString());
 		
 		markdownOneHandle = new S3FileHandle();
@@ -103,7 +103,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownOneHandle.setKey("markdownKey");
 		markdownOneHandle.setEtag("etag");
 		markdownOneHandle.setFileName("markdown");
-		markdownOneHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOneHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownOneHandle.setEtag(UUID.randomUUID().toString());
 		
 		markdownTwoHandle = new S3FileHandle();
@@ -113,7 +113,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		markdownTwoHandle.setKey("markdownKey2");
 		markdownTwoHandle.setEtag("etag2");
 		markdownTwoHandle.setFileName("markdown2");
-		markdownTwoHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownTwoHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownTwoHandle.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

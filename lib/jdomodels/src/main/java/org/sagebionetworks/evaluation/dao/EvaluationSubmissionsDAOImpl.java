@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
@@ -86,7 +85,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	public EvaluationSubmissions createForEvaluation(long evaluationId)
 			throws DatastoreException {
 		EvaluationSubmissionsDBO dbo = new EvaluationSubmissionsDBO();
-		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
+		dbo.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID));
 		dbo.setEvaluationId(evaluationId);
 		// Generate a new eTag and CREATE message
 		dbo.setEtag(UUID.randomUUID().toString());

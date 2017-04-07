@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,7 +51,7 @@ public class DBOAuthenticationReceiptDAOImpl implements AuthenticationReceiptDAO
 	@WriteTransactionReadCommitted
 	@Override
 	public String createNewReceipt(long userId) {
-		Long id = idGenerator.generateNewId(TYPE.AUTHENTICATION_RECEIPT_ID);
+		Long id = idGenerator.generateNewId(IdType.AUTHENTICATION_RECEIPT_ID);
 		String receipt = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_INSERT, id, userId, receipt, System.currentTimeMillis()+EXPIRATION_PERIOD);
 		return receipt;

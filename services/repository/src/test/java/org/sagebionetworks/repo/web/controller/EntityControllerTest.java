@@ -20,7 +20,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -89,7 +89,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
 		handleOne.setContentMd5("handleOneContentMd5");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		previewOne = new PreviewFileHandle();
@@ -99,7 +99,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewOne.setKey("EntityControllerTest.previewFileKey");
 		previewOne.setEtag("etag");
 		previewOne.setFileName("bar.txt");
-		previewOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		previewOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewOne.setEtag(UUID.randomUUID().toString());
 		
 		// Create a file handle
@@ -110,7 +110,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("foo2.bar");
-		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		previewTwo = new PreviewFileHandle();
@@ -120,7 +120,7 @@ public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
 		previewTwo.setEtag("etag");
 		previewTwo.setFileName("bar2.txt");
-		previewTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		previewTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		previewTwo.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

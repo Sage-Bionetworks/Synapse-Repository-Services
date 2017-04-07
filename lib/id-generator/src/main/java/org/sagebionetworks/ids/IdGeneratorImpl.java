@@ -51,17 +51,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	 */
 	@NewWriteTransaction
 	@Override
-	public Long generateNewId() {
-		// Use the default domain
-		return generateNewId(TYPE.DOMAIN_IDS);
-	}
-
-	/**
-	 * This call occurs in its own transaction.
-	 */
-	@NewWriteTransaction
-	@Override
-	public Long generateNewId(TYPE type) {
+	public Long generateNewId(IdType type) {
 		// Create a new time
 		final long now = System.currentTimeMillis();
 		idGeneratorJdbcTemplate.update(String.format(INSERT_SQL, type.name()), new PreparedStatementSetter(){
@@ -76,7 +66,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
 	@NewWriteTransaction
 	@Override
-	public void reserveId(final Long idToLock, TYPE type) {
+	public void reserveId(final Long idToLock, IdType type) {
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
 		// First check if this value is greater than the last value
 		long max = 0L;
@@ -98,7 +88,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		// Validate that the transacion manager is using auto-commit
+		// Validate that the transaction manager is using auto-commit
 		DataSource ds = idGeneratorJdbcTemplate.getDataSource();
 		if(ds == null) throw new RuntimeException("Failed to get the datasource from the transaction manager");
 		Connection con = ds.getConnection();
@@ -108,7 +98,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionUrl();
 		String schema = getSchemaFromConnectionString(connectionString);
 		// Make sure we have a table for each type
-		for(TYPE type: TYPE.values()){
+		for(IdType type: IdType.values()){
 			// Does this table exist?
 			String sql = String.format(TABLE_EXISTS_SQL_PERFIX, type.name(), schema);
 			List<Map<String, Object>> list = idGeneratorJdbcTemplate.queryForList(sql);
@@ -122,6 +112,10 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 				if(second.size() != 1){
 					throw new RuntimeException("Failed to create the domain table: "+type.name()+" using connection: "+connectionString);
 				}
+			}
+			// If the type has a start id, then reserver it
+			if(type.startingId != null){
+				reserveId(type.startingId, type);
 			}
 		}
 

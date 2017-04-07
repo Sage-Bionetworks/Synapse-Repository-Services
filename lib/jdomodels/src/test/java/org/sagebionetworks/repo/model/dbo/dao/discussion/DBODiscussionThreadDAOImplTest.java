@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -76,7 +76,7 @@ public class DBODiscussionThreadDAOImplTest {
 		Forum dto = forumDao.createForum(projectId);
 		forumId = dto.getId();
 		forumIdLong = Long.parseLong(forumId);
-		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		threadId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 	}
 
 	@After
@@ -344,15 +344,15 @@ public class DBODiscussionThreadDAOImplTest {
 
 	@Test
 	public void testSortedByThreadTitle() throws InterruptedException {
-		Long threadBId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadBId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadB = threadDao.createThread(forumId, threadBId.toString(),
 				"B", UUID.randomUUID().toString(), userId);
 
-		Long threadAId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadAId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadA = threadDao.createThread(forumId, threadAId.toString(),
 				"a", UUID.randomUUID().toString(), userId);
 
-		Long threadCId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadCId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle threadC = threadDao.createThread(forumId, threadCId.toString(),
 				"c", UUID.randomUUID().toString(), userId);
 
@@ -453,7 +453,7 @@ public class DBODiscussionThreadDAOImplTest {
 		List<DiscussionThreadBundle> createdThreads = new ArrayList<DiscussionThreadBundle>();
 		for (int i = 0; i < numberOfThreads; i++) {
 			Thread.sleep(1000);
-			threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+			threadId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 			DiscussionThreadBundle dto = threadDao.createThread(forumId, threadId.toString(),
 					"title", UUID.randomUUID().toString(), userId);
 			createdThreads.add(dto);
@@ -478,7 +478,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testCountThreadView() {
 		// create some threads
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
-		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadId2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId2 .toString(), "title", "messageKey2", userId);
 
 		UserGroup user = new UserGroup();
@@ -513,7 +513,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 		// create some threads
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
-		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadId2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId2 .toString(), "title", "messageKey2", userId);
 
 		assertEquals(Arrays.asList(threadId, threadId2), threadDao.getAllThreadId(10L, 0L));
@@ -765,7 +765,7 @@ public class DBODiscussionThreadDAOImplTest {
 		Long entity1 = 1L;
 		Long entity2 = 2L;
 		Long entity3 = 3L;
-		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadId2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
 		Set<Long> projectIds = new HashSet<Long>();
@@ -830,7 +830,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testGetThreadCountForEntityWithReferences() {
 		Set<Long> projectIds = new HashSet<Long>();
 		projectIds.add(KeyFactory.stringToKey(projectId));
-		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadId2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
 
@@ -879,7 +879,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testGetThreadsForEntityWithReferences() {
 		Set<Long> projectIds = new HashSet<Long>();
 		projectIds.add(KeyFactory.stringToKey(projectId));
-		Long threadId2 = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID);
+		Long threadId2 = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
 		DiscussionThreadBundle bundle1 = threadDao.createThread(forumId, threadId.toString(), "title", "messageKey", userId);
 		DiscussionThreadBundle bundle2 = threadDao.createThread(forumId, threadId2.toString(), "title", "messageKey2", userId);
 

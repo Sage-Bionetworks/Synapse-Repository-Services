@@ -27,6 +27,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
@@ -242,7 +243,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setEntityBundleJSON(joa.toJSONString());
 		
 		// always generate a unique ID
-		submission.setId(idGenerator.generateNewId().toString());
+		submission.setId(idGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID).toString());
 				
 		// set creation date
 		submission.setCreatedOn(now);

@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -54,7 +55,7 @@ public class DBONodeTest {
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		DBONode node = new DBONode();
-		node.setId(idGenerator.generateNewId());
+		node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		node.setName("SomeName");
 		node.setBenefactorId(node.getId());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -77,7 +78,7 @@ public class DBONodeTest {
 		
 		// Make sure we can create a child
 		DBONode child = new DBONode();
-		child.setId(idGenerator.generateNewId());
+		child.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		child.setName("SomeChild");
 		child.setBenefactorId(node.getBenefactorId());
 		child.setCreatedBy(createdById);
@@ -151,7 +152,7 @@ public class DBONodeTest {
 
 	private DBONode createNode() {
 		DBONode node = new DBONode();
-		node.setId(idGenerator.generateNewId());
+		node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		node.setName("SomeName" + UUID.randomUUID());
 		node.setBenefactorId(node.getId());
 		node.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

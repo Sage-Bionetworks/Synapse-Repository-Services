@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -219,7 +219,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MessageUtils.copyDTOtoDBO(dto, content, info, recipients);
 		
 		// Generate an ID for all the new rows
-		Long messageId = idGenerator.generateNewId(TYPE.MESSAGE_ID);
+		Long messageId = idGenerator.generateNewId(IdType.MESSAGE_ID);
 		
 		// Insert the message content
 		content.setMessageId(messageId);

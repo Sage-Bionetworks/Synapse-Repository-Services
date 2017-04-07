@@ -20,7 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
@@ -282,7 +282,7 @@ public class MessageManagerImplTest {
 		// Also, it doesn't matter who the handle is tied to
 		final String testUserId = testUser.getId().toString();
 		{
-			S3FileHandle handle = TestUtils.createS3FileHandle(testUserId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			S3FileHandle handle = TestUtils.createS3FileHandle(testUserId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			handle = (S3FileHandle) fileDAO.createFile(handle);
 			this.fileHandleId = handle.getId();
 			when(mockFileHandleManager.createCompressedFileFromString(eq(testUserId), any(Date.class), anyString())).thenReturn(handle);
@@ -291,7 +291,7 @@ public class MessageManagerImplTest {
 		
 		{
 			String tmsUserId = trustedMessageSender.getId().toString();
-			S3FileHandle handle = TestUtils.createS3FileHandle(tmsUserId, idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+			S3FileHandle handle = TestUtils.createS3FileHandle(tmsUserId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 			handle = (S3FileHandle) fileDAO.createFile(handle);
 			this.tmsFileHandleId = handle.getId();
 			when(mockFileHandleManager.

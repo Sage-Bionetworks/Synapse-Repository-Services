@@ -45,7 +45,7 @@ public class IdGeneratorConcurrencyTest {
 					try {
 						// Generate 100 ids, yielding between each
 						for(int j=0; j<numberIds; j++){
-							Long id = idGenerator.generateNewId();
+							Long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 							if(j % 25 == 0){
 								System.out.println("Thread.id="+Thread.currentThread().getId()+" generated id: "+id);							
 							}

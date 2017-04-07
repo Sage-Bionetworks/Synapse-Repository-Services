@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -67,7 +68,7 @@ public class DBOAccessApprovalTest {
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId());
+		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 		ar = dboBasicDao.createNew(accessRequirement);
 	}
 	
@@ -120,7 +121,7 @@ public class DBOAccessApprovalTest {
 	
 	@Test
 	public void testCRUD() throws Exception{
-		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar, idGenerator.generateNewId()));
+		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar, idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID)));
 		// Create a new object		
 		
 		// Create it

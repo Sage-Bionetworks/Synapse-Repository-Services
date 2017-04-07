@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBODoiDaoImpl implements DoiDao {
@@ -79,7 +79,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 
 		DBODoi dbo = new DBODoi();
-		dbo.setId(idGenerator.generateNewId());
+		dbo.setId(idGenerator.generateNewId(IdType.DOI_ID));
 		dbo.setETag(UUID.randomUUID().toString());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 		dbo.setObjectType(objectType);

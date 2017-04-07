@@ -37,7 +37,7 @@ import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -429,7 +429,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
 		return (ExternalFileHandle) fileHandleDao.createFile(fileHandle);
@@ -865,7 +865,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		handle.setFileName(fileName);
 		handle.setCreatedBy(createdBy);
 		handle.setCreatedOn(modifiedOn);
-		handle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handle.setEtag(UUID.randomUUID().toString());
 		return (S3FileHandle) fileHandleDao.createFile(handle);
 	}
@@ -965,7 +965,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		fileHandle.setCreatedOn(new Date());
 		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save the file metadata to the DB.
 		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
@@ -1001,7 +1001,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		proxyFileHandle.setCreatedBy(getUserId(userInfo));
 		proxyFileHandle.setCreatedOn(new Date());
 		proxyFileHandle.setEtag(UUID.randomUUID().toString());
-		proxyFileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		proxyFileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save the file metadata to the DB.
 		return (ProxyFileHandle) fileHandleDao.createFile(proxyFileHandle);
 	}
@@ -1047,7 +1047,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (needsNewPreview) {
 			newS3FileHandle.setPreviewId(null);
 		}
-		newS3FileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		newS3FileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		newS3FileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
 		return (S3FileHandle) fileHandleDao.createFile(newS3FileHandle);
@@ -1232,7 +1232,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 				if(original == null){
 					fhcr.setFailureCode(FileResultFailureCode.NOT_FOUND);
 				}else{
-					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+					FileHandle newFileHandle = FileHandleCopyUtils.createCopy(userId, original, map.get(fhcr.getOriginalFileHandleId()), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 					toCreate.add(newFileHandle);
 					fhcr.setNewFileHandle(newFileHandle);
 					// capture the data for audit

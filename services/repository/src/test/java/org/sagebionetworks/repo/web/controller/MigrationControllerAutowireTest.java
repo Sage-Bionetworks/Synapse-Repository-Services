@@ -13,7 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -73,7 +73,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		preview = new PreviewFileHandle();
@@ -83,7 +83,7 @@ public class MigrationControllerAutowireTest extends AbstractAutowiredController
 		preview.setKey("previewFileKey");
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
-		preview.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

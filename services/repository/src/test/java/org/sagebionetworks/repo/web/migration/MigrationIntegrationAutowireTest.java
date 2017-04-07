@@ -30,7 +30,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.DockerManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -383,14 +383,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setModifiedOn(new Date());
 		submission.setAccessors(Arrays.asList(adminUserIdString));
 		submission.setEtag(UUID.randomUUID().toString());
-		submission.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_SUBMISSION_ID).toString());
+		submission.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		dataAccessSubmissionDAO.createSubmission(submission);
 	}
 
 	private void createDataAccessRequest() {
 		dataAccessRequest = new DataAccessRequest();
-		dataAccessRequest.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		dataAccessRequest.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
 		dataAccessRequest.setAccessRequirementId(accessRequirement.getId().toString());
 		dataAccessRequest.setResearchProjectId(researchProject.getId());
 		dataAccessRequest.setCreatedBy(adminUserIdString);
@@ -404,7 +404,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createResearchProject() {
 		researchProject = new ResearchProject();
-		researchProject.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
+		researchProject.setId(idGenerator.generateNewId(IdType.RESEARCH_PROJECT_ID).toString());
 		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
 		researchProject.setCreatedBy(adminUserIdString);
 		researchProject.setCreatedOn(new Date());
@@ -445,7 +445,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID).toString();
 		threadDao.createThread(forumId, threadId, "title", "fakeMessageUrl", adminUserId);
 	}
 
@@ -461,7 +461,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createReply() {
-		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		String replyId = idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString();
 		replyDao.createReply(threadId, replyId, "messageKey", adminUserId);
 	}
 
@@ -744,7 +744,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create markdown content
 		markdownOne = new S3FileHandle();
@@ -754,7 +754,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		markdownOne.setKey("markdownFileKey");
 		markdownOne.setEtag("etag");
 		markdownOne.setFileName("markdown1");
-		markdownOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		preview = new PreviewFileHandle();
@@ -764,7 +764,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		preview.setKey("previewFileKey");
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
-		preview.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
 		
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
