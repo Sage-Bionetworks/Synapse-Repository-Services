@@ -225,7 +225,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa.setAccessorId(accessorId);
 		aa.setConcreteType(aa.getClass().getName());
 		aa.setRequirementId(requirementId);
-		aa.setApprovalStatus(ACTApprovalStatus.APPROVED);
 		return aa;
 	}
 	

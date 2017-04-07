@@ -221,7 +221,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		for (String accessor : submission.getAccessors()) {
 			ACTAccessApproval approval = new ACTAccessApproval();
 			approval.setAccessorId(accessor);
-			approval.setApprovalStatus(ACTApprovalStatus.APPROVED);
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);
 			approval.setModifiedBy(createdBy);
