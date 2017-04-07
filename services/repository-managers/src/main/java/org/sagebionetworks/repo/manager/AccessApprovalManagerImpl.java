@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -28,7 +30,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long DEFAULT_LIMIT = 50L;
@@ -82,7 +84,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	}
 
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
@@ -126,7 +128,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
@@ -143,7 +145,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.update(accessApproval);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -155,7 +157,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
 			throws UnauthorizedException {
@@ -169,5 +171,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
 		accessApprovalDAO.delete(accessRequirementId, accessorId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public Count deleteBatch(UserInfo userInfo, IdList toDelete) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(toDelete, "toDelete");
+		ValidateArgument.requirement(toDelete.getList() != null && !toDelete.getList().isEmpty(),
+				"toDelete must has at least one item.");
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admin can use this API.");
+		}
+		Count result = new Count();
+		result.setCount(new Long(accessApprovalDAO.deleteBatch(toDelete.getList())));
+		return result;
 	}
 }

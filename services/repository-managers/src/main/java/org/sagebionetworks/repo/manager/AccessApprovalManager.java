@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -52,4 +54,13 @@ public interface AccessApprovalManager {
 	 * @throws UnauthorizedException - if the user is not an admin or an ACT member
 	 */
 	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
+
+	/**
+	 * Delete a batch of AccessApproval
+	 * 
+	 * @param userInfo
+	 * @param toDelete
+	 * @return
+	 */
+	public Count deleteBatch(UserInfo userInfo, IdList toDelete);
 }

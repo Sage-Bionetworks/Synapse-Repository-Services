@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.*;
+
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -10,6 +14,8 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -84,5 +90,45 @@ public class AccessApprovalManagerImplUnitTest {
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
 		manager.deleteAccessApprovals(userInfo, accessRequirementId, "1");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteBatchWithNullUserInfo() {
+		IdList toDelete = new IdList();
+		toDelete.setList(Arrays.asList(1L));
+		manager.deleteBatch(null, toDelete);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteBatchWithNullIdList() {
+		UserInfo userInfo = new UserInfo(false);
+		manager.deleteBatch(userInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testDeleteBatchWithEmptyIdList() {
+		UserInfo userInfo = new UserInfo(false);
+		IdList toDelete = new IdList();
+		manager.deleteBatch(userInfo, toDelete);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testDeleteBatchUnauthorized() {
+		UserInfo userInfo = new UserInfo(false);
+		IdList toDelete = new IdList();
+		toDelete.setList(Arrays.asList(1L));
+		manager.deleteBatch(userInfo, toDelete);
+	}
+
+	@Test
+	public void testDeleteBatchAuthorized() {
+		UserInfo userInfo = new UserInfo(true);
+		IdList toDelete = new IdList();
+		toDelete.setList(Arrays.asList(1L));
+		when(mockAccessApprovalDAO.deleteBatch(Arrays.asList(1L))).thenReturn(1);
+		Count count = manager.deleteBatch(userInfo, toDelete);
+		assertNotNull(count);
+		assertEquals((Long)1L, count.getCount());
+		verify(mockAccessApprovalDAO).deleteBatch(Arrays.asList(1L));
 	}
 }
