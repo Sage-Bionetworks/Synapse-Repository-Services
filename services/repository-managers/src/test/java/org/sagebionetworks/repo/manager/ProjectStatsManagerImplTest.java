@@ -3,15 +3,15 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -151,6 +151,20 @@ public class ProjectStatsManagerImplTest {
 	}
 	
 	@Test
+	public void testUpdateProjectStatsTeamNotMembers(){
+		Long principalId = 707L;
+		when(mockUserGroupDao.isIndividual(principalId)).thenReturn(false);
+		when(mockGroupMemberDao.getMemberIds(principalId)).thenReturn(new HashSet<Long>());
+		
+		ObjectType type = ObjectType.ENTITY;
+		Date activityDate = new Date(1);
+		// call under test
+		manager.updateProjectStats(principalId, entityId, type, activityDate);
+		// should not be called
+		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
+	}
+	
+	@Test
 	public void testUpdateProjectStatsNotFound(){
 		// setup a not found case
 		when(mockNodeDao.getProjectId(entityId)).thenThrow(new NotFoundException("Does not exist"));
@@ -183,5 +197,21 @@ public class ProjectStatsManagerImplTest {
 				new ProjectStat(projectId2, memberId, activityDate)
 		};
 		verify(mockProjectStatDao).updateProjectStat(batchUpdate);
+	}
+	
+	@Test
+	public void testMemberAddedToTeamWithNoProjects(){
+		Long teamId = 99L;
+		Long memberId = 888L;
+		Date activityDate = new Date();
+		Set<Long> empty = new HashSet<Long>();
+		// the projects visible to the team
+		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
+						.newHashSet(teamId))).thenReturn(empty);
+		
+		// call under test
+		manager.memberAddedToTeam(teamId, memberId, activityDate);
+		// should not be called
+		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
 	}
 }
