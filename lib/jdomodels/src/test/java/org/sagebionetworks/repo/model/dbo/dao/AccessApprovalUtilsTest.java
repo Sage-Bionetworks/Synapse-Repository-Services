@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -60,7 +61,7 @@ public class AccessApprovalUtilsTest {
 	public void testCopyDtosToDbosForCreation() {
 		IdGenerator mockIdGenerator = Mockito.mock(IdGenerator.class);
 		AccessApproval dto = createDTO();
-		when(mockIdGenerator.generateNewId()).thenReturn(1L);
+		when(mockIdGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID)).thenReturn(1L);
 		List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(Arrays.asList(dto), true, mockIdGenerator);
 		assertNotNull(dbos);
 		assertEquals(1, dbos.size());

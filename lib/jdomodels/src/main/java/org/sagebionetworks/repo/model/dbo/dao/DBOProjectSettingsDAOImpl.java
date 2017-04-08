@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -83,7 +84,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		DBOProjectSetting dbo = new DBOProjectSetting();
 		copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(IdType.PROJECT_SETTINGS_ID));
 		}
 		if (dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());

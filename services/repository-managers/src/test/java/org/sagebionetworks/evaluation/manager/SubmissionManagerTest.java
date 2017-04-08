@@ -43,6 +43,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -245,7 +246,7 @@ public class SubmissionManagerTest {
       	mockEvaluationDAO = mock(EvaluationDAO.class);
       	mockDockerCommitDao = mock(DockerCommitDao.class);
 
-    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);

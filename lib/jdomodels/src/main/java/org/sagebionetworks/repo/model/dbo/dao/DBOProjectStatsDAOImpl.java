@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -56,7 +57,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 			}
 		} catch (EmptyResultDataAccessException e) {
 			dbo = new DBOProjectStat();
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(IdType.PROJECT_STATS_ID));
 			dbo.setProjectId(projectStat.getProjectId());
 			dbo.setUserId(projectStat.getUserId());
 			dbo.setLastAccessed(projectStat.getLastAccessed());

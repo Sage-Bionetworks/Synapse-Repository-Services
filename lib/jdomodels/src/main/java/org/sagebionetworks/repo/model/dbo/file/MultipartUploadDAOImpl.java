@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.MultipartUploadState;
 import org.sagebionetworks.repo.model.file.MultipartUploadStatus;
@@ -223,7 +223,7 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 				"NumberOfParts");
 
 		DBOMultipartUpload dbo = new DBOMultipartUpload();
-		dbo.setId(idGenerator.generateNewId(TYPE.MULTIPART_UPLOAD_ID));
+		dbo.setId(idGenerator.generateNewId(IdType.MULTIPART_UPLOAD_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setRequestHash(createRequest.getHash());
 		dbo.setStartedBy(createRequest.getUserId());

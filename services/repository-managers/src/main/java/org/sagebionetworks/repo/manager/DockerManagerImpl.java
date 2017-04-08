@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
@@ -251,7 +252,7 @@ public class DockerManagerImpl implements DockerManager {
 					// Get the user
 					UserInfo userInfo = userManager.getUserInfo(userId);
 					// Create a new id for this entity
-					long newId = idGenerator.generateNewId();
+					long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
 					entity.setId(KeyFactory.keyToString(newId));
 					entityManager.createEntity(userInfo, entity, null);
 					entityId =  KeyFactory.keyToString(newId);

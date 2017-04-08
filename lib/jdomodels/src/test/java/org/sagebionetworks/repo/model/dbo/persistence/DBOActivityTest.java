@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -53,7 +54,7 @@ public class DBOActivityTest {
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		DBOActivity activity = new DBOActivity();
-		activity.setId(idGenerator.generateNewId());
+		activity.setId(idGenerator.generateNewId(IdType.ACTIVITY_ID));
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		activity.setCreatedBy(createdById);
 		activity.setCreatedOn(System.currentTimeMillis());

@@ -59,7 +59,7 @@ import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -391,12 +391,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){
-			node.setId(idGenerator.generateNewId());
+			node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		}else{
 			// If an id was provided then it must not exist
 			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(node.getId(), TYPE.DOMAIN_IDS);
+			idGenerator.reserveId(node.getId(), IdType.ENTITY_ID);
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");

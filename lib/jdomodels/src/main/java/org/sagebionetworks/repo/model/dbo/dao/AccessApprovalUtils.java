@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -65,7 +66,7 @@ public class AccessApprovalUtils {
 			DBOAccessApproval dbo = new DBOAccessApproval();
 			copyDtoToDbo(dto, dbo);
 			if (forCreation) {
-				dbo.setId(idGenerator.generateNewId());
+				dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
 				dbo.seteTag(UUID.randomUUID().toString());
 			}
 			dbos.add(dbo);

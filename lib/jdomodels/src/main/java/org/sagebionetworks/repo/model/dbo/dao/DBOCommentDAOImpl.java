@@ -4,14 +4,13 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 
@@ -31,7 +30,7 @@ public class DBOCommentDAOImpl implements CommentDAO {
 		MessageUtils.copyDTOtoDBO(dto, content, info);
 		
 		// Generate an ID for all the new rows
-		Long messageId = idGenerator.generateNewId(TYPE.MESSAGE_ID);
+		Long messageId = idGenerator.generateNewId(IdType.MESSAGE_ID);
 		
 		// Insert the message content
 		content.setMessageId(messageId);

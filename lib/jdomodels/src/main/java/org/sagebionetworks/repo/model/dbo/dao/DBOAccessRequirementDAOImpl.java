@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -195,7 +196,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
 		}
 		if (dbo.geteTag() == null) {
 			dbo.seteTag(UUID.randomUUID().toString());

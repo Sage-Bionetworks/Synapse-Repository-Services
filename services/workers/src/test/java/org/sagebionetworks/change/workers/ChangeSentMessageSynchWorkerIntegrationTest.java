@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -132,7 +132,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		for(ChangeMessage change: changes){
 			change = changeDao.replaceChange(change);
 			// Move the ID generator forward
-			idGenerator.reserveId(change.getChangeNumber()+changeSentMessageSynchWorker.getMinimumPageSize()+10, TYPE.CHANGE_ID);
+			idGenerator.reserveId(change.getChangeNumber()+changeSentMessageSynchWorker.getMinimumPageSize()+10, IdType.CHANGE_ID);
 		}
 		// The worker should skip over all gaps and complete the synch.
 		waitForSynchState();

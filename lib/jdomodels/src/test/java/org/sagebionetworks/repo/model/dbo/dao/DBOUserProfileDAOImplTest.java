@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -331,7 +331,7 @@ public class DBOUserProfileDAOImplTest {
 		ef.setCreatedOn(new Date());
 		ef.setFileName("Some name");
 		ef.setEtag(UUID.randomUUID().toString());
-		ef.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		ef.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		ef = (ExternalFileHandle) fileHandleDao.createFile(ef);
 		fileHandlesToDelete.add(ef.getId());
 		// Create a new type
