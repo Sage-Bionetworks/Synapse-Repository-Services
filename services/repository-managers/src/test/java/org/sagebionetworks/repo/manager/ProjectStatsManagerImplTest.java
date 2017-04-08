@@ -126,7 +126,7 @@ public class ProjectStatsManagerImplTest {
 		Date activityDate = new Date(1);
 		// call under test
 		manager.updateProjectStats(userId, entityId, type, activityDate);
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, userId, activityDate));
+		verify(mockProjectStatDao).updateProjectStat(new ProjectStat(projectId, userId, activityDate));
 		verify(mockGroupMemberDao, never()).getMemberIds(anyLong());
 	}
 	
@@ -143,8 +143,11 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(principalId, entityId, type, activityDate);
 		// stats should be updated for each member
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, memberIdOne, activityDate));
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, memberIdTwo, activityDate));
+		ProjectStat[] batchUpdate = new ProjectStat[]{
+				new ProjectStat(projectId, memberIdOne, activityDate),
+				new ProjectStat(projectId, memberIdTwo, activityDate)
+		};
+		verify(mockProjectStatDao).updateProjectStat(batchUpdate);
 	}
 	
 	@Test
@@ -157,7 +160,7 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(userId, entityId, type, activityDate);
 		
-		verify(mockProjectStatDao, never()).update(any(ProjectStat.class));
+		verify(mockProjectStatDao, never()).updateProjectStat(any(ProjectStat.class));
 	}
 	
 	@Test
@@ -174,7 +177,11 @@ public class ProjectStatsManagerImplTest {
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);
-		verify(mockProjectStatDao).update(new ProjectStat(projectId1, memberId, activityDate));
-		verify(mockProjectStatDao).update(new ProjectStat(projectId2, memberId, activityDate));
+		// batch update
+		ProjectStat[] batchUpdate = new ProjectStat[]{
+				new ProjectStat(projectId1, memberId, activityDate),
+				new ProjectStat(projectId2, memberId, activityDate)
+		};
+		verify(mockProjectStatDao).updateProjectStat(batchUpdate);
 	}
 }

@@ -78,8 +78,6 @@ public class ProjectStatsWorkerIntegrationTest {
 	private V2WikiPageDao v2wikiPageDAO;
 	@Autowired
 	private TeamDAO teamDAO;
-//	@Autowired
-//	private AccessControlListDAO accessControlListDAO;
 	@Autowired
 	private EntityPermissionsManager entityPermissionManager;
 	@Autowired

@@ -83,13 +83,18 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 			long projectId = KeyFactory.stringToKey(projectIdString);
 			if(userGroupDao.isIndividual(principalId)){
 				// user.
-				projectStatDao.update(new ProjectStat(projectId, principalId, activityDate));
+				projectStatDao.updateProjectStat(new ProjectStat(projectId, principalId, activityDate));
 			}else{
 				// team so update for each member
 				Set<Long> memberIds = groupMemberDao.getMemberIds(principalId);
+				ProjectStat[] update = new ProjectStat[memberIds.size()];
+				int index = 0;
 				for(Long memberId: memberIds){
-					projectStatDao.update(new ProjectStat(projectId, memberId, activityDate));
+					update[index] = new ProjectStat(projectId, memberId, activityDate);
+					index++;
 				}
+				// batch update
+				projectStatDao.updateProjectStat(update);
 			}
 		}
 	}
@@ -102,10 +107,15 @@ public class ProjectStatsManagerImpl implements ProjectStatsManager {
 		ValidateArgument.required(memberId, "memberId");
 		// Lookup all projects that are visible by this team
 		Set<Long> visibleProjectIds = authorizationManager.getAccessibleProjectIds(Sets.newHashSet(teamId));
+		ProjectStat[] update = new ProjectStat[visibleProjectIds.size()];
+		int index = 0;
 		for(Long projectId: visibleProjectIds){
 			// Bump this user's stats for this project
-			projectStatDao.update(new ProjectStat(projectId, memberId, activityDate));
+			update[index] = new ProjectStat(projectId, memberId, activityDate);
+			index++;
 		}
+		// batch update
+		projectStatDao.updateProjectStat(update);
 	}
 
 }
