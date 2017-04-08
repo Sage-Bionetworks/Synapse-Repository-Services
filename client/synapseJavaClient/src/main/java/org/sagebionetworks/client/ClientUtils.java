@@ -60,72 +60,10 @@ public class ClientUtils {
 		if (is200sStatusCode(response.getStatusCode())) {
 			return;
 		}
-		try {
-			JSONObject reason = new JSONObject();
-			reason.append(ERROR_REASON_TAG, response.getContent());
-			throwException(response.getStatusCode(), reason);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
-		}
+		throwException(response.getStatusCode(), response.getContent());
 	}
 
-	/**
-	 * Try to convert response body to a JSON object. Then check for status code.
-	 * If statusCode is in [200,300) range, returns the JSON object. Otherwise,
-	 * throw an exception using the converted JSON object.
-	 * 
-	 * This method is used to check the SimpleHttpResponse that has expected
-	 * content in JSON format.
-	 * 
-	 * @param responseBody
-	 * @param statusCode
-	 * @return
-	 * @throws SynapseException
-	 */
-	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
-		ValidateArgument.required(response, "response");
-		JSONObject json = convertStringToJSONObject(response.getContent());
-		if (!is200sStatusCode(response.getStatusCode())) {
-			throwException(response.getStatusCode(), json);
-		}
-		return json;
-	}
-
-	/**
-	 * Converts a String to a JSON object.
-	 * 
-	 * @param toConvert
-	 * @return
-	 * @throws SynapseClientException
-	 */
-	public static JSONObject convertStringToJSONObject(String toConvert) throws SynapseClientException {
-		JSONObject json = null;
-		if (null != toConvert && toConvert.length()>0) {
-			try {
-				json = new JSONObject(toConvert);
-			} catch (JSONException e) {
-				throw new SynapseClientException("responseBody: <<"+toConvert+">>", e);
-			}
-		}
-		return json;
-	}
-
-	/**
-	 * 
-	 * @param statusCode
-	 * @param responseBody
-	 * @throws SynapseException
-	 */
-	public static void throwException(int statusCode, JSONObject responseBody) throws SynapseException {
-		ValidateArgument.requirement(!is200sStatusCode(statusCode), "Only support non 200s statusCode.");
-		String reasonStr = null;
-		if (responseBody!=null) {
-			try {
-				reasonStr = responseBody.getString(ERROR_REASON_TAG);
-			} catch (JSONException e) {
-				throw new SynapseClientException(e);
-			}
-		}
+	public static void throwException(int statusCode, String reasonStr) throws SynapseException {
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
 			throw new SynapseUnauthorizedException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
@@ -145,6 +83,80 @@ public class ClientUtils {
 		}else {
 			throw new SynapseServerException(statusCode, reasonStr);
 		}
+	}
+
+	/**
+	 * Try to convert response body to a JSON object. Then check for status code.
+	 * If statusCode is in [200,300) range, returns the JSON object. Otherwise,
+	 * throw an exception using the converted JSON object.
+	 * 
+	 * This method is used to check the SimpleHttpResponse that has expected
+	 * content in JSON format.
+	 * 
+	 * @param responseBody
+	 * @param statusCode
+	 * @return
+	 * @throws SynapseException
+	 */
+	public static JSONObject convertResponseBodyToJSONAndThrowException(SimpleHttpResponse response) throws SynapseException {
+		ValidateArgument.required(response, "response");
+		JSONObject json;
+		try {
+			json = convertStringToJSONObject(response.getContent());
+			if (!is200sStatusCode(response.getStatusCode())) {
+				throwException(response.getStatusCode(), json);
+			}
+			return json;
+		} catch (JSONException e) {
+			if (!is200sStatusCode(response.getStatusCode())) {
+				/* 
+				 * Even though the intended use of this method is for API that returns a JSON response,
+				 * a call to non-existing service - as a result of using an outdated client could
+				 * result in Tomcat throwing 404 error with a non JSON response.
+				 */
+				throwException(response.getStatusCode(), response.getContent());
+			}
+			/*
+			 * 200 status code return for an API that expected a JSON response,
+			 * but the response couldn't be converted to JSON
+			 */
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Converts a String to a JSON object.
+	 * 
+	 * @param toConvert
+	 * @return
+	 * @throws SynapseClientException
+	 */
+	public static JSONObject convertStringToJSONObject(String toConvert) throws JSONException {
+		JSONObject json = null;
+		if (null != toConvert && toConvert.length()>0) {
+			json = new JSONObject(toConvert);
+		}
+		return json;
+	}
+
+	/**
+	 * Used for response with JSON format
+	 * 
+	 * @param statusCode
+	 * @param responseBody
+	 * @throws SynapseException
+	 */
+	public static void throwException(int statusCode, JSONObject responseBody) throws SynapseException {
+		ValidateArgument.requirement(!is200sStatusCode(statusCode), "Only support non 200s statusCode.");
+		String reasonStr = null;
+		if (responseBody!=null) {
+			try {
+				reasonStr = responseBody.getString(ERROR_REASON_TAG);
+			} catch (JSONException e) {
+				throw new SynapseClientException(e);
+			}
+		}
+		throwException(statusCode, reasonStr);
 	}
 
 	/**
