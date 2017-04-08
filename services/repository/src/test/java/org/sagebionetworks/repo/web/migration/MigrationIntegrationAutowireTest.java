@@ -515,7 +515,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createProjectStat() {
 		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(project.getId()), adminUserId, new Date());
-		projectStatsDAO.update(projectStat);
+		projectStatsDAO.updateProjectStat(projectStat);
 	}
 
 	private void createQuizResponse() {

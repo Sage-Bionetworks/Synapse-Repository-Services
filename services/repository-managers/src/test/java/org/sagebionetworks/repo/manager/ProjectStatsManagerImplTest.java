@@ -3,15 +3,15 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -126,7 +126,7 @@ public class ProjectStatsManagerImplTest {
 		Date activityDate = new Date(1);
 		// call under test
 		manager.updateProjectStats(userId, entityId, type, activityDate);
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, userId, activityDate));
+		verify(mockProjectStatDao).updateProjectStat(new ProjectStat(projectId, userId, activityDate));
 		verify(mockGroupMemberDao, never()).getMemberIds(anyLong());
 	}
 	
@@ -143,8 +143,25 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(principalId, entityId, type, activityDate);
 		// stats should be updated for each member
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, memberIdOne, activityDate));
-		verify(mockProjectStatDao).update(new ProjectStat(projectId, memberIdTwo, activityDate));
+		ProjectStat[] batchUpdate = new ProjectStat[]{
+				new ProjectStat(projectId, memberIdOne, activityDate),
+				new ProjectStat(projectId, memberIdTwo, activityDate)
+		};
+		verify(mockProjectStatDao).updateProjectStat(batchUpdate);
+	}
+	
+	@Test
+	public void testUpdateProjectStatsTeamNotMembers(){
+		Long principalId = 707L;
+		when(mockUserGroupDao.isIndividual(principalId)).thenReturn(false);
+		when(mockGroupMemberDao.getMemberIds(principalId)).thenReturn(new HashSet<Long>());
+		
+		ObjectType type = ObjectType.ENTITY;
+		Date activityDate = new Date(1);
+		// call under test
+		manager.updateProjectStats(principalId, entityId, type, activityDate);
+		// should not be called
+		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
 	}
 	
 	@Test
@@ -157,7 +174,7 @@ public class ProjectStatsManagerImplTest {
 		// call under test
 		manager.updateProjectStats(userId, entityId, type, activityDate);
 		
-		verify(mockProjectStatDao, never()).update(any(ProjectStat.class));
+		verify(mockProjectStatDao, never()).updateProjectStat(any(ProjectStat.class));
 	}
 	
 	@Test
@@ -174,7 +191,27 @@ public class ProjectStatsManagerImplTest {
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);
-		verify(mockProjectStatDao).update(new ProjectStat(projectId1, memberId, activityDate));
-		verify(mockProjectStatDao).update(new ProjectStat(projectId2, memberId, activityDate));
+		// batch update
+		ProjectStat[] batchUpdate = new ProjectStat[]{
+				new ProjectStat(projectId1, memberId, activityDate),
+				new ProjectStat(projectId2, memberId, activityDate)
+		};
+		verify(mockProjectStatDao).updateProjectStat(batchUpdate);
+	}
+	
+	@Test
+	public void testMemberAddedToTeamWithNoProjects(){
+		Long teamId = 99L;
+		Long memberId = 888L;
+		Date activityDate = new Date();
+		Set<Long> empty = new HashSet<Long>();
+		// the projects visible to the team
+		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
+						.newHashSet(teamId))).thenReturn(empty);
+		
+		// call under test
+		manager.memberAddedToTeam(teamId, memberId, activityDate);
+		// should not be called
+		verify(mockProjectStatDao, never()).updateProjectStat(Matchers.<ProjectStat>anyVararg());
 	}
 }
