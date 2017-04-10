@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.List;
+
 import org.sagebionetworks.markdown.MarkdownDao;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
@@ -14,6 +18,8 @@ public class DataAccessSubmissionStatusMessageBuilderFactory implements MessageB
 	private MarkdownDao markdownDao;
 	@Autowired
 	private DataAccessSubmissionDAO dataAccessSubmissionDao;
+	@Autowired
+	private AccessRequirementDAO accessRequirementDao;
 
 	@Override
 	public BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType, Long userId) {
@@ -25,8 +31,11 @@ public class DataAccessSubmissionStatusMessageBuilderFactory implements MessageB
 				|| submission.getState().equals(DataAccessSubmissionState.APPROVED),
 				"DataAccessSubmissionState not supported: "+submission.getState());
 		boolean isRejected = submission.getState().equals(DataAccessSubmissionState.REJECTED);
+		List<RestrictableObjectDescriptor> subjects = accessRequirementDao.getSubjects(Long.parseLong(submission.getAccessRequirementId()));
+		ValidateArgument.requirement(subjects != null && !subjects.isEmpty(),
+				"There must be at least one subjects under access requirement.");
 		return new DataAccessSubmissionStatusBroadcastMessageBuilder(objectId,
-				submission.getRejectedReason(), submission.getAccessRequirementId(), markdownDao, isRejected);
+				submission.getRejectedReason(), submission.getAccessRequirementId(), subjects.get(0), markdownDao, isRejected);
 	}
 
 }

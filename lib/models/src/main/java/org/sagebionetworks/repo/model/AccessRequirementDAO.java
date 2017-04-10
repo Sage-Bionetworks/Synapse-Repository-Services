@@ -102,4 +102,12 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public AccessRequirementStats getAccessRequirementStats(String subjectID, RestrictableObjectType type);
+
+	/**
+	 * Retrieving the subjects under a given access requirement
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
 }

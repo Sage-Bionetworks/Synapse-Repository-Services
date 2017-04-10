@@ -227,6 +227,7 @@ public class DBOAccessRequirementDAOImplTest {
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
+		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId()));
 		
 		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
@@ -237,7 +238,7 @@ public class DBOAccessRequirementDAOImplTest {
 		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
-				
+
 		// Get by Node Id
 		Collection<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		assertEquals(1, ars.size());

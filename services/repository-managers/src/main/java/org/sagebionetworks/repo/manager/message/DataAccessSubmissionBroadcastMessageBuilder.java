@@ -24,17 +24,19 @@ public class DataAccessSubmissionBroadcastMessageBuilder implements BroadcastMes
 	public static final String TITLE = "Synapse Notification: New Data Access Request Submitted";
 	public static final String EMAIL_TEMPLATE = "**[%1$s](https://www.synapse.org/#!Profile:%2$s)** "
 			+ "has submitted a new data access request. \n"
-			// TODO: verify this link with Jay
-			+ "Please visit the [Access Requirement Manager page](https://www.synapse.org/#!Synapse:) to review the request.\n\n";
+			+ "Please visit the [Access Requirement Manager page](https://www.synapse.org/#!ACTDataAccessSubmissions:AR_ID=%3$s) to review the request.\n\n";
 	public static final String UNSUBSCRIBE = "[Unsubscribe from Data Access Submission](https://www.synapse.org/#!Subscription:subscriptionID=%1$s)\n";
 
 	private String actorUsername;
 	private String actorUserId;
+	private String accessRequirementId;
 	private MarkdownDao markdownDao;
 
-	DataAccessSubmissionBroadcastMessageBuilder(String actorUsername, String actorUserId, MarkdownDao markdownDao) {
+	DataAccessSubmissionBroadcastMessageBuilder(String actorUsername, String actorUserId,
+			String accessRequirementId, MarkdownDao markdownDao) {
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
+		this.accessRequirementId = accessRequirementId;
 		this.markdownDao = markdownDao;
 	}
 
@@ -62,7 +64,7 @@ public class DataAccessSubmissionBroadcastMessageBuilder implements BroadcastMes
 		StringBuilder sb = new StringBuilder();
 		String recipientName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		sb.append(String.format(GREETING, recipientName));
-		sb.append(String.format(EMAIL_TEMPLATE, actorUsername, actorUserId));
+		sb.append(String.format(EMAIL_TEMPLATE, actorUsername, actorUserId, accessRequirementId));
 		sb.append(String.format(UNSUBSCRIBE, subscriber.getSubscriptionId()));
 		return sb.toString();
 	}
