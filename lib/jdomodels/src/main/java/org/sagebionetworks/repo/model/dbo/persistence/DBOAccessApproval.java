@@ -284,24 +284,12 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
-				AccessApproval dto = AccessApprovalUtils.copyDboToDto(backup);
-				if (dto instanceof ACTAccessApproval) {
-					ACTAccessApproval act = (ACTAccessApproval) dto;
-					act.setApprovalStatus(null);
-					AccessApprovalUtils.copyToSerializedField(act, backup);
-				}
 				return backup;
 			}
 
 			@Override
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
-				AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
-				if (dto instanceof ACTAccessApproval) {
-					ACTAccessApproval act = (ACTAccessApproval) dto;
-					act.setApprovalStatus(null);
-					AccessApprovalUtils.copyToSerializedField(act, dbo);
-				}
 				return dbo;
 			}};
 	}

@@ -5,13 +5,5 @@
         {
             "$ref":"org.sagebionetworks.repo.model.AccessApproval"
         }
-    ],
-    "properties":{
-        "approvalStatus":{
-                "type":"object",
-                "description":"The approval status.  Required when creating or updating.",
-                "name":"Approval Status",
-                "$ref":"org.sagebionetworks.repo.model.ACTApprovalStatus"
-        }
-    }
+    ]
 }
