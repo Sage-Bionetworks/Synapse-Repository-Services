@@ -138,7 +138,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@WriteTransaction
 	@Override
 	public void sendDeleteMessage(String id) {
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ACTIVITY, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ACTIVITY);
 	}
 		
 	@Override

@@ -428,22 +428,6 @@ public class NodeManagerImplUnitTest {
 		assertEquals(copy, annos);
 	}
 	
-	/**
-	 * See PLFM-1533
-	 */
-	@Test
-	public void testIsParentIDChange(){
-		// test the various flavors of parent id change
-		assertTrue(NodeManagerImpl.isParentIdChange(null, "syn123"));
-		assertTrue(NodeManagerImpl.isParentIdChange("syn123", null));
-		assertTrue(NodeManagerImpl.isParentIdChange("syn1", "syn2"));
-		assertTrue(NodeManagerImpl.isParentIdChange("syn2", "syn1"));
-		assertFalse(NodeManagerImpl.isParentIdChange(null, null));
-		assertFalse(NodeManagerImpl.isParentIdChange("syn1", "syn1"));
-		assertFalse(NodeManagerImpl.isParentIdChange("1", "syn1"));
-		assertFalse(NodeManagerImpl.isParentIdChange("syn1", "1"));
-	}
-	
 	@Test
 	public void testGetActivityForNode() throws Exception {		
 		String nodeId = "123";

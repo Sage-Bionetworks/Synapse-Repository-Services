@@ -513,7 +513,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long longId = KeyFactory.stringToKey(id);
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -528,7 +528,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		for(long id : ids){
 			String stringID = KeyFactory.keyToString(id);
-			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
+			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);

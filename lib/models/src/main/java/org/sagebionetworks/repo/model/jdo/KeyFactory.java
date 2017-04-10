@@ -93,4 +93,22 @@ public class KeyFactory {
 			throw new DatastoreException(e);
 		}
 	}
+	
+	/**
+	 * Are the two Entity Ids equal?
+	 * 
+	 * @param idOne
+	 * @param idTwo
+	 * @return
+	 */
+	public static boolean equals(String idOne, String idTwo){
+		if(idOne == null){
+			return idTwo == null;
+		}
+		if(idTwo == null){
+			return false;
+		}
+		// ignore syn for the final equals
+		return KeyFactory.stringToKey(idOne).equals(KeyFactory.stringToKey(idTwo));
+	}
 }

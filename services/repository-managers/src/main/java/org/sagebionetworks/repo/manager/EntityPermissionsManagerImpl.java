@@ -40,6 +40,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -76,6 +78,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private PermissionDao permissionDao;
 	@Autowired
 	private ProjectStatsManager projectStatsManager;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 
 	@Override
@@ -141,49 +145,65 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@WriteTransaction
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		String rId = acl.getId();
-		String benefactor = nodeInheritanceManager.getBenefactor(rId);
-		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
+		String entityId = acl.getId();
+		Node node = nodeDao.getNode(entityId);
+		if(KeyFactory.equals(node.getBenefactorId(), entityId)){
+			throw new UnauthorizedException("Resource already has an ACL.");
+		}
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo));
+				hasAccess(node.getBenefactorId(), CHANGE_PERMISSIONS, userInfo));
 		
-		// validate content
-		Long ownerId = nodeDao.getCreatedBy(acl.getId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-		Node node = nodeDao.getNode(rId);
+		// validate the Entity owners will still have access.
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
-		nodeInheritanceManager.setNodeToInheritFromItself(rId);
+		nodeInheritanceManager.setNodeToInheritFromItself(entityId);
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		// if this is a container then send notification.
+		if(EntityType.project.equals(node.getNodeType())
+				|| EntityType.folder.equals(node.getNodeType())){
+			// Notify listeners of the hierarchy change to this container.
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+		}
 		return acl;
 	}
 
 	@WriteTransaction
 	@Override
-	public AccessControlList restoreInheritance(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		
+		// Before we can update the ACL we must grab the lock on the node.
+		Node node = nodeDao.getNode(entityId);
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				hasAccess(rId, CHANGE_PERMISSIONS, userInfo));
-		String benefactor = nodeInheritanceManager.getBenefactor(rId);
-		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
+				hasAccess(entityId, CHANGE_PERMISSIONS, userInfo));
+		if(!KeyFactory.equals(entityId, node.getBenefactorId())){
+			throw new UnauthorizedException("Resource already inherits its permissions.");	
+		}
 
 		// if parent is root, than can't inherit, must have own ACL
-		if (nodeDao.isNodesParentRoot(rId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
-
-		// Before we can update the ACL we must grab the lock on the node.
-		Node node = nodeDao.getNode(rId);
+		if (nodeDao.isNodesParentRoot(entityId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
+		
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
-		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(entityId);
 		
 		// delete access control list
-		aclDAO.delete(rId, ObjectType.ENTITY);
+		aclDAO.delete(entityId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
-		benefactor = nodeInheritanceManager.getBenefactor(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
+		
+		// if this is a container then send notification.
+		// if this is a container then send notification.
+		if(EntityType.project.equals(node.getNodeType())
+				|| EntityType.folder.equals(node.getNodeType())){
+			// Notify listeners of the hierarchy change to this container.
+			transactionalMessenger.sendDeleteMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER);
+		}
 		
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
 	}	

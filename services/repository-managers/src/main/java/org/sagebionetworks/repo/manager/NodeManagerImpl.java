@@ -414,7 +414,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		final String parentInDatabase = oldNode.getParentId();
 		final String parentInUpdate = updatedNode.getParentId();
 		final String nodeInUpdate = updatedNode.getId();
-		if (isParentIdChange(parentInDatabase, parentInUpdate)) {
+		// is this a parentId chagne?
+		if (!KeyFactory.equals(parentInDatabase, parentInUpdate)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 			// Validate the limits of the new parent
@@ -458,24 +459,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (log.isDebugEnabled()) {
 			log.debug("username "+userInfo.getId().toString()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
-	}
-
-	/**
-	 * Is this a parent ID change.  Note: ParenID can be null.
-	 * This was added for PLFM-1533.
-	 * @param one
-	 * @param two
-	 * @return
-	 */
-	public static boolean isParentIdChange(String one, String two){
-		if(one == null){
-			return two != null;
-		}
-		if(two == null){
-			return true;
-		}
-		// ignore syn for the final equals
-		return !KeyFactory.stringToKey(one).equals(KeyFactory.stringToKey(two));
 	}
 
 	@Override

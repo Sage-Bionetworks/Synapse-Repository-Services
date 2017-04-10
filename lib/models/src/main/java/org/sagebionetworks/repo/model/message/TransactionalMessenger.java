@@ -13,14 +13,34 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 public interface TransactionalMessenger {
 	
 	/**
-	 * Send a change message for the given object
-	 * after the current transaction commits.
+	 * Send a delete message after the current thread's transaction commits.
+	 * 
+	 * @param objectId
+	 * @param objectType
 	 */
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
+	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType);
+	
+	/**
+	 * Send a change message after the current thread's transaction commits.
+	 * Note: The ChangeMessage.userId will be set from the thread local context for this case.
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @param changeType
+	 */
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType);
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType);
+	
+	/**
+	 * Send a change message after the current thread's transaction commits.
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @param changeType
+	 * @param userId
+	 */
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType, Long userId);
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId);
 
 	/**
 	 * Send a change message fashioned after the passed entity

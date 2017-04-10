@@ -88,9 +88,8 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		projectSettingDao.delete(projectSettingId.toString());
 		Mockito.verify(mockBasicDao).deleteObjectByPrimaryKey(
 				(Class)Mockito.any(), (SinglePrimaryKeySqlParameterSource)Mockito.any());
-		Mockito.verify(mockTransactionalMessenger).sendMessageAfterCommit(
+		Mockito.verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(
 				Mockito.eq(projectSettingId.toString()),
-				Mockito.eq(ObjectType.PROJECT_SETTING),
-				Mockito.eq(ChangeType.DELETE));
+				Mockito.eq(ObjectType.PROJECT_SETTING));
 	}
 }
