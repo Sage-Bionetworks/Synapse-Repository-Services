@@ -195,12 +195,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
-		}
-		if (dbo.geteTag() == null) {
-			dbo.seteTag(UUID.randomUUID().toString());
-		}
+		dbo.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
+		dbo.seteTag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
