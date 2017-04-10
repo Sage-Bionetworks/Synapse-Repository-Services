@@ -208,13 +208,39 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test
-	public void testGetAll() {
+	public void testGetAllForThread() {
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		Set<Long> projectIds = new HashSet<Long>();
 		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.THREAD, projectIds )).thenReturn(results);
 		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.THREAD)).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
 		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testGetAllForForum() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		Set<Long> projectIds = new HashSet<Long>();
+		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.FORUM, projectIds )).thenReturn(results);
+		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.FORUM)).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testGetAllForDataAccessSubmission() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION, null)).thenReturn(results);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
+		verifyZeroInteractions(mockAclDao);
+	}
+
+	@Test
+	public void testGetAllForDataAccessSubmissionStatus() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, null)).thenReturn(results);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
+		verifyZeroInteractions(mockAclDao);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
