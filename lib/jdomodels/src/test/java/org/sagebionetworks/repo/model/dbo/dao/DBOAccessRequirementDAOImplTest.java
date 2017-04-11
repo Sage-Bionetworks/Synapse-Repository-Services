@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,12 +54,6 @@ public class DBOAccessRequirementDAOImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
-
-	@Autowired
-	EvaluationDAO evaluationDAO;
-	
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -69,7 +62,6 @@ public class DBOAccessRequirementDAOImplTest {
 	private TermsOfUseAccessRequirement accessRequirement2 = null;
 	private List<AccessRequirement> ars = null;
 	
-	private Evaluation evaluation = null;
 	private TermsOfUseAccessRequirement accessRequirement3 = null;
 	private TermsOfUseAccessRequirement accessRequirement4 = null;
 
@@ -88,10 +80,6 @@ public class DBOAccessRequirementDAOImplTest {
 		if (node2==null) {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
 			node2.setId( nodeDao.createNew(node2) );
-		};
-		if (evaluation==null) {
-			evaluation = createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
-			evaluation.setId( evaluationDAO.create(evaluation, Long.parseLong(individualGroup.getId())) );
 		};
 	}
 	
@@ -133,10 +121,6 @@ public class DBOAccessRequirementDAOImplTest {
 			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
-		if (evaluation!=null && evaluationDAO!=null) {
-			evaluationDAO.delete(evaluation.getId());
-			evaluation = null;
-		}
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
 		}
@@ -155,28 +139,13 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
-	// create an AccessRequirement which restricts both an entity and an Evaluation
-	public static TermsOfUseAccessRequirement newMixedAccessRequirement(UserGroup principal, Node node, Evaluation evaluation, String text) throws DatastoreException {
-		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
-		accessRequirement.setCreatedBy(principal.getId());
-		accessRequirement.setCreatedOn(new Date());
-		accessRequirement.setModifiedBy(principal.getId());
-		accessRequirement.setModifiedOn(new Date());
-		accessRequirement.setEtag("10");
-		accessRequirement.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		RestrictableObjectDescriptor erod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
-		RestrictableObjectDescriptor nrod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod, nrod, erod})); // test that repeated IDs doesn't break anything
-		accessRequirement.setTermsOfUse(text);
-		return accessRequirement;
-	}
-	
+
 	// for PLFM-1730 test that if we create a number of access requirements, they come back in the creation order
 	@Test
 	public void testRetrievalOrder() throws Exception{
 		this.ars = new ArrayList<AccessRequirement>();
 		for (int i=0; i<10; i++) {
-			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);			
+			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);
 			ars.add(accessRequirementDAO.create(accessRequirement));
 		}
 		List<AccessRequirement> ars2 = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
@@ -207,20 +176,7 @@ public class DBOAccessRequirementDAOImplTest {
 				subjectId
 				);
 	}
-	
-	@Test
-	public void testEntityAndEvaluationAccessRequirementCRUD() throws Exception{
-		// Create an AccessRequirement that restricts an entity and an Evaluation
-		accessRequirement = newMixedAccessRequirement(individualGroup, node, evaluation, "foo");
-		RestrictableObjectDescriptor subjectId = 
-			AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
-		
-		testAccessRequirementCRUDIntern(
-				accessRequirement,
-				subjectId
-				);
-	}
-			
+
 	private void testAccessRequirementCRUDIntern(AccessRequirement accessRequirement, RestrictableObjectDescriptor subjectId) throws Exception {
 		long initialCount = accessRequirementDAO.getCount();
 		
@@ -410,5 +366,33 @@ public class DBOAccessRequirementDAOImplTest {
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement2.getId().toString()));
 
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
+
+	/*
+	 * PLFM-3300
+	 */
+	@Test
+	public void testAROnEntityAndItsParent() {
+		node2.setParentId(node.getId());
+		nodeDao.updateNode(node2);
+
+		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy(individualGroup.getId());
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(individualGroup.getId());
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod1 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
+		accessRequirement.setTermsOfUse("text");
+
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		List<AccessRequirement> list = accessRequirementDAO.getAccessRequirementsForSubject(Arrays.asList(node.getId(), node2.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(accessRequirement, list.get(0));
+
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 }
