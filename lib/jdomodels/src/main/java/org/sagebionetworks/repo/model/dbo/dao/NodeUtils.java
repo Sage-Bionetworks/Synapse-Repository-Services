@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -227,6 +228,17 @@ public class NodeUtils {
 				node.getNodeType() == null) 
 			return false;
 		return true;
+	}
+	
+	/**
+	 * Is the given type a project or folder?
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static boolean isProjectOrFolder(EntityType type){
+		return EntityType.project.equals(type)
+				|| EntityType.folder.equals(type);
 	}
 	
 }

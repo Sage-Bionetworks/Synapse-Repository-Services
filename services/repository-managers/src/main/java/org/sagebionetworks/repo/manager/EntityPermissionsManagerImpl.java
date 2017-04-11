@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -163,9 +164,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
-		// if this is a container then send notification.
-		if(EntityType.project.equals(node.getNodeType())
-				|| EntityType.folder.equals(node.getNodeType())){
+		// Send a container message for projects or folders.
+		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// Notify listeners of the hierarchy change to this container.
 			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
 		}
@@ -197,10 +197,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// now find the newly governing ACL
 		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		
-		// if this is a container then send notification.
-		// if this is a container then send notification.
-		if(EntityType.project.equals(node.getNodeType())
-				|| EntityType.folder.equals(node.getNodeType())){
+		// Send a container message for projects or folders.
+		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// Notify listeners of the hierarchy change to this container.
 			transactionalMessenger.sendDeleteMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER);
 		}
