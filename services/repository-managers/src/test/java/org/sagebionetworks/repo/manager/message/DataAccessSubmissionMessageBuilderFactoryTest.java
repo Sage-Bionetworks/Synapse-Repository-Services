@@ -10,6 +10,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -20,11 +22,16 @@ public class DataAccessSubmissionMessageBuilderFactoryTest {
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	@Mock
 	private MarkdownDao mockMarkdownDao;
+	@Mock
+	private DataAccessSubmissionDAO mockDataAccessSubmissionDao;
+	@Mock
+	private DataAccessSubmission mockSubmission;
 	
 	DataAccessSubmissionMessageBuilderFactory factory;
 	private Long actorUserId;
 	private String actorUsername;
 	private String objectId;
+	private String requirementId;
 	
 	@Before
 	public void before(){
@@ -33,11 +40,15 @@ public class DataAccessSubmissionMessageBuilderFactoryTest {
 		factory = new DataAccessSubmissionMessageBuilderFactory();
 		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
+		ReflectionTestUtils.setField(factory, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
 
 		actorUserId = 1L;
 		actorUsername = "username";
 		objectId = "123";
+		requirementId = "2";
 		when(mockPrincipalAliasDAO.getUserName(actorUserId)).thenReturn(actorUsername);
+		when(mockDataAccessSubmissionDao.getSubmission(objectId)).thenReturn(mockSubmission);
+		when(mockSubmission.getAccessRequirementId()).thenReturn(requirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

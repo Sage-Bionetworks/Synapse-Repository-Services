@@ -41,6 +41,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOSubscriptionDAOImplTest {
 
+	private static final String ALL_OBJECT_IDS = "0";
 	@Autowired
 	private SubscriptionDAO subscriptionDao;
 	@Autowired
@@ -225,6 +226,24 @@ public class DBOSubscriptionDAOImplTest {
 	}
 
 	@Test
+	public void testGetAllSubmissionSubs(){
+		Subscription sub = subscriptionDao.create(userId, ALL_OBJECT_IDS, SubscriptionObjectType.DATA_ACCESS_SUBMISSION);
+		SubscriptionPagedResults results = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION, null);
+		assertEquals(1L, results.getResults().size());
+		assertEquals(sub, results.getResults().get(0));
+		subscriptionIdToDelete.add(sub.getSubscriptionId());
+	}
+
+	@Test
+	public void testGetAllSubmissionStatusSubs(){
+		Subscription sub = subscriptionDao.create(userId, "1", SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
+		SubscriptionPagedResults results = subscriptionDao.getAll(userId, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, null);
+		assertEquals(1L, results.getResults().size());
+		assertEquals(sub, results.getResults().get(0));
+		subscriptionIdToDelete.add(sub.getSubscriptionId());
+	}
+
+	@Test
 	public void testGetAllWithOffset(){
 		Subscription dto = subscriptionDao.create(userId, threadId, SubscriptionObjectType.THREAD);
 		SubscriptionPagedResults results = subscriptionDao.getAll(userId, 10L, 1L, SubscriptionObjectType.THREAD, projectIds);
@@ -280,6 +299,22 @@ public class DBOSubscriptionDAOImplTest {
 		nodeDAO.delete(projectId);
 		results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.THREAD, list);
 		assertEquals((Long) 0L, results.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testGetSubmissionStatusSubscriptionList(){
+		String submissionId = "1";
+		ArrayList<String> list = new ArrayList<String>();
+		list.add(submissionId);
+
+		SubscriptionPagedResults results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, list);
+		assertEquals(0L, results.getResults().size());
+
+		Subscription sub = subscriptionDao.create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
+		results = subscriptionDao.getSubscriptionList(userId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, list);
+		assertEquals(1L, results.getResults().size());
+		assertEquals(sub, results.getResults().get(0));
+		subscriptionIdToDelete.add(sub.getSubscriptionId());
 	}
 
 	@Test (expected=NotFoundException.class)

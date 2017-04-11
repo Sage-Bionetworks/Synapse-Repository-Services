@@ -22,6 +22,7 @@ public class DataAccessSubmissionBroadcastMessageBuilderTest {
 
 	private String actorUsername;
 	private String actorUserId;
+	private String requirementId;
 	private Subscriber subscriber;
 	
 	DataAccessSubmissionBroadcastMessageBuilder builder;
@@ -32,6 +33,7 @@ public class DataAccessSubmissionBroadcastMessageBuilderTest {
 
 		actorUsername = "someone";
 		actorUserId = "1";
+		requirementId = "2";
 	
 		subscriber = new Subscriber();
 		subscriber.setFirstName("subscriberFirstName");
@@ -41,7 +43,7 @@ public class DataAccessSubmissionBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 	
-		builder = new DataAccessSubmissionBroadcastMessageBuilder(actorUsername, actorUserId, mockMarkdownDao);
+		builder = new DataAccessSubmissionBroadcastMessageBuilder(actorUsername, actorUserId, requirementId, mockMarkdownDao);
 	}
 
 	@Test
@@ -51,8 +53,9 @@ public class DataAccessSubmissionBroadcastMessageBuilderTest {
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("someone"));
 		assertTrue(body.contains("Access Requirement Manager page"));
+		assertTrue(body.contains("https://www.synapse.org/#!ACTDataAccessSubmissions:AR_ID=2"));
 		assertTrue(body.contains("Unsubscribe from Data Access Submission"));
-		// TODO: verify links are correct
+		assertTrue(body.contains("https://www.synapse.org/#!Subscription:subscriptionID=999"));
 	}
 	
 	@Test (expected = MarkdownClientException.class)

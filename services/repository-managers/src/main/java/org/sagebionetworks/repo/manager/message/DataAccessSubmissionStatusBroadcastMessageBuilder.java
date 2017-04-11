@@ -10,6 +10,8 @@ import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -22,25 +24,26 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilder implements Broadc
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
 	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request.\n"
-			// TODO: verify this link with Jay
-			+"[View your request](https://www.synapse.org/#!Synapse:%1$s)";
+			+"[View your request](%1$s)";
 
 	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
 	public static final String REJECTED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:\n"
 			+ ">%1$s\n"
-			// TODO: verify this link with Jay
-			+ "Please visit [your request](https://www.synapse.org/#!Synapse:%2$s) and update information.\n\n";
+			+ "Please visit [your request](%2$s) and update information.\n\n";
+	public static final String ENTITY_REQUIREMENT_PAGE_LINK = "https://www.synapse.org/#!AccessRequirements:ID=%1$s&AR_ID=%2$s";
+	public static final String TEAM_REQUIREMENT_PAGE_LINK = "https://www.synapse.org/#!AccessRequirements:teamID=%1$s&AR_ID=%2$s";
 
 	private String subject;
 	private String emailTemplate;
 	private String submissionId;
 	private String rejectedReason;
-	private String requirementId;
 	private boolean isRejected;
+	private String requestLink;
 	private MarkdownDao markdownDao;
 
 	DataAccessSubmissionStatusBroadcastMessageBuilder(String submissionId,
-			String rejectedReason, String requirementId, MarkdownDao markdownDao, boolean isRejected) {
+			String rejectedReason, String requirementId, RestrictableObjectDescriptor rod,
+			MarkdownDao markdownDao, boolean isRejected) {
 		this.submissionId = submissionId;
 		this.isRejected = isRejected;
 		if (isRejected) {
@@ -51,7 +54,13 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilder implements Broadc
 			this.subject = APPROVED_TITLE;
 			this.emailTemplate = APPROVED_TEMPLATE;
 		}
-		this.requirementId = requirementId;
+		if (rod.getType().equals(RestrictableObjectType.ENTITY)) {
+			this.requestLink = String.format(ENTITY_REQUIREMENT_PAGE_LINK, rod.getId(), requirementId);
+		} else if (rod.getType().equals(RestrictableObjectType.TEAM)) {
+			this.requestLink = String.format(TEAM_REQUIREMENT_PAGE_LINK, rod.getId(), requirementId);
+		} else {
+			throw new IllegalArgumentException("Do not support type: "+rod.getType());
+		}
 		this.markdownDao = markdownDao;
 	}
 
@@ -80,9 +89,9 @@ public class DataAccessSubmissionStatusBroadcastMessageBuilder implements Broadc
 		String recipientName = EmailUtils.getDisplayNameWithUsername(subscriber.getFirstName(), subscriber.getLastName(), subscriber.getUsername());
 		sb.append(String.format(GREETING, recipientName));
 		if (isRejected) {
-			sb.append(String.format(emailTemplate, rejectedReason, requirementId));
+			sb.append(String.format(emailTemplate, rejectedReason, requestLink));
 		} else {
-			sb.append(String.format(emailTemplate, requirementId));
+			sb.append(String.format(emailTemplate, requestLink));
 		}
 		return sb.toString();
 	}

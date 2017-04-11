@@ -78,8 +78,15 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
 		Set<Long> projectIds = subscriptionDao.getAllProjects(userInfo.getId().toString(), objectType);
-		projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		return subscriptionDao.getAll(userInfo.getId().toString(), limit, offset, objectType, projectIds);
+		switch (objectType) {
+			case THREAD:
+			case FORUM:{
+				projectIds = aclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ);
+				return subscriptionDao.getAll(userInfo.getId().toString(), limit, offset, objectType, projectIds);
+			}
+			default:
+				return subscriptionDao.getAll(userInfo.getId().toString(), limit, offset, objectType, null);
+		}
 	}
 
 	@WriteTransactionReadCommitted
