@@ -13,8 +13,6 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -50,12 +48,10 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 	private Long userId;
 	private UserInfo testUser;
 	private Project project;
-	private Evaluation evaluation;
 
 	private List<String> toDelete;
 	
 	private AccessRequirement entityAccessRequirement = null;
-	private AccessRequirement evaluationAccessRequirement = null;
 	
 	private static AccessRequirement newAccessRequirement() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
@@ -92,23 +88,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		entityAccessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
 		entityAccessRequirement = servletTestHelper.createAccessRequirement(
 				 dispatchServlet, entityAccessRequirement, userId, extraParams);
-		
-		evaluation = new Evaluation();
-		evaluation.setName("name");
-		evaluation.setContentSource(project.getId());
-		evaluation.setDescription("description");
-		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = entityServletHelper.createEvaluation(evaluation, userId);
-		
-		evaluationAccessRequirement = newAccessRequirement();
-		subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluation.getId());
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		evaluationAccessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
-		evaluationAccessRequirement = servletTestHelper.createAccessRequirement(
-				 dispatchServlet, evaluationAccessRequirement, userId, extraParams);
-		
-	}
+		}
 
 	@After
 	public void after() throws Exception {
@@ -123,11 +103,6 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 					// nothing to do here.
 				}
 			}
-		}
-		servletTestHelper.deleteAccessRequirements(dispatchServlet, evaluationAccessRequirement.getId().toString(), userId);
-		try {
-			entityServletHelper.deleteEvaluation(evaluation.getId(), userId);
-		} catch (Exception e) {
 		}
 	}
 
@@ -169,31 +144,6 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		
 		results = servletTestHelper.getEntityAccessApprovals(
 				dispatchServlet, entityId, userId);	
-		ars = results.getResults();
-		assertEquals(0, ars.size());
-	}
-
-	@Test
-	public void testEvaluationAccessApprovalRoundTrip() throws Exception {
-		// create a new access approval
-		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(evaluationAccessRequirement.getId(), testUser.getId().toString());
-		AccessApproval clone = servletTestHelper.createAccessApproval(
-				 dispatchServlet, accessApproval, userId, extraParams);
-		assertNotNull(clone);
-
-		// test getAccessApprovals for the entity
-		PaginatedResults<AccessApproval> results = servletTestHelper
-				.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userId);
-		List<AccessApproval> ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		// test deletion
-		servletTestHelper.deleteAccessApproval(dispatchServlet, ars.get(0).getId().toString(), userId);
-		
-		results = servletTestHelper.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userId);
 		ars = results.getResults();
 		assertEquals(0, ars.size());
 	}
