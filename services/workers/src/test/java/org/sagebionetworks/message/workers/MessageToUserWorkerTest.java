@@ -44,7 +44,6 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("id");
 		chgMsg.setObjectType(ObjectType.ENTITY);
-		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		// call under test
 		worker.run(mockCallback, chgMsg);
@@ -58,7 +57,6 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("12345");
 		chgMsg.setObjectType(ObjectType.MESSAGE);
-		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		NotFoundException e = new NotFoundException();
 		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.common.util.progress.ProgressCallback.class))).thenThrow(e);
@@ -75,7 +73,6 @@ public class MessageToUserWorkerTest {
 		chgMsg.setObjectEtag("etag");
 		chgMsg.setObjectId("12345");
 		chgMsg.setObjectType(ObjectType.MESSAGE);
-		chgMsg.setParentId("parentId");
 		chgMsg.setTimestamp(new Date());
 		RuntimeException e = new RuntimeException();
 		when(mockMessageManager.processMessage(eq(chgMsg.getObjectId()), any(org.sagebionetworks.common.util.progress.ProgressCallback.class))).thenThrow(e);

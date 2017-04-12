@@ -219,7 +219,6 @@ public class MessageUtils {
 		message.setChangeType(type);
 		message.setObjectEtag(etag);
 		message.setObjectId(nodeId);
-		message.setParentId(parentId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
 	}
@@ -240,7 +239,6 @@ public class MessageUtils {
 		message.setObjectEtag(etag);
 		message.setObjectId(objectId);
 		message.setObjectType(objectType);
-		message.setParentId(parentId);
 		message.setTimestamp(new Date(timestamp));
 		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}

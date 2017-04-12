@@ -81,27 +81,16 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType) {
-		sendMessageAfterCommit(objectId, objectType, null, changeType);
+	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType) {
+		String etag = null;
+		sendMessageAfterCommit(objectId, objectType, etag, ChangeType.DELETE);
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
-		sendMessageAfterCommit(objectId, objectType, etag, changeType, null);
-	}
-
-	@WriteTransactionReadCommitted
-	@Deprecated
-	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType) {
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(changeType);
-		message.setObjectType(objectType);
-		message.setObjectId(objectId);
-		message.setParentId(parentId);
-		message.setObjectEtag(etag);
-		sendMessageAfterCommit(message);
+		Long userId = null;
+		sendMessageAfterCommit(objectId, objectType, etag, changeType, userId);
 	}
 	
 	@WriteTransactionReadCommitted
@@ -111,7 +100,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setChangeType(changeType);
 		message.setObjectType(entity.getObjectType());
 		message.setObjectId(entity.getIdString());
-		message.setParentId(entity.getParentIdString());
 		message.setObjectEtag(entity.getEtag());
 		sendMessageAfterCommit(message);
 	}
@@ -127,11 +115,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		appendToBoundMessages(message);
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId) {
-		sendMessageAfterCommit(objectId, objectType, null, changeType, userId);
-	}
 
 	@WriteTransactionReadCommitted
 	@Override

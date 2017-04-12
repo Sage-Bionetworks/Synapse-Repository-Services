@@ -94,7 +94,7 @@ public class TrashManagerImpl implements TrashManager {
 			final String parentId = nodeDao.getParentId(descendantId);
 			trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
 			String etag = nodeDao.peekCurrentEtag(descendantId);
-			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.DELETE);
+			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, ChangeType.DELETE);
 		}
 	}
 
@@ -159,7 +159,7 @@ public class TrashManagerImpl implements TrashManager {
 			// Send CREATE message
 			String parentId = nodeDao.getParentId(descendantId);
 			String etag = nodeDao.peekCurrentEtag(descendantId);
-			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.CREATE);
+			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, ChangeType.CREATE);
 		}
 	}
 

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
@@ -73,5 +72,22 @@ public class KeyFactoryTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testStringToKeyListNull(){
 		KeyFactory.stringToKey((List<String>)null);
+	}
+	
+	/**
+	 * See PLFM-1533
+	 */
+	@Test
+	public void testEquals(){
+		// test the various flavors of parent id change
+		assertFalse(KeyFactory.equals(null, "syn123"));
+		assertFalse(KeyFactory.equals("syn123", null));
+		assertFalse(KeyFactory.equals("syn1", "syn2"));
+		assertFalse(KeyFactory.equals("syn2", "syn1"));
+		assertTrue(KeyFactory.equals(null, null));
+		assertTrue(KeyFactory.equals("syn1", "syn1"));
+		assertTrue(KeyFactory.equals("1", "syn1"));
+		assertTrue(KeyFactory.equals("syn1", "1"));
+		assertTrue(KeyFactory.equals("SYN1", " syn1 "));
 	}
 }

@@ -169,7 +169,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		basicDao.deleteObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PROJECT_SETTING, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.PROJECT_SETTING);
 	}
 
 	@WriteTransaction

@@ -36,7 +36,7 @@
 	<bean name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[TableViewWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
+	<bean name="stackConfiguration.workerQueueName[EntityHierarchyChangeWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<!-- Topics -->
 	<bean name="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[EVALUATION_SUBMISSIONS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -54,6 +54,7 @@
 	<bean name="stackConfiguration.repositoryChangeTopic[ENTITY_VIEW]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[DATA_ACCESS_SUBMISSION]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.repositoryChangeTopic[DATA_ACCESS_SUBMISSION_STATUS]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.repositoryChangeTopic[ENTITY_CONTAINER]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

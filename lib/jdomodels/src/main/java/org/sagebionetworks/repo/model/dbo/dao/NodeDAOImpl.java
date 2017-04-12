@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -128,6 +129,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_NODE_TYPES = "bNodeTypes";
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
+	
+	private static final String SQL_SELECT_CHILDREN = 
+			"SELECT"
+			+ " "+COL_NODE_ID
+			+", "+COL_NODE_TYPE
+			+" FROM "+TABLE_NODE
+			+" WHERE "+COL_NODE_PARENT_ID+" = ?"
+					+ " LIMIT ? OFFSET ?";
 	
 	private static final String SQL_COUNT_CHILDREN = 
 			"SELECT COUNT("+COL_NODE_ID+")"
@@ -513,7 +522,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long longId = KeyFactory.stringToKey(id);
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -528,7 +537,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		for(long id : ids){
 			String stringID = KeyFactory.keyToString(id);
-			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
+			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
@@ -1782,6 +1791,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public long getChildCount(String parentId) {
 		ValidateArgument.required(parentId, "parentId");
 		return jdbcTemplate.queryForObject(SQL_COUNT_CHILDREN, Long.class, KeyFactory.stringToKey(parentId));
+	}
+
+	@Override
+	public List<NodeIdAndType> getChildren(String parentId, long limit,
+			long offset) {
+		ValidateArgument.required(parentId, "parentId");
+		Long parentIdLong = KeyFactory.stringToKey(parentId);
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN, new RowMapper<NodeIdAndType>(){
+
+			@Override
+			public NodeIdAndType mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				String nodeId = KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
+				EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+				return new NodeIdAndType(nodeId, type);
+			}}, parentIdLong, limit, offset);
 	}
 
 }

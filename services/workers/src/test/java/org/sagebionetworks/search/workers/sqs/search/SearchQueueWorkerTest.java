@@ -59,14 +59,12 @@ public class SearchQueueWorkerTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectEtag("etag1");
 		message.setObjectId("one");
-		message.setParentId("parent1");
 		message.setObjectType(ObjectType.ENTITY);
 		
 		message2 = new ChangeMessage();
 		message2.setChangeType(ChangeType.CREATE);
 		message2.setObjectEtag("etag2");
 		message2.setObjectId("two");
-		message2.setParentId("parent2");
 		message2.setObjectType(ObjectType.ENTITY);
 	}
 	

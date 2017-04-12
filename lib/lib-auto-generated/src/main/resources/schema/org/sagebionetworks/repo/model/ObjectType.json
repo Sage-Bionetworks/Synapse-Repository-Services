@@ -4,6 +4,7 @@
     "links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
     "enum":[
     	"ENTITY",
+    	"ENTITY_CONTAINER",
     	"PRINCIPAL",
     	"ACTIVITY",
     	"EVALUATION",
