@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long DEFAULT_LIMIT = 50L;
@@ -54,27 +54,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Autowired
 	private JiraClient jiraClient;
-	
-	public AccessRequirementManagerImpl() {}
-	
-	// for testing 
-	public AccessRequirementManagerImpl(
-			AccessRequirementDAO accessRequirementDAO,
-			NodeDAO nodeDao,
-			AuthorizationManager authorizationManager,
-			JiraClient jiraClient,
-			NotificationEmailDAO notificationEmailDao
-	) {
-		this.accessRequirementDAO=accessRequirementDAO;
-		this.nodeDao=nodeDao;
-		this.authorizationManager=authorizationManager;
-		this.jiraClient=jiraClient;
-		this.notificationEmailDao=notificationEmailDao;
-	}
-	
-	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
-		if (a.getAccessType()==null ||
-				a.getSubjectIds()==null) throw new InvalidModelException();
+
+	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
+		if (ar.getAccessType()==null
+				|| ar.getSubjectIds()==null) throw new InvalidModelException();
+		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
+			ValidateArgument.requirement(!rod.getType().equals(RestrictableObjectType.EVALUATION),
+					"No longer support RestrictableObjectType.EVALUATION");
+		}
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {
@@ -93,7 +80,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedOn(now);
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
@@ -120,7 +107,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirement;
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		// check authority
@@ -241,30 +228,29 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirementDAO.getAccessRequirementsForSubject(subjectIds, rod.getType(), limit, offset);
 	}
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
 		if (!accessRequirementId.equals(accessRequirement.getId().toString()))
 			throw new InvalidModelException("Update specified ID "+accessRequirementId+" but object contains id: "+
 		accessRequirement.getId());
-		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, accessRequirement.getId().toString(),
+						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 		populateModifiedFields(userInfo, accessRequirement);
 		return (T) accessRequirementDAO.update(setDefaultValues(accessRequirement));
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		verifyCanAccess(userInfo, accessRequirementId, ACCESS_TYPE.DELETE);
-		accessRequirementDAO.delete(accessRequirementId);
-	}
-
-	private void verifyCanAccess(UserInfo userInfo, String accessRequirementId, ACCESS_TYPE accessType) throws UnauthorizedException, NotFoundException {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, accessType));
+				authorizationManager.canAccess(userInfo, accessRequirementId,
+						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.DELETE));
+		accessRequirementDAO.delete(accessRequirementId);
 	}
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {

@@ -117,6 +117,19 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateARForEvaluation() {
+		ACTAccessRequirement toCreate = new ACTAccessRequirement();
+		toCreate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		toCreate.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(TEST_ENTITY_ID);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		toCreate.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		AccessRequirementManagerImpl.populateCreationFields(userInfo, toCreate);
+		arm.createAccessRequirement(userInfo, toCreate);
+	}
 	
 	private AccessRequirement createExpectedAR() {
 		ACTAccessRequirement expectedAR = new ACTAccessRequirement();

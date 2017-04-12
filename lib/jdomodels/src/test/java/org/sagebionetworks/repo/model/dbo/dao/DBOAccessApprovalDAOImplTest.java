@@ -111,8 +111,7 @@ public class DBOAccessApprovalDAOImplTest {
 			updateAccessType= new ArrayList<ACCESS_TYPE>();
 			updateAccessType.add(ACCESS_TYPE.UPDATE);
 		}
-}
-		
+	}
 	
 	@After
 	public void tearDown() throws Exception{

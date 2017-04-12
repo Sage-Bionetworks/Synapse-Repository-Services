@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,10 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -38,11 +33,9 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -58,16 +51,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
-	private EvaluationManager evaluationManager;
-	
-	@Autowired
 	private TeamManager teamManager;
 	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
-	
-	@Autowired
-	private EvaluationPermissionsManager evaluationPermissionsManager;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
@@ -80,12 +67,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private String entityId2;
 	private String childId;
 	private String fileId;
-	
-	private Evaluation evaluation;
-	private Evaluation evaluation2;
-	private Evaluation adminEvaluation;
-	
-	
 	private Team team;
 	
 	private AccessRequirement ar;
@@ -136,9 +117,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		raSet.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 
-		evaluation = newEvaluation("test-name", testUserInfo, rootId);
-		adminEvaluation = newEvaluation("admin-name", adminUserInfo, rootId);
-
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
 		rootProject.setNodeType(EntityType.project);
@@ -150,24 +128,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setParentId(rootId2);
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
-		evaluation2 = newEvaluation("test-name2", adminUserInfo, rootId2);
-		
 		team = new Team();
 		team.setName("AccessRequirementManagerImplAutoWiredTest");
 		team = teamManager.create(adminUserInfo, team);
 	}
-	
-	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
-		Evaluation evaluation = new Evaluation();
-		evaluation.setName(name);
-		evaluation.setCreatedOn(new Date());
-		evaluation.setContentSource(contentSource);
-		evaluation.setDescription("description");
-		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = evaluationManager.createEvaluation(userInfo, evaluation);
-		return evaluation;
-	}
-	
+
 	@After
 	public void after() throws Exception {
 		if(nodeManager != null && nodesToDelete != null){
@@ -182,25 +147,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		if (ar!=null && ar.getId()!=null && accessRequirementManager!=null) {
 			accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
-		}
-		
-		if (evaluation!=null) {
-			try {
-				evaluationManager.deleteEvaluation(adminUserInfo, evaluation.getId());
-				evaluation=null;
-			} catch (Exception e) {}
-		}
-		if (evaluation2!=null) {
-			try {
-				evaluationManager.deleteEvaluation(adminUserInfo, evaluation2.getId());
-				evaluation2=null;
-			} catch (Exception e) {}
-		}
-		if (adminEvaluation!=null) {
-			try {
-				evaluationManager.deleteEvaluation(adminUserInfo, adminEvaluation.getId());
-				adminEvaluation=null;
-			} catch (Exception e) {}
 		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 		if (team!=null) teamManager.delete(adminUserInfo, team.getId());
@@ -217,19 +163,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
 	}
-	
-	private static TermsOfUseAccessRequirement newEvaluationAccessRequirement(String evaluationId) {
-		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(evaluationId);
-		rod.setType(RestrictableObjectType.EVALUATION);
-		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setConcreteType(ar.getClass().getName());
-		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		ar.setTermsOfUse(TERMS_OF_USE);
-		return ar;
-	}
-	
+
 	private static TermsOfUseAccessRequirement newTeamAccessRequirement(String teamId) {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -273,19 +207,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertFalse(actAR.getIsAnnualReviewRequired());
 		assertFalse(actAR.getIsIDUPublic());
 	}
-	
-	@Test
-	public void testCreateEvaluationAccessRequirement() throws Exception {
-		ar = newEvaluationAccessRequirement(evaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		assertNotNull(ar.getCreatedBy());
-		assertNotNull(ar.getCreatedOn());
-		assertNotNull(ar.getSubjectIds());
-		assertNotNull(ar.getId());
-		assertNotNull(ar.getModifiedBy());
-		assertNotNull(ar.getModifiedOn());
-	}
-	
+
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam1() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
@@ -303,13 +225,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testEntityCreateAccessRequirementForbidden() throws Exception {
 		ar = newEntityAccessRequirement(entityId2);
-		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
-	}
-	
-	@Test(expected=UnauthorizedException.class)
-	public void testEvaluationCreateAccessRequirementForbidden() throws Exception {
-		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
-		// this user will not have permission to add a restriction to the evaluation
 		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 	}
 	
@@ -427,11 +342,5 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
 		assertEquals(0, ars.size());
 	}
-	
-	@Test(expected=UnauthorizedException.class)
-	public void testDeleteEvaluationAccessRequirementForbidden() throws Exception {
-		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		accessRequirementManager.deleteAccessRequirement(testUserInfo, ar.getId().toString());
-	}
+
 }

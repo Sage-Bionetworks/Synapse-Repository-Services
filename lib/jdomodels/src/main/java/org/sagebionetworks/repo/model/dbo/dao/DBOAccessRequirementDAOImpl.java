@@ -53,7 +53,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
@@ -187,7 +187,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -195,7 +195,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException{
 	
@@ -210,7 +210,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	public void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		if (subjectIds==null || subjectIds.isEmpty()) return;
 
@@ -299,7 +299,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return dtos;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T update(T dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
