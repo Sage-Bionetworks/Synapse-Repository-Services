@@ -217,12 +217,10 @@ public class TransactionalMessengerImplTest {
 	@Test
 	public void testPLFM_1662(){
 		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
-		// We need stub dao to detect this bug.
-		DBOChangeDAO stubChangeDao = new StubDBOChangeDAO();
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy, testClock);
+		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
 		
 		ChangeMessage message = new ChangeMessage();

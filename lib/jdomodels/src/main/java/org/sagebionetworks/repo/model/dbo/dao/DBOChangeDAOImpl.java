@@ -22,8 +22,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,12 +44,14 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 
 /**
@@ -55,6 +60,15 @@ import org.springframework.jdbc.core.SingleColumnRowMapper;
  *
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
+	
+	private static final String BIND_TYPE = "bType";
+	private static final String BIND_OBJECT_IDS = "bObjectids";
+	
+	private static final String SQL_SELECT_CHANGES_BY_OBJECT_IDS_AND_TYPE = 
+			"SELECT *"
+			+ " FROM "+TABLE_CHANGES
+			+" WHERE "+COL_CHANGES_OBJECT_TYPE+" = :"+BIND_TYPE
+			+" AND "+COL_CHANGES_OBJECT_ID+" IN (:"+BIND_OBJECT_IDS+")";
 	
 	public static final String SQL_COUNT_CHANGE_NUMBER = "SELECT COUNT("+COL_CHANGES_CHANGE_NUM+") FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" = ?";
 
@@ -123,6 +137,9 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -376,6 +393,23 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(e.getMessage());
 		}
+	}
+
+	@Override
+	public List<ChangeMessage> getChangesForObjectIds(ObjectType objectType,
+			Set<Long> objectIds) {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(objectIds, "objectIds");
+		List<DBOChange> dboList;
+		if(objectIds.isEmpty()){
+			dboList = new LinkedList<>();
+		}else{
+			Map<String, Object> params = new HashMap<String, Object>(2);
+			params.put(BIND_TYPE, objectType.name());
+			params.put(BIND_OBJECT_IDS, objectIds);
+			dboList =  namedParameterJdbcTemplate.query(SQL_SELECT_CHANGES_BY_OBJECT_IDS_AND_TYPE, params, rowMapper);
+		}
+		return ChangeMessageUtils.createDTOList(dboList);
 	}
 
 }

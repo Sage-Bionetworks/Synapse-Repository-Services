@@ -8,6 +8,19 @@ public class NodeIdAndType {
 
 	String nodeId;
 	EntityType type;
+	
+	/**
+	 * Create with ID and type.
+	 * 
+	 * @param nodeId
+	 * @param type
+	 */
+	public NodeIdAndType(String nodeId, EntityType type) {
+		super();
+		this.nodeId = nodeId;
+		this.type = type;
+	}
+	
 	public String getNodeId() {
 		return nodeId;
 	}
