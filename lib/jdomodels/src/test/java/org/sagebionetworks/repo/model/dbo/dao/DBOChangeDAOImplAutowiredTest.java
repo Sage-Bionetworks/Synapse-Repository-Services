@@ -10,8 +10,10 @@ import static org.junit.Assert.fail;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -32,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -686,5 +691,39 @@ public class DBOChangeDAOImplAutowiredTest {
 		change.setObjectType(ObjectType.FORUM);
 		ChangeMessage clone = changeDAO.replaceChange(change);
 		assertEquals(clone.getObjectEtag(), changeDAO.getEtag(123L, ObjectType.FORUM));
+	}
+	
+	@Test
+	public void testGetChangesForObjectIds(){
+		List<ChangeMessage> entityBatch = createList(3, ObjectType.ENTITY);
+		changeDAO.replaceChange(entityBatch);
+		List<ChangeMessage> principalBatch = createList(3, ObjectType.PRINCIPAL);
+		changeDAO.replaceChange(principalBatch);
+		
+		Long entityIdOne = KeyFactory.stringToKey(entityBatch.get(0).getObjectId());
+		Long entityIdTwo = KeyFactory.stringToKey(entityBatch.get(1).getObjectId());
+		Set<Long> idsToFetch = Sets.newHashSet(entityIdOne, entityIdTwo);
+		// call under test
+		List<ChangeMessage> results = changeDAO.getChangesForObjectIds(ObjectType.ENTITY, idsToFetch);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for(ChangeMessage message: results){
+			if(entityBatch.get(0).getObjectId().equals(message.getObjectId())){
+				assertEquals(ObjectType.ENTITY, message.getObjectType());
+			}else if(entityBatch.get(1).getObjectId().equals(message.getObjectId())){
+				assertEquals(ObjectType.ENTITY, message.getObjectType());
+			}else{
+				fail("unexpected result: "+message);
+			}
+		}
+	}
+	
+	@Test
+	public void testGetChangesForObjectIdsEmpty(){
+		Set<Long> idsToFetch = new HashSet<>();
+		// call under test
+		List<ChangeMessage> results = changeDAO.getChangesForObjectIds(ObjectType.ENTITY, idsToFetch);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 }

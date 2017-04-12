@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.dom4j.rule.pattern.NodeTypePattern;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -3287,4 +3289,41 @@ public class NodeDAOImplTest {
 		assertEquals(0L, childCount);
 	}
 
+	@Test
+	public void testGetChildrenTwo(){
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		Node folder1 = nodes.get(1);
+		Node folder2 = nodes.get(2);
+		Node file1 = nodes.get(3);
+		
+		String parentId = project.getId();
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		for(NodeIdAndType result: results){
+			if(folder1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (folder2.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (file1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.file, result.getType());
+			}else{
+				fail("unexpected child");
+			}
+		}
+	}
+	
+	@Test
+	public void testGetChildrenUnknownParentId(){	
+		String parentId = "syn1";
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
 }

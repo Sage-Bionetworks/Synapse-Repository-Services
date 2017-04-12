@@ -211,7 +211,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	@Override
 	public void setTableDeleted(String deletedId, ObjectType tableType) {
-		transactionalMessenger.sendMessageAfterCommit(deletedId, tableType, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(deletedId, tableType);
 	}
 	
 	/*

@@ -514,4 +514,15 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public long getChildCount(String parentId);
+
+	/**
+	 * A single page of IDs and types for a given parentIds.
+	 * 
+	 * @param parentId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<NodeIdAndType> getChildren(String parentId, long limit,
+			long offset);
 }
