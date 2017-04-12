@@ -1,9 +1,9 @@
 {
- 	"properties":{
-        "id":{
-            "type":"string"
-        },
-        "type":{
+	"properties":{
+		"id":{
+			"type":"string"
+		},
+		"type":{
 			"$ref":"org.sagebionetworks.repo.model.RestrictableObjectType"
 		}
 	}
