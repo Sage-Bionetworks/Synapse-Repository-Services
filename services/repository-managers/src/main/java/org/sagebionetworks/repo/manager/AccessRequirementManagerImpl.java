@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformation;
@@ -56,8 +57,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	private JiraClient jiraClient;
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
-		if (ar.getAccessType()==null
-				|| ar.getSubjectIds()==null) throw new InvalidModelException();
+		ValidateArgument.required(ar.getAccessType(), "AccessType");
+		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
+		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
+				"No longer support PostMessageContentAccessRequirement.");
 		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
 			ValidateArgument.requirement(!rod.getType().equals(RestrictableObjectType.EVALUATION),
 					"No longer support RestrictableObjectType.EVALUATION");

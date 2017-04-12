@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformation;
@@ -128,6 +129,25 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		toCreate.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
 		AccessRequirementManagerImpl.populateCreationFields(userInfo, toCreate);
+		arm.createAccessRequirement(userInfo, toCreate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreatePostMessageContentAccessRequirement() {
+		arm.createAccessRequirement(userInfo, new PostMessageContentAccessRequirement());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateNullAccessType() {
+		AccessRequirement toCreate = createExpectedAR();
+		toCreate.setAccessType(null);
+		arm.createAccessRequirement(userInfo, toCreate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateNullSubjectIds() {
+		AccessRequirement toCreate = createExpectedAR();
+		toCreate.setSubjectIds(null);
 		arm.createAccessRequirement(userInfo, toCreate);
 	}
 	
