@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -208,14 +207,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertFalse(actAR.getIsIDUPublic());
 	}
 
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessRequirementBadParam1() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setSubjectIds(null);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);
