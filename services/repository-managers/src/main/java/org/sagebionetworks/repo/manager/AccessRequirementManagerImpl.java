@@ -301,7 +301,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		RestrictionInformation info = new RestrictionInformation();
-		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(entityId, RestrictableObjectType.ENTITY);
+		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		if (stats.getRequirementIdSet().isEmpty()) {
 			info.setRestrictionLevel(RestrictionLevel.OPEN);
 			info.setHasUnmetAccessRequirement(false);
