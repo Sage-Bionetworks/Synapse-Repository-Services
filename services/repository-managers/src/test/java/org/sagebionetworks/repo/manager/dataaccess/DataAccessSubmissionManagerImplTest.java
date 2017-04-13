@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
@@ -740,5 +742,26 @@ public class DataAccessSubmissionManagerImplTest {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
 			.thenReturn("not supported type");
 		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetOpenSubmissionsWithNullUserInfo() {
+		manager.getOpenSubmissions(null, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testGetOpenSubmissionsUnauthorized() {
+		manager.getOpenSubmissions(mockUser, null);
+	}
+
+	@Test
+	public void testGetOpenSubmissionsAuthorized() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(mockUser)).thenReturn(true);
+		List<OpenSubmission> list = new LinkedList<OpenSubmission>();
+		when(mockDataAccessSubmissionDao.getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(list );
+		OpenSubmissionPage result = manager.getOpenSubmissions(mockUser, null);
+		assertNotNull(result);
+		assertEquals(list, result.getOpenSubmissionList());
+		verify(mockDataAccessSubmissionDao).getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 }
