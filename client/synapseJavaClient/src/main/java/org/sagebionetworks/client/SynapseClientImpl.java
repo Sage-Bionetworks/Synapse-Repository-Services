@@ -5014,7 +5014,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException {
-		String url = DATA_ACCESS_SUBMISSION+"/openSubmission";
+		String url = DATA_ACCESS_SUBMISSION+"/openSubmissions";
 		if (nextPageToken != null) {
 			url += "?nextPageToken="+nextPageToken;
 		}
