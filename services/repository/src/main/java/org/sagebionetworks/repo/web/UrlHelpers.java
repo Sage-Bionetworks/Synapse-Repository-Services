@@ -967,6 +967,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_ID_STATUS =
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/status";
 	public static final String ENTITY_ID_RESTRICTION_INFORMATION = ENTITY_ID + "/restrictionInformation";
+	public static final String DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS = DATA_ACCESS_SUBMISSION+"/openSubmissions";
 
 	/**
 	 * APIs for DynamoDB related operations.
