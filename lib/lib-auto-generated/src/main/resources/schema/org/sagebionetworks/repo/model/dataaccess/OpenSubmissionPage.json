@@ -1,0 +1,15 @@
+{
+	"description": "A page of OpenSubmission.",
+	"properties": {
+		"openSubmissionList": {
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.OpenSubmission"
+			}
+		},
+		"nextPageToken":{
+			"description":"The token to get the next page result.",
+			"type": "string"
+		}
+	}
+}
