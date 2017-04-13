@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
@@ -105,10 +107,10 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS
 			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
 			+ " = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = ?";
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = :"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
 
 	private static final String SQL_LIST_SUBMISSIONS_WITH_FILTER = SQL_LIST_SUBMISSIONS
-			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" =?";
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = :"+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE;
 
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String DESCENDING = "DESC";
@@ -254,12 +256,29 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@Override
 	public List<DataAccessSubmission> getSubmissions(String accessRequirementId, DataAccessSubmissionState filterBy,
 			DataAccessSubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
-			String query = null;
+
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, accessRequirementId);
+
+		String query = null;
 		if (filterBy != null) {
 			query = SQL_LIST_SUBMISSIONS_WITH_FILTER;
+			param.addValue(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE, filterBy.name());
 		} else {
 			query = SQL_LIST_SUBMISSIONS;
 		}
+		query = addOrderByClause(orderBy, isAscending, query);
+		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
+		return namedJdbcTemplate.query(query, param, SUBMISSION_MAPPER);
+	}
+
+	/**
+	 * @param orderBy
+	 * @param isAscending
+	 * @param query
+	 * @return
+	 */
+	public static String addOrderByClause(DataAccessSubmissionOrder orderBy, Boolean isAscending, String query) {
 		if (orderBy != null) {
 			switch(orderBy) {
 				case CREATED_ON:
@@ -275,12 +294,7 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 				query += " "+DESCENDING;
 			}
 		}
-		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
-		if (filterBy != null) {
-			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId, filterBy.name());
-		} else {
-			return jdbcTemplate.query(query, SUBMISSION_MAPPER, accessRequirementId);
-		}
+		return query;
 	}
 
 	@Override

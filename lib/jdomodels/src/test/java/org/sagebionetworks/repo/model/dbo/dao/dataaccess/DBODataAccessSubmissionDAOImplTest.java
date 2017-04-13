@@ -284,4 +284,29 @@ public class DBODataAccessSubmissionDAOImplTest {
 	public void testGetForUpdateWithoutTransaction() {
 		dataAccessSubmissionDao.getForUpdate("0");
 	}
+
+	@Test
+	public void testAddOrderByClause() {
+		String query = "";
+		assertEquals("case null order",
+				"", DBODataAccessSubmissionDAOImpl.addOrderByClause(null, null, query));
+		assertEquals("case order by created on null asc",
+				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.CREATED_ON, null, query));
+		assertEquals("case order by created on asc",
+				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.CREATED_ON, true, query));
+		assertEquals("case order by created on desc",
+				" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON DESC",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.CREATED_ON, false, query));
+		assertEquals("case order by modified on null asc",
+				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.MODIFIED_ON, null, query));
+		assertEquals("case order by modified on asc",
+				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.MODIFIED_ON, true, query));
+		assertEquals("case order by modified on desc",
+				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
+				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.MODIFIED_ON, false, query));
+	}
 }
