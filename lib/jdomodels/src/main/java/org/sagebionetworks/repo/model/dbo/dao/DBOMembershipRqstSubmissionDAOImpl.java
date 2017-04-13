@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -111,7 +112,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	InvalidModelException {
 		DBOMembershipRqstSubmission dbo = new DBOMembershipRqstSubmission();
 		MembershipRqstSubmissionUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
+		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_REQUEST_SUBMISSION_ID));
 		dbo = basicDao.createNew(dbo);
 		MembershipRqstSubmission result = MembershipRqstSubmissionUtils.copyDboToDto(dbo);
 		return result;

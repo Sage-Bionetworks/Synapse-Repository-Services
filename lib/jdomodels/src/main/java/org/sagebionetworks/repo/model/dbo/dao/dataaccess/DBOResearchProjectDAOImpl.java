@@ -5,7 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -46,7 +46,7 @@ public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public ResearchProject create(ResearchProject toCreate) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.RESEARCH_PROJECT_ID).toString());
+		toCreate.setId(idGenerator.generateNewId(IdType.RESEARCH_PROJECT_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
 		
 		DBOResearchProject dbo = new DBOResearchProject();

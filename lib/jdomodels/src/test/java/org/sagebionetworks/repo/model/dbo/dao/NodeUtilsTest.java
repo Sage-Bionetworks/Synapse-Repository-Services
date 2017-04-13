@@ -186,4 +186,17 @@ public class NodeUtilsTest {
 		List<String> expected = Lists.newArrayList();
 		assertEquals(expected, results);
 	}
+	
+	@Test
+	public void testIsProjectOrFolder(){
+		for(EntityType type: EntityType.values()){
+			if(EntityType.project.equals(type)){
+				assertTrue(NodeUtils.isProjectOrFolder(type));
+			}else if(EntityType.folder.equals(type)){
+				assertTrue(NodeUtils.isProjectOrFolder(type));
+			}else{
+				assertFalse(NodeUtils.isProjectOrFolder(type));
+			}
+		}
+	}
 }

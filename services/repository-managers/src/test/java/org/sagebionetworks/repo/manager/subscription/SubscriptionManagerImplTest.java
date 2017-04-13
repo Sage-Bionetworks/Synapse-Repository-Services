@@ -168,22 +168,56 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test (expected=IllegalArgumentException.class)
-	public void testGetListInvalidTopics() {
+	public void testGetListInvalidTopicsWithNullIdList() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
 		request.setIdList(null);
 		manager.getList(userInfo, request);
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetListInvalidTopicForDataAccessSubmission() {
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION);
+		List<String> ids = new ArrayList<String>(1);
+		ids.add(objectId);
+		request.setIdList(ids);
+		manager.getList(userInfo, request);
+	}
+
 	@Test
-	public void testGetList() {
+	public void testGetListForThread() {
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.THREAD);
+		List<String> ids = new ArrayList<String>(1);
+		ids.add(objectId);
+		request.setIdList(ids);
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.listSubscriptionForThread(userId.toString(), ids)).thenReturn(results);
+		assertEquals(results, manager.getList(userInfo, request));
+	}
+
+	@Test
+	public void testGetListForForum() {
 		SubscriptionRequest request = new SubscriptionRequest();
 		request.setObjectType(SubscriptionObjectType.FORUM);
 		List<String> ids = new ArrayList<String>(1);
 		ids.add(objectId);
 		request.setIdList(ids);
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
-		when(mockDao.getSubscriptionList(userId.toString(), SubscriptionObjectType.FORUM, ids)).thenReturn(results);
+		when(mockDao.listSubscriptionForForum(userId.toString(), ids)).thenReturn(results);
+		assertEquals(results, manager.getList(userInfo, request));
+	}
+
+	@Test
+	public void testGetListForDataAccessSubmissionStatus() {
+		SubscriptionRequest request = new SubscriptionRequest();
+		request.setObjectType(SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
+		List<String> ids = new ArrayList<String>(1);
+		ids.add(objectId);
+		request.setIdList(ids);
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.listSubscriptions(userId.toString(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS, ids)).thenReturn(results);
 		assertEquals(results, manager.getList(userInfo, request));
 	}
 
@@ -208,13 +242,39 @@ public class SubscriptionManagerImplTest {
 	}
 
 	@Test
-	public void testGetAll() {
+	public void testGetAllThreadSubscriptions() {
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		Set<Long> projectIds = new HashSet<Long>();
-		when(mockDao.getAll(userId.toString(), 10L, 0L, SubscriptionObjectType.THREAD, projectIds )).thenReturn(results);
-		when(mockDao.getAllProjects(userId.toString(), SubscriptionObjectType.THREAD)).thenReturn(projectIds);
+		when(mockDao.getAllThreadSubscriptions(userId.toString(), 10L, 0L, projectIds )).thenReturn(results);
+		when(mockDao.getAllProjectsUserHasThreadSubs(userId.toString())).thenReturn(projectIds);
 		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
 		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.THREAD));
+	}
+
+	@Test
+	public void testGetAllForForum() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		Set<Long> projectIds = new HashSet<Long>();
+		when(mockDao.getAllForumSubscriptions(userId.toString(), 10L, 0L, projectIds )).thenReturn(results);
+		when(mockDao.getAllProjectsUserHasForumSubs(userId.toString())).thenReturn(projectIds);
+		when(mockAclDao.getAccessibleBenefactors(userInfo.getGroups(), projectIds, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(projectIds);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testGetAllSubscriptionForDataAccessSubmission() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.getAllSubscriptions(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION)).thenReturn(results);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
+		verifyZeroInteractions(mockAclDao);
+	}
+
+	@Test
+	public void testGetAllForDataAccessSubmissionStatus() {
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		when(mockDao.getAllSubscriptions(userId.toString(), 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS)).thenReturn(results);
+		assertEquals(results, manager.getAll(userInfo, 10L, 0L, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS));
+		verifyZeroInteractions(mockAclDao);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

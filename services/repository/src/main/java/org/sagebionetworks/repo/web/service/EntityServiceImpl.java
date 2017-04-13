@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -217,7 +218,7 @@ public class EntityServiceImpl implements EntityService {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Create a new id for this entity
-		long newId = idGenerator.generateNewId();
+		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		newEntity.setId(KeyFactory.keyToString(newId));
 		EventType eventType = EventType.CREATE;
 		// Fire the event

@@ -109,7 +109,7 @@ public class AuthorizationSqlUtil {
 	 * Can't bind a collection to a variable in the string, so we have to create n bind variables 
 	 * for a collection of length n.  :^(
 	 */
-	public static String authorizationSQLWhere(int n, int offset) {
+	private static String authorizationSQLWhere(int n, int offset) {
 		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_WHERE_1);
 		for (int i=0; i<n; i++) {
 			if (i>0) sb.append(",");
@@ -117,6 +117,14 @@ public class AuthorizationSqlUtil {
 			sb.append(BIND_VAR_PREFIX);
 			sb.append(i + offset);
 		}
+		sb.append(AUTHORIZATION_SQL_WHERE_2);
+		return sb.toString();
+	}
+
+	public static String authorizationSQLWhere() {
+		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_WHERE_1);
+		sb.append(":");
+		sb.append(BIND_VAR_PREFIX);
 		sb.append(AUTHORIZATION_SQL_WHERE_2);
 		return sb.toString();
 	}

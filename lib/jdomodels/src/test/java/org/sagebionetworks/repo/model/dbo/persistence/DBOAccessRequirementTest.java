@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -96,7 +97,7 @@ public class DBOAccessRequirementTest {
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId());
+		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
 		
 		// Create it
 		DBOAccessRequirement clone = dboBasicDao.createNew(accessRequirement);

@@ -11,10 +11,6 @@
 			"type": "integer",
 			"description":"The application change number created as a result of this change."
 		},
-		"parentId": {
-			"type": "string",
-			"description": "The unique identifier of the parent object."
-		},
 		"objectEtag": {
 			"type": "string",
 			"description":"The new Etag of the changed object"

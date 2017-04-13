@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- This trigger is used to process messages from the search queue. -->
+	<bean id="entityHierarchyChangeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+		scope="singleton">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject">
+					<bean
+						class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStack">
+						<constructor-arg index="0" ref="countingSemaphore" />
+						<constructor-arg index="1" ref="awsSQSClient" />
+						<constructor-arg index="2" ref="awsSNSClient" />
+						<constructor-arg index="3">
+							<bean
+								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
+								<property name="runner">
+									<bean class="org.sagebionetworks.change.workers.EntityHierarchyChangeWorker" />
+								</property>
+								<property name="semaphoreLockKey" value="entityHierarchyChangeWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
+									value="120" />
+								<property name="queueName"
+									ref="stackConfiguration.workerQueueName[EntityHierarchyChangeWorker]" />
+								<property name="gate">
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+								</property>
+								<property name="topicNamesToSubscribe">
+									<list>
+										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY_CONTAINER]" />
+									</list>
+								</property>
+							</bean>
+						</constructor-arg>
+					</bean>
+				</property>
+				<property name="targetMethod" value="run" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="555" />
+		<property name="repeatInterval" value="1703" />
+	</bean>
+</beans>

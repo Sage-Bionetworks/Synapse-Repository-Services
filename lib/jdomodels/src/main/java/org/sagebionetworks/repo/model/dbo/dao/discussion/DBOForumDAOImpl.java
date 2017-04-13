@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -49,7 +49,7 @@ public class DBOForumDAOImpl implements ForumDAO {
 	@Override
 	public Forum createForum(String projectId) {
 		ValidateArgument.required(projectId, "projectId");
-		long id = idGenerator.generateNewId(TYPE.FORUM_ID);
+		long id = idGenerator.generateNewId(IdType.FORUM_ID);
 		DBOForum dbo = new DBOForum();
 		dbo.setId(id);
 		dbo.setProjectId(KeyFactory.stringToKey(projectId));

@@ -89,4 +89,24 @@ public interface AccessApprovalDAO {
 	 * @param approvalsToCreate - objects to be created
 	 */
 	public List<AccessApproval> createBatch(List<AccessApproval> approvalsToCreate);
+
+	/**
+	 * Retrieve a list of access approvals for a given subjectIdList
+	 * 
+	 * @param subjectIdList
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type,
+			long limit, long offset);
+
+	/**
+	 * Delete a batch of AccessApprovals
+	 * 
+	 * @param list
+	 * @return
+	 */
+	public int deleteBatch(List<Long> list);
 }

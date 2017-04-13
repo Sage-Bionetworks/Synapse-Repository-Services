@@ -59,7 +59,7 @@ import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -102,6 +103,7 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -127,6 +129,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_NODE_TYPES = "bNodeTypes";
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
+	
+	private static final String SQL_SELECT_CHILDREN = 
+			"SELECT"
+			+ " "+COL_NODE_ID
+			+", "+COL_NODE_TYPE
+			+" FROM "+TABLE_NODE
+			+" WHERE "+COL_NODE_PARENT_ID+" = ?"
+					+ " LIMIT ? OFFSET ?";
 	
 	private static final String SQL_COUNT_CHILDREN = 
 			"SELECT COUNT("+COL_NODE_ID+")"
@@ -390,12 +400,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){
-			node.setId(idGenerator.generateNewId());
+			node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		}else{
 			// If an id was provided then it must not exist
 			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(node.getId(), TYPE.DOMAIN_IDS);
+			idGenerator.reserveId(node.getId(), IdType.ENTITY_ID);
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
@@ -512,7 +522,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long longId = KeyFactory.stringToKey(id);
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -527,7 +537,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		for(long id : ids){
 			String stringID = KeyFactory.keyToString(id);
-			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
+			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
@@ -1326,7 +1336,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// this means we need to update all the children also
 			updateProjectForAllChildren(node.getId(), desiredProjectId);
 		}
-		jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		
+		try {
+			jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		} catch (DuplicateKeyException e) {
+			if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) {
+				throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
+			}
+		}
+
 		return true;
 	}
 	
@@ -1773,6 +1791,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public long getChildCount(String parentId) {
 		ValidateArgument.required(parentId, "parentId");
 		return jdbcTemplate.queryForObject(SQL_COUNT_CHILDREN, Long.class, KeyFactory.stringToKey(parentId));
+	}
+
+	@Override
+	public List<NodeIdAndType> getChildren(String parentId, long limit,
+			long offset) {
+		ValidateArgument.required(parentId, "parentId");
+		Long parentIdLong = KeyFactory.stringToKey(parentId);
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN, new RowMapper<NodeIdAndType>(){
+
+			@Override
+			public NodeIdAndType mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				String nodeId = KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
+				EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+				return new NodeIdAndType(nodeId, type);
+			}}, parentIdLong, limit, offset);
 	}
 
 }

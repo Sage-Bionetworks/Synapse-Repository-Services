@@ -19,7 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -119,7 +119,7 @@ public class DBOVerificationDAOImplTest {
 		fh.setCreatedBy(createdBy);
 		fh.setBucketName(UUID.randomUUID().toString());
 		fh.setKey(UUID.randomUUID().toString());
-		fh.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fh.setEtag(UUID.randomUUID().toString());
 		fh = (S3FileHandle) fileHandleDao.createFile(fh);
 		fhsToDelete.add(fh.getId());

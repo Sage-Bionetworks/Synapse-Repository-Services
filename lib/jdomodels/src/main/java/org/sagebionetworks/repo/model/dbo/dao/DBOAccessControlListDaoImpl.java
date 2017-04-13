@@ -32,9 +32,8 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -48,8 +47,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.AclModificationMessage;
-import org.sagebionetworks.repo.model.message.AclModificationType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -64,9 +61,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	static private Log log = LogFactory
@@ -201,13 +196,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	};
 
-	private static final Function<ResourceAccess, Long> RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER = new Function<ResourceAccess, Long>() {
-		@Override
-		public Long apply(ResourceAccess input) {
-			return input.getPrincipalId();
-		}
-	};
-
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	@Autowired
@@ -233,7 +221,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		AccessControlListUtils.validateACL(acl);
 
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl,
-				idGenerator.generateNewId(TYPE.ACL_ID), ownerType);
+				idGenerator.generateNewId(IdType.ACL_ID), ownerType);
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
@@ -257,7 +245,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		for (ResourceAccess ra : resourceAccess) {
 			DBOResourceAccess dboRa = new DBOResourceAccess();
 			// assign an id
-			dboRa.setId(idGenerator.generateNewId(TYPE.ACL_RES_ACC_ID));
+			dboRa.setId(idGenerator.generateNewId(IdType.ACL_RES_ACC_ID));
 			dboRa.setOwner(dboId);
 			if (ra.getPrincipalId() == null) {
 				throw new IllegalArgumentException(
@@ -402,11 +390,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		acl.setEtag(UUID.randomUUID().toString());
 
-		AccessControlList oldAcl = null;
-		if (ownerType == ObjectType.ENTITY) {
-			oldAcl = get(acl.getId(), ObjectType.ENTITY);
-		}
-
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl,
 				origDbo.getId(), ownerType);
 		dboBasicDao.update(dbo);
@@ -418,43 +401,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(),
 				ObjectType.ACCESS_CONTROL_LIST, acl.getEtag(),
 				ChangeType.UPDATE);
-
-		if (ownerType == ObjectType.ENTITY) {
-			// Now we compare the old and the new acl to see what might have
-			// changed, so we can send notifications out.
-			// We only care about principals being added or removed, not what
-			// exactly has happened.
-			Set<Long> oldPrincipals = Transform.toSet(
-					oldAcl.getResourceAccess(),
-					RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER);
-			Set<Long> newPrincipals = Transform.toSet(acl.getResourceAccess(),
-					RESOURCE_ACCESS_TO_PRINCIPAL_TRANSFORMER);
-
-			SetView<Long> addedPrincipals = Sets.difference(newPrincipals,
-					oldPrincipals);
-			SetView<Long> deletedPrincipals = Sets.difference(oldPrincipals,
-					newPrincipals);
-
-			for (Long principal : deletedPrincipals) {
-				AclModificationMessage message = new AclModificationMessage();
-				message.setObjectId(acl.getId());
-				message.setObjectType(ownerType);
-				message.setPrincipalId(principal);
-				message.setAclModificationType(AclModificationType.PRINCIPAL_REMOVED);
-				transactionalMessenger
-						.sendModificationMessageAfterCommit(message);
-			}
-
-			for (Long principal : addedPrincipals) {
-				AclModificationMessage message = new AclModificationMessage();
-				message.setObjectId(acl.getId());
-				message.setObjectType(ownerType);
-				message.setPrincipalId(principal);
-				message.setAclModificationType(AclModificationType.PRINCIPAL_ADDED);
-				transactionalMessenger
-						.sendModificationMessageAfterCommit(message);
-			}
-		}
 	}
 
 	@WriteTransaction

@@ -1,6 +1,6 @@
 {
-    "description":"Enumeration of all possible objects types that can be associated with a file.",
-    "type":"string",
+	"description":"Enumeration of all possible objects types that can be associated with a file.",
+	"type":"string",
 	"enum": [
 		"FileEntity",
 		"TableEntity",
@@ -10,6 +10,9 @@
 		"MessageAttachment",
 		"TeamAttachment",
 		"SubmissionAttachment",
-		"VerificationSubmission"
+		"VerificationSubmission",
+		"AccessRequirementAttachment",
+		"DataAccessRequestAttachment",
+		"DataAccessSubmissionAttachment"
 	]
 }

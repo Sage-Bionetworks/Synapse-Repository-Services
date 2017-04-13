@@ -42,6 +42,8 @@
 									<list>
 										<ref bean="stackConfiguration.repositoryChangeTopic[REPLY]" />
 										<ref bean="stackConfiguration.repositoryChangeTopic[THREAD]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[DATA_ACCESS_SUBMISSION]" />
+										<ref bean="stackConfiguration.repositoryChangeTopic[DATA_ACCESS_SUBMISSION_STATUS]" />
 									</list>
 								</property>
 							</bean>

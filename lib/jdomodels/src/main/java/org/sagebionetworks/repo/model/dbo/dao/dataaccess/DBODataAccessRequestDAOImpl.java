@@ -5,7 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -47,7 +47,7 @@ public class DBODataAccessRequestDAOImpl implements DataAccessRequestDAO{
 	@WriteTransactionReadCommitted
 	@Override
 	public DataAccessRequest create(DataAccessRequest toCreate) {
-		toCreate.setId(idGenerator.generateNewId(TYPE.DATA_ACCESS_REQUEST_ID).toString());
+		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessRequest dbo = new DBODataAccessRequest();
 		DataAccessRequestUtils.copyDtoToDbo(toCreate, dbo);

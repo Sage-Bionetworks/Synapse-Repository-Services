@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -95,7 +95,7 @@ public class DiscussionReplyManagerImplTest {
 		messageUrl.setMessageUrl("messageUrl");
 		when(mockUploadDao.getReplyUrl(Mockito.anyString())).thenReturn(messageUrl);
 
-		when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID)).thenReturn(replyId);
+		when(mockIdGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID)).thenReturn(replyId);
 
 		bundle = new DiscussionReplyBundle();
 		bundle.setThreadId(threadId);

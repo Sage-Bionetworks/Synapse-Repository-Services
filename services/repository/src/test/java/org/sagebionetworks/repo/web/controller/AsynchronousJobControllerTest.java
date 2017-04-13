@@ -14,7 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -62,7 +62,7 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 		fileHandle.setKey("mainFileKey");
 		fileHandle.setEtag("etag");
 		fileHandle.setFileName("foo.bar");
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle = (S3FileHandle) fileMetadataDao.createFile(fileHandle);
 	}

@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -118,7 +119,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	@Override
 	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException,
 	InvalidModelException {
-		if (dto.getId()==null) dto.setId(idGenerator.generateNewId().toString());
+		if (dto.getId()==null) dto.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID).toString());
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
 		dbo = basicDao.createNew(dbo);

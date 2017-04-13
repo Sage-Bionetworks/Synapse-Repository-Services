@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,15 +20,20 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.PermissionDao;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 
 import com.google.common.collect.Sets;
@@ -39,12 +45,14 @@ public class EntityPermissionsManagerImplUnitTest {
 	private UserInfo certifiedUserInfo;
 	private static final String projectId = "syn123";
 	private static final String folderId = "syn456";
+	private static final String fileId = "syn333";
 	private static final String dockerRepoId = "syn789";
 	private static final String projectParentId = "syn000";
 	private static final String folderParentId = "syn999";
 	private static final String benefactorId = "syn987";
 	private Node project;
 	private Node folder;
+	private Node file;
 	private Node dockerRepo;
 	
 	@Mock
@@ -69,8 +77,16 @@ public class EntityPermissionsManagerImplUnitTest {
 	private ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
 	private UserInfo mockUser;
+	@Mock
+	private ProjectStatsManager mockProjectStatsManager;
+	@Mock
+	private TransactionalMessenger mockTransactionalMessenger;
+	
 	Set<Long> mockUsersGroups;
 	Set<Long> nonvisibleIds;
+	
+	String entityId;
+	Long userId;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@Before
@@ -94,25 +110,38 @@ public class EntityPermissionsManagerImplUnitTest {
     	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(nonCertifiedUserInfo.getId())).thenReturn(true);
     	when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(certifiedUserInfo.getId())).thenReturn(true);
 
+    	userId = 111L;
+    	
     	project = new Node();
     	project.setId(projectId);
-    	project.setCreatedByPrincipalId(111111L);
+    	project.setCreatedByPrincipalId(userId);
     	project.setNodeType(EntityType.project);
        	project.setParentId(projectParentId);
+       	project.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(projectId)).thenReturn(project);
     	when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
     	
     	folder = new Node();
     	folder.setId(folderId);
-    	folder.setCreatedByPrincipalId(111111L);
+    	folder.setCreatedByPrincipalId(userId);
         folder.setParentId(folderParentId);
     	folder.setNodeType(EntityType.folder);
+    	folder.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
     	when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+    	
+    	file = new Node();
+    	file.setId(fileId);
+    	file.setCreatedByPrincipalId(userId);
+    	file.setParentId(folderParentId);
+    	file.setNodeType(EntityType.file);
+    	file.setBenefactorId(benefactorId);
+    	when(mockNodeDao.getNode(fileId)).thenReturn(file);
+    	when(mockNodeDao.getNodeTypeById(fileId)).thenReturn(EntityType.file);
    	
     	dockerRepo = new Node();
     	dockerRepo.setId(dockerRepoId);
-    	dockerRepo.setCreatedByPrincipalId(111111L);
+    	dockerRepo.setCreatedByPrincipalId(userId);
     	dockerRepo.setParentId(folderParentId);
     	dockerRepo.setNodeType(EntityType.dockerrepo);
     	when(mockNodeDao.getNode(dockerRepoId)).thenReturn(dockerRepo);
@@ -124,6 +153,7 @@ public class EntityPermissionsManagerImplUnitTest {
 
 		when(mockNodeInheritanceManager.getBenefactor(projectId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(folderId)).thenReturn(benefactorId);
+		when(mockNodeInheritanceManager.getBenefactor(fileId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(projectParentId)).thenReturn(benefactorId);
 		when(mockNodeInheritanceManager.getBenefactor(folderParentId)).thenReturn(benefactorId);
@@ -143,12 +173,17 @@ public class EntityPermissionsManagerImplUnitTest {
 				Collections.singletonList(projectId), RestrictableObjectType.ENTITY, nonCertifiedUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.DOWNLOAD))).thenReturn(Collections.singletonList(77777L));
 		
-		when(mockUser.getId()).thenReturn(111L);
+		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
 		mockUsersGroups = Sets.newHashSet(444L,555L);
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 		nonvisibleIds = Sets.newHashSet(888L,999L);
 		when(mockAclDAO.getNonVisibleChilrenOfEntity(anySetOf(Long.class), anyString())).thenReturn(nonvisibleIds);
+		
+		entityId = "syn888";
+		when(mockNodeInheritanceManager.getBenefactor(entityId)).thenReturn(entityId);
+		when(mockAclDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS)).
+		thenReturn(true);
 	}
 
 	@Test
@@ -342,5 +377,89 @@ public class EntityPermissionsManagerImplUnitTest {
 		String parentId = null;
 		// call under test
 		entityPermissionsManager.getNonvisibleChildren(mockUser, parentId);
+	}
+	
+	@Test
+	public void testUpdateAcl(){
+		Long addedPrincipalId = 444L;
+		AccessControlList oldAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		AccessControlList updatedAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(entityId, mockUser, new Date());
+		// add access to another User
+		ResourceAccess access = new ResourceAccess();
+		access.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		access.setPrincipalId(addedPrincipalId);
+		updatedAcl.getResourceAccess().add(access);
+		
+		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
+		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		
+		// call under test
+		entityPermissionsManager.updateACL(updatedAcl, mockUser);
+		// project stats should be called for all new users
+		verify(mockProjectStatsManager).updateProjectStats(eq(addedPrincipalId), eq(entityId), eq(ObjectType.ENTITY), any(Date.class));
+	}
+	
+	@Test
+	public void testOverrideInheritanceProject(){
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(projectId, mockUser, new Date());
+		when(mockAclDAO.get(projectId, ObjectType.ENTITY)).thenReturn(acl);
+		// call under test
+		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+	}
+	
+	@Test
+	public void testOverrideInheritanceFolder(){
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
+		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
+		// call under test
+		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+	}
+	
+	@Test
+	public void testOverrideInheritanceFile(){
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
+		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
+		// call under test
+		entityPermissionsManager.overrideInheritance(acl, mockUser);
+		// file should not trigger container message
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
+	}
+	
+	@Test
+	public void testRestoreInheritanceProject(){
+		project.setBenefactorId(project.getId());
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		// call under test
+		entityPermissionsManager.restoreInheritance(projectId, mockUser);
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER);
+	}
+	
+	@Test
+	public void testRestoreInheritanceFolder(){
+		folder.setBenefactorId(folder.getId());
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		// call under test
+		entityPermissionsManager.restoreInheritance(folderId, mockUser);
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER);
+	}
+	
+	@Test
+	public void testRestoreInheritanceFile(){
+		file.setBenefactorId(file.getId());
+		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
+		thenReturn(true);
+		// call under test
+		entityPermissionsManager.restoreInheritance(fileId, mockUser);
+		verify(mockTransactionalMessenger, never()).sendDeleteMessageAfterCommit(anyString(), any(ObjectType.class));
 	}
 }

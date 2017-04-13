@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,8 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -34,7 +33,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,12 +55,6 @@ public class DBOAccessApprovalDAOImplTest {
 	@Autowired
 	NodeDAO nodeDao;
 	
-	@Autowired
-	EvaluationDAO evaluationDAO;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;
 	private Node node = null;
@@ -71,7 +63,6 @@ public class DBOAccessApprovalDAOImplTest {
 	private AccessRequirement accessRequirement2 = null;
 	private AccessApproval accessApproval = null;
 	private AccessApproval accessApproval2 = null;
-	private Evaluation evaluation = null;
 	private List<ACCESS_TYPE> participateAndDownload=null;
 	private List<ACCESS_TYPE> downloadAccessType=null;
 	private List<ACCESS_TYPE> updateAccessType=null;
@@ -101,12 +92,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		Long id = accessRequirement.getId();
 		assertNotNull(id);
-		
-		if (evaluation==null) {
-			evaluation = DBOAccessRequirementDAOImplTest.createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
-			evaluation.setId( evaluationDAO.create(evaluation, Long.parseLong(individualGroup.getId())) );
-		};
-		accessRequirement2 = DBOAccessRequirementDAOImplTest.newMixedAccessRequirement(individualGroup, node2, evaluation, "bar");
+		accessRequirement2 = DBOAccessRequirementDAOImplTest.newEntityAccessRequirement(individualGroup, node2, "bar");
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
 		id = accessRequirement2.getId();
 		assertNotNull(id);
@@ -125,8 +111,7 @@ public class DBOAccessApprovalDAOImplTest {
 			updateAccessType= new ArrayList<ACCESS_TYPE>();
 			updateAccessType.add(ACCESS_TYPE.UPDATE);
 		}
-}
-		
+	}
 	
 	@After
 	public void tearDown() throws Exception{
@@ -150,10 +135,6 @@ public class DBOAccessApprovalDAOImplTest {
 			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
-		if (evaluation!=null && evaluationDAO!=null) {
-			evaluationDAO.delete(evaluation.getId());
-			evaluation = null;
-		}
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
 		}
@@ -172,45 +153,6 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setRequirementId(ar.getId());
 		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		return accessApproval;
-	}
-	
-	@Test
-	public void testUnmetARsForEvaluation() throws Exception {
-		// Logic for unmet requirements doesn't reflect ownership at the DAO level.  It's factored in at the manager level.
-		// Therefore, the owner see unmet ARs for herself..
-		List<Long> unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
-				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
-		// ... just as someone else does, if they haven't signed the ToU
-		unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
-				Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), participateAndDownload);
-		assertEquals(1, unmetARIds.size());
-		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
-		
-		
-		// Create a new object
-		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement2);
-		
-		// Create it
-		accessApproval2 = accessApprovalDAO.create(accessApproval2);
-		String id = accessApproval2.getId().toString();
-		assertNotNull(id);
-		
-		// no unmet requirement anymore ...
-		assertTrue(
-				accessRequirementDAO.getAllUnmetAccessRequirements(
-						Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION, 
-						Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), 
-						participateAndDownload).isEmpty()
-				);
-
-		// Get by evaluation Id
-		Collection<AccessApproval> ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(new String[]{accessRequirement2.getId().toString()}), 
-				Arrays.asList(new String[]{individualGroup2.getId().toString()}));
-		assertEquals(1, ars.size());
-		assertEquals(accessApproval2, ars.iterator().next());
 	}
 	
 	@Test
@@ -243,8 +185,12 @@ public class DBOAccessApprovalDAOImplTest {
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						updateAccessType).isEmpty()
 				);
-		
-		
+
+		List<AccessApproval> approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
+				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(approvals);
+		assertTrue(approvals.isEmpty());
+
 		// Create a new object
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		
@@ -253,7 +199,13 @@ public class DBOAccessApprovalDAOImplTest {
 		String id = accessApproval.getId().toString();
 		assertNotNull(id);
 		assertNotNull(accessApproval.getEtag());
-		
+
+		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
+				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
+		assertNotNull(approvals);
+		assertEquals(1, approvals.size());
+		assertEquals(accessApproval, approvals.get(0));
+
 		// no unmet requirement anymore ...
 		assertTrue(
 				accessRequirementDAO.getAllUnmetAccessRequirements(
@@ -343,11 +295,18 @@ public class DBOAccessApprovalDAOImplTest {
 	}
 
 	@Test
-	public void testCreateBatch() {
+	public void testCreateAndDeleteBatch() {
 		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
-		accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
+		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
 		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+
+		List<Long> toDelete = new LinkedList<Long>();
+		toDelete.add(created.get(0).getId());
+		toDelete.add(created.get(1).getId());
+
+		assertEquals(2, accessApprovalDAO.deleteBatch(toDelete));
+		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
 	}
 }

@@ -209,6 +209,18 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.MessageFileHandleAssociationProvider" />
 				</entry>
+				<entry key="AccessRequirementAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
+				</entry>
+				<entry key="DataAccessRequestAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestFileHandleAssociationProvider" />
+				</entry>
+				<entry key="DataAccessSubmissionAttachment">
+					<bean
+						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionFileHandleAssociationProvider" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -363,9 +375,17 @@
 	<bean id="replyMessageBuilderFactory"
 		class="org.sagebionetworks.repo.manager.message.ReplyMessageBuilderFactory"
 		scope ="singleton" />
-		
+
 	<bean id="threadMessageBuilderFactory"
 		class="org.sagebionetworks.repo.manager.message.ThreadMessageBuilderFactory"
+		scope ="singleton" />
+
+	<bean id="dataAccessSubmissionMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.DataAccessSubmissionMessageBuilderFactory"
+		scope ="singleton" />
+
+	<bean id="dataAccessSubmissionStatusMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.DataAccessSubmissionStatusMessageBuilderFactory"
 		scope ="singleton" />
 
 	<!-- The Broadcast Message manager -->
@@ -379,6 +399,12 @@
 				</entry>
 				<entry key="REPLY">
 					<ref bean="replyMessageBuilderFactory" />
+				</entry>
+				<entry key="DATA_ACCESS_SUBMISSION">
+					<ref bean="dataAccessSubmissionMessageBuilderFactory" />
+				</entry>
+				<entry key="DATA_ACCESS_SUBMISSION_STATUS">
+					<ref bean="dataAccessSubmissionStatusMessageBuilderFactory" />
 				</entry>
 			</map>
 		</property>

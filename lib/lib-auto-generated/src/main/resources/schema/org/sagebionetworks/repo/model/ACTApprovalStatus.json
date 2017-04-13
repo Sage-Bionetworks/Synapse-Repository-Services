@@ -1,9 +1,0 @@
-{
-    "description":"JSON schema for the approval status of an 'ACT' controlled tier 3 access request.",
-    "name": "ACTApprovalStatus",
-    "type":"string",
-    "enum":[
-        "PENDING",
-	 	"APPROVED"
-    ]
-}

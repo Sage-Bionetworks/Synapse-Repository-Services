@@ -114,7 +114,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
 		
 		// Send the delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.FILE, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.FILE);
 		
 		// Delete this object
 		try{

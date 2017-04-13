@@ -213,6 +213,30 @@ public class DBOGroupMembersDAOImplTest {
 		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 	}
+	
+	@Test
+	public void testGetMemberIdsDoesNotExist(){
+		Long doesNotExist = -1L;
+		Set<Long> membersIds = groupMembersDAO.getMemberIds(doesNotExist);
+		assertNotNull(membersIds);
+		assertTrue(membersIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetMemberIds(){
+		// Add users to the test group
+		List<String> idsToAdd = new ArrayList<String>();
+		idsToAdd.add(testUserOne.getId());
+		idsToAdd.add(testUserTwo.getId());
+		
+		groupMembersDAO.addMembers(testGroup.getId(), idsToAdd);
+		// call under test
+		Set<Long> membersIds = groupMembersDAO.getMemberIds(Long.parseLong(testGroup.getId()));
+		assertNotNull(membersIds);
+		assertEquals(2, membersIds.size());
+		assertTrue(membersIds.contains(Long.parseLong(testUserOne.getId())));
+		assertTrue(membersIds.contains(Long.parseLong(testUserTwo.getId())));
+	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAllIndividualWithNullPrincipalIds(){

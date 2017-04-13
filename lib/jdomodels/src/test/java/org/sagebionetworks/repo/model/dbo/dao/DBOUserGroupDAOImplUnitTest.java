@@ -18,7 +18,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -61,7 +61,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		ug.setId(id.toString());
 		ug.setIsIndividual(false);
 		
-		Mockito.when(mockIdGenerator.generateNewId(TYPE.PRINCIPAL_ID)).thenReturn(id);
+		Mockito.when(mockIdGenerator.generateNewId(IdType.PRINCIPAL_ID)).thenReturn(id);
 		doAnswer(new Answer<DBOUserGroup>(){
 			@Override
 			public DBOUserGroup answer(InvocationOnMock invocation) throws Throwable {

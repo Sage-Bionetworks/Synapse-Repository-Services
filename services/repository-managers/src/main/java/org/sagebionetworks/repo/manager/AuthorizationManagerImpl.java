@@ -115,7 +115,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				if (accessType==ACCESS_TYPE.READ) {
+				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
@@ -180,6 +180,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 						messageManager.getMessage(userInfo, objectId);
 						return AuthorizationManagerUtil.AUTHORIZED;
 					} catch (UnauthorizedException e) {
+						return AuthorizationManagerUtil.ACCESS_DENIED;
+					}
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			}
+			case DATA_ACCESS_REQUEST:
+			case DATA_ACCESS_SUBMISSION: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					if (isACTTeamMemberOrAdmin(userInfo)) {
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} else {
 						return AuthorizationManagerUtil.ACCESS_DENIED;
 					}
 				} else {

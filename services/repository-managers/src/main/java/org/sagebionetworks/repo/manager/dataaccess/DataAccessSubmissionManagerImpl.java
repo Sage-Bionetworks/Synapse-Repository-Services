@@ -11,7 +11,6 @@ import java.util.UUID;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -19,11 +18,13 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessRenewal;
@@ -37,6 +38,9 @@ import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStat
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +63,10 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 	private VerificationDAO verificationDao;
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
+	@Autowired
+	private SubscriptionDAO subscriptionDao;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -75,7 +83,11 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);
-		return dataAccessSubmissionDao.createSubmission(submissionToCreate);
+		ACTAccessRequirementStatus status = dataAccessSubmissionDao.createSubmission(submissionToCreate);
+		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
+		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
+				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
+		return status;
 	}
 
 	/**
@@ -194,9 +206,11 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString());
 			accessApprovalDao.createBatch(approvalsToCreate);
 		}
-		return dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
+		submission = dataAccessSubmissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
 				System.currentTimeMillis());
+		transactionalMessenger.sendMessageAfterCommit(submission.getId(), ObjectType.DATA_ACCESS_SUBMISSION_STATUS, submission.getEtag(), ChangeType.UPDATE, userInfo.getId());
+		return submission;
 	}
 
 	public List<AccessApproval> createApprovalForSubmission(DataAccessSubmission submission, String createdBy) {
@@ -206,7 +220,6 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		for (String accessor : submission.getAccessors()) {
 			ACTAccessApproval approval = new ACTAccessApproval();
 			approval.setAccessorId(accessor);
-			approval.setApprovalStatus(ACTApprovalStatus.APPROVED);
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);
 			approval.setModifiedBy(createdBy);

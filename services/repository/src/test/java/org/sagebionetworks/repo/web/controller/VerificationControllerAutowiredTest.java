@@ -15,7 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -113,7 +113,7 @@ public class VerificationControllerAutowiredTest extends AbstractAutowiredContro
 		fileHandleToDelete.setFileName("foo.bar");
 		fileHandleToDelete.setContentMd5("handleOneContentMd5");
 		fileHandleToDelete.setExternalURL("http://foo.bar.com/baz.txt");
-		fileHandleToDelete.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandleToDelete.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandleToDelete.setEtag(UUID.randomUUID().toString());
 		fileHandleToDelete = (ExternalFileHandle) fileMetadataDao.createFile(fileHandleToDelete);
 	}

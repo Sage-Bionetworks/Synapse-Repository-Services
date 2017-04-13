@@ -105,9 +105,8 @@ public class DBOTeamDAOImplUnitTest {
 		ArgumentCaptor<String> idCapture = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<ObjectType> objectTypeCapture = ArgumentCaptor.forClass(ObjectType.class);
 		ArgumentCaptor<ChangeType> typeCapture = ArgumentCaptor.forClass(ChangeType.class);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture(), typeCapture.capture());
+		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(idCapture.capture(), objectTypeCapture.capture());
 		assertEquals(team.getId(), idCapture.getValue());
 		assertEquals(ObjectType.PRINCIPAL, objectTypeCapture.getValue());
-		assertEquals(ChangeType.DELETE, typeCapture.getValue());
 	}
 }

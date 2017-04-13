@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.dom4j.rule.pattern.NodeTypePattern;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -27,7 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -40,10 +41,12 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -461,7 +464,7 @@ public class NodeDAOImplTest {
 	public void testCreateWithId() throws Exception{
 		// Create a new node with an ID that is beyond the current max of the 
 		// ID generator.
-		long idLong = idGenerator.generateNewId() + 10;
+		long idLong = idGenerator.generateNewId(IdType.ENTITY_ID) + 10;
 		String idString = KeyFactory.keyToString(new Long(idLong));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(idString);
@@ -470,14 +473,14 @@ public class NodeDAOImplTest {
 		// The id should be the same as what we provided
 		assertEquals(idString, fetchedId);
 		// Also make sure the ID generator was increment to reserve this ID.
-		long nextId = idGenerator.generateNewId();
+		long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(idLong+1, nextId);
 	}
 	
 	@Test
 	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
 		// Create a node with a specific id
-		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId()+10));
+		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY_ID)+10));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(id);
 		String fetchedId = nodeDao.createNew(toCreate);
@@ -1508,7 +1511,7 @@ public class NodeDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
-		long id = idGenerator.generateNewId();
+		long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
 	}
 	
@@ -2043,6 +2046,50 @@ public class NodeDAOImplTest {
 		assertNotNull(newNode);
 		assertEquals(childId, newNode.getId());
 		assertEquals(parentProjectId, newNode.getParentId());
+	}
+	
+	@Test(expected=NameConflictException.class)
+	public void testChangeNodeParentDuplicateName() throws Exception {
+		// Make a parent-child project/folder
+		Node node = privateCreateNew("parentProject1");
+		node.setNodeType(EntityType.project);
+		String parentProjectId1 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId1);
+		assertNotNull(parentProjectId1);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId1);
+		String childId1 = nodeDao.createNew(node);
+		toDelete.add(childId1);
+		assertNotNull(childId1);
+		
+		// Make another parent-child project/folder
+		node = privateCreateNew("parentProject2");
+		node.setNodeType(EntityType.project);
+		String parentProjectId2 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId2);
+		assertNotNull(parentProjectId2);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId2);
+		String childId2 = nodeDao.createNew(node);
+		toDelete.add(childId2);
+		assertNotNull(childId2);
+		
+		//check current state of nodes
+		Node oldNode1 = nodeDao.getNode(childId1);
+		assertNotNull(oldNode1);
+		assertEquals(childId1, oldNode1.getId());
+		assertEquals(parentProjectId1, oldNode1.getParentId());
+		Node oldNode2 = nodeDao.getNode(childId2);
+		assertNotNull(oldNode2);
+		assertEquals(childId2, oldNode2.getId());
+		assertEquals(parentProjectId2, oldNode2.getParentId());
+		
+		// Change child2's parents to parentProject1 --> conflict on name 'child'
+		boolean changed = nodeDao.changeNodeParent(childId2, parentProjectId1, false);
 	}
 
 	@Test
@@ -3024,7 +3071,7 @@ public class NodeDAOImplTest {
 	private Node createProject(String projectName, String user, String parentId) throws Exception {
 		Thread.sleep(2); // ensure ordering by creation date
 		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
-		project.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
+		project.setId(KeyFactory.keyToString(idGenerator.generateNewId(IdType.ENTITY_ID)));
 		project.setParentId(parentId);
 		project = this.nodeDao.createNewNode(project);
 		toDelete.add(project.getProjectId());
@@ -3061,7 +3108,7 @@ public class NodeDAOImplTest {
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentMd5(fileName);
 		fileHandle.setContentSize(TEST_FILE_SIZE);
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
@@ -3242,4 +3289,41 @@ public class NodeDAOImplTest {
 		assertEquals(0L, childCount);
 	}
 
+	@Test
+	public void testGetChildrenTwo(){
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		Node folder1 = nodes.get(1);
+		Node folder2 = nodes.get(2);
+		Node file1 = nodes.get(3);
+		
+		String parentId = project.getId();
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		for(NodeIdAndType result: results){
+			if(folder1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (folder2.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (file1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.file, result.getType());
+			}else{
+				fail("unexpected child");
+			}
+		}
+	}
+	
+	@Test
+	public void testGetChildrenUnknownParentId(){	
+		String parentId = "syn1";
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
 }
