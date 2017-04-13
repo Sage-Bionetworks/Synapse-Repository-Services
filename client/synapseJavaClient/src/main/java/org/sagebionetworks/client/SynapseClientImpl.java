@@ -106,6 +106,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -5009,5 +5010,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(entityId, "entityId");
 		String url = ENTITY + "/" + entityId + "/restrictionInformation";
 		return getJSONEntity(getRepoEndpoint(), url, RestrictionInformation.class);
+	}
+
+	@Override
+	public OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException {
+		String url = DATA_ACCESS_SUBMISSION+"/openSubmissions";
+		if (nextPageToken != null) {
+			url += "?nextPageToken="+nextPageToken;
+		}
+		return getJSONEntity(getRepoEndpoint(), url, OpenSubmissionPage.class);
 	}
 }

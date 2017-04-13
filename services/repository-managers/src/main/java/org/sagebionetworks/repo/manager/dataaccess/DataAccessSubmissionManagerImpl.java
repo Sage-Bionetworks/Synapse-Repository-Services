@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
@@ -275,5 +277,19 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		} else {
 			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
 		}
+	}
+
+	@Override
+	public OpenSubmissionPage getOpenSubmissions(UserInfo userInfo, String nextPageToken) {
+		ValidateArgument.required(userInfo, "userInfo");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		NextPageToken token = new NextPageToken(nextPageToken);
+		OpenSubmissionPage result = new OpenSubmissionPage();
+		List<OpenSubmission> openSubmissionList = dataAccessSubmissionDao.getOpenSubmissions(token.getLimitForQuery(), token.getOffset());
+		result.setOpenSubmissionList(openSubmissionList);
+		result.setNextPageToken(token.getNextPageTokenForCurrentResults(openSubmissionList));
+		return result;
 	}
 }

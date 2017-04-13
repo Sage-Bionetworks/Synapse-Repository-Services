@@ -81,6 +81,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -2821,4 +2822,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException;
+
+	/**
+	 * Retrieve the information about submitted DataAccessSubmissions
+	 * @param nextPageToken
+	 * @return
+	 * @throws SynapseException
+	 */
+	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
 }

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -212,5 +213,21 @@ public class DataAccessController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, id);
+	}
+
+	/**
+	 * Retrieve information about submitted DataAccessSubmissions.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param nextPageToken
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS, method = RequestMethod.GET)
+	public @ResponseBody OpenSubmissionPage getOpenSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
 	}
 }
