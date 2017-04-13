@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 
 public interface DataAccessSubmissionDAO {
@@ -103,4 +104,13 @@ public interface DataAccessSubmissionDAO {
 	 * @return
 	 */
 	public boolean isAccessor(String submissionId, String userId);
+
+	/**
+	 * Retrieve submitted DataAccessSubmission information
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<OpenSubmission> getOpenSubmissions(long limit, long offset);
 }

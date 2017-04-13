@@ -122,6 +122,19 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 			+ " WHERE "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID+" = ?"
 			+ " AND "+COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID+" = ?";
 
+	private static final String OPEN_SUBMISSIONS_ALIAS = "NUMBER_OF_OPEN_SUBMISSIONS";
+	private static final String SQL_OPEN_SUBMISSION = "SELECT "
+				+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+", "
+				+ "COUNT("+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+") AS "+OPEN_SUBMISSIONS_ALIAS
+			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS
+			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
+				+ " = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
+			+ " AND "+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = '"+DataAccessSubmissionState.SUBMITTED.name()+"'"
+			+ " GROUP BY "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
+		//	+ " HAVING COUNT("+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+") > 0"
+			+ " ORDER BY "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
+			+ " LIMIT ? OFFSET ?";
+
 	private static final RowMapper<ACTAccessRequirementStatus> STATUS_MAPPER = new RowMapper<ACTAccessRequirementStatus>(){
 		@Override
 		public ACTAccessRequirementStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -300,5 +313,19 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	@Override
 	public boolean isAccessor(String submissionId, String userId) {
 		return jdbcTemplate.queryForObject(SQL_IS_ACCESSOR, Integer.class, submissionId, userId) > 0;
+	}
+
+	@Override
+	public List<OpenSubmission> getOpenSubmissions(long limit, long offset) {
+		return jdbcTemplate.query(SQL_OPEN_SUBMISSION, new RowMapper<OpenSubmission>(){
+
+			@Override
+			public OpenSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
+				OpenSubmission os = new OpenSubmission();
+				os.setAccessRequirementId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID));
+				os.setNumberOfSubmittedSubmission(rs.getLong(OPEN_SUBMISSIONS_ALIAS));
+				return os;
+			}
+		}, limit, offset);
 	}
 }

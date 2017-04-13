@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
@@ -308,5 +309,43 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertEquals("case order by modified on desc",
 				" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
 				DBODataAccessSubmissionDAOImpl.addOrderByClause(DataAccessSubmissionOrder.MODIFIED_ON, false, query));
+	}
+
+	@Test
+	public void testGetOpenSubmissions() {
+		List<OpenSubmission> openSubmissions = dataAccessSubmissionDao.getOpenSubmissions(10L, 0L);
+		assertNotNull(openSubmissions);
+		assertTrue(openSubmissions.isEmpty());
+
+		DataAccessSubmission dto1 = createSubmission();
+		DataAccessSubmission dto2 = createSubmission();
+		dataAccessSubmissionDao.createSubmission(dto1);
+		dataAccessSubmissionDao.createSubmission(dto2);
+
+		openSubmissions = dataAccessSubmissionDao.getOpenSubmissions(10L, 0L);
+		assertNotNull(openSubmissions);
+		assertEquals(1, openSubmissions.size());
+		OpenSubmission openSubmission = openSubmissions.get(0);
+		assertEquals(accessRequirement.getId().toString(), openSubmission.getAccessRequirementId());
+		assertEquals((Long)2L, openSubmission.getNumberOfSubmittedSubmission());
+
+		dataAccessSubmissionDao.cancel(dto1.getId(), user1.getId(), System.currentTimeMillis() , "etag");
+
+		openSubmissions = dataAccessSubmissionDao.getOpenSubmissions(10L, 0L);
+		assertNotNull(openSubmissions);
+		assertEquals(1, openSubmissions.size());
+		openSubmission = openSubmissions.get(0);
+		assertEquals(accessRequirement.getId().toString(), openSubmission.getAccessRequirementId());
+		assertEquals((Long)1L, openSubmission.getNumberOfSubmittedSubmission());
+
+		dataAccessSubmissionDao.updateSubmissionStatus(dto2.getId(),
+				DataAccessSubmissionState.REJECTED, "reason", user2.getId(), System.currentTimeMillis());
+
+		openSubmissions = dataAccessSubmissionDao.getOpenSubmissions(10L, 0L);
+		assertNotNull(openSubmissions);
+		assertTrue(openSubmissions.isEmpty());
+
+		dataAccessSubmissionDao.delete(dto1.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
 	}
 }
