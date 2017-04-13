@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequiremen
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -147,8 +148,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" FROM "+TABLE_ACCESS_REQUIREMENT+", "
 				+TABLE_SUBJECT_ACCESS_REQUIREMENT
 			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
-			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" = ?"
-			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = ?";
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -392,13 +393,18 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public AccessRequirementStats getAccessRequirementStats(String subjectId, RestrictableObjectType type) {
+	public AccessRequirementStats getAccessRequirementStats(List<String> subjectIds, RestrictableObjectType type) {
+		ValidateArgument.requirement(subjectIds != null && !subjectIds.isEmpty(), "subjectIds must contain at least one ID.");
+		ValidateArgument.required(type, "type");
 		final AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setHasACT(false);
 		stats.setHasToU(false);
 		final Set<String> requirementIdSet = new HashSet<String>();
 		stats.setRequirementIdSet(requirementIdSet);
-		jdbcTemplate.query(SELECT_ACCESS_REQUIREMENT_STATS, new RowMapper<Void>(){
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIds));
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		namedJdbcTemplate.query(SELECT_ACCESS_REQUIREMENT_STATS, param, new RowMapper<Void>(){
 
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -411,7 +417,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				}
 				return null;
 			}
-		}, KeyFactory.stringToKey(subjectId), type.name());
+		});
 		return stats;
 	}
 }

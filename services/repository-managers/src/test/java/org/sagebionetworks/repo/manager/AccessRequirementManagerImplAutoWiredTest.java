@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -48,7 +50,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
-	
+
 	@Autowired
 	private TeamManager teamManager;
 	
@@ -66,6 +68,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private String entityId2;
 	private String childId;
 	private String fileId;
+
 	private Team team;
 	
 	private AccessRequirement ar;
@@ -226,7 +229,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar = newEntityAccessRequirement(entityId2);
 		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 	}
-	
+
 	@Test(expected=UnauthorizedException.class)
 	public void testTeamCreateAccessRequirementForbidden() throws Exception {
 		ar = newTeamAccessRequirement(team.getId());
@@ -342,4 +345,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertEquals(0, ars.size());
 	}
 
+	@Test
+	public void testGetRestrictionInformationInherited() {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictionInformation info = accessRequirementManager.getRestrictionInformation(adminUserInfo, childId);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+	}
 }

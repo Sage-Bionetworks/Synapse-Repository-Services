@@ -76,6 +76,8 @@ public class AccessRequirementManagerImplUnitTest {
 	@Mock
 	private NodeDAO nodeDao;
 	@Mock
+	private EntityHeader mockEntityHeader;
+	@Mock
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
@@ -117,6 +119,9 @@ public class AccessRequirementManagerImplUnitTest {
 		// by default the user is authorized to create, edit.  individual tests may override these settings
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+
+		when(mockEntityHeader.getId()).thenReturn(TEST_ENTITY_ID);
+		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(Arrays.asList(mockEntityHeader));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -372,11 +377,12 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testGetRestrictionInformationWithZeroAR() {
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(new HashSet<String>());
-		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
+		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -387,12 +393,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(set);
 		stats.setHasToU(true);
 		stats.setHasACT(false);
-		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
 		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
+		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -403,12 +410,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(set);
 		stats.setHasToU(false);
 		stats.setHasACT(true);
-		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
 		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
+		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
 	}
 
 	@Test
@@ -420,12 +428,13 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(set);
 		stats.setHasToU(true);
 		stats.setHasACT(true);
-		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats );
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
 		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
+		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
 	}
 
 	@Test (expected = IllegalStateException.class)
@@ -437,7 +446,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setRequirementIdSet(set);
 		stats.setHasToU(false);
 		stats.setHasACT(false);
-		when(accessRequirementDAO.getAccessRequirementStats(TEST_ENTITY_ID, RestrictableObjectType.ENTITY)).thenReturn(stats);
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats);
 		arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 	}
 }

@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -304,9 +305,24 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.getConcreteType("1");
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementStatsWithNullSubjectIds() {
+		accessRequirementDAO.getAccessRequirementStats(null, RestrictableObjectType.ENTITY);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementStatsWithEmptySubjectIds() {
+		accessRequirementDAO.getAccessRequirementStats(new LinkedList<String>(), RestrictableObjectType.ENTITY);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementStatsWithNullRestrictableObjectType() {
+		accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), null);
+	}
+
 	@Test
 	public void testGetAccessRequirementStats() {
-		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertFalse(stats.getHasToU());
 		assertFalse(stats.getHasACT());
@@ -323,7 +339,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setSubjectIds(Arrays.asList(rod));
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
-		stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertFalse(stats.getHasACT());
@@ -339,7 +355,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement2.setSubjectIds(Arrays.asList(rod));
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
 
-		stats = accessRequirementDAO.getAccessRequirementStats(node.getId(), RestrictableObjectType.ENTITY);
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertTrue(stats.getHasACT());
