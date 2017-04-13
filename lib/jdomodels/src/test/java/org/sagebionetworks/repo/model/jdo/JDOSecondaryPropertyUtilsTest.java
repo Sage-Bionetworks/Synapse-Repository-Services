@@ -431,12 +431,15 @@ public class JDOSecondaryPropertyUtilsTest {
 		annos.getAdditionalAnnotations().addAnnotation("aLong", 123L);
 		annos.getAdditionalAnnotations().addAnnotation("aDouble", 1.22);
 		annos.getAdditionalAnnotations().addAnnotation("aDate", new Date(444L));
+		//  add a primary annotation
+		annos.getPrimaryAnnotations().addAnnotation("aPrimary", "primaryValue");
 		
 		List<AnnotationDTO> expected = Lists.newArrayList(
 				new AnnotationDTO(entityId, "aString", AnnotationType.STRING, "someSt"),
 				new AnnotationDTO(entityId, "aLong", AnnotationType.LONG, "123"),
 				new AnnotationDTO(entityId, "aDouble", AnnotationType.DOUBLE, "1.22"),
-				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444")
+				new AnnotationDTO(entityId, "aDate", AnnotationType.DATE, "444"),
+				new AnnotationDTO(entityId, "aPrimary", AnnotationType.STRING, "primar")
 		);
 		
 		List<AnnotationDTO> results = JDOSecondaryPropertyUtils.translate(entityId, annos, maxAnnotationChars);

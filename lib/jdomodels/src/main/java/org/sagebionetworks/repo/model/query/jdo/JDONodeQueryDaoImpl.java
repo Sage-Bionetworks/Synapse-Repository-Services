@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -38,15 +36,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 @SuppressWarnings("rawtypes")
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
-	private static final String VERSIONABLE = "versionable";
-	
-	private static final List<String> VERSIONABLE_TYPES = Arrays.asList(EntityType.file.name(), EntityType.table.name(), EntityType.entityview.name());
-
-	private static final String ENTITY = "entity";
-
 	static private Logger log = LogManager.getLogger(JDONodeQueryDaoImpl.class);
-	
-	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
@@ -166,20 +156,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 */
 	static boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery,
 			Map<String, Object> parameters) throws DatastoreException {
-		// Add a filter on type if needed
-		if(in.getFrom() != null){
-			// Add the type to the filter
-			if(!ENTITY.equals(in.getFrom().toLowerCase())){
-				if(VERSIONABLE.equals(in.getFrom().toLowerCase())){
-					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, VERSIONABLE_TYPES));
-				}else{
-					EntityType type = EntityType.valueOf(in.getFrom().toLowerCase());
-					in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, type.name()));
-				}
-			}
-		}
-		// Filter out nodes in the trash can
-		in.addExpression(new Expression(new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName()), Comparator.NOT_EQUALS, TRASH_FOLDER_ID));
+		// this method uses the converted from of the query.
+		in = BasicQueryUtils.convertFromToExpressions(in);
 		
 		// A count query is composed of the following parts
 		// <select> + <from> + <authorization_filter> + <where>
