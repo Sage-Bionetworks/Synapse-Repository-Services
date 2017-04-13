@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformation;
@@ -121,6 +122,38 @@ public class AccessRequirementManagerImplUnitTest {
 
 		when(mockEntityHeader.getId()).thenReturn(TEST_ENTITY_ID);
 		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(Arrays.asList(mockEntityHeader));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateARForEvaluation() {
+		ACTAccessRequirement toCreate = new ACTAccessRequirement();
+		toCreate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		toCreate.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(TEST_ENTITY_ID);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		toCreate.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		AccessRequirementManagerImpl.populateCreationFields(userInfo, toCreate);
+		arm.createAccessRequirement(userInfo, toCreate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreatePostMessageContentAccessRequirement() {
+		arm.createAccessRequirement(userInfo, new PostMessageContentAccessRequirement());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateNullAccessType() {
+		AccessRequirement toCreate = createExpectedAR();
+		toCreate.setAccessType(null);
+		arm.createAccessRequirement(userInfo, toCreate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateNullSubjectIds() {
+		AccessRequirement toCreate = createExpectedAR();
+		toCreate.setSubjectIds(null);
+		arm.createAccessRequirement(userInfo, toCreate);
 	}
 	
 	private AccessRequirement createExpectedAR() {

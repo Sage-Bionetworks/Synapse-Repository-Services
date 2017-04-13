@@ -633,13 +633,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		RestrictableObjectDescriptor entitySubjectId = new RestrictableObjectDescriptor();
 		entitySubjectId.setId(entityId);
 		entitySubjectId.setType(RestrictableObjectType.ENTITY);
-		RestrictableObjectDescriptor evaluationSubjectId = new RestrictableObjectDescriptor();
-		assertNotNull(evaluation);
-		assertNotNull(evaluation.getId());
-		evaluationSubjectId.setId(evaluation.getId());
-		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
 
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[] { entitySubjectId, evaluationSubjectId }));
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[] { entitySubjectId }));
 		accessRequirement = servletTestHelper.createAccessRequirement(dispatchServlet, accessRequirement, adminUserId,
 				new HashMap<String, String>());
 	}

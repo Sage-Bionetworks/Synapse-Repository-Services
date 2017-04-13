@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -70,7 +68,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private String entityId2;
 	private String childId;
 	private String fileId;
-	
+
 	private Team team;
 	
 	private AccessRequirement ar;
@@ -136,7 +134,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		team.setName("AccessRequirementManagerImplAutoWiredTest");
 		team = teamManager.create(adminUserInfo, team);
 	}
-	
+
 	@After
 	public void after() throws Exception {
 		if(nodeManager != null && nodesToDelete != null){
@@ -167,7 +165,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
 	}
-	
+
 	private static TermsOfUseAccessRequirement newTeamAccessRequirement(String teamId) {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -212,14 +210,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertFalse(actAR.getIsIDUPublic());
 	}
 
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessRequirementBadParam1() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setSubjectIds(null);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);

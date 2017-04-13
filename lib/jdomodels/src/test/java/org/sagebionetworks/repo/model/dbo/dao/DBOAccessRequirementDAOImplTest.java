@@ -84,18 +84,6 @@ public class DBOAccessRequirementDAOImplTest {
 		};
 	}
 	
-	public static Evaluation createNewEvaluation(String name, String ownerId, IdGenerator idGenerator, String contentSource) {
-		Evaluation evaluation = new Evaluation();
-		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
-		evaluation.setContentSource(contentSource);
-		evaluation.setOwnerId(ownerId);
-		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation.setName(name);
-		evaluation.setCreatedOn(new Date());
-		return evaluation;
-	}
-		
-	
 	@After
 	public void tearDown() throws Exception{
 		if (accessRequirement!=null && accessRequirement.getId()!=null) {
@@ -171,14 +159,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		RestrictableObjectDescriptor subjectId = 
 			AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId(), RestrictableObjectType.ENTITY);
-		
-		testAccessRequirementCRUDIntern(
-				accessRequirement,
-				subjectId
-				);
-	}
 
-	private void testAccessRequirementCRUDIntern(AccessRequirement accessRequirement, RestrictableObjectDescriptor subjectId) throws Exception {
 		long initialCount = accessRequirementDAO.getCount();
 		
 		// Create it

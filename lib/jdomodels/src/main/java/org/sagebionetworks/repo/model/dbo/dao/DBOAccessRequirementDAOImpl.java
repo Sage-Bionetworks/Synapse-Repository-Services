@@ -54,7 +54,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
@@ -77,42 +77,46 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private JdbcTemplate jdbcTemplate;
 	
 	private static final String SELECT_ALL_IDS_SQL = 
-		"SELECT "+COL_ACCESS_REQUIREMENT_ID+" FROM "+TABLE_ACCESS_REQUIREMENT;
+			"SELECT "+COL_ACCESS_REQUIREMENT_ID
+			+" FROM "+TABLE_ACCESS_REQUIREMENT;
 
 	private static final String SELECT_FOR_SUBJECT_SQL = 
-		"SELECT DISTINCT ar.*"
-		+ " FROM "+TABLE_ACCESS_REQUIREMENT+" ar, "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
-		+ " WHERE ar."+COL_ACCESS_REQUIREMENT_ID+" = nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+
-		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
-		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
-		" order by "+COL_ACCESS_REQUIREMENT_ID;
+			"SELECT DISTINCT ar.*"
+			+" FROM "+TABLE_ACCESS_REQUIREMENT+" ar, "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
+			+" WHERE ar."+COL_ACCESS_REQUIREMENT_ID+" = nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
+			+" order by "+COL_ACCESS_REQUIREMENT_ID;
 
-	private static final String SELECT_FOR_SAR_SQL = "select * from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
-	COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+	private static final String SELECT_FOR_SAR_SQL = "select *"
+			+" from "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" where "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
-			COL_ACCESS_REQUIREMENT_CREATED_BY+", "+
-			COL_ACCESS_REQUIREMENT_CREATED_ON+", "+
-			COL_ACCESS_REQUIREMENT_ETAG+
-			" from "+TABLE_ACCESS_REQUIREMENT+" where "+COL_ACCESS_REQUIREMENT_ID+
-			"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
+				COL_ACCESS_REQUIREMENT_CREATED_BY+", "+
+				COL_ACCESS_REQUIREMENT_CREATED_ON+", "+
+				COL_ACCESS_REQUIREMENT_ETAG+
+			" from "+TABLE_ACCESS_REQUIREMENT
+			+" where "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
 	
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL = 
-		"delete from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
-		COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
-	
+			"delete from "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" where "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 	
 	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
 	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
 	
-	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+
-	", aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID+
-	" from "+TABLE_ACCESS_REQUIREMENT+" ar ";
+	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select"
+			+ " ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+","
+			+ " aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID
+			+ " from "+TABLE_ACCESS_REQUIREMENT+" ar ";
 	
-	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = " left join "+TABLE_ACCESS_APPROVAL+" aa on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
-	" and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+
-	") where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+
-	") order by "+UNMET_REQUIREMENTS_AR_COL_ID;
+	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = 
+			" left join "+TABLE_ACCESS_APPROVAL+" aa"
+			+ " on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
+			+ " where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+")"
+			+ " order by "+UNMET_REQUIREMENTS_AR_COL_ID;
 	
 	// select ar.id as ar_id, aa.id as aa_id
 	// from ACCESS_REQUIREMENT ar 
@@ -120,15 +124,18 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	// nar.subject_type=:subject_type and nar.subject_id in (:subject_id)
 	// left join ACCESS_APPROVAL aa on ar.id=aa.requirement_id and aa.accessor_id in (:accessor_id)
 	// where ar.access_type=:access_type
-	private static final String SELECT_UNMET_REQUIREMENTS_SQL = UNMET_REQUIREMENTS_SQL_PREFIX +
-		" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+
-				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
-				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
-				UNMET_REQUIREMENTS_SQL_SUFFIX;
+	private static final String SELECT_UNMET_REQUIREMENTS_SQL = 
+			UNMET_REQUIREMENTS_SQL_PREFIX
+			+" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
+			+ " on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+" "
+			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" "
+			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+UNMET_REQUIREMENTS_SQL_SUFFIX;
 
 
 	private static final String SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET =
-			SELECT_FOR_SUBJECT_SQL+" "+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
+			SELECT_FOR_SUBJECT_SQL+" "
+			+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
 			+OFFSET_PARAM+" :"+OFFSET_PARAM;
 
 	private static final String SELECT_CONCRETE_TYPE = "SELECT "+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
@@ -181,7 +188,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -189,7 +196,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException{
 	
@@ -204,7 +211,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	public void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		if (subjectIds==null || subjectIds.isEmpty()) return;
 
@@ -293,7 +300,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return dtos;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T update(T dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
