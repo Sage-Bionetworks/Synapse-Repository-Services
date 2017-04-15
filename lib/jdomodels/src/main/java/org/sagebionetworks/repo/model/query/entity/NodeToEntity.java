@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.query.jdo.modelv2;
+package org.sagebionetworks.repo.model.query.entity;
 
 import org.sagebionetworks.repo.model.query.jdo.NodeField;
 import org.sagebionetworks.repo.model.table.EntityField;

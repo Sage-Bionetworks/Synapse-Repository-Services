@@ -519,7 +519,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 					if(exp.getValue() == null){
 						whereBuilder.append(" IS NULL ");
 					}else{
-						whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+						whereBuilder.append(exp.getCompare().getSql());
 						if(Comparator.IN == exp.getCompare()){
 							whereBuilder.append("(");
 						}
@@ -556,7 +556,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 					whereBuilder.append(".");
 					whereBuilder.append(SqlConstants.ANNOTATION_VALUE_COLUMN);
 					whereBuilder.append(" ");
-					whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+					whereBuilder.append(exp.getCompare().getSql());
 					whereBuilder.append(" :");
 					String valueKey = "valeKey" + i;
 					whereBuilder.append(valueKey);
