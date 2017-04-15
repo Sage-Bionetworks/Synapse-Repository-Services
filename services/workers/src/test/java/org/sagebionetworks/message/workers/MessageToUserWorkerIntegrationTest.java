@@ -1,6 +1,5 @@
 package org.sagebionetworks.message.workers;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -133,8 +132,6 @@ public class MessageToUserWorkerIntegrationTest {
 		userManager.deletePrincipal(adminUserInfo, toUserInfo.getId());
 	}
 	
-	
-	@SuppressWarnings("serial")
 	@Test
 	public void testRoundTrip() throws Exception {
 		List<MessageBundle> messages = null;
