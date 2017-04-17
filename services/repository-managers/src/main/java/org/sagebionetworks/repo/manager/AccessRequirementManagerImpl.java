@@ -298,9 +298,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			info.setRestrictionLevel(RestrictionLevel.OPEN);
 			info.setHasUnmetAccessRequirement(false);
 		} else {
-			if (stats.getHasACT()) {
+			if (stats.getHasACT() || stats.getHasLock()) {
 				info.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT);
-			} else if (stats.getHasToU() || stats.getHasLock()) {
+			} else if (stats.getHasToU()) {
 				info.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE);
 			} else {
 				throw new IllegalStateException("Access Requirement does not contain either ACT or ToU: "+stats.getRequirementIdSet().toString());
