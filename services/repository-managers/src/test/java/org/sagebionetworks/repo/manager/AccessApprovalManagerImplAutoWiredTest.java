@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -245,21 +244,21 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 	}
 	
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam2() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(null, adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	// can't apply an ACTAccessApproval to a TermsOfUse requirement
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam3() throws Exception {
 		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	// can't apply a TermsOfUseApproval to an ACT requirement
-	@Test(expected=InvalidModelException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam4() throws Exception {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
@@ -347,6 +346,4 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
 	}
-	
-	
 }
