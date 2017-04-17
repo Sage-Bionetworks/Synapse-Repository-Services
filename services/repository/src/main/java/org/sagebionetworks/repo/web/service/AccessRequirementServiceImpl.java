@@ -49,7 +49,6 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	public AccessRequirement createLockAccessRequirement(Long userId, 
 			String entityId) throws Exception {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-
 		return accessRequirementManager.createLockAccessRequirement(userInfo, entityId);
 	}
 	

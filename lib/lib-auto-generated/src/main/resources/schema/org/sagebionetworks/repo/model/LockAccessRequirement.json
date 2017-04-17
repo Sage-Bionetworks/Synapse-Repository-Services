@@ -1,0 +1,15 @@
+{
+	"title": "Lock Access Requirement",
+	"description": "JSON schema for Lock Access Requirement, used to lock down the entity while waiting for ACT to review.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+		}
+	],
+	"properties": {
+		"jiraKey": {
+			"type": "string",
+			"description": "The key of the jira issue created for this Access Requirement."
+		}
+	}
+}

@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -168,40 +169,57 @@ public class AccessRequirementManagerImplUnitTest {
 		return expectedAR;
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateLockAccessRequirementWithNullUserInfo() {
+		arm.createLockAccessRequirement(null, TEST_ENTITY_ID);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateLockAccessRequirementWithNullEntityId() {
+		arm.createLockAccessRequirement(userInfo, null);
+	}
+
 	@Test
 	public void testCreateLockAccessRequirementHappyPath() throws Exception {
+		Set<String> ars = new HashSet<String>();
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(ars);
+		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
+		
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		
 		// test that the right AR was created
-		AccessRequirement expectedAR = createExpectedAR();
 		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
 		verify(accessRequirementDAO).create(argument.capture());
 		verify(notificationEmailDao).getNotificationEmailForPrincipal(userInfo.getId());
 		// can't just call equals on the objects, because the time stamps are slightly different
-		assertEquals(expectedAR.getAccessType(), argument.getValue().getAccessType());
-		assertEquals(expectedAR.getCreatedBy(), argument.getValue().getCreatedBy());
-		assertEquals(expectedAR.getConcreteType(), argument.getValue().getConcreteType());
-		assertEquals(expectedAR.getModifiedBy(), argument.getValue().getModifiedBy());
-		assertEquals(expectedAR.getSubjectIds(), argument.getValue().getSubjectIds());
+		AccessRequirement toCreate = argument.getValue();
+		assertEquals(ACCESS_TYPE.DOWNLOAD, toCreate.getAccessType());
+		assertEquals(userInfo.getId().toString(), toCreate.getCreatedBy());
+		assertEquals(LockAccessRequirement.class.getName(), toCreate.getConcreteType());
+		assertEquals(userInfo.getId().toString(), toCreate.getModifiedBy());
+		assertNotNull(toCreate.getSubjectIds());
+		assertEquals(1, toCreate.getSubjectIds().size());
+		assertEquals(TEST_ENTITY_ID, toCreate.getSubjectIds().get(0).getId());
+		assertEquals(RestrictableObjectType.ENTITY, toCreate.getSubjectIds().get(0).getType());
+		assertNotNull(((LockAccessRequirement)toCreate).getJiraKey());
 
 		// test that jira client was called to create issue
 		// we don't test the *content* of the issue because that's tested in JRJCHelperTest
 		verify(jiraClient).createIssue((IssueInput)anyObject());
-
-		// verify that all default fields are set
-		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
-		assertFalse(ar.getIsCertifiedUserRequired());
-		assertFalse(ar.getIsValidatedProfileRequired());
-		assertFalse(ar.getIsDUCRequired());
-		assertFalse(ar.getIsIRBApprovalRequired());
-		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
-		assertFalse(ar.getIsIDUPublic());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
-	public void testCreateLockAccessRequirementNoAuthority() throws Exception {
+	public void testCreateLockAccessRequirementWithoutREADPermission() throws Exception {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// this should throw the unauthorized exception
+		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testCreateLockAccessRequirementWithoutUPDATEPermission() throws Exception {
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
@@ -209,11 +227,12 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateLockAccessRequirementAlreadyExists() throws Exception {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(TEST_ENTITY_ID);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = Arrays.asList(new AccessRequirement[]{createExpectedAR()});
-		when(accessRequirementDAO.getAllAccessRequirementsForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
+		Set<String> ars = new HashSet<String>();
+		String accessRequirementId = "1";
+		ars.add(accessRequirementId);
+		AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setRequirementIdSet(ars);
+		when(accessRequirementDAO.getAccessRequirementStats(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(stats);
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -448,5 +467,38 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasACT(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats);
 		arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNewLockAccessRequirementWithNullUserInfo(){
+		AccessRequirementManagerImpl.newLockAccessRequirement(null, TEST_ENTITY_ID, "jiraKey");
+	}
+
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNewLockAccessRequirementWithNullEntityId(){
+		AccessRequirementManagerImpl.newLockAccessRequirement(userInfo, null, "jiraKey");
+	}
+
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNewLockAccessRequirementWithNullJiraKey(){
+		AccessRequirementManagerImpl.newLockAccessRequirement(userInfo, TEST_ENTITY_ID, null);
+	}
+
+	@Test
+	public void testNewLockAccessRequirement(){
+		String jiraKey = "jiraKey";
+		LockAccessRequirement ar = AccessRequirementManagerImpl.newLockAccessRequirement(userInfo, TEST_ENTITY_ID, jiraKey);
+		assertNotNull(ar);
+		assertEquals(jiraKey, ar.getJiraKey());
+		assertNotNull(ar.getSubjectIds());
+		assertEquals(1, ar.getSubjectIds().size());
+		assertEquals(TEST_ENTITY_ID, ar.getSubjectIds().get(0).getId());
+		assertEquals(RestrictableObjectType.ENTITY, ar.getSubjectIds().get(0).getType());
+		assertNotNull(ar.getCreatedBy());
+		assertNotNull(ar.getCreatedOn());
+		assertNotNull(ar.getModifiedBy());
+		assertNotNull(ar.getModifiedOn());
 	}
 }
