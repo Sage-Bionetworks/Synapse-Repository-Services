@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -399,6 +400,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		final AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setHasACT(false);
 		stats.setHasToU(false);
+		stats.setHasLock(false);
 		final Set<String> requirementIdSet = new HashSet<String>();
 		stats.setRequirementIdSet(requirementIdSet);
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -414,6 +416,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					stats.setHasToU(true);
 				} else if (type.equals(ACTAccessRequirement.class.getName())) {
 					stats.setHasACT(true);
+				} else if (type.equals(LockAccessRequirement.class.getName())) {
+					stats.setHasLock(true);
 				}
 				return null;
 			}

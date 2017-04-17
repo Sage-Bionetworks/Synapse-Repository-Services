@@ -7,12 +7,19 @@ public class AccessRequirementStats {
 	Set<String> requirementIdSet;
 	Boolean hasACT;
 	Boolean hasToU;
+	Boolean hasLock;
 
 	public Set<String> getRequirementIdSet() {
 		return requirementIdSet;
 	}
 	public void setRequirementIdSet(Set<String> requirementIdSet) {
 		this.requirementIdSet = requirementIdSet;
+	}
+	public Boolean getHasLock() {
+		return hasLock;
+	}
+	public void setHasLock(Boolean hasLock) {
+		this.hasLock = hasLock;
 	}
 	public Boolean getHasACT() {
 		return hasACT;
@@ -31,6 +38,7 @@ public class AccessRequirementStats {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((hasACT == null) ? 0 : hasACT.hashCode());
+		result = prime * result + ((hasLock == null) ? 0 : hasLock.hashCode());
 		result = prime * result + ((hasToU == null) ? 0 : hasToU.hashCode());
 		result = prime * result + ((requirementIdSet == null) ? 0 : requirementIdSet.hashCode());
 		return result;
@@ -49,6 +57,11 @@ public class AccessRequirementStats {
 				return false;
 		} else if (!hasACT.equals(other.hasACT))
 			return false;
+		if (hasLock == null) {
+			if (other.hasLock != null)
+				return false;
+		} else if (!hasLock.equals(other.hasLock))
+			return false;
 		if (hasToU == null) {
 			if (other.hasToU != null)
 				return false;
@@ -64,6 +77,6 @@ public class AccessRequirementStats {
 	@Override
 	public String toString() {
 		return "AccessRequirementStats [requirementIdSet=" + requirementIdSet + ", hasACT=" + hasACT + ", hasToU="
-				+ hasToU + "]";
+				+ hasToU + ", hasLock=" + hasLock + "]";
 	}
 }
