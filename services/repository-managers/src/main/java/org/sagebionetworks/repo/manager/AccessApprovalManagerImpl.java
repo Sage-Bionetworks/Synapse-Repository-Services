@@ -16,9 +16,9 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -47,18 +47,19 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private NodeDAO nodeDao;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
-	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
-	InvalidModelException, UnauthorizedException, DatastoreException, NotFoundException {
-		if (a.getAccessorId()==null || a.getRequirementId()==null) throw new InvalidModelException();
+	private void validateAccessApproval(AccessApproval accessApproval) {
+		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 
 		// make sure the approval matches the requirement
-		AccessRequirement ar = accessRequirementDAO.get(a.getRequirementId().toString());
-		if (((ar instanceof TermsOfUseAccessRequirement) && !(a instanceof TermsOfUseAccessApproval))
-			|| ((ar instanceof PostMessageContentAccessRequirement) && !(a instanceof PostMessageContentAccessApproval))
-			|| ((ar instanceof ACTAccessRequirement) && !(a instanceof ACTAccessApproval))) {
-			throw new InvalidModelException("Cannot apply an approval of type "+a.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
+		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
+		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
+				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+
+		if (((ar instanceof TermsOfUseAccessRequirement) && !(accessApproval instanceof TermsOfUseAccessApproval))
+			|| ((ar instanceof ACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))) {
+			throw new IllegalArgumentException("Cannot apply an approval of type "+accessApproval.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
 		}
-		
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
@@ -88,17 +89,14 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
-		
+
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
 			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
-		
-		validateAccessApproval(userInfo, accessApproval);
 
+		validateAccessApproval(accessApproval);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreateAccessApproval(userInfo, accessApproval));
-
-		
 		populateCreationFields(userInfo, accessApproval);
 		return accessApprovalDAO.create(accessApproval);
 	}
@@ -133,13 +131,13 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
 			ConflictingUpdateException, InvalidModelException {
-		
+
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
 			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
-		
-		validateAccessApproval(userInfo, accessApproval);
+
+		validateAccessApproval(accessApproval);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE));
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
