@@ -416,7 +416,7 @@ public class AccessRequirementManagerImplUnitTest {
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
 		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
-		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
 		verify(nodeDao).getEntityPath(TEST_ENTITY_ID);
 	}
