@@ -43,7 +43,7 @@ public class TablesTest {
 	public void testNodeFieldOnly(){
 		// create with node fields only.
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(nodeExpression)), sortList);
-		assertEquals(" FROM ENTITY_REPLICATION R",tables.toSql());
+		assertEquals(" FROM ENTITY_REPLICATION "+Constants.ENTITY_REPLICATION_ALIAS,tables.toSql());
 	}
 	
 	@Test
@@ -51,7 +51,7 @@ public class TablesTest {
 		// create with node fields only.
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression)), sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION R JOIN ANNOTATION_REPLICATION A0"
+		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
@@ -60,7 +60,7 @@ public class TablesTest {
 		// create with node fields only.
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression)), sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION R JOIN ANNOTATION_REPLICATION A0"
+		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
@@ -71,7 +71,7 @@ public class TablesTest {
 		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
 		Tables tables = new Tables(new ExpressionList(new LinkedList<Expression>()), sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION R LEFT JOIN ANNOTATION_REPLICATION A0"
+		assertEquals(" FROM ENTITY_REPLICATION E LEFT JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
@@ -83,7 +83,7 @@ public class TablesTest {
 		Tables tables = new Tables(new ExpressionList(new LinkedList<Expression>()), sortList);
 		String sql = tables.toSql();
 		// do not need an annotation join when sorting on a node field
-		assertEquals(" FROM ENTITY_REPLICATION R", sql);
+		assertEquals(" FROM ENTITY_REPLICATION "+Constants.ENTITY_REPLICATION_ALIAS, sql);
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class TablesTest {
 		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression)), sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION R"
+		assertEquals(" FROM ENTITY_REPLICATION E"
 				+ " JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A1"

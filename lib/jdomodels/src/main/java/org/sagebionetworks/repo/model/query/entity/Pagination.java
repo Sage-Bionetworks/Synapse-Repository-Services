@@ -6,9 +6,6 @@ package org.sagebionetworks.repo.model.query.entity;
  */
 public class Pagination extends SqlElement {
 	
-	public static final String BIND_LIMIT = "bLimit";
-	public static final String BIND_OFFSET = "bOffset";
-
 	long limit;
 	long offset;
 	
@@ -20,15 +17,15 @@ public class Pagination extends SqlElement {
 	@Override
 	public void toSql(StringBuilder builder) {
 		builder.append(" LIMIT :");
-		builder.append(BIND_LIMIT);
+		builder.append(Constants.BIND_LIMIT);
 		builder.append(" OFFSET :");
-		builder.append(BIND_OFFSET);
+		builder.append(Constants.BIND_OFFSET);
 	}
 
 	@Override
 	public void bindParameters(Parameters parameters) {
-		parameters.put(BIND_LIMIT, limit);
-		parameters.put(BIND_OFFSET, offset);
+		parameters.put(Constants.BIND_LIMIT, limit);
+		parameters.put(Constants.BIND_OFFSET, offset);
 	}
 
 }

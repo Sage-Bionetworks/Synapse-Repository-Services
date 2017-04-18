@@ -35,7 +35,8 @@ public class SelectColumn extends SqlElement {
 			if(nodeToEntity.entityField == null){
 				builder.append("NULL");
 			}else{
-				builder.append("E.");
+				builder.append(Constants.ENTITY_REPLICATION_ALIAS);
+				builder.append(".");
 				builder.append(nodeToEntity.entityField.getDatabaseColumnName());
 			}
 			builder.append(" AS '");

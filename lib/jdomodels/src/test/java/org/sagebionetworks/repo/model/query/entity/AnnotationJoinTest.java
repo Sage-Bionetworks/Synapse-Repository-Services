@@ -43,7 +43,7 @@ public class AnnotationJoinTest {
 		AnnotationJoin join = new AnnotationJoin(annotationReference, leftJoin);
 		join.bindParameters(parameters);
 		Map<String, Object> map = parameters.getParameters();
-		String bindName = AnnotationJoin.BIND_PREFIX+index;
+		String bindName = Constants.BIND_PREFIX_ANNOTATION_JOIN+index;
 		assertEquals(annotationName, map.get(bindName));
 	}
 }

@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.entity.QueryModel;
 
 public interface NodeQueryDaoV2 {
 
@@ -16,6 +16,21 @@ public interface NodeQueryDaoV2 {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public NodeQueryResults executeQuery(BasicQuery query, Set<Long> benefactorIds) throws DatastoreException;
+	public List<Map<String, Object>> executeQuery(QueryModel model);
+	
+	/**
+	 * Execute a count query for the given model.
+	 * 
+	 * @param model
+	 * @return
+	 */
+	public long executeCountQuery(QueryModel model);
+	
+	/**
+	 * Add all of the annotations to the given results.
+	 * 
+	 * @param results
+	 */
+	public void addAnnotationsToResults(List<Map<String, Object>> results);
 	
 }

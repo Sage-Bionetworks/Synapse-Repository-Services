@@ -9,8 +9,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.*;
  */
 public class AnnotationJoin extends SqlElement {
 	
-	public static final String BIND_PREFIX = "bJoinName";
-	
 	String tableAlias;
 	String bindName;
 	String columnName;
@@ -18,7 +16,7 @@ public class AnnotationJoin extends SqlElement {
 
 	public AnnotationJoin(ColumnReference reference, boolean leftJoin) {
 		this.tableAlias = reference.getAnnotationAlias();
-		this.bindName = BIND_PREFIX+reference.getColumnIndex();
+		this.bindName = Constants.BIND_PREFIX_ANNOTATION_JOIN+reference.getColumnIndex();
 		this.columnName = reference.getAnnotationName();
 		this.leftJoin = leftJoin;
 	}

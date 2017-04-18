@@ -32,8 +32,8 @@ public class PaginationTest {
 		Pagination pagination = new Pagination(limit, offset);
 		pagination.bindParameters(parameters);
 		Map<String, Object> results = parameters.getParameters();
-		assertEquals(limit, results.get(Pagination.BIND_LIMIT));
-		assertEquals(offset, results.get(Pagination.BIND_OFFSET));
+		assertEquals(limit, results.get(Constants.BIND_LIMIT));
+		assertEquals(offset, results.get(Constants.BIND_OFFSET));
 	}
 
 }

@@ -58,7 +58,7 @@ public class QueryModelTest {
 		query.setFilters(null);
 		query.setSort(null);
 		QueryModel model = new QueryModel(query);
-		assertEquals("SELECT E.ID AS 'id' FROM ENTITY_REPLICATION R LIMIT :bLimit OFFSET :bOffset", model.toSql());
+		assertEquals("SELECT E.ID AS 'id' FROM ENTITY_REPLICATION E LIMIT :bLimit OFFSET :bOffset", model.toSql());
 	}
 	
 	@Test
@@ -75,7 +75,7 @@ public class QueryModelTest {
 		QueryModel model = new QueryModel(query);
 		String count = model.toCountSql();
 		assertEquals("SELECT COUNT(*)"
-				+ " FROM ENTITY_REPLICATION R"
+				+ " FROM ENTITY_REPLICATION E"
 				+ " JOIN ANNOTATION_REPLICATION A1"
 				+ " ON (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A2"

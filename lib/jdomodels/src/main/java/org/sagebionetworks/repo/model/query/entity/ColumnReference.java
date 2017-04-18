@@ -36,7 +36,8 @@ public class ColumnReference extends SqlElement {
 	@Override
 	public void toSql(StringBuilder builder) {
 		if(nodeToEntity != null){
-			builder.append("E.");
+			builder.append(Constants.ENTITY_REPLICATION_ALIAS);
+			builder.append(".");
 			builder.append(nodeToEntity.entityField.getDatabaseColumnName());
 		}else{
 			builder.append(annotationAlias);

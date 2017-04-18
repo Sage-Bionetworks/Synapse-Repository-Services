@@ -35,8 +35,8 @@ public class ExpressionListTest {
 				, Comparator.GREATER_THAN
 				, 456L);
 		parameters = new Parameters();
-		bindKey0 = SqlExpression.BIND_PREFIX+0;
-		bindKey1 = SqlExpression.BIND_PREFIX+1;
+		bindKey0 = Constants.BIND_PREFIX_EXPRESSION+0;
+		bindKey1 = Constants.BIND_PREFIX_EXPRESSION+1;
 	}
 	
 	@Test

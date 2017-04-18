@@ -27,7 +27,7 @@ public class SqlExpressionTest {
 		annotationName = "foo";
 		annotationRefrence =new ColumnReference(annotationName, index);
 		parameters = new Parameters();
-		bindKey = SqlExpression.BIND_PREFIX+index;
+		bindKey = Constants.BIND_PREFIX_EXPRESSION+index;
 	}
 
 	@Test

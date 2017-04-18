@@ -36,7 +36,8 @@ public class Tables extends SqlElement {
 	public void toSql(StringBuilder builder) {
 		builder.append(" FROM ");
 		builder.append(ENTITY_REPLICATION_TABLE);
-		builder.append(" R");
+		builder.append(" ");
+		builder.append(Constants.ENTITY_REPLICATION_ALIAS);
 		// add a join for each annotation expression
 		for(AnnotationJoin join: annotationExpressions){
 			join.toSql(builder);
