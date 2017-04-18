@@ -7,7 +7,7 @@ package org.sagebionetworks.repo.model.query.entity;
 public class Pagination extends SqlElement {
 	
 	public static final String BIND_LIMIT = "bLimit";
-	public static final String BIND_OFFSET = "bOffest";
+	public static final String BIND_OFFSET = "bOffset";
 
 	long limit;
 	long offset;

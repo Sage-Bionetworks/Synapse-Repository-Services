@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.query.entity;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
 import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
@@ -11,18 +9,25 @@ import static org.sagebionetworks.repo.model.table.TableConstants.*;
  */
 public class AnnotationJoin extends SqlElement {
 	
+	public static final String BIND_PREFIX = "bJoinName";
+	
 	String tableAlias;
 	String bindName;
 	String columnName;
+	boolean leftJoin;
 
-	public AnnotationJoin(ColumnReference reference) {
+	public AnnotationJoin(ColumnReference reference, boolean leftJoin) {
 		this.tableAlias = reference.getAnnotationAlias();
-		this.bindName = "K"+reference.getColumnIndex();
+		this.bindName = BIND_PREFIX+reference.getColumnIndex();
 		this.columnName = reference.getAnnotationName();
+		this.leftJoin = leftJoin;
 	}
 
 	@Override
 	public void toSql(StringBuilder builder) {
+		if(leftJoin){
+			builder.append(" LEFT");
+		}
 		builder.append(" JOIN ");
 		builder.append(ANNOTATION_REPLICATION_TABLE);
 		builder.append(" ");

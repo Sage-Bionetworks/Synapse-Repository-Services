@@ -20,12 +20,23 @@ public class Parameters {
 	 * 
 	 * @param key
 	 * @param value
+	 * @throws IllegalStateException for duplicate keys.
 	 */
 	public void put(String key, Object value){
 		Object old = params.put(key, value);
 		if(old != null){
 			throw new IllegalStateException("Duplicate parameter key: "+key);
 		}
+	}
+	
+	
+	/**
+	 * Get the parameters.
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getParameters(){
+		return params;
 	}
 
 }

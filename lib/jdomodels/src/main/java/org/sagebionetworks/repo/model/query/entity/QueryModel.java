@@ -46,5 +46,18 @@ public class QueryModel extends SqlElement {
 		where.bindParameters(parameters);
 		pagination.bindParameters(parameters);
 	}
+	
+	/**
+	 * Create a count query for this model.
+	 * 
+	 * @return
+	 */
+	public String toCountSql(){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT COUNT(*)");
+		from.toSql(builder);
+		where.toSql(builder);
+		return builder.toString();
+	}
 
 }

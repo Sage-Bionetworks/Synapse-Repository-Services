@@ -18,12 +18,16 @@ public class Tables extends SqlElement {
 		annotationExpressions = new LinkedList<AnnotationJoin>();
 		// look for the annotation expressions
 		for(SqlExpression annoExpression: list.getAnnotationExpressions()){
-			AnnotationJoin join = new AnnotationJoin(annoExpression.leftHandSide);
+			// Annotation expression are filters so inner join is used
+			boolean leftJoin = false;
+			AnnotationJoin join = new AnnotationJoin(annoExpression.leftHandSide, leftJoin);
 			annotationExpressions.add(join);
 		}
 		// An annotation join is needed to sort on an annotation.
 		if(sortList.sortColumn != null && sortList.sortColumn.getAnnotationAlias() != null){
-			AnnotationJoin join = new AnnotationJoin(sortList.sortColumn);
+			// sorting should not filter, so left join is used.
+			boolean leftJoin = true;
+			AnnotationJoin join = new AnnotationJoin(sortList.sortColumn, leftJoin);
 			annotationExpressions.add(join);
 		}
 	}

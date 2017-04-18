@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.query.entity;
 
-import java.util.Map;
 
 public abstract class SqlElement {
 

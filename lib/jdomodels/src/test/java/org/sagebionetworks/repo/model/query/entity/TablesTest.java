@@ -51,8 +51,8 @@ public class TablesTest {
 		// create with node fields only.
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression)), sortList);
 		String sql = tables.toSql();
-		assertTrue(sql.startsWith(" FROM ENTITY_REPLICATION R"));
-		assertTrue(sql.contains("AND A0.ANNO_KEY = :K0"));
+		assertEquals(" FROM ENTITY_REPLICATION R JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
 	@Test
@@ -60,8 +60,8 @@ public class TablesTest {
 		// create with node fields only.
 		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression)), sortList);
 		String sql = tables.toSql();
-		assertTrue(sql.startsWith(" FROM ENTITY_REPLICATION R"));
-		assertTrue(sql.contains("AND A0.ANNO_KEY = :K0"));
+		assertEquals(" FROM ENTITY_REPLICATION R JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
 	@Test
@@ -71,9 +71,8 @@ public class TablesTest {
 		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
 		Tables tables = new Tables(new ExpressionList(new LinkedList<Expression>()), sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION R"
-				+ " JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :K0)", sql);
+		assertEquals(" FROM ENTITY_REPLICATION R LEFT JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
 	}
 	
 	@Test
@@ -96,9 +95,9 @@ public class TablesTest {
 		String sql = tables.toSql();
 		assertEquals(" FROM ENTITY_REPLICATION R"
 				+ " JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :K0)"
-				+ " JOIN ANNOTATION_REPLICATION A1"
-				+ " ON (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :K1)", sql);
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A1"
+				+ " ON (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 
 }

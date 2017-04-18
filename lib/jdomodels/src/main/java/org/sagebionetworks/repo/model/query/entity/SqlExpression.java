@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.query.Comparator;
  */
 public class SqlExpression extends SqlElement {
 
+	public static final String BIND_PREFIX = "bExpressionValue";
+	
 	ColumnReference leftHandSide;
 	Comparator compare;
 	Object rightHandSide;
@@ -28,7 +30,7 @@ public class SqlExpression extends SqlElement {
 		this.leftHandSide = leftHandSide;
 		this.compare = compare;
 		this.rightHandSide = rightHandSide;
-		this.bindName = "b"+leftHandSide.getColumnIndex();
+		this.bindName = BIND_PREFIX+leftHandSide.getColumnIndex();
 	}
 
 	@Override

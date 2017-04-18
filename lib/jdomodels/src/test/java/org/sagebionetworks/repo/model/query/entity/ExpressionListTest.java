@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +20,10 @@ public class ExpressionListTest {
 	Expression nodeExpression;
 	Expression annotationExpression;
 	
+	Parameters parameters;
+	String bindKey0;
+	String bindKey1;
+	
 	@Before
 	public void before(){
 		nodeExpression = new Expression(
@@ -29,12 +34,15 @@ public class ExpressionListTest {
 				new CompoundId(null, "foo")
 				, Comparator.GREATER_THAN
 				, 456L);
+		parameters = new Parameters();
+		bindKey0 = SqlExpression.BIND_PREFIX+0;
+		bindKey1 = SqlExpression.BIND_PREFIX+1;
 	}
 	
 	@Test
 	public void testNodeFieldAndAnnotation(){
 		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression));
-		assertEquals(" WHERE E.CREATED_BY = :b0 AND A1.ANNO_VALUE > :b1",list.toSql());
+		assertEquals(" WHERE E.CREATED_BY = :"+bindKey0+" AND A1.ANNO_VALUE > :"+bindKey1,list.toSql());
 		assertEquals(2, list.getSize());
 	}
 	
@@ -80,6 +88,15 @@ public class ExpressionListTest {
 		ExpressionList list = new ExpressionList(null);
 		assertEquals("",list.toSql());
 		assertEquals(0, list.getSize());
+	}
+	
+	@Test
+	public void testBindParameters(){
+		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression));
+		list.bindParameters(parameters);
+		Map<String, Object> map = parameters.getParameters();
+		assertEquals(456L, map.get(bindKey0));
+		assertEquals(123L, map.get(bindKey1));
 	}
 
 }
