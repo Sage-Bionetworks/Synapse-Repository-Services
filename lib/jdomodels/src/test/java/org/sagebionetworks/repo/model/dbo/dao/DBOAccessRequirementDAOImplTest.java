@@ -343,6 +343,7 @@ public class DBOAccessRequirementDAOImplTest {
 		assertNotNull(stats);
 		assertTrue(stats.getHasToU());
 		assertFalse(stats.getHasACT());
+		assertFalse(stats.getHasLock());
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement.getId().toString()));
 
 		ACTAccessRequirement accessRequirement2 = new ACTAccessRequirement();
