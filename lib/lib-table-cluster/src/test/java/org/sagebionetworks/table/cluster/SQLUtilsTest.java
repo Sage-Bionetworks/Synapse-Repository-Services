@@ -1150,12 +1150,16 @@ public class SQLUtilsTest {
 		ColumnModel one = EntityField.benefactorId.getColumnModel();
 		one.setId("1");
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		ColumnModel three = new ColumnModel();
+		three.setId("3");
+		three.setColumnType(ColumnType.DOUBLE);
+		three.setName("three");
+		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildInsertValues(builder, metaList);
-		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_", builder.toString());
+		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
 	}
 	
 	@Test
@@ -1163,12 +1167,26 @@ public class SQLUtilsTest {
 		ColumnModel one = EntityField.benefactorId.getColumnModel();
 		one.setId("1");
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.DOUBLE);
+		three.setId("3");
+		three.setName("three");
+		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
-		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_", builder.toString());
+		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_,"
+				+ " CASE A2.ANNO_VALUE"
+				+ " WHEN \"NaN\" THEN \"NaN\""
+				+ " WHEN \"Infinity\" THEN \"Infinity\""
+				+ " WHEN \"-Infinity\" THEN \"-Infinity\""
+				+ " ELSE NULL END AS _DBL_C3_,"
+				+ " CASE A2.ANNO_VALUE"
+				+ " WHEN \"NaN\" THEN NULL"
+				+ " WHEN \"Infinity\" THEN 1.7976931348623157E308"
+				+ " WHEN \"-Infinity\" THEN 4.9E-324"
+				+ " ELSE A2.ANNO_VALUE END AS _C3_", builder.toString());
 	}
 	
 	@Test
