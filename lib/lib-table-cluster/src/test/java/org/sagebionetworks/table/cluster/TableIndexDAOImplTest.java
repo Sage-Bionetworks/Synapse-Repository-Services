@@ -1503,6 +1503,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(3715581114L, crc32);
 	}
 	
+	/*
+	 * PLFM-4336
+	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
 		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
@@ -1542,9 +1545,6 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, count);
 	}
 
-	/*
-	 * PLFM-4336
-	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
 		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
