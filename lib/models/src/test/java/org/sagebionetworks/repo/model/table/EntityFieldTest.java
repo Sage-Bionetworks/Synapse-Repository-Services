@@ -14,7 +14,7 @@ public class EntityFieldTest {
 	public void testGetColumnModelNoSize(){
 		ColumnModel model = EntityField.benefactorId.getColumnModel();
 		assertEquals(EntityField.benefactorId.name(), model.getName());
-		assertEquals(EntityField.benefactorId.type, model.getColumnType());
+		assertEquals(EntityField.benefactorId.colunmType, model.getColumnType());
 		assertEquals(null, model.getMaximumSize());
 	}
 	
@@ -22,7 +22,7 @@ public class EntityFieldTest {
 	public void testGetColumnModelWithSize(){
 		ColumnModel model = EntityField.name.getColumnModel();
 		assertEquals(EntityField.name.name(), model.getName());
-		assertEquals(EntityField.name.type, model.getColumnType());
+		assertEquals(EntityField.name.colunmType, model.getColumnType());
 		assertEquals(EntityField.name.size, model.getMaximumSize());
 	}
 
