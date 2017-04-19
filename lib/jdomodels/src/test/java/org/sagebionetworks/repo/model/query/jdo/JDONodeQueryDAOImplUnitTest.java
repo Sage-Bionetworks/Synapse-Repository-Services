@@ -63,7 +63,7 @@ public class JDONodeQueryDAOImplUnitTest {
 				+ "from JDOREVISION rev, JDONODE nod "
 				+ "where nod.ID = rev.OWNER_NODE_ID "
 				+ "and nod.CURRENT_REV_NUM = rev.NUMBER "
-				+ "and nod.NODE_TYPE in( :expKey0) "
+				+ "and nod.NODE_TYPE IN( :expKey0) "
 				+ "and nod.BENEFACTOR_ID != :expKey1  "
 				+ "limit :limitVal offset :offsetVal", fullQuery.toString());
 		assertEquals(

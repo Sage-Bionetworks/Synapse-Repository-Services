@@ -148,7 +148,7 @@ public class JDONodeQueryDAOImplAdditionalTest {
 		assertTrue(results.getResultIds().contains(toTrash.getId()));
 		
 		// Now move the node to the trash
-		nodeInheritanceDao.addBeneficiary(toTrash.getId(), ""+JDONodeQueryDaoImpl.TRASH_FOLDER_ID);
+		nodeInheritanceDao.addBeneficiary(toTrash.getId(), ""+BasicQueryUtils.TRASH_FOLDER_ID);
 		// We should not be able to find it
 		results = nodeQueryDao.executeQuery(query, userInfo);
 		assertNotNull(results);
