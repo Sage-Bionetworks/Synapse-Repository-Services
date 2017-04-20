@@ -7,10 +7,9 @@ import java.util.List;
  * Represents the select list of an entity query.
  *
  */
-public class SelectList extends SqlElement {
+public class SelectList extends SqlElement implements HasAnnotationReference {
 
 	boolean isSelectStar;
-	boolean includesAnnotation;
 	List<SelectColumn> select;
 	
 	/**
@@ -18,27 +17,21 @@ public class SelectList extends SqlElement {
 	 * 
 	 * @param inputSelect
 	 */
-	public SelectList(List<String> inputSelect){
+	public SelectList(List<String> inputSelect, IndexProvider indexProvider){
 		select = new LinkedList<>();
 		isSelectStar = false;
-		includesAnnotation = false;
 		if(inputSelect == null || inputSelect.isEmpty()){
 			isSelectStar = true;
 			// add all of the node fields
 			for(NodeToEntity nodeToEntity: NodeToEntity.values()){
-				select.add(new SelectColumn(nodeToEntity));
+				ColumnReference ref = new ColumnReference(nodeToEntity.nodeField.getFieldName(), indexProvider.nextIndex());
+				select.add(new SelectColumn(ref));
 			}
 		}else{
 			// Add the columns selected by the users
 			for(String inSelect: inputSelect){
-				try{
-					NodeToEntity type = NodeToEntity.valueOf(inSelect);
-					select.add(new SelectColumn(type));
-				}catch(IllegalArgumentException e){
-					// this is an annotation
-					includesAnnotation = true;
-					select.add(new SelectColumn(inSelect));
-				}
+				ColumnReference ref = new ColumnReference(inSelect, indexProvider.nextIndex());
+				select.add(new SelectColumn(ref));
 			}
 		}
 	}
@@ -66,19 +59,19 @@ public class SelectList extends SqlElement {
 		return isSelectStar;
 	}
 
-	/**
-	 * Does the select include any annotations?
-	 * s
-	 * @return
-	 */
-	public boolean includesAnnotations() {
-		return includesAnnotation;
-	}
-
-
 	@Override
 	public void bindParameters(Parameters parameters) {
 		// nothing to bind
 	}
 	
+	@Override
+	public Iterable<ColumnReference> getAnnotationReferences() {
+		List<ColumnReference> results = new LinkedList<ColumnReference>();
+		for(SelectColumn select: select){
+			if(select.columnReference.getAnnotationAlias() != null){
+				results.add(select.columnReference);
+			}
+		}
+		return results;
+	}
 }

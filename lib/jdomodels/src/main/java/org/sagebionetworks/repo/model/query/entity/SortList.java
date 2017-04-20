@@ -16,9 +16,9 @@ public class SortList extends SqlElement {
 	 * @param startIndex
 	 * @param sorts
 	 */
-	public SortList(int startIndex, String sort, boolean isAscending){
+	public SortList(String sort, boolean isAscending, IndexProvider indexProvider){
 		if(sort != null){
-			this.sortColumn = new ColumnReference(sort, startIndex);
+			this.sortColumn = new ColumnReference(sort, indexProvider.nextIndex());
 		}
 		this.isAscending = isAscending;
 	}

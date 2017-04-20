@@ -22,9 +22,6 @@ public class ColumnReference extends SqlElement {
 		try{
 			NodeToEntity type = NodeToEntity.valueOf(columnName);
 			this.nodeToEntity = type;
-			if(nodeToEntity.entityField == null){
-				throw new IllegalArgumentException("Cannot reference column: "+nodeToEntity.name());
-			}
 		}catch (IllegalArgumentException e){
 			this.annotationName = columnName;
 			this.annotationAlias = "A"+columnIndex;
@@ -36,9 +33,13 @@ public class ColumnReference extends SqlElement {
 	@Override
 	public void toSql(StringBuilder builder) {
 		if(nodeToEntity != null){
-			builder.append(Constants.ENTITY_REPLICATION_ALIAS);
-			builder.append(".");
-			builder.append(nodeToEntity.entityField.getDatabaseColumnName());
+			if(nodeToEntity.entityField == null){
+				builder.append("NULL");
+			}else{
+				builder.append(Constants.ENTITY_REPLICATION_ALIAS);
+				builder.append(".");
+				builder.append(nodeToEntity.entityField.getDatabaseColumnName());
+			}
 		}else{
 			builder.append(annotationAlias);
 			builder.append(".");

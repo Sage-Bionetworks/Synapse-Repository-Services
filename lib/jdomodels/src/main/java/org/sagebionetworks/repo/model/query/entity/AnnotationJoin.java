@@ -31,7 +31,8 @@ public class AnnotationJoin extends SqlElement {
 		builder.append(" ");
 		builder.append(this.tableAlias);
 		builder.append(" ON (");
-		builder.append("R.");
+		builder.append(Constants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
 		builder.append(ENTITY_REPLICATION_COL_ID);
 		builder.append(" = ");
 		builder.append(this.tableAlias);

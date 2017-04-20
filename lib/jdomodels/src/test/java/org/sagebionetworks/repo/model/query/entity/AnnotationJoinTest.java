@@ -27,14 +27,14 @@ public class AnnotationJoinTest {
 	public void testToSqlLeftJoinTrue(){
 		boolean leftJoin = true;
 		AnnotationJoin join = new AnnotationJoin(annotationReference, leftJoin);
-		assertEquals(" LEFT JOIN ANNOTATION_REPLICATION A5 ON (R.ID = A5.ENTITY_ID AND A5.ANNO_KEY = :bJoinName5)", join.toSql());
+		assertEquals(" LEFT JOIN ANNOTATION_REPLICATION A5 ON (E.ID = A5.ENTITY_ID AND A5.ANNO_KEY = :bJoinName5)", join.toSql());
 	}
 	
 	@Test
 	public void testToSqlLeftJoinFalse(){
 		boolean leftJoin = false;
 		AnnotationJoin join = new AnnotationJoin(annotationReference, leftJoin);
-		assertEquals(" JOIN ANNOTATION_REPLICATION A5 ON (R.ID = A5.ENTITY_ID AND A5.ANNO_KEY = :bJoinName5)", join.toSql());
+		assertEquals(" JOIN ANNOTATION_REPLICATION A5 ON (E.ID = A5.ENTITY_ID AND A5.ANNO_KEY = :bJoinName5)", join.toSql());
 	}
 
 	@Test

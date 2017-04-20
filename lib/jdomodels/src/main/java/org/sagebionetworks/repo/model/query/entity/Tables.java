@@ -14,13 +14,20 @@ public class Tables extends SqlElement {
 	
 	List<AnnotationJoin> annotationExpressions;
 
-	public Tables(ExpressionList list, SortList sortList){
+	public Tables(SelectList select, ExpressionList list, SortList sortList){
 		annotationExpressions = new LinkedList<AnnotationJoin>();
+		
+		for(ColumnReference annotationRef: select.getAnnotationReferences()){
+			// left join is used for annotations in a select.
+			boolean leftJoin = true;
+			AnnotationJoin join = new AnnotationJoin(annotationRef, leftJoin);
+			annotationExpressions.add(join);
+		}
 		// look for the annotation expressions
-		for(SqlExpression annoExpression: list.getAnnotationExpressions()){
+		for(ColumnReference annotationRef: list.getAnnotationReferences()){
 			// Annotation expression are filters so inner join is used
 			boolean leftJoin = false;
-			AnnotationJoin join = new AnnotationJoin(annoExpression.leftHandSide, leftJoin);
+			AnnotationJoin join = new AnnotationJoin(annotationRef, leftJoin);
 			annotationExpressions.add(join);
 		}
 		// An annotation join is needed to sort on an annotation.

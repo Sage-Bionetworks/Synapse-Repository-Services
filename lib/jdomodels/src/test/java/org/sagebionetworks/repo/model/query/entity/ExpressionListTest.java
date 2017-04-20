@@ -19,10 +19,11 @@ public class ExpressionListTest {
 	
 	Expression nodeExpression;
 	Expression annotationExpression;
-	
+	IndexProvider indexProvider;
 	Parameters parameters;
 	String bindKey0;
 	String bindKey1;
+
 	
 	@Before
 	public void before(){
@@ -37,18 +38,18 @@ public class ExpressionListTest {
 		parameters = new Parameters();
 		bindKey0 = Constants.BIND_PREFIX_EXPRESSION+0;
 		bindKey1 = Constants.BIND_PREFIX_EXPRESSION+1;
+		indexProvider = new IndexProvider();
 	}
 	
 	@Test
 	public void testNodeFieldAndAnnotation(){
-		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression));
+		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression), indexProvider);
 		assertEquals(" WHERE E.CREATED_BY = :"+bindKey0+" AND A1.ANNO_VALUE > :"+bindKey1,list.toSql());
-		assertEquals(2, list.getSize());
 	}
 	
 	@Test
 	public void testGetAnnotationNodeOnly(){
-		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression));
+		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression), indexProvider);
 		List<SqlExpression> annos = list.getAnnotationExpressions();
 		assertNotNull(annos);
 		assertEquals(0, annos.size());
@@ -56,7 +57,7 @@ public class ExpressionListTest {
 	
 	@Test
 	public void testGetAnnotationAnnotationOnly(){
-		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression));
+		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression), indexProvider);
 		List<SqlExpression> annos = list.getAnnotationExpressions();
 		assertNotNull(annos);
 		assertEquals(1, annos.size());
@@ -66,7 +67,7 @@ public class ExpressionListTest {
 	
 	@Test
 	public void testGetAnnotationAnnotationMixed(){
-		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression));
+		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression), indexProvider);
 		List<SqlExpression> annos = list.getAnnotationExpressions();
 		assertNotNull(annos);
 		assertEquals(1, annos.size());
@@ -76,23 +77,21 @@ public class ExpressionListTest {
 	
 	@Test
 	public void testEmptyList(){
-		ExpressionList list = new ExpressionList(new LinkedList<Expression>());
+		ExpressionList list = new ExpressionList(new LinkedList<Expression>(), indexProvider);
 		assertEquals("",list.toSql());
 		List<SqlExpression> annos = list.getAnnotationExpressions();
 		assertNotNull(annos);
-		assertEquals(0, list.getSize());
 	}
 	
 	@Test
 	public void testNullList(){
-		ExpressionList list = new ExpressionList(null);
+		ExpressionList list = new ExpressionList(null, indexProvider);
 		assertEquals("",list.toSql());
-		assertEquals(0, list.getSize());
 	}
 	
 	@Test
 	public void testBindParameters(){
-		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression));
+		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression), indexProvider);
 		list.bindParameters(parameters);
 		Map<String, Object> map = parameters.getParameters();
 		assertEquals(456L, map.get(bindKey0));

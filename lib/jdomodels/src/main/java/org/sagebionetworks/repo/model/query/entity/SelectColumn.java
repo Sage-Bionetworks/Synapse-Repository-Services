@@ -1,53 +1,34 @@
 package org.sagebionetworks.repo.model.query.entity;
 
+
 /**
  * SQL element for a select column.
  *
  */
 public class SelectColumn extends SqlElement {
 
-	NodeToEntity nodeToEntity;
-	String annotationName;
-	
-	/**
-	 * This column represents an entity field.
-	 * 
-	 * @param nodeToEntity
-	 */
-	public SelectColumn(NodeToEntity nodeToEntity) {
-		super();
-		this.nodeToEntity = nodeToEntity;
-	}
+	ColumnReference columnReference;
+
 
 	/**
-	 * This column represents an annotation.
+	 * Select column can represent a node field or an annotation.
 	 * 
-	 * @param annotationName
+	 * @param name The name of the field.
 	 */
-	public SelectColumn(String annotationName) {
-		super();
-		this.annotationName = annotationName;
+	public SelectColumn(ColumnReference columnRefrence) {
+		this.columnReference = columnRefrence;
 	}
 
 	@Override
 	public void toSql(StringBuilder builder) {
-		if(nodeToEntity != null){
-			if(nodeToEntity.entityField == null){
-				builder.append("NULL");
-			}else{
-				builder.append(Constants.ENTITY_REPLICATION_ALIAS);
-				builder.append(".");
-				builder.append(nodeToEntity.entityField.getDatabaseColumnName());
-			}
-			builder.append(" AS '");
-			builder.append(nodeToEntity.nodeField.getFieldName());
-			builder.append("'");
-
+		columnReference.toSql(builder);
+		builder.append(" AS '");
+		if(columnReference.nodeToEntity != null){
+			builder.append(columnReference.nodeToEntity.nodeField.getFieldName());
 		}else{
-			builder.append("NULL AS '");
-			builder.append(annotationName);
-			builder.append("'");
+			builder.append(columnReference.annotationName);
 		}
+		builder.append("'");
 	}
 
 	@Override
