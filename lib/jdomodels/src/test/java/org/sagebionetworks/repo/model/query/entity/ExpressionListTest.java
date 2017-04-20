@@ -48,9 +48,9 @@ public class ExpressionListTest {
 	}
 	
 	@Test
-	public void testGetAnnotationNodeOnly(){
+	public void testGetAnnotationAnnotationReferences(){
 		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression), indexProvider);
-		List<SqlExpression> annos = list.getAnnotationExpressions();
+		List<ColumnReference> annos = list.getAnnotationReferences();
 		assertNotNull(annos);
 		assertEquals(0, annos.size());
 	}
@@ -58,28 +58,28 @@ public class ExpressionListTest {
 	@Test
 	public void testGetAnnotationAnnotationOnly(){
 		ExpressionList list = new ExpressionList(Lists.newArrayList(annotationExpression), indexProvider);
-		List<SqlExpression> annos = list.getAnnotationExpressions();
+		List<ColumnReference> annos = list.getAnnotationReferences();
 		assertNotNull(annos);
 		assertEquals(1, annos.size());
-		SqlExpression annoExpression = annos.get(0);
-		assertEquals("A0", annoExpression.leftHandSide.getAnnotationAlias());
+		ColumnReference ref = annos.get(0);
+		assertEquals("A0", ref.getAnnotationAlias());
 	}
 	
 	@Test
 	public void testGetAnnotationAnnotationMixed(){
 		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression), indexProvider);
-		List<SqlExpression> annos = list.getAnnotationExpressions();
+		List<ColumnReference> annos = list.getAnnotationReferences();
 		assertNotNull(annos);
 		assertEquals(1, annos.size());
-		SqlExpression annoExpression = annos.get(0);
-		assertEquals("A1", annoExpression.leftHandSide.getAnnotationAlias());
+		ColumnReference ref = annos.get(0);
+		assertEquals("A1", ref.getAnnotationAlias());
 	}
 	
 	@Test
 	public void testEmptyList(){
 		ExpressionList list = new ExpressionList(new LinkedList<Expression>(), indexProvider);
 		assertEquals("",list.toSql());
-		List<SqlExpression> annos = list.getAnnotationExpressions();
+		List<ColumnReference> annos = list.getAnnotationReferences();
 		assertNotNull(annos);
 	}
 	

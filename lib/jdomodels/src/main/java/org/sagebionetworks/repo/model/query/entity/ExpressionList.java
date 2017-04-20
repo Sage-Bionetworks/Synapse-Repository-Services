@@ -55,7 +55,7 @@ public class ExpressionList extends SqlElement implements HasAnnotationReference
 	 * Get all annotation references in this list.
 	 */
 	@Override
-	public Iterable<ColumnReference> getAnnotationReferences() {
+	public List<ColumnReference> getAnnotationReferences() {
 		List<ColumnReference> annos = new LinkedList<ColumnReference>();
 		for(SqlExpression exp: expressions){
 			if(exp.leftHandSide.getAnnotationAlias() != null){

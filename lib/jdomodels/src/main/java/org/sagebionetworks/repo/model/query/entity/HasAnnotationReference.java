@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.query.entity;
 
+import java.util.List;
+
 public interface HasAnnotationReference {
 
 	/**
@@ -7,5 +9,5 @@ public interface HasAnnotationReference {
 	 * 
 	 * @return
 	 */
-	Iterable<ColumnReference> getAnnotationReferences();
+	List<ColumnReference> getAnnotationReferences();
 }

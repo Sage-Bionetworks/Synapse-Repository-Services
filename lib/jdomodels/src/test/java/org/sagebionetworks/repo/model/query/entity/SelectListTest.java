@@ -85,4 +85,19 @@ public class SelectListTest {
 		assertEquals("SELECT E.ID AS 'id', A1.ANNO_VALUE AS 'foo'", list.toSql());
 		assertFalse(list.isSelectStar());
 	}
+	
+	@Test
+	public void testGetAnnotationRefrences(){
+		indexProvider = new IndexProvider();
+		List<String> input = Lists.newArrayList(
+				NodeField.ID.getFieldName()
+				, "foo"
+				);
+		SelectList list = new SelectList(input, indexProvider);
+		List<ColumnReference> references = list.getAnnotationReferences();
+		assertNotNull(references);
+		assertEquals(1, references.size());
+		ColumnReference ref = references.get(0);
+		assertEquals("A1", ref.getAnnotationAlias());
+	}
 }
