@@ -67,9 +67,9 @@ public class SelectList extends SqlElement implements HasAnnotationReference {
 	@Override
 	public List<ColumnReference> getAnnotationReferences() {
 		List<ColumnReference> results = new LinkedList<ColumnReference>();
-		for(SelectColumn select: select){
-			if(select.columnReference.getAnnotationAlias() != null){
-				results.add(select.columnReference);
+		for(SelectColumn column: select){
+			if(column.columnReference.getAnnotationAlias() != null){
+				results.add(column.columnReference);
 			}
 		}
 		return results;
