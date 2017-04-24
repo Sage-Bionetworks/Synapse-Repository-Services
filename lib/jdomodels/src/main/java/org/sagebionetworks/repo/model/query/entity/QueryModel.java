@@ -20,14 +20,15 @@ public class QueryModel extends SqlElement {
 	 * @param query
 	 */
 	public QueryModel(BasicQuery query){
+		IndexProvider indexProvider = new IndexProvider();
 		// build select
-		select = new SelectList(query.getSelect());
+		select = new SelectList(query.getSelect(), indexProvider);
 		// build where
-		where = new ExpressionList(query.getFilters());
+		where = new ExpressionList(query.getFilters(), indexProvider);
 		// build sort
-		sort = new SortList(where.getSize(), query.getSort(), query.isAscending());
+		sort = new SortList(query.getSort(), query.isAscending(), indexProvider);
 		// build the from using the expressions.
-		from = new Tables(where, sort);
+		from = new Tables(select, where, sort);
 		pagination = new Pagination(query.getLimit(), query.getOffset());
 	}
 

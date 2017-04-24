@@ -168,6 +168,41 @@ public class NodeQueryDaoV2ImplTest {
 		
 	}
 	
+	@Test
+	public void testExecuteQuerySortOnAnnotation(){
+		BasicQuery query = new BasicQuery();
+		query.setSelect(Lists.newArrayList(NodeField.ID.getFieldName()));
+		query.setSort("key0");
+		QueryModel model = new QueryModel(query);
+		List<Map<String, Object>> results = nodeQueryDaoV2.executeQuery(model);
+		assertNotNull(results);
+		assertEquals(5, results.size());
+	}
+	
+	@Test
+	public void testExecuteQuerySelectAnnotation(){
+		BasicQuery query = new BasicQuery();
+		query.setSelect(Lists.newArrayList("key0"));
+		query.setSort(null);
+		QueryModel model = new QueryModel(query);
+		List<Map<String, Object>> results = nodeQueryDaoV2.executeQuery(model);
+		assertNotNull(results);
+		assertEquals(5, results.size());
+		int countNulls = 0;
+		int countNonNulls = 0;;
+		for(Map<String, Object> row: results){
+			Object value = row.get("key0");
+			if(value == null){
+				countNulls++;
+			}else{
+				countNonNulls ++;
+				assertEquals("0", value);
+			}
+		}
+		assertEquals("Two rwos should have null annotation values",2, countNulls);
+		assertEquals("Three rows should have non-null annotation values",3, countNonNulls);
+	}
+	
 	/**
 	 * Helper to create populated EntityDTO.
 	 * @param id

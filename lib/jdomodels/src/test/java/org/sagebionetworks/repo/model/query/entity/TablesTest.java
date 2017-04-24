@@ -18,9 +18,10 @@ public class TablesTest {
 	Expression nodeExpression;
 	Expression annotationExpression;
 	String sortColumnName;
-	int sortIndex;
 	boolean sortIsAscending;
 	SortList sortList;
+	IndexProvider indexProvider;
+	SelectList select;
 	
 	@Before
 	public void before(){
@@ -32,55 +33,78 @@ public class TablesTest {
 				new CompoundId(null, "foo")
 				, Comparator.GREATER_THAN
 				, 456L);
+		indexProvider = new IndexProvider();
 		// default with no sort
 		sortColumnName = null;
-		sortIndex = 0;
 		sortIsAscending = false;
-		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
+		sortList = new SortList(sortColumnName, sortIsAscending, indexProvider);
+		select = new SelectList(Lists.newArrayList(NodeField.ID.getFieldName()), indexProvider);
 	}
 	
 	@Test
 	public void testNodeFieldOnly(){
 		// create with node fields only.
-		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(nodeExpression)), sortList);
+		Tables tables = new Tables(
+				select,
+				new ExpressionList(Lists.newArrayList(nodeExpression), indexProvider),
+				sortList);
 		assertEquals(" FROM ENTITY_REPLICATION "+Constants.ENTITY_REPLICATION_ALIAS,tables.toSql());
+	}
+	
+	@Test
+	public void testSelectAnnotation(){
+		select = new SelectList(Lists.newArrayList("annotationName"), indexProvider);
+		Tables tables = new Tables(
+				select,
+				new ExpressionList(new LinkedList<Expression>(), indexProvider),
+				sortList);
+		String sql = tables.toSql();
+		assertEquals(" FROM ENTITY_REPLICATION E LEFT JOIN ANNOTATION_REPLICATION A1"
+				+ " ON (E.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 	
 	@Test
 	public void testAnnotationOnly(){
 		// create with node fields only.
-		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression)), sortList);
+		Tables tables = new Tables(
+				select,
+				new ExpressionList(Lists.newArrayList(annotationExpression), indexProvider),
+				sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
+		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A1"
+				+ " ON (E.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 	
 	@Test
 	public void testNodeFieldsAndAnnotationOnly(){
 		// create with node fields only.
-		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression)), sortList);
+		Tables tables = new Tables(select,
+				new ExpressionList(Lists.newArrayList(annotationExpression, nodeExpression), indexProvider),
+				sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
+		assertEquals(" FROM ENTITY_REPLICATION E JOIN ANNOTATION_REPLICATION A1"
+				+ " ON (E.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 	
 	@Test
 	public void testSortOnAnnotation(){
-		sortIndex = 0;
 		sortColumnName = "foo";
-		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
-		Tables tables = new Tables(new ExpressionList(new LinkedList<Expression>()), sortList);
+		sortList = new SortList(sortColumnName, sortIsAscending, indexProvider);
+		Tables tables = new Tables(select,
+				new ExpressionList(new LinkedList<Expression>(), indexProvider),
+				sortList);
 		String sql = tables.toSql();
-		assertEquals(" FROM ENTITY_REPLICATION E LEFT JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)", sql);
+		assertEquals(" FROM ENTITY_REPLICATION E LEFT JOIN ANNOTATION_REPLICATION A1"
+				+ " ON (E.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 	
 	@Test
 	public void testSortOnNode(){
-		sortIndex = 0;
 		sortColumnName = NodeField.NAME.getFieldName();
-		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
-		Tables tables = new Tables(new ExpressionList(new LinkedList<Expression>()), sortList);
+		sortList = new SortList(sortColumnName, sortIsAscending, indexProvider);
+		Tables tables = new Tables(select,
+				new ExpressionList(new LinkedList<Expression>(), indexProvider),
+				sortList);
 		String sql = tables.toSql();
 		// do not need an annotation join when sorting on a node field
 		assertEquals(" FROM ENTITY_REPLICATION "+Constants.ENTITY_REPLICATION_ALIAS, sql);
@@ -88,16 +112,17 @@ public class TablesTest {
 	
 	@Test
 	public void testSortOnAnnotationWithAnnotationExpresion(){
-		sortIndex = 1;
 		sortColumnName = "foo";
-		sortList = new SortList(sortIndex, sortColumnName, sortIsAscending);
-		Tables tables = new Tables(new ExpressionList(Lists.newArrayList(annotationExpression)), sortList);
+		sortList = new SortList(sortColumnName, sortIsAscending, indexProvider);
+		Tables tables = new Tables(select,
+				new ExpressionList(Lists.newArrayList(annotationExpression), indexProvider),
+				sortList);
 		String sql = tables.toSql();
 		assertEquals(" FROM ENTITY_REPLICATION E"
-				+ " JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = :bJoinName0)"
+				+ " JOIN ANNOTATION_REPLICATION A2"
+				+ " ON (E.ID = A2.ENTITY_ID AND A2.ANNO_KEY = :bJoinName2)"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A1"
-				+ " ON (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
+				+ " ON (E.ID = A1.ENTITY_ID AND A1.ANNO_KEY = :bJoinName1)", sql);
 	}
 
 }

@@ -8,21 +8,27 @@ public class SelectColumnTest {
 
 	@Test
 	public void testToSqlNodeField(){
-		SelectColumn select = new SelectColumn(NodeToEntity.benefactorId);
+		int index = 1;
+		ColumnReference ref = new ColumnReference(NodeToEntity.benefactorId.name(), index);
+		SelectColumn select = new SelectColumn(ref);
 		assertEquals("E.BENEFACTOR_ID AS 'benefactorId'", select.toSql());
 	}
 	
 	@Test
 	public void testToSqlNodeFieldAlis(){
+		int index = 1;
 		// Alias is part of the node fields but does not exist in the entity table
-		SelectColumn select = new SelectColumn(NodeToEntity.alias);
+		ColumnReference ref = new ColumnReference(NodeToEntity.alias.name(), index);
+		SelectColumn select = new SelectColumn(ref);
 		assertEquals("NULL AS 'alias'", select.toSql());
 	}
 	
 	@Test
 	public void testToSqlNodeAnnotationName(){
-		SelectColumn select = new SelectColumn("annotationName");
-		assertEquals("NULL AS 'annotationName'", select.toSql());
+		int index = 1;
+		ColumnReference ref = new ColumnReference("annotationName", index);
+		SelectColumn select = new SelectColumn(ref);
+		assertEquals("A1.ANNO_VALUE AS 'annotationName'", select.toSql());
 	}
 
 }

@@ -14,19 +14,22 @@ import com.google.common.collect.Lists;
 public class SelectListTest {
 	
 	List<String> nodeToEntitySql;
+	IndexProvider indexProvider;
 	
 	@Before
 	public void before(){
+		indexProvider = new IndexProvider();
 		nodeToEntitySql = new LinkedList<String>();
 		for(NodeToEntity nte: NodeToEntity.values()){
-			SelectColumn sc = new SelectColumn(nte);
+			ColumnReference ref = new ColumnReference(nte.name(), indexProvider.nextIndex());
+			SelectColumn sc = new SelectColumn(ref);
 			nodeToEntitySql.add(sc.toSql());
 		}
 	}
 
 	@Test
 	public void testSelectStarEmpty(){
-		SelectList list = new SelectList(new LinkedList<String>());
+		SelectList list = new SelectList(new LinkedList<String>(), indexProvider);
 		String sql = list.toSql();
 		assertTrue(sql.startsWith("SELECT "));
 		// should contain the SQL for each type
@@ -34,12 +37,11 @@ public class SelectListTest {
 			assertTrue(sql.contains(typeSql));
 		}
 		assertTrue(list.isSelectStar());
-		assertFalse(list.includesAnnotations());
 	}
 	
 	@Test
 	public void testSelectStarNull(){
-		SelectList list = new SelectList(null);
+		SelectList list = new SelectList(null, indexProvider);
 		String sql = list.toSql();
 		assertTrue(sql.startsWith("SELECT "));
 		// should contain the SQL for each type
@@ -47,7 +49,6 @@ public class SelectListTest {
 			assertTrue(sql.contains(typeSql));
 		}
 		assertTrue(list.isSelectStar());
-		assertFalse(list.includesAnnotations());
 	}
 	
 	@Test
@@ -56,33 +57,47 @@ public class SelectListTest {
 				NodeField.ID.getFieldName()
 				, NodeField.E_TAG.getFieldName()
 				);
-		SelectList list = new SelectList(input);
+		SelectList list = new SelectList(input, indexProvider);
 		assertEquals("SELECT E.ID AS 'id', E.ETAG AS 'eTag'", list.toSql());
 		assertFalse(list.isSelectStar());
-		assertFalse(list.includesAnnotations());
 	}
 
 	@Test
 	public void testSelectAnnotationsOnly(){
+		indexProvider = new IndexProvider();
 		List<String> input = Lists.newArrayList(
 				"foo"
 				, "bar"
 				);
-		SelectList list = new SelectList(input);
-		assertEquals("SELECT NULL AS 'foo', NULL AS 'bar'", list.toSql());
+		SelectList list = new SelectList(input, indexProvider);
+		assertEquals("SELECT A0.ANNO_VALUE AS 'foo', A1.ANNO_VALUE AS 'bar'", list.toSql());
 		assertFalse(list.isSelectStar());
-		assertTrue(list.includesAnnotations());
 	}
 	
 	@Test
 	public void testSelectNodeFieldsAndAnnotations(){
+		indexProvider = new IndexProvider();
 		List<String> input = Lists.newArrayList(
 				NodeField.ID.getFieldName()
 				, "foo"
 				);
-		SelectList list = new SelectList(input);
-		assertEquals("SELECT E.ID AS 'id', NULL AS 'foo'", list.toSql());
+		SelectList list = new SelectList(input, indexProvider);
+		assertEquals("SELECT E.ID AS 'id', A1.ANNO_VALUE AS 'foo'", list.toSql());
 		assertFalse(list.isSelectStar());
-		assertTrue(list.includesAnnotations());
+	}
+	
+	@Test
+	public void testGetAnnotationRefrences(){
+		indexProvider = new IndexProvider();
+		List<String> input = Lists.newArrayList(
+				NodeField.ID.getFieldName()
+				, "foo"
+				);
+		SelectList list = new SelectList(input, indexProvider);
+		List<ColumnReference> references = list.getAnnotationReferences();
+		assertNotNull(references);
+		assertEquals(1, references.size());
+		ColumnReference ref = references.get(0);
+		assertEquals("A1", ref.getAnnotationAlias());
 	}
 }
