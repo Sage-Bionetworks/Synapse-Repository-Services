@@ -47,6 +47,8 @@ public class NodeQueryDaoV2ImplTest {
 	
 	List<EntityDTO> entities;
 	
+	Expression projectIdExpression;
+	
 	@Before
 	public void before(){
 		// Only the ProgressCallback is mocked for this test.  All other dependencies are autowired.
@@ -85,7 +87,9 @@ public class NodeQueryDaoV2ImplTest {
 
 		// populate the tables that will be queried.
 		tableIndexDao.addEntityData(mockProgressCallback, entities);
-		
+		projectIdExpression = new Expression(
+				new CompoundId(null, NodeField.PROJECT_ID.getFieldName())
+				, Comparator.EQUALS, project.getId());
 	}
 	
 	@Test
@@ -173,6 +177,7 @@ public class NodeQueryDaoV2ImplTest {
 		BasicQuery query = new BasicQuery();
 		query.setSelect(Lists.newArrayList(NodeField.ID.getFieldName()));
 		query.setSort("key0");
+		query.addExpression(projectIdExpression);
 		QueryModel model = new QueryModel(query);
 		List<Map<String, Object>> results = nodeQueryDaoV2.executeQuery(model);
 		assertNotNull(results);
@@ -184,6 +189,7 @@ public class NodeQueryDaoV2ImplTest {
 		BasicQuery query = new BasicQuery();
 		query.setSelect(Lists.newArrayList("key0"));
 		query.setSort(null);
+		query.addExpression(projectIdExpression);
 		QueryModel model = new QueryModel(query);
 		List<Map<String, Object>> results = nodeQueryDaoV2.executeQuery(model);
 		assertNotNull(results);
