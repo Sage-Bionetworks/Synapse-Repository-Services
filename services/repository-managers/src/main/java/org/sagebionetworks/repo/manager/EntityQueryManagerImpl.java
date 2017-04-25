@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -25,6 +25,11 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.entity.QueryModel;
+import org.sagebionetworks.repo.model.query.jdo.BasicQueryUtils;
+import org.sagebionetworks.repo.model.query.jdo.NodeQueryDaoV2;
+import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableList;
@@ -36,6 +41,8 @@ import com.google.common.collect.ImmutableList;
  *
  */
 public class EntityQueryManagerImpl implements EntityQueryManager {
+	
+	public static final Long MAX_BENEFACTORS_PER_QUERY = 1000L;
 	
 	private static final String NODE_TYPE = "nodeType";
 	private static final String DEFAULT_FROM = "entity";
@@ -50,6 +57,10 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	@Autowired
+	NodeQueryDaoV2 nodeQueryV2;
+	@Autowired
+	AuthorizationManager authorizationManager;
 
 	@Override
 	public EntityQueryResults executeQuery(EntityQuery query, UserInfo user) {
@@ -225,6 +236,29 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		translated.setActivityId((String) map.get(EntityFieldName.activityId.name()));
 		translated.setEntityType((String) map.get(EntityFieldName.nodeType.name()));
 		return translated;
+	}
+
+	@Override
+	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) {
+		ValidateArgument.required(query, "query");
+		ValidateArgument.required(userInfo, "userInfo");
+		// Convert the from to an expression.
+		query = BasicQueryUtils.convertFromToExpressions(query);
+		// The first step is the parse the query
+		QueryModel model = new QueryModel(query);
+		if(!userInfo.isAdmin()){
+			// Lookup the distinct benefactor IDs for this query.
+			Set<Long> benefactorsInScope = nodeQueryV2.getDistinctBenefactors(model, MAX_BENEFACTORS_PER_QUERY+1);
+			if(benefactorsInScope.size() > MAX_BENEFACTORS_PER_QUERY){
+				throw new IllegalArgumentException("The scope of the given query is too broad.  Please narrow the scope and try again.  The scope can be narrowed by ");
+			}
+			// filter the
+			benefactorsInScope = authorizationManager.getAccessibleBenefactors(userInfo, benefactorsInScope);
+			// Add the condition
+		}
+
+		// Return the results.
+		return QueryUtils.translateResults(results, count, query.getSelect());
 	}
 
 }

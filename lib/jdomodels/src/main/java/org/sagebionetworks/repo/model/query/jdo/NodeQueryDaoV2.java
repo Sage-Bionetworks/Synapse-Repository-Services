@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.query.jdo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.query.entity.QueryModel;
@@ -32,5 +33,14 @@ public interface NodeQueryDaoV2 {
 	 * @param results
 	 */
 	public void addAnnotationsToResults(List<Map<String, Object>> results);
+
+	/**
+	 * Get the set of distinct benefactor Ids for a given query.
+	 * 
+	 * @param model
+	 * @param limit
+	 * @return
+	 */
+	public Set<Long> getDistinctBenefactors(QueryModel model, long limit);
 	
 }
