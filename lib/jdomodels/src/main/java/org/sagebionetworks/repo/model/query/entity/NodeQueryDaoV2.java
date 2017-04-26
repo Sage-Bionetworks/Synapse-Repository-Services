@@ -1,11 +1,10 @@
-package org.sagebionetworks.repo.model.query.jdo;
+package org.sagebionetworks.repo.model.query.entity;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.query.entity.QueryModel;
 
 public interface NodeQueryDaoV2 {
 

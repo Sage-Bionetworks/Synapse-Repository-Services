@@ -10,27 +10,34 @@ import org.sagebionetworks.repo.model.table.EntityField;
  */
 public enum NodeToEntity {
 	
-	nodeType(NodeField.NODE_TYPE, EntityField.type),
-	modifiedOn(NodeField.MODIFIED_ON, EntityField.modifiedOn),
-	versionNumber(NodeField.VERSION_NUMBER, EntityField.currentVersion),
-	parentId(NodeField.PARENT_ID, EntityField.parentId),
-	versionComment(NodeField.VERSION_COMMENT, EntityField.currentVersion),
-	createdByPrincipalId(NodeField.CREATED_BY, EntityField.createdBy),
-	eTag(NodeField.E_TAG, EntityField.etag),
-	modifiedByPrincipalId(NodeField.MODIFIED_BY, EntityField.modifiedBy),
-	versionLabel(NodeField.VERSION_LABEL, EntityField.currentVersion),
-	createdOn(NodeField.CREATED_ON, EntityField.createdOn),
-	name(NodeField.NAME, EntityField.name),
-	alias(NodeField.ALIAS_ID, null),
-	projectId(NodeField.PROJECT_ID, EntityField.projectId),
-	id(NodeField.ID, EntityField.id),
-	benefactorId(NodeField.BENEFACTOR_ID, EntityField.benefactorId),
+	nodeType(NodeField.NODE_TYPE, EntityField.type, new DefaultValueTransformer()),
+	modifiedOn(NodeField.MODIFIED_ON, EntityField.modifiedOn, new DefaultValueTransformer()),
+	versionNumber(NodeField.VERSION_NUMBER, EntityField.currentVersion, new DefaultValueTransformer()),
+	parentId(NodeField.PARENT_ID, EntityField.parentId, new SynapseIdTransfromer()),
+	versionComment(NodeField.VERSION_COMMENT, EntityField.currentVersion, new DefaultValueTransformer()),
+	createdByPrincipalId(NodeField.CREATED_BY, EntityField.createdBy, new DefaultValueTransformer()),
+	eTag(NodeField.E_TAG, EntityField.etag, new DefaultValueTransformer()),
+	modifiedByPrincipalId(NodeField.MODIFIED_BY, EntityField.modifiedBy, new DefaultValueTransformer()),
+	versionLabel(NodeField.VERSION_LABEL, EntityField.currentVersion, new DefaultValueTransformer()),
+	createdOn(NodeField.CREATED_ON, EntityField.createdOn, new DefaultValueTransformer()),
+	name(NodeField.NAME, EntityField.name, new DefaultValueTransformer()),
+	alias(NodeField.ALIAS_ID, null, new DefaultValueTransformer()),
+	projectId(NodeField.PROJECT_ID, EntityField.projectId, new SynapseIdTransfromer()),
+	id(NodeField.ID, EntityField.id, new SynapseIdTransfromer()),
+	benefactorId(NodeField.BENEFACTOR_ID, EntityField.benefactorId, new SynapseIdTransfromer()),
 	;
 	
 	NodeField nodeField;
 	EntityField entityField;
-	NodeToEntity(NodeField node, EntityField entity){
+	ValueTransformer transformer;
+	
+	NodeToEntity(NodeField node, EntityField entity, ValueTransformer transformer){
 		this.nodeField = node;
 		this.entityField = entity;
+		this.transformer = transformer;
+	}
+	
+	public Object transformerValue(Object value){
+		return this.transformer.transform(value);
 	}
 }

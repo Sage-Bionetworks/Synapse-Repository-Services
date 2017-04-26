@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +21,8 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.entity.NodeQueryDaoFactory;
+import org.sagebionetworks.repo.model.query.entity.NodeQueryDaoV2;
 import org.sagebionetworks.repo.model.query.entity.QueryModel;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -35,13 +40,15 @@ import com.google.common.collect.Lists;
 public class NodeQueryDaoV2ImplTest {
 	
 	@Autowired
-	ConnectionFactory tableConnectionFactory;
+	ConnectionFactory connectionFactory;
+	@Autowired
+	NodeQueryDaoFactory nodeQueryDaoFactory;
 	
 	@Mock
 	ProgressCallback<Void> mockProgressCallback;
 	
 	TableIndexDAO tableIndexDao;
-	NodeQueryDaoV2Impl nodeQueryDaoV2;
+	NodeQueryDaoV2 nodeQueryDaoV2;
 	
 	BasicQuery query;
 	
@@ -53,10 +60,9 @@ public class NodeQueryDaoV2ImplTest {
 	public void before(){
 		// Only the ProgressCallback is mocked for this test.  All other dependencies are autowired.
 		MockitoAnnotations.initMocks(this);
-		tableIndexDao = tableConnectionFactory.getFirstConnection();
 		// create the dao from the connection.
-		nodeQueryDaoV2 = new NodeQueryDaoV2Impl(tableConnectionFactory.getFirstDataSource());
-		
+		nodeQueryDaoV2 = nodeQueryDaoFactory.createConnection();
+		tableIndexDao = connectionFactory.getFirstConnection();
 		tableIndexDao.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDao.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L,4L,5L));
@@ -89,7 +95,7 @@ public class NodeQueryDaoV2ImplTest {
 		tableIndexDao.addEntityData(mockProgressCallback, entities);
 		projectIdExpression = new Expression(
 				new CompoundId(null, NodeField.PROJECT_ID.getFieldName())
-				, Comparator.EQUALS, project.getId());
+				, Comparator.EQUALS, "syn"+project.getId());
 	}
 	
 	@Test
@@ -207,6 +213,21 @@ public class NodeQueryDaoV2ImplTest {
 		}
 		assertEquals("Two rwos should have null annotation values",2, countNulls);
 		assertEquals("Three rows should have non-null annotation values",3, countNonNulls);
+	}
+	
+	@Test
+	public void testGetDistinctBenefactors(){
+		BasicQuery query = new BasicQuery();
+		query.setSelect(Lists.newArrayList("key0"));
+		query.setSort(null);
+		query.addExpression(projectIdExpression);
+		QueryModel model = new QueryModel(query);
+		long limit = 100;
+		Set<Long> benefactors = nodeQueryDaoV2.getDistinctBenefactors(model, limit);
+		assertNotNull(benefactors);
+		assertEquals(1,  benefactors.size());
+		Long projectId = 1L;
+		assertTrue(benefactors.contains(projectId));
 	}
 	
 	/**

@@ -347,5 +347,8 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequestDAOImpl" />
 	<bean id="dataAccessSubmissionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionDAOImpl" />
+		
+	<bean id="nodeQueryDaoFactory"
+		class="org.sagebionetworks.repo.model.query.entity.NodeQueryDaoFactoryImpl" />
 	
 </beans>

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.query.AnnotationCondition;
@@ -25,9 +24,11 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.entity.NodeQueryDaoFactory;
+import org.sagebionetworks.repo.model.query.entity.NodeQueryDaoV2;
 import org.sagebionetworks.repo.model.query.entity.QueryModel;
 import org.sagebionetworks.repo.model.query.jdo.BasicQueryUtils;
-import org.sagebionetworks.repo.model.query.jdo.NodeQueryDaoV2;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,9 +43,17 @@ import com.google.common.collect.ImmutableList;
  */
 public class EntityQueryManagerImpl implements EntityQueryManager {
 	
+	public static final String SCOPE_IS_TOO_BROAD = 
+			"The scope of the given query is too broad."
+			+ "  Please narrow the scope and try again."
+			+ "  The scope can be narrowed using any of the following techniques:"
+			+ " filter by 'projectId', 'parentId', or 'benefactorId' "
+			+ "or select from 'project' to limit the results to projects only.";
+
 	public static final Long MAX_BENEFACTORS_PER_QUERY = 1000L;
 	
-	private static final String NODE_TYPE = "nodeType";
+	public static final Long MAX_LIMIT = 1000L;
+	
 	private static final String DEFAULT_FROM = "entity";
 	private static final List<String> selectColumns;
 	static{
@@ -56,9 +65,7 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 	}
 	
 	@Autowired
-	NodeQueryDao nodeQueryDao;
-	@Autowired
-	NodeQueryDaoV2 nodeQueryV2;
+	NodeQueryDaoFactory nodeQueryDaoFactory;
 	@Autowired
 	AuthorizationManager authorizationManager;
 
@@ -71,7 +78,7 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 			throw new IllegalArgumentException("UserInfo cannot be null");
 		}
 		BasicQuery translatedQuery = translate(query);
-		NodeQueryResults results = nodeQueryDao.executeQuery(translatedQuery, user);
+		NodeQueryResults results = executeQuery(translatedQuery, user);
 		return translate(results);
 	}
 	
@@ -242,6 +249,11 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(userInfo, "userInfo");
+		if(query.getLimit() > MAX_LIMIT){
+			throw new IllegalArgumentException("The provided limit: "+query.getLimit()+" exceeds the maximum limit: "+MAX_LIMIT);
+		}
+		// connect to the database.
+		NodeQueryDaoV2 nodeQueryV2 = this.nodeQueryDaoFactory.createConnection();
 		// Convert the from to an expression.
 		query = BasicQueryUtils.convertFromToExpressions(query);
 		// The first step is the parse the query
@@ -250,13 +262,24 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 			// Lookup the distinct benefactor IDs for this query.
 			Set<Long> benefactorsInScope = nodeQueryV2.getDistinctBenefactors(model, MAX_BENEFACTORS_PER_QUERY+1);
 			if(benefactorsInScope.size() > MAX_BENEFACTORS_PER_QUERY){
-				throw new IllegalArgumentException("The scope of the given query is too broad.  Please narrow the scope and try again.  The scope can be narrowed by ");
+				throw new IllegalArgumentException(SCOPE_IS_TOO_BROAD);
 			}
 			// filter the
 			benefactorsInScope = authorizationManager.getAccessibleBenefactors(userInfo, benefactorsInScope);
-			// Add the condition
+			// Add the benefactor condition to limit results to benefactors the user can see.
+			query.addExpression(new Expression(
+					new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName())
+					, Comparator.IN
+					, benefactorsInScope));
+			model = new QueryModel(query);
 		}
-
+		// execute the query
+		List<Map<String, Object>> results = nodeQueryV2.executeQuery(model);
+		if(model.isSelectStart()){
+			// This is a select * query so the annotations must be added to the results.
+			nodeQueryV2.addAnnotationsToResults(results);
+		}
+		long count = nodeQueryV2.executeCountQuery(model);
 		// Return the results.
 		return QueryUtils.translateResults(results, count, query.getSelect());
 	}
