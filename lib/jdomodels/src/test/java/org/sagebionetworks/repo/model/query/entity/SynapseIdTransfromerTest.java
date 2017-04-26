@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.model.query.entity;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class SynapseIdTransfromerTest {
 	
@@ -62,5 +64,11 @@ public class SynapseIdTransfromerTest {
 		List<Integer> input = Lists.newArrayList(new Integer(123), new Integer(456));
 		List<Integer> expected = Lists.newArrayList(123, 456);
 		assertEquals(expected, transformer.transform(input));
+	}
+	
+	@Test
+	public void testTransformSetLong(){
+		Set<Long> input = Sets.newHashSet(123L, 456L);
+		assertEquals(input, transformer.transform(input));
 	}
 }
