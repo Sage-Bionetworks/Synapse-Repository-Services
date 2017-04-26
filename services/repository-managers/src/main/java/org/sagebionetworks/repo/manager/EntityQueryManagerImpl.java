@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -266,6 +267,10 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 			}
 			// filter the
 			benefactorsInScope = authorizationManager.getAccessibleBenefactors(userInfo, benefactorsInScope);
+			if(benefactorsInScope.isEmpty()){
+				// the caller cannot see any rows so return an empty result.
+				return QueryUtils.createEmptyResults();
+			}
 			// Add the benefactor condition to limit results to benefactors the user can see.
 			query.addExpression(new Expression(
 					new CompoundId(null, NodeField.BENEFACTOR_ID.getFieldName())

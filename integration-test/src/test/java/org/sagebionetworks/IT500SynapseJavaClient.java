@@ -523,8 +523,6 @@ public class IT500SynapseJavaClient {
 				synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations());
 		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
 				synapseOne.getEntityPath(project.getId()), entityBundle.getPath());
-		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
-				synapseOne.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
 				synapseOne.getACL(project.getId()), entityBundle.getAccessControlList());
 		assertEquals("Unexpected ARs in the EntityBundle", 
@@ -874,41 +872,13 @@ public class IT500SynapseJavaClient {
 			}
 		}
 	}
-
-	@Test	
-	public void testGetChildCount() throws SynapseException{
-		// Start with no children.
-
-		// Add a child.
-		Folder child = new Folder();
-		child.setName("childFolder");
-		child.setParentId(project.getId());
-		child = synapseOne.createEntity(child);
-		assertNotNull(child);
-		assertNotNull(child.getId());
-		assertEquals(project.getId(), child.getParentId());
-		
-		// This folder should have no children
-		Long count = synapseOne.getChildCount(child.getId());
-		assertEquals(new Long(0), count);
-		// Now add a child
-		Folder grandChild = new Folder();
-		grandChild.setName("childFolder");
-		grandChild.setParentId(child.getId());
-		grandChild = synapseOne.createEntity(grandChild);
-		assertNotNull(grandChild);
-		assertNotNull(grandChild.getId());
-		assertEquals(child.getId(), grandChild.getParentId());
-		// The count should now be one.
-		count = synapseOne.getChildCount(child.getId());
-		assertEquals(new Long(1), count);
-	}
 	
 	/**
 	 * PLFM-1166 annotations are not being returned from queries.
+	 * @throws InterruptedException 
 	 */
 	@Test 
-	public void testPLMF_1166() throws SynapseException, JSONException{
+	public void testPLMF_1166() throws SynapseException, JSONException, InterruptedException{
 		// Get the project annotations
 		Annotations annos = synapseOne.getAnnotations(project.getId());
 		String key = "PLFM_1166";
@@ -916,7 +886,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.updateAnnotations(project.getId(), annos);
 		// Make sure we can query for 
 		String query = "select id, "+key+" from project where id == '"+project.getId()+"'";
-		JSONObject total = synapseOne.query(query);
+		JSONObject total = waitForQuery(query);
 		System.out.println(total);
 		assertEquals(1l, total.getLong("totalNumberOfResults"));
 		assertNotNull(total);
@@ -1816,9 +1786,9 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testQueryProjectId() throws SynapseException, JSONException{
+	public void testQueryProjectId() throws SynapseException, JSONException, InterruptedException{
 		String query = "select id from entity where projectId == '"+project.getId()+"'";
-		JSONObject total = synapseOne.query(query);
+		JSONObject total = waitForQuery(query);
 		Long count = total.getLong("totalNumberOfResults");
 		assertEquals(new Long(2), count);
 	}

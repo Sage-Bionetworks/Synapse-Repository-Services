@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
@@ -306,6 +304,22 @@ public class EntityQueryManagerImplTest {
 		}catch(IllegalArgumentException e){
 			assertEquals(EntityQueryManagerImpl.SCOPE_IS_TOO_BROAD, e.getMessage());
 		}
-
+	}
+	
+	@Test
+	public void testExecuteQueryNoBenefactors(){
+		// return an empty set
+		when(mockAuthorizationManager.getAccessibleBenefactors(mockUser, queryBenefactorIds)).thenReturn(new HashSet<Long>());
+		NodeQueryResults results = manager.executeQuery(query, mockUser);
+		assertNotNull(results);
+		assertNotNull(results.getAllSelectedData());
+		assertTrue(results.getAllSelectedData().isEmpty());
+		assertNotNull(results.getResultIds());
+		assertTrue(results.getResultIds().isEmpty());
+		assertEquals(0L, results.getTotalNumberOfResults());
+		// the query should not be executed.
+		verify(mockDao, never()).executeQuery(any(QueryModel.class));
+		verify(mockDao, never()).executeCountQuery(any(QueryModel.class));
+		verify(mockDao, never()).addAnnotationsToResults(anyList());
 	}
 }

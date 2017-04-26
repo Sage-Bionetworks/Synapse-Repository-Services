@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -145,6 +146,19 @@ public class QueryUtils {
 		parameters.put("limitVal", limit);
 		parameters.put("offsetVal", offset);
 		return paging;
+	}
+	
+	/**
+	 * Create an empty result.
+	 * 
+	 * @return
+	 */
+	public static NodeQueryResults createEmptyResults(){
+		NodeQueryResults results = new NodeQueryResults();
+		results.setAllSelectedData(new LinkedList<Map<String,Object>>());
+		results.setResultIds(new LinkedList<String>());
+		results.setTotalNumberOfResults(0);
+		return results;
 	}
 
 	/**
