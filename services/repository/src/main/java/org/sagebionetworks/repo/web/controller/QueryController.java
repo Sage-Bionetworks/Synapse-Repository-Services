@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${GET.query}">GET /query</a> 'SQL' like query language with a dynamic map results.</li>
  * </ul>
  */
+@Deprecated
 @ControllerInfo(displayName="Entity Query Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
@@ -54,6 +55,7 @@ public class QueryController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.POST)
 	public @ResponseBody EntityQueryResults structuredQuery(
@@ -76,6 +78,7 @@ public class QueryController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody QueryResults query(
