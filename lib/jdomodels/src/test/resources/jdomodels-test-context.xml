@@ -13,6 +13,7 @@
 	<import resource="classpath:jdomodels-import.xml" />
 	<import resource="stack-configuration.spb.xml" />
 	<import resource="id-generator.spb.xml" />
+	<import resource="table-cluster-spb.xml"/>
 
 	<!-- Used to test node locking -->
 	<bean id="nodeLockerA"
