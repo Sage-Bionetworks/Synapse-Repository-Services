@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -238,6 +239,18 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
+		Set<String> userIds = new HashSet<String>();
+		Set<String> accessRequirementIds = new HashSet<String>();
+		userIds.add(individualGroup.getId().toString());
+		accessRequirementIds.add(accessRequirement.getId().toString());
+		accessRequirementIds.add(accessRequirement2.getId().toString());
+		Map<String, List<String>> approvalInfo = accessApprovalDAO.getAccessApprovalInfo(userIds, accessRequirementIds);
+		assertNotNull(approvalInfo);
+		assertTrue(approvalInfo.containsKey(accessRequirement.getId().toString()));
+		assertEquals(1, approvalInfo.get(accessRequirement.getId().toString()).size());
+		assertEquals(individualGroup.getId().toString(), approvalInfo.get(accessRequirement.getId().toString()).get(0));
+		assertFalse(approvalInfo.containsKey(accessRequirement2.getId().toString()));
+
 		// update it
 		clone = ars.iterator().next();
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
@@ -264,6 +277,10 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// Delete it
 		accessApprovalDAO.delete(id);
+		approvalInfo = accessApprovalDAO.getAccessApprovalInfo(userIds, accessRequirementIds);
+		assertNotNull(approvalInfo);
+		assertFalse(approvalInfo.containsKey(accessRequirement.getId().toString()));
+		assertFalse(approvalInfo.containsKey(accessRequirement2.getId().toString()));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

@@ -1,0 +1,11 @@
+{
+	"description": "A batch of AccessApprovalRequest.",
+	"properties": {
+		"requests": {
+			"type": "array",
+			"items": {
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessApprovalRequest"
+			}
+		}
+	}
+}
