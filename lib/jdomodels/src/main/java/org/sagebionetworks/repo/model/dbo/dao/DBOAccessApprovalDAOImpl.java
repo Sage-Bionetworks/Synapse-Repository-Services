@@ -1,11 +1,25 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -14,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -31,7 +44,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -112,12 +124,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_SERIALIZED_ENTITY
 			+") VALUES (?,?,?,?,?,?,?,?,?)";
 
-	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL =
-			"SELECT * "
-			+ "FROM "+TABLE_ACCESS_APPROVAL
-			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
-			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
-
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+" FROM "+TABLE_ACCESS_APPROVAL
@@ -138,34 +144,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessApproval> T create(T dto) throws DatastoreException {
-		final DBOAccessApproval dbo = new DBOAccessApproval();
-		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		dbo.setId(idGenerator.generateNewId(IdType.ACCESS_APPROVAL_ID));
-		dbo.seteTag(UUID.randomUUID().toString());
-		jdbcTemplate.update(SQL_INSERT_IGNORE, new PreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setLong(1, dbo.getId());
-				ps.setString(2, dbo.geteTag());
-				ps.setLong(3, dbo.getCreatedBy());
-				ps.setLong(4, dbo.getCreatedOn());
-				ps.setLong(5, dbo.getModifiedBy());
-				ps.setLong(6, dbo.getModifiedOn());
-				ps.setLong(7, dbo.getRequirementId());
-				ps.setLong(8, dbo.getAccessorId());
-				ps.setBytes(9, dbo.getSerializedEntity());
-			}
-		});
-		return (T) getForAccessRequirementAndPrincipal(dto.getRequirementId().toString(), dto.getAccessorId());
-	}
-
-	private AccessApproval getForAccessRequirementAndPrincipal(String accessRequirementId, String accessorId) {
-		MapSqlParameterSource params = new MapSqlParameterSource();		
-		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
-		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
-		DBOAccessApproval dbo = namedJdbcTemplate.queryForObject(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, params, rowMapper);
-		return AccessApprovalUtils.copyDboToDto(dbo);
+		return (T) createBatch(Arrays.asList((AccessApproval)dto)).get(0);
 	}
 
 	@Override
