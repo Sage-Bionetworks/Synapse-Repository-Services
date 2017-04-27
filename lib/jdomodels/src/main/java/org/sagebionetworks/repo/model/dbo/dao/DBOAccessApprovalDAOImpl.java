@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -286,13 +287,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 
 	@Override
-	public List<String> getApprovedUsers(List<String> userIds, String accessRequirementId) {
+	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId) {
+		Set<String> result = new HashSet<String>();
 		if (userIds.isEmpty()){
-			return new LinkedList<String>();
+			return result;
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userIds);
-		return namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
+		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
+		result.addAll(approvedUsers);
+		return result;
 	}
 }

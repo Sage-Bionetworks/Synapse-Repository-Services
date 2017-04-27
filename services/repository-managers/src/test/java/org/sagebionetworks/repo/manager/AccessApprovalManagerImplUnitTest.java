@@ -8,7 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -199,7 +201,9 @@ public class AccessApprovalManagerImplUnitTest {
 		batchRequest.setUserIds(Arrays.asList("1", "2"));
 		batchRequest.setAccessRequirementId("3");
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockAccessApprovalDAO.getApprovedUsers(Arrays.asList("1", "2"), "3")).thenReturn(Arrays.asList("1"));
+		Set<String> approvedUsers = new HashSet<String>();
+		approvedUsers.add("1");
+		when(mockAccessApprovalDAO.getApprovedUsers(Arrays.asList("1", "2"), "3")).thenReturn(approvedUsers);
 		BatchAccessApprovalResult result = manager.getApprovalInfo(userInfo, batchRequest);
 		assertNotNull(result);
 		assertNotNull(result.getResults());

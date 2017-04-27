@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -206,7 +207,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			return batchResult;
 		}
 
-		List<String> hasApprovals = accessApprovalDAO.getApprovedUsers(batchRequest.getUserIds(), batchRequest.getAccessRequirementId());
+		Set<String> hasApprovals = accessApprovalDAO.getApprovedUsers(batchRequest.getUserIds(), batchRequest.getAccessRequirementId());
 		for (String userId : batchRequest.getUserIds()) {
 			AccessApprovalResult result = new AccessApprovalResult();
 			result.setAccessRequirementId(batchRequest.getAccessRequirementId());

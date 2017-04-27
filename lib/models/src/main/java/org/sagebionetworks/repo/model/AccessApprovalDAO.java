@@ -117,5 +117,5 @@ public interface AccessApprovalDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public List<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
+	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
 }
