@@ -7,7 +7,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,7 +23,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -91,6 +93,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final String DELETE_ACCESS_APPROVALS = "DELETE"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_ID+" IN (:"+COL_ACCESS_APPROVAL_ID+")";
+
+	private static final String SELECT_APPROVAL_INFO = 
+				"SELECT "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+" FROM "+TABLE_ACCESS_APPROVAL
+			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -267,5 +275,31 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_ID, toDelete);
 		return namedJdbcTemplate.update(DELETE_ACCESS_APPROVALS, params);
+	}
+
+	@Override
+	public Map<String, List<String>> getAccessApprovalInfo(Set<String> principalIds, Set<String> accessRequirementIds) {
+		final Map<String, List<String>> result = new HashMap<String, List<String>>();
+		if (accessRequirementIds.isEmpty() || principalIds.isEmpty()){
+			return result;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
+		namedJdbcTemplate.query(SELECT_APPROVAL_INFO, params, new RowMapper<Void>(){
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				String accessRequirementId = rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_ID);
+				String userId = rs.getString(COL_ACCESS_APPROVAL_ACCESSOR_ID);
+				List<String> accessors = new LinkedList<String>();
+				if (result.containsKey(accessRequirementId)) {
+					accessors = result.get(accessRequirementId);
+				}
+				accessors.add(userId);
+				result.put(accessRequirementId, accessors);
+				return null;
+			}
+		});
+		return result;
 	}
 }

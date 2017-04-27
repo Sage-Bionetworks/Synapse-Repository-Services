@@ -1,7 +1,7 @@
 {
 	"description": "A batch of AccessApprovalResult.",
 	"properties": {
-		"requests": {
+		"results": {
 			"type": "array",
 			"items": {
 				"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessApprovalResult"
