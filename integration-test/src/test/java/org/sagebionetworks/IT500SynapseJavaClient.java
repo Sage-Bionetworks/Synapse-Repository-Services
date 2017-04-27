@@ -961,6 +961,26 @@ public class IT500SynapseJavaClient {
 		return results;
 	}
 	
+	/**
+	 * Helper to wait for the expected query results.
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	EntityQueryResults waitForQuery(EntityQuery query) throws SynapseException, InterruptedException {
+		EntityQueryResults results = synapseOne.entityQuery(query);
+		long start = System.currentTimeMillis();
+		while(results.getTotalEntityCount() < 1){
+			System.out.println("Waiting for query...");
+			Thread.sleep(1000);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for query", elapse < RDS_WORKER_TIMEOUT);
+			results = synapseOne.entityQuery(query);
+		}
+		return results;
+	}
+	
 	@Test
 	public void testEntityNaNAnnotations() throws SynapseException, InterruptedException, JSONException{
 		// Add a unique annotation and query for it
@@ -971,7 +991,7 @@ public class IT500SynapseJavaClient {
 		annos.addAnnotation("foo", "bar");
 		annos.addAnnotation("baz", 10.3D);
 		synapseOne.updateAnnotations(dataset.getId(), annos);
-		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\"";
+		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\" and entity."+key+" == \"NaN\"";
 		// Wait for the query
 		JSONObject result = waitForQuery(queryString);
 		// result should look like:
@@ -1794,14 +1814,14 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testStructuredQuery() throws SynapseException{
+	public void testStructuredQuery() throws Exception {
 		// setup a query to find the project by ID.
 		EntityQuery query = new EntityQuery();
 		query.setFilterByType(EntityType.project);
 		query.setConditions(new ArrayList<Condition>(1));
 		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
 		// Run the query
-		EntityQueryResults results = synapseOne.entityQuery(query);
+		EntityQueryResults results = waitForQuery(query);
 		assertNotNull(results);
 		assertNotNull(results.getEntities());
 		assertEquals(1, results.getEntities().size());

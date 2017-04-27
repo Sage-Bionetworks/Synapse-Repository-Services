@@ -40,4 +40,19 @@ public enum NodeToEntity {
 	public Object transformerValue(Object value){
 		return this.transformer.transform(value);
 	}
+
+	/**
+	 * Is the given key a node field?
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public static boolean isNodeField(String key) {
+		try{
+			NodeToEntity.valueOf(key);
+			return true;
+		}catch(IllegalArgumentException e){
+			return false;
+		}
+	}
 }

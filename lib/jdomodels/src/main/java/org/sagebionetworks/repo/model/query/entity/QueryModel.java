@@ -84,7 +84,7 @@ public class QueryModel extends SqlElement {
 	 * Is this a select * query?
 	 * @return
 	 */
-	public boolean isSelectStart() {
+	public boolean isSelectStar() {
 		return select.isSelectStar();
 	}
 	

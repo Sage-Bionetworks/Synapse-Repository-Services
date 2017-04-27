@@ -13,5 +13,24 @@ public class NodeToEntityTest {
 		assertEquals(123L, NodeToEntity.projectId.transformerValue("syn123"));
 		assertEquals(123L, NodeToEntity.benefactorId.transformerValue("syn123"));
 	}
+	
+	@Test
+	public void testIsNodeField(){
+		for(NodeToEntity field: NodeToEntity.values()){
+			assertTrue(NodeToEntity.isNodeField(field.name()));
+		}
+	}
+	
+	@Test
+	public void testIsNodeFieldFalse(){
+		assertFalse(NodeToEntity.isNodeField("foo"));
+	}
+	
+	@Test
+	public void testIsNodeFieldUsingFieldName(){
+		for(NodeToEntity field: NodeToEntity.values()){
+			assertTrue(NodeToEntity.isNodeField(field.nodeField.getFieldName()));
+		}
+	}
 
 }
