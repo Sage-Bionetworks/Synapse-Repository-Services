@@ -218,8 +218,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 	@Test
 	public void testHasSubmissionWithState() {
 
-		DataAccessSubmission dto = createSubmission();
-		dataAccessSubmissionDao.createSubmission(dto);
+		DataAccessSubmission dto1 = createSubmission();
+		dataAccessSubmissionDao.createSubmission(dto1);
 
 		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), DataAccessSubmissionState.SUBMITTED));
@@ -232,7 +232,18 @@ public class DBODataAccessSubmissionDAOImplTest {
 		assertFalse(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), DataAccessSubmissionState.REJECTED));
 
-		dataAccessSubmissionDao.delete(dto.getId());
+		// PLFM-4355
+		dataAccessSubmissionDao.updateSubmissionStatus(dto1.getId(), DataAccessSubmissionState.APPROVED, null, user2.getId(), System.currentTimeMillis());
+		DataAccessSubmission dto2 = createSubmission();
+		dataAccessSubmissionDao.createSubmission(dto2);
+		dataAccessSubmissionDao.updateSubmissionStatus(dto2.getId(), DataAccessSubmissionState.CANCELLED, null, user1.getId(), System.currentTimeMillis());
+		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.APPROVED));
+		assertTrue(dataAccessSubmissionDao.hasSubmissionWithState(user1.getId(),
+				accessRequirement.getId().toString(), DataAccessSubmissionState.CANCELLED));
+
+		dataAccessSubmissionDao.delete(dto1.getId());
+		dataAccessSubmissionDao.delete(dto2.getId());
 	}
 
 	@Test
