@@ -84,6 +84,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2830,4 +2832,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
+
+	BatchAccessApprovalResult getAccessApprovalInfo(BatchAccessApprovalRequest batchRequest) throws SynapseException;
 }
