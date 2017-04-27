@@ -70,7 +70,7 @@ public class ClientUtils {
 			throw new SynapseForbiddenException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
 			throw new SynapseNotFoundException(reasonStr);
-		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
+		} else if (statusCode == HttpStatus.SC_BAD_REQUEST || statusCode == HttpStatus.SC_METHOD_NOT_ALLOWED) {
 			throw new SynapseBadRequestException(reasonStr);
 		} else if (statusCode == HttpStatus.SC_LOCKED) {
 			throw new SynapseLockedException(reasonStr);
@@ -80,7 +80,7 @@ public class ClientUtils {
 			throw new SynapseDeprecatedServiceException(reasonStr);
 		} else if (statusCode == SynapseTooManyRequestsException.TOO_MANY_REQUESTS_STATUS_CODE){
 			throw new SynapseTooManyRequestsException(reasonStr);
-		}else {
+		} else {
 			throw new SynapseServerException(statusCode, reasonStr);
 		}
 	}

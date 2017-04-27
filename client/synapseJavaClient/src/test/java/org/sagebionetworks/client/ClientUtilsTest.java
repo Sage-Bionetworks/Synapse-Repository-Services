@@ -109,6 +109,11 @@ public class ClientUtilsTest {
 		ClientUtils.throwException(429, "test");
 	}
 
+	@Test (expected = SynapseBadRequestException.class)
+	public void testThrow405Exception() throws Exception{
+		ClientUtils.throwException(405, "test");
+	}
+
 	@Test
 	public void testThrowServerException() throws Exception{
 		try {
