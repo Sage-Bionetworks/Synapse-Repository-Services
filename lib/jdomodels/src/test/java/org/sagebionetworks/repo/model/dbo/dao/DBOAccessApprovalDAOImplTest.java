@@ -200,6 +200,9 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(id);
 		assertNotNull(accessApproval.getEtag());
 
+		// test create again
+		assertEquals(accessApproval, accessApprovalDAO.create(accessApproval));
+
 		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
 				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
 		assertNotNull(approvals);
@@ -301,6 +304,9 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
 		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
 		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+
+		// insert again
+		assertEquals(created, accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2)));
 
 		List<Long> toDelete = new LinkedList<Long>();
 		toDelete.add(created.get(0).getId());
