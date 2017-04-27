@@ -6,6 +6,10 @@
 			"items": {
 				"type": "string"
 			}
+		},
+		"accessRequirementId": {
+			"type": "string",
+			"description": "The ID of an access requirement."
 		}
 	}
 }

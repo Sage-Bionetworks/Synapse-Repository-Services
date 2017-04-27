@@ -1,12 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -20,9 +31,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +41,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
@@ -91,6 +101,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final String DELETE_ACCESS_APPROVALS = "DELETE"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_ID+" IN (:"+COL_ACCESS_APPROVAL_ID+")";
+
+	private static final String SELECT_APPROVED_USERS = 
+				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+" FROM "+TABLE_ACCESS_APPROVAL
+			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -267,5 +283,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_ID, toDelete);
 		return namedJdbcTemplate.update(DELETE_ACCESS_APPROVALS, params);
+	}
+
+	@Override
+	public List<String> getApprovedUsers(List<String> userIds, String accessRequirementId) {
+		if (userIds.isEmpty()){
+			return new LinkedList<String>();
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userIds);
+		return namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
 	}
 }
