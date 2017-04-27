@@ -1,0 +1,11 @@
+{
+	"description": "A batch of AccessApprovalRequest.",
+	"properties": {
+		"userIds": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
