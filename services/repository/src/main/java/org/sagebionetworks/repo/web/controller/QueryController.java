@@ -25,14 +25,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * 
- * https://sagebionetworks.jira.com/wiki/display/PLFM/Repository+Service+API#RepositoryServiceAPI-QueryAPI
- * 
- * This service provides query support to for <a href="${org.sagebionetworks.repo.model.Entity}">Entities</a>.
- * <ul>
- * <li><a href="${POST.query}">POST /query</a> Structured query.</li> 
- * <li><a href="${GET.query}">GET /query</a> 'SQL' like query language with a dynamic map results.</li>
- * </ul>
+ * This service is deprecated and will be removed.
  */
+@Deprecated
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class QueryController extends BaseController {
