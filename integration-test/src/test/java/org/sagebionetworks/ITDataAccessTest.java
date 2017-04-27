@@ -30,6 +30,9 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -146,6 +149,16 @@ public class ITDataAccessTest {
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
+
+		BatchAccessApprovalRequest batchRequest = new BatchAccessApprovalRequest();
+		AccessApprovalRequest aaRequest = new AccessApprovalRequest();
+		aaRequest.setUserId(userId);
+		aaRequest.setAccessRequirementId(accessRequirement.getId().toString());
+		batchRequest.setRequests(Arrays.asList(aaRequest));
+		BatchAccessApprovalResult batchResult = adminSynapse.getAccessApprovalInfo(batchRequest);
+		assertNotNull(batchResult);
+		assertNotNull(batchResult.getResults());
+		assertEquals(1, batchResult.getResults().size());
 	}
 
 }
