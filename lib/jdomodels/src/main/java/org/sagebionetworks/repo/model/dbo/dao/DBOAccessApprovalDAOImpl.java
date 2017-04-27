@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +35,6 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
@@ -116,6 +117,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ "FROM "+TABLE_ACCESS_APPROVAL
 			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
+
+	private static final String SELECT_APPROVED_USERS = 
+				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+" FROM "+TABLE_ACCESS_APPROVAL
+			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -327,5 +334,19 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_ID, toDelete);
 		return namedJdbcTemplate.update(DELETE_ACCESS_APPROVALS, params);
+	}
+
+	@Override
+	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId) {
+		Set<String> result = new HashSet<String>();
+		if (userIds.isEmpty()){
+			return result;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userIds);
+		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
+		result.addAll(approvedUsers);
+		return result;
 	}
 }

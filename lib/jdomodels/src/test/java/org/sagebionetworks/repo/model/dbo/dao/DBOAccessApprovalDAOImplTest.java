@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -241,6 +242,11 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
+		Set<String> approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
+		assertNotNull(approvedUsers);
+		assertEquals(1, approvedUsers.size());
+		assertTrue(approvedUsers.contains(individualGroup.getId().toString()));
+
 		// update it
 		clone = ars.iterator().next();
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
@@ -267,6 +273,9 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// Delete it
 		accessApprovalDAO.delete(id);
+		approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
+		assertNotNull(approvedUsers);
+		assertTrue(approvedUsers.isEmpty());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

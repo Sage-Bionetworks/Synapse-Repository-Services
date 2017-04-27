@@ -109,4 +109,13 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	public int deleteBatch(List<Long> list);
+
+	/**
+	 * Retrieve approved users
+	 * 
+	 * @param userIds
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
 }
