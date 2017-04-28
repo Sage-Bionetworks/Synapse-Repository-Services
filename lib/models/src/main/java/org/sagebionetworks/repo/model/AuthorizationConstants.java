@@ -102,7 +102,6 @@ public class AuthorizationConstants {
 	/**
 	 * Request parameter for an optimistic concurrency control (OCC) eTag.
 	 */
-	@Deprecated
 	public static final String ETAG_PARAM = "etag";
 	
 	/**

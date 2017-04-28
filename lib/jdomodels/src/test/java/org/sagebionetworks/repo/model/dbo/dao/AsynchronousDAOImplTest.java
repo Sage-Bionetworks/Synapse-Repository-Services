@@ -8,7 +8,9 @@ import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.springframework.test.util.ReflectionTestUtils;
 /**
  * A unit test for AsynchronousDAOImpl.
  * @author John
@@ -29,9 +32,11 @@ public class AsynchronousDAOImplTest {
 	Long nodeId = new Long(123);
 	String nodeIdString = KeyFactory.keyToString(nodeId);
 
+	@Mock
 	NodeDAO mockNodeDao;
-	DBOReferenceDao mockReferenceDao;
+	@Mock
 	DBOAnnotationsDao mockAnnotationsDao;
+	@Mock
 	FileHandleDao mockFileMetadataDao;
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
@@ -40,11 +45,7 @@ public class AsynchronousDAOImplTest {
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
-		// Build up the mocks
-		mockNodeDao = Mockito.mock(NodeDAO.class);
-		mockReferenceDao = Mockito.mock(DBOReferenceDao.class);
-		mockAnnotationsDao = Mockito.mock(DBOAnnotationsDao.class);
-		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
+		MockitoAnnotations.initMocks(this);
 
 		// Setup the reference
 		ref = new Reference();
@@ -63,7 +64,10 @@ public class AsynchronousDAOImplTest {
 		when(mockNodeDao.getNodeReference(nodeIdString)).thenReturn(ref);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
 
-		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockFileMetadataDao);
+		testDao = new AsynchronousDAOImpl();
+		ReflectionTestUtils.setField(testDao, "nodeDao", mockNodeDao);
+		ReflectionTestUtils.setField(testDao, "dboAnnotationsDao", mockAnnotationsDao);
+		ReflectionTestUtils.setField(testDao, "fileMetadataDao", mockFileMetadataDao);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -77,7 +81,6 @@ public class AsynchronousDAOImplTest {
 		// Make the call
 		testDao.replaceAll(nodeIdString);
 		// verify
-		verify(mockReferenceDao, times(1)).replaceReference(nodeId, ref);
 		verify(mockAnnotationsDao, times(1)).replaceAnnotations(forDb);
 	}
 
@@ -86,7 +89,6 @@ public class AsynchronousDAOImplTest {
 		// Make the call
 		testDao.deleteEntity(nodeIdString);
 		// verify
-		verify(mockReferenceDao, times(1)).deleteReferenceByOwnderId(nodeId);
 		verify(mockAnnotationsDao, times(1)).deleteAnnotationsByOwnerId(nodeId);
 	}
 }

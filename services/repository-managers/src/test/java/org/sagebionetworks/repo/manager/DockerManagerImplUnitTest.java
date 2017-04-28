@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DockerCommitDao;
@@ -152,7 +153,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
 		
-		when(idGenerator.generateNewId()).thenReturn(REPO_ENTITY_ID_LONG);
+		when(idGenerator.generateNewId(IdType.ENTITY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
 		
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
 	}

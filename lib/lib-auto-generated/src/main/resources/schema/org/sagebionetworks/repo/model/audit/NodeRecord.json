@@ -12,6 +12,12 @@
 		},
 		"isControlled": {
 			"type": "boolean"
-		}
+		},
+        "benefactorId":{
+            "type":"string"
+        },
+        "projectId":{
+            "type":"string"
+        }
 	}
 }

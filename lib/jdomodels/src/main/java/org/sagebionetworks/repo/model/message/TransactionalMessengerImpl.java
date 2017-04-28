@@ -81,27 +81,16 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType) {
-		sendMessageAfterCommit(objectId, objectType, null, changeType);
+	public void sendDeleteMessageAfterCommit(String objectId, ObjectType objectType) {
+		String etag = null;
+		sendMessageAfterCommit(objectId, objectType, etag, ChangeType.DELETE);
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
 	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
-		sendMessageAfterCommit(objectId, objectType, etag, changeType, null);
-	}
-
-	@WriteTransactionReadCommitted
-	@Deprecated
-	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType) {
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(changeType);
-		message.setObjectType(objectType);
-		message.setObjectId(objectId);
-		message.setParentId(parentId);
-		message.setObjectEtag(etag);
-		sendMessageAfterCommit(message);
+		Long userId = null;
+		sendMessageAfterCommit(objectId, objectType, etag, changeType, userId);
 	}
 	
 	@WriteTransactionReadCommitted
@@ -111,7 +100,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setChangeType(changeType);
 		message.setObjectType(entity.getObjectType());
 		message.setObjectId(entity.getIdString());
-		message.setParentId(entity.getParentIdString());
 		message.setObjectEtag(entity.getEtag());
 		sendMessageAfterCommit(message);
 	}
@@ -127,11 +115,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		appendToBoundMessages(message);
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType, Long userId) {
-		sendMessageAfterCommit(objectId, objectType, null, changeType, userId);
-	}
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -143,20 +126,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		message.setObjectEtag(etag);
 		message.setUserId(userId);
 		sendMessageAfterCommit(message);
-	}
-
-	@Override
-	public void sendModificationMessageAfterCommit(ModificationMessage message) {
-		ValidateArgument.required(message.getObjectId(), "objectId");
-		ValidateArgument.required(message.getObjectType(), "objectType");
-
-		Long userId = currentUserIdThreadLocal.get();
-		if (userId != null && !AuthorizationUtils.isUserAnonymous(userId.longValue())) {
-			message.setTimestamp(clock.now());
-			message.setUserId(userId);
-
-			appendToBoundMessages(message);
-		}
 	}
 
 	private <T extends Message> void appendToBoundMessages(T message) {
@@ -235,9 +204,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				for (Message message : currentMessages.values()) {
 					if (message instanceof ChangeMessage) {
 						observer.fireChangeMessage((ChangeMessage) message);
-					} else if (message instanceof ModificationMessage) {
-						observer.fireModificationMessage((ModificationMessage) message);
-					} else {
+					}  else {
 						throw new IllegalArgumentException("Unknown message type " + message.getClass().getName());
 					}
 					if (log.isTraceEnabled()) {

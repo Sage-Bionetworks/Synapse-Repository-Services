@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -48,7 +47,7 @@ public class AccessRequirementUtil {
 			principalIds.add(ug);
 		}
 		
-		return accessRequirementDAO.unmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
+		return accessRequirementDAO.getAllUnmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 
 	public static List<Long> unmetUploadAccessRequirementIdsForEntity(
@@ -64,7 +63,7 @@ public class AccessRequirementUtil {
 			principalIds.add(ug);
 		}
 		
-		return accessRequirementDAO.unmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
+		return accessRequirementDAO.getAllUnmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 	
 	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_BY;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_CRATED_ON;
 import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ETAG;
@@ -26,6 +26,7 @@ public enum EntityField {
 	createdOn			(ENTITY_REPLICATION_COL_CRATED_ON, 		ColumnType.DATE,			null,	FacetType.range),
 	createdBy			(ENTITY_REPLICATION_COL_CRATED_BY, 		ColumnType.USERID,			null,	FacetType.enumeration),
 	etag				(ENTITY_REPLICATION_COL_ETAG,	 		ColumnType.STRING,			36L,	null),
+	type				(ENTITY_REPLICATION_COL_TYPE,	 		ColumnType.STRING,			20L,	FacetType.enumeration),
 	currentVersion		(ENTITY_REPLICATION_COL_VERSION, 		ColumnType.INTEGER, 		null,	null),
 	parentId			(ENTITY_REPLICATION_COL_PARENT_ID, 		ColumnType.ENTITYID,		null,	FacetType.enumeration),
 	benefactorId		(ENTITY_REPLICATION_COL_BENEFACTOR_ID, 	ColumnType.ENTITYID,		null,	null),
@@ -35,7 +36,7 @@ public enum EntityField {
 	dataFileHandleId	(ENTITY_REPLICATION_COL_FILE_ID,		ColumnType.FILEHANDLEID,	null,	null);
 	
 	String databaseColumnName;
-	ColumnType type;
+	ColumnType colunmType;
 	Long size;
 	FacetType facetType;
 	
@@ -50,7 +51,7 @@ public enum EntityField {
 	 */
 	private EntityField(String columnName, ColumnType type, Long size, FacetType facetType){
 		this.databaseColumnName = columnName;
-		this.type = type;
+		this.colunmType = type;
 		this.size = size;
 		this.facetType = facetType;
 	}
@@ -62,7 +63,7 @@ public enum EntityField {
 	public ColumnModel getColumnModel(){
 		ColumnModel cm = new ColumnModel();
 		cm.setName(name());
-		cm.setColumnType(this.type);
+		cm.setColumnType(this.colunmType);
 		cm.setMaximumSize(this.size);
 		cm.setFacetType(this.facetType);
 		return cm;

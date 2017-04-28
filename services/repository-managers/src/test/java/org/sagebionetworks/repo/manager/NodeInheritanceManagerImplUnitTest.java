@@ -44,8 +44,8 @@ public class NodeInheritanceManagerImplUnitTest {
 		String newParentId = "789";
 		String newParentBenefactor = "901";
 		
-		when(nodeInheritanceDao.getBenefactor(toMoveId)).thenReturn(toMoveStartBenefactor);
-		when(nodeInheritanceDao.getBenefactor(newParentId)).thenReturn(newParentBenefactor);
+		when(nodeInheritanceDao.getBenefactorCached(toMoveId)).thenReturn(toMoveStartBenefactor);
+		when(nodeInheritanceDao.getBenefactorCached(newParentId)).thenReturn(newParentBenefactor);
 		
 		// call under test
 		manager.nodeParentChanged(toMoveId, newParentId, false);

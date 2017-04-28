@@ -7,10 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
-import org.json.JSONException;
-import org.sagebionetworks.profiler.Frame;
-import org.sagebionetworks.profiler.ProfileFilter;
-import org.sagebionetworks.profiler.ProfileSingleton;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -83,25 +79,6 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
 							.getUri());
 				}
 			}
-			
-			/*
-			 * Add the profile data to the header when requested.
-			 */
-			String value = request.getHeader(ProfileFilter.KEY_PROFILE_REQUEST);
-			if(value != null){
-				Frame frame = ProfileSingleton.getFrame();
-				if (frame != null) {
-					try {
-						String json = Frame.writeFrameJSON(frame);
-						response.setHeader(ProfileFilter.KEY_PROFILE_RESPONSE_OBJECT,base64Encode(json));
-					} catch (JSONException e) {
-						throw new RuntimeException(e);
-					} catch (UnsupportedEncodingException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			}
-			
 		}
 		return UNRESOLVED; // Tell Spring to keep doing its thing (such as
 		// serializing returnValue to the appropriate

@@ -12,6 +12,7 @@ import org.apache.http.HttpHeaders;
 
 import static org.mockito.Mockito.*;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,70 +63,59 @@ public class ClientUtilsTest {
 	}
 
 	@Test (expected = SynapseUnauthorizedException.class)
-	public void testThrowUnauthorizedException() throws Exception{
+	public void testThrowExceptionWithJSONResponse() throws Exception{
 		JSONObject response = new JSONObject();
 		response.append(ERROR_REASON_TAG, "test");
 		ClientUtils.throwException(401, response);
 	}
 
+	@Test (expected = SynapseUnauthorizedException.class)
+	public void testThrowUnauthorizedException() throws Exception{
+		ClientUtils.throwException(401, "test");
+	}
+
 	@Test (expected = SynapseForbiddenException.class)
 	public void testThrowForbiddenException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(403, response);
+		ClientUtils.throwException(403, "test");
 	}
 
 	@Test (expected = SynapseNotFoundException.class)
 	public void testThrowNotFoundException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(404, response);
+		ClientUtils.throwException(404, "test");
 	}
 
 	@Test (expected = SynapseBadRequestException.class)
 	public void testThrowBadRequestException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(400, response);
+		ClientUtils.throwException(400, "test");
 	}
 
 	@Test (expected = SynapseLockedException.class)
 	public void testThrowLockedException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(423, response);
+		ClientUtils.throwException(423, "test");
 	}
 
 	@Test (expected = SynapseConflictingUpdateException.class)
 	public void testThrowConflictingUpdateException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(412, response);
+		ClientUtils.throwException(412, "test");
 	}
 
 	@Test (expected = SynapseDeprecatedServiceException.class)
 	public void testThrowDeprecatedServiceException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(410, response);
+		ClientUtils.throwException(410, "test");
 	}
 
 	@Test (expected = SynapseTooManyRequestsException.class)
 	public void testThrowTooManyRequestException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
-		ClientUtils.throwException(429, response);
+		ClientUtils.throwException(429, "test");
 	}
 
 	@Test
 	public void testThrowServerException() throws Exception{
-		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
 		try {
-			ClientUtils.throwException(500, response);
+			ClientUtils.throwException(500, "test");
 			fail("expect exception");
 		} catch (SynapseServerException e) {
-			assertEquals("[\"test\"]", e.getMessage());
+			assertEquals("test", e.getMessage());
 		}
 	}
 
@@ -143,7 +133,18 @@ public class ClientUtilsTest {
 		try {
 			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
 		} catch (SynapseBadRequestException e) {
-			assertEquals("[\"some reason\"]", e.getMessage());
+			assertEquals("some reason", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testCheckStatusCodeAndThrowExceptionForTomcat404() throws Exception{
+		when(mockResponse.getStatusCode()).thenReturn(404);
+		when(mockResponse.getContent()).thenReturn("some reason");
+		try {
+			ClientUtils.checkStatusCodeAndThrowException(mockResponse);
+		} catch (SynapseNotFoundException e) {
+			assertEquals("some reason", e.getMessage());
 		}
 	}
 
@@ -158,7 +159,7 @@ public class ClientUtilsTest {
 
 
 	@Test
-	public void testConvertResponseBodyToJSONAndThrowExceptionFor300() throws Exception{
+	public void testConvertResponseBodyToJSONAndThrowExceptionFor400() throws Exception{
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"some reason\"}");
 		when(mockResponse.getStatusCode()).thenReturn(400);
 		try {
@@ -169,11 +170,29 @@ public class ClientUtilsTest {
 	}
 
 	@Test
+	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse() throws Exception{
+		when(mockResponse.getContent()).thenReturn("some reason");
+		when(mockResponse.getStatusCode()).thenReturn(404);
+		try {
+			ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+		} catch (SynapseNotFoundException e) {
+			assertEquals("some reason", e.getMessage());
+		}
+	}
+
+	@Test (expected = SynapseClientException.class)
+	public void testConvertResponseBodyToJSONAndThrowExceptionForNonJSONResponse200() throws Exception{
+		when(mockResponse.getContent()).thenReturn("some reason");
+		when(mockResponse.getStatusCode()).thenReturn(200);
+		ClientUtils.convertResponseBodyToJSONAndThrowException(mockResponse);
+	}
+
+	@Test
 	public void testConvertStringToJSONObjectWithNull() throws Exception {
 		assertNull(ClientUtils.convertStringToJSONObject(null));
 	}
 
-	@Test (expected = SynapseClientException.class)
+	@Test (expected = JSONException.class)
 	public void testConvertStringToJSONObjectWithWrongJSONFormat() throws Exception {
 		ClientUtils.convertStringToJSONObject("abc");
 	}

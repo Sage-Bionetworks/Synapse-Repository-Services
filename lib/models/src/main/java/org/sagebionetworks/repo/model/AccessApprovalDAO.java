@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -73,4 +74,48 @@ public interface AccessApprovalDAO {
 	 */
 	public void delete(String accessRequirementId, String accessorId);
 
+	/**
+	 * Return true if there is an unmet access requirement for the given user; false otherwise.
+	 * 
+	 * @param requirementIdSet
+	 * @param userId
+	 * @return
+	 */
+	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId);
+
+	/**
+	 * Create a batch of access approval
+	 * 
+	 * @param approvalsToCreate - objects to be created
+	 */
+	public List<AccessApproval> createBatch(List<AccessApproval> approvalsToCreate);
+
+	/**
+	 * Retrieve a list of access approvals for a given subjectIdList
+	 * 
+	 * @param subjectIdList
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type,
+			long limit, long offset);
+
+	/**
+	 * Delete a batch of AccessApprovals
+	 * 
+	 * @param list
+	 * @return
+	 */
+	public int deleteBatch(List<Long> list);
+
+	/**
+	 * Retrieve approved users
+	 * 
+	 * @param userIds
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
 }

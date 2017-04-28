@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -22,7 +23,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  * @author jmhill
  *
  */
-class NodeUtils {
+public class NodeUtils {
 	
 
 		
@@ -38,16 +39,6 @@ class NodeUtils {
 	 */
 	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev, boolean deleteActivityId) throws DatastoreException, InvalidModelException {
 		jdo.setName(dto.getName());
-		if(dto.getDescription() !=  null){
-			try {
-				jdo.setDescription(dto.getDescription().getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			jdo.setDescription(null);
-		}
-
 		if(dto.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
@@ -140,7 +131,7 @@ class NodeUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Create a DTO from the JDO
 	 * @param jdo
@@ -149,16 +140,20 @@ class NodeUtils {
 	 */
 	public static Node copyFromJDO(DBONode jdo, DBORevision rev) throws DatastoreException{
 		Node dto = new Node();
+		 copyFromJDO(dto, jdo, rev);
+		return dto;
+	}
+	
+	/**
+	 * Copy data from the passed DBOs to the passed dto.
+	 * 
+	 * @param dto
+	 * @param jdo
+	 * @param rev
+	 * @throws DatastoreException
+	 */
+	public static void copyFromJDO(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException{
 		dto.setName(jdo.getName());
-		if(jdo.getDescription() != null){
-			try {
-				dto.setDescription(new String(jdo.getDescription(), "UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			}
-		}else{
-			dto.setDescription(null);
-		}
 		if(jdo.getId() != null){
 			dto.setId(KeyFactory.keyToString(jdo.getId()));
 		}
@@ -205,7 +200,6 @@ class NodeUtils {
 		if(rev.getScopeIds() != null){
 			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
-		return dto;
 	}
 	
 	/**
@@ -234,6 +228,17 @@ class NodeUtils {
 				node.getNodeType() == null) 
 			return false;
 		return true;
+	}
+	
+	/**
+	 * Is the given type a project or folder?
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static boolean isProjectOrFolder(EntityType type){
+		return EntityType.project.equals(type)
+				|| EntityType.folder.equals(type);
 	}
 	
 }

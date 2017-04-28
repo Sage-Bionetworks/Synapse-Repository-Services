@@ -17,12 +17,18 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.QueueCleaner;
@@ -39,20 +45,25 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
+	private NodeInheritanceDAO nodeInheritanceDao;
+	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
 	private QueueCleaner queueCleaner;
+	@Autowired
+	private AccessControlListDAO accessControlListDAO;
 
 	private List<String> toDelete = new ArrayList<String>();
 	private Long creatorUserGroupId;
 	private Long altUserGroupId;
 	private String type;
+	UserInfo adminUser;
 
 	@Before
 	public void before() {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-
+		adminUser = new UserInfo(true, creatorUserGroupId);
 		assertNotNull(nodeDao);
 		assertNotNull(objectRecordDAO);
 		assertNotNull(queueCleaner);
@@ -60,6 +71,9 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 		type = NodeRecord.class.getSimpleName().toLowerCase();
 		queueCleaner.purgeQueue(StackConfiguration.singleton().getAsyncQueueName(QUEUE_NAME));
+		
+		// Clear the data for this test instance.
+		objectRecordDAO.deleteAllStackInstanceBatches(type);
 	}
 	
 	@After
@@ -81,15 +95,20 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 		Set<String> keys = ObjectSnapshotWorkerIntegrationTestUtils.listAllKeys(objectRecordDAO, type);
 
 		Node toCreate = createNew("node name", creatorUserGroupId, altUserGroupId);
-		String id = nodeDao.createNew(toCreate);
-		toDelete.add(id);
-		assertNotNull(id);
+		toCreate = nodeDao.createNewNode(toCreate);
+		toDelete.add(toCreate.getId());
+		assertNotNull(toCreate.getId());
 		// This node should exist
-		assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(id)));
+		assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(toCreate.getId())));
+		// add an acl.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(toCreate.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
 		// fetch it
-		Node node = nodeDao.getNode(id);
-		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node);
+		Node node = nodeDao.getNode(toCreate.getId());
+		String benefactorId = nodeInheritanceDao.getBenefactor(toCreate.getId());
+		String projectId = nodeDao.getProjectId(toCreate.getId());
+		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
 		record.setIsPublic(false);
 		record.setIsRestricted(false);
 		record.setIsControlled(false);

@@ -28,14 +28,6 @@ public class NodeFieldTest {
 	}
 	
 	@Test
-	public void testDescription(){
-		assertEquals("description", NodeField.DESCRIPTION.getFieldName());
-		assertEquals(SqlConstants.COL_NODE_DESCRIPTION, NodeField.DESCRIPTION.getColumnName());
-		assertEquals(SqlConstants.TABLE_NODE, NodeField.DESCRIPTION.getTableName());
-		assertEquals(SqlConstants.NODE_ALIAS, NodeField.DESCRIPTION.getTableAlias());
-	}
-	
-	@Test
 	public void testParentId(){
 		assertEquals("parentId", NodeField.PARENT_ID.getFieldName());
 		assertEquals(SqlConstants.COL_NODE_PARENT_ID, NodeField.PARENT_ID.getColumnName());

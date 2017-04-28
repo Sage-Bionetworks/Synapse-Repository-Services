@@ -27,7 +27,6 @@ public class ChangeMessageUtilsTest {
 		change.setObjectEtag("a4fc5142-6a33-4255-bb47-6dbb0e3f055c");
 		change.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		change.setObjectId("" + Long.MAX_VALUE);
-		change.setParentId("" + Long.MAX_VALUE);
 		change.setTimestamp(new Date(292278993));
 		ChangeMessages messages = new ChangeMessages();
 		messages.setList(Arrays.asList(change));

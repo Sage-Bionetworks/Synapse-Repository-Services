@@ -58,4 +58,18 @@ public interface GroupMembersDAO {
 	 * @return
 	 */
 	public Long getIndividualCount(Set<String> principalIds);
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return true if all users are members of groupId; false otherwise.
+	 */
+	public boolean areMemberOf(String groupId, Set<String> userIds);
+	
+	/**
+	 * Get the IDs of all members in this team.
+	 * @param teamId
+	 * @return
+	 */
+	public Set<Long> getMemberIds(Long teamId);
 }

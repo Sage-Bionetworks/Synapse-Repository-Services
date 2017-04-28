@@ -20,7 +20,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -75,7 +75,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		nodeIdToDelete = nodeDAO.createNew(node);
 		
 		Evaluation evaluation = new Evaluation();
-		evaluation.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS).toString());
+		evaluation.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		evaluation.setContentSource(nodeIdToDelete);
 		evaluation.setName("evaluation name");
 		evaluation.setOwnerId(ownerId.toString());

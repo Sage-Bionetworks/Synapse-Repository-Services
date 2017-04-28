@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -103,7 +103,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		if(dto.getPrincipalId() == null) throw new IllegalArgumentException("Principal id can not be null");
 		if(dto.getEntityId() == null) throw new IllegalArgumentException("Entity Id can not be null");
 		DBOFavorite dbo = new DBOFavorite(); 
-		dbo.setId(idGenerator.generateNewId(TYPE.FAVORITE_ID));
+		dbo.setId(idGenerator.generateNewId(IdType.FAVORITE_ID));
 		dbo.setCreatedOn(new Date().getTime());
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		basicDao.createNew(dbo);

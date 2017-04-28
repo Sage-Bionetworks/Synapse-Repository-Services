@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -19,6 +20,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
@@ -215,7 +218,7 @@ public class EntityServiceImpl implements EntityService {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Create a new id for this entity
-		long newId = idGenerator.generateNewId();
+		long newId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		newEntity.setId(KeyFactory.keyToString(newId));
 		EventType eventType = EventType.CREATE;
 		// Fire the event
@@ -540,21 +543,6 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getEntityReferences(Long userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(offset == null){
-			offset = DEFAULT_OFFSET;
-		}
-		if(limit == null){
-			limit = DEFAULT_LIMIT;
-		}
-		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
-		List<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, (long) offset, (long) limit);
-		return PaginatedResults.createWithLimitAndOffset(results, (long)limit, (long)offset);
-	}
-
-	@Override
 	public UserEntityPermissions getUserEntityPermissions(Long userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -697,5 +685,13 @@ public class EntityServiceImpl implements EntityService {
 		EntityId id = new EntityId();
 		id.setId(entityId);
 		return id;
+	}
+
+	@Override
+	public EntityChildrenResponse getChildren(Long userId,
+			EntityChildrenRequest request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getChildren(userInfo, request);
 	}
 }

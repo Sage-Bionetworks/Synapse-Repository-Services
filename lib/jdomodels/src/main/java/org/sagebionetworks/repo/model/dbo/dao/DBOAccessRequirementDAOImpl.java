@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
@@ -24,35 +25,45 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 /**
  * @author brucehoff
  *
  */
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
+	public static final String LIMIT_PARAM = "LIMIT";
+	public static final String OFFSET_PARAM = "OFFSET";
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -62,45 +73,51 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	private static final String SELECT_ALL_IDS_SQL = 
-		"SELECT "+SqlConstants.COL_ACCESS_REQUIREMENT_ID+" FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT;
+			"SELECT "+COL_ACCESS_REQUIREMENT_ID
+			+" FROM "+TABLE_ACCESS_REQUIREMENT;
 
 	private static final String SELECT_FOR_SUBJECT_SQL = 
-		"SELECT * FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT+" ar, "+ 
-		SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT +" nar WHERE ar."+
-		SqlConstants.COL_ACCESS_REQUIREMENT_ID+" = nar."+SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+
-		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
-		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
-		" order by "+SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+			"SELECT DISTINCT ar.*"
+			+" FROM "+TABLE_ACCESS_REQUIREMENT+" ar, "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
+			+" WHERE ar."+COL_ACCESS_REQUIREMENT_ID+" = nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
+			+" order by "+COL_ACCESS_REQUIREMENT_ID;
 
-
-	private static final String SELECT_FOR_SAR_SQL = "select * from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
-	COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+	private static final String SELECT_FOR_SAR_SQL = "select *"
+			+" from "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" where "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
-			COL_ACCESS_REQUIREMENT_CREATED_BY+", "+
-			COL_ACCESS_REQUIREMENT_CREATED_ON+", "+
-			COL_ACCESS_REQUIREMENT_ETAG+
-			" from "+TABLE_ACCESS_REQUIREMENT+" where "+COL_ACCESS_REQUIREMENT_ID+
-			"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
+				COL_ACCESS_REQUIREMENT_CREATED_BY+", "+
+				COL_ACCESS_REQUIREMENT_CREATED_ON+", "+
+				COL_ACCESS_REQUIREMENT_ETAG+
+			" from "+TABLE_ACCESS_REQUIREMENT
+			+" where "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
 	
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL = 
-		"delete from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
-		COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
-	
+			"delete from "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" where "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 	
 	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
 	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
 	
-	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+
-	", aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID+
-	" from "+TABLE_ACCESS_REQUIREMENT+" ar ";
+	private static final String UNMET_REQUIREMENTS_SQL_PREFIX = "select"
+			+ " ar."+COL_ACCESS_REQUIREMENT_ID+" as "+UNMET_REQUIREMENTS_AR_COL_ID+","
+			+ " aa."+COL_ACCESS_APPROVAL_ID+" as "+UNMET_REQUIREMENTS_AA_COL_ID
+			+ " from "+TABLE_ACCESS_REQUIREMENT+" ar ";
 	
-	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = " left join "+TABLE_ACCESS_APPROVAL+" aa on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
-	" and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+
-	") where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+
-	") order by "+UNMET_REQUIREMENTS_AR_COL_ID;
+	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = 
+			" left join "+TABLE_ACCESS_APPROVAL+" aa"
+			+ " on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
+			+ " where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+")"
+			+ " order by "+UNMET_REQUIREMENTS_AR_COL_ID;
 	
 	// select ar.id as ar_id, aa.id as aa_id
 	// from ACCESS_REQUIREMENT ar 
@@ -108,17 +125,38 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	// nar.subject_type=:subject_type and nar.subject_id in (:subject_id)
 	// left join ACCESS_APPROVAL aa on ar.id=aa.requirement_id and aa.accessor_id in (:accessor_id)
 	// where ar.access_type=:access_type
-	private static final String SELECT_UNMET_REQUIREMENTS_SQL = UNMET_REQUIREMENTS_SQL_PREFIX +
-		" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+
-				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
-				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
-				UNMET_REQUIREMENTS_SQL_SUFFIX;
+	private static final String SELECT_UNMET_REQUIREMENTS_SQL = 
+			UNMET_REQUIREMENTS_SQL_PREFIX
+			+" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
+			+ " on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+" "
+			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" "
+			+"and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+UNMET_REQUIREMENTS_SQL_SUFFIX;
+
+
+	private static final String SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET =
+			SELECT_FOR_SUBJECT_SQL+" "
+			+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
+			+OFFSET_PARAM+" :"+OFFSET_PARAM;
+
+	private static final String SELECT_CONCRETE_TYPE = "SELECT "+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+" FROM "+TABLE_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = ?";
+
+	private static final String SELECT_ACCESS_REQUIREMENT_STATS = "SELECT "
+				+COL_ACCESS_REQUIREMENT_ID+", "
+				+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+" FROM "+TABLE_ACCESS_REQUIREMENT+", "
+				+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
 	@Override
-	public List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
+	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
@@ -151,7 +189,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -159,18 +197,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException{
 	
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
-		}
-		if (dbo.geteTag() == null) {
-			dbo.seteTag(UUID.randomUUID().toString());
-		}
+		dbo.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
+		dbo.seteTag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
@@ -178,7 +212,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	public void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		if (subjectIds==null || subjectIds.isEmpty()) return;
 
@@ -221,7 +255,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			}
 		});
 	}
-	
+
+	@Override
 	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId) {
 		List<RestrictableObjectDescriptor> ans = new ArrayList<RestrictableObjectDescriptor>();	
 
@@ -248,7 +283,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		if (subjectIds.isEmpty()) return dtos;
 		List<Long> subjectIdsAsLong = new ArrayList<Long>();
@@ -266,7 +301,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return dtos;
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T update(T dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
@@ -323,5 +358,70 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		// ... now populate with the updated values
 		populateSubjectAccessRequirement(acessRequirementId, subjectIds);
 	}
-	
+
+	@Override
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<String> subjectIds, RestrictableObjectType type,
+			Long limit, Long offset) throws DatastoreException {
+		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) {
+			return dtos;
+		}
+		List<Long> subjectIdsAsLong = new ArrayList<Long>();
+		for (String id: subjectIds) {
+			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		param.addValue(LIMIT_PARAM, limit);
+		param.addValue(OFFSET_PARAM, offset);
+		List<DBOAccessRequirement> dbos = namedJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL_WITH_LIMIT_OFFSET, param, accessRequirementRowMapper);
+		for (DBOAccessRequirement dbo : dbos) {
+			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+
+	@Override
+	public String getConcreteType(String accessRequirementId) {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_CONCRETE_TYPE, String.class, accessRequirementId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
+	}
+
+	@Override
+	public AccessRequirementStats getAccessRequirementStats(List<String> subjectIds, RestrictableObjectType type) {
+		ValidateArgument.requirement(subjectIds != null && !subjectIds.isEmpty(), "subjectIds must contain at least one ID.");
+		ValidateArgument.required(type, "type");
+		final AccessRequirementStats stats = new AccessRequirementStats();
+		stats.setHasACT(false);
+		stats.setHasToU(false);
+		stats.setHasLock(false);
+		final Set<String> requirementIdSet = new HashSet<String>();
+		stats.setRequirementIdSet(requirementIdSet);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIds));
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		namedJdbcTemplate.query(SELECT_ACCESS_REQUIREMENT_STATS, param, new RowMapper<Void>(){
+
+			@Override
+			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
+				requirementIdSet.add(rs.getString(COL_ACCESS_REQUIREMENT_ID));
+				String type = rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE);
+				if (type.equals(TermsOfUseAccessRequirement.class.getName())) {
+					stats.setHasToU(true);
+				} else if (type.equals(ACTAccessRequirement.class.getName())) {
+					stats.setHasACT(true);
+				} else if (type.equals(LockAccessRequirement.class.getName())) {
+					stats.setHasLock(true);
+				}
+				return null;
+			}
+		});
+		return stats;
+	}
 }

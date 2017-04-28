@@ -13,6 +13,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -32,15 +33,18 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.RequesterPaysSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -61,6 +65,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	private static final Pattern INVALID_ALIAS_CHARACTERS = Pattern.compile("[^a-zA-Z0-9_]");
+	
+	public static final Long ROOT_ID = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+	public static final Long TRASH_ID = KeyFactory.stringToKey(StackConfiguration.getTrashFolderEntityIdStatic());
 
 	@Autowired
 	NodeDAO nodeDao;	
@@ -72,38 +79,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private EntityBootstrapper entityBootstrapper;	
 	@Autowired
 	private NodeInheritanceManager nodeInheritanceManager;	
-	@Autowired
-	private ReferenceDao referenceDao;
 	@Autowired 
 	private ActivityManager activityManager;
 	@Autowired
-	ProjectSettingsManager projectSettingsManager;
-
-	/**
-	 * This is used for unit test.
-	 * 
-	 * @param nodeDao
-	 * @param authDoa
-	 * @param projectSettingsManager
-	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper,
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager,
-			ProjectSettingsManager projectSettingsManager) {
-		this.nodeDao = nodeDao;
-		this.authorizationManager = authDoa;
-		this.aclDAO = aclDao;
-		this.entityBootstrapper = entityBootstrapper;
-		this.nodeInheritanceManager = nodeInheritanceManager;
-		this.referenceDao = referenceDao;
-		this.activityManager = activityManager;
-		this.projectSettingsManager = projectSettingsManager;
-	}
-	
-	/**
-	 * Used by Spring
-	 */
-	public NodeManagerImpl(){
-	}
+	private ProjectSettingsManager projectSettingsManager;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	/*
 	 * (non-Javadoc)
@@ -154,6 +135,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// check whether the user is allowed to create this type of node
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreate(userInfo, newNode));
+		
+		// can this entity be added to the parent?
+		validateChildCount(newNode.getParentId(), newNode.getNodeType());
 
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
@@ -176,7 +160,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
 			// This node inherits from its parent.
-			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
+			String parentBenefactor = nodeInheritanceManager.getBenefactorCached(newNode.getParentId());
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
@@ -184,7 +168,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			// This node is its own benefactor
 			nodeInheritanceManager.addBeneficiary(id, id);
 		}else{
-			throw new IllegalArgumentException("Unknown ACL_SHEME: "+aclScheme);
+			throw new IllegalArgumentException("Unknown ACL_SCHEME: "+aclScheme);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -193,6 +177,37 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
 		return newNode;
+	}
+	
+	/**
+	 * Validate that number of children for this container has not been exceeded.
+	 * @param parentId
+	 * @param type
+	 */
+	public void validateChildCount(String parentId, EntityType type) {
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(type, "type");
+		// Limits only apply to files, folders, and links
+		if (EntityType.file.equals(type) 
+				|| EntityType.folder.equals(type)
+				|| EntityType.link.equals(type)) {
+			// There are no limits on the trash or root
+			Long parentIdLong = KeyFactory.stringToKey(parentId);
+			if (!ROOT_ID.equals(parentIdLong)
+					&& !TRASH_ID.equals(parentIdLong)) {
+				// Get the child count
+				long currentCount = nodeDao.getChildCount(parentId);
+				if (currentCount + 1 > StackConfiguration
+						.getMaximumNumberOfEntitiesPerContainer()) {
+					throw new IllegalArgumentException(
+							"Limit of "
+									+ StackConfiguration
+											.getMaximumNumberOfEntitiesPerContainer()
+									+ " children exceeded for parent: "
+									+ parentId);
+				}
+			}
+		}
 	}
 
 	/**
@@ -312,7 +327,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		Node oldNode = nodeDao.getNode(updatedNode.getId());
-		updateNode(userInfo, updatedNode, null, false, false, changeType, oldNode);
+		boolean newVersion = false;
+		boolean skipBenefactor = false;
+		updateNode(userInfo, updatedNode, null, newVersion, skipBenefactor, changeType, oldNode);
 	}
 
 	@WriteTransaction
@@ -357,7 +374,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 						authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD));
 			}
 		}
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE, oldNode);
+		boolean skipBenefactor = true;
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, skipBenefactor, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
@@ -400,9 +418,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		final String parentInDatabase = oldNode.getParentId();
 		final String parentInUpdate = updatedNode.getParentId();
 		final String nodeInUpdate = updatedNode.getId();
-		if (isParentIdChange(parentInDatabase, parentInUpdate)) {
+		// is this a parentId change?
+		if (!KeyFactory.equals(parentInDatabase, parentInUpdate)) {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+			// Validate the limits of the new parent
+			validateChildCount(parentInUpdate, updatedNode.getNodeType());
+			
+			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
+				// Notify listeners of the hierarchy change to this container.
+				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, nextETag, ChangeType.UPDATE);
+			}
+			
 			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate, changeType == ChangeType.DELETE);
 			// Update the ACL accordingly
 			if (skipBenefactor) {
@@ -440,25 +467,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 		if (log.isDebugEnabled()) {
 			log.debug("username "+userInfo.getId().toString()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
-		}
-	}
-
-	/**
-	 * Is this a parent ID change.  Note: ParenID can be null.
-	 * This was added for PLFM-1533.
-	 * @param one
-	 * @param two
-	 * @return
-	 */
-	public static boolean isParentIdChange(String one, String two){
-		if(one == null){
-			if(two != null){
-				return true;
-			}else{
-				return false;
-			}
-		}else{
-			return !one.equals(two);
 		}
 	}
 
@@ -532,15 +540,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void afterPropertiesSet() throws Exception {
 		// This is a hack because the current DAO is not working with integration tests.
 //		authorizationManager = new TempMockAuthDao();
-	}
-
-	@Override
-	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo.validateUserInfo(userInfo);
-
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ));
-		return nodeDao.getChildren(parentId);
 	}
 
 	@Override
@@ -653,13 +652,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			}
 		}
 		return filtered;
-	}
-
-	@Override
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Long offset, Long limit)
-			throws NotFoundException, DatastoreException {
-		UserInfo.validateUserInfo(userInfo);
-		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
 	}
 
 	@Override
@@ -795,7 +787,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private void removeBenefactorAcl(String nodeId)  {
 		String benefactor = null;
 		try {
-			benefactor = nodeInheritanceManager.getBenefactor(nodeId);
+			benefactor = nodeInheritanceManager.getBenefactorCached(nodeId);
 		} catch (NotFoundException e) {
 			benefactor = null;
 		}
@@ -830,5 +822,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		Set<String> results = new HashSet<String>();
 		CollectionUtils.convertLongToString(returnedFileHandleIds, results);
 		return results;
+	}
+
+	@Override
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
+			SortBy sortBy, Direction sortDirection, long limit, long offset) {
+		// EntityManager handles all of the business logic for this call.
+		return nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
 	}
 }

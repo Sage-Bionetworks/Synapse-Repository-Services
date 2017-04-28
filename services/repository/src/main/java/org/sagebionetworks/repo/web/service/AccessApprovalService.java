@@ -4,7 +4,9 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -23,12 +25,14 @@ public interface AccessApprovalService {
 			NotFoundException;
 
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
-			RestrictableObjectDescriptor subjectId)
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	public void deleteAccessApproval(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId);
+
+	public Count deleteAccessApprovals(Long userId, IdList toDelete);
 
 }

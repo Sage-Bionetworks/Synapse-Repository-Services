@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -16,18 +15,17 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.object.snapshot.worker.utils.AclSnapshotUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
@@ -58,7 +56,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
-@Ignore // see PLFM-3995
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ProjectStatsWorkerIntegrationTest {
@@ -82,7 +79,7 @@ public class ProjectStatsWorkerIntegrationTest {
 	@Autowired
 	private TeamDAO teamDAO;
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
+	private EntityPermissionsManager entityPermissionManager;
 	@Autowired
 	private IdGenerator idGenerator;
 
@@ -282,30 +279,6 @@ public class ProjectStatsWorkerIntegrationTest {
 				return null;
 			}
 		});
-
-		applyAndWaitForStatChange(projectStat, userAddedAndRemovedOnProjectAcl, new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				removeAcl(projectStat.getProjectId(), userAddedAndRemovedOnProjectAcl);
-				return null;
-			}
-		});
-
-		applyAndWaitForStatChange(projectStat, userAddedAndRemoveOnTeam, new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				teamManager.removeMember(adminUserInfo, teamId, userAddedAndRemoveOnTeam.toString());
-				return null;
-			}
-		});
-
-		applyAndWaitForStatChange(projectStat, userAddedToTeamAndNotRemoved, new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				removeAcl(projectStat.getProjectId(), Long.parseLong(teamId));
-				return null;
-			}
-		});
 	}
 
 	private void applyAndWaitForStatChange(ProjectStat projectStat, final Long userId, Callable<Void> action) throws Exception {
@@ -334,7 +307,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		handleOne = (S3FileHandle) fileMetadataDao.createFile(handleOne);
 
@@ -380,30 +353,21 @@ public class ProjectStatsWorkerIntegrationTest {
 				return Pair.create(projectStatsForUser.size() == 1, projectStatsForUser);
 			}
 		});
+		/* 
+		 * This test depends on time stamps changing between calls and can
+		 * fail if the test runs too fast. Sleep was added to stabilize the test.
+		 */
+		Thread.sleep(1000);
 		ProjectStat projectStat = projectStatsForUser.get(0);
 		return projectStat;
 	}
 
 	private void addAcl(Long project, Long... usersToAdd) throws Exception {
-		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
+		AccessControlList acl = entityPermissionManager.getACL(KeyFactory.keyToString(project), adminUserInfo);
 		Set<ResourceAccess> ras = AclSnapshotUtils.createSetOfResourceAccess(Arrays.asList(usersToAdd), -1);
 		acl.getResourceAccess().addAll(ras);
 
 		// update the ACL
-		accessControlListDAO.update(acl, ObjectType.ENTITY);
-	}
-
-	private void removeAcl(Long project, Long userToRemove) throws Exception {
-		AccessControlList acl = accessControlListDAO.get(project.toString(), ObjectType.ENTITY);
-		Iterator<ResourceAccess> iterator = acl.getResourceAccess().iterator();
-		while (iterator.hasNext()) {
-			ResourceAccess ra = iterator.next();
-			if (ra.getPrincipalId().equals(userToRemove)) {
-				iterator.remove();
-			}
-		}
-
-		// update the ACL
-		accessControlListDAO.update(acl, ObjectType.ENTITY);
+		entityPermissionManager.updateACL(acl, adminUserInfo);
 	}
 }

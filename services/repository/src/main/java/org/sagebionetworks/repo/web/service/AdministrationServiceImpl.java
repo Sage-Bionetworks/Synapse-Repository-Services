@@ -234,7 +234,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	private static final Object waitObject = new Object();
 	@Override
 	public void waitForTesting(Long userId, boolean release) throws Exception {
-		if (StackConfiguration.isProductionStack()) {
+		if (StackConfiguration.singleton().isProductionStack()) {
 			throw new UnauthorizedException("Should never be called on production stack.");
 		}
 		if (release) {

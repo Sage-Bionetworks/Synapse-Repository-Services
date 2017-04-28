@@ -20,7 +20,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
@@ -145,7 +145,7 @@ public class DiscussionThreadManagerImplTest {
 		when(mockForumDao.getForum(Long.parseLong(createDto.getForumId()))).thenReturn(forum);
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.NO_FILTER)).thenReturn(dto);
 		when(mockThreadDao.getThread(threadId, DiscussionFilter.EXCLUDE_DELETED)).thenReturn(dto);
-		when(mockIdGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID)).thenReturn(threadId);
+		when(mockIdGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID)).thenReturn(threadId);
 		messageUrl.setMessageUrl("messageUrl");
 		when(mockUploadDao.getThreadUrl(messageKey)).thenReturn(messageUrl);
 		when(mockAuthorizationManager.isAnonymousUser(userInfo)).thenReturn(false);

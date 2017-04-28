@@ -8,16 +8,13 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class AccessRequirementServiceImpl implements AccessRequirementService {
 
@@ -64,7 +61,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 	
 		List<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId, accessType);
+			accessRequirementManager.getAllUnmetAccessRequirements(userInfo, subjectId, accessType);
 
 		// This services is not actually paginated so PaginatedResults is being misused.
 		return PaginatedResults.createMisusedPaginatedResults(results);
@@ -83,13 +80,13 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			Long userId, RestrictableObjectDescriptor subjectId) 
+			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		List<AccessRequirement> results = 
-			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
+			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId, limit, offset);
 		
 		// This services is not actually paginated so PaginatedResults is being misused.
 		return PaginatedResults.createMisusedPaginatedResults(results);

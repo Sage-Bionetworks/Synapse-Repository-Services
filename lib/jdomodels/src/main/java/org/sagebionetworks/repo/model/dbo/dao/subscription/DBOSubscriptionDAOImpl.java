@@ -1,30 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_SUBSCRIBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBSCRIPTION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_IS_DELETED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -36,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -119,7 +95,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "FROM "+TABLE_SUBSCRIPTION+", "+TABLE_FORUM+" "
 			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID+" "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
-			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = \""+SubscriptionObjectType.FORUM.toString()+"\" "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = '"+SubscriptionObjectType.FORUM.name()+"' "
 			+ "AND "+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID+" IN (:projectIds) ";
 
 	private static final String SQL_GET_ALL_THREAD_SUB = "SELECT * "
@@ -128,8 +104,13 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "AND "+TABLE_FORUM+"."+COL_FORUM_ID+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" "
 			+ "AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" = "+Boolean.FALSE.toString()+" "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
-			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = \""+SubscriptionObjectType.THREAD.toString()+"\" "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = '"+SubscriptionObjectType.THREAD.name()+"' "
 			+ "AND "+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID+" IN (:projectIds) ";
+
+	private static final String SQL_GET_ALL_SUB = "SELECT * "
+			+ "FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = :objectType ";
 
 	private static final String LIMIT_OFFSET = "LIMIT :limit OFFSET :offset";
 
@@ -137,7 +118,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "FROM "+TABLE_SUBSCRIPTION+", "+TABLE_FORUM+" "
 			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID+" "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
-			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = :objectType "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = '"+SubscriptionObjectType.FORUM.name()+"' "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" IN ( :ids )";
 
 	private static final String SQL_GET_THREAD_SUB_LIST = "SELECT * "
@@ -145,6 +126,12 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" = "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" "
 			+ "AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_IS_DELETED+" = "+Boolean.FALSE.toString()+" "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = '"+SubscriptionObjectType.THREAD.name()+"' "
+			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" IN ( :ids )";
+
+	private static final String SQL_GET_SUB_LIST = "SELECT * "
+			+ "FROM "+TABLE_SUBSCRIPTION+" "
+			+ "WHERE "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_SUBSCRIBER_ID+" = :subscriberId "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_TYPE+" = :objectType "
 			+ "AND "+TABLE_SUBSCRIPTION+"."+COL_SUBSCRIPTION_OBJECT_ID+" IN ( :ids )";
 
@@ -189,7 +176,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
-		long subscriptionId = idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID);
+		long subscriptionId = idGenerator.generateNewId(IdType.SUBSCRIPTION_ID);
 		jdbcTemplate.update(SQL_INSERT_IGNORE, subscriptionId, subscriberId, objectId, objectType.name(), new Date().getTime());
 		return get(subscriberId, objectId, objectType);
 	}
@@ -213,24 +200,78 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	}
 
 	@Override
-	public SubscriptionPagedResults getAll(String subscriberId, Long limit,
-			Long offset, SubscriptionObjectType objectType, Set<Long> projectIds) {
+	public SubscriptionPagedResults getAllSubscriptions(String subscriberId, Long limit,
+			Long offset, SubscriptionObjectType objectType) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(objectType, "objectType");
+
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource("subscriberId", subscriberId);
+		parameters.addValue("objectType", objectType.name());
+
+		String query = SQL_GET_ALL_SUB;
+		String countQuery = getCountQuery(query);
+		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
+
+		parameters.addValue("limit", limit);
+		parameters.addValue("offset", offset);
+		results.setResults(namedTemplate.query(query+LIMIT_OFFSET, parameters, ROW_MAPPER));
+		return results;
+	}
+
+	@Override
+	public SubscriptionPagedResults getAllThreadSubscriptions(String subscriberId, Long limit,
+			Long offset, Set<Long> projectIds) {
+		ValidateArgument.required(subscriberId, "subscriberId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
 		ValidateArgument.required(projectIds, "projectIds");
+
 		SubscriptionPagedResults results = new SubscriptionPagedResults();
 		if (projectIds.isEmpty()) {
 			results.setResults(new ArrayList<Subscription>());
 			results.setTotalNumberOfResults(0L);
 			return results;
 		}
-		String query = getAllQuery(objectType);
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource("subscriberId", subscriberId);
+		parameters.addValue("projectIds", projectIds);
+
+		String query = SQL_GET_ALL_THREAD_SUB;
 		String countQuery = getCountQuery(query);
-		MapSqlParameterSource parameters = new MapSqlParameterSource("projectIds", projectIds);
-		parameters.addValue("subscriberId", subscriberId);
 		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
+
+		parameters.addValue("limit", limit);
+		parameters.addValue("offset", offset);
+		results.setResults(namedTemplate.query(query+LIMIT_OFFSET, parameters, ROW_MAPPER));
+		return results;
+	}
+
+	@Override
+	public SubscriptionPagedResults getAllForumSubscriptions(String subscriberId, Long limit,
+			Long offset, Set<Long> projectIds) {
+		ValidateArgument.required(subscriberId, "subscriberId");
+		ValidateArgument.required(limit, "limit");
+		ValidateArgument.required(offset, "offset");
+		ValidateArgument.required(projectIds, "projectIds");
+
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		if (projectIds.isEmpty()) {
+			results.setResults(new ArrayList<Subscription>());
+			results.setTotalNumberOfResults(0L);
+			return results;
+		}
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource("subscriberId", subscriberId);
+		parameters.addValue("projectIds", projectIds);
+
+		String query = SQL_GET_ALL_FORUM_SUB;
+		String countQuery = getCountQuery(query);
+		results.setTotalNumberOfResults(namedTemplate.queryForObject(countQuery, parameters, Long.class));
+
 		parameters.addValue("limit", limit);
 		parameters.addValue("offset", offset);
 		results.setResults(namedTemplate.query(query+LIMIT_OFFSET, parameters, ROW_MAPPER));
@@ -241,19 +282,8 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 		return query.replace("*", "COUNT(*)");
 	}
 
-	public String getAllQuery(SubscriptionObjectType objectType) {
-		switch (objectType) {
-			case FORUM:
-				return SQL_GET_ALL_FORUM_SUB;
-			case THREAD:
-				return SQL_GET_ALL_THREAD_SUB;
-			default:
-				throw new RuntimeException("Unsopported type "+objectType.name());
-		}
-	}
-
 	@Override
-	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
+	public SubscriptionPagedResults listSubscriptions(String subscriberId,
 			SubscriptionObjectType objectType, List<String> ids) {
 		ValidateArgument.required(subscriberId, "subscriberId");
 		ValidateArgument.required(objectType, "objectType");
@@ -263,27 +293,50 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			results.setResults(new ArrayList<Subscription>(0));
 			results.setTotalNumberOfResults(0L);
 		} else {
-			String query = getListQuery(objectType);
 			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 			parameters.addValue("subscriberId", subscriberId);
 			parameters.addValue("objectType", objectType.name());
-			List<Subscription> subscriptions = namedTemplate.query(query, parameters, ROW_MAPPER);
+			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_SUB_LIST, parameters, ROW_MAPPER);
 			results.setResults(subscriptions);
 			results.setTotalNumberOfResults((long) subscriptions.size());
 		}
 		return results;
 	}
 
-	public String getListQuery(SubscriptionObjectType objectType) {
-		ValidateArgument.required(objectType, "objectType");
-		switch (objectType) {
-			case FORUM:
-				return SQL_GET_FORUM_SUB_LIST;
-			case THREAD:
-				return SQL_GET_THREAD_SUB_LIST;
-			default:
-				throw new RuntimeException("Unsopported type "+objectType.name());
+	@Override
+	public SubscriptionPagedResults listSubscriptionForThread(String subscriberId, List<String> ids) {
+		ValidateArgument.required(subscriberId, "subscriberId");
+		ValidateArgument.required(ids, "ids");
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		if (ids.isEmpty()) {
+			results.setResults(new ArrayList<Subscription>(0));
+			results.setTotalNumberOfResults(0L);
+		} else {
+			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+			parameters.addValue("subscriberId", subscriberId);
+			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_THREAD_SUB_LIST, parameters, ROW_MAPPER);
+			results.setResults(subscriptions);
+			results.setTotalNumberOfResults((long) subscriptions.size());
 		}
+		return results;
+	}
+
+	@Override
+	public SubscriptionPagedResults listSubscriptionForForum(String subscriberId, List<String> ids) {
+		ValidateArgument.required(subscriberId, "subscriberId");
+		ValidateArgument.required(ids, "ids");
+		SubscriptionPagedResults results = new SubscriptionPagedResults();
+		if (ids.isEmpty()) {
+			results.setResults(new ArrayList<Subscription>(0));
+			results.setTotalNumberOfResults(0L);
+		} else {
+			MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+			parameters.addValue("subscriberId", subscriberId);
+			List<Subscription> subscriptions = namedTemplate.query(SQL_GET_FORUM_SUB_LIST, parameters, ROW_MAPPER);
+			results.setResults(subscriptions);
+			results.setTotalNumberOfResults((long) subscriptions.size());
+		}
+		return results;
 	}
 
 	@WriteTransactionReadCommitted
@@ -312,7 +365,7 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 			@Override
 			public void setValues(PreparedStatement ps, String subscriberId)
 					throws SQLException {
-				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(TYPE.SUBSCRIPTION_ID).toString()));
+				ps.setLong(1, Long.parseLong(idGenerator.generateNewId(IdType.SUBSCRIPTION_ID).toString()));
 				ps.setLong(2, Long.parseLong(subscriberId));
 				ps.setLong(3, Long.parseLong(objectId));
 				ps.setString(4, objectType.name());
@@ -350,24 +403,19 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	}
 
 	@Override
-	public Set<Long> getAllProjects(String userId, SubscriptionObjectType objectType) {
+	public Set<Long> getAllProjectsUserHasForumSubs(String userId) {
 		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(objectType, "objectType");
 		Set<Long> results = new HashSet<Long>();
-		results.addAll(jdbcTemplate.queryForList(getProjectQuery(objectType), Long.class, userId));
+		results.addAll(jdbcTemplate.queryForList(SQL_GET_PROJECT_FORUM_SUB, Long.class, userId));
 		return results;
 	}
 
-	public String getProjectQuery(SubscriptionObjectType objectType) {
-		ValidateArgument.required(objectType, "objectType");
-		switch (objectType) {
-			case FORUM:
-				return SQL_GET_PROJECT_FORUM_SUB;
-			case THREAD:
-				return SQL_GET_PROJECT_THREAD_SUB;
-			default:
-				throw new RuntimeException("Unsopported type "+objectType.name());
-		}
+	@Override
+	public Set<Long> getAllProjectsUserHasThreadSubs(String userId) {
+		ValidateArgument.required(userId, "userId");
+		Set<Long> results = new HashSet<Long>();
+		results.addAll(jdbcTemplate.queryForList(SQL_GET_PROJECT_THREAD_SUB, Long.class, userId));
+		return results;
 	}
 
 	@Override

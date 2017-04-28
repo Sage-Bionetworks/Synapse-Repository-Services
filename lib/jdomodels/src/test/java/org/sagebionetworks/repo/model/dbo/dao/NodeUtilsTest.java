@@ -41,7 +41,6 @@ public class NodeUtilsTest {
 	public void testRoundTrip() throws DatastoreException, InvalidModelException {
 		Node node = new Node();
 		node.setName("myName");
-		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
 		// This is an update round trip and the type cannot be changed on an update.
 		node.setCreatedByPrincipalId(createdById);
@@ -186,5 +185,18 @@ public class NodeUtilsTest {
 		List<String> results = NodeUtils.createIdListFromBytes(bytes);
 		List<String> expected = Lists.newArrayList();
 		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testIsProjectOrFolder(){
+		for(EntityType type: EntityType.values()){
+			if(EntityType.project.equals(type)){
+				assertTrue(NodeUtils.isProjectOrFolder(type));
+			}else if(EntityType.folder.equals(type)){
+				assertTrue(NodeUtils.isProjectOrFolder(type));
+			}else{
+				assertFalse(NodeUtils.isProjectOrFolder(type));
+			}
+		}
 	}
 }

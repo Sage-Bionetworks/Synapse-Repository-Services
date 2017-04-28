@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
@@ -138,4 +139,14 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * @param objectType
 	 */
 	public String getEtag(Long objectId, ObjectType objectType);
+
+	/**
+	 * Get the current change message for each objectId.
+	 * 
+	 * @param objectType
+	 * @param objectIds
+	 * @return
+	 */
+	public List<ChangeMessage> getChangesForObjectIds(ObjectType objectType,
+			Set<Long> objectIds);
 }

@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -288,7 +288,7 @@ public class MultipartUploadDAOImplTest {
 	@Test
 	public void testSetUploadComplete(){
 		// setup a file.
-		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		S3FileHandle file = TestUtils.createS3FileHandle(userId.toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		file = (S3FileHandle) fileHandleDao.createFile(file);
 		
 		CompositeMultipartUploadStatus status = multipartUplaodDAO.createUploadStatus(createRequest);

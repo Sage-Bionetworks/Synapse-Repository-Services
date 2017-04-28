@@ -35,10 +35,12 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -47,6 +49,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
@@ -90,6 +93,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private SubmissionDAO submissionDAO;
 	@Autowired
 	private MessageManager messageManager;
+	@Autowired
+	private DataAccessSubmissionDAO dataAccessSubmissionDao;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -110,7 +115,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				if (accessType==ACCESS_TYPE.READ) {
+				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
@@ -175,6 +180,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 						messageManager.getMessage(userInfo, objectId);
 						return AuthorizationManagerUtil.AUTHORIZED;
 					} catch (UnauthorizedException e) {
+						return AuthorizationManagerUtil.ACCESS_DENIED;
+					}
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
+				}
+			}
+			case DATA_ACCESS_REQUEST:
+			case DATA_ACCESS_SUBMISSION: {
+				if (accessType==ACCESS_TYPE.DOWNLOAD) {
+					if (isACTTeamMemberOrAdmin(userInfo)) {
+						return AuthorizationManagerUtil.AUTHORIZED;
+					} else {
 						return AuthorizationManagerUtil.ACCESS_DENIED;
 					}
 				} else {
@@ -341,9 +358,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (isACTTeamMemberOrAdmin(userInfo)) return AuthorizationManagerUtil.AUTHORIZED;
 		if (sourceParentId.equals(destParentId)) return AuthorizationManagerUtil.AUTHORIZED;
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
-		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
+		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getAllAccessRequirementsForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
-		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
+		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getAllAccessRequirementsForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
 		Set<AccessRequirement> diff = new HashSet<AccessRequirement>(allRequirementsForSourceParent);
 		diff.removeAll(allRequirementsForDestParent);
 		if (diff.isEmpty()) { // only OK if destParent has all the requirements that source parent has
@@ -488,7 +505,37 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case THREAD:
 				String projectId = threadDao.getProjectId(objectId);
 				return canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+			case DATA_ACCESS_SUBMISSION:
+				if (isACTTeamMemberOrAdmin(userInfo)) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Only ACT member can follow this topic.");
+				}
+			case DATA_ACCESS_SUBMISSION_STATUS:
+				if (dataAccessSubmissionDao.isAccessor(objectId, userInfo.getId().toString())) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				} else {
+					return AuthorizationManagerUtil.accessDenied("Only accessors can follow this topic.");
+				}
 		}
 		return AuthorizationManagerUtil.accessDenied("The objectType is unsubscribable.");
+	}
+
+	@Override
+	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
+		ValidateArgument.required(principalIds, "principalIds");
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("PUBLIC cannot be included in the passed princpalIds");
+		}
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("AUTHENTICATED_USERS_GROUP cannot be included in the passed princpalIds");
+		}
+		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue())){
+			throw new IllegalArgumentException("CERTIFIED_USERS cannot be included in the passed princpalIds");
+		}
+		if(principalIds.isEmpty()){
+			return new HashSet<>(0);
+		}
+		return this.aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
 	}
 }

@@ -7,9 +7,10 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,6 +36,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
+
 	@Override
 	public AccessApproval getAccessApproval(
 			Long userId, String approvalId)
@@ -44,16 +46,14 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		return accessApprovalManager.getAccessApproval(userInfo, approvalId);
 	}
 
-	@Deprecated
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId, 
-			RestrictableObjectDescriptor subjectId) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
+			RestrictableObjectDescriptor subjectId, Long limit, Long offset)
+					throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		List<AccessApproval> results = 
-			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
-		// This services is not actually paginated so PaginatedResults is being misused.
+			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId, limit, offset);
 		return PaginatedResults.createMisusedPaginatedResults(results);
 	}
 
@@ -71,5 +71,11 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			throws UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessApprovalManager.deleteAccessApprovals(userInfo, accessRequirementId, accessorId);
+	}
+
+	@Override
+	public Count deleteAccessApprovals(Long userId, IdList toDelete) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessApprovalManager.deleteBatch(userInfo, toDelete);
 	}
 }

@@ -16,7 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -124,7 +124,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 					EntityBundle.ANNOTATIONS |
 					EntityBundle.PERMISSIONS |
 					EntityBundle.ENTITY_PATH |
-					EntityBundle.ENTITY_REFERENCEDBY |
 					EntityBundle.HAS_CHILDREN |
 					EntityBundle.ACL;
 		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, adminUserId);
@@ -144,9 +143,6 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		EntityPath path = eb.getPath();
 		assertNotNull("Path was requested, but null in bundle", path);
 		assertNotNull("Invalid path", path.getPath());
-		
-		List<EntityHeader> rb = eb.getReferencedBy();
-		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
 		
 		Boolean hasChildren = eb.getHasChildren();
 		assertNotNull("HasChildren was requested, but null in bundle", hasChildren);
@@ -239,7 +235,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		handleOne.setKey("EntityControllerTest.testGetFileHandle1");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		
 		S3FileHandle handleTwo = new S3FileHandle();
@@ -250,7 +246,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		handleTwo.setKey("EntityControllerTest.testGetFileHandle2");
 		handleTwo.setEtag("etag");
 		handleTwo.setFileName("fo2o.bar");
-		handleTwo.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleTwo.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleTwo.setEtag(UUID.randomUUID().toString());
 
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();

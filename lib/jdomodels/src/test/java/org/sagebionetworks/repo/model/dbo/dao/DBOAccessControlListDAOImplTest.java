@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -32,6 +31,9 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -517,5 +519,108 @@ public class DBOAccessControlListDAOImplTest {
 	@Test
 	public void testGetAllUserGroupsForNoAcl(){
 		assertEquals(new HashSet<String>(), aclDAO.getPrincipalIds("-1", ObjectType.ENTITY, ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIds(){
+		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(group.getId()), Long.parseLong(group.getId()));
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertEquals(1, projectIds.size());
+		assertTrue(projectIds.contains(KeyFactory.stringToKey(node.getId())));
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIdsNotAccessible(){
+		// principals that does not exist
+		Set<Long> principalIs = Sets.newHashSet(-123L);
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertTrue(projectIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetAccessibleProjectIdsNonProject(){
+		// create a resource on which to apply permissions
+		Node folder = new Node();
+		folder.setName("foo");
+		folder.setCreatedOn(new Date());
+		folder.setCreatedByPrincipalId(createdById);
+		folder.setModifiedOn(new Date());
+		folder.setModifiedByPrincipalId(modifiedById);
+		folder.setNodeType(EntityType.folder);
+		folder = nodeDAO.createNewNode(folder);
+		nodeList.add(folder);
+		
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(false);
+		ug.setId(userGroupDAO.create(ug).toString());
+		assertNotNull(ug.getId());
+		groupList.add(ug);
+		
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setId(folder.getId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(group.getId()));
+		//ra.setDisplayName(group.getName());
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ
+				})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		aclDAO.create(acl, ObjectType.ENTITY);
+		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
+		assertNotNull(acl);
+		
+		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(ug.getId()));
+		Set<Long> projectIds = aclDAO.getAccessibleProjectIds(principalIs,  ACCESS_TYPE.READ);
+		assertNotNull(projectIds);
+		assertTrue(projectIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetNonVisibleChilrenOfEntity(){
+		// add three children to the project
+		Node visibleToBoth = createFolder("visibleToBoth");
+		Node visibleToOne = createFolder("visibleToOne");
+		Node visibleToTwo = createFolder("visibleToTwo");
+		
+		UserInfo userOne = new UserInfo(false, group.getId());
+		UserInfo userTwo = new UserInfo(false, group2.getId());
+		
+		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
+		aclDAO.create(acl1, ObjectType.ENTITY);
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
+		aclDAO.create(acl2, ObjectType.ENTITY);
+		
+		String parentId = node.getId();
+		// one cannot see two
+		Set<Long> results = aclDAO.getNonVisibleChilrenOfEntity(Sets.newHashSet(userOne.getId()), parentId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertTrue(results.contains(KeyFactory.stringToKey(visibleToTwo.getId())));
+		// two cannot see one
+		results = aclDAO.getNonVisibleChilrenOfEntity(Sets.newHashSet(userTwo.getId()), parentId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertTrue(results.contains(KeyFactory.stringToKey(visibleToOne.getId())));
+	}
+	
+	public Node createFolder(String name){
+		Node folder = new Node();
+		folder.setName(name);
+		folder.setCreatedOn(new Date());
+		folder.setCreatedByPrincipalId(createdById);
+		folder.setModifiedOn(new Date());
+		folder.setModifiedByPrincipalId(modifiedById);
+		folder.setNodeType(EntityType.folder);
+		// use the project as the parent
+		folder.setParentId(node.getId());
+		return nodeDAO.createNewNode(folder);
 	}
 }

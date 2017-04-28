@@ -138,20 +138,6 @@
 	</filter-mapping>
 
 	<filter>
-		<filter-name>profileFilter</filter-name>
-		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
-		<init-param>
-			<param-name>default_value</param-name>
-			<param-value>false</param-value>
-		</init-param>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>profileFilter</filter-name>
-		<url-pattern>/*</url-pattern>
-	</filter-mapping>
-
-	<filter>
 		<filter-name>userConcurrentConnectionThrottleFilter</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
@@ -221,6 +207,8 @@
 		<url-pattern>/repo/v1/teams</url-pattern>
 		<!-- This is the uri for looking up team members by name fragment -->
 		<url-pattern>/repo/v1/teamMembers/*</url-pattern>
+		<!-- This is the uri for looking up team member count by name fragment -->
+		<url-pattern>/repo/v1/teamMembers/count/*</url-pattern>
 	</filter-mapping>
 
 	<!-- Rather than using multiple DispatcherServlet each with their own Spring 

@@ -1,0 +1,9 @@
+{
+	"type":"string",
+	"name": "RestrictionLevel",
+	"enum":[
+		"OPEN",
+		"RESTRICTED_BY_TERMS_OF_USE",
+		"CONTROLLED_BY_ACT"
+	]
+}

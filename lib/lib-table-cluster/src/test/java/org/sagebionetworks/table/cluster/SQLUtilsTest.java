@@ -6,11 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.internal.runners.statements.Fail;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
@@ -27,7 +24,6 @@ import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -1154,12 +1150,16 @@ public class SQLUtilsTest {
 		ColumnModel one = EntityField.benefactorId.getColumnModel();
 		one.setId("1");
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		ColumnModel three = new ColumnModel();
+		three.setId("3");
+		three.setColumnType(ColumnType.DOUBLE);
+		three.setName("three");
+		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildInsertValues(builder, metaList);
-		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_", builder.toString());
+		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
 	}
 	
 	@Test
@@ -1167,12 +1167,26 @@ public class SQLUtilsTest {
 		ColumnModel one = EntityField.benefactorId.getColumnModel();
 		one.setId("1");
 		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		List<ColumnModel> schema = Lists.newArrayList(one, two);
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.DOUBLE);
+		three.setId("3");
+		three.setName("three");
+		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
 		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
-		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_", builder.toString());
+		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_,"
+				+ " CASE"
+				+ " WHEN LOWER(A2.ANNO_VALUE) = \"nan\" THEN \"NaN\""
+				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN \"Infinity\""
+				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN \"-Infinity\""
+				+ " ELSE NULL END AS _DBL_C3_,"
+				+ " CASE"
+				+ " WHEN LOWER(A2.ANNO_VALUE) = \"nan\" THEN NULL"
+				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN 1.7976931348623157E308"
+				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN 4.9E-324"
+				+ " ELSE A2.ANNO_VALUE END AS _C3_", builder.toString());
 	}
 	
 	@Test
@@ -1232,6 +1246,33 @@ public class SQLUtilsTest {
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+	}
+
+	@Test
+	public void testCreateSelectInsertFromEntityReplicationWithDouble(){
+		String viewId = "syn123";
+		ColumnModel doubleAnnotation = new ColumnModel();
+		doubleAnnotation.setColumnType(ColumnType.DOUBLE);
+		doubleAnnotation.setId("3");
+		doubleAnnotation.setName("doubleAnnotation");
+		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _DBL_C3_, _C3_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION,"
+					+ " CASE"
+					+ " WHEN LOWER(A0.ANNO_VALUE) = \"nan\" THEN \"NaN\""
+					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN \"Infinity\""
+					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN \"-Infinity\""
+					+ " ELSE NULL END AS _DBL_C3_,"
+					+ " CASE"
+					+ " WHEN LOWER(A0.ANNO_VALUE) = \"nan\" THEN NULL"
+					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN 1.7976931348623157E308"
+					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN 4.9E-324"
+					+ " ELSE A0.ANNO_VALUE END AS _C3_"
+				+ " FROM ENTITY_REPLICATION R"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation' AND A0.ANNO_TYPE = 'DOUBLE')"
 				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 	

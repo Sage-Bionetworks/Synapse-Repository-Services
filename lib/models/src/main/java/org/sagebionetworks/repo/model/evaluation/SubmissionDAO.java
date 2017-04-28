@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -188,5 +189,21 @@ public interface SubmissionDAO {
 	 * in which the given user (represented by a list of principalIds) has the given access type.
 	 */
 	boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, List<Long> principalIds, ACCESS_TYPE accessType);
+
+	SubmissionBundle getBundle(String id);
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluation(String evalId, long limit,
+			long offset) throws DatastoreException, NotFoundException;
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluationAndStatus(String evalId,
+			SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+
+	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
+			String principalId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
 
 }

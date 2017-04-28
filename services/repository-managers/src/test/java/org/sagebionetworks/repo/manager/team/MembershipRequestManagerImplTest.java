@@ -175,7 +175,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
 		// now mock an unmet access requirement
-		when(mockAccessRequirementDAO.unmetAccessRequirements(
+		when(mockAccessRequirementDAO.getAllUnmetAccessRequirements(
 				eq(Collections.singletonList(TEAM_ID)), 
 				eq(RestrictableObjectType.TEAM), 
 				eq(userInfo.getGroups()), 

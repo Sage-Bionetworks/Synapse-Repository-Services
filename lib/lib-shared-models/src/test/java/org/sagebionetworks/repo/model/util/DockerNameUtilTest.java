@@ -70,6 +70,9 @@ public class DockerNameUtilTest {
 		assertIsNOTRepoName("docker.synapse.org:443");
 		assertIsNOTRepoName("docker.synapse.org:443/");
 		assertIsNOTRepoName("https://docker.synapse.org:443/prject/repo");
+		
+		// black hole, as discovered in PLFM-4298
+		assertIsNOTRepoName("docker.synapse.org/syn8119917/preprocess-reducedata-keras/");
 	}
 	
 	@Test

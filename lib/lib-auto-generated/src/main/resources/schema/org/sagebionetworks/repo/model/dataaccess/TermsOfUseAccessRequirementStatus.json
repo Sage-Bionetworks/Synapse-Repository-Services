@@ -1,0 +1,14 @@
+{
+	"description":"The status of a user meeting a TermsOfUseAccessRequirement.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus"
+		}
+	],
+	"properties":{
+		"isApproved":{
+			"type": "boolean",
+			"description":"True if there is an AccessApproval for the user for the given AccessRequirement."
+		}
+	}
+}

@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.dom4j.rule.pattern.NodeTypePattern;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -27,7 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -40,18 +41,18 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeHierarchy;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -63,6 +64,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -72,8 +75,8 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
@@ -85,7 +88,6 @@ import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -168,11 +170,14 @@ public class NodeDAOImplTest {
 	private String nooneOwns;
 
 	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
+	
+	UserInfo adminUser;
 
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		adminUser = new UserInfo(true, creatorUserGroupId);
 		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
@@ -302,8 +307,18 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 		
 		// Since this node has no parent, it should be its own benefactor.
-		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
+		String benefactorId = nodeInheritanceDAO.getBenefactorCached(id);
 		assertEquals(id, benefactorId);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeNotFound(){
+		nodeDao.getNode("syn123");
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetNodeVersionNotFound(){
+		nodeDao.getNodeForVersion("syn123", 1L);
 	}
 	
 	@Test
@@ -351,6 +366,9 @@ public class NodeDAOImplTest {
 		Node toCreate = privateCreateNewDistinctModifier("available");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
+		// add an acl for this node.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -360,10 +378,11 @@ public class NodeDAOImplTest {
 	@Test
 	public void testIsNodeAvailableAndInTrash(){
 		Node toCreate = privateCreateNewDistinctModifier("available");
+		toCreate.setParentId(""+TRASH_FOLDER_ID);
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		// put the node in the trash
-		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
+//		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean avaiable = nodeDao.isNodeAvailable(nodeId);
@@ -445,7 +464,7 @@ public class NodeDAOImplTest {
 	public void testCreateWithId() throws Exception{
 		// Create a new node with an ID that is beyond the current max of the 
 		// ID generator.
-		long idLong = idGenerator.generateNewId() + 10;
+		long idLong = idGenerator.generateNewId(IdType.ENTITY_ID) + 10;
 		String idString = KeyFactory.keyToString(new Long(idLong));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(idString);
@@ -454,14 +473,14 @@ public class NodeDAOImplTest {
 		// The id should be the same as what we provided
 		assertEquals(idString, fetchedId);
 		// Also make sure the ID generator was increment to reserve this ID.
-		long nextId = idGenerator.generateNewId();
+		long nextId = idGenerator.generateNewId(IdType.ENTITY_ID);
 		assertEquals(idLong+1, nextId);
 	}
 	
 	@Test
 	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
 		// Create a node with a specific id
-		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId()+10));
+		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId(IdType.ENTITY_ID)+10));
 		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(id);
 		String fetchedId = nodeDao.createNew(toCreate);
@@ -495,19 +514,12 @@ public class NodeDAOImplTest {
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
-
-		Set<Node> children = nodeDao.getChildren(parentId);
-		assertNotNull(children);
-		assertEquals(1, children.size());
-		Node childLoaded = children.iterator().next();
-		assertEquals(childId, childLoaded.getId());
-		assertEquals(parentId, childLoaded.getParentId());
 		// Make sure we can fetch it
-		childLoaded = nodeDao.getNode(childId);
+		Node childLoaded = nodeDao.getNode(childId);
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
 		// This child should be inheriting from its parent by default
-		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
+		String childBenefactorId = nodeInheritanceDAO.getBenefactorCached(childId);
 		assertEquals(parentId, childBenefactorId);
 		
 		// now add a grandchild
@@ -517,7 +529,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandkidId);
 
 		// This grandchild should be inheriting from its grandparent by default
-		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
+		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactorCached(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
@@ -737,7 +749,6 @@ public class NodeDAOImplTest {
 		assertNotNull(copy);
 		// Now change the copy and push it back
 		copy.setName("myNewName");
-		copy.setDescription("myNewDescription");
 		copy.setActivityId(testActivity2.getId());
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);
@@ -1080,12 +1091,19 @@ public class NodeDAOImplTest {
 		// The very fist version should be last
 		assertEquals(new Long(1), versionNumbers.get(versionNumbers.size()-1));
 		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
+
 		// Make sure we can fetch each version
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
-			assertNotNull(nodeVersion.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
 	}
@@ -1105,13 +1123,20 @@ public class NodeDAOImplTest {
 		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
 		//verify md5 (is set to filename in our test filehandle)
 		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+		
+		// Get the latest version
+		Node currentNode = nodeDao.getNode(id);
 
 		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity) {
-			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
-			assertNotNull(node.getETag());
-			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
-			Date modDate = node.getModifiedOn();
+			Node nodeVersion = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			// The current version should have an etag, all other version should have the zero etag.
+			if(currentNode.getVersionNumber().equals(nodeVersion.getVersionNumber())){
+				assertEquals(currentNode.getETag(), nodeVersion.getETag());
+			}else{
+				assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
+			}
+			Date modDate = nodeVersion.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
 	}
@@ -1404,6 +1429,9 @@ public class NodeDAOImplTest {
 		Long parentBenefactor = KeyFactory.stringToKey(parentId);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
+		// add an acl for the parent
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(parentId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node child = privateCreateNew("child");
 		child.setNodeType(EntityType.folder);
@@ -1483,7 +1511,7 @@ public class NodeDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
-		long id = idGenerator.generateNewId();
+		long id = idGenerator.generateNewId(IdType.ENTITY_ID);
 		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
 	}
 	
@@ -1848,10 +1876,10 @@ public class NodeDAOImplTest {
 		}
 
 		// make sure all project ids are set
-		assertEquals(parentProjectId, nodeDao.getNode(parentProjectId).getProjectId());
-		assertEquals(parentProjectId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(parentProjectId, nodeDao.getProjectId(parentProjectId));
+		assertEquals(parentProjectId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(parentProjectId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(parentProjectId, nodeDao.getProjectId(childChilds[i]));
 		}
 
 		// make a second project
@@ -1871,26 +1899,36 @@ public class NodeDAOImplTest {
 		assertTrue(changeReturn);
 
 		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(newParentId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
 		}
 
 		// change to trash (no project) and back
 		nodeDao.changeNodeParent(childId, StackConfiguration.getTrashFolderEntityIdStatic(), true);
 
 		// make sure all project ids are set to new project
-		assertNull(nodeDao.getNode(childId).getProjectId());
+		try {
+			nodeDao.getProjectId(childId);
+			fail();
+		} catch (NotFoundException e) {
+			//expected
+		}
 		for (int i = 0; i < childChilds.length; i++) {
-			assertNull(nodeDao.getNode(childChilds[i]).getProjectId());
+			try {
+				nodeDao.getProjectId(childChilds[i]);
+				fail();
+			} catch (NotFoundException e) {
+				//expected
+			}
 		}
 
 		nodeDao.changeNodeParent(childId, newParentId, false);
 
 		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		assertEquals(newParentId, nodeDao.getProjectId(childId));
 		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
 		}
 	}
 
@@ -2008,6 +2046,50 @@ public class NodeDAOImplTest {
 		assertNotNull(newNode);
 		assertEquals(childId, newNode.getId());
 		assertEquals(parentProjectId, newNode.getParentId());
+	}
+	
+	@Test(expected=NameConflictException.class)
+	public void testChangeNodeParentDuplicateName() throws Exception {
+		// Make a parent-child project/folder
+		Node node = privateCreateNew("parentProject1");
+		node.setNodeType(EntityType.project);
+		String parentProjectId1 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId1);
+		assertNotNull(parentProjectId1);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId1);
+		String childId1 = nodeDao.createNew(node);
+		toDelete.add(childId1);
+		assertNotNull(childId1);
+		
+		// Make another parent-child project/folder
+		node = privateCreateNew("parentProject2");
+		node.setNodeType(EntityType.project);
+		String parentProjectId2 = nodeDao.createNew(node);
+		toDelete.add(parentProjectId2);
+		assertNotNull(parentProjectId2);
+		
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.folder);
+		node.setParentId(parentProjectId2);
+		String childId2 = nodeDao.createNew(node);
+		toDelete.add(childId2);
+		assertNotNull(childId2);
+		
+		//check current state of nodes
+		Node oldNode1 = nodeDao.getNode(childId1);
+		assertNotNull(oldNode1);
+		assertEquals(childId1, oldNode1.getId());
+		assertEquals(parentProjectId1, oldNode1.getParentId());
+		Node oldNode2 = nodeDao.getNode(childId2);
+		assertNotNull(oldNode2);
+		assertEquals(childId2, oldNode2.getId());
+		assertEquals(parentProjectId2, oldNode2.getParentId());
+		
+		// Change child2's parents to parentProject1 --> conflict on name 'child'
+		boolean changed = nodeDao.changeNodeParent(childId2, parentProjectId1, false);
 	}
 
 	@Test
@@ -2494,260 +2576,161 @@ public class NodeDAOImplTest {
 		assertEquals(id2, results.get(0).getId());
 		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
 	}
-
+	
 	@Test
-	public void testGetProjectHeadersReturnInfo() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, false);
-
-		Date before = new Date();
-		Thread.sleep(2);
-
-		String owned = createProject("testGetProjectHeaders.name1", user1);
-		toDelete.add(owned);
-		Node ownedProject = nodeDao.getNode(owned);
-		// now add ACL for the user
-		addReadAcl(owned, user1);
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(1, projectHeaders.size());
-		ProjectHeader header = projectHeaders.get(0);
-		assertEquals(ownedProject.getName(), header.getName());
-		assertEquals(owned, header.getId());
-
-		Thread.sleep(2);
-		Date between = new Date();
-		Thread.sleep(2);
-
-		assertTrue(header.getLastActivity().after(before));
-		assertTrue(header.getLastActivity().before(between));
-
-		// touching project stats
-		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-
-		Thread.sleep(2);
-
-		ownedProject.setModifiedByPrincipalId(Long.parseLong(user2));
-		ownedProject.setModifiedOn(new Date());
-		nodeDao.updateNode(ownedProject);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user2), new Date());
-		projectStatsDAO.update(projectStat);
-
-		List<ProjectHeader> projectHeadersAfter = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_PROJECTS, ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(1, projectHeadersAfter.size());
-		ProjectHeader headerAfter = projectHeadersAfter.get(0);
-		assertEquals(ownedProject.getName(), headerAfter.getName());
-		assertEquals(owned, headerAfter.getId());
-		assertNotNull(headerAfter.getLastActivity());
-
-		assertEquals(user2, headerAfter.getModifiedBy().toString());
-		assertTrue(headerAfter.getModifiedOn().after(headerAfter.getLastActivity()));
-
-		Thread.sleep(2);
-		Date after = new Date();
-
-		assertTrue(headerAfter.getLastActivity().after(between));
-		assertTrue(headerAfter.getLastActivity().before(after));
+	public void testGetProjectStatAdditionalConditionMY_CREATED_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals(" AND n.CREATED_BY = :bCreatedBy", result);
+		assertEquals(userId, parameters.get("bCreatedBy"));
 	}
-
-	private static final Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
-		@Override
-		public String apply(ProjectHeader input) {
-			return input.getId();
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_PARTICIPATED_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_PARTICIPATED_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals(" AND n.CREATED_BY <> :bCreatedBy", result);
+		assertEquals(userId, parameters.get("bCreatedBy"));
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionMY_TEAM_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.MY_TEAM_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionOTHER_USER_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.OTHER_USER_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	@Test
+	public void testGetProjectStatAdditionalConditionTEAM_PROJECTS(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		ProjectListType type = ProjectListType.TEAM_PROJECTS;
+		String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+		assertEquals("", result);
+		assertTrue(parameters.isEmpty());
+	}
+	
+	/**
+	 * Must work for each type.
+	 */
+	@Test
+	public void testGetProjectStatAdditionalConditionEachType(){
+		Map<String, Object> parameters = new HashMap<>();
+		Long userId = 123L;
+		for(ProjectListType type : ProjectListType.values()){
+			String result = NodeDAOImpl.getProjectStatAdditionalCondition(parameters, userId, type);
+			assertNotNull(result);
 		}
-	};
-
+	}
+	
 	@Test
-	public void testGetProjectHeaders() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, false);
-		UserInfo user2Info = createUserInfo(user2, false);
-		UserInfo user3Info = createUserInfo(user3, false);
-
-		createProjects();
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
-
-		// sort opposite direction
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.ASC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(owned, participate, groupParticipate, subFolderProject2, publicProject), projectIds);
-
-		// sort by name
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.PROJECT_NAME, SortDirection.DESC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, groupParticipate, participate, owned), projectIds);
-
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		projectIds = Lists.transform(projectHeaders, transformToId);
-
-		List<String> projectIds2 = Lists.newArrayList();
-		for (long i = 0; i < 5; i++) {
-			projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-					ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 1L, i);
-			assertEquals(1L, projectHeaders.size());
-			projectIds2.add(projectHeaders.get(0).getId());
+	public void testGetProjectStatsOderByAndPagingLAST_ACTIVITY(){
+		Map<String, Object> parameters = new HashMap<>();
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 1L;
+		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		assertEquals(" ORDER BY coalesce(ps.LAST_ACCESSED, n.CREATED_ON) ASC limit :limitVal offset :offsetVal", result);
+		assertEquals(limit, parameters.get("limitVal"));
+		assertEquals(offset, parameters.get("offsetVal"));
+	}
+	
+	@Test
+	public void testGetProjectStatsOderByAndPagingPROJECT_NAME(){
+		Map<String, Object> parameters = new HashMap<>();
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.PROJECT_NAME;
+		SortDirection sortDirection = SortDirection.DESC;
+		Long limit = 10L;
+		Long offset = 1L;
+		String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		assertEquals(" ORDER BY n.NAME COLLATE 'latin1_general_ci' DESC limit :limitVal offset :offsetVal", result);
+		assertEquals(limit, parameters.get("limitVal"));
+		assertEquals(offset, parameters.get("offsetVal"));
+	}
+	
+	@Test
+	public void testGetProjectStatsOderByAndPagingEachType(){
+		Map<String, Object> parameters = new HashMap<>();
+		SortDirection sortDirection = SortDirection.DESC;
+		Long limit = 10L;
+		Long offset = 1L;
+		for(ProjectListSortColumn sortColumn: ProjectListSortColumn.values()){
+			String result = NodeDAOImpl.getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+			assertNotNull(result);
 		}
-		assertEquals(projectIds, projectIds2);
-
-		// change sorting by touching project stats
-		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(participate), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-		Thread.sleep(2);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
-		projectStatsDAO.update(projectStat);
-		// project stat for other user should not matter
-		Thread.sleep(2);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(groupParticipate), KeyFactory.stringToKey(user2), new Date(2000));
-		projectStatsDAO.update(projectStat);
-
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject2, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// created by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(owned, publicProject), Lists.transform(projectHeaders, transformToId));
-
-		// direct participation by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(participate, subFolderProject2, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// participate via team by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// user3 only has access to group project
-		projectHeaders = nodeDao.getProjectHeaders(user3Info, user1Info, null, ProjectListType.OTHER_USER_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group projects, and only user1 can access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group project and user3 cannot access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user3Info, user3Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
 	}
-
+	
+	
 	@Test
-	public void testGetProjectHeadersAsAdmin() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, true);
-		UserInfo user2Info = createUserInfo(user2, false);
-		UserInfo user3Info = createUserInfo(user3, false);
-
-		createProjects();
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		List<String> projectIds = Lists.transform(projectHeaders, transformToId);
-		assertEquals(Lists.newArrayList(publicProject, subFolderProject2, subFolderProject, groupParticipate, participate, owned), projectIds);
-
-		// created by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_CREATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(publicProject, owned), Lists.transform(projectHeaders, transformToId));
-
-		// direct participation by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_PARTICIPATED_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate, participate),
-				Lists.transform(projectHeaders, transformToId));
-
-		// participate via team by user1
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null, ProjectListType.MY_TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders, transformToId));
-
-		// group only has access to group projects, and only user1 can access sub folder project
-		projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, teamDAO.get(group), ProjectListType.TEAM_PROJECTS,
-				ProjectListSortColumn.LAST_ACTIVITY, SortDirection.DESC, 100L, 0L);
-		assertEquals(Lists.newArrayList(subFolderProject2, subFolderProject, groupParticipate),
-				Lists.transform(projectHeaders, transformToId));
+	public void testGetProjectHeaders() throws Exception{
+		Long user1Id = Long.parseLong(user1);
+		Node projectOne = createProject("testGetProjectHeaders.one", user1);
+		Node projectTwo = createProject("testGetProjectHeaders.two", user1);
+		Node projectThree = createProject("testGetProjectHeaders.three", user1);
+		Set<Long> projectIds = Sets.newHashSet(KeyFactory.stringToKey(projectTwo.getId()), KeyFactory.stringToKey(projectThree.getId()));
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 0L;
+		// call under test
+		List<ProjectHeader> results = nodeDao.getProjectHeaders(user1Id, projectIds, type, sortColumn, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		ProjectHeader first = results.get(0);
+		assertEquals(projectTwo.getId(), first.getId());
+		assertEquals(projectTwo.getName(), first.getName());
+		assertEquals(projectTwo.getCreatedByPrincipalId(), first.getModifiedBy());
+		assertEquals(projectTwo.getModifiedOn(), first.getModifiedOn());
+		
+		ProjectHeader second = results.get(0);
+		assertEquals(second.getId(), second.getId());
 	}
-
+	
 	@Test
-	public void testGetMyProjectHeaders() throws Exception {
-		UserInfo user1Info = createUserInfo(user1, true);
-
-		String first = createProject("aaa1", user1);
-		toDelete.add(first);
-		addReadAcl(first, user1);
-
-		String second = createProject("AAA2", user1);
-		toDelete.add(second);
-		addReadAcl(second, user1);
-
-		String third = createProject("bbb", user1);
-		toDelete.add(third);
-		addReadAcl(third, user1);
-
-		List<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1Info, user1Info, null,
-				ProjectListType.MY_CREATED_PROJECTS, ProjectListSortColumn.PROJECT_NAME, SortDirection.ASC, 100L, 0L);
-		assertEquals(Lists.newArrayList(first, second, third), Lists.transform(projectHeaders, transformToId));
+	public void testGetProjectHeadersEmpty() throws Exception{
+		Long user1Id = Long.parseLong(user1);
+		// empty project ids should return an empty set.
+		Set<Long> projectIds = new HashSet<>();
+		ProjectListType type = ProjectListType.MY_CREATED_PROJECTS;
+		ProjectListSortColumn sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
+		SortDirection sortDirection = SortDirection.ASC;
+		Long limit = 10L;
+		Long offset = 0L;
+		// call under test
+		List<ProjectHeader> results = nodeDao.getProjectHeaders(user1Id, projectIds, type, sortColumn, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 
-	private void createProjects() throws Exception, NotFoundException {
-		owned = createProject("testGetProjectHeaders.1.owned", user1);
-		toDelete.add(owned);
-		Node ownedProject = nodeDao.getNode(owned);
-		ownedProject.setVersionLabel("2nd");
-		// create 2nd version
-		nodeDao.createNewVersion(ownedProject);
-		ownedProject = nodeDao.getNode(owned);
-		// now add ACL for the user
-		addReadAcl(owned, user1);
-
-		participate = createProject("testGetProjectHeaders.2.participate", user2);
-		addReadAcl(participate, user1);
-
-		groupParticipate = createProject("testGetProjectHeaders.3.groupParticipate", user2);
-		addReadAcl(groupParticipate, group);
-
-		nooneOwns = createProject("testGetProjectHeaders.4.nooneOwns", user2);
-
-		subFolderProject = createProject("testGetProjectHeaders.5.subFolderProject", user2);
-		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
-		folder.setParentId(subFolderProject);
-		folder.setNodeType(EntityType.folder);
-		String ownerFolder = this.nodeDao.createNew(folder);
-		toDelete.add(ownerFolder);
-		addReadAcl(ownerFolder, group);
-
-		subFolderProject2 = createProject("testGetProjectHeaders.6.subFolderProject2", user2);
-		addReadAcl(subFolderProject2, user1);
-		folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1a", Long.parseLong(user1));
-		folder.setParentId(subFolderProject2);
-		folder.setNodeType(EntityType.folder);
-		ownerFolder = this.nodeDao.createNew(folder);
-		toDelete.add(ownerFolder);
-		addReadAcl(ownerFolder, group);
-
-		trashed = createProject("testGetProjectHeaders.7.trashed", user2, StackConfiguration.getTrashFolderEntityIdStatic());
-
-		publicProject = createProject("testGetProjectHeaders.8.publicProject", user1);
-		addReadAcl(publicProject, user1, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
-
-		publicProject2 = createProject("testGetProjectHeaders.9.publicProject2", user2);
-		addReadAcl(publicProject2, user2, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString(), BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS
-						.getPrincipalId().toString());
-	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNodeLongNameTooLong() throws DatastoreException, InvalidModelException, NotFoundException {
@@ -2803,125 +2786,6 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testStreamOverHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long projectId = KeyFactory.stringToKey(hierarchy.get(0).getId());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				projectId, folder0Id, folder1Id, folder2Id
-		);
-		// Stream over the results and everything to the list
-		final List<NodeHierarchy> resutls = new LinkedList<NodeHierarchy>();
-		// call under test
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				resutls.add(value);
-			}
-		});
-		assertEquals(6, resutls.size());
-		// validate all of the streamed data.
-		for(int i=0; i<6; i++){
-			Node node = hierarchy.get(i+1);
-			NodeHierarchy nodehierarchy = resutls.get(i);
-			// compare the results
-			assertEquals(node.getId(), KeyFactory.keyToString(nodehierarchy.getNodeId()));
-			assertEquals(node.getParentId(), KeyFactory.keyToString(nodehierarchy.getParentId()));
-			assertEquals(projectId, nodehierarchy.getProjectId());
-			// lookup the benefactor for this node.
-			String benefactor = nodeInheritanceDAO.getBenefactor(node.getId());
-			assertEquals(benefactor, KeyFactory.keyToString(nodehierarchy.getBenefectorId()));
-		}
-	}
-	
-	@Test
-	public void testBatchUpdateHierarchy(){
-		// Generate some hierarchy
-		List<Node> hierarchy = createHierarchy();
-		assertEquals(7, hierarchy.size());
-		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
-		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
-		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
-		Long file1Id = KeyFactory.stringToKey(hierarchy.get(5).getId());
-		Long file2Id = KeyFactory.stringToKey(hierarchy.get(6).getId());
-		// The these are the contains
-		List<Long> containers = Lists.newArrayList(
-				folder1Id, folder2Id
-		);
-		// create a batch containing folder2 and file1 to use for an update.
-		final ArrayList<NodeHierarchy> batch = new ArrayList<NodeHierarchy>();
-		nodeDao.streamOverHierarchy(containers, new Callback<NodeHierarchy>() {
-			@Override
-			public void invoke(NodeHierarchy value) {
-				batch.add(value);
-			}
-		});
-		assertEquals(3, batch.size());
-		NodeHierarchy folder2Hierarchy = batch.get(0);
-		NodeHierarchy file1Hierarchy = batch.get(1);
-		NodeHierarchy file2Hierarchy = batch.get(2);
-		// 
-		assertEquals(folder2Id, folder2Hierarchy.getNodeId());
-		assertEquals(file1Id, file1Hierarchy.getNodeId());
-		assertEquals(file2Id, file2Hierarchy.getNodeId());
-		
-		// Move both to folder0
-		folder2Hierarchy.setParentId(folder0Id);
-		file1Hierarchy.setParentId(folder0Id);
-		// set each to be their own benefactor
-		folder2Hierarchy.setBenefectorId(folder2Hierarchy.getNodeId());
-		file1Hierarchy.setBenefectorId(file1Hierarchy.getNodeId());
-		// clear the project id for both
-		folder2Hierarchy.setProjectId(folder1Id);
-		file1Hierarchy.setProjectId(folder2Id);
-		// clear all values for the third
-		file2Hierarchy.setBenefectorId(null);
-		file2Hierarchy.setParentId(null);
-		file2Hierarchy.setProjectId(null);
-		
-		// update both as a batch
-		//call under test
-		nodeDao.batchUpdateHierarchy(batch);
-		
-		// Validate all of the changes
-		Node folder2 = nodeDao.getNode(""+folder2Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(folder2.getParentId()));
-		assertEquals(folder1Id, KeyFactory.stringToKey(folder2.getProjectId()));
-		String benefactor = nodeInheritanceDAO.getBenefactor(""+folder2Id);
-		// should be its own benefactor
-		assertEquals(folder2Id, KeyFactory.stringToKey(benefactor));
-		
-		// The etag should have changed.
-		Node oldNode = hierarchy.get(4);
-		assertEquals(oldNode.getId(), folder2.getId());
-		assertFalse(folder2.getETag().equals(oldNode.getETag()));
-		
-		// file1
-		Node file1 = nodeDao.getNode(""+file1Id);
-		assertEquals(folder0Id, KeyFactory.stringToKey(file1.getParentId()));
-		assertEquals(folder2Id, KeyFactory.stringToKey(file1.getProjectId()));
-		benefactor = nodeInheritanceDAO.getBenefactor(""+file1Id);
-		// should be its own benefactor
-		assertEquals(file1Id, KeyFactory.stringToKey(benefactor));
-		
-		// file2 with nulls
-		Node file2 = nodeDao.getNode(""+file2Id);
-		assertEquals(null, file2.getParentId());
-		assertEquals(null, file2.getProjectId());
-		try {
-			benefactor = nodeInheritanceDAO.getBenefactor(""+file2Id);
-			fail("should throw NotFoundException");
-		} catch (NotFoundException e) {
-			// expected
-		}
-	}
-	
-	@Test
 	public void testGetNodeIdByAlias(){
 		Node node = privateCreateNew("testGetNodeIdByAlias");
 		String alias = UUID.randomUUID().toString();
@@ -2947,21 +2811,42 @@ public class NodeDAOImplTest {
 	public void testGetProjectId(){
 		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
 		project.setNodeType(EntityType.project);
-		String id = nodeDao.createNew(project);
-		toDelete.add(id);
-		project = nodeDao.getNode(id);
-		assertNotNull(project);
-		assertEquals(id, project.getProjectId());
+		project = nodeDao.createNewNode(project);
+		toDelete.add(project.getId());
+		// add some hierarchy
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setNodeType(EntityType.folder);
+		parent.setParentId(project.getId());
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child.setNodeType(EntityType.folder);
+		child = nodeDao.createNewNode(child);
+		toDelete.add(child.getId());
+		
 		// call under test
-		String projectId = nodeDao.getProjectId(id);
-		assertEquals(project.getProjectId(), projectId);
+		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()));
+		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()));
 	}
 	
 	@Test (expected=NotFoundException.class)
-	public void testGetProjectIdNotFound(){
+	public void testGetProjectNodeDoesNotEixst(){
 		String doesNotExist = "syn9999999";
 		// call under test
 		nodeDao.getProjectId(doesNotExist);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetProjectNodeExistsWithNoProject(){
+		// create a node that is not in a project.
+		Node node = NodeTestUtils.createNew("someNode", creatorUserGroupId);
+		node.setNodeType(EntityType.folder);
+		node = nodeDao.createNewNode(node);
+		toDelete.add(node.getId());
+		// call under test
+		nodeDao.getProjectId(node.getId());
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -3007,6 +2892,9 @@ public class NodeDAOImplTest {
 		project.setNodeType(EntityType.project);
 		project = nodeDao.createNewNode(project);
 		toDelete.add(project.getId());
+		// Add an ACL at the project
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		Node file = NodeTestUtils.createNew("folder", creatorUserGroupId);
 		file.setNodeType(EntityType.file);
@@ -3175,51 +3063,19 @@ public class NodeDAOImplTest {
 		
 		return resutls;
 	}
-	
-	private UserInfo createUserInfo(String user, boolean isAdmin) throws NotFoundException {
-		UserInfo userInfo = new UserInfo(isAdmin, Long.parseLong(user));
-		Set<Long> groups = new HashSet<Long>();
-		groups.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		groups.add(Long.parseLong(user));
-		groups.add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		// Add all groups the user belongs to
-		List<UserGroup> groupFromDAO = groupMembersDAO.getUsersGroups(user);
-		for (UserGroup ug : groupFromDAO) {
-			groups.add(Long.parseLong(ug.getId()));
-		}
-		userInfo.setGroups(groups);
-		return userInfo;
-	}
 
-	private String createProject(String projectName, String user) throws Exception {
+	private Node createProject(String projectName, String user) throws Exception {
 		return createProject(projectName, user, StackConfiguration.getRootFolderEntityIdStatic());
 	}
 
-	private String createProject(String projectName, String user, String parentId) throws Exception {
+	private Node createProject(String projectName, String user, String parentId) throws Exception {
 		Thread.sleep(2); // ensure ordering by creation date
 		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
-		project.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
+		project.setId(KeyFactory.keyToString(idGenerator.generateNewId(IdType.ENTITY_ID)));
 		project.setParentId(parentId);
-		String projectId = this.nodeDao.createNew(project);
-		toDelete.add(projectId);
-		nodeInheritanceDAO.addBeneficiary(projectId, projectId);
-		return projectId;
-	}
-
-	private void addReadAcl(String entity, String... usersToAdd) throws Exception {
-		Set<ResourceAccess> ras = Sets.newHashSet();
-		for (String userToAdd : usersToAdd) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-			ra.setPrincipalId(Long.parseLong(userToAdd));
-			ras.add(ra);
-		}
-		AccessControlList acl = new AccessControlList();
-		acl.setResourceAccess(ras);
-		acl.setId(entity);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
-		nodeInheritanceDAO.addBeneficiary(entity, entity);
+		project = this.nodeDao.createNewNode(project);
+		toDelete.add(project.getProjectId());
+		return project;
 	}
 
 
@@ -3252,11 +3108,222 @@ public class NodeDAOImplTest {
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentMd5(fileName);
 		fileHandle.setContentSize(TEST_FILE_SIZE);
-		fileHandle.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;
 	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsNull(){
+		Set<Long> toExclude = null;
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsEmpty(){
+		Set<Long> toExclude = new HashSet<Long>();
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals("", result);
+	}
+	
+	@Test
+	public void testGetFragmentExcludeNodeIdsNotEmpty(){
+		Set<Long> toExclude = Sets.newHashSet(111L);
+		String result = NodeDAOImpl.getFragmentExcludeNodeIds(toExclude);
+		assertEquals(NodeDAOImpl.SQL_ID_NOT_IN_SET, result);
+	}
+	
+	@Test
+	public void testGetFragmentSortColumnName(){
+		SortBy sortBy = SortBy.NAME;
+		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
+		assertEquals(NodeDAOImpl.N_NAME, result);
+	}
+	
+	@Test
+	public void testGetFragmentSortColumnCreatedOn(){
+		SortBy sortBy = SortBy.CREATED_ON;
+		String result = NodeDAOImpl.getFragmentSortColumn(sortBy);
+		assertEquals(NodeDAOImpl.N_CREATED_ON, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetFragmentSortColumnNull(){
+		SortBy sortBy = null;
+		NodeDAOImpl.getFragmentSortColumn(sortBy);
+	}
+	
+	/**
+	 * This test will fail if a new SortBy is added without
+	 * extending the method.
+	 */
+	@Test
+	public void testGetFragmentSortColumnAllTypes(){
+		// All known types should work
+		for(SortBy sort: SortBy.values()){
+			String result = NodeDAOImpl.getFragmentSortColumn(sort);
+			assertNotNull(result);
+		}
+	}
+	
+	@Test
+	public void testGetChildrenNoResults(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		List<EntityHeader> results = nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullParentId(){
+		String parentId = null;
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullTypes(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = null;
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenEmptyTypes(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = new LinkedList<EntityType>();
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullSortByt(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = null;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetChildrenNullDirection(){
+		String parentId = "syn123";
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		Set<Long> childIdsToExclude = null;
+		SortBy sortBy = SortBy.CREATED_ON;
+		Direction sortDirection = null;
+		long limit = 10L;
+		long offset = 0L;
+		nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+	
+	@Test
+	public void testGetChildren(){
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		// Add an ACL to the project for the benefactor
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(project.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		
+		Node folder1 = nodes.get(1);
+		Node folder2 = nodes.get(2);
+		
+		String parentId = project.getId();
+		List<EntityType> includeTypes = Lists.newArrayList(EntityType.folder);
+		// exclude folder 1.
+		Set<Long> childIdsToExclude = Sets.newHashSet(KeyFactory.stringToKey(folder1.getId()), 111L);
+		SortBy sortBy = SortBy.NAME;
+		Direction sortDirection = Direction.ASC;
+		long limit = 10L;
+		long offset = 0L;
+		List<EntityHeader> results = nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		EntityHeader header = results.get(0);
+		assertEquals(folder2.getName(), header.getName());
+		assertEquals(folder2.getId(), header.getId());
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), header.getType());
+		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
+		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
+		assertEquals(KeyFactory.stringToKey(folder2.getBenefactorId()), header.getBenefactorId());
+	}
+	
+	@Test
+	public void testGetChildCount(){
+		List<Node> nodes = createHierarchy();
+		Node project = nodes.get(0);
+		long childCount = nodeDao.getChildCount(project.getId());
+		assertEquals(3L, childCount);
+	}
+	
+	@Test
+	public void testGetChildCountDoesNotExist(){
+		long childCount = nodeDao.getChildCount("syn111");
+		assertEquals(0L, childCount);
+	}
 
+	@Test
+	public void testGetChildrenTwo(){
+		List<Node> nodes = createHierarchy();
+		
+		Node project = nodes.get(0);
+		Node folder1 = nodes.get(1);
+		Node folder2 = nodes.get(2);
+		Node file1 = nodes.get(3);
+		
+		String parentId = project.getId();
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		for(NodeIdAndType result: results){
+			if(folder1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (folder2.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.folder, result.getType());
+			}else if (file1.getId().equals(result.getNodeId())){
+				assertEquals(EntityType.file, result.getType());
+			}else{
+				fail("unexpected child");
+			}
+		}
+	}
+	
+	@Test
+	public void testGetChildrenUnknownParentId(){	
+		String parentId = "syn1";
+		long limit = 10L;
+		long offset = 0L;
+		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
 }

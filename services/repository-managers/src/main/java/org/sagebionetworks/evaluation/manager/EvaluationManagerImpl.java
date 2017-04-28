@@ -8,7 +8,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -72,7 +71,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// Create the evaluation
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
-		eval.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS).toString());
+		eval.setId(idGenerator.generateNewId(IdType.EVALUATION_ID).toString());
 		eval.setCreatedOn(new Date());
 		String principalId = userInfo.getId().toString();
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
@@ -103,38 +102,21 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
 		
-		List<Evaluation> evalList = evaluationDAO.getByContentSource(id, limit, offset);
-		List<Evaluation> evaluations = new ArrayList<Evaluation>();
-		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
-				evaluations.add(eval);
-			}
-		}
-		return evaluations;
+		return evaluationDAO.getAccessibleEvaluationsForProject(id, new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, limit, offset);
 	}
 
-	@Deprecated
 	@Override
 	public List<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		List<Evaluation> evalList = evaluationDAO.getInRange(limit, offset);
-		List<Evaluation> evaluations = new ArrayList<Evaluation>();
-		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
-				evaluations.add(eval);
-			}
-		}
-		return evaluations;
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ, 
+				limit, offset, null);
 	}
 
 	@Override
 	public List<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
-		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
-		for (Long g : userInfo.getGroups()) {
-			principalIds.add(g);
-		}
-		return evaluationDAO.getAvailableInRange(principalIds, limit, offset, evaluationIds);
+		return evaluationDAO.getAccessibleEvaluations(new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.SUBMIT, 
+				limit, offset, evaluationIds);
 	}
 
 	@Override

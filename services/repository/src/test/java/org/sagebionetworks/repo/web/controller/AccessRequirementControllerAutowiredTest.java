@@ -10,13 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -48,11 +44,6 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 	@Autowired
 	private UserManager userManager;
 
-	private Evaluation evaluation;
-
-	static private Log log = LogFactory
-			.getLog(AccessRequirementControllerAutowiredTest.class);
-
 	private Long userId;
 	private UserInfo otherUserInfo;
 	private UserInfo testUser;
@@ -81,13 +72,6 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(project);
 		toDelete.add(project.getId());
-
-		evaluation = new Evaluation();
-		evaluation.setName("name");
-		evaluation.setContentSource(project.getId());
-		evaluation.setDescription("description");
-		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = entityServletHelper.createEvaluation(evaluation, userId);
 	}
 
 	@After
@@ -102,12 +86,6 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 					// nothing to do here.
 				}
 			}
-		}
-		
-		if (evaluation!=null) {
-			try {
-				entityServletHelper.deleteEvaluation(evaluation.getId(), userId);
-			} catch (Exception e) {}
 		}
 		
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -179,62 +157,4 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 		ars = results.getResults();
 		assertEquals(0, ars.size());
 	}
-	
-	@Test
-	public void testEvaluationRequirementRoundTrip() throws Exception {
-		// create a new access requirement
-		AccessRequirement accessRequirement = null;
-		Map<String, String> extraParams = new HashMap<String, String>();
-		accessRequirement = newAccessRequirement(ACCESS_TYPE.SUBMIT);
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluation.getId());
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
-		AccessRequirement clone = servletTestHelper.createAccessRequirement(
-				 dispatchServlet, accessRequirement, userId, extraParams);
-		assertNotNull(clone);
-
-		// test getAccessRequirementsForEvaluation
-		PaginatedResults<AccessRequirement> results = servletTestHelper.getEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), userId);	
-		List<AccessRequirement> ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		// get the unmet access requirements for the evaluation, 
-		// when the user is the entity owner, should be the same as for others
-		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), userId, ACCESS_TYPE.SUBMIT);	
-		ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		// get the unmet access requirements for the evaluation
-		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()), ACCESS_TYPE.SUBMIT);	
-		ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		// get the unmet access requirements for the evaluation when accessType is omitted
-		results = servletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()), null);	
-		ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
-		tou.setTermsOfUse("bar");
-		AccessRequirement updated = servletTestHelper.updateAccessRequirement(
-				 dispatchServlet, tou, userId, extraParams);
-		tou.setEtag(updated.getEtag());
-		tou.setModifiedOn(updated.getModifiedOn());
-		assertEquals(tou, updated);
-		
-		// test deletion
-		servletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
-		
-		results = servletTestHelper.getEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), userId);	
-		ars = results.getResults();
-		assertEquals(0, ars.size());
-	}
-
-
 }

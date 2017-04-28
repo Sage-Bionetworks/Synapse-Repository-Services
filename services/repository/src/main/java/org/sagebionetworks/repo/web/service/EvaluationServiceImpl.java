@@ -6,11 +6,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
@@ -31,7 +29,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -45,17 +42,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.util.ValidateArgument;
 
 public class EvaluationServiceImpl implements EvaluationService {
-	public static final long MAX_LIMIT = 100L;
-
 	@Autowired
 	private ServiceProvider serviceProvider;
 	@Autowired
 	private EvaluationManager evaluationManager;
-	@Autowired
-	private ParticipantManager participantManager;
 	@Autowired
 	private SubmissionManager submissionManager;
 	@Autowired
@@ -73,7 +65,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public EvaluationServiceImpl(
 			ServiceProvider serviceProvider,
 			EvaluationManager evaluationManager,
-			ParticipantManager participantManager,
 			SubmissionManager submissionManager,
 			EvaluationPermissionsManager evaluationPermissionsManager,
 			UserManager userManager,
@@ -82,7 +73,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			) {
 		this.serviceProvider = serviceProvider;
 		this.evaluationManager = evaluationManager;
-		this.participantManager = participantManager;
 		this.submissionManager = submissionManager;
 		this.evaluationPermissionsManager = evaluationPermissionsManager;
 		this.userManager = userManager;
@@ -116,7 +106,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 	@Override
 	@Deprecated
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset, HttpServletRequest request) 
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<Evaluation> res = evaluationManager.getInRange(userInfo, limit, offset);
@@ -165,21 +155,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		evaluationManager.deleteEvaluation(userInfo, id);
-	}
-	
-	@Override
-	@WriteTransaction
-	public Participant addParticipant(Long userId, String evalId) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantManager.addParticipant(userInfo, evalId);
-	}
-
-	@Override
-	public PaginatedResults<Participant> getAllParticipants(Long userId, String evalId, long limit, long offset, HttpServletRequest request)
-			throws NumberFormatException, DatastoreException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Participant> res = participantManager.getAllParticipants(userInfo, evalId, limit, offset);
-		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
@@ -262,9 +237,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -275,9 +247,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -288,9 +257,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -301,9 +267,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<Submission> res = submissionManager.getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
@@ -314,9 +277,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ValidateArgument.requirement(limit >= 0 && limit <= MAX_LIMIT, "limit must be between 0 and "+MAX_LIMIT);
-		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
-
 		List<SubmissionBundle> res = submissionManager.getMyOwnSubmissionBundlesByEvaluation(userInfo, evalId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}

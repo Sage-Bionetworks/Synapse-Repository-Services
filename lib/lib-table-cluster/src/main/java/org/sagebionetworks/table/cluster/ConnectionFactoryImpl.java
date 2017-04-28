@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,6 +113,11 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	@Override
 	public TableIndexDAO getFirstConnection() {
 		return new TableIndexDAOImpl(singleConnectionPool);
+	}
+
+	@Override
+	public DataSource getFirstDataSource() {
+		return singleConnectionPool;
 	}
 
 }

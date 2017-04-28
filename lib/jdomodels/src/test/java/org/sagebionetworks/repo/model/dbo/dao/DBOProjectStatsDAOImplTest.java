@@ -78,15 +78,13 @@ public class DBOProjectStatsDAOImplTest {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 		// project 1
 		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
-		projectStatsDao.update(projectStat);
+		projectStatsDao.updateProjectStat(projectStat);
 
 		// project 2
-		projectStat = new ProjectStat(projectId2, userId, new Date(1000));
-		projectStatsDao.update(projectStat);
-
+		ProjectStat projectStat2 = new ProjectStat(projectId2, userId, new Date(1000));
 		// project 1 update
-		projectStat = new ProjectStat(projectId1, userId, new Date(2000));
-		projectStatsDao.update(projectStat);
+		ProjectStat projectStat3 = new ProjectStat(projectId1, userId, new Date(2000));
+		projectStatsDao.updateProjectStat(projectStat2, projectStat3);
 
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(2, stats.size());
@@ -100,6 +98,40 @@ public class DBOProjectStatsDAOImplTest {
 	}
 	
 	/**
+	 * An update with an older date should not change the lastAccessed date.
+	 */
+	@Test 
+	public void testUpdateOlderDate(){
+		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(1000));
+		projectStatsDao.updateProjectStat(insert);
+		// update with an older date
+		ProjectStat update = new ProjectStat(projectId1, userId, new Date(999));
+		projectStatsDao.updateProjectStat(update);
+		// the first date should remain
+		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
+		assertEquals(1, stats.size());
+		// date should match the original date
+		assertEquals(new Date(1000), stats.get(0).getLastAccessed());
+	}
+	
+	/**
+	 * An update with a newer date should change the lastAccessed date.
+	 */
+	@Test 
+	public void testUpdateNewerDate(){
+		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(1000));
+		projectStatsDao.updateProjectStat(insert);
+		// update with a newer date
+		ProjectStat update = new ProjectStat(projectId1, userId, new Date(1001));
+		projectStatsDao.updateProjectStat(update);
+		// the first date should remain
+		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
+		assertEquals(1, stats.size());
+		// the new date should be applied
+		assertEquals(new Date(1001), stats.get(0).getLastAccessed());
+	}
+	
+	/**
 	 * See PLFM-3684
 	 * @throws Exception
 	 */
@@ -108,7 +140,7 @@ public class DBOProjectStatsDAOImplTest {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 		// project 1
 		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
-		projectStatsDao.update(projectStat);
+		projectStatsDao.updateProjectStat(projectStat);
 		
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(1, stats.size());
@@ -117,7 +149,7 @@ public class DBOProjectStatsDAOImplTest {
 		
 		// update the stat should update the etag.
 		projectStat = new ProjectStat(projectId1, userId, new Date(1001));
-		projectStatsDao.update(projectStat);
+		projectStatsDao.updateProjectStat(projectStat);
 		
 		stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(1, stats.size());
@@ -131,7 +163,7 @@ public class DBOProjectStatsDAOImplTest {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 
 		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
-		projectStatsDao.update(projectStat);
+		projectStatsDao.updateProjectStat(projectStat);
 
 		assertEquals(1, projectStatsDao.getProjectStatsForUser(userId).size());
 
@@ -140,10 +172,16 @@ public class DBOProjectStatsDAOImplTest {
 
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testUpdateProjectStatNull() {
+		projectStatsDao.updateProjectStat(null);
+	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testLastAccessedMustBeSet() {
 		ProjectStat projectStat = new ProjectStat(projectId1, userId, null);
-		projectStatsDao.update(projectStat);
+		projectStatsDao.updateProjectStat(projectStat);
 	}
+	
 }

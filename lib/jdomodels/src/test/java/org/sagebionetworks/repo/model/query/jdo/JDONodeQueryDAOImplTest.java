@@ -142,7 +142,6 @@ public class JDONodeQueryDAOImplTest {
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
 			Node parent = NodeTestUtils.createNew("dsName" + i, createdBy);
 			Date now = new Date(System.currentTimeMillis());
-			parent.setDescription("description" + i);
 			parent.setCreatedByPrincipalId(createdBy);
 			parent.setNodeType(EntityType.table);
 
@@ -210,7 +209,6 @@ public class JDONodeQueryDAOImplTest {
 	private static Node createChild(Date date, int i, Long createdByPrincipalId)
 			throws InvalidModelException {
 		Node ans = NodeTestUtils.createNew("layerName"+i, createdByPrincipalId);
-		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
 		ans.setNodeType(EntityType.link);
 		return ans;
@@ -876,7 +874,6 @@ public class JDONodeQueryDAOImplTest {
 		// Add several layers of hierarchy with the same benefactor
 		Node parent = NodeTestUtils.createNew("parentPLFM-1542", createdBy);
 		Date now = new Date(System.currentTimeMillis());
-		parent.setDescription("description");
 		parent.setCreatedByPrincipalId(createdBy);
 		parent.setNodeType(EntityType.project);
 

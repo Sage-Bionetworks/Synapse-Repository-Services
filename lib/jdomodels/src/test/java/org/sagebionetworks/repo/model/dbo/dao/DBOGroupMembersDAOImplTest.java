@@ -91,9 +91,10 @@ public class DBOGroupMembersDAOImplTest {
 	public void testAddMembers() throws Exception {
 		changeDAO.deleteAllChanges();
 		long startChangeNumber = changeDAO.getCurrentChangeNumber();
+
 		// Add users to the test group
 		List<String> adder = new ArrayList<String>();
-		
+	
 		// Empty list should work
 		groupMembersDAO.addMembers(testGroup.getId(), adder);
 		// No messages should be sent
@@ -162,16 +163,22 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Test
 	public void testRemoveMembers() throws Exception {
+		assertFalse(groupMembersDAO.areMemberOf(testGroup.getId(), null));
+		assertFalse(groupMembersDAO.areMemberOf(testGroup.getId(), new HashSet<String>()));
+
 		// Setup the group
 		List<String> adder = new ArrayList<String>();
 		adder.add(testUserOne.getId());
 		adder.add(testUserTwo.getId());
 		adder.add(testUserThree.getId());
+		assertFalse(groupMembersDAO.areMemberOf(testGroup.getId(), new HashSet<String>(adder)));
 
 		groupMembersDAO.addMembers(testGroup.getId(), adder);
 		List<UserGroup> newMembers = groupMembersDAO.getMembers(testGroup.getId());
 		assertEquals("Number of users should match", 3, newMembers.size());
-		
+
+		assertTrue(groupMembersDAO.areMemberOf(testGroup.getId(), new HashSet<String>(adder)));
+
 		// Verify that the parent group's etag has changed
 		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
@@ -179,7 +186,11 @@ public class DBOGroupMembersDAOImplTest {
 		// Remove all but one of the users from the group
 		List<String> remover = new ArrayList<String>(adder);
 		String antisocial = remover.remove(0);
+		assertTrue(groupMembersDAO.areMemberOf(testGroup.getId(), new HashSet<String>(remover)));
 		groupMembersDAO.removeMembers(testGroup.getId(), remover);
+
+		assertFalse(groupMembersDAO.areMemberOf(testGroup.getId(), new HashSet<String>(adder)));
+
 		List<UserGroup> fewerMembers = groupMembersDAO.getMembers(testGroup.getId());
 		assertEquals("Number of users should match", 1, fewerMembers.size());
 		fewerMembers.get(0).setCreationDate(null);
@@ -201,6 +212,30 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+	}
+	
+	@Test
+	public void testGetMemberIdsDoesNotExist(){
+		Long doesNotExist = -1L;
+		Set<Long> membersIds = groupMembersDAO.getMemberIds(doesNotExist);
+		assertNotNull(membersIds);
+		assertTrue(membersIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetMemberIds(){
+		// Add users to the test group
+		List<String> idsToAdd = new ArrayList<String>();
+		idsToAdd.add(testUserOne.getId());
+		idsToAdd.add(testUserTwo.getId());
+		
+		groupMembersDAO.addMembers(testGroup.getId(), idsToAdd);
+		// call under test
+		Set<Long> membersIds = groupMembersDAO.getMemberIds(Long.parseLong(testGroup.getId()));
+		assertNotNull(membersIds);
+		assertEquals(2, membersIds.size());
+		assertTrue(membersIds.contains(Long.parseLong(testUserOne.getId())));
+		assertTrue(membersIds.contains(Long.parseLong(testUserTwo.getId())));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

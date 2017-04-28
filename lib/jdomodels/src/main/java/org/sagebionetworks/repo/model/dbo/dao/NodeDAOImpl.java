@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -20,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
@@ -28,8 +27,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -39,12 +41,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 
 import java.io.IOException;
 import java.sql.Blob;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -60,9 +59,8 @@ import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -74,7 +72,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeHierarchy;
+import org.sagebionetworks.repo.model.NodeIdAndType;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -82,14 +80,14 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.dbo.persistence.NodeMapper;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -101,22 +99,18 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -129,14 +123,111 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
-	private static final String SQL_SELECT_PROJECT_ID = "SELECT "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String BIND_NODE_IDS =  "bNodeIds";
+	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
+	private static final String BIND_PARENT_ID = "bParentId";
+	private static final String BIND_NODE_TYPES = "bNodeTypes";
+	private static final String BIND_LIMIT = "bLimit";
+	private static final String BIND_OFFSET = "bOffset";
+	
+	private static final String SQL_SELECT_CHILDREN = 
+			"SELECT"
+			+ " "+COL_NODE_ID
+			+", "+COL_NODE_TYPE
+			+" FROM "+TABLE_NODE
+			+" WHERE "+COL_NODE_PARENT_ID+" = ?"
+					+ " LIMIT ? OFFSET ?";
+	
+	private static final String SQL_COUNT_CHILDREN = 
+			"SELECT COUNT("+COL_NODE_ID+")"
+			+ " FROM "+TABLE_NODE+""
+					+ " WHERE "+COL_NODE_PARENT_ID+" = ?";
+	
+	private static final String SELECT_PROJECTS_STATS = "SELECT n."
+			+ COL_NODE_ID
+			+ ", n."
+			+ COL_NODE_NAME
+			+ ", n."
+			+ COL_NODE_TYPE
+			+ ", COALESCE(ps."
+			+ COL_PROJECT_STAT_LAST_ACCESSED
+			+ ", n."
+			+ COL_NODE_CREATED_ON
+			+ ") AS "
+			+ COL_PROJECT_STAT_LAST_ACCESSED
+			+ ", r."
+			+ COL_REVISION_MODIFIED_BY
+			+ ", r."
+			+ COL_REVISION_MODIFIED_ON
+			+ " FROM "
+			+ TABLE_NODE
+			+ " n JOIN "
+			+ TABLE_REVISION
+			+ " r ON n."
+			+ COL_NODE_ID
+			+ " = r."
+			+ COL_REVISION_OWNER_NODE
+			+ " AND n."
+			+ COL_CURRENT_REV
+			+ " = r."
+			+ COL_REVISION_NUMBER
+			+ " LEFT JOIN "
+			+ TABLE_PROJECT_STAT
+			+ " ps ON n."
+			+ COL_NODE_ID
+			+ " = ps."
+			+ COL_PROJECT_STAT_PROJECT_ID
+			+ " AND ps."
+			+ COL_PROJECT_STAT_USER_ID
+			+ " = :"
+			+ BIND_PROJECT_STAT_USER_ID
+			+ " WHERE n."
+			+ COL_NODE_TYPE
+			+ " = '"
+			+ EntityType.project.name()
+			+ "' AND n."
+			+ COL_NODE_ID
+			+ " IN (:"
+			+ BIND_NODE_IDS
+			+ ")";
+
+	private static final String BENEFACTOR_ALIAS = "BENEFACTOR";
+	private static final String SQL_SELECT_BENEFACTOR_N = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
+	
+	private static final String ENTITY_HEADER_SELECT = "SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR_N+", R."+COL_REVISION_NUMBER;
+	
+	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
+			ENTITY_HEADER_SELECT+
+				" FROM "+TABLE_NODE+" N"+
+				" JOIN "+TABLE_REVISION+" R"+
+					" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+				" WHERE N."+COL_NODE_PARENT_ID+" = :"+BIND_PARENT_ID+
+						" %1$s"+
+						" AND N."+COL_NODE_TYPE+" IN (:"+BIND_NODE_TYPES+")"+
+						" ORDER BY %2$s %3$s"+
+						" LIMIT :"+BIND_LIMIT+" OFFSET :"+BIND_OFFSET;
+	
+	public static final String N_NAME = "N."+COL_NODE_NAME;
+	public static final String N_CREATED_ON = "N."+COL_NODE_CREATED_ON;
+	
+	public static final String SQL_ID_NOT_IN_SET = " AND N."+COL_NODE_ID+" NOT IN (:"+BIND_NODE_IDS+")";
+	
+	private static final String SQL_SELECT_WITHOUT_ANNOTATIONS = "SELECT N.*, R."+COL_REVISION_OWNER_NODE+", R."+COL_REVISION_NUMBER+", R."+COL_REVISION_ACTIVITY_ID+", R."+COL_REVISION_LABEL+", R."+COL_REVISION_COMMENT+", R."+COL_REVISION_MODIFIED_BY+", R."+COL_REVISION_MODIFIED_ON+", R."+COL_REVISION_FILE_HANDLE_ID+", R."+COL_REVISION_COLUMN_MODEL_IDS+", R."+COL_REVISION_SCOPE_IDS+", R."+COL_REVISION_REF_BLOB;
+	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+" AND N."+COL_NODE_ID+"= ?";
+	private static final String SQL_SELECT_NODE_VERSION = SQL_SELECT_WITHOUT_ANNOTATIONS+" FROM "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+"= R."+COL_REVISION_OWNER_NODE+" AND R."+COL_REVISION_NUMBER+" = ? AND N."+COL_NODE_ID+"= ?";
+
+	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
-	private static final String SQL_BATCH_UPDATE_HIERARCHY = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = UUID(), "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_BENEFACTOR_ID+" = ?, "+COL_NODE_PROJECT_ID +" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
-	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS = "SELECT "+COL_NODE_ID+", "+COL_NODE_NAME+", "+COL_NODE_TYPE+", "+COL_CURRENT_REV+", "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
-	private static final String USER_ID_PARAM_NAME = "user_id_param";
+	
+	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
+			ENTITY_HEADER_SELECT +
+			" FROM "+TABLE_NODE +" N" +
+			" JOIN "+TABLE_REVISION+" R"+
+			" ON (N."+COL_NODE_ID+" = R."+COL_REVISION_OWNER_NODE+" AND N."+COL_CURRENT_REV+" = R."+COL_REVISION_NUMBER+")"+
+			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
+	
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String SQL_SELECT_HIERARCHY_FOR_PARENTS_IN = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_BENEFACTOR_ID+", "+COL_NODE_PROJECT_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
@@ -153,12 +244,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	
+	public static final String BENEFACTOR_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+")";
+	public static final String PROJECT_FUNCTION_ALIAS = FUNCTION_GET_ENTITY_PROJECT_ID+"(N."+COL_NODE_ID+")";
+	
 	private static final String SQL_SELECT_ENTITY_DTO = "SELECT N."
 			+ COL_NODE_ID + ", N."+COL_CURRENT_REV+", N." + COL_NODE_CREATED_BY + ", N."
 			+ COL_NODE_CREATED_ON + ", N." + COL_NODE_ETAG + ", N."
 			+ COL_NODE_NAME + ", N." + COL_NODE_TYPE + ", N."
-			+ COL_NODE_PARENT_ID + ", N." + COL_NODE_BENEFACTOR_ID + ", N."
-			+ COL_NODE_PROJECT_ID + ", R." + COL_REVISION_MODIFIED_BY + ", R."
+			+ COL_NODE_PARENT_ID + ", " + BENEFACTOR_FUNCTION_ALIAS + ", "
+			+ PROJECT_FUNCTION_ALIAS + ", R." + COL_REVISION_MODIFIED_BY + ", R."
 			+ COL_REVISION_MODIFIED_ON + ", R." + COL_REVISION_FILE_HANDLE_ID
 			+ ", R." + COL_REVISION_ANNOS_BLOB + " FROM " + TABLE_NODE + " N, "
 			+ TABLE_REVISION + " R WHERE N." + COL_NODE_ID + " = R."
@@ -167,45 +262,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ NODE_IDS_LIST_PARAM_NAME + ")";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
-	// selecting and counting the projects a user owns
-
-	private static final String SQL_GET_CHILD_BY_NAME = "SELECT " + COL_NODE_ID + "," + COL_NODE_NAME + "," + COL_NODE_TYPE + ","
-			+ COL_REVISION_NUMBER + "," + COL_REVISION_LABEL + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON R."
-			+ COL_REVISION_OWNER_NODE + " = N." + COL_NODE_ID + " AND R." + COL_REVISION_NUMBER + " = N." + COL_CURRENT_REV + " WHERE "
-			+ COL_NODE_PARENT_ID + " = ? AND " + COL_NODE_NAME + " = ?";
 
 	private static final String LAST_ACCESSED_OR_CREATED =
 		"coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ")";
 
-	private static final String SELECT_PROJECTS_SQL1 =
-		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE +
-				", " + LAST_ACCESSED_OR_CREATED + " as " + COL_PROJECT_STAT_LAST_ACCESSED +
-				", r." + COL_REVISION_MODIFIED_BY + ", r." + COL_REVISION_MODIFIED_ON +
-		" from (" +
-			" select distinct n." + COL_NODE_PROJECT_ID +
-				" from ( ";
-	private static final String SELECT_PROJECTS_SQL3 =
-		" ) acls" +
-			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
-			" where n." + COL_NODE_PROJECT_ID + " is not null" +
-				" and n." + COL_NODE_BENEFACTOR_ID + " = n." + COL_NODE_ID +
-		" ) pids" +
-		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID +
-		" join " + TABLE_REVISION + " r on n." + COL_NODE_ID + " = r." + COL_REVISION_OWNER_NODE + " and r." + COL_REVISION_NUMBER + " = n." + COL_CURRENT_REV;
-
+	private static final String BIND_CREATED_BY = "bCreatedBy";
 	private static final String SELECT_CREATED =
-		"   and n." + COL_NODE_CREATED_BY + " = ";
+		" AND n." + COL_NODE_CREATED_BY + " = :"+BIND_CREATED_BY;
 	private static final String SELECT_NOT_CREATED =
-		"   and n." + COL_NODE_CREATED_BY + " <> ";
-
-	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
-		" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
-
+		" AND n." + COL_NODE_CREATED_BY + " <> :"+BIND_CREATED_BY;
+	
 	private static final String SELECT_PROJECTS_ORDER =
-		" order by " + LAST_ACCESSED_OR_CREATED;
+		" ORDER BY " + LAST_ACCESSED_OR_CREATED;
 
 	private static final String SELECT_NAME_ORDER =
-		" order by n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
+		" ORDER BY n." + COL_NODE_NAME + " COLLATE 'latin1_general_ci'";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -235,7 +306,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
 	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
-			"SELECT N." + COL_NODE_ID + ", N."+COL_NODE_TYPE+", N."+COL_NODE_NAME+", N."+COL_NODE_BENEFACTOR_ID+" , R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			ENTITY_HEADER_SELECT
 			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F, "+TABLE_NODE+" N"
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
@@ -250,16 +321,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final RowMapper<EntityHeader> ENTITY_HEADER_ROWMAPPER = new RowMapper<EntityHeader>() {
 		@Override
 		public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-			EntityHeader entityHeader = new EntityHeader();
-			entityHeader.setId(rs.getString(COL_NODE_ID));
-			entityHeader.setName(rs.getString(COL_NODE_NAME));
-
-			EntityType entityType = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
-			entityHeader.setType(EntityTypeUtils.getEntityTypeClassName(entityType));
-
-			entityHeader.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
-			entityHeader.setVersionLabel(rs.getString(COL_REVISION_LABEL));
-			return entityHeader;
+			EntityHeader header = new EntityHeader();
+			Long entityId = rs.getLong(COL_NODE_ID);
+			header.setId(KeyFactory.keyToString(entityId));
+			EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+			header.setType(EntityTypeUtils.getEntityTypeClassName(type));
+			header.setName(rs.getString(COL_NODE_NAME));
+			header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+			header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+			header.setBenefactorId(rs.getLong(BENEFACTOR_ALIAS));
+			return header;
 		}
 	};
 
@@ -329,12 +400,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){
-			node.setId(idGenerator.generateNewId());
+			node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		}else{
 			// If an id was provided then it must not exist
 			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(node.getId(), TYPE.DOMAIN_IDS);
+			idGenerator.reserveId(node.getId(), IdType.ENTITY_ID);
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
@@ -426,21 +497,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		DBONode jdo =  getNodeById(KeyFactory.stringToKey(id));
-		DBORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
-		return NodeUtils.copyFromJDO(jdo, rev);
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_CURRENT_NODE, new NodeMapper(), KeyFactory.stringToKey(id));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
 	}
 	
 	@Override
 	public Node getNodeForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
-		Long nodeID = KeyFactory.stringToKey(id);
-		DBONode jdo =  getNodeById(nodeID);
-		// Remove the eTags (See PLFM-1420)
-		jdo.seteTag(NodeConstants.ZERO_E_TAG);
-		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
-		return NodeUtils.copyFromJDO(jdo, rev);
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_SELECT_NODE_VERSION, new NodeMapper(),versionNumber, KeyFactory.stringToKey(id));
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
 	}
 
 	@WriteTransaction
@@ -450,7 +522,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long longId = KeyFactory.stringToKey(id);
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -465,7 +537,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		
 		for(long id : ids){
 			String stringID = KeyFactory.keyToString(id);
-			transactionalMessenger.sendMessageAfterCommit(stringID, ObjectType.ENTITY, ChangeType.DELETE);
+			transactionalMessenger.sendDeleteMessageAfterCommit(stringID, ObjectType.ENTITY);
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource(IDS_PARAM_NAME, ids);
 		return namedParameterJdbcTemplate.update(SQL_DELETE_BY_IDS, parameters);
@@ -647,19 +719,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
-	}
-
-	@Override
-	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		Set<String> childIds = getChildrenIds(id);
-		Set<Node> results = new HashSet<Node>();
-		// for each child get the nodes
-		for(String childId: childIds){
-			Node child = this.getNode(childId);
-			results.add(child);
-		}
-		return results;
 	}
 	
 	@Override
@@ -909,7 +968,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public boolean isNodeAvailable(Long nodeId) {
 		try{
-			Long benefactorId = this.jdbcTemplate.queryForObject("SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?", Long.class, nodeId);
+			Long benefactorId = this.jdbcTemplate.queryForObject("SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)", Long.class, nodeId);
 			if(benefactorId == null){
 				return false;
 			}
@@ -988,23 +1047,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityHeader(Set<Long> entityIds) {
 		Map<String, Set<Long>> namedParameters = Collections.singletonMap("nodeIds", entityIds);
-		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,new RowMapper<EntityHeader>() {
-			@Override
-			public EntityHeader mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				EntityHeader header = new EntityHeader();
-				Long entityId = rs.getLong(COL_NODE_ID);
-				header.setId(KeyFactory.keyToString(entityId));
-				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
-				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-				header.setName(rs.getString(COL_NODE_NAME));
-				Long currentVersion = rs.getLong(COL_CURRENT_REV);
-				header.setVersionNumber(currentVersion);
-				header.setVersionLabel(currentVersion.toString());
-				header.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				return header;
-			}
-		});
+		return namedParameterJdbcTemplate.query(SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS, namedParameters,ENTITY_HEADER_ROWMAPPER);
 	}
 
 
@@ -1016,24 +1059,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
-		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, new RowMapper<EntityHeader>() {
-
-			@Override
-			public EntityHeader mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				EntityHeader header = new EntityHeader();
-				Long entityId = rs.getLong(COL_NODE_ID);
-				header.setId(KeyFactory.keyToString(entityId));
-				EntityType type = EntityType.valueOf((String) rs.getString(COL_NODE_TYPE));
-				header.setType(EntityTypeUtils.getEntityTypeClassName(type));
-				header.setName(rs.getString(COL_NODE_NAME));
-				Long versionNumber = rs.getLong(COL_REVISION_NUMBER);
-				header.setVersionNumber(versionNumber);
-				header.setVersionLabel(versionNumber.toString());
-				header.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				return header;
-			}
-		});
+		List<EntityHeader> rowList = namedParameterJdbcTemplate.query(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap, ENTITY_HEADER_ROWMAPPER);
 
 		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
 			throw new DatastoreException("MD5 " + md5 + " maps to more than "
@@ -1262,16 +1288,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException {
-		try {
-			return jdbcTemplate.queryForObject(SQL_GET_CHILD_BY_NAME, ENTITY_HEADER_ROWMAPPER,
-				KeyFactory.stringToKey(nodeId), childName);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Child " + childName + " of " + nodeId + " not found");
-		}
-	}
-
-	@Override
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
 		List<String> list = new ArrayList<String>();
 		List<Map<String, Object>> restuls = jdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, KeyFactory.stringToKey(id));
@@ -1320,7 +1336,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// this means we need to update all the children also
 			updateProjectForAllChildren(node.getId(), desiredProjectId);
 		}
-		jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		
+		try {
+			jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
+		} catch (DuplicateKeyException e) {
+			if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) {
+				throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
+			}
+		}
+
 		return true;
 	}
 	
@@ -1460,101 +1484,78 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return refs;
 	}
 
-	private static final Predicate<Long> PUBLIC_GROUPS = new Predicate<Long>() {
-		@Override
-		public boolean apply(Long input) {
-			return input.longValue() != BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue()
-					&& input.longValue() != BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue()
-					&& input.longValue() != BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue();
-		}
-	};
-
-	private Collection<Long> getGroupsMinusPublic(Set<Long> usersGroups){
-		List<Long> groups = Lists.newArrayList(Sets.filter(usersGroups, PUBLIC_GROUPS));
-		return groups;
-	}
-
-	private Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
-		Set<Long> groups = Sets.newHashSet(Sets.filter(usersGroups, Predicates.and(PUBLIC_GROUPS, new Predicate<Long>() {
-			@Override
-			public boolean apply(Long input) {
-				return input.longValue() != userId;
-			}
-		})));
-		return groups;
-	}
-
 	@Override
-	public List<ProjectHeader> getProjectHeaders(UserInfo currentUser, UserInfo userToGetInfoFor, Team teamToFetch,
+	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
 				ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) {
-		ValidateArgument.required(userToGetInfoFor, "userToLookupId");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(projectIds, "projectIds");
 		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		if(projectIds.isEmpty()){
+			return new LinkedList<>();
+		}
 		// get one page of projects
-
 		Map<String, Object> parameters = Maps.newHashMap();
-		parameters.put(USER_ID_PARAM_NAME, userToGetInfoFor.getId().toString());
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-
-		Collection<Long> groups;
-		Set<Long> auth2Groups = currentUser.getGroups();
-		boolean auth2IsAdmin = currentUser.isAdmin();
-		String whereClause;
+		parameters.put(BIND_NODE_IDS, projectIds);
+		parameters.put(BIND_PROJECT_STAT_USER_ID, userId);
+		StringBuilder sqlBuilder = new StringBuilder(SELECT_PROJECTS_STATS);
+		// some types add an additional condition.
+		String additionalCondition = getProjectStatAdditionalCondition(parameters, userId, type);
+		sqlBuilder.append(additionalCondition);
+		// order and paging
+		String orgerAndPaging = getProjectStatsOderByAndPaging(parameters, sortColumn, sortDirection, limit, offset);
+		sqlBuilder.append(orgerAndPaging);
+		return getProjectHeaders(parameters, sqlBuilder.toString());
+	}
+	
+	/**
+	 * Get the the additional condition for a project stats query based on type.
+	 * @param type
+	 * @return
+	 */
+	public static String getProjectStatAdditionalCondition(Map<String, Object> parameters, Long userId, ProjectListType type){
 		switch (type) {
 		case MY_PROJECTS:
 		case OTHER_USER_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			whereClause = "";
-			break;
-		case MY_CREATED_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			whereClause = SELECT_CREATED + userToGetInfoFor.getId();
-			break;
-		case MY_PARTICIPATED_PROJECTS:
-			groups = getGroupsMinusPublic(userToGetInfoFor.getGroups());
-			whereClause = SELECT_NOT_CREATED + userToGetInfoFor.getId();
-			break;
 		case MY_TEAM_PROJECTS:
-			groups = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
-			auth2IsAdmin = false;
-			auth2Groups = getGroupsMinusPublicAndSelf(currentUser.getGroups(), currentUser.getId());
-			whereClause = "";
-			break;
 		case TEAM_PROJECTS:
-			long teamId = Long.parseLong(teamToFetch.getId());
-			groups = Sets.newHashSet(teamId);
-			whereClause = "";
-			break;
+			return "";
+		case MY_CREATED_PROJECTS:
+			parameters.put(BIND_CREATED_BY, userId);
+			return SELECT_CREATED;
+		case MY_PARTICIPATED_PROJECTS:
+			parameters.put(BIND_CREATED_BY, userId);
+			return SELECT_NOT_CREATED;
 		default:
 			throw new NotImplementedException("project list type " + type + " not yet implemented");
 		}
-		String authForLookup = QueryUtils.buildAuthorizationSelect(groups, parameters, 0);
-		int groupCount = groups.size();
-
-		String sortOrder;
+	}
+	
+	/**
+	 * Build the ORDER BY and paging for a project stats query.
+	 * @param parameters
+	 * @param sortColumn
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static String getProjectStatsOderByAndPaging(Map<String, Object> parameters, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset){
+		StringBuilder builder = new StringBuilder();
 		switch (sortColumn) {
 		case LAST_ACTIVITY:
-			sortOrder = SELECT_PROJECTS_ORDER;
+			builder.append(SELECT_PROJECTS_ORDER);
 			break;
 		case PROJECT_NAME:
-			sortOrder = SELECT_NAME_ORDER;
+			builder.append(SELECT_NAME_ORDER);
 			break;
 		default:
 			throw new NotImplementedException("project list sort column " + sortColumn + " not yet implemented");
 		}
-
-		String auth2 = QueryUtils.buildAuthorizationFilter(auth2IsAdmin, auth2Groups, parameters, "n", groupCount);
-
+		builder.append(" ").append(sortDirection.name());
+		builder.append(" ");
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
-
-		String whereClause2 = "";
-		if (!auth2.isEmpty()) {
-			whereClause2 = " where " + auth2;
-		}
-
-		String selectSql = SELECT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL3 + whereClause
-				+ SELECT_PROJECTS_SQL_JOIN_STATS + whereClause2 + sortOrder + " " + sortDirection.name() + " " + pagingSql;
-
-		return getProjectHeaders(parameters, selectSql);
+		builder.append(pagingSql);
+		return builder.toString();
 	}
 
 	private List<ProjectHeader> getProjectHeaders(Map<String, Object> parameters, String selectSql) {
@@ -1623,82 +1624,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.NodeDAO#streamOverHierarchy(java.util.List, org.sagebionetworks.util.Callback)
-	 */
-	@Override
-	public void streamOverHierarchy(final List<Long> containers,
-			final Callback<NodeHierarchy> callback) {
-		ValidateArgument.required(containers, "containers");
-		ValidateArgument.required(callback, "callback");
-		if(containers.isEmpty()){
-			// nothing to do if the containers are empty.
-			return;
-		}
-		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
-		parameters.put(IDS_PARAM_NAME, containers);
-		namedParameterJdbcTemplate.query(SQL_SELECT_HIERARCHY_FOR_PARENTS_IN, parameters, new RowCallbackHandler() {
-			@Override
-			public void processRow(ResultSet rs) throws SQLException {
-				NodeHierarchy hierarchy = new NodeHierarchy();
-				hierarchy.setNodeId(rs.getLong(COL_NODE_ID));
-				hierarchy.setParentId(rs.getLong(COL_NODE_PARENT_ID));
-				hierarchy.setBenefectorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
-				hierarchy.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
-				// pass along this row.
-				callback.invoke(hierarchy);
-			}
-		});
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.NodeDAO#batchUpdateHierarchy(java.util.ArrayList)
-	 */
-	@WriteTransactionReadCommitted
-	@Override
-	public void batchUpdateHierarchy(final ArrayList<NodeHierarchy> batch) {
-		ValidateArgument.required(batch, "batch");
-		if(batch.isEmpty()){
-			// nothing to do if the batch is empty.
-			return;
-		}
-		jdbcTemplate.batchUpdate(SQL_BATCH_UPDATE_HIERARCHY, new BatchPreparedStatementSetter() {
-			
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				NodeHierarchy update = batch.get(i);
-				setPreparedStatement(ps, 1, update.getParentId());
-				setPreparedStatement(ps, 2, update.getBenefectorId());
-				setPreparedStatement(ps, 3, update.getProjectId());
-				// nodeId cannot be null
-				ValidateArgument.required(update.getNodeId(), "update.nodeId()");
-				ps.setLong(4, update.getNodeId());
-			}
-			
-			@Override
-			public int getBatchSize() {
-				return batch.size();
-			}
-			
-			/**
-			 * Helper setting PreparedStatement when the value can be nulls.
-			 * @param ps
-			 * @param index
-			 * @param value
-			 * @throws SQLException
-			 */
-			private void setPreparedStatement(PreparedStatement ps, int index, Long value) throws SQLException{
-				if(value != null){
-					ps.setLong(index, value);
-				}else{
-					ps.setNull(index, Types.BIGINT);
-				}
-			}
-		});
-		
-	}
 
 	@Override
 	public String getNodeIdByAlias(String alias) {
@@ -1714,12 +1639,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public String getProjectId(String nodeId) {
 		ValidateArgument.required(nodeId, "nodeId");
-		try {
-			long id = this.jdbcTemplate.queryForObject(SQL_SELECT_PROJECT_ID, Long.class, KeyFactory.stringToKey(nodeId));
-			return KeyFactory.keyToString(id);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("Did not find an Entity for ID: "+nodeId);
+		long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		Long projectId = this.jdbcTemplate.queryForObject(SELECT_FUNCTION_PROJECT_ID, Long.class, nodeIdLong);
+		if(projectId == null){
+			/*
+			 * ProjectId will be null if the node does not exist or if the node
+			 * is in the trash. In either case a NotFoundException should be
+			 * thrown.
+			 */
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
+		return KeyFactory.keyToString(projectId);
 	}
 
 	@Override
@@ -1762,11 +1692,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				if(rs.wasNull()){
 					dto.setParentId(null);
 				}
-				dto.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
+				dto.setBenefactorId(rs.getLong(BENEFACTOR_FUNCTION_ALIAS));
 				if(rs.wasNull()){
 					dto.setBenefactorId(null);
 				}
-				dto.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
+				dto.setProjectId(rs.getLong(PROJECT_FUNCTION_ALIAS));
 				if(rs.wasNull()){
 					dto.setProjectId(null);
 				}
@@ -1789,6 +1719,94 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				return dto;
 			}
 		});
+	}
+
+	@Override
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
+			SortBy sortBy, Direction sortDirection, long limit, long offset) {
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(includeTypes, "includeTypes");
+		ValidateArgument.requirement(!includeTypes.isEmpty(), "Must have at least one type for includeTypes");
+		ValidateArgument.required(sortDirection, "sortDirection");
+		Map<String, Object> parameters = new HashMap<String, Object>(1);
+		parameters.put(BIND_PARENT_ID , KeyFactory.stringToKey(parentId));
+		parameters.put(BIND_NODE_TYPES , getTypeNames(includeTypes));
+		parameters.put(BIND_NODE_IDS , childIdsToExclude);
+		parameters.put(BIND_LIMIT , limit);
+		parameters.put(BIND_OFFSET , offset);
+		// build the SQL from the template
+		String sql = String.format(SQL_SELECT_CHIDREN_TEMPLATE,
+				getFragmentExcludeNodeIds(childIdsToExclude),
+				getFragmentSortColumn(sortBy),
+				sortDirection.name());
+		return namedParameterJdbcTemplate.query(sql,parameters,ENTITY_HEADER_ROWMAPPER);
+	}
+	
+	/**
+	 * Convert from enums to string names.
+	 * @param includeTypes
+	 * @return
+	 */
+	public static List<String> getTypeNames(List<EntityType> includeTypes){
+		List<String> results = new LinkedList<String>();
+		for(EntityType type: includeTypes){
+			results.add(type.name());
+		}
+		return results;
+	}
+	
+	/**
+	 * When childIdsToExclude is not empty then a NOT IN () fragment is used.
+	 * 
+	 * @param childIdsToExclude
+	 * @return
+	 */
+	public static String getFragmentExcludeNodeIds(Set<Long> childIdsToExclude){
+		if(childIdsToExclude == null || childIdsToExclude.isEmpty()){
+			return "";
+		}else{
+			return SQL_ID_NOT_IN_SET;
+		}
+	}
+	
+	/**
+	 * Get the fragment of column name for a given sortBy.
+	 * @param sortBy
+	 * @return
+	 */
+	public static String getFragmentSortColumn(SortBy sortBy) {
+		ValidateArgument.required(sortBy, "sortBy");
+		switch (sortBy) {
+		case NAME:
+			return N_NAME;
+		case CREATED_ON:
+			return N_CREATED_ON;
+		default:
+			throw new IllegalArgumentException("Unknown SortBy: "+sortBy);
+		}
+	}
+
+	@Override
+	public long getChildCount(String parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		return jdbcTemplate.queryForObject(SQL_COUNT_CHILDREN, Long.class, KeyFactory.stringToKey(parentId));
+	}
+
+	@Override
+	public List<NodeIdAndType> getChildren(String parentId, long limit,
+			long offset) {
+		ValidateArgument.required(parentId, "parentId");
+		Long parentIdLong = KeyFactory.stringToKey(parentId);
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN, new RowMapper<NodeIdAndType>(){
+
+			@Override
+			public NodeIdAndType mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				String nodeId = KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
+				EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
+				return new NodeIdAndType(nodeId, type);
+			}}, parentIdLong, limit, offset);
 	}
 
 }

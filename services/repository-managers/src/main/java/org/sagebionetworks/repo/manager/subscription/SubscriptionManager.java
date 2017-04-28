@@ -94,4 +94,13 @@ public interface SubscriptionManager {
 	 */
 	public SubscriberCount getSubscriberCount(UserInfo userInfo, Topic topic);
 
+	/**
+	 * Create a new subscription all all topics with toSubscribe SubscriptionObjectType.
+	 * 
+	 * @param userInfo
+	 * @param toSubscribe
+	 * @return
+	 */
+	public Subscription subscribeAll(UserInfo userInfo, SubscriptionObjectType toSubscribe);
+
 }

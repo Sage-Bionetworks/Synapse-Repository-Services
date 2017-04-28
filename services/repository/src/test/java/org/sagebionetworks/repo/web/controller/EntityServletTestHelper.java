@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServlet;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -459,32 +458,6 @@ public class EntityServletTestHelper {
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				Evaluation.class);
-	}
-
-	public Participant createParticipant(Long userId, String evalId)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant", userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-
-		return new Participant(
-				ServletTestHelperUtils.readResponseJSON(response));
-	}
-
-	public PaginatedResults<Participant> getAllParticipants(Long userId,
-			String evalId) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant", userId, null);
-
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				Participant.class);
 	}
 
 	public Submission createSubmission(Submission sub, Long userId,

@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -567,7 +569,13 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get a specific version of a FileEntity.
+	 * Get a specific version of an Entity.
+	 * <p>
+	 * Note: Only the current version of the Entity can be used for an Entity
+	 * update. Therefore, only the current version of the Entity will be
+	 * returned with the actual etag. All older versions will be returned with an
+	 * eTag '00000000-0000-0000-0000-000000000000'.
+	 * </p>
 	 * 
 	 * @param id
 	 *            The ID of the Entity.
@@ -1505,4 +1513,20 @@ public class EntityController extends BaseController {
 			@PathVariable String alias) throws NotFoundException{
 		return serviceProvider.getEntityService().getEntityIdForAlias(alias);
 	}
+	
+	/**
+	 * Get a page of children for a given parent ID.
+	 * @param userId
+	 * @param parentId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_CHILDREN }, method = RequestMethod.POST)
+	public @ResponseBody EntityChildrenResponse getChildren(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody(required=true) EntityChildrenRequest request){
+		return serviceProvider.getEntityService().getChildren(userId, request);
+	}
 }
+

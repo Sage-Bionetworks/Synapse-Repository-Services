@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -47,9 +47,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-
-
 public class DBOVerificationDAOImpl implements VerificationDAO {
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
@@ -112,6 +113,18 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 			"SELECT "+COL_VERIFICATION_FILE_FILEHANDLEID+" FROM "+TABLE_VERIFICATION_FILE+" WHERE "+
 			COL_VERIFICATION_FILE_VERIFICATION_ID+"=?";
 
+	private static final String IDS_PARAM = "IDS";
+	private static final String SQL_VALIDATED_COUNT = 
+			"SELECT COUNT(DISTINCT S2."+COL_VERIFICATION_SUBMISSION_CREATED_BY+")"
+			+ " FROM "+TABLE_VERIFICATION_STATE+" S JOIN "+TABLE_VERIFICATION_SUBMISSION+" S2"
+			+ " ON S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S2."+COL_VERIFICATION_SUBMISSION_ID
+			+ " WHERE S2."+COL_VERIFICATION_SUBMISSION_CREATED_BY+" IN (:"+IDS_PARAM+")"
+			+ " AND S."+COL_VERIFICATION_STATE_STATE+" = '"+VerificationStateEnum.APPROVED.toString()+"'"
+			+ " AND S."+COL_VERIFICATION_STATE_CREATED_ON+" = ("
+			+ " SELECT MAX(S3."+COL_VERIFICATION_STATE_CREATED_ON+")"
+			+ " FROM "+TABLE_VERIFICATION_STATE+" S3"
+			+ " WHERE S."+COL_VERIFICATION_STATE_VERIFICATION_ID+" = S3."+COL_VERIFICATION_STATE_VERIFICATION_ID+")";
+
 	private static TableMapping<DBOVerificationSubmission> DBO_VERIFICATION_SUB_MAPPING =
 			(new DBOVerificationSubmission()).getTableMapping();
 	
@@ -122,7 +135,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@Override
 	public VerificationSubmission createVerificationSubmission(
 			VerificationSubmission dto) throws DatastoreException {
-		dto.setId(idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION_ID).toString());
+		dto.setId(idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID).toString());
 		DBOVerificationSubmission dbo = copyVerificationDTOtoDBO(dto);
 		DBOVerificationSubmission created = basicDao.createNew(dbo);
 		VerificationState initialState = new VerificationState();
@@ -181,7 +194,7 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	@WriteTransaction
 	@Override
 	public void appendVerificationSubmissionState(long verificationId, VerificationState newState) {
-		long stateId = idGenerator.generateNewId(TYPE.VERIFICATION_SUBMISSION_ID);
+		long stateId = idGenerator.generateNewId(IdType.VERIFICATION_SUBMISSION_ID);
 		DBOVerificationState dbo = copyVerificationStateDTOtoDBO(verificationId, stateId, newState);
 		basicDao.createNew(dbo);
 	}
@@ -344,6 +357,17 @@ public class DBOVerificationDAOImpl implements VerificationDAO {
 	public long getVerificationSubmitter(long verificationId) {
 		return jdbcTemplate.queryForObject(VERIFICATION_SUBMITTER_SQL, Long.class, verificationId);
 		
+	}
+
+	@Override
+	public boolean haveValidatedProfiles(Set<String> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return false;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM, userIds);
+		Integer count = namedJdbcTemplate.queryForObject(SQL_VALIDATED_COUNT, params, Integer.class);
+		return count.equals(userIds.size());
 	}
 
 }

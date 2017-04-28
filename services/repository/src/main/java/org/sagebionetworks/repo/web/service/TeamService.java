@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
@@ -141,6 +142,14 @@ public interface TeamService {
 	 */
 	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
 
+	/**
+	 * 
+	 * @param id
+	 * @param fragment
+	 * @return
+	 */
+	public Count getMemberCount(String id, String fragment);
+	
 	/**
 	 * 
 	 * @param teamId

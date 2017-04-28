@@ -232,13 +232,13 @@ public class TrashManagerImplTest {
 		verify(mockChild1EntityHeader, times(1)).getName();
 		verify(mockNodeDAO).getParentId(child1ID);
 		verify(mockTrashCanDao).create(userInfo.getId().toString(), child1ID, child1Name, nodeID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, nodeID, ChangeType.DELETE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, ChangeType.DELETE);
 		//child2
 		verify(mockNodeDAO,times(1)).getEntityHeader(child2ID, null);
 		verify(mockChild2EntityHeader, times(1)).getName();
 		verify(mockNodeDAO).getParentId(child2ID);
 		verify(mockTrashCanDao).create(userInfo.getId().toString(), child2ID, child2Name, nodeID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, nodeID, ChangeType.DELETE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, ChangeType.DELETE);
 		
 
 	}
@@ -326,12 +326,12 @@ public class TrashManagerImplTest {
 		verify(mockTrashCanDao).delete(deletedBy, child1ID);
 		verify(mockNodeDAO).getParentId(child1ID);
 		verify(mockNodeDAO).peekCurrentEtag(child1ID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, nodeID, ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, ChangeType.CREATE);
 		
 		verify(mockTrashCanDao).delete(deletedBy, child2ID);
 		verify(mockNodeDAO).getParentId(child2ID);
 		verify(mockNodeDAO).peekCurrentEtag(child2ID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, nodeID, ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, ChangeType.CREATE);
 	}
 	
 	///////////////////////

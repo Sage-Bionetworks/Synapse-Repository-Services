@@ -27,7 +27,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
  * Unit (mocked) test for TransactionalMessengerImpl.
- * @author jmhill
  *
  */
 public class TransactionalMessengerImplTest {
@@ -100,18 +99,6 @@ public class TransactionalMessengerImplTest {
 		MessageKey fourth = new MessageKey(message);
 		assertNotSame(fourth, two);
 		assertNotSame(two, fourth);
-
-		ModificationMessage modificationMessage = new DefaultModificationMessage();
-		modificationMessage.setObjectId("123");
-		modificationMessage.setObjectType(ObjectType.ACTIVITY);
-		MessageKey fifth = new MessageKey(modificationMessage);
-		assertNotSame(fourth, fifth);
-
-		modificationMessage = new DefaultModificationMessage();
-		modificationMessage.setObjectId("123");
-		modificationMessage.setObjectType(ObjectType.ACTIVITY);
-		MessageKey sixth = new MessageKey(modificationMessage);
-		assertEquals(fifth, sixth);
 	}
 	
 	@Test
@@ -136,7 +123,6 @@ public class TransactionalMessengerImplTest {
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
-		message.setParentId("syn789");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
 		// Send the message
@@ -163,7 +149,6 @@ public class TransactionalMessengerImplTest {
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
-		first.setParentId("syn789");
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
@@ -232,12 +217,10 @@ public class TransactionalMessengerImplTest {
 	@Test
 	public void testPLFM_1662(){
 		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
-		// We need stub dao to detect this bug.
-		DBOChangeDAO stubChangeDao = new StubDBOChangeDAO();
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy, testClock);
+		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
 		
 		ChangeMessage message = new ChangeMessage();
@@ -245,7 +228,6 @@ public class TransactionalMessengerImplTest {
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
-		message.setParentId("syn789");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
 		// Send the message

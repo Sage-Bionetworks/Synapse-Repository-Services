@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -22,7 +24,6 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -32,50 +33,28 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.collect.Sets;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
-	
 	@Autowired
 	private FavoriteDAO favoriteDAO;
-	
 	@Autowired
 	private NodeDAO nodeDao;
-
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private AmazonS3Client s3Client;
-	@Autowired
 	private FileHandleManager fileHandleManager;
 	
-
-	public UserProfileManagerImpl() {
-	}
-
-	/**
-	 * Used by unit tests
-	 */
-	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO, FavoriteDAO favoriteDAO, PrincipalAliasDAO principalAliasDAO,
-			AuthorizationManager authorizationManager,
-			AmazonS3Client s3Client,
-			FileHandleManager fileHandleManager) {
-		super();
-		this.userProfileDAO = userProfileDAO;
-		this.favoriteDAO = favoriteDAO;
-		this.principalAliasDAO = principalAliasDAO;
-		this.authorizationManager = authorizationManager;
-		this.s3Client = s3Client;
-		this.fileHandleManager = fileHandleManager;
-	}
 
 	@Override
 	public UserProfile getUserProfile(String ownerId)
@@ -211,12 +190,89 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
-			ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset) throws DatastoreException,
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo caller,
+			UserInfo userToGetInfoFor, Team teamToFetch, ProjectListType type,
+			ProjectListSortColumn sortColumn, SortDirection sortDirection,
+			Long limit, Long offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		List<ProjectHeader> page = nodeDao.getProjectHeaders(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn,
-				sortDirection, limit, offset);
+		/*
+		 * The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, /*
+		 * and CERTIFIED_USERS
+		 */
+		Set<Long> callerPrincipalIds = getGroupsMinusPublic(caller.getGroups());
+		Set<Long> userToGetPrincipalIds;
+		switch (type) {
+		case MY_PROJECTS:
+		case OTHER_USER_PROJECTS:
+		case MY_CREATED_PROJECTS:
+		case MY_PARTICIPATED_PROJECTS:
+			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			break;
+		case MY_TEAM_PROJECTS:
+			userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+			break;
+		case TEAM_PROJECTS:
+			// this case requires a team
+			ValidateArgument.required(teamToFetch, "teamToFetch");
+			long teamId = Long.parseLong(teamToFetch.getId());
+			userToGetPrincipalIds = Sets.newHashSet(teamId);
+			break;
+		default:
+			throw new NotImplementedException("project list type " + type
+					+ " not yet implemented");
+		}
+		// Find the projectIds accessible to the user-to-get-for.
+		Set<Long> userToGetAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(userToGetPrincipalIds);
+		Set<Long> projectIdsToFilterBy = null;
+		if (!caller.isAdmin()
+				&& !caller.getId().equals(userToGetInfoFor.getId())) {
+			/*
+			 * The caller is not an administrator and the caller is not the same
+			 * as the user-to-get-for. Therefore, the return projects must only
+			 * include the intersection of projects that both users can read.
+			 */
+			Set<Long> currentUserAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(callerPrincipalIds);
+			// use the intersection.
+			projectIdsToFilterBy = Sets.intersection(userToGetAccessibleProjectIds,	currentUserAccessibleProjectIds);
+		} else {
+			/*
+			 * The caller is either an administrator or the same user as the
+			 * user-to-for. Therefore, the return projects include any project
+			 * that the user-to-get-for can read.
+			 */
+			projectIdsToFilterBy = userToGetAccessibleProjectIds;
+		}
+		// run the query.
+		List<ProjectHeader> page = nodeDao.getProjectHeaders(caller.getId(),
+				projectIdsToFilterBy, type, sortColumn, sortDirection, limit,
+				offset);
 		return PaginatedResults.createWithLimitAndOffset(page, limit, offset);
+	}
+
+	/**
+	 * Remove PUBLIC_GROUP, AUTHENTICATED_USERS_GROUP, and CERTIFIED_USERS from the passed set.
+	 * @param usersGroups
+	 * @return
+	 */
+	public static Set<Long> getGroupsMinusPublic(Set<Long> usersGroups){
+		Set<Long> groups = Sets.newHashSet(usersGroups);
+		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue());
+		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue());
+		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
+		return groups;
+	}
+
+	/**
+	 * Remove PUBLIC_GROUP, AUTHENTICATED_USERS_GROUP, and CERTIFIED_USERS, and the passed UserId
+	 * from the passed principal IDs.
+	 * @param usersGroups
+	 * @param userId
+	 * @return
+	 */
+	public static Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
+		Set<Long> groups = getGroupsMinusPublic(usersGroups);
+		groups.remove(userId);
+		return groups;
 	}
 
 	@WriteTransaction

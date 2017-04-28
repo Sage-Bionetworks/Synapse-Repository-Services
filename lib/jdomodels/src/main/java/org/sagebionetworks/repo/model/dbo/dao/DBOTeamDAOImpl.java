@@ -411,7 +411,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOTeam.class, param);
 		// update message.
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.PRINCIPAL, ChangeType.DELETE);
+		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.PRINCIPAL);
 	}
 
 	@Override

@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -116,16 +117,14 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "submissionEligibilityManager", mockSubmissionEligibilityManager);
 
     	// configure mocks
-    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
+    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_ID)).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(evalWithId);
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
-    	when(mockEvaluationDAO.getByContentSource(eq(EVALUATION_CONTENT_SOURCE), anyLong(), anyLong())).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getCountByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(1L);
-    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), any(List.class))).thenReturn(1L);
+    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong())).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);

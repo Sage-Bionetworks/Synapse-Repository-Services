@@ -33,7 +33,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type) throws DatastoreException;
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type) throws DatastoreException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
@@ -68,8 +68,47 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
 	 * @throws DatastoreException
 	 */
-	List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
+	List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
 			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
 
 	long getCount() throws DatastoreException;
+
+	/**
+	 * Retrieve a page of AccessRequirements.
+	 * 
+	 * @param subject the subject of the access restriction
+	 * @param limit
+	 * @param offset
+	 * @return the AccessRequirement objects related to this node
+	 * @throws DatastoreException 
+	 */
+	public List<AccessRequirement> getAccessRequirementsForSubject(
+			List<String> subjectIds, RestrictableObjectType type, Long limit,
+			Long offset) throws DatastoreException;
+
+	/**
+	 * Retrieve the concreteType of an access requirement.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public String getConcreteType(String accessRequirementId);
+
+	/**
+	 * Retrieve the statistic of access requirements for list of given subjectIds
+	 * 
+	 * @param subjectIds
+	 * @param type - if type is ENTITY, subjectIds should contain the entityID and its ancestor IDs;
+	 * if type is TEAM, subjectIds should contain the teamID
+	 * @return
+	 */
+	public AccessRequirementStats getAccessRequirementStats(List<String> subjectIds, RestrictableObjectType type);
+
+	/**
+	 * Retrieving the subjects under a given access requirement
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
 }

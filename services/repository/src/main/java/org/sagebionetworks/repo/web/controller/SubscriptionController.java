@@ -58,6 +58,24 @@ public class SubscriptionController extends BaseController{
 	}
 
 	/**
+	 * This API is used to subscribe to all topic of the same SubscriptionObjectType.
+	 * <br/>
+	 * Only the following SubscriptionObjectType are allowed in this API:
+	 * <ul><li>DATA_ACCESS_SUBMISSION</li></ul>
+	 * 
+	 * @param userId - The ID of the user who is making the request
+	 * @param objectType - SubscriptionObjectType to subscribe to
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.SUBSCRIPTION_ALL, method = RequestMethod.POST)
+	public @ResponseBody Subscription subscribeAll(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.SUBSCRIPTION_OBJECT_TYPE_PARAM) SubscriptionObjectType objectType) {
+		return serviceProvider.getSubscriptionService().subscribeAll(userId, objectType);
+	}
+
+	/**
 	 * This API is used to retrieve subscriptions one has based on a list of provided topics.
 	 * These topics must have the same objectType.
 	 * <br/>

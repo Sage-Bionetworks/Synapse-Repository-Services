@@ -93,4 +93,13 @@ public interface SubscriptionService {
 	 */
 	public SubscriberCount getSubscriberCount(Long userId, Topic topic);
 
+	/**
+	 * Subscribe to all topic of the same SubscriptionObjectType
+	 * 
+	 * @param userId
+	 * @param objectType
+	 * @return
+	 */
+	public Subscription subscribeAll(Long userId, SubscriptionObjectType objectType);
+
 }

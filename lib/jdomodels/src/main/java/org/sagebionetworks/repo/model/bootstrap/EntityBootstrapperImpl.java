@@ -135,7 +135,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			}
 			toCreate.setName(parentAndName[1]);
 			toCreate.setParentId(parentId);
-			toCreate.setDescription(entityBoot.getEntityDescription());
 			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
 			toCreate.setNodeType(entityBoot.getEntityType());
 			toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

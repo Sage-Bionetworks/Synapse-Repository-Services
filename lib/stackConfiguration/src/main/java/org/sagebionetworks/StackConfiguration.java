@@ -87,8 +87,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public static boolean isProductionStack() {
-		return isProduction(singleton().getStack());
+	public boolean isProductionStack() {
+		return isProduction(getStack());
 	}
 	
 	/**
@@ -1588,5 +1588,15 @@ public class StackConfiguration {
 	public String getSynapseBaseUrl() {
 		return configuration
 				.getProperty("org.sagebionetworks.synapse.base.url");
+	}
+
+	/**
+	 * The maximum number of entities per container.
+	 * 
+	 * @return
+	 */
+	public static Long getMaximumNumberOfEntitiesPerContainer() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.synapse.max.entities.per.container"));
 	}
 }

@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -65,14 +64,6 @@ public class SubmissionStatusDBOTest {
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
         
-        // Initialize a new Participant
-        ParticipantDBO participant = new ParticipantDBO();
-        participant.setUserId(userId);
-        participant.setEvalId(evalId);
-        participant.setCreatedOn(System.currentTimeMillis());
-        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
-        dboBasicDao.createNew(participant);
-        
         // Initialize a new Submission
         SubmissionDBO submission = new SubmissionDBO();
         submission.setId(submissionId);
@@ -92,12 +83,6 @@ public class SubmissionStatusDBOTest {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
             dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
-            
-            // delete participant
-            params = new MapSqlParameterSource();
-            params.addValue("userId", userId);
-            params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();

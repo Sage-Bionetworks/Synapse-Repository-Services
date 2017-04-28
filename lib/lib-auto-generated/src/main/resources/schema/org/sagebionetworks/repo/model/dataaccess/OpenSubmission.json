@@ -1,0 +1,14 @@
+{
+	"title":"OpenSubmission",
+	"description":"This object stores information about the number of submitted DataAccessSubmissions for a single ACTAccessRequirement.",
+	"properties":{
+		"numberOfSubmittedSubmission":{
+			"type":"integer",
+			"description":"The number of submitted DataAccessSubmission."
+		},
+		"accessRequirementId":{
+			"type":"string",
+			"description":"The ID of the ACTAccessRequirement."
+		}
+	}
+}

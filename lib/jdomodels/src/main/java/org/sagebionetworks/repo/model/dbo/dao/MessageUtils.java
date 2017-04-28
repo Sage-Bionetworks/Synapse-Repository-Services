@@ -235,9 +235,21 @@ public class MessageUtils {
 		}
 		info.setNotificationsEndpoint(dto.getNotificationUnsubscribeEndpoint());
 		info.setProfileSettingEndpoint(dto.getUserProfileSettingEndpoint());
-		info.setWithUnsubscribeLink(dto.getWithUnsubscribeLink());
-		info.setWithProfileSettingLink(dto.getWithProfileSettingLink());
-		info.setIsNotificationMessage(dto.getIsNotificationMessage());
+		if (dto.getWithUnsubscribeLink() == null) {
+			info.setWithUnsubscribeLink(false);
+		} else {
+			info.setWithUnsubscribeLink(dto.getWithUnsubscribeLink());
+		}
+		if (dto.getWithProfileSettingLink() == null) {
+			info.setWithProfileSettingLink(false);
+		} else {
+			info.setWithProfileSettingLink(dto.getWithProfileSettingLink());
+		}
+		if (dto.getIsNotificationMessage() == null) {
+			info.setIsNotificationMessage(false);
+		} else {
+			info.setIsNotificationMessage(dto.getIsNotificationMessage());
+		}
 		info.setTo(dto.getTo());
 		info.setCc(dto.getCc());
 		info.setBcc(dto.getBcc());

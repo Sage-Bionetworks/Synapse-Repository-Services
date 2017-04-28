@@ -53,7 +53,7 @@ public class StackConfigurationTest {
 	
 	@Test
 	public void testIsProd(){
-		assertFalse("Tests are never run against the prod stack!!!!!",StackConfiguration.isProductionStack());
+		assertFalse("Tests are never run against the prod stack!!!!!",StackConfiguration.singleton().isProductionStack());
 		assertTrue(StackConfiguration.isProduction("prod"));
 		assertFalse(StackConfiguration.isProduction("dev"));
 	}

@@ -49,9 +49,12 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -98,6 +101,7 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.util.SerializationUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -198,10 +202,10 @@ public class IT500SynapseJavaClient {
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
 				if (!bootstrappedTeams.contains(team.getId())) {
-					synapseOne.deleteTeam(team.getId());
+					adminSynapse.deleteTeam(team.getId());
 				}
 			}
-		} while (numTeams > getBootstrapCountPlus(0));		
+		} while (numTeams > getBootstrapCountPlus(0));
 	}
 	
 	@After
@@ -352,7 +356,7 @@ public class IT500SynapseJavaClient {
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
 		Entity datasetEntity = synapseOne.getEntityByIdForVersion(file.getId(), file.getVersionNumber());
-		assertTrue(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
 
 		// Get the Users permission for this entity
 		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(file.getId());
@@ -500,7 +504,6 @@ public class IT500SynapseJavaClient {
 				EntityBundle.ANNOTATIONS |
 				EntityBundle.PERMISSIONS |
 				EntityBundle.ENTITY_PATH |
-				EntityBundle.ENTITY_REFERENCEDBY |
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
@@ -805,6 +808,8 @@ public class IT500SynapseJavaClient {
 			// The service is wired up.
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
+
+		assertEquals((Long)0L, adminSynapse.deleteAccessApprovals(Arrays.asList(created.getId())));
 	}
 
 	@Test
@@ -1099,11 +1104,11 @@ public class IT500SynapseJavaClient {
 		
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = waitForTeamMembers(updatedTeam.getId(), null, 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
 		
 		// while we're at it, check the 'getTeamMember' service
 		assertEquals(tm, synapseOne.getTeamMember(updatedTeam.getId(), myPrincipalId));
@@ -1145,7 +1150,7 @@ public class IT500SynapseJavaClient {
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = myProfile.getUserName();
 		members = waitForTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), myDisplayName));
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 		
@@ -1167,12 +1172,13 @@ public class IT500SynapseJavaClient {
 
 		// query for team members.  should get creator as well as new member back
 		members = waitForTeamMembers(updatedTeam.getId(), null, 2, 0);
-		assertEquals(3L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		
+		assertEquals(2L, synapseOne.countTeamMembers(updatedTeam.getId(), null));
+
 		// query for team members using name fragment
 		members = waitForTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(1L, synapseOne.countTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4)));
 		
 		TeamMember otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1182,7 +1188,6 @@ public class IT500SynapseJavaClient {
 		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		
 		members = waitForTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
-		assertEquals(2L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
 		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
@@ -1254,16 +1259,16 @@ public class IT500SynapseJavaClient {
 	
 	private PaginatedResults<TeamMember> waitForTeamMembers(String teamId, String prefix, int limit, int offset) throws SynapseException, InterruptedException{
 		long start = System.currentTimeMillis();
-		while(true){
-			PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(teamId, prefix, limit, offset);
-			if(members.getTotalNumberOfResults() < 1){
+		while (true){
+			long count = synapseOne.countTeamMembers(teamId, prefix);
+			if(count < 1L){
 				System.out.println("Waiting for principal prefix worker");
 				Thread.sleep(1000);
 				if(System.currentTimeMillis() - start > RDS_WORKER_TIMEOUT){
 					fail("Timed out waiting for principal prefix worker.");
 				}
 			}else{
-				return members;
+				return synapseOne.getTeamMembers(teamId, prefix, limit, offset);
 			}
 		}
 	}
@@ -1283,21 +1288,24 @@ public class IT500SynapseJavaClient {
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
 		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.TEAM);
-		subjectId.setId(createdTeam.getId());
-		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		rod.setId(createdTeam.getId());
+		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		tou = adminSynapse.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		PaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 10L);
+		assertTrue(paginatedResults.getResults().isEmpty());
+
 		// Query Unmet AccessRestriction
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
@@ -1306,15 +1314,15 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = adminSynapse.getAccessRequirements(subjectId, 10L, 0L);
+		paginatedResults = adminSynapse.getAccessRequirements(rod, 10L, 0L);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
-		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 		
-		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
+		assertEquals(paginatedResults, synapseTwo.getUnmetAccessRequirements(rod, ACCESS_TYPE.PARTICIPATE, 10L, 0L));
 	}
 
 	@Test
@@ -1839,5 +1847,33 @@ public class IT500SynapseJavaClient {
 		EntityId lookupId = synapseOne.getEntityIdByAlias(project.getAlias());
 		assertNotNull(lookupId);
 		assertEquals(project.getId(), lookupId.getId());
+	}
+	
+	@Test
+	public void testGetEntityChildern() throws SynapseException{
+		EntityChildrenRequest request = new EntityChildrenRequest();
+		request.setParentId(project.getId());
+		request.setIncludeTypes(Lists.newArrayList(EntityType.folder));
+		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals(1, response.getPage().size());
+		EntityHeader header = response.getPage().get(0);
+		assertNotNull(header);
+		assertEquals(dataset.getId(), header.getId());
+	}
+	
+	@Test
+	public void testGetEntityChildernProjects() throws SynapseException{
+		EntityChildrenRequest request = new EntityChildrenRequest();
+		// null parentId should get projects.
+		request.setParentId(null);
+		EntityChildrenResponse response = synapseOne.getEntityChildren(request);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertTrue(response.getPage().size() > 0);
+		EntityHeader header = response.getPage().get(0);
+		assertNotNull(header);
+		assertEquals(Project.class.getName(), header.getType());
 	}
 }

@@ -106,6 +106,8 @@ public class ITSubscription {
 		synapse.unsubscribe(Long.parseLong(sub.getSubscriptionId()));
 		results = synapse.getAllSubscriptions(SubscriptionObjectType.FORUM, 10L, 0L);
 		assertFalse(results.getResults().contains(sub));
+
+		assertNotNull(adminSynapse.subscribeAll(SubscriptionObjectType.DATA_ACCESS_SUBMISSION));
 	}
 
 	@Test

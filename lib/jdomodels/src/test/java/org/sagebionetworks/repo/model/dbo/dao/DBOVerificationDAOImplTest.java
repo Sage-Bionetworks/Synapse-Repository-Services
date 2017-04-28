@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,7 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -118,7 +119,7 @@ public class DBOVerificationDAOImplTest {
 		fh.setCreatedBy(createdBy);
 		fh.setBucketName(UUID.randomUUID().toString());
 		fh.setKey(UUID.randomUUID().toString());
-		fh.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fh.setEtag(UUID.randomUUID().toString());
 		fh = (S3FileHandle) fileHandleDao.createFile(fh);
 		fhsToDelete.add(fh.getId());
@@ -438,4 +439,34 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(user1Long, verificationDao.getVerificationSubmitter(createdIdLong));
 	}
 
+	@Test
+	public void testHaveValidatedProfiles() {
+		assertFalse(verificationDao.haveValidatedProfiles(null));
+		HashSet<String> userIds = new HashSet<String>();
+		assertFalse(verificationDao.haveValidatedProfiles(userIds));
+
+		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
+		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
+		vsToDelete.add(created.getId());
+		userIds.add(USER_1_ID);
+		assertFalse(verificationDao.haveValidatedProfiles(userIds));
+		long createdIdLong = Long.parseLong(created.getId());
+
+		VerificationState newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(VerificationStateEnum.REJECTED);
+		verificationDao.appendVerificationSubmissionState(createdIdLong, newState);
+		assertFalse(verificationDao.haveValidatedProfiles(userIds));
+
+		newState = new VerificationState();
+		newState.setCreatedBy(USER_2_ID);
+		newState.setCreatedOn(new Date());
+		newState.setState(VerificationStateEnum.APPROVED);
+		verificationDao.appendVerificationSubmissionState(createdIdLong, newState);
+		assertTrue(verificationDao.haveValidatedProfiles(userIds));
+
+		userIds.add(USER_2_ID);
+		assertFalse(verificationDao.haveValidatedProfiles(userIds));
+	}
 }

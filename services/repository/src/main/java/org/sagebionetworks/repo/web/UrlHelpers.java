@@ -197,6 +197,8 @@ public class UrlHelpers {
 
 	public static final String ENTITY_ALIAS = ENTITY + "/alias" + "/{alias}";
 	
+	public static final String ENTITY_CHILDREN = ENTITY+"/children";
+	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
@@ -362,11 +364,6 @@ public class UrlHelpers {
 	public static final String ENTITY_PARENT = ENTITY_ID + "/parent";
 
 	/**
-	 * Gets the children for the specified node.
-	 */
-	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";
-
-	/**
 	 * For trash can APIs.
 	 */
 	public static final String TRASHCAN = "/trashcan";
@@ -459,6 +456,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
+	public static final String ACCESS_APPROVALS = "/accessApprovals";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
@@ -817,6 +815,7 @@ public class UrlHelpers {
 	// 	Team URIs for JSONP
 	public static final String TEAMS = "/teams";
 	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
+	public static final String TEAM_MEMBERS_COUNT_ID = "/teamMembers/count"+ID;
 	public static final String TEAM_ACL = TEAM+"/acl";
 	public static final String TEAM_ID_ACL = TEAM_ID+"/acl";
 	
@@ -950,6 +949,26 @@ public class UrlHelpers {
 	public static final String ENITY_ID_DOCKER_COMMIT = ENTITY_ID+"/dockerCommit";
 	public static final String DOCKER_REGISTRY_EVENTS = "/events";
 
+	// Data Access Services
+	public static final String RESEARCH_PROJECT = "/researchProject";
+	public static final String ACCESS_REQUIREMENT_ID_RESEARCH_PROJECT =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/researchProjectForUpdate";
+
+	public static final String DATA_ACCESS_REQUEST ="/dataAccessRequest";
+	public static final String ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE = 
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID +"/dataAccessRequestForUpdate";
+
+	public static final String DATA_ACCESS_REQUEST_ID_SUBMISSION = DATA_ACCESS_REQUEST+"/{requestId}/submission";
+	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
+	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
+	public static final String DATA_ACCESS_SUBMISSION_ID_CANCEL = DATA_ACCESS_SUBMISSION_ID +"/cancellation";
+	public static final String ACCESS_REQUIREMENT_ID_LIST_SUBMISSION =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/submissions";
+	public static final String ACCESS_REQUIREMENT_ID_STATUS =
+			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/status";
+	public static final String ENTITY_ID_RESTRICTION_INFORMATION = ENTITY_ID + "/restrictionInformation";
+	public static final String DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS = DATA_ACCESS_SUBMISSION+"/openSubmissions";
+	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
 
 	/**
 	 * APIs for DynamoDB related operations.

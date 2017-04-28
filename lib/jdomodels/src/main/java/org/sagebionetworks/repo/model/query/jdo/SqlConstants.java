@@ -21,7 +21,6 @@ public class SqlConstants {
 	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOTATIONS		= "ANNOTATIONS_ID_OID";
-	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
@@ -46,14 +45,6 @@ public class SqlConstants {
 	public static final String COL_REVISION_COLUMN_MODEL_IDS= "COLUMN_MODEL_IDS";
 	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
-
-	// The Reference table
-	public static final String TABLE_REFERENCE						= "JDOREFERENCE";
-	public static final String COL_REFERENCE_OWNER_NODE				= "REF_OWNER_NODE_ID";
-	public static final String COL_REFERENCE_TARGET_NODE			= "REF_TARGET_NODE_ID";
-	public static final String COL_REFERENCE_TARGET_REVISION_NUMBER	= "REF_TARGET_REV_NUM";
-	public static final String COL_REFERENCE_GROUP_NAME				= "REF_GROUP_NAME";
-	public static final String DDL_FILE_REFERENCE					= "schema/Reference-ddl.sql";
 	
 	// Annotations tables
 	public static final String TABLE_ANNOTATIONS_OWNER	= "ANNOTATIONS_OWNER";
@@ -118,6 +109,7 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_CONCRETE_TYPE	= "CONCRETE_TYPE";
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
@@ -156,7 +148,6 @@ public class SqlConstants {
 	public static final String COL_CHANGES_CHANGE_NUM				= "CHANGE_NUM";
 	public static final String COL_CHANGES_TIME_STAMP				= "TIME_STAMP";
 	public static final String COL_CHANGES_OBJECT_ID				= "OBJECT_ID";
-	public static final String COL_CHANGES_PARENT_ID                = "PARENT_ID";
 	public static final String COL_CHANGES_OBJECT_TYPE				= "OBJECT_TYPE";
 	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
@@ -826,6 +817,64 @@ public class SqlConstants {
 	public static final String COL_THROTTLE_RULES_MODIFIED_ON = "MODIFIED_ON";
 	public static final String DDL_THROTTLE_RULES = "schema/ThrottleRules-ddl.sql";
 
+	// ResearchProject
+	public static final String DDL_RESEARCH_PROJECT = 							"schema/ResearchProject-ddl.sql";
+	public static final String TABLE_RESEARCH_PROJECT = 						"RESEARCH_PROJECT";
+	public static final String COL_RESEARCH_PROJECT_ID = 						"ID";
+	public static final String COL_RESEARCH_PROJECT_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_RESEARCH_PROJECT_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_RESEARCH_PROJECT_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_RESEARCH_PROJECT_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String COL_RESEARCH_PROJECT_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String COL_RESEARCH_PROJECT_ETAG = 						"ETAG";
+	public static final String COL_RESEARCH_PROJECT_PROJECT_LEAD = 				"PROJECT_LEAD";
+	public static final String COL_RESEARCH_PROJECT_INSTITUTION = 				"INSTITUTION";
+	public static final String COL_RESEARCH_PROJECT_IDU = 						"IDU";
+
+	// DataAccessRequest
+	public static final String DDL_DATA_ACCESS_REQUEST = 							"schema/DataAccessRequest-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_REQUEST = 							"DATA_ACCESS_REQUEST";
+	public static final String COL_DATA_ACCESS_REQUEST_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID = 		"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID = 		"RESEARCH_PROJECT_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_DATA_ACCESS_REQUEST_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
+	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
+	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
+	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+
+	// DataAccessSubmission
+	public static final String DDL_DATA_ACCESS_SUBMISSION = 						"schema/DataAccessSubmission-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION = 						"DATA_ACCESS_SUBMISSION";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID = 	"DATA_ACCESS_REQUEST_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_BY = 				"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_ON = 				"CREATED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
+
+	// DataAccessSubmissionStatus
+	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_STATUS = 				"DATA_ACCESS_SUBMISSION_STATUS";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID = 	"SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY = 		"MODIFIED_BY";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON = 		"MODIFIED_ON";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_STATE = 			"STATE";
+	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_REASON = 			"REASON";
+
+	// DataAccessSubmissionAccessors
+	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"schema/DataAccessSubmissionAccessor-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"DATA_ACCESS_SUBMISSION_ACCESSOR";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID = 					"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 			"ACCESSOR_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG = 				"ETAG";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
@@ -840,14 +889,6 @@ public class SqlConstants {
 	
 	// This is the alias of the sub-query used for sorting on annotations.
 	public static final String ANNOTATION_SORT_SUB_ALIAS 	= "assa";
-	
-	public static final String OPERATOR_SQL_EQUALS					= "=";
-	public static final String OPERATOR_SQL_DOES_NOT_EQUAL			= "!=";
-	public static final String OPERATOR_SQL_GREATER_THAN			= ">";
-	public static final String OPERATOR_SQL_LESS_THAN				= "<";
-	public static final String OPERATOR_SQL_GREATER_THAN_OR_EQUALS	= ">=";
-	public static final String OPERATOR_SQL_LESS_THAN_OR_EQUALS		= "<=";
-	public static final String OPERATOR_SQL_IN						= "in";
 		
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
@@ -859,6 +900,12 @@ public class SqlConstants {
 	public static final int MAX_ALLOWED_PACKET_BYTES = 16777216;
 	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
 	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
+	
+	/**
+	 * Function names:
+	 */
+	public static final String FUNCTION_GET_ENTITY_BENEFACTOR_ID = "getEntityBenefactorId";
+	public static final String FUNCTION_GET_ENTITY_PROJECT_ID = "getEntityProjectId";
 
 	static{
 		// Map column names to the field names
@@ -903,31 +950,5 @@ public class SqlConstants {
 		if(column == null) throw new IllegalArgumentException("Unknown field: "+field);
 		return column;
 	}
-		
-	/**
-	 * Translate an Comparator to SQL
-	 * @param comp
-	 * @return
-	 */
-	public static String getSqlForComparator(Comparator comp){
-		if(Comparator.EQUALS == comp){
-			return OPERATOR_SQL_EQUALS;
-		}else if(Comparator.NOT_EQUALS == comp){
-			return OPERATOR_SQL_DOES_NOT_EQUAL;
-		}else if(Comparator.GREATER_THAN == comp){
-			return OPERATOR_SQL_GREATER_THAN;
-		}else if(Comparator.LESS_THAN == comp){
-			return OPERATOR_SQL_LESS_THAN;
-		}else if(Comparator.GREATER_THAN_OR_EQUALS == comp){
-			return OPERATOR_SQL_GREATER_THAN_OR_EQUALS;
-		}else if(Comparator.LESS_THAN_OR_EQUALS == comp){
-			return OPERATOR_SQL_LESS_THAN_OR_EQUALS;
-		}else if(Comparator.IN == comp){
-			return OPERATOR_SQL_IN;
-		}else{
-			throw new IllegalArgumentException("Unsupported Comparator: "+comp);
-		}
-	}
-	
 
 }

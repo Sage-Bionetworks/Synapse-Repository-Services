@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS `JDONODE` (
   `CREATED_BY` bigint(20) NOT NULL,
   `CREATED_ON` bigint(20) NOT NULL,
   `CURRENT_REV_NUM` bigint(20) DEFAULT NULL,
-  `DESCRIPTION` mediumblob DEFAULT NULL,
   `ETAG` char(36) NOT NULL,
   `NAME` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
   `NODE_TYPE` ENUM('project', 'folder', 'link','file','table','entityview','dockerrepo') NOT NULL,

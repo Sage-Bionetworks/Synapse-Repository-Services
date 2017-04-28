@@ -7,6 +7,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +29,8 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -37,7 +41,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Autowired
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -48,6 +52,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String GROUP_ID_PARAM_NAME     = "groupId";
 	private static final String MEMBER_ID_PARAM_NAME    = "memberId";
+	
+	private static final String SELECT_MEMBER_IDS = 
+			"SELECT "+COL_GROUP_MEMBERS_MEMBER_ID+
+			" FROM "+TABLE_GROUP_MEMBERS+
+			" WHERE "+COL_GROUP_MEMBERS_GROUP_ID+" = ?";
 	
 	private static final String SELECT_DIRECT_MEMBERS_OF_GROUP = 
 			"SELECT ug.* FROM "+SqlConstants.TABLE_USER_GROUP+" ug"+
@@ -93,6 +102,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	+ " FROM "+ TABLE_USER_GROUP +" LEFT OUTER JOIN "+TABLE_GROUP_MEMBERS
 		+ " ON "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" = "+TABLE_GROUP_MEMBERS+"."+COL_GROUP_MEMBERS_GROUP_ID
 	+ " WHERE "+TABLE_USER_GROUP+"."+COL_USER_GROUP_ID +" IN ( :"+IDS_PARAM+" )";
+
+	private static final String SQL_COUNT_MEMBERS = "SELECT COUNT(DISTINCT "+COL_GROUP_MEMBERS_MEMBER_ID+")"
+			+ " FROM "+TABLE_GROUP_MEMBERS
+			+ " WHERE "+COL_GROUP_MEMBERS_GROUP_ID+" = :"+GROUP_ID_PARAM_NAME
+			+ " AND "+COL_GROUP_MEMBERS_MEMBER_ID+ " IN ( :"+IDS_PARAM+" )";
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	
@@ -220,7 +234,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		params.addValue(IDS_PARAM, principalIds);
 		params.addValue(LIMIT_PARAM, limit);
 		params.addValue(OFFSET_PARAM, offset);
-		results.addAll(namedParameterJdbcTemplate.queryForList(SQL_GET_ALL_INDIVIDUALS, params, String.class));
+		results.addAll(namedJdbcTemplate.queryForList(SQL_GET_ALL_INDIVIDUALS, params, String.class));
 		return results;
 	}
 
@@ -232,6 +246,30 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(IDS_PARAM, principalIds);
-		return namedParameterJdbcTemplate.queryForObject(SQL_GET_COUNT_ALL_INDIVIDUALS, params, Long.class);
+		return namedJdbcTemplate.queryForObject(SQL_GET_COUNT_ALL_INDIVIDUALS, params, Long.class);
+	}
+
+	@Override
+	public boolean areMemberOf(String groupId, Set<String> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return false;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(IDS_PARAM, userIds);
+		params.addValue(GROUP_ID_PARAM_NAME, groupId);
+		Integer count = namedJdbcTemplate.queryForObject(SQL_COUNT_MEMBERS, params, Integer.class);
+		return count.equals(userIds.size());
+	}
+
+	@Override
+	public Set<Long> getMemberIds(Long teamId) {
+		ValidateArgument.required(teamId, "teamId");
+		final HashSet<Long> results = new HashSet<Long>();
+		jdbcTemplate.query(SELECT_MEMBER_IDS, new RowCallbackHandler(){
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				results.add(rs.getLong(COL_GROUP_MEMBERS_MEMBER_ID));
+			}}, teamId);
+		return results;
 	}
 }

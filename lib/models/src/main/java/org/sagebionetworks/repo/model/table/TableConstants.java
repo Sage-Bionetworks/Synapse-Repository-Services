@@ -1,14 +1,5 @@
 package org.sagebionetworks.repo.model.table;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_ENTITY_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_TYPE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ENTITY_REPLICATION_TABLE;
-import static org.sagebionetworks.repo.model.table.TableConstants.PARENT_ID_PARAMETER_NAME;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -158,8 +149,18 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_FILE_ID +" bigint(20) DEFAULT NULL,"
-			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+"),"
-			+ "INDEX ("+ENTITY_REPLICATION_COL_PARENT_ID+")"
+			+ "PRIMARY KEY("+ENTITY_REPLICATION_COL_ID+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_VERSION+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_CRATED_BY+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_CRATED_ON+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_ETAG+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_NAME+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_TYPE+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_PARENT_ID+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_BENEFACTOR_ID+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_PROJECT_ID+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_MODIFIED_BY+")"
+			+ ", INDEX ("+ENTITY_REPLICATION_COL_MODIFIED_ON+")"
 			+ ")";
 	public final static String ENTITY_REPLICATION_DELETE_ALL = "DELETE FROM "+ENTITY_REPLICATION_TABLE+" WHERE "+ENTITY_REPLICATION_COL_ID+" = ?";
 	
@@ -224,12 +225,15 @@ public class TableConstants {
 		ANNOTATION_TYPES = builder.toString();
 	}
 	
-	public static final String ANNOTATION_REPLICATION_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS "+ANNOTATION_REPLICATION_TABLE+"("
+	public static final String ANNOTATION_REPLICATION_TABLE_CREATE = 
+			"CREATE TABLE IF NOT EXISTS "+ANNOTATION_REPLICATION_TABLE+"("
 			+ ANNOTATION_REPLICATION_COL_ENTITY_ID+" bigint(20) NOT NULL,"
 			+ ANNOTATION_REPLICATION_COL_KEY+" varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
 			+ ANNOTATION_REPLICATION_COL_TYPE+" ENUM("+ANNOTATION_TYPES+") NOT NULL,"
 			+ ANNOTATION_REPLICATION_COL_VALUE+" varchar(500) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
 			+ "PRIMARY KEY("+ANNOTATION_REPLICATION_COL_ENTITY_ID+","+ANNOTATION_REPLICATION_COL_KEY+","+ANNOTATION_REPLICATION_COL_TYPE+"),"
+			+ "INDEX ("+ANNOTATION_REPLICATION_COL_ENTITY_ID+","+ANNOTATION_REPLICATION_COL_KEY+"),"
+			+ "INDEX ("+ANNOTATION_REPLICATION_COL_VALUE+"),"
 			+" CONSTRAINT `ENTITY_ID_FK` FOREIGN KEY ("+ANNOTATION_REPLICATION_COL_ENTITY_ID+") REFERENCES "+ENTITY_REPLICATION_TABLE+" ("+ENTITY_REPLICATION_COL_ID+") ON DELETE CASCADE "
 			+ ")";
 	

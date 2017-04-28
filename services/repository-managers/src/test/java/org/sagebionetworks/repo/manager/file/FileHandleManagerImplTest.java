@@ -46,7 +46,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordBatch;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -1251,7 +1251,7 @@ public class FileHandleManagerImplTest {
 		fileHandles.put("2", fileHandle);
 		when(mockFileHandleDao.getAllFileHandlesBatch(any(List.class))).thenReturn(fileHandles);
 		Long newId = 789L;
-		when(mockIdGenerator.generateNewId(TYPE.FILE_IDS)).thenReturn(newId );
+		when(mockIdGenerator.generateNewId(IdType.FILE_IDS)).thenReturn(newId );
 
 		Thread.sleep(1000);
 

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -79,7 +80,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		DBOQuizResponse dbo = new DBOQuizResponse();
 		QuizResponseUtils.copyDtoToDbo(dto, passingRecord, dbo);
 		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
+			dbo.setId(idGenerator.generateNewId(IdType.QUIZ_RESPONSE_ID));
 		}
 		dbo = basicDao.createNew(dbo);
 		QuizResponse result = QuizResponseUtils.copyDboToDto(dbo);

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
@@ -62,12 +63,19 @@ public interface TeamManager {
 	/**
 	 * 
 	 * @param teamId
+	 * @return
+	 */
+	public Count countMembers(String teamId);
+	/**
+	 * 
+	 * @param teamId
 	 * @param memberIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
 	public ListWrapper<TeamMember> listMembers(List<Long> teamIds, List<Long> memberIds) throws DatastoreException, NotFoundException;
+	
 	/**
 	 * 
 	 * @param teamId

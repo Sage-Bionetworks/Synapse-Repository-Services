@@ -27,11 +27,6 @@
 	<bean id="uploadDaemonStatusDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDaemonStatusDaoImpl" />
 
-	<bean id="referenceDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
-	<bean id="dboReferenceDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
-
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 		
@@ -288,7 +283,6 @@
 	<!-- DAO for Evaluation objects -->
 	<bean id="evaluationDAO" class="org.sagebionetworks.evaluation.dao.EvaluationDAOImpl"
 		depends-on="idGenerator" />
-	<bean id="participatnDAO" class="org.sagebionetworks.evaluation.dao.ParticipantDAOImpl" />
 	<bean id="submissionDAO" class="org.sagebionetworks.evaluation.dao.SubmissionDAOImpl"
 		depends-on="idGenerator" />
 	<bean id="evaluationSubmissionsDAO" class="org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAOImpl"
@@ -344,4 +338,12 @@
 	<bean id="throttleRulesDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.throttle.DBOThrottleRulesDAOImpl" />
 
+	<!-- DAO for DataAccessRequest Feature -->
+	<bean id="researchProjectDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
+	<bean id="dataAccessRequestDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequestDAOImpl" />
+	<bean id="dataAccessSubmissionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionDAOImpl" />
+	
 </beans>

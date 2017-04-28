@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
@@ -107,7 +106,7 @@ public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public ChallengeTeam create(ChallengeTeam dto) throws DatastoreException {
 		validateChallengeTeam(dto);
 		DBOChallengeTeam dbo = copyDTOtoDBO(dto);
-		dbo.setId(idGenerator.generateNewId(TYPE.CHALLENGE_TEAM_ID));
+		dbo.setId(idGenerator.generateNewId(IdType.CHALLENGE_TEAM_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		try {
 			DBOChallengeTeam created = basicDao.createNew(dbo);

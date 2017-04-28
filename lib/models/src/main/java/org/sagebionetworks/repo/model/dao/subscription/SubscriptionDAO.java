@@ -34,11 +34,34 @@ public interface SubscriptionDAO {
 	 * @param limit
 	 * @param offset
 	 * @param objectType
+	 * @return
+	 */
+	public SubscriptionPagedResults getAllSubscriptions(String subscriberId, Long limit,
+			Long offset, SubscriptionObjectType objectType);
+
+	/**
+	 * Get all thread subscriptions for a given subscriber.
+	 * 
+	 * @param subscriberId
+	 * @param limit
+	 * @param offset
 	 * @param projectIds
 	 * @return
 	 */
-	public SubscriptionPagedResults getAll(String subscriberId, Long limit,
-			Long offset, SubscriptionObjectType objectType, Set<Long> projectIds);
+	public SubscriptionPagedResults getAllThreadSubscriptions(String subscriberId, Long limit, Long offset,
+			Set<Long> projectIds);
+
+	/**
+	 * Get all forum subscriptions for a given subscriber.
+	 * 
+	 * @param subscriberId
+	 * @param limit
+	 * @param offset
+	 * @param projectIds
+	 * @return
+	 */
+	public SubscriptionPagedResults getAllForumSubscriptions(String subscriberId, Long limit, Long offset,
+			Set<Long> projectIds);
 
 	/**
 	 * Get subscriptions for a subscriber limited by a given list of topic.
@@ -48,8 +71,26 @@ public interface SubscriptionDAO {
 	 * @param objectIds
 	 * @return
 	 */
-	public SubscriptionPagedResults getSubscriptionList(String subscriberId,
+	public SubscriptionPagedResults listSubscriptions(String subscriberId,
 			SubscriptionObjectType objectType, List<String> objectIds);
+
+	/**
+	 *  Get subscriptions for a subscriber limited by a given list of forumIds.
+	 * 
+	 * @param subscriberId
+	 * @param forumIds
+	 * @return
+	 */
+	public SubscriptionPagedResults listSubscriptionForForum(String subscriberId, List<String> forumIds);
+
+	/**
+	 *  Get subscriptions for a subscriber limited by a given list of threadIds.
+	 * 
+	 * @param subscriberId
+	 * @param threadIds
+	 * @return
+	 */
+	public SubscriptionPagedResults listSubscriptionForThread(String subscriberId, List<String> threadIds);
 
 	/**
 	 * Delete a subscription
@@ -86,13 +127,20 @@ public interface SubscriptionDAO {
 			SubscriptionObjectType objectType);
 
 	/**
-	 * Retrieve all projects that a user has subscriptions to
+	 * Retrieve all projects that a user has thread subscriptions to
 	 * 
 	 * @param userId
-	 * @param objectType
 	 * @return
 	 */
-	public Set<Long> getAllProjects(String userId, SubscriptionObjectType objectType);
+	public Set<Long> getAllProjectsUserHasThreadSubs(String subscriberId);
+
+	/**
+	 * Retrieve all projects that a user has forum subscriptions to
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public Set<Long> getAllProjectsUserHasForumSubs(String subscriberId);
 
 	/**
 	 * Create a batch of new Subscriptions to a single topic

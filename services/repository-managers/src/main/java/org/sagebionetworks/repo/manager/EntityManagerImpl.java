@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager.FileHandleReason;
 import org.sagebionetworks.repo.manager.file.MultipartUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -14,6 +15,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -21,22 +24,32 @@ import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Lists;
 
 /**
  *
  */
 public class EntityManagerImpl implements EntityManager {
 
+	public static final Direction DEFAULT_SORT_DIRECTION = Direction.ASC;
+	public static final SortBy DEFAULT_SORT_BY = SortBy.NAME;
+	public static final String ROOT_ID = StackConfiguration.getRootFolderEntityIdStatic();
+	public static final List<EntityType> PROJECT_ONLY = Lists.newArrayList(EntityType.project);
+	
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
@@ -52,17 +65,6 @@ public class EntityManagerImpl implements EntityManager {
 	 */
 	public void setAllowCreationOfOldEntities(boolean allowCreationOfOldEntities) {
 		this.allowCreationOfOldEntities = allowCreationOfOldEntities;
-	}
-
-	public EntityManagerImpl() {
-	}
-	
-	public EntityManagerImpl(NodeManager nodeManager,
-			EntityPermissionsManager permissionsManager, UserManager userManager) {
-		super();
-		this.nodeManager = nodeManager;
-		this.entityPermissionsManager = permissionsManager;
-		this.userManager = userManager;
 	}
 
 	@WriteTransaction
@@ -424,24 +426,6 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public <T extends Entity> List<T> getEntityChildren(UserInfo userInfo,
-			String parentId, Class<? extends T> childrenClass)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		List<T> resultSet = new ArrayList<T>();
-		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
-		Iterator<Node> it = children.iterator();
-		EntityType type = EntityTypeUtils.getEntityTypeForClass(childrenClass);
-		while (it.hasNext()) {
-			Node child = it.next();
-			if (child.getNodeType() == type) {
-				resultSet.add(this.getEntity(userInfo, child.getId(),
-						childrenClass));
-			}
-		}
-		return resultSet;
-	}
-
-	@Override
 	public EntityType getEntityType(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
@@ -519,63 +503,6 @@ public class EntityManagerImpl implements EntityManager {
 		// pass through
 		return nodeManager.getNodePathAsAdmin(entityId);
 	}
-
-	/**
-	 * @param userInfo
-	 * @param entityId
-	 * @param versionNumber
-	 * @return the headers of the entities which refer to the given entityId,
-	 *         filtered by the access permissions of 'userInfo'
-	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo,
-			String entityId, Integer versionNumber, Long offset,
-			Long limit) throws NotFoundException, DatastoreException {
-		// pass through
-
-		List<EntityHeader> results = nodeManager.getEntityReferences(
-				userInfo, entityId, versionNumber, offset, limit);
-		// Note: This is a hack that we currently depend on for Mike's demo.
-		// In the demo we want to show that one dataset is derived from another
-		// dataset. The current implementation.
-		// involves making a link entity as a child of the original dataset that
-		// points to the derived datasts.
-		// Lastly, from the derived datast's page we want to show the original
-		// datast in the "Referenced By" window.
-		// In order for this to work we must replace the link entity with its
-		// PARENT! This is a total hack that cause
-		// weird behavior for other scenarios but for now we must leave it in
-		// place. The plan to address this issue
-		// is with the new Provenance feature. Once that feature is in place the
-		// derived dataset will have the following
-		// property:
-		// Reference derivedFrom
-		// This propery will then point to the original dataset. At that point
-		// this method will work without this hack!
-
-		if (results != null) {
-			List<EntityHeader> list = results;
-			for (int i = 0; i < list.size(); i++) {
-				EntityHeader header = list.get(i);
-				EntityType type = EntityType.valueOf(header.getType());
-				if (EntityType.link == type) {
-					try {
-						List<EntityHeader> path = nodeManager.getNodePath(
-								userInfo, header.getId());
-						if (path != null && path.size() > 1) {
-							// Get the parent path
-							EntityHeader parent = path.get(path.size() - 2);
-							list.set(i, parent);
-						}
-					} catch (UnauthorizedException e) {
-						// This should not occur
-						throw new DatastoreException(e);
-					}
-
-				}
-			}
-		}
-		return results;
-	}
 	
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
@@ -647,6 +574,43 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getEntityIdForAlias(alias);
 	}
 
+	@Override
+	public EntityChildrenResponse getChildren(UserInfo user,
+			EntityChildrenRequest request) {
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(request, "EntityChildrenRequest");
+		if(request.getParentId() == null){
+			// Null parentId is used to list projects.
+			request.setParentId(ROOT_ID);
+			request.setIncludeTypes(PROJECT_ONLY);
+		}
+		ValidateArgument.required(request.getIncludeTypes(), "EntityChildrenRequest.includeTypes");
+		if(request.getIncludeTypes().isEmpty()){
+			throw new IllegalArgumentException("EntityChildrenRequest.includeTypes must include at least one type");
+		}
+		if(request.getSortBy() == null){
+			request.setSortBy(DEFAULT_SORT_BY);
+		}
+		if(request.getSortDirection() == null){
+			request.setSortDirection(DEFAULT_SORT_DIRECTION);
+		}
+		if(!ROOT_ID.equals(request.getParentId())){
+			// Validate the caller has read access to the parent
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, user));
+		}
 
+		// Find the children of this entity that the caller cannot see.
+		Set<Long> childIdsToExclude = entityPermissionsManager.getNonvisibleChildren(user, request.getParentId());
+		NextPageToken nextPage = new NextPageToken(request.getNextPageToken());
+		List<EntityHeader> page = nodeManager.getChildren(
+				request.getParentId(), request.getIncludeTypes(),
+				childIdsToExclude, request.getSortBy(), request.getSortDirection(), nextPage.getLimitForQuery(),
+				nextPage.getOffset());
+		EntityChildrenResponse response = new EntityChildrenResponse();
+		response.setPage(page);
+		response.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(page));
+		return response;
+	}
 
 }

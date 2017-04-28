@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -113,15 +115,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException
 	 */
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Get all of the children nodes of a given node.
-	 * @param id
-	 * @return the child nodes
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get all of the version numbers for this node.
@@ -268,15 +261,6 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the child node of a node by name
-	 * 
-	 * @param nodeId
-	 * @param childName
-	 * @return
-	 */
-	public EntityHeader getEntityHeaderByChildName(String nodeId, String childName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lookup a node id using its unique path.
@@ -449,7 +433,7 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<ProjectHeader> getProjectHeaders(UserInfo userInfo, UserInfo userToGetInfoFor, Team teamToFetch,
+	public List<ProjectHeader> getProjectHeaders(Long userId, Set<Long> projectIds,
 			ProjectListType type, ProjectListSortColumn sortColumn, SortDirection sortDirection, Long limit, Long offset);
 
 
@@ -475,24 +459,6 @@ public interface NodeDAO {
 	 *         grandchildren etc
 	 */
 	List<Long> getAllContainerIds(Long parentId);
-	
-
-	/**
-	 * Stream over all Nodes contained within the passed hierarchy in order of node ID.
-	 * Note: This method involves streaming over the results of a single query.  The
-	 * results will not be kept in memory.
-	 * 
-	 * @param containers must be the full list of container node ID (projects and folders). See: {@link #getAllContainerIds(Long)}
-	 * @param callback hierarchy data of each node within the containers.
-	 */
-	void streamOverHierarchy(List<Long> containers, Callback<NodeHierarchy> callback);
-	
-	/**
-	 * Batch update a given hierarchy.
-	 * 
-	 * @param batch
-	 */
-	void batchUpdateHierarchy(ArrayList<NodeHierarchy> batch);
 	
 	/**
 	 * Lookup a nodeId using its alias.
@@ -525,4 +491,38 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<EntityDTO> getEntityDTOs(List<String> ids, int maxAnnotationChars);
+
+	/**
+	 * 
+	 * @param parentId
+	 * @param includeTypes
+	 * @param childIdsToExclude
+	 * @param sortBy
+	 * @param sortDirection
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<EntityHeader> getChildren(String parentId,
+			List<EntityType> includeTypes, Set<Long> childIdsToExclude,
+			SortBy sortBy, Direction sortDirection, long limit, long offset);
+
+	/**
+	 * Count the number of children in this container.
+	 * 
+	 * @param parentId
+	 * @return
+	 */
+	public long getChildCount(String parentId);
+
+	/**
+	 * A single page of IDs and types for a given parentIds.
+	 * 
+	 * @param parentId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<NodeIdAndType> getChildren(String parentId, long limit,
+			long offset);
 }

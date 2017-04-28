@@ -159,12 +159,12 @@ public class NodeManagerImplAutoWiredTest {
 			ACL_SCHEME expectedSchem = entityBootstrapper.getChildAclSchemeForPath(parentPaht);
 			if(ACL_SCHEME.INHERIT_FROM_PARENT == expectedSchem){
 				// This node should inherit from its parent
-				String benefactorId = inheritanceDAO.getBenefactor(id);
-				String parentBenefactor = inheritanceDAO.getBenefactor(newNode.getParentId());
+				String benefactorId = inheritanceDAO.getBenefactorCached(id);
+				String parentBenefactor = inheritanceDAO.getBenefactorCached(newNode.getParentId());
 				assertEquals("This node should inherit from its parent",parentBenefactor, benefactorId);
 			}else if(ACL_SCHEME.GRANT_CREATOR_ALL == expectedSchem){
 				// This node should inherit from itself
-				String benefactorId = inheritanceDAO.getBenefactor(id);
+				String benefactorId = inheritanceDAO.getBenefactorCached(id);
 				assertEquals("This node should inherit from its parent",id, benefactorId);
 				AccessControlList acl = aclDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);
@@ -521,104 +521,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(newProjectId, childFromDB.getParentId());
 	}
 	
-	/**
-	 * Verify that correct flow of control happens when update happens for 
-	 * parentId change
-	 * @throws Exception
-	 */
-	@Test
-	public void testParentIdUpdateFlowOfControl() throws Exception {
-		//make a root node
-		Node node = new Node();
-		node.setName("root");
-		node.setNodeType(EntityType.project);
-		String rootId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(rootId);
-		nodesToDelete.add(rootId);
-		
-		//make a child node
-		node = new Node();
-		node.setName("child");
-		node.setNodeType(EntityType.table);
-		node.setParentId(rootId);
-		String childId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(childId);
-		nodesToDelete.add(childId);
-		
-		//make a newProject node
-		node = new Node();
-		node.setName("newProject");
-		node.setNodeType(EntityType.project);
-		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(newProjectId);
-		nodesToDelete.add(newProjectId);
-		
-		//get the child node and verify the state of it's parentId
-		Node fetchedChild = nodeManager.get(adminUserInfo, childId);
-		assertNotNull(fetchedChild);
-		assertEquals(childId, fetchedChild.getId());
-		assertEquals(rootId, fetchedChild.getParentId());
-		
-		//root and child nodes are in correct state
-		
-		//I need a NodeManagerImpl with the mocked dependencies so behavior
-		//can be verified
-		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
-		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-		when(mockNodeDao.getNode(childId)).thenReturn(nodeManager.get(adminUserInfo, childId));
-		
-		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
-				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
-		
-		//set child's parentId to the newProject
-		fetchedChild.setParentId(newProjectId);
-		nodeManagerWMocks.update(adminUserInfo, fetchedChild);
-		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId, false);
-		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
-	}
-	
-	/**
-	 * Verify that correct flow of control happens when update happens  
-	 * that is not a parentId change
-	 * @throws Exception
-	 */
-	@Test
-	public void testNonParentIdUpdateFlowOfControl() throws Exception {
-		//make a root node
-		Node node = new Node();
-		node.setName("root");
-		node.setNodeType(EntityType.project);
-		String rootId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(rootId);
-		nodesToDelete.add(rootId);
-		
-		//make a child node
-		node = new Node();
-		node.setName("child");
-		node.setNodeType(EntityType.table);
-		node.setParentId(rootId);
-		String childId = nodeManager.createNewNode(node, adminUserInfo);
-		assertNotNull(childId);
-		nodesToDelete.add(childId);
-		
-		//I need a NodeManagerImpl with the mocked dependencies so behavior
-		//can be verified
-		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
-		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
-		when(mockNodeDao.getNode(childId)).thenReturn(nodeManager.get(adminUserInfo, childId));
 
-		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, aclDAO, entityBootstrapper,
-				mockNodeInheritanceManager, null, activityManager, projectSettingsManager);
-		
-		//make a non parentId change to the child
-		Node fetchedNode = nodeManager.get(adminUserInfo, childId);
-		fetchedNode.setName("notTheChildName");
-		when(mockNodeDao.getParentId(anyString())).thenReturn(new String(fetchedNode.getParentId()));
-		nodeManagerWMocks.update(adminUserInfo, fetchedNode);
-		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString(), anyBoolean());
-		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString(), anyBoolean());
-	}
-	
 	@Test
 	public void testPLFM_1533() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		// Create a project

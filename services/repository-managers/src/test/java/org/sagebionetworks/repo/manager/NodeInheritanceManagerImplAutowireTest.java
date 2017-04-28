@@ -143,95 +143,95 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testNodeParentChanged() throws Exception {
 		// Validate the starting conditions
-		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(aOverrideId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(aOverrideId, benefactorId);
 		// Move aOverride to under A
 		nodeInheritanceManager.nodeParentChanged(aOverrideId, aId);
 		// Since aOverride is a benefactor, this shouldn't change anything
-		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(aOverrideId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(aOverrideId, benefactorId);
 	}
 	
 	@Test
 	public void testNodeParentChangedDoNotSkipBenefactor() throws Exception {
 		// Validate the starting conditions
-		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(aOverrideId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(aOverrideId, benefactorId);
 		// Move aOverride to under A
 		nodeInheritanceManager.nodeParentChanged(aOverrideId, aId, false);
 		// aOverride's benefactor should be changed
-		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(rootId, benefactorId);
 	}
 
 	@Test
 	public void testSetNodeToInheritFromItself() throws Exception{
 		// Validate the starting conditions
-		String benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
+		String benefacrorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefacrorId);
 		// Since the root already inherits from itself calling this should be
 		// a no-opp.
 		nodeInheritanceManager.setNodeToInheritFromItself(rootId);
-		benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefacrorId);
 		
 		// Make sure the rest of the nodes are as we expect
-		benefacrorId = nodeInheritanceDao.getBenefactor(aId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals(rootId, benefacrorId);
 		// A.inherits
-		benefacrorId = nodeInheritanceDao.getBenefactor(aInheritsId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aInheritsId);
 		assertEquals(rootId, benefacrorId);
 		// A.inherits.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aInheritsChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aInheritsChildId);
 		assertEquals(rootId, benefacrorId);
 		// A.override
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(aOverrideId, benefacrorId);
 		// A.overrride.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(aOverrideId, benefacrorId);
 		// B
-		benefacrorId = nodeInheritanceDao.getBenefactor(bId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(bId);
 		assertEquals(rootId, benefacrorId);
 	
 		// Now set A to override
 		nodeInheritanceManager.setNodeToInheritFromItself(aId);
 		// Now check the results
 		// A
-		benefacrorId = nodeInheritanceDao.getBenefactor(aId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals("A should now be its own benefacor", aId, benefacrorId);
 		// A.inherits
-		benefacrorId = nodeInheritanceDao.getBenefactor(aInheritsId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aInheritsId);
 		assertEquals("A.inherits should now be a beneficary of A", aId, benefacrorId);
 		// A.inherits.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aInheritsChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aInheritsChildId);
 		assertEquals("A.inherits.child should now be a beneficary of A", aId, benefacrorId);
 		// A.override
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals("A.override should not have changed and should still be its own benefactor",aOverrideId, benefacrorId);
 		// A.override.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals("A.override.child should not have changed and should still be inhertiting from its own parent",aOverrideId, benefacrorId);
 		// B
-		benefacrorId = nodeInheritanceDao.getBenefactor(bId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(bId);
 		assertEquals("B should not have been affected by the change to a sibling.", rootId , benefacrorId);
 	}
 
@@ -239,28 +239,28 @@ public class NodeInheritanceManagerImplAutowireTest {
 	public void testSetNodeToInheritFromItselfDoNotSkipBenefactor() throws Exception{
 
 		// Validate the starting conditions
-		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(aOverrideId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(aOverrideId, benefactorId);
 
 		// This should set the benefactor for all the descendants
 		nodeInheritanceManager.setNodeToInheritFromItself(rootId, false);
-		benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aInheritsId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aInheritsId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aInheritsChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aInheritsChildId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals(rootId, benefactorId);
-		benefactorId = nodeInheritanceDao.getBenefactor(bId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(bId);
 		assertEquals(rootId, benefactorId);
 	}
 
@@ -268,38 +268,38 @@ public class NodeInheritanceManagerImplAutowireTest {
 	public void testSetNodeToInheritFromNearestParent() throws Exception{
 		// First make sure we can change the root which has a null parent
 		// nodeInheritanceManager.setNodeToInheritFromNearestParent(rootId);
-		String benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
+		String benefacrorId = nodeInheritanceDao.getBenefactorCached(rootId);
 		assertEquals("The root should still inherit from itself",benefacrorId, rootId );
 		
 		// Now set Node A to override
 		// Now set A to override
 		nodeInheritanceManager.setNodeToInheritFromItself(aId);
 		// This should not effect these children
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals("A.override should not have changed and should still be its own benefactor",aOverrideId, benefacrorId);
 		// A.override.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals("A.override.child should not have changed and should still be inhertiting from its own parent",aOverrideId, benefacrorId);
 		
 		// Now restore A.override to inherit from its nearest parent
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(aOverrideId);
 		// Check A.override
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals("A.override should now inherit from A", aId, benefacrorId);
 		// Check A.override.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals("A.override should now inherit from A", aId, benefacrorId);
 		
 		// Now set node a back to inherit from its parent
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(aId);
 		// Check A
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
 		// Check A.override
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideId);
 		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
 		// Check A.override.child
-		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		benefacrorId = nodeInheritanceDao.getBenefactorCached(aOverrideChildId);
 		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
 	}
 	
@@ -315,7 +315,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testDatasetParentIDChangeWhenAllInheritFromRoot() throws Exception {
 		//projectOne should inherit from itself
-		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(benefactorId, projectOneId);
 		
 		//now need to build up heirarchy for the test
@@ -334,7 +334,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(benefactorId, projectOneId);
 		assertEquals(projectOneId, nextNode.getParentId());
 		nodesToDelete.add(projectTwoId);
@@ -345,7 +345,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(benefactorId, projectOneId);
 		assertEquals(projectTwoId, nextNode.getParentId());
 		nodesToDelete.add(datasetId);
@@ -356,7 +356,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(datasetId);
 		layerId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerId);
-		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerId);
 		assertEquals(benefactorId, projectOneId);
 		assertEquals(datasetId, nextNode.getParentId());
 		nodesToDelete.add(layerId);
@@ -373,7 +373,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		projectThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nextNode = null;
 		
@@ -387,21 +387,21 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//now verify all entities have the correct state
 		
 		//check projectOne
-		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(projectOneId, benefactorId);
 		
 		//check projectTwo
 		nodeToCheck = nodeManager.get(adminUserInfo, projectTwoId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectOneId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(projectOneId, benefactorId);
 		nodeToCheck = null;
 		
 		//check projectThree
 		nodeToCheck = nodeManager.get(adminUserInfo, projectThreeId);
 		assertNotNull(nodeToCheck);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -409,7 +409,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, datasetId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectThreeId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -417,7 +417,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, layerId);
 		assertNotNull(nodeToCheck);
 		assertEquals(datasetId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;	
 	}
@@ -435,7 +435,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testDatasetParentIDChangeWhenSomeInheritFromRoot() throws Exception {
 		//projectOne should inherit from itself
-		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(benefactorId, projectOneId);
 		
 		//now need to build up heirarchy for the test
@@ -455,7 +455,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(benefactorId, projectOneId);
 		assertEquals(projectOneId, nextNode.getParentId());
 		nodesToDelete.add(projectTwoId);
@@ -466,7 +466,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(benefactorId, projectOneId);
 		assertEquals(projectTwoId, nextNode.getParentId());
 		nodesToDelete.add(datasetId);
@@ -477,7 +477,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(datasetId);
 		layerId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(layerId);
-		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerId);
 		assertEquals(layerId, benefactorId);
 		assertEquals(datasetId, nextNode.getParentId());
 		nodesToDelete.add(layerId);
@@ -494,7 +494,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		projectThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nextNode = null;
 		
@@ -508,21 +508,21 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//now verify all entities have the correct state
 		
 		//check projectOne
-		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(projectOneId, benefactorId);
 		
 		//check projectTwo
 		nodeToCheck = nodeManager.get(adminUserInfo, projectTwoId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectOneId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(projectOneId, benefactorId);
 		nodeToCheck = null;
 		
 		//check projectThree
 		nodeToCheck = nodeManager.get(adminUserInfo, projectThreeId);
 		assertNotNull(nodeToCheck);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -530,7 +530,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, datasetId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectThreeId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -538,7 +538,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, layerId);
 		assertNotNull(nodeToCheck);
 		assertEquals(datasetId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerId);
 		assertEquals(layerId, benefactorId);
 		nodeToCheck = null;	
 	}
@@ -557,7 +557,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testDatasetParentIDChangeWhenDatasetHasTreeBelowIt() throws Exception {
 		//projectOne should inherit from itself
-		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(benefactorId, projectOneId);
 		
 		//now need to build up heirarchy for the test
@@ -578,7 +578,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectTwoId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(projectTwoId, benefactorId);
 		assertEquals(projectOneId, nextNode.getParentId());
 		nodesToDelete.add(projectTwoId);
@@ -589,7 +589,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(projectTwoId, benefactorId);
 		assertEquals(projectTwoId, nextNode.getParentId());
 		nodesToDelete.add(datasetId);
@@ -600,7 +600,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(datasetId);
 		layerOneId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(layerOneId);
-		benefactorId = nodeInheritanceDao.getBenefactor(layerOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerOneId);
 		assertEquals(layerOneId, benefactorId);
 		assertEquals(datasetId, nextNode.getParentId());
 		nodesToDelete.add(layerOneId);
@@ -611,7 +611,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(datasetId);
 		layerTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerTwoId);
-		benefactorId = nodeInheritanceDao.getBenefactor(layerTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerTwoId);
 		assertEquals(projectTwoId, benefactorId);
 		assertEquals(datasetId, nextNode.getParentId());
 		nodesToDelete.add(layerTwoId);		
@@ -628,7 +628,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		projectThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nextNode = null;
 		
@@ -642,21 +642,21 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//now verify all entities have the correct state
 		
 		//check projectOne
-		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(projectOneId, benefactorId);
 		
 		//check projectTwo
 		nodeToCheck = nodeManager.get(adminUserInfo, projectTwoId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectOneId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectTwoId);
 		assertEquals(projectTwoId, benefactorId);
 		nodeToCheck = null;
 		
 		//check projectThree
 		nodeToCheck = nodeManager.get(adminUserInfo, projectThreeId);
 		assertNotNull(nodeToCheck);
-		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectThreeId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -664,7 +664,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, datasetId);
 		assertNotNull(nodeToCheck);
 		assertEquals(projectThreeId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 		
@@ -672,7 +672,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, layerOneId);
 		assertNotNull(nodeToCheck);
 		assertEquals(datasetId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(layerOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerOneId);
 		assertEquals(layerOneId, benefactorId);
 		nodeToCheck = null;	
 		
@@ -680,7 +680,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, layerTwoId);
 		assertNotNull(nodeToCheck);
 		assertEquals(datasetId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(layerTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(layerTwoId);
 		assertEquals(projectThreeId, benefactorId);
 		nodeToCheck = null;
 	}
@@ -697,7 +697,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testDatasetParentIDChangeWhenDatasetInheritsFromItself() throws Exception {
 		//projectOne should inherit from itself
-		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(benefactorId, projectOneId);
 		
 		//now need to build up heirarchy for the test
@@ -712,7 +712,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(projectOneId);
 		datasetId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(datasetId);
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(datasetId, benefactorId);
 		assertEquals(projectOneId, nextNode.getParentId());
 		nodesToDelete.add(datasetId);
@@ -728,7 +728,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		newProjectId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(newProjectId);
 		nodesToDelete.add(newProjectId);
-		benefactorId = nodeInheritanceDao.getBenefactor(newProjectId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(newProjectId);
 		assertEquals(newProjectId, benefactorId);
 		nextNode = null;
 		
@@ -742,18 +742,18 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//now verify all entities have correct state
 		
 		//check projectOne
-		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(projectOneId);
 		assertEquals(projectOneId, benefactorId);
 		
 		//check newProject
-		benefactorId = nodeInheritanceDao.getBenefactor(newProjectId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(newProjectId);
 		assertEquals(newProjectId, benefactorId);
 		
 		//check dataset
 		nodeToCheck = nodeManager.get(adminUserInfo, datasetId);
 		assertNotNull(nodeToCheck);
 		assertEquals(newProjectId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(datasetId);
 		assertEquals(datasetId, benefactorId);
 		nodeToCheck = null;
 	}
@@ -790,7 +790,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setNodeType(EntityType.folder);
 		rootFolderId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(rootFolderId);
-		String benefactorId = nodeInheritanceDao.getBenefactor(rootFolderId);
+		String benefactorId = nodeInheritanceDao.getBenefactorCached(rootFolderId);
 		assertEquals(rootFolderId, benefactorId);
 		nodesToDelete.add(rootFolderId);
 		
@@ -800,7 +800,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(rootFolderId);
 		folderTwoId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderTwoId);
-		benefactorId = nodeInheritanceDao.getBenefactor(folderTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderTwoId);
 		assertEquals(rootFolderId, benefactorId);
 		assertEquals(rootFolderId, nextNode.getParentId());
 		nodesToDelete.add(folderTwoId);
@@ -811,7 +811,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(folderTwoId);
 		folderThreeId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderThreeId);
-		benefactorId = nodeInheritanceDao.getBenefactor(folderThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderThreeId);
 		assertEquals(rootFolderId, benefactorId);
 		assertEquals(folderTwoId, nextNode.getParentId());
 		nodesToDelete.add(folderThreeId);
@@ -822,7 +822,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(folderThreeId);
 		folderFourId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(folderFourId);
-		benefactorId = nodeInheritanceDao.getBenefactor(folderFourId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderFourId);
 		assertEquals(folderFourId, benefactorId);
 		assertEquals(folderThreeId, nextNode.getParentId());
 		nodesToDelete.add(folderFourId);
@@ -833,7 +833,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nextNode.setParentId(folderThreeId);
 		folderFiveId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderFiveId);
-		benefactorId = nodeInheritanceDao.getBenefactor(folderFiveId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderFiveId);
 		assertEquals(rootFolderId, benefactorId);
 		assertEquals(folderThreeId, nextNode.getParentId());
 		nodesToDelete.add(folderFiveId);
@@ -849,7 +849,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		newFolderId = nodeManager.createNewNode(nextNode, adminUserInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(newFolderId);
 		nodesToDelete.add(newFolderId);
-		benefactorId = nodeInheritanceDao.getBenefactor(newFolderId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(newFolderId);
 		assertEquals(newFolderId, benefactorId);
 		nextNode = null;
 		
@@ -863,18 +863,18 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//now verify all entities are in correct state
 		
 		//check rootFolder
-		benefactorId = nodeInheritanceDao.getBenefactor(rootFolderId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(rootFolderId);
 		assertEquals(rootFolderId, benefactorId);
 		
 		//check newFolder
-		benefactorId = nodeInheritanceDao.getBenefactor(newFolderId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(newFolderId);
 		assertEquals(newFolderId, benefactorId);
 		
 		//check folderTwo
 		nodeToCheck = nodeManager.get(adminUserInfo, folderTwoId);
 		assertNotNull(nodeToCheck);
 		assertEquals(newFolderId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(folderTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderTwoId);
 		assertEquals(newFolderId, benefactorId);
 		nodeToCheck = null;
 		
@@ -882,7 +882,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, folderThreeId);
 		assertNotNull(nodeToCheck);
 		assertEquals(folderTwoId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(folderThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderThreeId);
 		assertEquals(newFolderId, benefactorId);
 		nodeToCheck = null;
 		
@@ -890,7 +890,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, folderFourId);
 		assertNotNull(nodeToCheck);
 		assertEquals(folderThreeId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(folderFourId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderFourId);
 		assertEquals(folderFourId, benefactorId);
 		nodeToCheck = null;
 		
@@ -898,7 +898,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = nodeManager.get(adminUserInfo, folderFiveId);
 		assertNotNull(nodeToCheck);
 		assertEquals(folderThreeId, nodeToCheck.getParentId());
-		benefactorId = nodeInheritanceDao.getBenefactor(folderFiveId);
+		benefactorId = nodeInheritanceDao.getBenefactorCached(folderFiveId);
 		assertEquals(newFolderId, benefactorId);
 		nodeToCheck = null;
 	}

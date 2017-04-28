@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -66,7 +67,7 @@ public class DBOMembershipInvtnSubmissionTest {
 			IdGenerator idGenerator, 
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipInvtnSubmission invitation = new DBOMembershipInvtnSubmission();
-		invitation.setId(idGenerator.generateNewId());
+		invitation.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID));
 		invitation.setCreatedOn(System.currentTimeMillis());
 		invitation.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();

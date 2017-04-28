@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
@@ -15,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -29,13 +30,13 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
@@ -81,6 +82,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			"UPDATE "+SqlConstants.TABLE_USER_GROUP+
 			" SET "+SqlConstants.COL_USER_GROUP_E_TAG+"=:"+ETAG_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
+	
+	private static final String SELECT_IS_INDIVIDUAL = 
+			"SELECT "+COL_USER_GROUP_IS_INDIVIDUAL+
+			" FROM "+TABLE_USER_GROUP+
+			" WHERE "+COL_USER_GROUP_ID+" = :"+ID_PARAM_NAME;
 
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
@@ -163,7 +169,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		// Bootstraped users will have IDs already assigned.
 		if(dbo.getId() == null){
 			// We allow the ID generator to create all other IDs
-			dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ID));
+			dbo.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ID));
 		}
 		
 		try {
@@ -249,7 +255,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@WriteTransaction
 	public void bootstrapUsers() throws Exception {
 		// Reserver an ID well above the current
-		idGenerator.reserveId(3318977l, TYPE.PRINCIPAL_ID);
+		idGenerator.reserveId(3318977l, IdType.PRINCIPAL_ID);
 		
 		// Boot strap all users and groups
 		if (this.bootstrapPrincipals == null) {
@@ -301,6 +307,17 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		namedJdbcTemplate.update(UPDATE_ETAG_LIST, param);
+	}
+
+	@Override
+	public boolean isIndividual(Long principalId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, principalId);
+		try {
+			return namedJdbcTemplate.queryForObject(SELECT_IS_INDIVIDUAL, param, Boolean.class);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Principal ID "+principalId+" not found");
+		}
 	}
 
 }

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.ProjectStatsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -58,11 +60,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.message.TeamModificationMessage;
-import org.sagebionetworks.repo.model.message.TeamModificationType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -71,6 +69,7 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -109,9 +108,8 @@ public class TeamManagerImpl implements TeamManager {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private UserProfileManager userProfileManager;
-
 	@Autowired
-	private TransactionalMessenger transactionalMessenger;
+	private ProjectStatsManager projectStatsManager;
 
 	private static final String MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER = "Team must have at least one team manager.";
 	private List<BootstrapTeam> teamsToBootstrap;
@@ -121,44 +119,6 @@ public class TeamManagerImpl implements TeamManager {
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
 		this.teamsToBootstrap = teamsToBootstrap;
-	}
-	
-	public TeamManagerImpl() {}
-	
-	// for testing
-	public TeamManagerImpl(
-			AuthorizationManager authorizationManager,
-			TeamDAO teamDAO,
-			DBOBasicDao basicDao,
-			GroupMembersDAO groupMembersDAO,
-			UserGroupDAO userGroupDAO,
-			AccessControlListDAO aclDAO,
-			FileHandleManager fileHandlerManager,
-			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
-			UserManager userManager,
-			AccessRequirementDAO accessRequirementDAO,
-			PrincipalAliasDAO principalAliasDAO,
-			PrincipalManager principalManager,
-			UserProfileManager userProfileManager,
-			TransactionalMessenger transactionalMessenger
-			) {
-		this.authorizationManager = authorizationManager;
-		this.teamDAO = teamDAO;
-		this.basicDao = basicDao;
-		this.groupMembersDAO = groupMembersDAO;
-	
-		this.userGroupDAO = userGroupDAO;
-		this.aclDAO = aclDAO;
-		this.fileHandleManager = fileHandlerManager;
-		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
-		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
-		this.userManager = userManager;
-		this.accessRequirementDAO = accessRequirementDAO;
-		this.principalAliasDAO = principalAliasDAO;
-		this.principalManager = principalManager;
-		this.userProfileManager = userProfileManager;
-		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	public static void validateForCreate(Team team) {
@@ -354,14 +314,19 @@ public class TeamManagerImpl implements TeamManager {
 		return teamDAO.list(ids);
 	}
 
-	/**
-	 * 
-	 */
 	@Override
 	public PaginatedResults<TeamMember> listMembers(String teamId, long limit,
 			long offset) throws DatastoreException {
 		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
+	}
+	
+	@Override
+	public Count countMembers(String teamId) throws DatastoreException {
+		ValidateArgument.required(teamId, "teamId");
+		Count result = new Count();
+		result.setCount(teamDAO.getMembersCount(teamId));
+		return result;
 	}
 	
 	@Override
@@ -435,7 +400,7 @@ public class TeamManagerImpl implements TeamManager {
 	
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
-		List<Long> unmetRequirements = accessRequirementDAO.unmetAccessRequirements(
+		List<Long> unmetRequirements = accessRequirementDAO.getAllUnmetAccessRequirements(
 				Collections.singletonList(teamId), RestrictableObjectType.TEAM, memberUserInfo.getGroups(), 
 				Collections.singletonList(ACCESS_TYPE.PARTICIPATE));
 		return !unmetRequirements.isEmpty();
@@ -542,13 +507,8 @@ public class TeamManagerImpl implements TeamManager {
 
 		if (!alreadyInTeam) {
 			groupMembersDAO.addMembers(teamId, Collections.singletonList(principalId));
-			
-			TeamModificationMessage message = new TeamModificationMessage();
-			message.setObjectId(teamId);
-			message.setObjectType(ObjectType.TEAM);
-			message.setTeamModificationType(TeamModificationType.MEMBER_ADDED);
-			message.setMemberId(principalUserInfo.getId());
-			transactionalMessenger.sendModificationMessageAfterCommit(message);
+			// update the project stats for the new member.
+			projectStatsManager.memberAddedToTeam(Long.parseLong(teamId), principalUserInfo.getId(), new Date());
 		}
 		
 		// clean up any invitations
@@ -595,14 +555,6 @@ public class TeamManagerImpl implements TeamManager {
 				throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 			}
 			groupMembersDAO.removeMembers(teamId, Collections.singletonList(principalId));
-			
-			TeamModificationMessage message = new TeamModificationMessage();
-			message.setObjectId(teamId);
-			message.setObjectType(ObjectType.TEAM);
-			message.setTeamModificationType(TeamModificationType.MEMBER_REMOVED);
-			message.setMemberId(Long.parseLong(principalId));
-			transactionalMessenger.sendModificationMessageAfterCommit(message);
-
 			aclDAO.update(acl, ObjectType.TEAM);
 		}
 	}

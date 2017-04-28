@@ -444,40 +444,46 @@ public class JDOSecondaryPropertyUtils {
 	public static List<AnnotationDTO> translate(Long entityId, NamedAnnotations annos, int maxAnnotationChars) {
 		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
 		if(annos != null){
-			// strings
-			Annotations additional = annos.getAdditionalAnnotations();
-			for(String key: additional.getStringAnnotations().keySet()){
-				List values = additional.getStringAnnotations().get(key);
-				String value = getSingleString(values, maxAnnotationChars);
-				if(value != null){
-					results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
-				}
-			}
-			// longs
-			for(String key: additional.getLongAnnotations().keySet()){
-				List values = additional.getLongAnnotations().get(key);
-				String value = getSingleString(values, maxAnnotationChars);
-				if(value != null){
-					results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
-				}
-			}
-			// doubles
-			for(String key: additional.getDoubleAnnotations().keySet()){
-				List values = additional.getDoubleAnnotations().get(key);
-				String value = getSingleString(values, maxAnnotationChars);
-				if(value != null){
-					results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
-				}
-			}
-			// dates
-			for(String key: additional.getDateAnnotations().keySet()){
-				List values = additional.getDateAnnotations().get(key);
-				String value = getSingleString(values, maxAnnotationChars);
-				if(value != null){
-					results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
-				}
-			}
+			// add additional
+			addAnnotations(entityId, maxAnnotationChars, results, annos.getAdditionalAnnotations());
+			// add primary
+			addAnnotations(entityId, maxAnnotationChars, results, annos.getPrimaryAnnotations());
 		}
 		return results;
+	}
+
+	static void addAnnotations(Long entityId, int maxAnnotationChars,
+			List<AnnotationDTO> results, Annotations additional) {
+		for(String key: additional.getStringAnnotations().keySet()){
+			List values = additional.getStringAnnotations().get(key);
+			String value = getSingleString(values, maxAnnotationChars);
+			if(value != null){
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
+			}
+		}
+		// longs
+		for(String key: additional.getLongAnnotations().keySet()){
+			List values = additional.getLongAnnotations().get(key);
+			String value = getSingleString(values, maxAnnotationChars);
+			if(value != null){
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
+			}
+		}
+		// doubles
+		for(String key: additional.getDoubleAnnotations().keySet()){
+			List values = additional.getDoubleAnnotations().get(key);
+			String value = getSingleString(values, maxAnnotationChars);
+			if(value != null){
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
+			}
+		}
+		// dates
+		for(String key: additional.getDateAnnotations().keySet()){
+			List values = additional.getDateAnnotations().get(key);
+			String value = getSingleString(values, maxAnnotationChars);
+			if(value != null){
+				results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
+			}
+		}
 	}
 }

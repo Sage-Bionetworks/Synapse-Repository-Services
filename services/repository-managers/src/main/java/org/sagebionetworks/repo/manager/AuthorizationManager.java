@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -8,6 +9,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -217,4 +219,12 @@ public interface AuthorizationManager {
 			SubscriptionObjectType objectType) throws DatastoreException,
 			NotFoundException;
 
+	/**
+	 * Get the set of project IDs that that are visible to the passed set of
+	 * principal IDs. 
+	 * 
+	 * @param principalIds
+	 * @return
+	 */
+	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
 }

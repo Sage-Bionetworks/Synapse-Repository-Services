@@ -1,6 +1,6 @@
 {
 	"title": "Post Message Content Access Requirement",
-	"description": "JSON schema for Post Message Content Access Requirement",
+	"description": "This class is deprecated and should not being used.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"

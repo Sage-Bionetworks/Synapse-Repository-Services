@@ -30,7 +30,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.DockerManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -85,9 +85,16 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
@@ -263,6 +270,15 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	@Autowired
 	private ViewScopeDao viewScopeDao;
+
+	@Autowired
+	private ResearchProjectDAO researchProjectDAO;
+
+	@Autowired
+	private DataAccessRequestDAO dataAccessRequestDAO;
+
+	@Autowired
+	private DataAccessSubmissionDAO dataAccessSubmissionDAO;
 	
 	private Team team;
 
@@ -304,8 +320,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private String forumId;
 	private String threadId;
-	
-	private MessageToUser messageToUser;
+
+	private ResearchProject researchProject;
+	private DataAccessRequest dataAccessRequest;
 
 	@Before
 	public void before() throws Exception {
@@ -351,8 +368,55 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createViewScope();
 		createAuthenticationReceipt();
 		createThrottleRule();
+		createResearchProject();
+		createDataAccessRequest();
+		createDataAccessSubmission();
 	}
 	
+	private void createDataAccessSubmission() {
+		DataAccessSubmission submission = new DataAccessSubmission();
+		submission.setAccessRequirementId(accessRequirement.getId().toString());
+		submission.setDataAccessRequestId(dataAccessRequest.getId());
+		submission.setSubmittedBy(adminUserIdString);
+		submission.setSubmittedOn(new Date());
+		submission.setModifiedBy(adminUserIdString);
+		submission.setModifiedOn(new Date());
+		submission.setAccessors(Arrays.asList(adminUserIdString));
+		submission.setEtag(UUID.randomUUID().toString());
+		submission.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
+		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		dataAccessSubmissionDAO.createSubmission(submission);
+	}
+
+	private void createDataAccessRequest() {
+		dataAccessRequest = new DataAccessRequest();
+		dataAccessRequest.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
+		dataAccessRequest.setAccessRequirementId(accessRequirement.getId().toString());
+		dataAccessRequest.setResearchProjectId(researchProject.getId());
+		dataAccessRequest.setCreatedBy(adminUserIdString);
+		dataAccessRequest.setCreatedOn(new Date());
+		dataAccessRequest.setModifiedBy(adminUserIdString);
+		dataAccessRequest.setModifiedOn(new Date());
+		dataAccessRequest.setEtag("etag");
+		dataAccessRequest.setAccessors(Arrays.asList(adminUserIdString));
+		dataAccessRequestDAO.create(dataAccessRequest);
+	}
+
+	private void createResearchProject() {
+		researchProject = new ResearchProject();
+		researchProject.setId(idGenerator.generateNewId(IdType.RESEARCH_PROJECT_ID).toString());
+		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
+		researchProject.setCreatedBy(adminUserIdString);
+		researchProject.setCreatedOn(new Date());
+		researchProject.setModifiedBy(adminUserIdString);
+		researchProject.setModifiedOn(new Date());
+		researchProject.setEtag("etag");
+		researchProject.setProjectLead("projectLead");
+		researchProject.setInstitution("institution");
+		researchProject.setIntendedDataUseStatement("intendedDataUseStatement");
+		researchProjectDAO.create(researchProject);
+	}
+
 	private void createViewScope() {
 		viewScopeDao.truncateAll();
 		viewScopeDao.setViewScopeAndType(123L, Sets.newHashSet(456L,789L), ViewType.file);
@@ -381,7 +445,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createThread() {
-		threadId = idGenerator.generateNewId(TYPE.DISCUSSION_THREAD_ID).toString();
+		threadId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID).toString();
 		threadDao.createThread(forumId, threadId, "title", "fakeMessageUrl", adminUserId);
 	}
 
@@ -397,7 +461,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	private void createReply() {
-		String replyId = idGenerator.generateNewId(TYPE.DISCUSSION_REPLY_ID).toString();
+		String replyId = idGenerator.generateNewId(IdType.DISCUSSION_REPLY_ID).toString();
 		replyDao.createReply(threadId, replyId, "messageKey", adminUserId);
 	}
 
@@ -451,7 +515,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 	private void createProjectStat() {
 		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(project.getId()), adminUserId, new Date());
-		projectStatsDAO.update(projectStat);
+		projectStatsDAO.updateProjectStat(projectStat);
 	}
 
 	private void createQuizResponse() {
@@ -543,9 +607,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		evaluation.setSubmissionReceiptMessage("receipt");
 		evaluation = serviceProvider.getEvaluationService().createEvaluation(adminUserId, evaluation);
 
-		// initialize Participants
-		serviceProvider.getEvaluationService().addParticipant(adminUserId, evaluation.getId());
-
 		// initialize Submissions
 		submission = new Submission();
 		submission.setName("submission1");
@@ -572,13 +633,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		RestrictableObjectDescriptor entitySubjectId = new RestrictableObjectDescriptor();
 		entitySubjectId.setId(entityId);
 		entitySubjectId.setType(RestrictableObjectType.ENTITY);
-		RestrictableObjectDescriptor evaluationSubjectId = new RestrictableObjectDescriptor();
-		assertNotNull(evaluation);
-		assertNotNull(evaluation.getId());
-		evaluationSubjectId.setId(evaluation.getId());
-		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
 
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[] { entitySubjectId, evaluationSubjectId }));
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[] { entitySubjectId }));
 		accessRequirement = servletTestHelper.createAccessRequirement(dispatchServlet, accessRequirement, adminUserId,
 				new HashMap<String, String>());
 	}
@@ -683,7 +739,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		handleOne.setKey("mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
-		handleOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		handleOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		handleOne.setEtag(UUID.randomUUID().toString());
 		// Create markdown content
 		markdownOne = new S3FileHandle();
@@ -693,7 +749,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		markdownOne.setKey("markdownFileKey");
 		markdownOne.setEtag("etag");
 		markdownOne.setFileName("markdown1");
-		markdownOne.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		markdownOne.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		markdownOne.setEtag(UUID.randomUUID().toString());
 		// Create a preview
 		preview = new PreviewFileHandle();
@@ -703,7 +759,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		preview.setKey("previewFileKey");
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
-		preview.setId(idGenerator.generateNewId(TYPE.FILE_IDS).toString());
+		preview.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		preview.setEtag(UUID.randomUUID().toString());
 		
 		List<FileHandle> fileHandleToCreate = new LinkedList<FileHandle>();
@@ -786,8 +842,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// Note: InReplyToRoot is calculated by the DAO
 
 		dto = messageDAO.createMessage(dto);
-		
-		messageToUser = dto;
 
 		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 

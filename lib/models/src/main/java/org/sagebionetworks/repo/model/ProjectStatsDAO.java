@@ -10,9 +10,10 @@ public interface ProjectStatsDAO {
 	 * project, then the existing ProjectStat will be update if the given
 	 * activity date occurs after the existing activity date.
 	 * 
-	 * @param projectStat
+	 * @param projectStats
 	 */
-	public void update(ProjectStat projectStat);
+	public void updateProjectStat(ProjectStat...projectStats);
+	
 
 	public List<ProjectStat> getProjectStatsForUser(Long userId);
 

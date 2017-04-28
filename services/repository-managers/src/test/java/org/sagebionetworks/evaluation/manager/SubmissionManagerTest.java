@@ -43,6 +43,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -59,7 +60,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -92,6 +92,7 @@ public class SubmissionManagerTest {
 	private Submission subWithId;
 	private Submission sub2WithId;
 	private SubmissionStatus subStatus;
+	private SubmissionBundle submissionBundle;
 	private SubmissionStatusBatch batch;
 	
 	private IdGenerator mockIdGenerator;
@@ -211,6 +212,10 @@ public class SubmissionManagerTest {
         subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
         subStatus.setAnnotations(createDummyAnnotations());
         
+        submissionBundle = new SubmissionBundle();
+        submissionBundle.setSubmission(subWithId);
+        submissionBundle.setSubmissionStatus(subStatus);
+        
         batch = new SubmissionStatusBatch();
         List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>();
         statuses.add(subStatus);
@@ -241,7 +246,7 @@ public class SubmissionManagerTest {
       	mockEvaluationDAO = mock(EvaluationDAO.class);
       	mockDockerCommitDao = mock(DockerCommitDao.class);
 
-    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
+    	when(mockIdGenerator.generateNewId(IdType.EVALUATION_SUBMISSION_ID)).thenReturn(Long.parseLong(SUB_ID));
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
@@ -267,7 +272,7 @@ public class SubmissionManagerTest {
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
 
-    	when(mockSubmissionStatusDAO.list(eq(Collections.singletonList(SUB_ID)))).thenReturn(Collections.singletonList(subStatus));
+    	when(mockSubmissionDAO.getBundle(SUB_ID)).thenReturn(submissionBundle);
 
     	// by default we say that individual submissions are within quota
     	// (specific tests will change this)
@@ -536,8 +541,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetAllSubmissionBundles() throws Exception {
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
-		when(mockSubmissionDAO.getAllByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
-			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getAllBundlesByEvaluationAndStatus(EVAL_ID, statusEnum, 10L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
 		when(mockSubmissionDAO.getCountByEvaluationAndStatus(EVAL_ID, statusEnum)).thenReturn(1L);
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getAllSubmissionBundles(ownerInfo, EVAL_ID, statusEnum, 10L, 0L);
@@ -546,14 +551,13 @@ public class SubmissionManagerTest {
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
 		assertEquals(Collections.singletonList(expected), queryResults);
-		verify(mockSubmissionDAO).getAllByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
-		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
+		verify(mockSubmissionDAO).getAllBundlesByEvaluationAndStatus(eq(EVAL_ID), eq(statusEnum), eq(10L), eq(0L));
 	}
 	
 	@Test
 	public void testGetMyOwnSubmissionBundles() throws Exception {
-		when(mockSubmissionDAO.getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
-			thenReturn(Collections.singletonList(subWithId));
+		when(mockSubmissionDAO.getAllBundlesByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
 		when(mockSubmissionDAO.getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString())).thenReturn(1L);
 		List<SubmissionBundle> queryResults = 
 				submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10L, 0L);
@@ -561,8 +565,7 @@ public class SubmissionManagerTest {
 		expected.setSubmission(subWithId);
 		expected.setSubmissionStatus(subStatus);
 		assertEquals(Collections.singletonList(expected), queryResults);
-		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
-		verify(mockSubmissionStatusDAO).list(eq(Collections.singletonList(SUB_ID)));
+		verify(mockSubmissionDAO).getAllBundlesByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10L, 0L);
 	}
 	
 	@Test
@@ -602,6 +605,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
+		
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -626,6 +631,16 @@ public class SubmissionManagerTest {
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 	}
 	
+	@Test
+	public void testGetALLSubmissionStatus() throws Exception {
+		when(mockSubmissionDAO.getAllBundlesByEvaluation(EVAL_ID, 100L, 0L)).
+			thenReturn(Collections.singletonList(submissionBundle));
+		List<SubmissionStatus> actual = submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+		verify(mockSubmissionDAO).getAllBundlesByEvaluation(EVAL_ID, 100L, 0L);
+		List<SubmissionStatus> expected = Collections.singletonList(subStatus);
+		assertEquals(expected, actual);
+	}
+	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
@@ -635,6 +650,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 		Annotations annos = status.getAnnotations();
 		assertNotNull(annos);
 		
@@ -658,6 +675,7 @@ public class SubmissionManagerTest {
 		annots.setLongAnnos(null);
 		annots.setDoubleAnnos(null);
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+		verify(mockSubmissionDAO).getBundle(SUB_ID);
 	}
 	
 	private static Annotations createDummyAnnotations() {		
@@ -916,4 +934,116 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).get(subWithId.getId());
 		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
 	}
+	
+	
+	// tests of limit and offset checks
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionsOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissions(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionBundlesOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissionBundles(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitLow() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesLimitHigh() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetAllSubmissionStatusesOffsetNeg() {
+
+		// Call under test
+		submissionManager.getAllSubmissionStatuses(ownerInfo, null, SubmissionStatusEnum.OPEN, 100, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitLow() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationLimitHigh() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionsByEvaluationOffsetNeg() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, null, 100, -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitLow() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, -1, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationLimitHigh() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 101, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testgetMyOwnSubmissionBundlesByEvaluationOffsetNeg() {
+
+		// Call under test
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, null, 100, -1);
+	}
+
+
+
+
 }
