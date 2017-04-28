@@ -133,6 +133,7 @@ public class EntityQueryManagerImplAutowireTest {
 		annotations.addAnnotation("aLong", 123L);
 		annotations.addAnnotation("aString", "foo bar");
 		entityManager.updateAnnotations(adminUserInfo, table.getId(), annotations);
+		table = entityManager.getEntity(adminUserInfo, table.getId(), TableEntity.class);
 		
 		ids = Lists.newArrayList(project.getId(), folder.getId(), table.getId());
 		int maxAnnotationChars = 500;

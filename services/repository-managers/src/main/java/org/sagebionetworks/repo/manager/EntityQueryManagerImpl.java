@@ -241,7 +241,7 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		translated.setVersionNumber((Long) map.get(EntityFieldName.versionNumber.name()));
 		translated.setBenefactorId((Long) map.get(EntityFieldName.benefactorId.name()));
 		translated.setProjectId((Long) map.get(EntityFieldName.projectId.name()));
-		translated.setActivityId((String) map.get(EntityFieldName.activityId.name()));
+		translated.setActivityId(null);
 		translated.setEntityType((String) map.get(EntityFieldName.nodeType.name()));
 		return translated;
 	}
