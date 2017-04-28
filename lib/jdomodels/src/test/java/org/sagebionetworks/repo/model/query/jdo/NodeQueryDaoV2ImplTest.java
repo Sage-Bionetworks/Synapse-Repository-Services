@@ -162,7 +162,7 @@ public class NodeQueryDaoV2ImplTest {
 				new CompoundId(null, NodeField.NODE_TYPE.getFieldName())
 				, Comparator.EQUALS
 				, EntityType.file.name());
-		query.setFilters(Lists.newArrayList(equalsId));
+		query.setFilters(Lists.newArrayList(equalsId, projectIdExpression));
 		query.setSort(NodeField.ID.getFieldName());
 		query.setAscending(true);
 		QueryModel model = new QueryModel(query);
