@@ -84,7 +84,7 @@ public class EntityQueryManagerImplTest {
 		when(nodeQueryDaoFactory.createConnection()).thenReturn(mockDao);
 		// Sample
 		result = new EntityQueryResult();
-		result.setActivityId("999");
+		result.setActivityId(null);
 		result.setCreatedByPrincipalId(123L);
 		result.setCreatedOn(new Date(1L));
 		result.setModifiedByPrincipalId(456L);
