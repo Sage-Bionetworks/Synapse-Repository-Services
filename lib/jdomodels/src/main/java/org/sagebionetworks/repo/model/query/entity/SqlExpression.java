@@ -27,7 +27,13 @@ public class SqlExpression extends SqlElement {
 		super();
 		this.leftHandSide = leftHandSide;
 		this.compare = compare;
-		this.rightHandSide = rightHandSide;
+		if(leftHandSide.nodeToEntity == null){
+			this.rightHandSide = rightHandSide;
+		}else{
+			// transform the right-hand-side
+			this.rightHandSide = leftHandSide.nodeToEntity.transformerValue(rightHandSide);
+		}
+
 		this.bindName = Constants.BIND_PREFIX_EXPRESSION+leftHandSide.getColumnIndex();
 	}
 
@@ -51,4 +57,22 @@ public class SqlExpression extends SqlElement {
 	public void bindParameters(Parameters parameters) {
 		parameters.put(bindName, rightHandSide);
 	}
+
+	public ColumnReference getLeftHandSide() {
+		return leftHandSide;
+	}
+
+	public Comparator getCompare() {
+		return compare;
+	}
+
+	public Object getRightHandSide() {
+		return rightHandSide;
+	}
+
+	public String getBindName() {
+		return bindName;
+	}
+	
+	
 }

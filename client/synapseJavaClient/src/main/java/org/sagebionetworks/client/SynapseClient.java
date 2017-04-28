@@ -541,6 +541,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
+	@Deprecated
 	public JSONObject query(String query) throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
@@ -808,8 +809,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void downloadMessageToFile(String messageId, File target) throws SynapseException;
-
-	public Long getChildCount(String entityId) throws SynapseException;
 
 	public SynapseVersionInfo getVersionInfo() throws SynapseException;
 
@@ -1934,6 +1933,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 	
 	/**
