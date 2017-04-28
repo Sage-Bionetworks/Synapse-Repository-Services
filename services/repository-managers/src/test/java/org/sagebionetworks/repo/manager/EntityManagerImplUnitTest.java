@@ -21,13 +21,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -299,5 +300,76 @@ public class EntityManagerImplUnitTest {
 				DEFAULT_SORT_BY, DEFAULT_SORT_DIRECTION, limit+1,
 				offset);
 		assertEquals(new NextPageToken(limit, offset+limit).toToken(), response.getNextPageToken());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupChildWithNullUserInfo() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		request.setEntityName("entityName");
+		entityManager.lookupChild(null, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupChildWithNullRequest() {
+		entityManager.lookupChild(mockUser, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupChildWithNullParentId() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setEntityName("entityName");
+		entityManager.lookupChild(mockUser, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLookupChildWithNullEntityName() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		entityManager.lookupChild(mockUser, request);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testLookupChildCannotReadParentId() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		request.setEntityName("entityName");
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		entityManager.lookupChild(mockUser, request);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testLookupChildNotFound() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		request.setEntityName("entityName");
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenThrow(new NotFoundException());
+		entityManager.lookupChild(mockUser, request);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testLookupChildUnauthorized() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		request.setEntityName("entityName");
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn("syn2");
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		entityManager.lookupChild(mockUser, request);
+	}
+
+	@Test
+	public void testLookupChild() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setParentId("syn1");
+		request.setEntityName("entityName");
+		String entityId = "syn2";
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		EntityId result = entityManager.lookupChild(mockUser, request);
+		assertNotNull(result);
+		assertEquals(entityId, result.getId());
 	}
 }

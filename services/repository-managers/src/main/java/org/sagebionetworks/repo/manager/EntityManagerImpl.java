@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.entity.Direction;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -613,4 +615,21 @@ public class EntityManagerImpl implements EntityManager {
 		return response;
 	}
 
+	@Override
+	public EntityId lookupChild(UserInfo userInfo, EntityLookupRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getEntityName(), "EntityLookupRequest.entityName");
+		ValidateArgument.required(request.getParentId(), "EntityLookupRequest.parentId");
+		if(!ROOT_ID.equals(request.getParentId())){
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo));
+		}
+		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo));
+		EntityId result = new EntityId();
+		result.setId(entityId);
+		return result;
+	}
 }

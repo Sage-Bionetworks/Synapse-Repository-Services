@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -10,8 +9,6 @@ import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Callback;
-
 
 /**
  * Interface for all Node C.R.U.D. operations.
@@ -525,4 +522,13 @@ public interface NodeDAO {
 	 */
 	public List<NodeIdAndType> getChildren(String parentId, long limit,
 			long offset);
+
+	/**
+	 * Retrieve an entityId given its name and parentId.
+	 * 
+	 * @param parentId
+	 * @param entityName
+	 * @return
+	 */
+	public String lookupChild(String parentId, String entityName);
 }

@@ -20,7 +20,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.dom4j.rule.pattern.NodeTypePattern;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -53,7 +52,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.ProjectStatsDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -123,9 +121,6 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	private TeamDAO teamDAO;
-
-	@Autowired
-	private ProjectStatsDAO projectStatsDAO;
 	
 	@Autowired
 	private PlatformTransactionManager txManager;
@@ -150,24 +145,6 @@ public class NodeDAOImplTest {
 	private String user2;
 	private String user3;
 	private String group;
-
-	private String owned;
-
-	private String participate;
-
-	private String groupParticipate;
-
-	private String subFolderProject;
-
-	private String subFolderProject2;
-
-	private String publicProject;
-
-	private String trashed;
-
-	private String publicProject2;
-
-	private String nooneOwns;
 
 	private final String rootID = KeyFactory.keyToString(KeyFactory.ROOT_ID);
 	
@@ -3318,12 +3295,49 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetChildrenUnknownParentId(){	
+	public void testGetChildrenUnknownParentId(){
 		String parentId = "syn1";
 		long limit = 10L;
 		long offset = 0L;
 		List<NodeIdAndType> results = nodeDao.getChildren(parentId, limit, offset);
 		assertNotNull(results);
 		assertEquals(0, results.size());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLoopupChildWithNullParentId(){
+		nodeDao.lookupChild(null, "entityName");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLoopupChildWithInvalidParentId(){
+		nodeDao.lookupChild("parentId", "entityName");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testLoopupChildWithNullEntityName(){
+		nodeDao.lookupChild("syn1", null);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testLoopupChildNotFound(){
+		nodeDao.lookupChild("syn1", "entityName");
+	}
+
+	@Test
+	public void testLoopupChildFound(){
+		String entityName = "; drop table JDONODE;";
+		// Create a project
+		Node project = NodeTestUtils.createNew("project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		toDelete.add(projectId);
+		// create child
+		Node child = NodeTestUtils.createNew(entityName, creatorUserGroupId);
+		child.setNodeType(EntityType.folder);
+		child.setParentId(projectId);
+		String childId = nodeDao.createNew(child);
+		toDelete.add(childId);
+		assertEquals(childId, nodeDao.lookupChild(projectId, entityName));
 	}
 }
