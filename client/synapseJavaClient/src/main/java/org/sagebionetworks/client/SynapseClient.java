@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -2580,6 +2581,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException;
+
+	/**
+	 * Retrieve an entityId given its name and parentId.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String lookupChild(String parentId, String entityName) throws SynapseException;
 
 	/**
 	 * Pin a thread

@@ -1876,4 +1876,9 @@ public class IT500SynapseJavaClient {
 		assertNotNull(header);
 		assertEquals(Project.class.getName(), header.getType());
 	}
+
+	@Test
+	public void testLookupEntity() throws SynapseException {
+		assertEquals(dataset.getId(), synapseOne.lookupChild(project.getId(), dataset.getName()));
+	}
 }

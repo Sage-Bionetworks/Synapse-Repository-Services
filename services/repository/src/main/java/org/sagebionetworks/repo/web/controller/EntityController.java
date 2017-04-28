@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -1527,6 +1528,20 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required=true) EntityChildrenRequest request){
 		return serviceProvider.getEntityService().getChildren(userId, request);
+	}
+
+	/**
+	 * Retrieve an entityId for a given parent ID and entity name.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_CHILD }, method = RequestMethod.POST)
+	public @ResponseBody EntityId lookupChild(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody(required=true) EntityLookupRequest request){
+		return serviceProvider.getEntityService().lookupChild(userId, request);
 	}
 }
 

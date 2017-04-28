@@ -131,6 +131,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -5028,5 +5029,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		ValidateArgument.required(batchRequest, "batchRequest");
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/batch", batchRequest, BatchAccessApprovalResult.class);
+	}
+
+	@Override
+	public String lookupChild(String parentId, String entityName) throws SynapseException {
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(entityName, "entityName");
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setEntityName(entityName);
+		request.setParentId(parentId);
+		return postJSONEntity(getRepoEndpoint(), ENTITY+"/child", request, EntityId.class).getId();
 	}
 }
