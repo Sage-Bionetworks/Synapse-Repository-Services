@@ -1,0 +1,6 @@
+{
+  "script": [
+    "./docker_build.sh"
+  ]
+  "os": "linux"
+}
