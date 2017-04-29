@@ -1,3 +1,7 @@
 language: bash
-script: ./docker_build.sh
+script: 
+  export m2_cache_parent_folder=${HOME}/${JOB_NAME}
+  export src_folder=${HOME}/workspace/${JOB_NAME}
+  BASEDIR=$(dirname "$0")
+  ${BASEDIR}/docker_build.sh
 os: linux
