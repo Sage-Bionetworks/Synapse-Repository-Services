@@ -1,6 +1,3 @@
-{
-  "script": [
-    "./docker_build.sh"
-  ]
-  "os": "linux"
-}
+language: bash
+script: ./docker_build.sh
+os: linux
