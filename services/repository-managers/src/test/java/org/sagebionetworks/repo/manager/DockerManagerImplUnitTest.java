@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -105,6 +106,9 @@ public class DockerManagerImplUnitTest {
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
 	
+	@Mock
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+	
 	private EntityHeader parentHeader;
 	private Node authQueryNode;
 
@@ -120,7 +124,8 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
-
+		ReflectionTestUtils.setField(dockerManager, "evaluationPermissionsManager", evaluationPermissionsManager);
+		
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
 		parentHeader.setType(Project.class.getName());

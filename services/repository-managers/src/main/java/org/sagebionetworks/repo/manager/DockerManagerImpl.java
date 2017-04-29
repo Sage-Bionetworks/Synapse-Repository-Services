@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.docker.DockerRegistryEvent;
 import org.sagebionetworks.repo.model.docker.DockerRegistryEventList;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -70,7 +70,7 @@ public class DockerManagerImpl implements DockerManager {
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
-	private SubmissionDAO submissionDAO;
+	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 
 	
@@ -166,8 +166,7 @@ public class DockerManagerImpl implements DockerManager {
 				} else {
 					// If Docker repository was submitted to an Evaluation and if the requester
 					// has administrative access to the queue, then DOWNLOAD permission is granted
-					// TODO should this logic be in the EvaluationsPermissionManager???
-					if (submissionDAO.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
+					if (evaluationPermissionsManager.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
 							new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) permittedActions.add(requestedAction);
 				}
 				break;
