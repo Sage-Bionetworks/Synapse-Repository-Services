@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_C
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_REPO_NAME;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
@@ -58,7 +57,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -245,6 +243,20 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SUBSTATUS_IN_CLAUSE = " AND ss."+COL_SUBSTATUS_STATUS+" IN (:"+COL_SUBSTATUS_STATUS+")";
 
+	private static final String SUBMISSIONS_WITH_ENTITY_AND_PERMISSION_SQL = 
+			"SELECT COUNT(*) FROM "+
+			TABLE_SUBMISSION+" s, "+
+			TABLE_ACCESS_CONTROL_LIST+" acl, "+
+			TABLE_RESOURCE_ACCESS+" ra, "+
+			TABLE_RESOURCE_ACCESS_TYPE+" at "+
+			" WHERE s."+COL_SUBMISSION_DOCKER_REPO_NAME+"=:"+COL_SUBMISSION_DOCKER_REPO_NAME+
+			" and s."+COL_SUBMISSION_EVAL_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+COL_RESOURCE_ACCESS_GROUP_ID+
+			") and ra."+COL_RESOURCE_ACCESS_ID+"=at."+COL_RESOURCE_ACCESS_TYPE_ID+
+			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+
 	//------    end Submission eligibility related query strings -----
 
 	private static final RowMapper<SubmissionDBO> SUBMISSION_ROW_MAPPER = 
@@ -273,38 +285,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
 	
-	/*
-	SELECT count(*) FROM
-	JDOSUBMISSION s,
-	ACL acl,
-	JDORESOURCEACCESS ra,
-	JDORESOURCEACCESS_ACCESSTYPE at
-	WHERE
-	s.docker_repo_name=? and
-	s.evaluation_id=acl.owner_id and
-	acl.owner_type='EVALUATION' and
-	acl.id=ra.owner_id and
-	ra.group_id in (?) and
-	ra.id=at.id_oid and at.string_ele=?
-	*/
-	
-	private static final String SUBMISSIONS_WITH_ENTITY_AND_PERMISSION_SQL = 
-			"SELECT COUNT(*) FROM "+
-			TABLE_SUBMISSION+" s, "+
-			TABLE_ACCESS_CONTROL_LIST+" acl, "+
-			TABLE_RESOURCE_ACCESS+" ra, "+
-			TABLE_RESOURCE_ACCESS_TYPE+" at "+
-			" WHERE s."+
-			COL_SUBMISSION_DOCKER_REPO_NAME+"=:"+COL_SUBMISSION_ENTITY_ID+" and s."+
-			COL_SUBMISSION_EVAL_ID+"=acl."+COL_ACL_OWNER_ID+" and acl."+
-			COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION+"' and acl."+
-			COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+" and ra."+
-			COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+COL_RESOURCE_ACCESS_GROUP_ID+") and ra."+
-			COL_RESOURCE_ACCESS_ID+"=at."+COL_RESOURCE_ACCESS_TYPE_ID+
-			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+COL_RESOURCE_ACCESS_TYPE_ELEMENT;
-
-
-
 	@Override
 	@WriteTransaction
 	public String create(Submission dto) {
@@ -743,10 +723,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		ValidateArgument.required(accessType, "accessType");
 		if (principalIds.isEmpty()) return false;
 		
-		
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBMISSION_DOCKER_REPO_NAME, KeyFactory.stringToKey(dockerRepoName));
+		param.addValue(COL_SUBMISSION_DOCKER_REPO_NAME, dockerRepoName);
 		param.addValue(COL_RESOURCE_ACCESS_GROUP_ID, principalIds);
 		param.addValue(COL_RESOURCE_ACCESS_TYPE_ELEMENT, accessType.name());
 
