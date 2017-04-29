@@ -622,12 +622,14 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(request.getEntityName(), "EntityLookupRequest.entityName");
 		ValidateArgument.required(request.getParentId(), "EntityLookupRequest.parentId");
 		if(!ROOT_ID.equals(request.getParentId())){
-			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-					entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo));
+			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
+				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
+			}
 		}
 		String entityId = nodeManager.lookupChild(request.getParentId(), request.getEntityName());
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo));
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo).getAuthorized()){
+			throw new UnauthorizedException("Lack of READ permission on the requested entity.");
+		}
 		EntityId result = new EntityId();
 		result.setId(entityId);
 		return result;
