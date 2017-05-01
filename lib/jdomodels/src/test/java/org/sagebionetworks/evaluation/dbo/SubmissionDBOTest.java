@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import org.junit.After;
@@ -15,16 +16,20 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -105,6 +110,7 @@ public class SubmissionDBOTest {
     	} catch (NotFoundException e) {};
     	fileHandleDAO.delete(fileHandleId);;
     }
+    
     @Test
     public void testCRD() throws Exception{
         // Initialize a new Submission
@@ -134,6 +140,24 @@ public class SubmissionDBOTest {
         // Delete it
         boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
+    }
+
+    @Test
+    public void testFoo() throws Exception {
+    	String dockerRepositoryName = "docker.synapse.org/syn123/arepo";
+    	SubmissionDBO backup = new SubmissionDBO();
+    	backup.setDockerRepositoryName(null);
+
+    	EntityBundle bundle = new EntityBundle();
+    	DockerRepository entity = new DockerRepository();
+    	entity.setRepositoryName(dockerRepositoryName);
+    	bundle.setEntity(entity);
+    	JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+    	bundle.writeToJSONObject(joa);
+
+    	backup.setEntityBundle(joa.toJSONString().getBytes());
+    	SubmissionDBO dbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+    	assertEquals(dockerRepositoryName, dbo.getDockerRepositoryName());
     }
  
 }

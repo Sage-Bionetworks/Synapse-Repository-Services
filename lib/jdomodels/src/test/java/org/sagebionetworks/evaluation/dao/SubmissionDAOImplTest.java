@@ -33,24 +33,35 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -82,6 +93,9 @@ public class SubmissionDAOImplTest {
 	
 	@Autowired
 	TeamDAO teamDAO;
+	
+	@Autowired
+	AccessControlListDAO aclDAO;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -98,10 +112,12 @@ public class SubmissionDAOImplTest {
 	private static final String DOCKER_DIGEST = "sha256:abcdef...";
 
     private String nodeId;
+    private String dockerNodeId;
 	private String userId;
 	private String userId2;
 	
     private String evalId;
+    private AccessControlList acl;
     private String fileHandleId;
     private Submission submission;
     private Submission submission2;
@@ -138,7 +154,7 @@ public class SubmissionDAOImplTest {
 	
 	private static Random random = new Random();
 	
-	private Submission newSubmission(String submissionId, String userId, Date createdDate) {
+	private Submission newSubmission(String submissionId, String userId, String nodeId, Date createdDate) {
 		Submission submission = new Submission();
         submission.setCreatedOn(createdDate);
         submission.setId(submissionId);
@@ -176,7 +192,13 @@ public class SubmissionDAOImplTest {
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
     	toCreate.setFileHandleId(fileHandleId);
+  		toCreate.setNodeType(EntityType.file);
     	nodeId = nodeDAO.createNew(toCreate);
+    	
+    	// create a Docker node
+  		toCreate = NodeTestUtils.createNew(SUBMISSION_NAME+"_dockerrepo", Long.parseLong(userId));
+  		toCreate.setNodeType(EntityType.dockerrepo);
+    	dockerNodeId = nodeDAO.createNew(toCreate);
     	
     	// create an Evaluation
         Evaluation evaluation = new Evaluation();
@@ -189,12 +211,24 @@ public class SubmissionDAOImplTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
+        acl = new AccessControlList();
+        acl.setCreatedBy(userId);
+        acl.setCreationDate(new Date());
+        acl.setId(evalId);
+        Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+        ResourceAccess ra = new ResourceAccess();
+        ra.setPrincipalId(Long.parseLong(userId));
+        ra.setAccessType(ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS);
+        ras.add(ra);
+        acl.setResourceAccess(ras);
+        acl.setId(aclDAO.create(acl, ObjectType.EVALUATION));
+        
         // Initialize Submissions
         // submission has no team and no contributors
-        submission = newSubmission(SUBMISSION_ID, userId, new Date(CREATION_TIME_STAMP));
+        submission = newSubmission(SUBMISSION_ID, userId, nodeId, new Date(CREATION_TIME_STAMP));
         
         // submission2 is a Team submission with two contributors, userId and userId2
-        submission2 = newSubmission(SUBMISSION_2_ID, userId2, new Date(CREATION_TIME_STAMP));
+        submission2 = newSubmission(SUBMISSION_2_ID, userId2, nodeId, new Date(CREATION_TIME_STAMP));
         submissionTeam = createTeam(userId2);
         submission2.setTeamId(submissionTeam.getId());
         SubmissionContributor submissionContributor = new SubmissionContributor();
@@ -208,7 +242,7 @@ public class SubmissionDAOImplTest {
         scs.add(submissionContributor);
         
         // submission3 is a Team submission with one contributor, userId2
-        submission3 = newSubmission(SUBMISSION_3_ID, userId2, new Date(CREATION_TIME_STAMP));
+        submission3 = newSubmission(SUBMISSION_3_ID, userId2, nodeId, new Date(CREATION_TIME_STAMP));
         submission3.setTeamId(submissionTeam.getId());
         submissionContributor = new SubmissionContributor();
         submissionContributor.setPrincipalId(userId2);
@@ -239,13 +273,22 @@ public class SubmissionDAOImplTest {
     	}
 		
 		try {
+			aclDAO.delete(acl.getId(), ObjectType.EVALUATION);
+		} catch (NotFoundException e) {};
+		
+		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
 		
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
-		fileHandleDAO.delete(fileHandleId);
+    	
+		// TEMPORARY if (fileHandleId!=null) fileHandleDAO.delete(fileHandleId);
+		
+    	try {
+    		nodeDAO.delete(dockerNodeId);
+    	} catch (NotFoundException e) {};
     }
     
     @Test
@@ -759,7 +802,7 @@ public class SubmissionDAOImplTest {
     @Test
     public void testGetTeamMembersSubmittingElsewhereOtherIndividSub() throws Exception {
      	// have userId2 make an individual submission
-        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, new Date(CREATION_TIME_STAMP));
+        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, nodeId, new Date(CREATION_TIME_STAMP));
         SubmissionContributor submissionContributor = new SubmissionContributor();
         submissionContributor.setPrincipalId(userId2);
         individSub.setContributors(Collections.singleton(submissionContributor));
@@ -775,7 +818,7 @@ public class SubmissionDAOImplTest {
     @Test
     public void testGetTeamMembersSubmittingElsewhereOtherTeamSub() throws Exception {
      	// have userId2 make a Team submission
-        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, new Date(CREATION_TIME_STAMP));
+        Submission individSub = newSubmission(SUBMISSION_4_ID, userId2, nodeId, new Date(CREATION_TIME_STAMP));
         submissionTeam2 = createTeam(userId2);
         individSub.setTeamId(submissionTeam2.getId());
         SubmissionContributor submissionContributor = new SubmissionContributor();
@@ -835,8 +878,49 @@ public class SubmissionDAOImplTest {
     	assertEquals(userId, submissionDAO.getCreatedBy(returnedId));
     }
     
-    @Test
-    public void testIsDockerRepoNameInAnyEvaluationWithAccess() {
-    	
-    }
+	private static String createEntityBundleJSON(EntityBundle bundle) throws JSONObjectAdapterException {
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		bundle.writeToJSONObject(joa);
+		return joa.toJSONString();
+	}
+	
+	private static String DOCKER_REPO_NAME = "docker.synapse.org/syn123/arepo";
+	
+	@Test
+	public void testIsDockerRepoNameInAnyEvaluationWithAccess() throws Exception {
+		// method under test
+		// evaluation admin cannot yet access repo since it has not yet been submitted
+		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
+				Collections.singletonList(Long.parseLong(userId2)), ACCESS_TYPE.READ));
+
+		Submission dockerSubmission = newSubmission(SUBMISSION_ID, userId, dockerNodeId, new Date(CREATION_TIME_STAMP));
+		EntityBundle bundle = new EntityBundle();
+		DockerRepository entity = new DockerRepository();
+		entity.setRepositoryName(DOCKER_REPO_NAME);
+		bundle.setEntity(entity);
+		bundle.setFileHandles(Collections.EMPTY_LIST);
+		dockerSubmission.setDockerRepositoryName(DOCKER_REPO_NAME);
+		dockerSubmission.setEntityBundleJSON(createEntityBundleJSON(bundle));
+
+		// create the submission
+		String returnedId = submissionDAO.create(dockerSubmission);
+
+		// method under test
+		// now evaluation admin can access the repo
+		assertTrue(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
+				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.READ));
+
+		// method under test
+		// non-admin cannot access
+		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
+				Collections.singletonList(Long.parseLong(userId2)), ACCESS_TYPE.READ));
+
+		// method under test
+		// admin cannot access non-existent name
+		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess("some-other-name", 
+				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.READ));
+
+
+
+	}
 }

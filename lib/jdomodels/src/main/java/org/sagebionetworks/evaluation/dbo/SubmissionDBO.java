@@ -162,8 +162,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public byte[] getEntityBundle() {
 		return entityBundle;
 	}
-	public void setEntityBundle(byte[] node) {
-		this.entityBundle = node;
+	public void setEntityBundle(byte[] entityBundle) {
+		this.entityBundle = entityBundle;
 	}
 	public Long getVersionNumber() {
 		return versionNumber;
