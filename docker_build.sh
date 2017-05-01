@@ -121,7 +121,7 @@ else
 fi
 
 # push build status to github
-if [[ ${token} ]] && [[ ${github_username} ]]
+if [[ ${github_token} ]] && [[ ${github_username} ]]
 then
   curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
     -H "Authorization: token ${github_token}" \
