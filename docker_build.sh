@@ -38,7 +38,7 @@ fi
 }
 
 # push PENDING status to github
-if [ -z ${var+x} ]
+if ! [ -z ${var+x} ]
 then
   curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
     -H "Authorization: token ${token}" \
@@ -120,7 +120,7 @@ else
 fi
 
 # push build status to github
-if [ -z ${var+x} ]
+if ! [ -z ${var+x} ]
 then
   curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
     -H "Authorization: token ${token}" \
