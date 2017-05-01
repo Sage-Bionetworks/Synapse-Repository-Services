@@ -10,7 +10,7 @@
 # JOB_NAME - a unique string differenting concurrent builds.  if omitted is the stack + user
 
 # optional variables for github commit status API
-# token - the token to push to github repo the status
+# github_token - the token to push to github repo the status
 
 # if anything fails, stop
 set -e
@@ -38,10 +38,10 @@ fi
 }
 
 # push PENDING status to github
-if [[ ${token} ]]
+if [[ ${github_token} ]] && [[ ${github_username} ]]
 then
-  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
-    -H "Authorization: token ${token}" \
+  curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
+    -H "Authorization: token ${github_token}" \
     -H "Content-Type: application/json" \
     -X POST \
     -d "{\"state\": \"pending\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
@@ -120,10 +120,10 @@ else
 fi
 
 # push build status to github
-if [[ ${token} ]]
+if [[ ${token} ]] && [[ ${github_username} ]]
 then
-  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
-    -H "Authorization: token ${token}" \
+  curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
+    -H "Authorization: token ${github_token}" \
     -H "Content-Type: application/json" \
     -X POST \
     -d "{\"state\": \"$STATUS\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
