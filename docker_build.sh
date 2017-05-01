@@ -10,7 +10,8 @@
 # JOB_NAME - a unique string differenting concurrent builds.  if omitted is the stack + user
 
 # optional variables for github commit status API
-# github_token - the token to push to github repo the status
+# github_token - the token that is used to push commit status
+# github_username - the username that is used to push commit status
 
 # if anything fails, stop
 set -e
