@@ -9,10 +9,6 @@
 # rds_password - the password for the build database, common to all dev builds
 # JOB_NAME - a unique string differenting concurrent builds.  if omitted is the stack + user
 
-# optional variables for github commit status API
-# github_token - the token that is used to push commit status
-# github_username - the username that is used to push commit status
-
 # if anything fails, stop
 set -e
 
@@ -37,16 +33,6 @@ if [ $(docker network ls | grep -q $1 && echo $?) ]; then
   docker network rm $1
 fi
 }
-
-# push PENDING status to github
-if [[ ${github_token} ]] && [[ ${github_username} ]]
-then
-  curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
-    -H "Authorization: token ${github_token}" \
-    -H "Content-Type: application/json" \
-    -X POST \
-    -d "{\"state\": \"pending\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
-fi
 
 # remove build container, if any
 build_container_name=${JOB_NAME}-build
@@ -111,21 +97,3 @@ clean_up_container ${build_container_name}
 clean_up_container ${rds_container_name}
 
 clean_up_network ${network_name}
-
-# map Jenkins status to github commit status
-if [[ $BUILD_STATUS == "success" ]]
-then
-  export STATUS="success"
-else
-  export STATUS="failure"
-fi
-
-# push build status to github
-if [[ ${github_token} ]] && [[ ${github_username} ]]
-then
-  curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
-    -H "Authorization: token ${github_token}" \
-    -H "Content-Type: application/json" \
-    -X POST \
-    -d "{\"state\": \"$STATUS\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
-fi
