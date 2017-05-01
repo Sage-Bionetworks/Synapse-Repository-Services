@@ -115,6 +115,9 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		// validate based on the access requirement
 		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		ValidateArgument.requirement(actAR.getAcceptDataAccessRequest() != null
+				&& actAR.getAcceptDataAccessRequest(),
+				"This Access Requirement doesn't accept Data Access Request.");
 		if (actAR.getIsDUCRequired()) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
 					"You must provide a Data Use Certification document.");
