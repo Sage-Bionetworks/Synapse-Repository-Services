@@ -40,7 +40,8 @@ fi
 # push PENDING status to github
 if [ -z ${var+x} ]
 then
-  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT?access_token=${token}" \
+  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
+    -H "Authorization: token ${token}" \
     -H "Content-Type: application/json" \
     -X POST \
     -d "{\"state\": \"pending\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
@@ -121,7 +122,8 @@ fi
 # push build status to github
 if [ -z ${var+x} ]
 then
-  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT?access_token=${token}" \
+  curl "https://api.github.com/repos/justincampbell/my_repo/statuses/$GIT_COMMIT" \
+    -H "Authorization: token ${token}" \
     -H "Content-Type: application/json" \
     -X POST \
     -d "{\"state\": \"$STATUS\", \"description\": \"Jenkins\", \"target_url\": \"http://build-system-synapse.sagebase.org:8081/job/${stack}${user}/$BUILD_NUMBER/console\"}"
