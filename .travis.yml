@@ -3,5 +3,5 @@ sudo: required
 services:
   - docker
 script: 
-  ./jenkins_build.sh
+  ./travis_build.sh
 os: linux
