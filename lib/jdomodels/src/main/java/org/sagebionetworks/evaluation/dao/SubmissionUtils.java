@@ -48,6 +48,7 @@ public class SubmissionUtils {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Team ID: " + dto.getId());
 		}
+		dbo.setDockerRepositoryName(dto.getDockerRepositoryName());
 		dbo.setDockerDigest(dto.getDockerDigest());
 	}
 	

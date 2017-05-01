@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -196,12 +197,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		if (node.getNodeType()==EntityType.dockerrepo) {
+			String dockerRepositoryName = ((DockerRepository)bundle.getEntity()).getRepositoryName();
+			EvaluationUtils.ensureNotNull(dockerRepositoryName, "Docker Repository Name");
+			submission.setDockerRepositoryName(dockerRepositoryName);
 			EvaluationUtils.ensureNotNull(submission.getDockerDigest(), "Docker Digest");
 			List<DockerCommit> commits = dockerCommitDao.
 					listCommitsByOwnerAndDigest(entityId, submission.getDockerDigest());
 			if (commits.isEmpty()) throw new IllegalArgumentException("The given Docker Repository, "+
 					entityId+", does not have digest "+submission.getDockerDigest());
 		} else {
+			submission.setDockerRepositoryName(null);
 			submission.setDockerDigest(null);
 		}
 		

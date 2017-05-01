@@ -243,7 +243,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SUBSTATUS_IN_CLAUSE = " AND ss."+COL_SUBSTATUS_STATUS+" IN (:"+COL_SUBSTATUS_STATUS+")";
 
-	private static final String SUBMISSIONS_WITH_ENTITY_AND_PERMISSION_SQL = 
+	private static final String SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL = 
 			"SELECT COUNT(*) FROM "+
 			TABLE_SUBMISSION+" s, "+
 			TABLE_ACCESS_CONTROL_LIST+" acl, "+
@@ -716,7 +716,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 	
 	@Override
-	public boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName,
+	public boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName,
 			List<Long> principalIds, ACCESS_TYPE accessType) {
 		ValidateArgument.required(dockerRepoName, "dockerRepoName");
 		ValidateArgument.required(principalIds, "principalIds");
@@ -730,7 +730,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(COL_RESOURCE_ACCESS_TYPE_ELEMENT, accessType.name());
 
 		return 0<namedTemplate.queryForObject(
-				SUBMISSIONS_WITH_ENTITY_AND_PERMISSION_SQL, param, Long.class);
+				SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
 	}
 
 }
