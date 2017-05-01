@@ -583,6 +583,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	subDTO.setEntityBundleJSON("foo");
+    	subDTO.setDockerRepositoryName("docker.synapse.org/syn789/arepo");
     	subDTO.setDockerDigest("sha256:abcdef0123456");
     	    	
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
@@ -608,7 +609,6 @@ public class SubmissionDAOImplTest {
     	subDTO.setUserId("42");
     	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
-       	subDTO.setDockerDigest("sha256:abcdef0123456");
     	// null EntityBundle
     	    	
     	SubmissionUtils.copyDtoToDbo(subDTO, subDBO);
@@ -619,6 +619,8 @@ public class SubmissionDAOImplTest {
     	assertEquals(subDBO, subDBOclone);
     	assertNull(subDTOclone.getEntityBundleJSON());
     	assertNull(subDBOclone.getEntityBundle());
+    	assertNull(subDTOclone.getDockerRepositoryName());
+    	assertNull(subDTOclone.getDockerDigest());
     }
     
     @Test(expected=IllegalArgumentException.class)
@@ -831,5 +833,10 @@ public class SubmissionDAOImplTest {
     public void testGetCreatedBy(){
         String returnedId = submissionDAO.create(submission);
     	assertEquals(userId, submissionDAO.getCreatedBy(returnedId));
+    }
+    
+    @Test
+    public void testIsDockerRepoNameInAnyEvaluationWithAccess() {
+    	
     }
 }
