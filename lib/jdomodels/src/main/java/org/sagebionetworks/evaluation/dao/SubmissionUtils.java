@@ -69,6 +69,7 @@ public class SubmissionUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
 		dto.setTeamId(dbo.getTeamId() == null ? null : dbo.getTeamId().toString());
+		dto.setDockerRepositoryName(dbo.getDockerRepositoryName());
 		dto.setDockerDigest(dbo.getDockerDigest());
 	}
 

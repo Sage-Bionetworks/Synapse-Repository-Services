@@ -35,11 +35,16 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.SubmissionUtils;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * The database object for a Submission to a Synapse Evaluation
@@ -316,9 +321,19 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			@Override
 			public SubmissionDBO createDatabaseObjectFromBackup(
 					SubmissionDBO backup) {
-				Submission dto = new Submission();
-				SubmissionUtils.copyDboToDto(backup, dto);
-				SubmissionUtils.copyDtoToDbo(dto, backup);
+				if (backup.getDockerRepositoryName()==null) {
+					try {
+						EntityBundle bundle = EntityFactory.createEntityFromJSONString(
+								new String(backup.getEntityBundle()), EntityBundle.class);
+						Class<Entity> entityType = (Class<Entity>)bundle.getEntity().getClass();
+						if (entityType.equals(DockerRepository.class)) {
+							String repositoryName = ((DockerRepository)bundle.getEntity()).getRepositoryName();
+							backup.setDockerRepositoryName(repositoryName);
+						}
+					} catch (JSONObjectAdapterException e) {
+						throw new RuntimeException(e);
+					}
+				}
 				return backup;
 			}
 
