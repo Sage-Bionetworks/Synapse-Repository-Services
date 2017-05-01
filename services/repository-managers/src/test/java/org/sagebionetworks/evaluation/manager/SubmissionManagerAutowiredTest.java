@@ -164,6 +164,10 @@ public class SubmissionManagerAutowiredTest {
 	
 	@Test
 	public void testDockerRepoSubmissionCreateAndRead() throws Exception {
+		// when we create the object we don't fill in the Docker Repo name field
+		// but it will be filled in when we retrieve it
+		assertNull(submission.getDockerRepositoryName());
+		
 		// create a docker repository
 		submission = submissionManager.createSubmission(adminUserInfo, submission, 
 				retrievedNode.getETag(), null, bundle);
@@ -182,6 +186,8 @@ public class SubmissionManagerAutowiredTest {
 		assertEquals(submission.getId(), retrieved.getId());
 		assertNull(retrieved.getTeamId());
 		assertEquals(retrievedNode.getVersionNumber(), retrieved.getVersionNumber());
+		// voila, the repository name is filled in!
+		assertEquals(DOCKER_REPOSITORY_NAME, retrieved.getDockerRepositoryName());
 		assertEquals(DOCKER_DIGEST, retrieved.getDockerDigest());
 	}
 	

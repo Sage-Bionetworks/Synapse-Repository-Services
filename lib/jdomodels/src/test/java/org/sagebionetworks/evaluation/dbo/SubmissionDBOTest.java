@@ -108,7 +108,7 @@ public class SubmissionDBOTest {
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
-    	fileHandleDAO.delete(fileHandleId);;
+    	fileHandleDAO.delete(fileHandleId);
     }
     
     @Test

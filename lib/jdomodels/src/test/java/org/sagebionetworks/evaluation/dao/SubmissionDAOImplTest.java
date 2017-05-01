@@ -920,6 +920,15 @@ public class SubmissionDAOImplTest {
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess("some-other-name", 
 				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.READ));
 
+		// method under test
+		// wrong access type
+		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
+				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.MODERATE));
+
+		// method under test
+		// fails gracefully if no principals are passed
+		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
+				Collections.EMPTY_LIST, ACCESS_TYPE.READ));
 
 
 	}
