@@ -65,6 +65,7 @@ public class ITDataAccessTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setAcceptDataAccessRequest(true);
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
