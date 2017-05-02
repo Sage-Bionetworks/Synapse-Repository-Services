@@ -4,7 +4,6 @@
 
 # optional variables for github commit status API
 # github_token - the token that is used to push commit status
-# github_username - the username that is used to push commit status
 
 stack=dev
 
@@ -17,9 +16,9 @@ else
 fi
 
 # push build status to github
-if [[ ${github_token} ]] && [[ ${github_username} ]]
+if [[ ${github_token} ]] 
 then
-  curl "https://api.github.com/repos/${github_username}/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
+  curl "https://api.github.com/repos/Sage-Bionetworks/Synapse-Repository-Services/statuses/$GIT_COMMIT" \
     -H "Authorization: token ${github_token}" \
     -H "Content-Type: application/json" \
     -X POST \
