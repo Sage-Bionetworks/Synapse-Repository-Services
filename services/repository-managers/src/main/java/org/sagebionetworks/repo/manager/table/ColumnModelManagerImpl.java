@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -208,7 +209,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 	
 	@Override
-	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes) {
+	public void calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
+			List<String> orderedColumnIds) {
 		// lookup the current schema.
 		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
 		List<String> newSchemaIds = new LinkedList<>();
@@ -233,15 +235,24 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				newSchemaIds.add(change.getNewColumnId());
 			}
 		}
+		validateSchemaWithProvidedOrderedColumns(newSchemaIds, orderedColumnIds);
 		// Validate the new schema size.
-		List<ColumnModel> newSchema = validateSchemaSize(newSchemaIds);
+		List<ColumnModel> newSchema = validateSchemaSize(orderedColumnIds);
 		// validate the schema change
 		List<ColumnModel> allColumns = new LinkedList<>(oldSchema);
 		allColumns.addAll(newSchema);
 		validateSchemaChange(allColumns, changes);
-		return newSchemaIds;
 	}
 	
+	public static void validateSchemaWithProvidedOrderedColumns(List<String> newSchemaIds, List<String> orderedColumnIds) {
+		ValidateArgument.required(newSchemaIds, "newSchemaIds");
+		ValidateArgument.required(orderedColumnIds, "orderedColumnIds");
+		Set<String> newSchemaSet = new HashSet<>(newSchemaIds);
+		Set<String> ordered = new HashSet<>(orderedColumnIds);
+		ValidateArgument.requirement(ordered.equals(newSchemaSet),
+				"The provided ordered column IDs does not match resulting columns in the table schema.");
+	}
+
 	/**
 	 * Validate each column change.
 	 * @param allColumns All of the columns including the old and new schemas.
