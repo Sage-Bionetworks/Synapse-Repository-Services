@@ -12,6 +12,9 @@ export src_folder=${HOME}/workspace/${JOB_NAME}
 
 # Now call the more generic 'docker_build.sh'
 BASEDIR=$(dirname "$0")
+
+stack=dev
+
 ${BASEDIR}/before.sh
 ${BASEDIR}/docker_build.sh
 result=$?

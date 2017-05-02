@@ -8,9 +8,6 @@
 # require to check status
 # result - the result of the jenkins_build.sh -- needs to be captured in Jenkins' cell
 
-
-stack=dev
-
 # map Jenkins status to github commit status
 if [[ $result -eq 0 ]]
 then

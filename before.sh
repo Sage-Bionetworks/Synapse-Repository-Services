@@ -5,8 +5,6 @@
 # optional variables for github commit status API
 # github_token - the token that is used to push commit status
 
-stack=dev
-
 # push PENDING status to github
 if [[ ${github_token} ]] 
 then
