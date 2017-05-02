@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -18,7 +17,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -192,7 +190,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	@Test
 	public void testCreateLockAccessRequirement() throws Exception {
-		ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, entityId);
+		String jiraKey = "jiraKey";
+		ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, entityId, jiraKey);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		assertNotNull(ar.getCreatedBy());
 		assertNotNull(ar.getCreatedOn());
@@ -200,14 +199,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertNotNull(ar.getId());
 		assertNotNull(ar.getModifiedBy());
 		assertNotNull(ar.getModifiedOn());
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		assertFalse(actAR.getIsCertifiedUserRequired());
-		assertFalse(actAR.getIsValidatedProfileRequired());
-		assertFalse(actAR.getIsDUCRequired());
-		assertFalse(actAR.getIsIRBApprovalRequired());
-		assertFalse(actAR.getAreOtherAttachmentsRequired());
-		assertFalse(actAR.getIsAnnualReviewRequired());
-		assertFalse(actAR.getIsIDUPublic());
 	}
 
 	@Test(expected=IllegalArgumentException.class)

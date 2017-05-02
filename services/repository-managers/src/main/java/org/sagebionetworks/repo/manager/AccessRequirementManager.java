@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -53,7 +53,7 @@ public interface AccessRequirementManager {
 	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Create an ACTAccessRequirement on an entity
+	 * Create an LockAccessRequirement on an entity
 	 * @param userInfo
 	 * @param entityId
 	 * @return
@@ -62,7 +62,7 @@ public interface AccessRequirementManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo,
+	public LockAccessRequirement createLockAccessRequirement(UserInfo userInfo,
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
 
