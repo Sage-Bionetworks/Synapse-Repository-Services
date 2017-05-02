@@ -29,6 +29,8 @@ public class ResearchProjectManagerImplTest {
 	private ResearchProjectDAO mockResearchProjectDao;
 	@Mock
 	private UserInfo mockUser;
+	@Mock
+	private ACTAccessRequirement mockAccessRequirement;
 
 	private ResearchProjectManagerImpl manager;
 	private String accessRequirementId;
@@ -66,6 +68,8 @@ public class ResearchProjectManagerImplTest {
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(true);
 	}
 
 	private ResearchProject createNewResearchProject() {
@@ -148,9 +152,20 @@ public class ResearchProjectManagerImplTest {
 		manager.create(null, createNewResearchProject());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(null);
+		manager.create(mockUser, createNewResearchProject());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(false);
+		manager.create(mockUser, createNewResearchProject());
+	}
+
 	@Test
 	public void testCreate() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
 		assertEquals(researchProject, manager.create(mockUser, createNewResearchProject()));
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);
 		verify(mockResearchProjectDao).create(captor.capture());
@@ -306,7 +321,6 @@ public class ResearchProjectManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithNullId() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
 		researchProject.setId(null);
 		assertEquals(researchProject, manager.createOrUpdate(mockUser, researchProject));
 		ArgumentCaptor<ResearchProject> captor = ArgumentCaptor.forClass(ResearchProject.class);

@@ -1264,12 +1264,57 @@ public class SQLUtils {
 		builder.append(".");
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
 		for(ColumnMetadata meta: metadata){
-			builder.append(", ");
-			builder.append(meta.getTableAlias());
-			builder.append(".");
-			builder.append(meta.getSelectColumnName());
-			builder.append(" AS ");
-			builder.append(meta.getColumnNameForId());
+			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+				builder.append(", ");
+				builder.append("CASE WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") = \"nan\" THEN \"NaN\"");
+				builder.append(" WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN \"Infinity\"");
+				builder.append(" WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN \"-Infinity\"");
+				builder.append(" ELSE NULL END AS _DBL");
+				builder.append(meta.getColumnNameForId());
+				builder.append(", ");
+				builder.append("CASE WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") = \"nan\" THEN NULL");
+				builder.append(" WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN ");
+				builder.append(Double.MAX_VALUE);
+				builder.append(" WHEN LOWER(");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(") IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN ");
+				builder.append(Double.MIN_VALUE);
+				builder.append(" ELSE ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(" END AS ");
+				builder.append(meta.getColumnNameForId());
+			} else {
+				builder.append(", ");
+				builder.append(meta.getTableAlias());
+				builder.append(".");
+				builder.append(meta.getSelectColumnName());
+				builder.append(" AS ");
+				builder.append(meta.getColumnNameForId());
+			}
 		}
 	}
 
@@ -1285,6 +1330,10 @@ public class SQLUtils {
 		builder.append(", ");
 		builder.append(TableConstants.ROW_VERSION);
 		for(ColumnMetadata meta: metadata){
+			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
+				builder.append(", _DBL");
+				builder.append(meta.getColumnNameForId());
+			}
 			builder.append(", ");
 			builder.append(meta.getColumnNameForId());
 		}

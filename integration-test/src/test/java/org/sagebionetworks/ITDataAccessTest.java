@@ -30,6 +30,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
 public class ITDataAccessTest {
@@ -63,6 +65,7 @@ public class ITDataAccessTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setAcceptDataAccessRequest(true);
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
@@ -146,6 +149,14 @@ public class ITDataAccessTest {
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
+
+		BatchAccessApprovalRequest batchRequest = new BatchAccessApprovalRequest();
+		batchRequest.setUserIds(Arrays.asList(userId));
+		batchRequest.setAccessRequirementId(accessRequirement.getId().toString());
+		BatchAccessApprovalResult batchResult = adminSynapse.getAccessApprovalInfo(batchRequest);
+		assertNotNull(batchResult);
+		assertNotNull(batchResult.getResults());
+		assertEquals(1, batchResult.getResults().size());
 	}
 
 }

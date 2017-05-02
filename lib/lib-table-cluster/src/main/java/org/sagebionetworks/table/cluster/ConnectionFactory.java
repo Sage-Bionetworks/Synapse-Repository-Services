@@ -2,6 +2,8 @@ package org.sagebionetworks.table.cluster;
 
 import java.util.List;
 
+import javax.sql.DataSource;
+
 /**
  * The connection factory provides database connections to the cluster of database used to support the Table feature.
  * @author jmhill
@@ -34,4 +36,12 @@ public interface ConnectionFactory {
 	 * @return
 	 */
 	TableIndexDAO getFirstConnection();
+	
+	/**
+	 * Get the first DataSource connection.
+	 * 
+	 * @return
+	 */
+	DataSource getFirstDataSource();
+	
 }

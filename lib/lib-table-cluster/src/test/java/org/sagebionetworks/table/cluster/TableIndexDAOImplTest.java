@@ -1503,6 +1503,48 @@ public class TableIndexDAOImplTest {
 		assertEquals(3715581114L, crc32);
 	}
 	
+	/*
+	 * PLFM-4336
+	 */
+	@Test
+	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(333L);
+		AnnotationDTO double1 = new AnnotationDTO();
+		double1.setKey("foo");
+		double1.setValue("NaN");
+		double1.setType(AnnotationType.DOUBLE);
+		double1.setEntityId(2L);
+		file1.setAnnotations(Arrays.asList(double1));
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(222L);
+		AnnotationDTO double2 = new AnnotationDTO();
+		double2.setKey("foo");
+		double2.setValue("Infinity");
+		double2.setType(AnnotationType.DOUBLE);
+		double2.setEntityId(3L);
+		file2.setAnnotations(Arrays.asList(double2));
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		// both parents
+		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "foo", ColumnType.DOUBLE));
+		// Create the view index
+		createOrUpdateTable(schema, tableId);
+		// Copy the entity data to the table
+		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
+		// Query the results
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(2, count);
+	}
+
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
 		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();

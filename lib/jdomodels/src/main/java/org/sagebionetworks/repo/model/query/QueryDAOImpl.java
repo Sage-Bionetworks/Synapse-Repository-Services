@@ -406,7 +406,7 @@ public class QueryDAOImpl implements QueryDAO {
 	 */
 	private static void appendFilter(Comparator comparator, StringBuilder builder, String alias, 
 			String column, String paramKey, boolean isFirst) {
-		String operator = SqlConstants.getSqlForComparator(comparator);
+		String operator = comparator.getSql();
 		if (!isFirst) {
 			builder.append(" and ");
 		}

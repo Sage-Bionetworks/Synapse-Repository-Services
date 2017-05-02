@@ -759,10 +759,10 @@ public class IT100TableControllerTest {
 		assertNotNull(page);
 		assertNotNull(page.getResults());
 		assertNull(page.getNextPageToken());
-		assertEquals(3, page.getResults().size());
+		assertEquals(4, page.getResults().size());
 		// make another call with a next page token.
 		long limit = 1;
-		long offset = 1;
+		long offset = 2;
 		nextPageToken = new NextPageToken(limit, offset).toToken();
 		page = waitForColumnModelPage(scope, nextPageToken, 1);
 		assertNotNull(page);
@@ -806,7 +806,7 @@ public class IT100TableControllerTest {
 	private ColumnModelPage waitForColumnModelPage(ViewScope scope, String nextPageToken, int expectedCount) throws SynapseException, InterruptedException{
 		while(true){
 			ColumnModelPage page = synapse.getPossibleColumnModelsForViewScope(scope, nextPageToken);
-			if(page.getResults().size() == expectedCount){
+			if(page.getResults().size() >= expectedCount){
 				return page;
 			}
 			System.out.println("Wait for entity replication...");

@@ -375,4 +375,13 @@ public interface NodeManager {
 	public List<EntityHeader> getChildren(String parentId,
 			List<EntityType> includeTypes, Set<Long> childIdsToExclude, SortBy sortBy, Direction sortDirection, long limit, long offset);
 
+	/**
+	 * Retrieve the entityId for a given parentId and entityName
+	 * 
+	 * @param parentId
+	 * @param entityName
+	 * @return
+	 */
+	public String lookupChild(String parentId, String entityName);
+
 }

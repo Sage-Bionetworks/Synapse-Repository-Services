@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -68,7 +69,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @param <T>
  *            the particular type of entity the controller is managing
  */
-@SuppressWarnings({"rawtypes","unchecked"})
 public class EntityServiceImpl implements EntityService {
 	public static final Integer DEFAULT_LIMIT = 10;
 	public static final Integer DEFAULT_OFFSET = 0;
@@ -693,5 +693,12 @@ public class EntityServiceImpl implements EntityService {
 		ValidateArgument.required(userId, "userId");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getChildren(userInfo, request);
+	}
+
+	@Override
+	public EntityId lookupChild(Long userId, EntityLookupRequest request) {
+		ValidateArgument.required(userId, "userId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.lookupChild(userInfo, request);
 	}
 }

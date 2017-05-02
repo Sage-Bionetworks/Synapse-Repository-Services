@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -26,11 +28,13 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long DEFAULT_LIMIT = 50L;
@@ -184,5 +188,37 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		Count result = new Count();
 		result.setCount(new Long(accessApprovalDAO.deleteBatch(toDelete.getList())));
 		return result;
+	}
+
+	@Override
+	public BatchAccessApprovalResult getApprovalInfo(UserInfo userInfo, BatchAccessApprovalRequest batchRequest) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(batchRequest, "batchRequest");
+		ValidateArgument.required(batchRequest.getUserIds(), "BatchAccessApprovalRequest.userIds");
+		ValidateArgument.required(batchRequest.getAccessRequirementId(), "BatchAccessApprovalRequest.accessRequirementId");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member may perform this action.");
+		}
+		BatchAccessApprovalResult batchResult = new BatchAccessApprovalResult();
+		List<AccessApprovalResult> list = new LinkedList<AccessApprovalResult>();
+		batchResult.setResults(list);
+
+		if (batchRequest.getUserIds().isEmpty()) {
+			return batchResult;
+		}
+
+		Set<String> hasApprovals = accessApprovalDAO.getApprovedUsers(batchRequest.getUserIds(), batchRequest.getAccessRequirementId());
+		for (String userId : batchRequest.getUserIds()) {
+			AccessApprovalResult result = new AccessApprovalResult();
+			result.setAccessRequirementId(batchRequest.getAccessRequirementId());
+			result.setUserId(userId);
+			if (hasApprovals.contains(userId)) {
+				result.setHasApproval(true);
+			} else {
+				result.setHasApproval(false);
+			}
+			list.add(result);
+		}
+		return batchResult;
 	}
 }
