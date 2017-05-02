@@ -5,10 +5,14 @@
 # optional variables for github commit status API
 # github_token - the token that is used to push commit status
 
+# require to check status
+# result - the result of the jenkins_build.sh -- needs to be captured in Jenkins' cell
+
+
 stack=dev
 
 # map Jenkins status to github commit status
-if [[ $BUILD_STATUS == "success" ]]
+if [[ $result == 0 ]]
 then
   export STATUS="success"
 else
