@@ -231,23 +231,8 @@ public class AuthorizationManagerImplUnitTest {
 		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-	
-//		when(authorizationManager.canCreate(eq(USER_INFO), eq(PARENT_ID), eq(EntityType.dockerrepo))).
-//			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-//
-//		when(authorizationManager.canAccess(
-//				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
-//				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-//		
-//		when(authorizationManager.canAccess(
-//				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
-//				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-//		
-//		when(authorizationManager.canAccess(
-//				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-//				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-//		
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			
 		when(mockEvaluationPermissionsManager.
 				isDockerRepoNameInEvaluationWithAccess(anyString(), (Set<Long>)any(), (ACCESS_TYPE)any())).
 				thenReturn(false);

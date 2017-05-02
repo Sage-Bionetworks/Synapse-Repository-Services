@@ -307,7 +307,7 @@ public class ChallengeManagerImplTest {
 		ChallengeTeam challengeTeam = newChallengeTeam(challenge.getId(), CHALLENGE_TEAM_ID);
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
-		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_PRINCIPAL_ID, 
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
 						ModelConstants.TEAM_ADMIN_PERMISSIONS,
 						new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
@@ -343,7 +343,7 @@ public class ChallengeManagerImplTest {
 		TeamMember participantTeamMember = new TeamMember();
 		when(mockTeamDAO.getMember(PARTICIPANT_TEAM_ID, USER_INFO.getId().toString())).thenReturn(participantTeamMember);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenThrow(new NotFoundException());
-		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, ADMIN_PRINCIPAL_ID, 
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, ADMIN_USER, 
 				ModelConstants.TEAM_ADMIN_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
@@ -363,7 +363,7 @@ public class ChallengeManagerImplTest {
 		// if you are in the team but not an admin, you are not authorized
 		registeredTeamMember.setIsAdmin(false);
 		when(mockTeamDAO.getMember(CHALLENGE_TEAM_ID, USER_INFO.getId().toString())).thenReturn(registeredTeamMember);
-		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_PRINCIPAL_ID, 
+		AccessControlList acl = AccessControlListUtil.createACL(CHALLENGE_TEAM_ID, USER_INFO, 
 				ModelConstants.TEAM_MESSENGER_PERMISSIONS,
 				new Date());
 		when(mockAclDAO.get(CHALLENGE_TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
