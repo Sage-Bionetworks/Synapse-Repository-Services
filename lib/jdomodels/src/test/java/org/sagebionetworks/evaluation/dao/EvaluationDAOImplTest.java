@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,8 +150,7 @@ public class EvaluationDAOImplTest {
 		assertEquals(0, retrieved.size());
 
 		// now provide the permission to READ
-		AccessControlList acl = AccessControlListUtil.
-				createACL(evalId, EVALUATION_OWNER_ID, Collections.singleton(ACCESS_TYPE.READ), new Date());
+		AccessControlList acl = Util.createACL(evalId, EVALUATION_OWNER_ID, Collections.singleton(ACCESS_TYPE.READ), new Date());
 
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
@@ -244,8 +242,7 @@ public class EvaluationDAOImplTest {
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
-		AccessControlList acl = AccessControlListUtil.
-				createACL(eval.getId(), participantId, Collections.singleton(ACCESS_TYPE.SUBMIT), new Date());
+		AccessControlList acl = Util.createACL(eval.getId(), participantId, Collections.singleton(ACCESS_TYPE.SUBMIT), new Date());
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;
