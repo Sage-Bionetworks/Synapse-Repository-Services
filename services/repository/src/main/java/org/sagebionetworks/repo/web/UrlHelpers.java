@@ -198,6 +198,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ALIAS = ENTITY + "/alias" + "/{alias}";
 	
 	public static final String ENTITY_CHILDREN = ENTITY+"/children";
+	public static final String ENTITY_CHILD = ENTITY+"/child";
 	
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;

@@ -25,4 +25,8 @@ public abstract class SqlElement {
 		toSql(builder);
 		return builder.toString();
 	}
+	
+	public String toString(){
+		return toSql();
+	}
 }

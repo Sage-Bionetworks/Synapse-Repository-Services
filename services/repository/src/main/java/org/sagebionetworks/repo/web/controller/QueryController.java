@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,15 +25,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * 
- * https://sagebionetworks.jira.com/wiki/display/PLFM/Repository+Service+API#RepositoryServiceAPI-QueryAPI
- * 
- * This service provides query support to for <a href="${org.sagebionetworks.repo.model.Entity}">Entities</a>.
- * <ul>
- * <li><a href="${POST.query}">POST /query</a> Structured query.</li> 
- * <li><a href="${GET.query}">GET /query</a> 'SQL' like query language with a dynamic map results.</li>
- * </ul>
+ * This service is deprecated and will be removed.
  */
-@ControllerInfo(displayName="Entity Query Services", path="repo/v1")
+@Deprecated
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class QueryController extends BaseController {
@@ -54,6 +47,7 @@ public class QueryController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.POST)
 	public @ResponseBody EntityQueryResults structuredQuery(
@@ -76,6 +70,7 @@ public class QueryController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody QueryResults query(

@@ -131,6 +131,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -434,7 +435,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String OFFSET = "offset";
 
 	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
-	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
 	// Team
 	protected static final String TEAM = "/team";
@@ -1455,6 +1455,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return the query result
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	@Override
 	public JSONObject query(String query) throws SynapseException {
 		return querySynapse(query);
@@ -2640,30 +2641,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = createDownloadMessageURI(messageId, true);
 		downloadFromSynapse(getRepoEndpoint() + uri, null, target);
-	}
-
-	/**
-	 * Get the child count for this entity
-	 * 
-	 * @param entityId
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONException
-	 */
-	@Override
-	public Long getChildCount(String entityId) throws SynapseException {
-		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID + entityId
-				+ LIMIT_1_OFFSET_1;
-		JSONObject query = query(queryString);
-		if (!query.has(TOTAL_NUM_RESULTS)) {
-			throw new SynapseClientException("Query results did not have "
-					+ TOTAL_NUM_RESULTS);
-		}
-		try {
-			return query.getLong(TOTAL_NUM_RESULTS);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
-		}
 	}
 
 	/**
@@ -4259,6 +4236,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getPaginatedResults(getRepoEndpoint(), uri, PassingRecord.class);
 	}
 
+	@Deprecated
 	@Override
 	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), QUERY, query, EntityQueryResults.class);
@@ -5028,5 +5006,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		ValidateArgument.required(batchRequest, "batchRequest");
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/batch", batchRequest, BatchAccessApprovalResult.class);
+	}
+
+	@Override
+	public String lookupChild(String parentId, String entityName) throws SynapseException {
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(entityName, "entityName");
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setEntityName(entityName);
+		request.setParentId(parentId);
+		return postJSONEntity(getRepoEndpoint(), ENTITY+"/child", request, EntityId.class).getId();
 	}
 }

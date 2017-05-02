@@ -169,6 +169,7 @@ public class DataAccessSubmissionManagerImplTest {
 		when(mockDataAccessSubmissionDao.createSubmission(any(DataAccessSubmission.class)))
 				.thenReturn(mockStatus);
 		when(mockStatus.getSubmissionId()).thenReturn(submissionId);
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -227,6 +228,18 @@ public class DataAccessSubmissionManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonACTAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
+		manager.create(mockUser, requestId, etag);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(null);
+		manager.create(mockUser, requestId, etag);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(false);
 		manager.create(mockUser, requestId, etag);
 	}
 

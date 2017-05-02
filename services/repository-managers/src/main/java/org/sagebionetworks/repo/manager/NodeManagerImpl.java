@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -830,5 +829,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			SortBy sortBy, Direction sortDirection, long limit, long offset) {
 		// EntityManager handles all of the business logic for this call.
 		return nodeDao.getChildren(parentId, includeTypes, childIdsToExclude, sortBy, sortDirection, limit, offset);
+	}
+
+	@Override
+	public String lookupChild(String parentId, String entityName) {
+		// EntityManager handles all of the business logic for this call.
+		return nodeDao.lookupChild(parentId, entityName);
 	}
 }

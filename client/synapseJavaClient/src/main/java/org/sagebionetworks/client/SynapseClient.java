@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -541,6 +542,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
+	@Deprecated
 	public JSONObject query(String query) throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
@@ -808,8 +810,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void downloadMessageToFile(String messageId, File target) throws SynapseException;
-
-	public Long getChildCount(String entityId) throws SynapseException;
 
 	public SynapseVersionInfo getVersionInfo() throws SynapseException;
 
@@ -1934,6 +1934,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 	
 	/**
@@ -2580,6 +2581,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException;
+
+	/**
+	 * Retrieve an entityId given its name and parentId.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String lookupChild(String parentId, String entityName) throws SynapseException;
 
 	/**
 	 * Pin a thread

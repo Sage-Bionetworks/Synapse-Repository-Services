@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -82,9 +83,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * An Entity can be annotated using the <a
  * href="${PUT.entity.id.annotations}">PUT /entity/{id}/annotations</a> method.
- * Each annotation is a key-value pair. The <a href="${GET.query}">GET
- * /query</a> can be used to query for Entities based on the key-value pairs of
- * annotations. The <a href="${GET.entity.id.annotations}">GET
+ * Each annotation is a key-value pair. The <a href="${GET.entity.id.annotations}">GET
  * /entity/{id}/annotations</a> method can be used to get the current
  * annotations of an entity.
  * </p>
@@ -1527,6 +1526,20 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody(required=true) EntityChildrenRequest request){
 		return serviceProvider.getEntityService().getChildren(userId, request);
+	}
+
+	/**
+	 * Retrieve an entityId for a given parent ID and entity name.
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_CHILD }, method = RequestMethod.POST)
+	public @ResponseBody EntityId lookupChild(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody(required=true) EntityLookupRequest request){
+		return serviceProvider.getEntityService().lookupChild(userId, request);
 	}
 }
 
