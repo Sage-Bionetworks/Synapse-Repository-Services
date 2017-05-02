@@ -136,13 +136,17 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public void createFunction(String functionName, String fileName)
 			throws IOException {
-		// drop the function if it exists
 		String functionDefinition = loadSchemaSql(fileName);
-		// create the function from its definition
 		try {
+			// create the function from its definition
 			jdbcTemplate.update(functionDefinition);
 			log.info("Created function: "+functionName);
 		} catch (DataAccessException e) {
+			/*
+			 * MySQL does not have support for creating a function with 'IF NOT
+			 * EXISTS'. Therefore, we look for 'already exists' in the error
+			 * message.
+			 */
 			if(e.getMessage().contains(ALREADY_EXISTS)){
 				log.info(FUNCTION_ALREADY_EXISTS+functionName);
 			}else{
