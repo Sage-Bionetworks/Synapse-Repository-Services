@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -210,17 +211,7 @@ public class SubmissionDAOImplTest {
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
-        
-        acl = new AccessControlList();
-        acl.setCreatedBy(userId);
-        acl.setCreationDate(new Date());
-        acl.setId(evalId);
-        Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-        ResourceAccess ra = new ResourceAccess();
-        ra.setPrincipalId(Long.parseLong(userId));
-        ra.setAccessType(ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS);
-        ras.add(ra);
-        acl.setResourceAccess(ras);
+        acl = AccessControlListUtil.createACL(evalId, Long.parseLong(userId), ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, new Date());
         acl.setId(aclDAO.create(acl, ObjectType.EVALUATION));
         
         // Initialize Submissions

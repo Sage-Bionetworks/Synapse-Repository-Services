@@ -96,6 +96,8 @@ public class SubmissionManagerTest {
 	private Submission sub2WithId;
 	private SubmissionStatus subStatus;
 	private SubmissionBundle submissionBundle;
+	private EntityBundle dockerBundle;
+
 	private SubmissionStatusBatch batch;
 	
 	private IdGenerator mockIdGenerator;
@@ -142,8 +144,23 @@ public class SubmissionManagerTest {
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
 	
+	private static EntityBundle createDockerEntityBundle() {
+		EntityBundle bundle = new EntityBundle();
+		DockerRepository entity = new DockerRepository();
+		entity.setRepositoryName(DOCKER_REPO_NAME);
+		bundle.setEntity(entity);
+		bundle.setFileHandles(Collections.EMPTY_LIST);
+		return bundle;
+	}
+	
+	private static String createEntityBundleJSON(EntityBundle bundle) throws JSONObjectAdapterException {
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		bundle.writeToJSONObject(joa);
+		return joa.toJSONString();
+	}
+	
     @Before
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException, MalformedURLException {
+    public void setUp() throws Exception {
 		// User Info
     	ownerInfo = new UserInfo(false, OWNER_ID);
     	userInfo = new UserInfo(false, USER_ID);
@@ -177,7 +194,9 @@ public class SubmissionManagerTest {
         sub.setName("subName");
         sub.setUserId(USER_ID);
         sub.setSubmitterAlias("Team Awesome!");
-        sub.setVersionNumber(0L);
+        sub.setVersionNumber(0L);       
+        dockerBundle = createDockerEntityBundle();
+    	sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
         
         sub2 = new Submission();
         sub2.setEvaluationId(EVAL_ID);
@@ -492,26 +511,9 @@ public class SubmissionManagerTest {
 		assertNull(retrieved.getDockerDigest());
 	}
 	
-	private static EntityBundle createDockerEntityBundle() {
-		EntityBundle bundle = new EntityBundle();
-		DockerRepository entity = new DockerRepository();
-		entity.setRepositoryName(DOCKER_REPO_NAME);
-		bundle.setEntity(entity);
-		bundle.setFileHandles(Collections.EMPTY_LIST);
-		return bundle;
-	}
-	
-	private static String createEntityBundleJSON(EntityBundle bundle) throws JSONObjectAdapterException {
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		bundle.writeToJSONObject(joa);
-		return joa.toJSONString();
-	}
-	
 	@Test
 	public void testCreateDockerRepoSubmission() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
-		EntityBundle dockerBundle = createDockerEntityBundle();
-		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest(DOCKER_REPO_DIGEST);
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 		verify(mockDockerCommitDao).listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST);
@@ -520,8 +522,6 @@ public class SubmissionManagerTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerRepoSubmissionNoDigest() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
-		EntityBundle dockerBundle = createDockerEntityBundle();
-		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest(null);
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 	}
@@ -529,8 +529,6 @@ public class SubmissionManagerTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerRepoSubmissionInvalidDigest() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
-		EntityBundle dockerBundle = createDockerEntityBundle();
-		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest("not a valid digest");
 		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 	}
