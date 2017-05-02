@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -19,8 +20,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
  *
  */
 public class DDLUtilsImpl implements DDLUtils{
-	
-	private static final String DROP_FUNCTION_IF_EXISTS = "DROP function IF EXISTS `%1s`;";
+
+	private static final String FUNCTION_ALREADY_EXISTS = "Function already exists: ";
+
+	private static final String ALREADY_EXISTS = "already exists";
 
 	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
@@ -133,12 +136,23 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public void createFunction(String functionName, String fileName)
 			throws IOException {
-		log.info("Creating/Updating function: "+functionName);
-		// drop the function if it exists
-		jdbcTemplate.update(String.format(DROP_FUNCTION_IF_EXISTS, functionName));
 		String functionDefinition = loadSchemaSql(fileName);
-		// create the function from its definition
-		jdbcTemplate.update(functionDefinition);
+		try {
+			// create the function from its definition
+			jdbcTemplate.update(functionDefinition);
+			log.info("Created function: "+functionName);
+		} catch (DataAccessException e) {
+			/*
+			 * MySQL does not have support for creating a function with 'IF NOT
+			 * EXISTS'. Therefore, we look for 'already exists' in the error
+			 * message.
+			 */
+			if(e.getMessage().contains(ALREADY_EXISTS)){
+				log.info(FUNCTION_ALREADY_EXISTS+functionName);
+			}else{
+				throw e;
+			}
+		}
 	}
 
 }
