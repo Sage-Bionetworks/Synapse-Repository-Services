@@ -19,4 +19,4 @@ ${BASEDIR}/before.sh
 ${BASEDIR}/docker_build.sh
 export result=$?
 ${BASEDIR}/after.sh
-exit result
+exit ${result}
