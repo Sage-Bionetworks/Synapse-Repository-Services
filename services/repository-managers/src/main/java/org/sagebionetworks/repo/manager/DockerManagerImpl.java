@@ -96,7 +96,7 @@ public class DockerManagerImpl implements DockerManager {
 				String repositoryPath = scopeParts[1]; // i.e. the 'path'
 				
 				String actionTypes = scopeParts[2]; // e.g. push, pull
-				Set<RegistryEventAction> permittedActions = authorizationManager.getPermittedActions(userInfo,  service, repositoryPath, actionTypes);
+				Set<RegistryEventAction> permittedActions = authorizationManager.getPermittedDockerRepositoryActions(userInfo,  service, repositoryPath, actionTypes);
 				
 				accessPermissions.add(new DockerScopePermission(type, repositoryPath, permittedActions));
 			}
@@ -148,11 +148,13 @@ public class DockerManagerImpl implements DockerManager {
 				String entityId =  dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 				if (entityId==null) {
 					// The node doesn't already exist
-					List<EntityHeader> headers = nodeDao.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
-					if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
-					if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-					if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
-						throw new IllegalArgumentException("Parent must be a project.");
+					try {
+						EntityType parentType = nodeDao.getNodeTypeById(parentId);
+						if (parentType!=EntityType.project) {
+							throw new IllegalArgumentException("Parent must be a project.");
+						}
+					} catch (NotFoundException e) {
+						throw new NotFoundException("parentId "+parentId+" does not exist.", e);
 					}
 					DockerRepository entity = new DockerRepository();
 					entity.setIsManaged(true);

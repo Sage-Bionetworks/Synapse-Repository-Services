@@ -97,8 +97,6 @@ public class DockerManagerImplUnitTest {
 	
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
-	
-	private EntityHeader parentHeader;
 
 	@Before
 	public void before() throws Exception {
@@ -113,11 +111,7 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
 		
-		parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(Project.class.getName());
-		List<EntityHeader> parent = Collections.singletonList(parentHeader);
-		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		
@@ -249,7 +243,7 @@ public class DockerManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testDockerRegistryNotificationPushNEWEntityParentIsFolder() {
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
-		parentHeader.setType(EntityType.folder.name());
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.folder);
 
 		DockerRegistryEventList events = 
 				DockerRegistryEventUtil.createDockerRegistryEvent(RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, MEDIA_TYPE);
