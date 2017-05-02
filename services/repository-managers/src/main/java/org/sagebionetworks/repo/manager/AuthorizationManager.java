@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -228,4 +228,14 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param service
+	 * @param repositoryPath
+	 * @param actionTypes
+	 * @return the permitted actions for the given user on the given repository
+	 */
+	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
 }

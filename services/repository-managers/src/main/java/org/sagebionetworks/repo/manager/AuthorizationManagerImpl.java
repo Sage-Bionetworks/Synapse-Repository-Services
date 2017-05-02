@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -21,9 +24,13 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerNodeDao;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -36,18 +43,20 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -96,6 +105,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private MessageManager messageManager;
 	@Autowired
 	private DataAccessSubmissionDAO dataAccessSubmissionDao;
+	@Autowired
+	private DockerNodeDao dockerNodeDao;
+
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -539,4 +551,93 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		return this.aclDAO.getAccessibleProjectIds(principalIds, ACCESS_TYPE.READ);
 	}
+	
+	/*
+	 * Given a repository path, return a valid parent Id, 
+	 * a project which has been verified to exist. 
+	 * If there is no such valid parent then return null
+	 */
+	public String validParentProjectId(String repositoryPath) {
+		// check that 'repositoryPath' is a valid path
+		try {
+			DockerNameUtil.validateName(repositoryPath);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+		// check that 'repopath' starts with a synapse ID (synID) and synID is a project or folder
+		String parentId;
+		try {
+			parentId = DockerNameUtil.getParentIdFromRepositoryPath(repositoryPath);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+
+		Long parentIdAsLong = KeyFactory.stringToKey(parentId);
+		List<EntityHeader> headers = nodeDao.getEntityHeader(Collections.singleton(parentIdAsLong));
+		if (headers.size()==0) return null; // Not found!
+		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
+		EntityHeader header = headers.get(0);
+		if(EntityTypeUtils.getEntityTypeForClassName(header.getType())!=EntityType.project) return null; // parent must be a project!
+		return header.getId();
+	}
+
+	@Override
+	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(service, "service");
+		ValidateArgument.required(repositoryPath, "repositoryPath");
+		ValidateArgument.required(actionTypes, "actionTypes");
+
+		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
+
+		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
+
+		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
+
+		for (String requestedActionString : actionTypes.split(",")) {
+			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
+			switch (requestedAction) {
+			case push:
+				// check CREATE or UPDATE permission and add to permittedActions
+				AuthorizationStatus as = null;
+				if (existingDockerRepoId==null) {
+					String parentId = validParentProjectId(repositoryPath);
+					if (parentId==null) {
+						// can't push to a non-existent parent
+						as = AuthorizationManagerUtil.ACCESS_DENIED;
+					} else {
+						// check for create permission on parent
+						as = canCreate(userInfo, parentId, EntityType.dockerrepo);
+					}
+				} else {
+					// check update permission on this entity
+					as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+				}
+				if (as!=null && as.getAuthorized()) {
+					permittedActions.add(requestedAction);
+					if (existingDockerRepoId==null) permittedActions.add(pull);
+				}
+				break;
+			case pull:
+				if (
+					// check DOWNLOAD permission and add to permittedActions
+					(existingDockerRepoId!=null && canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()) ||
+					// If Docker repository was submitted to an Evaluation and if the requester
+					// has administrative access to the queue, then DOWNLOAD permission is granted
+					evaluationPermissionsManager.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
+							userInfo.getGroups(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
+						permittedActions.add(requestedAction);
+				}
+				break;
+			default:
+				throw new RuntimeException("Unexpected action type: " + requestedAction);
+			}
+		}
+		return permittedActions;
+	}
+
+
+
+
 }

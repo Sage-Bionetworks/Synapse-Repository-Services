@@ -186,7 +186,7 @@ public class TeamManagerImpl implements TeamManager {
 			final String teamId, 
 			final Date creationDate) {
 		AccessControlList acl = AccessControlListUtil.createACL(
-				teamId, creator, ModelConstants.TEAM_ADMIN_PERMISSIONS, creationDate);
+				teamId, creator.getId(), ModelConstants.TEAM_ADMIN_PERMISSIONS, creationDate);
 		// set up default permissions for additional members
 		acl.getResourceAccess().add(createResourceAccess(
 				Long.parseLong(teamId),

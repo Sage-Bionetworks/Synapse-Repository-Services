@@ -240,7 +240,7 @@ public class TableViewIntegrationTest {
 			// expected
 		}
 		// grant the user read access to the view
-		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo, Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
+		AccessControlList acl = AccessControlListUtil.createACL(fileViewId, userInfo.getId(), Sets.newHashSet(ACCESS_TYPE.READ), new Date(System.currentTimeMillis()));
 		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
