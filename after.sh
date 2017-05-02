@@ -12,7 +12,7 @@
 stack=dev
 
 # map Jenkins status to github commit status
-if [[ $result == 0 ]]
+if [[ $result -eq 0 ]]
 then
   export STATUS="success"
 else
