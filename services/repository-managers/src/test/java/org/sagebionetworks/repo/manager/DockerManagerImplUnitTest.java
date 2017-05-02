@@ -50,8 +50,6 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -110,7 +108,6 @@ public class DockerManagerImplUnitTest {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	
 	private EntityHeader parentHeader;
-	private Node authQueryNode;
 
 	@Before
 	public void before() throws Exception {
@@ -337,7 +334,7 @@ public class DockerManagerImplUnitTest {
 
 		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
-		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode.getParentId()), eq(authQueryNode.getNodeType()))).
+		when(authorizationManager.canCreate(eq(USER_INFO), eq(PARENT_ID), eq(EntityType.dockerrepo))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		when(authorizationManager.canAccess(
