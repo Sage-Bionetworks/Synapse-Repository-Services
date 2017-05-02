@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -60,11 +61,7 @@ public class ExternalDockerRepoValidatorTest {
 		repo.setRepositoryName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
-		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(Project.class.getName());
-		List<EntityHeader> parent = Collections.singletonList(parentHeader);
-		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		EntityEvent event = new EntityEvent(type, null, null);
 		provider.validateEntity(repo, event);
 	}
@@ -75,11 +72,7 @@ public class ExternalDockerRepoValidatorTest {
 		repo.setRepositoryName("quay.io/uname/myrepo");
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.CREATE;
-		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(Folder.class.getName());
-		List<EntityHeader> parent = Collections.singletonList(parentHeader);
-		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.folder);
 		EntityEvent event = new EntityEvent(type, null, null);
 		provider.validateEntity(repo, event);
 	}
@@ -131,11 +124,7 @@ public class ExternalDockerRepoValidatorTest {
 		repo.setParentId(PARENT_ID);
 		
 		EventType type = EventType.UPDATE;
-		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(Project.class.getName());
-		List<EntityHeader> parent = Collections.singletonList(parentHeader);
-		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		EntityEvent event = new EntityEvent(type, null, null);
 		provider.validateEntity(repo, event);
 
@@ -148,11 +137,7 @@ public class ExternalDockerRepoValidatorTest {
 		repo.setId(KeyFactory.keyToString(ENTITY_ID_LONG));
 		repo.setParentId(PARENT_ID);
 		EventType type = EventType.UPDATE;
-		EntityHeader parentHeader = new EntityHeader();
-		parentHeader.setId(PARENT_ID);
-		parentHeader.setType(Project.class.getName());
-		List<EntityHeader> parent = Collections.singletonList(parentHeader);
-		when(nodeDAO.getEntityHeader(Collections.singleton(PARENT_ID_LONG))).thenReturn(parent);
+		when(nodeDAO.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		when(dockerNodeDao.getRepositoryNameForEntityId(KeyFactory.keyToString(ENTITY_ID_LONG))).
 			thenReturn("docker.synapse.org/syn192837/repo-name");
 

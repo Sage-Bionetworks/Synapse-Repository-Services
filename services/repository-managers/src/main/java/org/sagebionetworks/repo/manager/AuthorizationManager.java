@@ -237,5 +237,5 @@ public interface AuthorizationManager {
 	 * @param actionTypes
 	 * @return the permitted actions for the given user on the given repository
 	 */
-	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
+	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
 }
