@@ -4,6 +4,7 @@
 
 # optional variables for github commit status API
 # github_token - the token that is used to push commit status
+# Instructions: https://sagebionetworks.jira.com/wiki/display/PLFM/Developer+Bootstrap#DeveloperBootstrap-PushPrivateJenkinsBuildStatustoGithubasCommitStatus
 
 # require to check status
 # result - the result of the jenkins_build.sh -- needs to be captured in Jenkins' cell
