@@ -7,7 +7,7 @@
 # Instructions: https://sagebionetworks.jira.com/wiki/display/PLFM/Developer+Bootstrap#DeveloperBootstrap-PushPrivateJenkinsBuildStatustoGithubasCommitStatus
 
 # require to check status
-# result - the result of the jenkins_build.sh -- needs to be captured in Jenkins' cell
+# result - the result of the docker_build.sh
 
 # map Jenkins status to github commit status
 if [[ $result -eq 0 ]]

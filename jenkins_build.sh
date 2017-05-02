@@ -17,6 +17,6 @@ export stack=dev
 
 ${BASEDIR}/before.sh
 ${BASEDIR}/docker_build.sh
-result=$?
+export result=$?
 ${BASEDIR}/after.sh
 exit result
