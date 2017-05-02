@@ -144,10 +144,7 @@ public class DockerManagerImpl implements DockerManager {
 						as = AuthorizationManagerUtil.ACCESS_DENIED;
 					} else {
 						// check for create permission on parent
-						Node node = new Node();
-						node.setParentId(parentId);
-						node.setNodeType(EntityType.dockerrepo);
-						as = authorizationManager.canCreate(userInfo, node);
+						as = authorizationManager.canCreate(userInfo, parentId, EntityType.dockerrepo);
 					}
 				} else {
 					// check update permission on this entity
@@ -167,7 +164,7 @@ public class DockerManagerImpl implements DockerManager {
 					// If Docker repository was submitted to an Evaluation and if the requester
 					// has administrative access to the queue, then DOWNLOAD permission is granted
 					evaluationPermissionsManager.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
-							new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
+							userInfo.getGroups(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
 						permittedActions.add(requestedAction);
 				}
 				break;

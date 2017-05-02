@@ -188,7 +188,7 @@ public interface SubmissionDAO {
 	 * Return true if and only if the given Docker Repository name is in a Submission under some Evaluation 
 	 * in which the given user (represented by a list of principalIds) has the given access type.
 	 */
-	boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName, List<Long> principalIds, ACCESS_TYPE accessType);
+	boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
 
 	SubmissionBundle getBundle(String id);
 

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -204,9 +205,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) 
+	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) 
 		throws NotFoundException, DatastoreException {
-		return entityPermissionsManager.canCreate(node, userInfo);
+		return entityPermissionsManager.canCreate(parentId, nodeType, userInfo);
 	}
 
 	@Override

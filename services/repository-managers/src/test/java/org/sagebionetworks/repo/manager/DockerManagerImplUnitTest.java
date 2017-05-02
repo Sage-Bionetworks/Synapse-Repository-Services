@@ -134,10 +134,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		
-		authQueryNode = new Node();
-		authQueryNode.setParentId(PARENT_ID);
-		authQueryNode.setNodeType(EntityType.dockerrepo);
-		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
+		when(authorizationManager.canCreate(eq(USER_INFO), eq(PARENT_ID), eq(EntityType.dockerrepo))).
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 		when(authorizationManager.canAccess(
@@ -153,7 +150,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		when(evaluationPermissionsManager.
-				isDockerRepoNameInEvaluationWithAccess(anyString(), (List<Long>)any(), (ACCESS_TYPE)any())).
+				isDockerRepoNameInEvaluationWithAccess(anyString(), (Set<Long>)any(), (ACCESS_TYPE)any())).
 				thenReturn(false);
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
@@ -304,7 +301,7 @@ public class DockerManagerImplUnitTest {
 		
 		when(evaluationPermissionsManager.
 		isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
-				new ArrayList<Long>(USER_INFO.getGroups()), 
+				USER_INFO.getGroups(), 
 				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
 
 		// method under test:
@@ -340,7 +337,7 @@ public class DockerManagerImplUnitTest {
 
 		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
-		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
+		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode.getParentId()), eq(authQueryNode.getNodeType()))).
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		when(authorizationManager.canAccess(

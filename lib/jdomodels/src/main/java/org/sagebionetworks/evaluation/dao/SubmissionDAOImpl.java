@@ -717,7 +717,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Override
 	public boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName,
-			List<Long> principalIds, ACCESS_TYPE accessType) {
+			Set<Long> principalIds, ACCESS_TYPE accessType) {
 		ValidateArgument.required(dockerRepoName, "dockerRepoName");
 		ValidateArgument.required(principalIds, "principalIds");
 		ValidateArgument.required(accessType, "accessType");

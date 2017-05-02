@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -26,12 +25,11 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -42,7 +40,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.EntityView;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -98,7 +95,7 @@ public class EntityManagerImplAutowireTest {
 		fileHandlesToDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuth.canCreate((UserInfo)any(), (String)any(), (EntityType)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
 	}
 	

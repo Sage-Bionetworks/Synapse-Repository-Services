@@ -34,19 +34,20 @@ public interface AuthorizationManager {
 	 */
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
+
+
 	/**
      * Checks whether the given user can create the given node.
-     *
-	 * @param nodeId
-	 * @param accessType
 	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @param nodeType
 	 * @return true iff either (1) the user has 'add child' access to the parent or (2) parent is null
 	 * and user is admin returns whether access is granted and, if not, a String giving the reason why
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
+	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
 
 	/**
 	 * Checks whether the given user can modify the settings for the given node.

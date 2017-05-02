@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySetOf;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -17,10 +22,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -203,7 +208,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(project, certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), certifiedUserInfo).getAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).getAuthorized());
 	}
@@ -228,7 +233,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(project, nonCertifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(project.getParentId(), project.getNodeType(), nonCertifiedUserInfo).getAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).getAuthorized());
 	}
@@ -253,7 +258,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		assertTrue(uep.getCanModerate());
 		
-		assertTrue(entityPermissionsManager.canCreate(folder, certifiedUserInfo).getAuthorized());
+		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
 		
 		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
 	}
@@ -278,7 +283,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		assertTrue(uep.getCanModerate());
 		
-		assertFalse(entityPermissionsManager.canCreate(folder, nonCertifiedUserInfo).getAuthorized());
+		assertFalse(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), nonCertifiedUserInfo).getAuthorized());
 		
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
 	}

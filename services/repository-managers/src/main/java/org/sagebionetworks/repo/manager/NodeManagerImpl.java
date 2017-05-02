@@ -134,7 +134,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		
 		// check whether the user is allowed to create this type of node
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreate(userInfo, newNode));
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreate(userInfo, newNode.getParentId(), newNode.getNodeType()));
 		
 		// can this entity be added to the parent?
 		validateChildCount(newNode.getParentId(), newNode.getNodeType());
