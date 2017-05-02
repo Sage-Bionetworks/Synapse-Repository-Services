@@ -259,17 +259,16 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 	
 	@Override
-	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) 
+	public AuthorizationStatus canCreate(String parentId, EntityType nodeType, UserInfo userInfo) 
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		String parentId = node.getParentId();
 		if (parentId == null) {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(node.getNodeType())) 
+		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !EntityType.project.equals(nodeType)) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		
 		return certifiedUserHasAccess(parentId, null, CREATE, userInfo);

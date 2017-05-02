@@ -13,19 +13,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -35,8 +31,6 @@ import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -50,8 +44,6 @@ import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.util.DockerRegistryEventUtil;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -106,17 +98,13 @@ public class DockerManagerImplUnitTest {
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
 	
-	@Mock
-	private EvaluationPermissionsManager evaluationPermissionsManager;
-	
 	private EntityHeader parentHeader;
-	private Node authQueryNode;
 
 	@Before
 	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		dockerManager = new DockerManagerImpl();
-		ReflectionTestUtils.setField(dockerManager, "nodeDAO", nodeDAO);
+		ReflectionTestUtils.setField(dockerManager, "nodeDao", nodeDAO);
 		ReflectionTestUtils.setField(dockerManager, "dockerNodeDao", dockerNodeDao);
 		ReflectionTestUtils.setField(dockerManager, "idGenerator", idGenerator);
 		ReflectionTestUtils.setField(dockerManager, "userManager", userManager);
@@ -124,7 +112,6 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
-		ReflectionTestUtils.setField(dockerManager, "evaluationPermissionsManager", evaluationPermissionsManager);
 		
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
@@ -134,12 +121,12 @@ public class DockerManagerImplUnitTest {
 		
 		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
 		
-		authQueryNode = new Node();
-		authQueryNode.setParentId(PARENT_ID);
-		authQueryNode.setNodeType(EntityType.dockerrepo);
-		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
-			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-
+		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
+		
+		when(idGenerator.generateNewId(IdType.ENTITY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
+		
+		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
+		
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -147,43 +134,8 @@ public class DockerManagerImplUnitTest {
 		when(authorizationManager.canAccess(
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		
-		when(evaluationPermissionsManager.
-				isDockerRepoNameInEvaluationWithAccess(anyString(), (List<Long>)any(), (ACCESS_TYPE)any())).
-				thenReturn(false);
-		
-		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
-		
-		when(idGenerator.generateNewId(IdType.ENTITY_ID)).thenReturn(REPO_ENTITY_ID_LONG);
-		
-		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.dockerrepo);
 	}
 
-	@Test
-	public void testValidParentProjectIdInvalidRepoName() {
-		assertEquals(null, dockerManager.validParentProjectId("/invalid/"));
-	}
-
-	@Test
-	public void testValidParentProjectIdInvalidSynID() {
-		assertEquals(null, dockerManager.validParentProjectId("uname/myrepo"));
-	}
-
-	@Test
-	public void testValidParentProjectIdParentNotAProject() {
-		parentHeader.setType(Folder.class.getName());
-		assertEquals(null, dockerManager.validParentProjectId(PARENT_ID+"/myrepo"));
-	}
-
-	@Test
-	public void testValidParentProjectIdHappyPath() {
-		assertEquals(PARENT_ID, dockerManager.validParentProjectId(PARENT_ID+"/myrepo"));
-	}
-	
 	@Test (expected = IllegalArgumentException.class)
 	public void testAuthorizeDockerAccessNullUserInfo() throws Exception{
 		dockerManager.authorizeDockerAccess(null, SERVICE, new ArrayList<String>());
@@ -216,144 +168,7 @@ public class DockerManagerImplUnitTest {
 		assertNotNull(token.getToken());
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
-		dockerManager.
-		getPermittedActions(null, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetPermittedAccessTypesNullService() throws Exception{
-		dockerManager.
-		getPermittedActions(USER_INFO, null, REPOSITORY_PATH, ACCESS_TYPES_STRING);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
-		dockerManager.
-		getPermittedActions(USER_INFO, SERVICE, null, ACCESS_TYPES_STRING);
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetPermittedAccessTypesNullAction() throws Exception{
-		dockerManager.
-		getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, null);
-	}
-	
-	@Test
-	public void testGetPermittedAccessTypesHappyCase() throws Exception {
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
-		
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
-	}
 
-	@Test
-	public void testGetPermittedAccessTypesInvalidParent() throws Exception {
-		String repositoryPath = "garbage/"+REPOSITORY_NAME;
-		
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
-		
-		assertTrue(permitted.isEmpty());
-	}
-
-	@Test
-	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
-		String repositoryPath = PARENT_ID+"/non-existent-repo";
-
-		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
-
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
-		
-		// client needs both push and pull access to push a not-yet-existing repo to the registry
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
-	}
-
-	@Test
-	public void testGetPermittedAccessRepoExistsAccessUnauthorized() throws Exception {
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
-
-		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
-		assertTrue(permitted.toString(), permitted.isEmpty());
-	}
-
-	@Test
-	public void testGetPermittedAccessRepoExistsAccessUnauthorizedBUTWasSubmitted() throws Exception {
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		when(evaluationPermissionsManager.
-		isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
-				new ArrayList<Long>(USER_INFO.getGroups()), 
-				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
-
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
-
-		// Note, we can pull (but not push!) since we have admin access to evaluation
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
-	}
-
-	@Test
-	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, "pull");
-
-		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
-
-	}
-
-	@Test
-	public void testGetPermittedAccessTypesNonexistentChildUnauthorized() throws Exception {
-		String repositoryPath = PARENT_ID+"/non-existent-repo";
-
-		when(dockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
-
-		when(authorizationManager.canCreate(eq(USER_INFO), eq(authQueryNode))).
-			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		when(authorizationManager.canAccess(
-				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
-				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		
-		// method under test:
-		Set<RegistryEventAction> permitted = dockerManager.
-				getPermittedActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
-
-		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
-		assertTrue(permitted.toString(), permitted.isEmpty());
-	}
 	
 	@Test
 	public void testDockerRegistryNotificationPushNEWEntity() {
@@ -501,7 +316,6 @@ public class DockerManagerImplUnitTest {
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
-		
 		DockerCommit commit = createCommit();
 		
 		// method under test
@@ -534,7 +348,7 @@ public class DockerManagerImplUnitTest {
 				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 				
 		// method under test
-		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+		dockerManager.listDockerCommits(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
 	}
 	
@@ -542,9 +356,8 @@ public class DockerManagerImplUnitTest {
 	public void listDockerCommitsforNONrepo() {
 		when(entityManager.getEntityType(USER_INFO, REPO_ENTITY_ID)).thenReturn(EntityType.project);
 		// method under test
-		PaginatedResults<DockerCommit> pgs = dockerManager.listDockerCommits(
+		dockerManager.listDockerCommits(
 				USER_INFO, REPO_ENTITY_ID, DockerCommitSortBy.CREATED_ON, /*ascending*/true, 10, 0);
-
 	}
 
 }

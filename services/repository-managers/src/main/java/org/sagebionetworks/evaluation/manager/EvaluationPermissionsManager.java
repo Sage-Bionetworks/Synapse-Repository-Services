@@ -1,6 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
-import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
@@ -72,6 +72,6 @@ public interface EvaluationPermissionsManager {
 	 * Return true if and only if the given Docker Repository name is in a Submission under some Evaluation 
 	 * in which the given user (represented by a list of principalIds) has the given access type.
 	 */
-	boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, List<Long> principalIds, ACCESS_TYPE accessType);
+	boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
 
 }

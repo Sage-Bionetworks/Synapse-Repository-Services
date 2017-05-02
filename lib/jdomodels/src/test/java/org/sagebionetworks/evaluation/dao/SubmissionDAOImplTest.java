@@ -210,17 +210,7 @@ public class SubmissionDAOImplTest {
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
-        
-        acl = new AccessControlList();
-        acl.setCreatedBy(userId);
-        acl.setCreationDate(new Date());
-        acl.setId(evalId);
-        Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-        ResourceAccess ra = new ResourceAccess();
-        ra.setPrincipalId(Long.parseLong(userId));
-        ra.setAccessType(ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS);
-        ras.add(ra);
-        acl.setResourceAccess(ras);
+        acl = Util.createACL(evalId, Long.parseLong(userId), ModelConstants.EVALUATION_ADMIN_ACCESS_PERMISSIONS, new Date());
         acl.setId(aclDAO.create(acl, ObjectType.EVALUATION));
         
         // Initialize Submissions
@@ -284,7 +274,7 @@ public class SubmissionDAOImplTest {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
     	
-		// TEMPORARY if (fileHandleId!=null) fileHandleDAO.delete(fileHandleId);
+		if (fileHandleId!=null) fileHandleDAO.delete(fileHandleId);
 		
     	try {
     		nodeDAO.delete(dockerNodeId);
@@ -891,7 +881,7 @@ public class SubmissionDAOImplTest {
 		// method under test
 		// evaluation admin cannot yet access repo since it has not yet been submitted
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
-				Collections.singletonList(Long.parseLong(userId2)), ACCESS_TYPE.READ));
+				Collections.singleton(Long.parseLong(userId2)), ACCESS_TYPE.READ));
 
 		Submission dockerSubmission = newSubmission(SUBMISSION_ID, userId, dockerNodeId, new Date(CREATION_TIME_STAMP));
 		EntityBundle bundle = new EntityBundle();
@@ -908,27 +898,27 @@ public class SubmissionDAOImplTest {
 		// method under test
 		// now evaluation admin can access the repo
 		assertTrue(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
-				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.READ));
+				Collections.singleton(Long.parseLong(userId)), ACCESS_TYPE.READ));
 
 		// method under test
 		// non-admin cannot access
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
-				Collections.singletonList(Long.parseLong(userId2)), ACCESS_TYPE.READ));
+				Collections.singleton(Long.parseLong(userId2)), ACCESS_TYPE.READ));
 
 		// method under test
 		// admin cannot access non-existent name
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess("some-other-name", 
-				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.READ));
+				Collections.singleton(Long.parseLong(userId)), ACCESS_TYPE.READ));
 
 		// method under test
 		// wrong access type
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
-				Collections.singletonList(Long.parseLong(userId)), ACCESS_TYPE.MODERATE));
+				Collections.singleton(Long.parseLong(userId)), ACCESS_TYPE.MODERATE));
 
 		// method under test
 		// fails gracefully if no principals are passed
 		assertFalse(submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(DOCKER_REPO_NAME, 
-				Collections.EMPTY_LIST, ACCESS_TYPE.READ));
+				Collections.EMPTY_SET, ACCESS_TYPE.READ));
 
 
 	}

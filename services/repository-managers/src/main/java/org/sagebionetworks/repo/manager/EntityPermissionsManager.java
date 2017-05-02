@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -126,7 +127,7 @@ public interface EntityPermissionsManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus canCreate(String parentId, EntityType nodeType, UserInfo userInfo) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
