@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dao.PermissionDao;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -63,8 +62,6 @@ public class EntityPermissionsManagerImplUnitTest {
 	private AccessControlListDAO mockAclDAO;
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
-	@Mock
-	private PermissionDao mockPermissionDao;
 	@Mock
 	private NodeInheritanceManager mockNodeInheritanceManager;
 	@Mock
@@ -284,32 +281,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(entityPermissionsManager.canCreate(folder, nonCertifiedUserInfo).getAuthorized());
 		
 		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
-	}
-	
-	@Test
-	public void testHasAccessDockerRepoDownload() throws Exception {
-		// create a 'baseline case' in which the user has full access via the benefactor acl
-		assertTrue(entityPermissionsManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, certifiedUserInfo).getAuthorized());
-		// ... but not via any evaluation queue
-		when(mockPermissionDao.isEntityInEvaluationWithAccess(
-				dockerRepoId, new ArrayList(certifiedUserInfo.getGroups()), 
-				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(false);
-		// now remove the ACL permission
-		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), 
-				eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
-					thenReturn(false);
-		// the permission is now gone
-		assertFalse(entityPermissionsManager.
-				hasAccess(dockerRepoId, ACCESS_TYPE.DOWNLOAD, certifiedUserInfo).getAuthorized());
-		// but give access via a submission queue
-		when(mockPermissionDao.isEntityInEvaluationWithAccess(
-				dockerRepoId, new ArrayList(certifiedUserInfo.getGroups()), 
-				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
-		// and the permission is restored
-		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), 
-				eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
-					thenReturn(true);
 	}
 	
 	@Test

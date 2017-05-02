@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -105,6 +106,9 @@ public class DockerManagerImplUnitTest {
 	@Mock
 	private TransactionalMessenger transactionalMessenger;
 	
+	@Mock
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+	
 	private EntityHeader parentHeader;
 	private Node authQueryNode;
 
@@ -120,7 +124,8 @@ public class DockerManagerImplUnitTest {
 		ReflectionTestUtils.setField(dockerManager, "authorizationManager", authorizationManager);
 		ReflectionTestUtils.setField(dockerManager, "dockerCommitDao", dockerCommitDao);
 		ReflectionTestUtils.setField(dockerManager, "transactionalMessenger", transactionalMessenger);
-
+		ReflectionTestUtils.setField(dockerManager, "evaluationPermissionsManager", evaluationPermissionsManager);
+		
 		parentHeader = new EntityHeader();
 		parentHeader.setId(PARENT_ID);
 		parentHeader.setType(Project.class.getName());
@@ -147,9 +152,9 @@ public class DockerManagerImplUnitTest {
 				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
 				thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
-		PrincipalAlias pa = new PrincipalAlias();
-		pa.setPrincipalId(USER_ID);
-		pa.setType(AliasType.USER_NAME);
+		when(evaluationPermissionsManager.
+				isDockerRepoNameInEvaluationWithAccess(anyString(), (List<Long>)any(), (ACCESS_TYPE)any())).
+				thenReturn(false);
 		
 		when(userManager.getUserInfo(USER_ID)).thenReturn(USER_INFO);
 		
@@ -180,12 +185,12 @@ public class DockerManagerImplUnitTest {
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
-	public void testAuthourizeDockerAccessNullUserInfo() throws Exception{
+	public void testAuthorizeDockerAccessNullUserInfo() throws Exception{
 		dockerManager.authorizeDockerAccess(null, SERVICE, new ArrayList<String>());
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
-	public void testAuthourizeDockerAccessNullService() throws Exception{
+	public void testAuthorizeDockerAccessNullService() throws Exception{
 		dockerManager.authorizeDockerAccess(USER_INFO, null, new ArrayList<String>());
 	}
 	
@@ -285,6 +290,29 @@ public class DockerManagerImplUnitTest {
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessRepoExistsAccessUnauthorizedBUTWasSubmitted() throws Exception {
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(authorizationManager.canAccess(
+				eq(USER_INFO), eq(REPO_ENTITY_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).
+				thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(evaluationPermissionsManager.
+		isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
+				new ArrayList<Long>(USER_INFO.getGroups()), 
+				ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
+
+		// method under test:
+		Set<RegistryEventAction> permitted = dockerManager.
+				getPermittedActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we can pull (but not push!) since we have admin access to evaluation
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
 	}
 
 	@Test

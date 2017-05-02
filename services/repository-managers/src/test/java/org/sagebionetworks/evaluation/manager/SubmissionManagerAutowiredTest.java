@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DockerCommitDao;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -69,6 +71,12 @@ public class SubmissionManagerAutowiredTest {
 	private Submission submission;
 	private Node retrievedNode;
 	private EntityBundle bundle;
+	
+	private static final String DOCKER_DIGEST = "sha256:abcdef...";
+	private static final String DOCKER_REPOSITORY_NAME = "docker.synapse.org/syn123/arepo";
+	
+	
+
 	
 	private Node createNode(String name, EntityType type, UserInfo userInfo) throws Exception {
 		final long principalId = Long.parseLong(userInfo.getId().toString());
@@ -135,6 +143,9 @@ public class SubmissionManagerAutowiredTest {
 		submission.setUserId(""+adminUserInfo.getId());
 		submission.setVersionNumber(retrievedNode.getVersionNumber());
 		bundle = new EntityBundle();
+		DockerRepository entity = new DockerRepository();
+		entity.setRepositoryName(DOCKER_REPOSITORY_NAME);
+		bundle.setEntity(entity);
 		bundle.setFileHandles(Collections.EMPTY_LIST);
 		assertNotNull(retrievedNode.getETag());
 	}
@@ -151,10 +162,12 @@ public class SubmissionManagerAutowiredTest {
 		teamManager.delete(adminUserInfo, teamId);
 	}
 	
-	private static final String DOCKER_DIGEST = "sha256:abcdef...";
-	
 	@Test
 	public void testDockerRepoSubmissionCreateAndRead() throws Exception {
+		// when we create the object we don't fill in the Docker Repo name field
+		// but it will be filled in when we retrieve it
+		assertNull(submission.getDockerRepositoryName());
+		
 		// create a docker repository
 		submission = submissionManager.createSubmission(adminUserInfo, submission, 
 				retrievedNode.getETag(), null, bundle);
@@ -173,6 +186,8 @@ public class SubmissionManagerAutowiredTest {
 		assertEquals(submission.getId(), retrieved.getId());
 		assertNull(retrieved.getTeamId());
 		assertEquals(retrievedNode.getVersionNumber(), retrieved.getVersionNumber());
+		// voila, the repository name is filled in!
+		assertEquals(DOCKER_REPOSITORY_NAME, retrieved.getDockerRepositoryName());
 		assertEquals(DOCKER_DIGEST, retrieved.getDockerDigest());
 	}
 	

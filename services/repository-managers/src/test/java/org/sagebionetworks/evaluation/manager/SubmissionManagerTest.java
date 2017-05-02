@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
@@ -80,7 +81,9 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
@@ -133,6 +136,7 @@ public class SubmissionManagerTest {
 	private static final String TEAM_ID = "999";
 	private static final String CHALLENGE_END_POINT = "https://synapse.org/#ENTITY:";
 	private static final String NOTIFICATION_UNSUBSCRIBE_END_POINT = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+	private static final String DOCKER_REPO_NAME = "docker.synapse.org/syn12345/arepo";
 	private static final String DOCKER_REPO_DIGEST = "abcdef012345";
 	
 	private static UserInfo ownerInfo;
@@ -488,26 +492,47 @@ public class SubmissionManagerTest {
 		assertNull(retrieved.getDockerDigest());
 	}
 	
+	private static EntityBundle createDockerEntityBundle() {
+		EntityBundle bundle = new EntityBundle();
+		DockerRepository entity = new DockerRepository();
+		entity.setRepositoryName(DOCKER_REPO_NAME);
+		bundle.setEntity(entity);
+		bundle.setFileHandles(Collections.EMPTY_LIST);
+		return bundle;
+	}
+	
+	private static String createEntityBundleJSON(EntityBundle bundle) throws JSONObjectAdapterException {
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		bundle.writeToJSONObject(joa);
+		return joa.toJSONString();
+	}
+	
 	@Test
 	public void testCreateDockerRepoSubmission() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		EntityBundle dockerBundle = createDockerEntityBundle();
+		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest(DOCKER_REPO_DIGEST);
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 		verify(mockDockerCommitDao).listCommitsByOwnerAndDigest(DOCKER_REPO_ENTITY_ID, DOCKER_REPO_DIGEST);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerRepoSubmissionNoDigest() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		EntityBundle dockerBundle = createDockerEntityBundle();
+		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest(null);
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateDockerRepoSubmissionInvalidDigest() throws Exception {
 		sub.setEntityId(DOCKER_REPO_ENTITY_ID);
+		EntityBundle dockerBundle = createDockerEntityBundle();
+		sub.setEntityBundleJSON(createEntityBundleJSON(dockerBundle));
 		sub.setDockerDigest("not a valid digest");
-		submissionManager.createSubmission(userInfo, sub, ETAG, null, bundle);		
+		submissionManager.createSubmission(userInfo, sub, ETAG, null, dockerBundle);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

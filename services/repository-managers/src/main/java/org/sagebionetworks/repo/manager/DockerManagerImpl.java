@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -68,6 +69,11 @@ public class DockerManagerImpl implements DockerManager {
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
 	
+	@Autowired
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+
+
+	
 	public static String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 
 	/**
@@ -121,10 +127,6 @@ public class DockerManagerImpl implements DockerManager {
 
 		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
-		String parentId = validParentProjectId(repositoryPath);
-
-		if (parentId==null) return permittedActions;
-
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
 		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
@@ -136,11 +138,17 @@ public class DockerManagerImpl implements DockerManager {
 				// check CREATE or UPDATE permission and add to permittedActions
 				AuthorizationStatus as = null;
 				if (existingDockerRepoId==null) {
-					// check for create permission on parent
-					Node node = new Node();
-					node.setParentId(parentId);
-					node.setNodeType(EntityType.dockerrepo);
-					as = authorizationManager.canCreate(userInfo, node);
+					String parentId = validParentProjectId(repositoryPath);
+					if (parentId==null) {
+						// can't push to a non-existent parent
+						as = AuthorizationManagerUtil.ACCESS_DENIED;
+					} else {
+						// check for create permission on parent
+						Node node = new Node();
+						node.setParentId(parentId);
+						node.setNodeType(EntityType.dockerrepo);
+						as = authorizationManager.canCreate(userInfo, node);
+					}
 				} else {
 					// check update permission on this entity
 					as = authorizationManager.canAccess(
@@ -152,11 +160,15 @@ public class DockerManagerImpl implements DockerManager {
 				}
 				break;
 			case pull:
-				// check DOWNLOAD permission and add to permittedActions
-				if (existingDockerRepoId!=null) {
-					if (authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()
-					) permittedActions.add(requestedAction);
+				if (
+					// check DOWNLOAD permission and add to permittedActions
+					(existingDockerRepoId!=null && authorizationManager.canAccess(
+							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()) ||
+					// If Docker repository was submitted to an Evaluation and if the requester
+					// has administrative access to the queue, then DOWNLOAD permission is granted
+					evaluationPermissionsManager.isDockerRepoNameInEvaluationWithAccess(repositoryName, 
+							new ArrayList<Long>(userInfo.getGroups()), ACCESS_TYPE.READ_PRIVATE_SUBMISSION)) {
+						permittedActions.add(requestedAction);
 				}
 				break;
 			default:
