@@ -573,7 +573,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testCanDownload() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.DOWNLOAD));
 		ra.setPrincipalId(otherUserInfo.getId());	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
