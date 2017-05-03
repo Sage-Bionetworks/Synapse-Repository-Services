@@ -29,7 +29,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 		for (D dbo : delta) {
 			DBOAccessControlList acl = (DBOAccessControlList)dbo;
 			if (ObjectType.valueOf(acl.getOwnerType())!=ObjectType.ENTITY) continue;
-			AccessControlList dto = aclDAO.get(""+acl.getId(), ObjectType.ENTITY);
+			AccessControlList dto = aclDAO.get(""+acl.getOwnerId(), ObjectType.ENTITY);
 			boolean modified=false;
 			Set<ResourceAccess> updatedRAset = new HashSet<ResourceAccess>();
 			for (ResourceAccess ra : dto.getResourceAccess()) {
@@ -55,7 +55,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 
 	@Override
 	public void beforeDeleteBatch(MigrationType type, List<Long> idsToDelete) {
-		// NA
+		// N/A
 	}
 
 }
