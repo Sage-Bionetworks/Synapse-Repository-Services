@@ -286,6 +286,7 @@ public class TableViewManagerImplTest {
 		model.setId(change.getNewColumnId());
 		List<ColumnModel> schema = Lists.newArrayList(model);
 		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
+		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newColumnIds);
 		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
 		
 		// call under test
