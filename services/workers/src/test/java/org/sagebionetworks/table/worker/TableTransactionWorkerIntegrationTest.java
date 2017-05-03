@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -140,6 +141,8 @@ public class TableTransactionWorkerIntegrationTest {
 		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
 		request.setEntityId(entityId);
 		request.setChanges(changes);
+		List<String> orderedColumnIds = Arrays.asList(intColumn.getId());
+		request.setOrderedColumnIds(orderedColumnIds);
 		
 		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
 		updates.add(request);
@@ -167,6 +170,7 @@ public class TableTransactionWorkerIntegrationTest {
 		request = new TableSchemaChangeRequest();
 		request.setEntityId(entityId);
 		request.setChanges(changes);
+		request.setOrderedColumnIds(new LinkedList<String>());
 		
 		updates = new LinkedList<TableUpdateRequest>();
 		updates.add(request);

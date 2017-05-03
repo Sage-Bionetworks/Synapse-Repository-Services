@@ -553,10 +553,17 @@ public class ColumnModelManagerTest {
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
 	}
-	
+
+	@Test
+	public void testCalculateNewSchemaIdsAndValidateWithNullOrderedColumnIds(){
+		assertEquals(expectedNewSchemaIds,
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null));
+	}
+
 	@Test
 	public void testCalculateNewSchemaIdsAndValidate(){
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
+		assertEquals(expectedNewSchemaIds,
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -573,7 +580,8 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testCalculateNewSchemaIdsAndValidatePLFM_4188(){
 		changes = TableModelTestUtils.createAllDeleteColumnChange();
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>());
+		assertEquals(new LinkedList<String>(),
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>()));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

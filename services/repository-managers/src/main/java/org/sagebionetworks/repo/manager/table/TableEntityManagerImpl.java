@@ -724,10 +724,10 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			UserInfo userInfo, TableSchemaChangeRequest changes) {
 
 		// first determine what the new Schema will be
-		columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
-		columModelManager.bindColumnToObject(userInfo, changes.getOrderedColumnIds(), changes.getEntityId());
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(changes.getEntityId(), changes.getChanges(), changes.getOrderedColumnIds());
+		columModelManager.bindColumnToObject(userInfo, newSchemaIds, changes.getEntityId());
 		boolean keepOrder = true;
-		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, changes.getOrderedColumnIds(), keepOrder);
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(userInfo, newSchemaIds, keepOrder);
 		// If the change includes an update then a change needs to be pushed to the changes
 		if(containsColumnUpdate(changes.getChanges())){
 			List<String> newSchemaIdsLong = TableModelUtils.getIds(newSchema);

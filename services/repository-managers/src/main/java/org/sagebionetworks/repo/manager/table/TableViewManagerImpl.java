@@ -105,10 +105,10 @@ public class TableViewManagerImpl implements TableViewManager {
 	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
 			List<ColumnChange> changes, List<String> orderedColumnIds) {
 		// first determine what the new Schema will be
-		columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
-		columModelManager.bindColumnToObject(user, orderedColumnIds, viewId);
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
+		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
 		boolean keepOrder = true;
-		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, orderedColumnIds, keepOrder);
+		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
 		return newSchema;

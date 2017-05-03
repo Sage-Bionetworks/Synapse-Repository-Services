@@ -209,7 +209,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 	
 	@Override
-	public void calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
+	public List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes,
 			List<String> orderedColumnIds) {
 		// lookup the current schema.
 		List<ColumnModel> oldSchema =  columnModelDao.getColumnModelsForObject(tableId);
@@ -235,13 +235,17 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 				newSchemaIds.add(change.getNewColumnId());
 			}
 		}
-		validateSchemaWithProvidedOrderedColumns(newSchemaIds, orderedColumnIds);
+		if (orderedColumnIds != null) {
+			validateSchemaWithProvidedOrderedColumns(newSchemaIds, orderedColumnIds);
+			newSchemaIds = orderedColumnIds;
+		}
 		// Validate the new schema size.
-		List<ColumnModel> newSchema = validateSchemaSize(orderedColumnIds);
+		List<ColumnModel> newSchema = validateSchemaSize(newSchemaIds);
 		// validate the schema change
 		List<ColumnModel> allColumns = new LinkedList<>(oldSchema);
 		allColumns.addAll(newSchema);
 		validateSchemaChange(allColumns, changes);
+		return newSchemaIds;
 	}
 	
 	public static void validateSchemaWithProvidedOrderedColumns(List<String> newSchemaIds, List<String> orderedColumnIds) {

@@ -138,7 +138,7 @@ public interface ColumnModelManager {
 	 * @param orderedColumnIds 
 	 * @return
 	 */
-	void calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes, List<String> orderedColumnIds);
+	List<String> calculateNewSchemaIdsAndValidate(String tableId, List<ColumnChange> changes, List<String> orderedColumnIds);
 
 	/**
 	 * Get the details of a schema change.
