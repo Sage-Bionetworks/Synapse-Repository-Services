@@ -49,9 +49,10 @@ public interface TableViewManager {
 	 * @param viewId 
 	 * @param user 
 	 * @param changes
+	 * @param orderedColumnIds 
 	 * @return
 	 */
-	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes);
+	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId, List<ColumnChange> changes, List<String> orderedColumnIds);
 	
 	/**
 	 * Get the schema for the table view.

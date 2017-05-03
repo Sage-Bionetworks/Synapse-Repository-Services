@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Assume;
@@ -280,7 +279,7 @@ public class TableEntityManagerTest {
 		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(columChangedetails);
 		newColumnIds = Lists.newArrayList("111","333");
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null)).thenReturn(newColumnIds);
 		
 		when(mockTableManagerSupport.getTableEntityType(tableId)).thenReturn(EntityType.table);
 		
@@ -980,7 +979,7 @@ public class TableEntityManagerTest {
 	public void testValidateUpdateRequestSchema(){
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, schemaChangeRequest, mockIndexManager);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
 		verify(mockIndexManager).alterTempTableSchmea(mockProgressCallbackVoid, tableId, columChangedetails);
 	}
 	
@@ -1002,16 +1001,15 @@ public class TableEntityManagerTest {
 		TableSchemaChangeRequest request = new TableSchemaChangeRequest();
 		request.setChanges(changes);
 		request.setEntityId(tableId);
-		
-		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
-		
 		List<String> newColumnIds = Lists.newArrayList("111");
-		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);		
-		
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
+		request.setOrderedColumnIds(newColumnIds);
+
+		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+
+		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
 		// Call under test
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes);
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds);
 		// temp table should not be used.
 		verify(mockIndexManager, never()).alterTempTableSchmea(any(ProgressCallback.class), anyString(), anyListOf(ColumnChangeDetails.class));
 	}
@@ -1111,13 +1109,13 @@ public class TableEntityManagerTest {
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), schemaChangeRequest.getOrderedColumnIds());
 		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
 		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
 		verify(mockTruthDao).appendSchemaChangeToTable(""+user.getId(), tableId, newSchemaIdsLong, schemaChangeRequest.getChanges());
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 	}
-	
+
 	@Test
 	public void testUpdateTableSchemaNoUpdate() throws IOException{
 		// this case only contains an add (no update)
@@ -1132,13 +1130,14 @@ public class TableEntityManagerTest {
 		
 		models = Lists.newArrayList(TableModelTestUtils.createColumn(111l));
 		newColumnIds = Lists.newArrayList("111");
-		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes)).thenReturn(newColumnIds);
+		when(mockColumModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds)).thenReturn(newColumnIds);
+		schemaChangeRequest.setOrderedColumnIds(newColumnIds);
 		when(mockColumModelManager.getColumnModel(user, newColumnIds, true)).thenReturn(models);
 		// call under test.
 		TableSchemaChangeResponse response = manager.updateTableSchema(mockProgressCallbackVoid, user, schemaChangeRequest);
 		assertNotNull(response);
 		assertEquals(models, response.getSchema());
-		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges());
+		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, schemaChangeRequest.getChanges(), newColumnIds);
 		verify(mockColumModelManager).bindColumnToObject(user, newColumnIds, tableId);
 		verify(mockColumModelManager).getColumnModel(user, newColumnIds, true);
 		verify(mockTruthDao, never()).appendSchemaChangeToTable(anyString(), anyString(), anyListOf(String.class), anyListOf(ColumnChange.class));
