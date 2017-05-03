@@ -31,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class TableViewWorker implements ChangeMessageDrivenRunner {
 	
+	public static final String ALREADY_SYNCHRONIZED = "Already Synchronized";
+
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	static private Logger log = LogManager.getLogger(TableViewWorker.class);
@@ -57,6 +59,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			try {
 				indexManager = connectionFactory.connectToTableIndex(tableId);
 				if(ChangeType.DELETE.equals(message.getChangeType())){
+					log.info("Deleting index for view: "+tableId);
 					// just delete the index
 					indexManager.deleteTableIndex(tableId);
 					return;
@@ -65,6 +68,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 					createOrUpdateIndex(tableId, indexManager, progressCallback, message);
 				}
 			} catch (TableIndexConnectionUnavailableException e) {
+				log.info("Connection unavailable for view: "+tableId+", message will be returned to the queue.");
 				// try again later.
 				throw new RecoverableMessageException();
 			}
@@ -81,6 +85,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<Void> outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
+			log.info("Attempting to acquire exclusive lock for view: "+tableId+" ...");
 			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void, Void>() {
 
 				@Override
@@ -93,15 +98,17 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 			} );
 		} catch (TableUnavailableException e) {
+			log.info("TableUnavailableException for view: "+tableId+", message will be returned to the queue.");
 			// try again later.
 			throw new RecoverableMessageException();
 		} catch (LockUnavilableException e) {
+			log.info("LockUnavilableException for view: "+tableId+", message will be returned to the queue.");
 			// try again later.
 			throw new RecoverableMessageException();
 		} catch (RecoverableMessageException e) {
 			throw e;
 		}  catch (Exception e) {
-			log.error("Failed to build index: ", e);
+			log.error("Failed to build view: "+tableId, e);
 		}
 	}
 	
@@ -113,13 +120,20 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param callback
 	 */
 	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<Void> callback, final ChangeMessage message){
-		// Is the index out-of-synch?
-		if(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)){
-			// nothing to do
-			return;
-		}
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(tableId);
+		// Is the index out-of-synch?
+		if(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)){
+			/*
+			 * See PLFM-4366. When the view is already synchronized, it must be
+			 * unconditionally set to available.
+			 */
+			log.info("Index for view: "+tableId+" is already synchronized. Setting the view to available.");
+			// Attempt to set the table to complete.
+			tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, token, ALREADY_SYNCHRONIZED);
+			return;
+		}
+		log.info("Processing index for view: "+tableId+" with token: "+token);
 		try{
 			// Look-up the type for this table.
 			ViewType viewType = tableManagerSupport.getViewType(tableId);

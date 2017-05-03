@@ -496,6 +496,10 @@ public class TableWorkerTest {
 		two.setObjectEtag(resetToken);
 		// call under test
 		worker.run(mockProgressCallback, two);
+		
+		// The table's state must be set to available 
+		verify(mockTableManagerSupport).startTableProcessing(tableId);
+		verify(mockTableManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, TableWorker.ALREADY_SYNCHRONIZED);
 		// no work should be performed.
 		verifyZeroInteractions(mockTableIndexManager);
 	}

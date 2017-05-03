@@ -1,13 +1,17 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
@@ -195,7 +199,7 @@ public class TableViewWorkerTest {
 
 	@SuppressWarnings("unchecked")
 	@Test(expected = RecoverableMessageException.class)
-	public void testRunLownerRecoverableMessageException() throws Exception {
+	public void testRunWithRecoverableMessageException() throws Exception {
 		// If this exception is caught it must be re-thrown.
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
@@ -206,14 +210,24 @@ public class TableViewWorkerTest {
 		worker.run(outerCallback, change);
 	}
 	
+	/**
+	 * See PLFM-4366. When no work is needed on the view, the view's state must
+	 * be set to available.
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testRunIsIndexSynchronizedTrue() throws Exception{
 		// Setup the synched state
 		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(true);
 		// call under test
 		worker.run(outerCallback, change);
-		// progress should not start for this case
-		verify(tableManagerSupport, never()).startTableProcessing(tableId);
+		// The view's state must be set to available 
+		verify(tableManagerSupport).startTableProcessing(tableId);
+		verify(tableManagerSupport).attemptToSetTableStatusToAvailable(tableId, token, TableViewWorker.ALREADY_SYNCHRONIZED);
+				
+		// no work should occur on the view
+		verifyZeroInteractions(indexManager);
 	}
 	
 	@Test
