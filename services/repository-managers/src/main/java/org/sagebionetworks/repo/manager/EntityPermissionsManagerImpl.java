@@ -427,6 +427,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	// entities have to meet access requirements (ARs)
 	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
 			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		
 		// if the ACL and access requirements permit DOWNLOAD, then its permitted,
 		// and this applies to any type of entity
