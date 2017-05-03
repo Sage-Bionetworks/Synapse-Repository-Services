@@ -9,7 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
-import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -235,7 +235,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 	
 	@Override
-	public boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, List<Long> principalIds, ACCESS_TYPE accessType) {
+	public boolean isDockerRepoNameInEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType) {
 		return submissionDAO.isDockerRepoNameInAnyEvaluationWithAccess(dockerRepoName, principalIds, accessType);
 	}
 

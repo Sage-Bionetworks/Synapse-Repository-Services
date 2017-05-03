@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.UUID;
 
 import org.junit.After;
@@ -17,6 +16,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -143,7 +143,7 @@ public class SubmissionDBOTest {
     }
 
     @Test
-    public void testFoo() throws Exception {
+    public void testMigrator() throws Exception {
     	String dockerRepositoryName = "docker.synapse.org/syn123/arepo";
     	SubmissionDBO backup = new SubmissionDBO();
     	backup.setDockerRepositoryName(null);
@@ -160,4 +160,39 @@ public class SubmissionDBOTest {
     	assertEquals(dockerRepositoryName, dbo.getDockerRepositoryName());
     }
  
+    @Test
+    public void testMigratorAlreadyMigrated() throws Exception {
+    	String dockerRepositoryName = "docker.synapse.org/syn123/arepo";
+    	SubmissionDBO backup = new SubmissionDBO();
+    	backup.setDockerRepositoryName(dockerRepositoryName);
+
+    	EntityBundle bundle = new EntityBundle();
+    	DockerRepository entity = new DockerRepository();
+    	entity.setRepositoryName(dockerRepositoryName);
+    	bundle.setEntity(entity);
+    	JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+    	bundle.writeToJSONObject(joa);
+
+    	backup.setEntityBundle(joa.toJSONString().getBytes());
+    	SubmissionDBO dbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+    	assertEquals(dockerRepositoryName, dbo.getDockerRepositoryName());
+    }
+ 
+    @Test
+    public void testMigratorNotADockerRepo() throws Exception {
+    	SubmissionDBO backup = new SubmissionDBO();
+    	backup.setDockerRepositoryName(null);
+
+    	EntityBundle bundle = new EntityBundle();
+    	FileEntity entity = new FileEntity();
+    	bundle.setEntity(entity);
+    	JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+    	bundle.writeToJSONObject(joa);
+
+    	backup.setEntityBundle(joa.toJSONString().getBytes());
+    	SubmissionDBO dbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+    	assertEquals(backup, dbo);
+    }
+ 
+
 }

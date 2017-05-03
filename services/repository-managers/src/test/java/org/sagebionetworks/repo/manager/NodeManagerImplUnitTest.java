@@ -124,7 +124,7 @@ public class NodeManagerImplUnitTest {
 		// Types that have count limits
 		entityTypesWithCountLimits = Sets.newHashSet(EntityType.file, EntityType.folder, EntityType.link);
 				
-		when(mockAuthManager.canCreate(any(UserInfo.class), any(Node.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canCreate(any(UserInfo.class), any(String.class), any(EntityType.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canUserMoveRestrictedEntity(any(UserInfo.class),  anyString(),  anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(any(UserInfo.class), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -222,7 +222,7 @@ public class NodeManagerImplUnitTest {
 		newNode.setId("101");
 		when(mockNodeDao.createNewNode(argument.capture())).thenReturn(newNode);
 		UserInfo userInfo = anonUserInfo;
-		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canCreate(eq(userInfo), any(String.class), any(EntityType.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Make the actual call
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		// Now validate that t

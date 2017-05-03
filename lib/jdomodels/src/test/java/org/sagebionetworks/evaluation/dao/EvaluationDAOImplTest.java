@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -149,7 +150,8 @@ public class EvaluationDAOImplTest {
 		assertEquals(0, retrieved.size());
 
 		// now provide the permission to READ
-		AccessControlList acl = newACL(evalId, EVALUATION_OWNER_ID, ACCESS_TYPE.READ);
+		AccessControlList acl = Util.createACL(evalId, EVALUATION_OWNER_ID, Collections.singleton(ACCESS_TYPE.READ), new Date());
+
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;
@@ -206,19 +208,6 @@ public class EvaluationDAOImplTest {
         }
     }
     
-    private static AccessControlList newACL(String evaluationId, long participantId, ACCESS_TYPE accessType) {
-		AccessControlList acl = new AccessControlList();
-		acl.setId(evaluationId);
-		acl.setCreationDate(new Date());
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(participantId);
-		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{accessType})));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
-		return acl;
-    }
-    
     @Test
     public void testGetAvailable() throws DatastoreException, NotFoundException {        
         // Create it
@@ -253,7 +242,7 @@ public class EvaluationDAOImplTest {
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
-		AccessControlList acl = newACL(eval.getId(), participantId, ACCESS_TYPE.SUBMIT);
+		AccessControlList acl = Util.createACL(eval.getId(), participantId, Collections.singleton(ACCESS_TYPE.SUBMIT), new Date());
 		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -39,8 +40,12 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -51,7 +56,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -60,6 +64,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
@@ -76,6 +81,8 @@ import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImplUnitTest {
 
+	@Mock
+	private DockerNodeDao mockDockerNodeDao;
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
 	@Mock
@@ -116,7 +123,23 @@ public class AuthorizationManagerImplUnitTest {
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
 	private static String EVAL_ID = "1234567";
+	
+	private static final long PARENT_ID_LONG = 98765L;
+	private static final String PARENT_ID = "syn"+PARENT_ID_LONG;
+	
+	private static final long REPO_ENTITY_ID_LONG = 123456L;
+	private static final String REPO_ENTITY_ID = "syn"+REPO_ENTITY_ID_LONG;
+	
+	private static final long USER_ID = 111L;
 
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	
+	private static final String REGISTRY_HOST = "docker.synapse.org";
+	private static final String SERVICE = REGISTRY_HOST;
+	private static final String REPOSITORY_PATH = PARENT_ID+"/reponame";
+	private static final String REPOSITORY_NAME = SERVICE+"/"+REPOSITORY_PATH;
+	private static final String ACCESS_TYPES_STRING="push,pull";
+	
 	private AuthorizationManagerImpl authorizationManager;
 	private UserInfo userInfo;
 	private UserInfo adminUser;
@@ -128,12 +151,15 @@ public class AuthorizationManagerImplUnitTest {
 	private Forum forum;
 	private String submissionId;
 
+
 	@Before
 	public void setUp() throws Exception {
 
 		MockitoAnnotations.initMocks(this);
 
 		authorizationManager = new AuthorizationManagerImpl();
+		ReflectionTestUtils.setField(authorizationManager, "dockerNodeDao", mockDockerNodeDao);
+		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
 		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
@@ -187,6 +213,24 @@ public class AuthorizationManagerImplUnitTest {
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(TeamConstants.ACT_TEAM_ID);
 		when(mockACTUser.getGroups()).thenReturn(groups);
+		
+		when(mockNodeDao.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
+		
+		when(mockDockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
+		
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.READ), eq(USER_INFO))).
+		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+	
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+	
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			
+		when(mockEvaluationPermissionsManager.
+				isDockerRepoNameInEvaluationWithAccess(anyString(), (Set<Long>)any(), (ACCESS_TYPE)any())).
+				thenReturn(false);
+		
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -946,4 +990,158 @@ public class AuthorizationManagerImplUnitTest {
 		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
 		authorizationManager.getAccessibleProjectIds(principalIds);
 	}
+	
+	@Test
+	public void testValidParentProjectIdInvalidRepoName() {
+		assertEquals(null, authorizationManager.validDockerRepositoryParentId("/invalid/"));
+	}
+
+	@Test
+	public void testValidParentProjectIdInvalidSynID() {
+		assertEquals(null, authorizationManager.validDockerRepositoryParentId("uname/myrepo"));
+	}
+
+	@Test
+	public void testValidParentProjectIdParentNotAProject() {
+		when(mockNodeDao.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.folder);
+		assertEquals(null, authorizationManager.validDockerRepositoryParentId(PARENT_ID+"/myrepo"));
+	}
+
+	@Test
+	public void testValidParentProjectIdHappyPath() {
+		assertEquals(PARENT_ID, authorizationManager.validDockerRepositoryParentId(PARENT_ID+"/myrepo"));
+	}
+	
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
+		authorizationManager.getPermittedDockerRepositoryActions(null, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullService() throws Exception{
+		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, null, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
+		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, SERVICE, null, ACCESS_TYPES_STRING);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetPermittedAccessTypesNullAction() throws Exception{
+		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, null);
+	}
+	
+	@Test
+	public void testGetPermittedAccessTypesHappyCase() throws Exception {
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesInvalidParent() throws Exception {
+		String repositoryPath = "garbage/"+REPOSITORY_NAME;
+		
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+		
+		assertTrue(permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesNonexistentChild() throws Exception {
+		String repositoryPath = PARENT_ID+"/non-existent-repo";
+
+		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+	
+		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
+
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+		
+		// client needs both push and pull access to push a not-yet-existing repo to the registry
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessRepoExistsAccessUnauthorized() throws Exception {
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
+		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessRepoExistsAccessUnauthorizedBUTWasSubmitted() throws Exception {
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+		when(mockEvaluationPermissionsManager.
+				isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
+						USER_INFO.getGroups(), 
+						ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
+
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we can pull (but not push!) since we have admin access to evaluation
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
+		thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+
+	when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, "pull");
+
+		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesNonexistentChildUnauthorized() throws Exception {
+		String repositoryPath = PARENT_ID+"/non-existent-repo";
+
+		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
+
+		when(mockEntityPermissionsManager.canCreate(eq(PARENT_ID), eq(EntityType.dockerrepo), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+
+		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
+		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
 }

@@ -67,4 +67,20 @@ public class DockerNameUtil {
 		if (colon<0) return host;
 		return host.substring(0, colon);
 	}
+	
+	public static String getParentIdFromRepositoryPath(String name) {
+		int i = name.indexOf(REPO_NAME_PATH_SEP);
+		String result = name;
+		if (i>0) result = name.substring(0, i);
+		// validate that the string is a valid ID (i.e. "syn" followed by a number)
+		if (!result.startsWith("syn")) throw new IllegalArgumentException("Repository path must start with 'syn'.");
+		try {
+			Long.parseLong(result.substring(3));
+		} catch (NumberFormatException e) {
+			 throw new IllegalArgumentException("Repository path must start with project ID: 'syn', followed by a number.");
+		}
+		return result;
+	}
+
+
 }

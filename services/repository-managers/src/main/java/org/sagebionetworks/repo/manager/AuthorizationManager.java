@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,19 +34,20 @@ public interface AuthorizationManager {
 	 */
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
+
+
 	/**
      * Checks whether the given user can create the given node.
-     *
-	 * @param nodeId
-	 * @param accessType
 	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @param nodeType
 	 * @return true iff either (1) the user has 'add child' access to the parent or (2) parent is null
 	 * and user is admin returns whether access is granted and, if not, a String giving the reason why
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
+	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
 
 	/**
 	 * Checks whether the given user can modify the settings for the given node.
@@ -227,4 +228,14 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param service
+	 * @param repositoryPath
+	 * @param actionTypes
+	 * @return the permitted actions for the given user on the given repository
+	 */
+	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
 }
