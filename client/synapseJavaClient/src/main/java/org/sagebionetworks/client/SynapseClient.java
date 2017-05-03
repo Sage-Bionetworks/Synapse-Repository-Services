@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -489,7 +490,7 @@ public interface SynapseClient extends BaseClient {
 	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
 			throws SynapseException;
 
-	public ACTAccessRequirement createLockAccessRequirement(String entityId)
+	public LockAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(

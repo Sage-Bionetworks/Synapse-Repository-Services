@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -1148,12 +1149,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ACTAccessRequirement createLockAccessRequirement(String entityId)
+	public LockAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
 		return postJSONEntity(getRepoEndpoint(),
 				ENTITY + "/" + entityId + LOCK_ACCESS_REQUIREMENT, null,
-				ACTAccessRequirement.class);
+				LockAccessRequirement.class);
 	}
 
 	@Override
