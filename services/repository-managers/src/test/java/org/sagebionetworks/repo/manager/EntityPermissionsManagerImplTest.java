@@ -255,6 +255,25 @@ public class EntityPermissionsManagerImplTest {
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 		
 	}
+	
+	@Test(expected = InvalidModelException.class)
+	public void testValidateACLContentAnonDownload() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.DOWNLOAD);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	}
+
 
 
 	@Test
