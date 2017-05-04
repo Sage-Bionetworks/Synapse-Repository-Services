@@ -267,11 +267,20 @@ public class BaseClientImplTest {
 	 * PLFM-4349
 	 */
 	@Test (expected = SynapseForbiddenException.class)
-	public void testDownloadFromSynapseWithError() throws Exception {
+	public void testDownloadFromSynapseWithJsonError() throws Exception {
 		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
 				.thenReturn(mockResponse);
 		when(mockResponse.getStatusCode()).thenReturn(403);
 		when(mockResponse.getContent()).thenReturn("{\"reason\":\"User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759\"}");
+		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
+	}
+
+	@Test (expected = SynapseForbiddenException.class)
+	public void testDownloadFromSynapseWithNonJsonError() throws Exception {
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+				.thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(403);
+		when(mockResponse.getContent()).thenReturn("User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759");
 		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
 	}
 
