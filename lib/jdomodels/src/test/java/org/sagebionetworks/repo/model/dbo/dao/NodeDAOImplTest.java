@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
@@ -62,6 +64,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -77,6 +80,7 @@ import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
@@ -124,6 +128,11 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private PlatformTransactionManager txManager;
+	
+	@Autowired
+	private MigratableTableDAO migratableTableDao;;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	private TransactionTemplate transactionTemplate;
 
@@ -2806,6 +2815,122 @@ public class NodeDAOImplTest {
 		assertEquals(project.getId(), nodeDao.getProjectId(project.getId()));
 		assertEquals(project.getId(), nodeDao.getProjectId(parent.getId()));
 		assertEquals(project.getId(), nodeDao.getProjectId(child.getId()));
+	}
+	
+	/**
+	 * Test for PLFM-4369.
+	 * A timeout for this test means the function entered
+	 * into an infinite loop and should be killed.
+	 * 
+	 * @throws Exception
+	 */
+	@Test (timeout=20000, expected=NotFoundException.class)
+	public void testGetProjectIdChildWithNoParent() throws Exception{
+		Node child = setUpChildWithNoParent();
+		// Before the fix, this call call would hang with 100% CPU.
+		nodeDao.getProjectId(child.getId());
+	}
+	
+	/**
+	 * Test for PLFM-4369.
+	 * A timeout for this test means the function entered
+	 * into an infinite loop and should be killed.
+	 * 
+	 * @throws Exception
+	 */
+	@Test (timeout=20000, expected=NotFoundException.class)
+	public void testGetBenefactorIdChildWithNoParent() throws Exception{
+		Node child = setUpChildWithNoParent();
+		// Before the fix, this call call would hang with 100% CPU.
+		nodeInheritanceDAO.getBenefactor(child.getId());
+	}
+	
+	/**
+	 * Test for PLFM-4369.
+	 * A timeout for this test means the function entered
+	 * into an infinite loop and should be killed.
+	 * @throws Exception
+	 */
+	@Test (timeout=20000, expected=IllegalStateException.class)
+	public void testGetProjectInfiniteLoop() throws Exception{
+		String id = setUpChildAsItsOwnParent();
+		// Before the fix, this call call would hang with 100% CPU.
+		nodeDao.getProjectId(id);
+	}
+	
+	/**
+	 * Test for PLFM-4369.
+	 * A timeout for this test means the function entered
+	 * into an infinite loop and should be killed.
+	 * @throws Exception
+	 */
+	@Test (timeout=20000, expected=IllegalStateException.class)
+	public void testGetBenefactorIdInfiniteLoop() throws Exception{
+		String id = setUpChildAsItsOwnParent();
+		// Before the fix, this call call would hang with 100% CPU.
+		nodeInheritanceDAO.getBenefactor(id);
+	}
+	
+	/**
+	 * Setup for PLFM-4369.  Setup a case where a child
+	 * is its own parent, to test for an infinite loop in a function.
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	String setUpChildAsItsOwnParent() throws Exception {
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.folder);
+		project = nodeDao.createNewNode(project);
+		final Long projectId = KeyFactory.stringToKey(project.getId());
+		toDelete.add(project.getId());
+		// to delete the parent without deleting the child:
+		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				jdbcTemplate.update("UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ? WHERE "+COL_NODE_ID+" = ?", projectId, projectId);
+				return null;
+			}
+		});
+		return KeyFactory.keyToString(projectId);
+	}
+	
+	
+
+	/**
+	 * Setup for PLFM-4369.  This is a case where a child exists
+	 * but the child's parent does not exist.
+	 * @return
+	 * @throws Exception
+	 */
+	Node setUpChildWithNoParent() throws Exception {
+		Node project = NodeTestUtils.createNew("Project", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		project = nodeDao.createNewNode(project);
+		final String projectid = project.getId();
+		toDelete.add(project.getId());
+		// add some hierarchy
+		Node child = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		child.setNodeType(EntityType.folder);
+		child.setParentId(project.getId());
+		child = nodeDao.createNewNode(child);
+		toDelete.add(child.getId());
+
+		// to delete the parent without deleting the child:
+		migratableTableDao.runWithForeignKeyIgnored(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				nodeDao.delete(projectid);
+				return null;
+			}
+		});
+		// the parent should not exist.
+		assertFalse(nodeDao.doesNodeExist(KeyFactory.stringToKey(child.getParentId())));
+		// the child should exist.
+		assertTrue(nodeDao.doesNodeExist(KeyFactory.stringToKey(child.getId())));
+		return child;
 	}
 	
 	@Test (expected=NotFoundException.class)

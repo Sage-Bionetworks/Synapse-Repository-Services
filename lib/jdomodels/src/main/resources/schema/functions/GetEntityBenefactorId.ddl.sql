@@ -5,9 +5,14 @@ BEGIN
  	DECLARE entityId BIGINT;
 	DECLARE parentId BIGINT;
     DECLARE benefactorId BIGINT;
+    DECLARE counter BIGINT;
     
+    Set counter = 0;
     SET entityId = inputEntityId;
     WHILE entityId IS NOT NULL DO
+    	/* Fix for PLFM-4369: Start with null variables for each pass */
+    	SET benefactorId = NULL;
+    	SET parentId = NULL;
     	/* Does this entity have an ACL? */
     	SELECT OWNER_ID INTO benefactorId FROM ACL WHERE OWNER_ID = entityId AND OWNER_TYPE = 'ENTITY';
     	IF benefactorId IS NOT NULL THEN RETURN benefactorId;
@@ -19,5 +24,9 @@ BEGIN
     	END IF;
     	/*Perform the same check on the parent*/
 		SET entityId = parentId;
+		/* Prevent an infinite loop */
+		SET counter = counter + 1;
+		IF counter > 1000 THEN RETURN -1;
+		END IF;
     END WHILE;
  END;
