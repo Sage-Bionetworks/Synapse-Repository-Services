@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -8,13 +11,13 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
+
 
 /*
  * This class adds DOWNLOAD permission in addition to READ to Entity ACLs
@@ -42,25 +45,21 @@ public class ACLMigrationListener implements MigrationTypeListener {
 			ResourceAccess authenticatedUsersEntry=null; // 'points' to authenticated users entry in ACL
 			Set<ResourceAccess> updatedRAset = new HashSet<ResourceAccess>();
 			for (ResourceAccess ra : dto.getResourceAccess()) {
-				ResourceAccess updatedRA = new ResourceAccess();
 				long principalId = ra.getPrincipalId();
-				updatedRA.setPrincipalId(principalId);
 				Set<ACCESS_TYPE> updatedPermissions = new HashSet<ACCESS_TYPE>(ra.getAccessType());
+				ResourceAccess updatedRA = new ResourceAccess();
+				updatedRA.setPrincipalId(principalId);
 				updatedRA.setAccessType(updatedPermissions);
-				if (principalId==AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()) {
+				if (principalId==ANONYMOUS_USER.getPrincipalId()) {
 					if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
 						authenticatedUsersDownloadRequired=true;
 					}
-					if (updatedPermissions.contains(ACCESS_TYPE.DOWNLOAD)) {
-						updatedPermissions.remove(ACCESS_TYPE.DOWNLOAD);
-						modified=true;
-					}
-				} else if (updatedPermissions.contains(ACCESS_TYPE.READ) && 
-						!updatedPermissions.contains(ACCESS_TYPE.DOWNLOAD)) {
-					updatedPermissions.add(ACCESS_TYPE.DOWNLOAD);
-					modified=true;
+					// anonymous can't have download permission!
+					modified = modified || updatedPermissions.remove(ACCESS_TYPE.DOWNLOAD);
+				} else if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
+					modified = modified || updatedPermissions.add(ACCESS_TYPE.DOWNLOAD);
 				}
-				if (principalId==AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()) {
+				if (principalId==AUTHENTICATED_USERS_GROUP.getPrincipalId()) {
 					authenticatedUsersEntry=updatedRA;
 				}
 				updatedRAset.add(updatedRA);
@@ -68,7 +67,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 			if (authenticatedUsersDownloadRequired) {
 				if (authenticatedUsersEntry==null) {
 					authenticatedUsersEntry = new ResourceAccess();
-					authenticatedUsersEntry.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+					authenticatedUsersEntry.setPrincipalId(AUTHENTICATED_USERS_GROUP.getPrincipalId());
 					authenticatedUsersEntry.setAccessType(new HashSet<ACCESS_TYPE>());
 				} else {
 					// can't modify an object in a hash set. Remove it, modify it, and re-add it.
