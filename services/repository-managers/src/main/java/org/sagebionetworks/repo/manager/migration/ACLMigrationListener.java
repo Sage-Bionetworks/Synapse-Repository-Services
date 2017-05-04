@@ -40,7 +40,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 				continue;
 			}
 			AccessControlList dto = aclDAO.get(ownerId.toString(), ObjectType.ENTITY);
-			boolean modified=false;
+			boolean aclUpdateRequired=false;
 			boolean authenticatedUsersDownloadRequired=false; // set to true if we need to give authenticated users DOWNLOAD access
 			ResourceAccess authenticatedUsersEntry=null; // 'points' to authenticated users entry in ACL
 			Set<ResourceAccess> updatedRAset = new HashSet<ResourceAccess>();
@@ -55,9 +55,11 @@ public class ACLMigrationListener implements MigrationTypeListener {
 						authenticatedUsersDownloadRequired=true;
 					}
 					// anonymous can't have download permission!
-					modified = modified || updatedPermissions.remove(ACCESS_TYPE.DOWNLOAD);
+					boolean setChanged = updatedPermissions.remove(ACCESS_TYPE.DOWNLOAD);
+					aclUpdateRequired = aclUpdateRequired || setChanged;
 				} else if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
-					modified = modified || updatedPermissions.add(ACCESS_TYPE.DOWNLOAD);
+					boolean setChanged = updatedPermissions.add(ACCESS_TYPE.DOWNLOAD);
+					aclUpdateRequired = aclUpdateRequired || setChanged;
 				}
 				if (principalId==AUTHENTICATED_USERS_GROUP.getPrincipalId()) {
 					authenticatedUsersEntry=updatedRA;
@@ -73,11 +75,11 @@ public class ACLMigrationListener implements MigrationTypeListener {
 					// can't modify an object in a hash set. Remove it, modify it, and re-add it.
 					updatedRAset.remove(authenticatedUsersEntry);
 				}
-				authenticatedUsersEntry.getAccessType().addAll(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ,ACCESS_TYPE.DOWNLOAD}));
+				boolean setChanged = authenticatedUsersEntry.getAccessType().addAll(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ,ACCESS_TYPE.DOWNLOAD}));
+				aclUpdateRequired = aclUpdateRequired || setChanged;
 				updatedRAset.add(authenticatedUsersEntry);
-				modified=true;
 			}
-			if (modified) {
+			if (aclUpdateRequired) {
 				dto.setResourceAccess(updatedRAset);
 				aclDAO.update(dto, ObjectType.ENTITY);
 			}
