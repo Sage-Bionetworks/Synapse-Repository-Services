@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityId;
@@ -260,6 +261,27 @@ public class BaseClientImplTest {
 		verify(mockClient).getFile(captor.capture(), eq(mockFile));
 		assertEquals("https://repo-prod.prod.sagebase.org/fileToDownload",
 				captor.getValue().getUri());
+	}
+
+	/*
+	 * PLFM-4349
+	 */
+	@Test (expected = SynapseForbiddenException.class)
+	public void testDownloadFromSynapseWithJsonError() throws Exception {
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+				.thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(403);
+		when(mockResponse.getContent()).thenReturn("{\"reason\":\"User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759\"}");
+		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
+	}
+
+	@Test (expected = SynapseForbiddenException.class)
+	public void testDownloadFromSynapseWithNonJsonError() throws Exception {
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+				.thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(403);
+		when(mockResponse.getContent()).thenReturn("User lacks READ_PRIVATE_SUBMISSION access to Evaluation 8719759");
+		baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
