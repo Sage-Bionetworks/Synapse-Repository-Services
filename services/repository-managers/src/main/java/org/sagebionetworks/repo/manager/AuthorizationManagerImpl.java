@@ -553,36 +553,41 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 	
 	/*
-	 * Given a repository path, return a valid parent Id, 
+	 * Given a docker repository path, return a valid parent Id, 
 	 * a project which has been verified to exist. 
 	 * If there is no such valid parent then return null
 	 */
-	public String validParentProjectId(String repositoryPath) {
+	public String validDockerRepositoryParentId(String dockerRepositoryPath) {
 		// check that 'repositoryPath' is a valid path
 		try {
-			DockerNameUtil.validateName(repositoryPath);
+			DockerNameUtil.validateName(dockerRepositoryPath);
 		} catch (IllegalArgumentException e) {
 			return null;
 		}
 		// check that 'repopath' starts with a synapse ID (synID) and synID is a project or folder
 		String parentId;
 		try {
-			parentId = DockerNameUtil.getParentIdFromRepositoryPath(repositoryPath);
+			parentId = DockerNameUtil.getParentIdFromRepositoryPath(dockerRepositoryPath);
 		} catch (IllegalArgumentException e) {
 			return null;
 		}
+		
+		if (parentId==null) throw new IllegalArgumentException("parentId is required.");
 
-		Long parentIdAsLong = KeyFactory.stringToKey(parentId);
-		List<EntityHeader> headers = nodeDao.getEntityHeader(Collections.singleton(parentIdAsLong));
-		if (headers.size()==0) return null; // Not found!
-		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
-		EntityHeader header = headers.get(0);
-		if(EntityTypeUtils.getEntityTypeForClassName(header.getType())!=EntityType.project) return null; // parent must be a project!
-		return header.getId();
+		try {
+			EntityType parentType = nodeDao.getNodeTypeById(parentId);
+			if (parentType!=EntityType.project) {
+				return null;
+			}
+		} catch (NotFoundException e) {
+			return null;
+		}
+
+		return parentId;
 	}
 
 	@Override
-	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes) {
+	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(service, "service");
 		ValidateArgument.required(repositoryPath, "repositoryPath");
@@ -601,7 +606,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				// check CREATE or UPDATE permission and add to permittedActions
 				AuthorizationStatus as = null;
 				if (existingDockerRepoId==null) {
-					String parentId = validParentProjectId(repositoryPath);
+					String parentId = validDockerRepositoryParentId(repositoryPath);
 					if (parentId==null) {
 						// can't push to a non-existent parent
 						as = AuthorizationManagerUtil.ACCESS_DENIED;

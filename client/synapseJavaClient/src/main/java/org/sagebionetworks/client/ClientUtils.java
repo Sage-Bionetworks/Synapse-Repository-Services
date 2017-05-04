@@ -111,8 +111,7 @@ public class ClientUtils {
 			if (!is200sStatusCode(response.getStatusCode())) {
 				/* 
 				 * Even though the intended use of this method is for API that returns a JSON response,
-				 * a call to non-existing service - as a result of using an outdated client could
-				 * result in Tomcat throwing 404 error with a non JSON response.
+				 * Tomcat, Spring, and Amazon could throw a non Json format error.
 				 */
 				throwException(response.getStatusCode(), response.getContent());
 			}

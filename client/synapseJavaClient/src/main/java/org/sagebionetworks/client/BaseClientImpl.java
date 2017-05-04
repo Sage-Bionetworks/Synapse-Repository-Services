@@ -376,8 +376,10 @@ public class BaseClientImpl implements BaseClient {
 		request.setHeaders(requestHeaders);
 
 		try {
-			simpleHttpClient.getFile(request, destinationFile);
-
+			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
+			if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
+				ClientUtils.convertResponseBodyToJSONAndThrowException(response);
+			}
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile.getAbsolutePath());

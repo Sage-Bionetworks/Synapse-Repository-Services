@@ -87,5 +87,10 @@ public class ExceptionHandlers {
 		new TestEntry(423,
 				new ExceptionType("org.sagebionetworks.repo.model.LockedException", true)),
 		new TestEntry(410,
-				new ExceptionType("org.sagebionetworks.repo.web.DeprecatedServiceException", true)) };
+				new ExceptionType("org.sagebionetworks.repo.web.DeprecatedServiceException", true)),
+		new TestEntry(503,
+				new ExceptionType("org.sagebionetworks.repo.web.TemporarilyUnavailableException", false)),
+		new TestEntry(502,
+				new ExceptionType("com.amazonaws.AmazonServiceException", false)),		
+	};
 }
