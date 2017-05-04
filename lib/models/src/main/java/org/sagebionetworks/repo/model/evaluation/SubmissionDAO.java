@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -183,7 +184,12 @@ public interface SubmissionDAO {
 	 */
 	String getCreatedBy(String submissionId);
 	
-	
+	/*
+	 * Return true if and only if the given Docker Repository name is in a Submission under some Evaluation 
+	 * in which the given user (represented by a list of principalIds) has the given access type.
+	 */
+	boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName, Set<Long> principalIds, ACCESS_TYPE accessType);
+
 	SubmissionBundle getBundle(String id);
 
 
@@ -199,4 +205,5 @@ public interface SubmissionDAO {
 	List<SubmissionBundle> getAllBundlesByEvaluationAndUser(String evalId,
 			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
+
 }

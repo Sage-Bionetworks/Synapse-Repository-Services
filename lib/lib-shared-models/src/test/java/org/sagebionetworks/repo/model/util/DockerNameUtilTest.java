@@ -90,5 +90,22 @@ public class DockerNameUtilTest {
 		assertEquals("docker.synapse.org", DockerNameUtil.getRegistryHostSansPort("docker.synapse.org"));
 		assertNull(DockerNameUtil.getRegistryHostSansPort(null));
 	}
+	
+	@Test
+	public void testGetParentIdFromRepositoryPath() {
+		assertEquals("syn123", DockerNameUtil.getParentIdFromRepositoryPath("syn123/my/repo"));
+		assertEquals("syn123", DockerNameUtil.getParentIdFromRepositoryPath("syn123"));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetParentIdFromRepositoryPathNoSynPrefix() {
+		DockerNameUtil.getParentIdFromRepositoryPath("123");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetParentIdFromRepositoryPathNoNumberSuffix() {
+		DockerNameUtil.getParentIdFromRepositoryPath("synARepo");
+	}
+	
 
 }

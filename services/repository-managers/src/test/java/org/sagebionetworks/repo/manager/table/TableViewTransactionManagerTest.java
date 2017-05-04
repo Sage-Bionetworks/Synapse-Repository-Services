@@ -12,6 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -84,6 +85,7 @@ public class TableViewTransactionManagerTest {
 	UploadToTableRequest uploadToTableRequest;
 	UploadToTableResult uploadToTableResult;
 	SparseRowDto sparseRow;
+	List<String> orderedColumnIds;
 	
 	@Before
 	public void before(){
@@ -108,6 +110,8 @@ public class TableViewTransactionManagerTest {
 		schemaChangeRequest = new TableSchemaChangeRequest();
 		schemaChangeRequest.setChanges(columnChanges);
 		schemaChangeRequest.setEntityId(viewId);
+		orderedColumnIds = Arrays.asList(schema.get(0).getId(), schema.get(1).getId());
+		schemaChangeRequest.setOrderedColumnIds(orderedColumnIds);
 		
 		List<TableUpdateRequest> changes = new LinkedList<>();
 		changes.add(schemaChangeRequest);
@@ -136,7 +140,7 @@ public class TableViewTransactionManagerTest {
 		
 		uploadToTableResult = new UploadToTableResult();
 		
-		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges)).thenReturn(schema);
+		when(mockTableViewManger.applySchemaChange(user, viewId, columnChanges, orderedColumnIds)).thenReturn(schema);
 		when(mockStackConfig.getTableMaxBytesPerRequest()).thenReturn(Integer.MAX_VALUE);
 		when(mockTableManagerSupport.getColumnModelsForTable(viewId)).thenReturn(schema);
 		

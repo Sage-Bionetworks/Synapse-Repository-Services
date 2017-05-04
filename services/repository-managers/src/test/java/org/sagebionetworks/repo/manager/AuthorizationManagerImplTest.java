@@ -272,10 +272,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getAuthorized());
 		
-		Node childNode = new Node();
-		childNode.setParentId(node.getId());
-		childNode.setNodeType(EntityType.file);
-		assertFalse(authorizationManager.canCreate(anonInfo, childNode).getAuthorized());
+		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.file).getAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());
 		assertTrue(uep.getCanView());
@@ -414,23 +411,21 @@ public class AuthorizationManagerImplTest {
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());				
 		// but can't add a child 
-		Node child = createDTO("child", 10L, 11L, node.getId(), null);
-		assertFalse(authorizationManager.canCreate(userInfo, child).getAuthorized());
+		assertFalse(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
 		
 		// but give them create access to the parent
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now it can
-		assertTrue(authorizationManager.canCreate(userInfo, child).getAuthorized());
+		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
 		
 	}
 
 	@Test
 	public void testCreateSpecialUsers() throws Exception {
 		// admin always has access 
-		Node child = createDTO("child", 10L, 11L, node.getId(), null);
-		assertTrue(authorizationManager.canCreate(adminUser, child).getAuthorized());
+		assertTrue(authorizationManager.canCreate(adminUser, node.getId(), EntityType.project).getAuthorized());
 
 		// allow some access
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
@@ -438,21 +433,20 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
-		assertTrue(authorizationManager.canCreate(userInfo, child).getAuthorized());
+		assertTrue(authorizationManager.canCreate(userInfo, node.getId(), EntityType.project).getAuthorized());
 		
 		// but anonymous cannot
-		assertFalse(authorizationManager.canCreate(anonInfo, child).getAuthorized());
+		assertFalse(authorizationManager.canCreate(anonInfo, node.getId(), EntityType.project).getAuthorized());
 	}
 
 	@Test
 	public void testCreateNoParent() throws Exception {
 
 		// try to create node with no parent.  should fail
-		Node orphan = createDTO("orphan", 10L, 11L, null, null);
-		assertFalse(authorizationManager.canCreate(userInfo, orphan).getAuthorized());
+		assertFalse(authorizationManager.canCreate(userInfo, null, EntityType.project).getAuthorized());
 
 		// admin creates a node with no parent.  should work
-		assertTrue(authorizationManager.canCreate(adminUser, orphan).getAuthorized());
+		assertTrue(authorizationManager.canCreate(adminUser, null, EntityType.project).getAuthorized());
 	}
 
 	@Test

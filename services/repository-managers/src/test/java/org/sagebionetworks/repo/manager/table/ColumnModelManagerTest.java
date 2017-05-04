@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -145,17 +146,17 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testListColumnModelsLimitNegative(){
-		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", -1, 0);
+		columnModelManager.listColumnModels(user, "aa", -1, 0);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testListColumnModelsLimitTooLarge(){
-		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", 101, 0);
+		columnModelManager.listColumnModels(user, "aa", 101, 0);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testListColumnModelsOffsetNegative(){
-		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", 1, -1);
+		columnModelManager.listColumnModels(user, "aa", 1, -1);
 	}
 	
 	
@@ -362,7 +363,6 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected =IllegalArgumentException.class)
 	public void testListObjectsBoundToColumnNullSet(){
-		Set<String> columnId = new HashSet<String>();
 		columnModelManager.listObjectsBoundToColumn(user, null, true, Long.MAX_VALUE, 0);
 	}
 	
@@ -417,7 +417,7 @@ public class ColumnModelManagerTest {
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
-		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
+		columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 	
 	@Test
@@ -553,20 +553,35 @@ public class ColumnModelManagerTest {
 		List<ColumnChangeDetails> results = columnModelManager.getColumnChangeDetails(changes);
 		assertEquals(expected, results);
 	}
-	
+
+	@Test
+	public void testCalculateNewSchemaIdsAndValidateWithNullOrderedColumnIds(){
+		assertEquals(expectedNewSchemaIds,
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, null));
+	}
+
 	@Test
 	public void testCalculateNewSchemaIdsAndValidate(){
-		// call under test.
-		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
-		assertEquals(expectedNewSchemaIds, results);
+		assertEquals(expectedNewSchemaIds,
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCalculateNewSchemaIdsAndValidateMissingInUserProvidedColumns(){
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCalculateNewSchemaIdsAndValidateMissingFromUserProvidedColumns(){
+		expectedNewSchemaIds.add("columnId that does not exist");
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
 	}
 	
 	@Test
 	public void testCalculateNewSchemaIdsAndValidatePLFM_4188(){
 		changes = TableModelTestUtils.createAllDeleteColumnChange();
-		// call under test.
-		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
-		assertEquals(new LinkedList<String>(), results);
+		assertEquals(new LinkedList<String>(),
+				columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, new LinkedList<String>()));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -574,14 +589,7 @@ public class ColumnModelManagerTest {
 		// setup the new schema to be over the limit.
 		when(mockColumnModelDAO.getColumnModel(anyListOf(String.class), anyBoolean())).thenReturn(overLimitSchema);
 		// call under test.
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
-	}
-	
-	@Test
-	public void testCalculateNewSchemaIdsAndValidateFileChange(){
-		// call under test.
-		List<String> results = columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
-		assertEquals(expectedNewSchemaIds, results);
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -599,7 +607,7 @@ public class ColumnModelManagerTest {
 		
 		changes = Lists.newArrayList(update);
 		// call under test.
-		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes);
+		columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, expectedNewSchemaIds);
 	}
 	
 	@Test
@@ -806,5 +814,35 @@ public class ColumnModelManagerTest {
 		columnModel.setFacetType(FacetType.range);
 		//should throw exception
 		columnModelManager.validateFacetType(columnModel);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateSchemaWithProvidedOrderedColumnsWithNullSchema() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(null, new LinkedList<String>());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateSchemaWithProvidedOrderedColumnsWithNullOrderedList() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), null);
+	}
+
+	@Test
+	public void testValidateSchemaWithProvidedOrderedColumnsWithEmptyList() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(new LinkedList<String>(), new LinkedList<String>());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateSchemaWithProvidedOrderedColumnsWithMissingFromSchema() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1"), Arrays.asList("1", "2"));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateSchemaWithProvidedOrderedColumnsWithMissingFromOrderedList() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2"));
+	}
+
+	@Test
+	public void testValidateSchemaWithProvidedOrderedColumnsWithDifferentOrder() {
+		columnModelManager.validateSchemaWithProvidedOrderedColumns(Arrays.asList("1", "2"), Arrays.asList("2", "1"));
 	}
 }
