@@ -259,7 +259,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContentAnonDownload() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.DOWNLOAD);
 		userRA.setAccessType(ats);

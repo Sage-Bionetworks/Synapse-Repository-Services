@@ -41,9 +41,9 @@ public class PermissionsManagerUtils {
 					foundCallerInAcl = true;
 				}
 			}
-			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()) &&
+			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()) &&
 					ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
-				throw new InvalidModelException("Anonymous/Public may not have DOWNLOAD access.");
+				throw new InvalidModelException("Public may not have DOWNLOAD access.");
 			}
 		}
 		

@@ -54,7 +54,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 					if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
 						authenticatedUsersDownloadRequired=true;
 					}
-					// anonymous can't have download permission!
+					// PUBLIC can't have download permission!
 					boolean setChanged = updatedPermissions.remove(ACCESS_TYPE.DOWNLOAD);
 					aclUpdateRequired = aclUpdateRequired || setChanged;
 				} else if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
