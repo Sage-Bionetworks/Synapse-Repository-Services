@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -33,6 +34,7 @@ import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.WhereClause;
@@ -40,6 +42,7 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * Helper methods to translate user generated queries
@@ -50,6 +53,7 @@ public class SQLTranslatorUtils {
 
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
+	public static final Set<String> rowMetadataColumnNames = Sets.newHashSet(ROW_ID, ROW_VERSION);
 
 	/**
 	 * Get the list of column IDs that are referenced in the select clause.
@@ -139,10 +143,20 @@ public class SQLTranslatorUtils {
 		if(model != null && model.getName().equals(displayName)){
 			selectColumn.setId(model.getId());
 		}
+		validateSelectColumn(selectColumn, functionType, model, referencedColumn);
 		// done
 		return selectColumn;
 	}
 	
+	public static void validateSelectColumn(SelectColumn selectColumn, FunctionType functionType,
+			ColumnModel model, HasQuoteValue referencedColumn) {
+		ValidateArgument.requirement(model != null
+				|| functionType != null
+				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
+				|| (referencedColumn != null && referencedColumn instanceof SignedLiteral),
+				"Unknown column "+selectColumn.getName());
+	}
+
 	/**
 	 * Given a referenced column, attempt to determine the type of the column using only
 	 * the SQL.

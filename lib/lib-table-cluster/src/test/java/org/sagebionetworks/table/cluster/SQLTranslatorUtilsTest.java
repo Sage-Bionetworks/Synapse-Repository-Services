@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
@@ -40,7 +41,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.util.SimpleAggregateQueryException;
 
 import com.google.common.collect.Lists;
 
@@ -490,6 +490,20 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(columnSpecial.getName(), results.getName());
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsSimpleMismatch() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("fo0").derivedColumn();
+		// call under test
+		try {
+			SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+			fail("Should throw IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			String message = e.getMessage();
+			assertTrue(message.contains("fo0"));
+			assertTrue(message.contains("Unknown column"));
+		}
 	}
 	
 	@Test
@@ -1187,6 +1201,60 @@ public class SQLTranslatorUtilsTest {
 		ColumnTypeInfo[] results = SQLTranslatorUtils.getColumnTypeInfoArray(selectColumns);
 		assertTrue(Arrays.equals(expected, results));
 	}
-	
 
+	@Test
+	public void testValidateSelectColumnWithRealColumnModel() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("model");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, new ColumnModel(), new ActualIdentifier("someColumn", null));
+	}
+
+	@Test
+	public void testValidateSelectColumnWithFunction() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("function");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionType.AVG, null, new ActualIdentifier("someColumn", null));
+	}
+
+	@Test
+	public void testValidateSelectColumnWithRowId() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("row_id");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, null);
+	}
+
+	@Test
+	public void testValidateSelectColumnWithRowVersion() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("row_version");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, null);
+	}
+
+	@Test
+	public void testValidateSelectColumnWithStringConstant() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("contant");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new SignedLiteral(null, "constant"));
+	}
+
+	@Test
+	public void testValidateSelectColumnWithNumber() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("contant");
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new SignedLiteral("1", null));
+	}
+
+	@Test
+	public void testValidateSelectColumnInvalid() {
+		SelectColumn selectColumn = new SelectColumn();
+		selectColumn.setName("invalid");
+		try {
+			SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new ActualIdentifier("invalid", null));
+			fail("Should throw IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			String message = e.getMessage();
+			assertTrue(message.contains("invalid"));
+			assertTrue(message.contains("Unknown column"));
+	}
+	}
 }
