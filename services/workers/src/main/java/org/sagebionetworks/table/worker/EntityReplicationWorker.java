@@ -3,7 +3,10 @@ package org.sagebionetworks.table.worker;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -31,18 +34,39 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 
 	public static final int MAX_ANNOTATION_CHARS = 500;
 	public static final long THROTTLE_FREQUENCY_MS = 1000*30;
+	
+	static private Logger log = LogManager.getLogger(EntityReplicationWorker.class);
 
 	@Autowired
 	NodeDAO nodeDao;
 
 	@Autowired
 	ConnectionFactory connectionFactory;
+	
+	@Autowired
+	WorkerLogger workerLogger;
 
 	@Override
 	public void run(ProgressCallback<Void> progressCallback,
 			List<ChangeMessage> messages) throws RecoverableMessageException,
 			Exception {
+		try{
+			replicate(progressCallback, messages);
+		}catch (Exception e){
+			boolean willRetry = false;
+			workerLogger.logWorkerFailure(EntityReplicationWorker.class.getName(), e, willRetry);
+			log.error("Failed while replicating:", e);
+		}
+	}
 
+	/**
+	 * Replicate the data for the provided entities.
+	 * 
+	 * @param progressCallback
+	 * @param messages
+	 */
+	void replicate(ProgressCallback<Void> progressCallback,
+			List<ChangeMessage> messages) {
 		// batch the create/update events and delete events
 		List<String> createOrUpdateIds = new LinkedList<>();
 		List<String> deleteIds = new LinkedList<String>();
@@ -74,7 +98,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 				}
 			});
 		}
-
 	}
 
 	/**

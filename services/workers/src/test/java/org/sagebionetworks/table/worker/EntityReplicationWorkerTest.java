@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -40,6 +42,8 @@ public class EntityReplicationWorkerTest {
 	TransactionStatus transactionStatus;
 	@Mock
 	ProgressCallback<Void> mockPogressCallback;
+	@Mock
+	WorkerLogger mockWorkerLog;
 	
 	EntityReplicationWorker worker;
 	
@@ -52,6 +56,7 @@ public class EntityReplicationWorkerTest {
 		worker = new EntityReplicationWorker();
 		ReflectionTestUtils.setField(worker, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
+		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLog);
 		
 		ChangeMessage update = new ChangeMessage();
 		update.setChangeType(ChangeType.UPDATE);
@@ -102,6 +107,19 @@ public class EntityReplicationWorkerTest {
 		verify(mockIndexDao).deleteEntityData(any(ProgressCallback.class) ,eq(Lists.newArrayList(111L,222L,333L)));
 		verify(mockIndexDao).addEntityData(any(ProgressCallback.class) ,eq(entityData));
 		verify(mockPogressCallback, times(2)).progressMade(null);
+		verifyZeroInteractions(mockWorkerLog);
+	}
+	
+	@Test
+	public void testLogError() throws RecoverableMessageException, Exception{
+		RuntimeException exception = new RuntimeException("something went wrong");
+		// setup an exception
+		doThrow(exception).when(mockIndexDao).addEntityData(any(ProgressCallback.class), anyListOf(EntityDTO.class));
+		// call under test
+		worker.run(mockPogressCallback, changes);
+		boolean willRetry = false;
+		// the exception should be logged.
+		verify(mockWorkerLog).logWorkerFailure(EntityReplicationWorker.class.getName(), exception, willRetry);
 	}
 
 }
