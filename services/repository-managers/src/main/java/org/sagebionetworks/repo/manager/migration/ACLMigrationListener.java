@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP;
 
 import java.util.Arrays;
@@ -50,7 +50,7 @@ public class ACLMigrationListener implements MigrationTypeListener {
 				ResourceAccess updatedRA = new ResourceAccess();
 				updatedRA.setPrincipalId(principalId);
 				updatedRA.setAccessType(updatedPermissions);
-				if (principalId==ANONYMOUS_USER.getPrincipalId()) {
+				if (principalId==PUBLIC_GROUP.getPrincipalId()) {
 					if (updatedPermissions.contains(ACCESS_TYPE.READ)) {
 						authenticatedUsersDownloadRequired=true;
 					}

@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP;
 
 import java.util.ArrayList;
@@ -113,7 +113,7 @@ public class ACLMigrationListenerTest {
 	
 	@Test
 	public void testMigrationListenerPublicRead() {
-		AccessControlList dto = add(newDto(OWNER_ID.toString()), ANONYMOUS_USER.getPrincipalId(), READ_ONLY);
+		AccessControlList dto = add(newDto(OWNER_ID.toString()), PUBLIC_GROUP.getPrincipalId(), READ_ONLY);
 		when(aclDAO.get(OWNER_ID.toString(), ObjectType.ENTITY)).thenReturn(dto);
 		
 		// method under test
@@ -124,14 +124,14 @@ public class ACLMigrationListenerTest {
 		// there are now two entries in the ACL.
 		assertEquals(2, dto.getResourceAccess().size());
 		// public still has read only
-		assertEquals(READ_ONLY, permissions(dto, ANONYMOUS_USER.getPrincipalId()));
+		assertEquals(READ_ONLY, permissions(dto, PUBLIC_GROUP.getPrincipalId()));
 		// authenticated users has read + download
 		assertEquals(READ_DOWNLOAD, permissions(dto, AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
 	
 	@Test
 	public void testMigrationListenerPublicReadAuthUserAlreadyInACL() {
-		AccessControlList dto = add(newDto(OWNER_ID.toString()), ANONYMOUS_USER.getPrincipalId(), READ_ONLY);
+		AccessControlList dto = add(newDto(OWNER_ID.toString()), PUBLIC_GROUP.getPrincipalId(), READ_ONLY);
 		dto = add(dto, AUTHENTICATED_USERS_GROUP.getPrincipalId(), new HashSet<ACCESS_TYPE>(Arrays.asList(UPDATE)));
 		when(aclDAO.get(OWNER_ID.toString(), ObjectType.ENTITY)).thenReturn(dto);
 		
@@ -143,7 +143,7 @@ public class ACLMigrationListenerTest {
 		// there are now two entries in the ACL.
 		assertEquals(2, dto.getResourceAccess().size());
 		// public still has read only
-		assertEquals(READ_ONLY, permissions(dto, ANONYMOUS_USER.getPrincipalId()));
+		assertEquals(READ_ONLY, permissions(dto, PUBLIC_GROUP.getPrincipalId()));
 		// authenticated users has read + download
 		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(DOWNLOAD, READ, UPDATE)), 
 				permissions(dto, AUTHENTICATED_USERS_GROUP.getPrincipalId()));
@@ -151,7 +151,7 @@ public class ACLMigrationListenerTest {
 	
 	@Test
 	public void testMigrationListenerRemovePublicDownload() {
-		AccessControlList dto = add(newDto(OWNER_ID.toString()), ANONYMOUS_USER.getPrincipalId(), READ_DOWNLOAD);
+		AccessControlList dto = add(newDto(OWNER_ID.toString()), PUBLIC_GROUP.getPrincipalId(), READ_DOWNLOAD);
 		when(aclDAO.get(OWNER_ID.toString(), ObjectType.ENTITY)).thenReturn(dto);
 		
 		// method under test
@@ -162,7 +162,7 @@ public class ACLMigrationListenerTest {
 		// there are now two entries in the ACL.
 		assertEquals(2, dto.getResourceAccess().size());
 		// public still has read only
-		assertEquals(READ_ONLY, permissions(dto, ANONYMOUS_USER.getPrincipalId()));
+		assertEquals(READ_ONLY, permissions(dto, PUBLIC_GROUP.getPrincipalId()));
 		// authenticated users has read + download
 		assertEquals(READ_DOWNLOAD, permissions(dto, AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
