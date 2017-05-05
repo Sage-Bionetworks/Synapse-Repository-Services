@@ -497,6 +497,32 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
+	 * Test for PLFM-4366. To reproduce:
+	 * <ol>
+	 * <li>Create a view with at least one column and one row.</li>
+	 * <li>Wait for the view to become available for query.</li>
+	 * <li>Change the view's state to processing</li>
+	 * </ol>
+	 * Result: The view would remain in PROCESSING. The problem was the view
+	 * worker would detect that the view was up-to-date and do nothing. If there
+	 * is no work to do then the worker needs to ensure the view is AVAILABLE.
+	 */
+	@Test
+	public void testPLFM_4366() throws Exception{
+		// wait for the view to be available for query
+		waitForEntityReplication(fileViewId, fileViewId);
+		// query the view as a user that does not permission
+		String sql = "select * from "+fileViewId;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		// Set the view to processing without making any real changes
+		tableManagerSupport.setTableToProcessingAndTriggerUpdate(fileViewId);
+		// The view should become available again.
+		results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+	}
+	
+	/**
 	 * Start an asynchronous job and wait for the results.
 	 * @param user
 	 * @param body
