@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.CloudSearchClientException;
@@ -51,6 +52,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.support.HandlerMethodInvocationException;
 import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMethodException;
 import org.springframework.web.util.NestedServletException;
+
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 
 /**
  * This abstract class attempts to encapsulate exception handling for exceptions
@@ -815,6 +819,40 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
 	ErrorResponse handleUnexpectedRollbackException(UnexpectedRollbackException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex.getCause(), request, true);
+	}
+	
+	/**
+	 * See PLFM-4332.  Map TemporarilyUnavailableException to 503 (service unavailable).
+	 * 
+	 * @param ex
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@ExceptionHandler(TemporarilyUnavailableException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	ErrorResponse handleTemporarilyUnavailableException(TemporarilyUnavailableException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex.getCause(), request, true);
+	}
+	
+	/**
+	 * See PLFM-4292.  Map all AmazonServiceException to 502 (bad gateway) .
+	 * 
+	 * @param ex
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@ExceptionHandler(AmazonServiceException.class)
+	@ResponseStatus(HttpStatus.BAD_GATEWAY)
+	public @ResponseBody
+	ErrorResponse handleAmazonServiceException(AmazonServiceException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex.getCause(), request, true);

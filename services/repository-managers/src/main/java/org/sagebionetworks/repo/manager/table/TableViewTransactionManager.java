@@ -193,7 +193,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 */
 	TableSchemaChangeResponse applySchemaChange(UserInfo user, TableSchemaChangeRequest request){
 		// view manager applies the change.
-		List<ColumnModel> newSchema = tableViewManger.applySchemaChange(user, request.getEntityId(), request.getChanges());
+		List<ColumnModel> newSchema = tableViewManger.applySchemaChange(user, request.getEntityId(), request.getChanges(), request.getOrderedColumnIds());
 		TableSchemaChangeResponse response = new TableSchemaChangeResponse();
 		response.setSchema(newSchema);
 		return response;

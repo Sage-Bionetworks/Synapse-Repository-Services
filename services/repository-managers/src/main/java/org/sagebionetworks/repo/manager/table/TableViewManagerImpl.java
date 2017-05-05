@@ -103,9 +103,9 @@ public class TableViewManagerImpl implements TableViewManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public List<ColumnModel> applySchemaChange(UserInfo user, String viewId,
-			List<ColumnChange> changes) {
+			List<ColumnChange> changes, List<String> orderedColumnIds) {
 		// first determine what the new Schema will be
-		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes);
+		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
 		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
 		boolean keepOrder = true;
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);

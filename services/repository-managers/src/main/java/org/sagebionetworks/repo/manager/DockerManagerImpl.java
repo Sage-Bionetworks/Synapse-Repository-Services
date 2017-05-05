@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
@@ -45,7 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class DockerManagerImpl implements DockerManager {
 	@Autowired
-	private NodeDAO nodeDAO;
+	private NodeDAO nodeDao;
 	
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
@@ -95,7 +96,7 @@ public class DockerManagerImpl implements DockerManager {
 				String repositoryPath = scopeParts[1]; // i.e. the 'path'
 				
 				String actionTypes = scopeParts[2]; // e.g. push, pull
-				Set<RegistryEventAction> permittedActions = getPermittedActions(userInfo,  service, repositoryPath, actionTypes);
+				Set<RegistryEventAction> permittedActions = authorizationManager.getPermittedDockerRepositoryActions(userInfo,  service, repositoryPath, actionTypes);
 				
 				accessPermissions.add(new DockerScopePermission(type, repositoryPath, permittedActions));
 			}
@@ -112,98 +113,6 @@ public class DockerManagerImpl implements DockerManager {
 
 	}
 
-	public Set<RegistryEventAction> getPermittedActions(UserInfo userInfo, 
-			String service, String repositoryPath, String actionTypes) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(service, "service");
-		ValidateArgument.required(repositoryPath, "repositoryPath");
-		ValidateArgument.required(actionTypes, "actionTypes");
-
-		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
-
-		String parentId = validParentProjectId(repositoryPath);
-
-		if (parentId==null) return permittedActions;
-
-		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
-
-		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
-
-		for (String requestedActionString : actionTypes.split(",")) {
-			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
-			switch (requestedAction) {
-			case push:
-				// check CREATE or UPDATE permission and add to permittedActions
-				AuthorizationStatus as = null;
-				if (existingDockerRepoId==null) {
-					// check for create permission on parent
-					Node node = new Node();
-					node.setParentId(parentId);
-					node.setNodeType(EntityType.dockerrepo);
-					as = authorizationManager.canCreate(userInfo, node);
-				} else {
-					// check update permission on this entity
-					as = authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-				}
-				if (as!=null && as.getAuthorized()) {
-					permittedActions.add(requestedAction);
-					if (existingDockerRepoId==null) permittedActions.add(pull);
-				}
-				break;
-			case pull:
-				// check DOWNLOAD permission and add to permittedActions
-				if (existingDockerRepoId!=null) {
-					if (authorizationManager.canAccess(
-							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()
-					) permittedActions.add(requestedAction);
-				}
-				break;
-			default:
-				throw new RuntimeException("Unexpected action type: " + requestedAction);
-			}
-		}
-		return permittedActions;
-	}
-
-
-	/*
-	 * Given a repository path, return a valid parent Id, 
-	 * a project which has been verified to exist. 
-	 * If there is no such valid parent then return null
-	 */
-	public String validParentProjectId(String repositoryPath) {
-		// check that 'repositoryPath' is a valid path
-		try {
-			DockerNameUtil.validateName(repositoryPath);
-		} catch (IllegalArgumentException e) {
-			return null;
-		}
-		// check that 'repopath' starts with a synapse ID (synID) and synID is a project or folder
-		String parentId;
-		try {
-			parentId = getParentIdFromRepositoryPath(repositoryPath);
-		} catch (IllegalArgumentException e) {
-			return null;
-		}
-
-		Long parentIdAsLong = KeyFactory.stringToKey(parentId);
-		List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(parentIdAsLong));
-		if (headers.size()==0) return null; // Not found!
-		if (headers.size()>1) throw new IllegalStateException("Expected one node with ID "+parentId+" but found "+headers.size());
-		EntityHeader header = headers.get(0);
-		if(EntityTypeUtils.getEntityTypeForClassName(header.getType())!=EntityType.project) return null; // parent must be a project!
-		return header.getId();
-	}
-
-	private static String getParentIdFromRepositoryPath(String name) {
-		int i = name.indexOf(REPO_NAME_PATH_SEP);
-		String result = name;
-		if (i>0) result = name.substring(0, i);
-		// validate that the string is a valid ID (i.e. "syn" followed by a number)
-		KeyFactory.stringToKey(result);
-		return result;
-	}
 
 	/**
 	 * Process (push, pull) event notifications from Docker Registry
@@ -229,7 +138,7 @@ public class DockerManagerImpl implements DockerManager {
 				// the 'repository path' does not include the registry host or the tag
 				String repositoryPath = event.getTarget().getRepository();
 				String repositoryName = host+REPO_NAME_PATH_SEP+repositoryPath;
-				String parentId = getParentIdFromRepositoryPath(repositoryPath);
+				String parentId = DockerNameUtil.getParentIdFromRepositoryPath(repositoryPath);
 				if (parentId==null) throw new IllegalArgumentException("parentId is required.");
 				DockerCommit commit = new DockerCommit();
 				commit.setTag(event.getTarget().getTag());
@@ -239,11 +148,13 @@ public class DockerManagerImpl implements DockerManager {
 				String entityId =  dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 				if (entityId==null) {
 					// The node doesn't already exist
-					List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
-					if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
-					if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-					if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
-						throw new IllegalArgumentException("Parent must be a project.");
+					try {
+						EntityType parentType = nodeDao.getNodeTypeById(parentId);
+						if (parentType!=EntityType.project) {
+							throw new IllegalArgumentException("Parent must be a project.");
+						}
+					} catch (NotFoundException e) {
+						throw new NotFoundException("parentId "+parentId+" does not exist.", e);
 					}
 					DockerRepository entity = new DockerRepository();
 					entity.setIsManaged(true);

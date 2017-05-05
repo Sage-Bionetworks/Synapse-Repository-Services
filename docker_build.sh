@@ -12,7 +12,6 @@
 # if anything fails, stop
 set -e
 
-stack=dev
 rds_user_name=${stack}${user}
 
 if [ ! ${JOB_NAME} ]; then
@@ -91,10 +90,8 @@ bash -c "mvn clean install \
 -Dorg.sagebionetworks.table.cluster.schema.0=${tables_schema_name} \
 -Duser.home=/root"
 
-
 clean_up_container ${build_container_name}
 
 clean_up_container ${rds_container_name}
 
 clean_up_network ${network_name}
-

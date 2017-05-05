@@ -63,11 +63,13 @@ public class ExternalDockerRepoValidator implements EntityValidator<DockerReposi
 		dockerRepository.setIsManaged(false);
 		String parentId = dockerRepository.getParentId();
 		if (parentId==null) throw new IllegalArgumentException("parentId is required.");
-		List<EntityHeader> headers = nodeDAO.getEntityHeader(Collections.singleton(KeyFactory.stringToKey(parentId)));
-		if (headers.size()==0) throw new NotFoundException("parentId "+parentId+" does not exist.");
-		if (headers.size()>1) throw new IllegalStateException("Expected 0-1 result for "+parentId+" but found "+headers.size());
-		if (EntityTypeUtils.getEntityTypeForClassName(headers.get(0).getType())!=EntityType.project) {
-			throw new InvalidModelException("Parent must be a project.");
+		try {
+			EntityType parentType = nodeDAO.getNodeTypeById(parentId);
+			if (parentType!=EntityType.project) {
+				throw new InvalidModelException("Parent must be a project.");
+			}
+		} catch (NotFoundException e) {
+			throw new NotFoundException("parentId "+parentId+" does not exist.", e);
 		}
 		
 		if (event.getType()==EventType.UPDATE) {

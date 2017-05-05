@@ -3,6 +3,7 @@ package org.sagebionetworks.evaluation.dao;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_DOCKER_REPO_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_TEAM_ID;
@@ -12,9 +13,20 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SU
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION_CONTRIBUTOR;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,7 +52,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.query.SQLConstants;
@@ -54,6 +68,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 
 public class SubmissionDAOImpl implements SubmissionDAO {
 
@@ -228,6 +243,18 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SUBSTATUS_IN_CLAUSE = " AND ss."+COL_SUBSTATUS_STATUS+" IN (:"+COL_SUBSTATUS_STATUS+")";
 
+	private static final String SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL = 
+		"SELECT COUNT(*) FROM "+
+		TABLE_SUBMISSION+" s "+
+		" join "+TABLE_ACCESS_CONTROL_LIST+" acl on s."+COL_SUBMISSION_EVAL_ID+"=acl."+COL_ACL_OWNER_ID+
+		" join "+TABLE_RESOURCE_ACCESS+" ra on "+" acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+		" join "+TABLE_RESOURCE_ACCESS_TYPE+" at on ra."+COL_RESOURCE_ACCESS_ID+"=at."+COL_RESOURCE_ACCESS_TYPE_ID+
+		" WHERE "+
+		"s."+COL_SUBMISSION_DOCKER_REPO_NAME+"=:"+COL_SUBMISSION_DOCKER_REPO_NAME+
+		" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION+"'"+
+		" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+COL_RESOURCE_ACCESS_GROUP_ID+") "+
+		" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+
 	//------    end Submission eligibility related query strings -----
 
 	private static final RowMapper<SubmissionDBO> SUBMISSION_ROW_MAPPER = 
@@ -255,7 +282,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	private static final RowMapper<SubmissionContributorDBO> SUBMISSION_CONTRIBUTOR_ROW_MAPPER = 
 			(new SubmissionContributorDBO()).getTableMapping();
-
+	
 	@Override
 	@WriteTransaction
 	public String create(Submission dto) {
@@ -685,4 +712,23 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			throw new NotFoundException();
 		}
 	}
+	
+	@Override
+	public boolean isDockerRepoNameInAnyEvaluationWithAccess(String dockerRepoName,
+			Set<Long> principalIds, ACCESS_TYPE accessType) {
+		ValidateArgument.required(dockerRepoName, "dockerRepoName");
+		ValidateArgument.required(principalIds, "principalIds");
+		ValidateArgument.required(accessType, "accessType");
+		if (principalIds.isEmpty()) return false;
+		
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_DOCKER_REPO_NAME, dockerRepoName);
+		param.addValue(COL_RESOURCE_ACCESS_GROUP_ID, principalIds);
+		param.addValue(COL_RESOURCE_ACCESS_TYPE_ELEMENT, accessType.name());
+
+		return 0<namedTemplate.queryForObject(
+				SUBMISSIONS_WITH_DOCKER_REPO_AND_PERMISSION_SQL, param, Long.class);
+	}
+
 }
