@@ -1653,6 +1653,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			 * thrown.
 			 */
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}else if(projectId < 0){
+			throw new IllegalStateException("Infinite loop detected for: "+nodeId);
 		}
 		return KeyFactory.keyToString(projectId);
 	}

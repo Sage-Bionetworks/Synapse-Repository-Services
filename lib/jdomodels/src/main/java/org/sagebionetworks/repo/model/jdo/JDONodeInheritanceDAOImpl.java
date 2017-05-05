@@ -110,6 +110,8 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 			 * thrown.
 			 */
 			throw new NotFoundException("Benefactor not found for: "+beneficiaryId);
+		}else if (benefactorId < 0){
+			throw new IllegalStateException("Infinite loop detected for: "+beneficiaryId);
 		}
 		return KeyFactory.keyToString(benefactorId);
 	}
