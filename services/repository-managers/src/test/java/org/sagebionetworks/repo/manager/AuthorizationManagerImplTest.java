@@ -261,7 +261,6 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CHANGE_SETTINGS);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CREATE);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DELETE);
-		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DOWNLOAD);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
