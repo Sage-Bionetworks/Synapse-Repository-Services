@@ -136,15 +136,6 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public void createFunction(String functionName, String fileName)
 			throws IOException {
-<<<<<<< HEAD
-		// drop the function if it exists
-		String functionDefinition = loadSchemaSql(fileName);
-		// create the function from its definition
-		try {
-			jdbcTemplate.update(functionDefinition);
-			log.info("Created function: "+functionName);
-		} catch (DataAccessException e) {
-=======
 		String functionDefinition = loadSchemaSql(fileName);
 		try {
 			// create the function from its definition
@@ -156,7 +147,6 @@ public class DDLUtilsImpl implements DDLUtils{
 			 * EXISTS'. Therefore, we look for 'already exists' in the error
 			 * message.
 			 */
->>>>>>> develop
 			if(e.getMessage().contains(ALREADY_EXISTS)){
 				log.info(FUNCTION_ALREADY_EXISTS+functionName);
 			}else{
