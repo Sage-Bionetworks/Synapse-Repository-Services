@@ -118,7 +118,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(testUserInfo.getId());
-		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.DOWNLOAD})));
 		ras.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 	}

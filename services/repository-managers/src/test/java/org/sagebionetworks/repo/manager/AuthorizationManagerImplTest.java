@@ -261,7 +261,6 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CHANGE_SETTINGS);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.CREATE);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DELETE);
-		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.DOWNLOAD);
 		acl = AuthorizationTestHelper.addToACL(acl, publicGroup, ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized());
@@ -478,10 +477,11 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEnableInheritance());
 		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 		
-		// Let the user read.
+		// Let the user read and download
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.DOWNLOAD);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());

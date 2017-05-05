@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -381,7 +380,7 @@ public class IT500SynapseJavaClient {
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
-		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		readPermission.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		acl.getResourceAccess().add(readPermission);
 		synapseOne.updateACL(acl);
 		
@@ -758,7 +757,7 @@ public class IT500SynapseJavaClient {
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		ResourceAccess readPermission = new ResourceAccess();
 		readPermission.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
-		readPermission.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		readPermission.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
 		acl.getResourceAccess().add(readPermission);
 		synapseOne.updateACL(acl);
 

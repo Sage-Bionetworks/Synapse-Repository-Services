@@ -1626,7 +1626,7 @@ public class TableWorkerIntegrationTest {
 		acl = entityPermissionsManager.getACL(tableId, adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(notOwner.getId());
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
 		acl.getResourceAccess().add(ra);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 

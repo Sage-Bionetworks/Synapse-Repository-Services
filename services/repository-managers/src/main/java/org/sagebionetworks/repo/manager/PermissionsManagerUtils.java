@@ -5,6 +5,7 @@ import java.util.HashSet;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,6 +40,10 @@ public class PermissionsManagerUtils {
 					// Found caller in the ACL, with access to change permissions
 					foundCallerInAcl = true;
 				}
+			}
+			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()) &&
+					ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
+				throw new InvalidModelException("Public may not have DOWNLOAD access.");
 			}
 		}
 		

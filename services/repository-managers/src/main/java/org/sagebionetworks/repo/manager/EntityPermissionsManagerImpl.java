@@ -427,17 +427,18 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	// entities have to meet access requirements (ARs)
 	private AuthorizationStatus canDownload(UserInfo userInfo, String entityId, String benefactor, EntityType entityType)
 			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		
 		// if the ACL and access requirements permit DOWNLOAD, then its permitted,
 		// and this applies to any type of entity
-		boolean canRead = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
-		if (meetsAccessRequirements.getAuthorized() && canRead) {
+		if (meetsAccessRequirements.getAuthorized() && aclAllowsDownload) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 		
-		// at this point the entity is NOT authorized via ACL+access requirements and is NOT an Docker repo
-		if (!canRead) return new AuthorizationStatus(false, "You lack 'read' access to the requested entity.");
+		// at this point the entity is NOT authorized via ACL+access requirements
+		if (!aclAllowsDownload) return new AuthorizationStatus(false, "You lack DOWNLOAD access to the requested entity.");
 		return meetsAccessRequirements;
 	}
 	

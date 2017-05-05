@@ -45,13 +45,14 @@ public class IT960TermsOfUse {
 		project.setName("foo");
 		project = adminSynapse.createEntity(project);
 		// make the project public readable
-		String publicGroupPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
+		String publicGroupPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString();
 		AccessControlList acl = adminSynapse.getACL(project.getId());
 		
 		// Now add public-readable and push it back
 		Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
 		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.READ);
+		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		
 		ResourceAccess resourceAccess = new ResourceAccess();
 		resourceAccess.setPrincipalId(Long.parseLong(publicGroupPrincipalId)); // add PUBLIC, READ access
@@ -92,15 +93,12 @@ public class IT960TermsOfUse {
 
 	@Test
 	public void testRepoSvcNoTermsOfUse() throws Exception {
-		SynapseClientImpl anonymous = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(anonymous);
-		
 		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
 		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 		
 		FileEntity idHolder = new FileEntity();
 		idHolder.setId(ds.getId());
-		// an admin should be able to retreive the entity, including the locations
+		// an admin should be able to retrieve the entity and download the content
 		ds = adminSynapse.getEntity(idHolder.getId(), FileEntity.class);
 		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
 

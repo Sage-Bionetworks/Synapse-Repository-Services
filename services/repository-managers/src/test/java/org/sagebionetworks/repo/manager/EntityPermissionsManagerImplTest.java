@@ -255,6 +255,25 @@ public class EntityPermissionsManagerImplTest {
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 		
 	}
+	
+	@Test(expected = InvalidModelException.class)
+	public void testValidateACLContentAnonDownload() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.DOWNLOAD);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	}
+
 
 
 	@Test
@@ -573,7 +592,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testCanDownload() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ));
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.DOWNLOAD));
 		ra.setPrincipalId(otherUserInfo.getId());	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
