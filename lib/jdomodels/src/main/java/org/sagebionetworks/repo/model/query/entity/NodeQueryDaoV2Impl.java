@@ -1,8 +1,6 @@
-package org.sagebionetworks.repo.model.query.jdo;
+package org.sagebionetworks.repo.model.query.entity;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.*;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_KEY;
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,8 +12,8 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.repo.model.query.entity.Parameters;
-import org.sagebionetworks.repo.model.query.entity.QueryModel;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -58,6 +56,21 @@ public class NodeQueryDaoV2Impl implements NodeQueryDaoV2 {
 		model.bindParameters(params);
 		String countSql = model.toCountSql();
 		return namedTemplate.queryForObject(countSql, params.getParameters(), Long.class);
+	}
+	
+	@Override
+	public Set<Long> getDistinctBenefactors(QueryModel model, long limit) {
+		Parameters params = new Parameters();
+		model.bindParameters(params);
+		String sql = model.toDistinctBenefactorSql(limit);
+		final HashSet<Long> benefactorIds = new HashSet<>();
+		namedTemplate.query(sql, params.getParameters(), new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				benefactorIds.add(rs.getLong(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID));
+			}
+		});
+		return benefactorIds;
 	}
 
 	@Override

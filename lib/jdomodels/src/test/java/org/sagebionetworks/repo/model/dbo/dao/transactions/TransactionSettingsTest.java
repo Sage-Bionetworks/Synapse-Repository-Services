@@ -24,7 +24,7 @@ import org.springframework.transaction.IllegalTransactionStateException;
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:transaction-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TransactionSettingsTest {
 
 	@Autowired

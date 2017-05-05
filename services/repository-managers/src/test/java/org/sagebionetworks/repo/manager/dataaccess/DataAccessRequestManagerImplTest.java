@@ -80,6 +80,7 @@ public class DataAccessRequestManagerImplTest {
 		when(mockDataAccessRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockDataAccessRequestDao.update(any(DataAccessRequestInterface.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(true);
 		when(mockDataAccessSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, DataAccessSubmissionState.SUBMITTED)).thenReturn(false);
 	}
 
@@ -126,9 +127,20 @@ public class DataAccessRequestManagerImplTest {
 		manager.create(null, createNewRequest());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(null);
+		manager.create(mockUser, createNewRequest());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
+		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(false);
+		manager.create(mockUser, createNewRequest());
+	}
+
 	@Test
 	public void testCreate() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
 		assertEquals(request, manager.create(mockUser, createNewRequest()));
 		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);
 		verify(mockDataAccessRequestDao).create(captor.capture());
@@ -390,7 +402,6 @@ public class DataAccessRequestManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithNullId() {
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new ACTAccessRequirement());
 		request.setId(null);
 		assertEquals(request, manager.createOrUpdate(mockUser, request));
 		ArgumentCaptor<DataAccessRequest> captor = ArgumentCaptor.forClass(DataAccessRequest.class);

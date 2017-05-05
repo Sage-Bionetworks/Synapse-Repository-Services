@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
+import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
@@ -14,6 +15,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,8 @@ public class DataAccessServiceImpl implements DataAccessService{
 	private DataAccessSubmissionManager dataAccessSubmissionManager;
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
+	@Autowired
+	private AccessApprovalManager accessApprovalManager;
 
 	@Override
 	public ResearchProject createOrUpdate(Long userId, ResearchProject toCreateOrUpdate) {
@@ -95,5 +100,11 @@ public class DataAccessServiceImpl implements DataAccessService{
 	public OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getOpenSubmissions(user, nextPageToken);
+	}
+
+	@Override
+	public BatchAccessApprovalResult getAccessApprovalInfo(Long userId, BatchAccessApprovalRequest batchRequest) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return accessApprovalManager.getApprovalInfo(user, batchRequest);
 	}
 }

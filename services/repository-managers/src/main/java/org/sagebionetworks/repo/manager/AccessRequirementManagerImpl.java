@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -96,51 +97,52 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
 	
-	public static ACTAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId) {
+	public static LockAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId, String jiraKey) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(jiraKey, "jiraKey");
+
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		// create the 'lock down' access requirement'
-		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
+		LockAccessRequirement accessRequirement = new LockAccessRequirement();
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		accessRequirement.setOpenJiraIssue(true);
+		accessRequirement.setJiraKey(jiraKey);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirement;
 	}
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	public LockAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(entityId, "entityId");
+
 		// check authority
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE));
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE));
-		
+
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<AccessRequirement> ars = accessRequirementDAO.getAllAccessRequirementsForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
-		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
-		
-		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
-		ACTAccessRequirement result  = (ACTAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
-		
+		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
+		ValidateArgument.requirement(stats.getRequirementIdSet().isEmpty(), "Entity "+entityId+" is already restricted.");
+
 		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
-		
-		// now create the Jira issue
-		JRJCHelper.createRestrictIssue(jiraClient, 
-				userInfo.getId().toString(), 
-				emailString, 
+		String jiraKey = JRJCHelper.createRestrictIssue(jiraClient,
+				userInfo.getId().toString(),
+				emailString,
 				entityId);
 
-		return result;
+		LockAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId, jiraKey);
+		return (LockAccessRequirement) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
-	
 
 	@Override
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {

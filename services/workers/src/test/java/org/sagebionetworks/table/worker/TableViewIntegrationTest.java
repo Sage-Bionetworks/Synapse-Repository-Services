@@ -471,6 +471,32 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
+	 * See PLFM-4371.
+	 * 
+	 */
+	@Test
+	public void testPLFM_4371() throws Exception {
+		String fileId = fileIds.get(0);
+		// Add a string column to the view
+		ColumnModel stringColumn = new ColumnModel();
+		stringColumn.setName("concreteType");
+		stringColumn.setColumnType(ColumnType.STRING);
+		stringColumn.setMaximumSize(500L);
+		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
+				stringColumn);
+		defaultColumnIds.add(stringColumn.getId());
+		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
+				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
+
+		// Add an annotation with a duplicate name as a primary annotation.
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), "this is a duplicate value");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// For PLFM-4371 the replication was failing due to the duplicate name
+		waitForEntityReplication(fileViewId, fileId);
+	}
+	
+	/**
 	 * Start an asynchronous job and wait for the results.
 	 * @param user
 	 * @param body

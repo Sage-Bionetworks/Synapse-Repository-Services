@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
@@ -84,6 +85,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
+import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -102,6 +105,7 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -486,7 +490,7 @@ public interface SynapseClient extends BaseClient {
 	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
 			throws SynapseException;
 
-	public ACTAccessRequirement createLockAccessRequirement(String entityId)
+	public LockAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 
 	public PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
@@ -539,6 +543,7 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
 			throws SynapseException;
 
+	@Deprecated
 	public JSONObject query(String query) throws SynapseException;
 
 	public String putFileToURL(URL url, File file, String contentType)
@@ -806,8 +811,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void downloadMessageToFile(String messageId, File target) throws SynapseException;
-
-	public Long getChildCount(String entityId) throws SynapseException;
 
 	public SynapseVersionInfo getVersionInfo() throws SynapseException;
 
@@ -1932,6 +1935,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 	
 	/**
@@ -2580,6 +2584,15 @@ public interface SynapseClient extends BaseClient {
 	EntityChildrenResponse getEntityChildren(EntityChildrenRequest request) throws SynapseException;
 
 	/**
+	 * Retrieve an entityId given its name and parentId.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String lookupChild(String parentId, String entityName) throws SynapseException;
+
+	/**
 	 * Pin a thread
 	 * 
 	 * @param threadId
@@ -2830,4 +2843,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
+
+	BatchAccessApprovalResult getAccessApprovalInfo(BatchAccessApprovalRequest batchRequest) throws SynapseException;
 }

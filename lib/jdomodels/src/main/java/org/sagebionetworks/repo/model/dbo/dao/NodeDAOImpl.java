@@ -129,7 +129,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_NODE_TYPES = "bNodeTypes";
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
-	
+
+	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
+			+ " FROM "+TABLE_NODE
+			+ " WHERE "+COL_NODE_PARENT_ID+" = :"+COL_NODE_PARENT_ID
+			+ " AND "+COL_NODE_NAME+" = :"+COL_NODE_NAME;
+
 	private static final String SQL_SELECT_CHILDREN = 
 			"SELECT"
 			+ " "+COL_NODE_ID
@@ -1648,6 +1653,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			 * thrown.
 			 */
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}else if(projectId < 0){
+			throw new IllegalStateException("Infinite loop detected for: "+nodeId);
 		}
 		return KeyFactory.keyToString(projectId);
 	}
@@ -1807,6 +1814,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				EntityType type = EntityType.valueOf(rs.getString(COL_NODE_TYPE));
 				return new NodeIdAndType(nodeId, type);
 			}}, parentIdLong, limit, offset);
+	}
+
+	@Override
+	public String lookupChild(String parentId, String entityName) {
+		ValidateArgument.required(parentId, "parentId");
+		ValidateArgument.required(entityName, "entityName");
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(COL_NODE_PARENT_ID , KeyFactory.stringToKey(parentId));
+		parameters.put(COL_NODE_NAME , entityName);
+		try {
+			Long entityId = namedParameterJdbcTemplate.queryForObject(SQL_SELECT_CHILD, parameters, Long.class);
+			return KeyFactory.keyToString(entityId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 
 }

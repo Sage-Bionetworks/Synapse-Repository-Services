@@ -64,5 +64,13 @@ public class ExpressionList extends SqlElement implements HasAnnotationReference
 		}
 		return annos;
 	}
+	
+	/**
+	 * Get the expressions.
+	 * @return
+	 */
+	public List<SqlExpression> getExpressions(){
+		return expressions;
+	}
 
 }

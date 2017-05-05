@@ -115,19 +115,22 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		// validate based on the access requirement
 		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		ValidateArgument.requirement(actAR.getAcceptDataAccessRequest() != null
+				&& actAR.getAcceptDataAccessRequest(),
+				"This Access Requirement doesn't accept Data Access Request.");
 		if (actAR.getIsDUCRequired()) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
-					"Must provide a fileHandleId of the Intended Data Use statement.");
+					"You must provide a Data Use Certification document.");
 			submissionToCreate.setDucFileHandleId(request.getDucFileHandleId());
 		}
 		if (actAR.getIsIRBApprovalRequired()) {
 			ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
-					"Must provide a fileHandleId of the Institutional Review Board approval document.");
+					"You must provide an Institutional Review Board approval document.");
 			submissionToCreate.setIrbFileHandleId(request.getIrbFileHandleId());
 		}
 		if (actAR.getAreOtherAttachmentsRequired()) {
 			ValidateArgument.requirement(request.getAttachments()!= null && !request.getAttachments().isEmpty(),
-					"Must provide a fileHandleId of the attachment.");
+					"You must provide the required attachment(s).");
 			submissionToCreate.setAttachments(request.getAttachments());
 		}
 		ValidateArgument.requirement(request.getAccessors() != null && !request.getAccessors().isEmpty(),

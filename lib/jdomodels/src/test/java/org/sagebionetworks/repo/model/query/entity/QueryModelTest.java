@@ -82,5 +82,19 @@ public class QueryModelTest {
 				+ " ON (E.ID = A3.ENTITY_ID AND A3.ANNO_KEY = :bJoinName3)"
 				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.ANNO_VALUE > :bExpressionValue2", count);
 	}
+	
+	@Test
+	public void testToDistinctBenefactorSql(){
+		QueryModel model = new QueryModel(query);
+		long limit = 101;
+		String count = model.toDistinctBenefactorSql(limit);
+		assertEquals("SELECT DISTINCT BENEFACTOR_ID"
+				+ " FROM ENTITY_REPLICATION E"
+				+ " JOIN ANNOTATION_REPLICATION A2"
+				+ " ON (E.ID = A2.ENTITY_ID AND A2.ANNO_KEY = :bJoinName2)"
+				+ " LEFT JOIN ANNOTATION_REPLICATION A3"
+				+ " ON (E.ID = A3.ENTITY_ID AND A3.ANNO_KEY = :bJoinName3)"
+				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.ANNO_VALUE > :bExpressionValue2 LIMIT 101", count);
+	}
 
 }

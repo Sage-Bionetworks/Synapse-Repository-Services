@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -84,9 +85,10 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 		String query = "select id, eTag from entity where parentId == null";
 		QueryResults results = controller.query(adminUserId, query, mockRequest);
 		assertNotNull(results);
-		assertTrue(results.getTotalNumberOfResults() > 0);
+		assertEquals(0, results.getTotalNumberOfResults());
 	}
 	
+	@Ignore
 	@Test
 	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
 		// Create a project

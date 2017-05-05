@@ -21,11 +21,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 
 /**
@@ -666,5 +666,14 @@ public interface EntityService {
 	 * @return
 	 */
 	public EntityChildrenResponse getChildren(Long userId, EntityChildrenRequest request);
+
+	/**
+	 * Retrieve an entityId given its name and parentId.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	public EntityId lookupChild(Long userId, EntityLookupRequest request);
 
 }
