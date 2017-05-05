@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -442,23 +443,28 @@ public class JDOSecondaryPropertyUtils {
 	 * @return
 	 */
 	public static List<AnnotationDTO> translate(Long entityId, NamedAnnotations annos, int maxAnnotationChars) {
-		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
+		LinkedHashMap<String, AnnotationDTO> map = new LinkedHashMap<>();
 		if(annos != null){
 			// add additional
-			addAnnotations(entityId, maxAnnotationChars, results, annos.getAdditionalAnnotations());
+			addAnnotations(entityId, maxAnnotationChars, map, annos.getAdditionalAnnotations());
 			// add primary
-			addAnnotations(entityId, maxAnnotationChars, results, annos.getPrimaryAnnotations());
+			addAnnotations(entityId, maxAnnotationChars, map, annos.getPrimaryAnnotations());
+		}
+		// build the results from the map
+		List<AnnotationDTO> results = new LinkedList<AnnotationDTO>();
+		for(String key: map.keySet()){
+			results.add(map.get(key));
 		}
 		return results;
 	}
 
 	static void addAnnotations(Long entityId, int maxAnnotationChars,
-			List<AnnotationDTO> results, Annotations additional) {
+			LinkedHashMap<String, AnnotationDTO> map, Annotations additional) {
 		for(String key: additional.getStringAnnotations().keySet()){
 			List values = additional.getStringAnnotations().get(key);
 			String value = getSingleString(values, maxAnnotationChars);
 			if(value != null){
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.STRING, value));
 			}
 		}
 		// longs
@@ -466,7 +472,7 @@ public class JDOSecondaryPropertyUtils {
 			List values = additional.getLongAnnotations().get(key);
 			String value = getSingleString(values, maxAnnotationChars);
 			if(value != null){
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.LONG, value));
 			}
 		}
 		// doubles
@@ -474,7 +480,7 @@ public class JDOSecondaryPropertyUtils {
 			List values = additional.getDoubleAnnotations().get(key);
 			String value = getSingleString(values, maxAnnotationChars);
 			if(value != null){
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.DOUBLE, value));
 			}
 		}
 		// dates
@@ -482,7 +488,7 @@ public class JDOSecondaryPropertyUtils {
 			List values = additional.getDateAnnotations().get(key);
 			String value = getSingleString(values, maxAnnotationChars);
 			if(value != null){
-				results.add(new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
+				map.put(key, new AnnotationDTO(entityId, key, AnnotationType.DATE, value));
 			}
 		}
 	}
