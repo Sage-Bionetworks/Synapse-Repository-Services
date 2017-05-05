@@ -47,6 +47,10 @@
 		"isIDUPublic": {
 			"type":"boolean",
 			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
+		},
+		"acceptDataAccessRequest": {
+			"type":"boolean",
+			"description":  "If true, allow DataAccessRequest to be created for this requirement."
 		}
 	}
 }

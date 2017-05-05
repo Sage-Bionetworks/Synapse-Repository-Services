@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.query.entity;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.table.TableConstants;
 
 /**
  * Model represents an entire entity query including all of the parts.
@@ -59,6 +62,40 @@ public class QueryModel extends SqlElement {
 		from.toSql(builder);
 		where.toSql(builder);
 		return builder.toString();
+	}
+	
+	/**
+	 * Create the SQL to get the distinct benefactor IDs for
+	 * this query.  The SQL includes any conditions in the original query. 
+	 * @return
+	 */
+	public String toDistinctBenefactorSql(long limit){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT DISTINCT ");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID);
+		from.toSql(builder);
+		where.toSql(builder);
+		builder.append(" LIMIT ");
+		builder.append(limit);
+		return builder.toString();
+	}
+
+	/**
+	 * Is this a select * query?
+	 * @return
+	 */
+	public boolean isSelectStar() {
+		return select.isSelectStar();
+	}
+	
+	
+	/**
+	 * Get the where clause.
+	 * 
+	 * @return
+	 */
+	public ExpressionList getWhereClause(){
+		return where;
 	}
 
 }

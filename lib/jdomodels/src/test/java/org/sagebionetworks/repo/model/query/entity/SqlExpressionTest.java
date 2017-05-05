@@ -7,7 +7,9 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.Comparator;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 
 import com.google.common.collect.Lists;
 
@@ -64,6 +66,18 @@ public class SqlExpressionTest {
 		expression.bindParameters(parameters);
 		Map<String, Object> map = parameters.getParameters();
 		assertEquals(rhs, map.get(bindKey));
+	}
+	
+	@Test
+	public void testBindParentId(){
+		ColumnReference id = new ColumnReference(NodeField.PARENT_ID.getFieldName(), index);
+		Comparator comparator = Comparator.EQUALS;
+		String rhs = "syn123";
+		SqlExpression expression = new SqlExpression(id, comparator, rhs);
+		expression.bindParameters(parameters);
+		Map<String, Object> map = parameters.getParameters();
+		Long expectedRhs = KeyFactory.stringToKey(rhs);
+		assertEquals(expectedRhs, map.get(bindKey));
 	}
 
 }

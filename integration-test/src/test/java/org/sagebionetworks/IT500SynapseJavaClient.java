@@ -523,8 +523,6 @@ public class IT500SynapseJavaClient {
 				synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations());
 		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
 				synapseOne.getEntityPath(project.getId()), entityBundle.getPath());
-		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
-				synapseOne.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
 				synapseOne.getACL(project.getId()), entityBundle.getAccessControlList());
 		assertEquals("Unexpected ARs in the EntityBundle", 
@@ -874,41 +872,13 @@ public class IT500SynapseJavaClient {
 			}
 		}
 	}
-
-	@Test	
-	public void testGetChildCount() throws SynapseException{
-		// Start with no children.
-
-		// Add a child.
-		Folder child = new Folder();
-		child.setName("childFolder");
-		child.setParentId(project.getId());
-		child = synapseOne.createEntity(child);
-		assertNotNull(child);
-		assertNotNull(child.getId());
-		assertEquals(project.getId(), child.getParentId());
-		
-		// This folder should have no children
-		Long count = synapseOne.getChildCount(child.getId());
-		assertEquals(new Long(0), count);
-		// Now add a child
-		Folder grandChild = new Folder();
-		grandChild.setName("childFolder");
-		grandChild.setParentId(child.getId());
-		grandChild = synapseOne.createEntity(grandChild);
-		assertNotNull(grandChild);
-		assertNotNull(grandChild.getId());
-		assertEquals(child.getId(), grandChild.getParentId());
-		// The count should now be one.
-		count = synapseOne.getChildCount(child.getId());
-		assertEquals(new Long(1), count);
-	}
 	
 	/**
 	 * PLFM-1166 annotations are not being returned from queries.
+	 * @throws InterruptedException 
 	 */
 	@Test 
-	public void testPLMF_1166() throws SynapseException, JSONException{
+	public void testPLMF_1166() throws SynapseException, JSONException, InterruptedException{
 		// Get the project annotations
 		Annotations annos = synapseOne.getAnnotations(project.getId());
 		String key = "PLFM_1166";
@@ -916,7 +886,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.updateAnnotations(project.getId(), annos);
 		// Make sure we can query for 
 		String query = "select id, "+key+" from project where id == '"+project.getId()+"'";
-		JSONObject total = synapseOne.query(query);
+		JSONObject total = waitForQuery(query, 1L);
 		System.out.println(total);
 		assertEquals(1l, total.getLong("totalNumberOfResults"));
 		assertNotNull(total);
@@ -944,12 +914,12 @@ public class IT500SynapseJavaClient {
 		synapseOne.updateAnnotations(dataset.getId(), annos);
 		String queryString = "select id from entity where entity."+key+" == '"+value+"'";
 		// Wait for the query
-		waitForQuery(queryString);
+		waitForQuery(queryString, 1L);
 	}
 
 	@Test
 	public void testGetQueryWithNoOffset() throws SynapseException, InterruptedException, JSONException{
-		JSONObject noOffset = waitForQuery("select id from entity");
+		JSONObject noOffset = waitForQuery("select id from entity", 2L);
 		assertEquals(2, noOffset.get("totalNumberOfResults"));
 		assertTrue(noOffset.get("results").toString().contains(project.getId()));
 		assertTrue(noOffset.get("results").toString().contains(dataset.getId()));
@@ -957,7 +927,7 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testGetQueryWithOffset1() throws SynapseException, InterruptedException, JSONException{
-		JSONObject offset1 = waitForQuery("select id from entity offset 1");
+		JSONObject offset1 = waitForQuery("select id from entity offset 1", 2L);
 		assertEquals(2, offset1.get("totalNumberOfResults"));
 		assertTrue(offset1.get("results").toString().contains(project.getId()));
 		assertTrue(offset1.get("results").toString().contains(dataset.getId()));
@@ -967,26 +937,46 @@ public class IT500SynapseJavaClient {
 	public void testGetQueryWithOffset0() throws SynapseException, InterruptedException, JSONException{
 		String queryString = "select id from entity offset 0";
 		// Wait for the query
-		waitForQuery(queryString);
+		waitForQuery(queryString, 1L);
 	}
 	
 	/**
 	 * Helper 
 	 */
-	private JSONObject waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
+	private JSONObject waitForQuery(String queryString, long expectedCount) throws SynapseException, InterruptedException, JSONException{
 		// Wait for the references to appear
 		JSONObject results = synapseOne.query(queryString);
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertNotNull(results.getLong("totalNumberOfResults"));
 		long start = System.currentTimeMillis();
-		while(results.getLong("totalNumberOfResults") < 1){
+		while(results.getLong("totalNumberOfResults") < expectedCount){
 			System.out.println("Waiting for query: "+queryString);
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be published for query: "+queryString, elapse < RDS_WORKER_TIMEOUT);
 			results = synapseOne.query(queryString);
 			System.out.println(results);
+		}
+		return results;
+	}
+	
+	/**
+	 * Helper to wait for the expected query results.
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	EntityQueryResults waitForQuery(EntityQuery query) throws SynapseException, InterruptedException {
+		EntityQueryResults results = synapseOne.entityQuery(query);
+		long start = System.currentTimeMillis();
+		while(results.getTotalEntityCount() < 1){
+			System.out.println("Waiting for query...");
+			Thread.sleep(1000);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for query", elapse < RDS_WORKER_TIMEOUT);
+			results = synapseOne.entityQuery(query);
 		}
 		return results;
 	}
@@ -1001,16 +991,16 @@ public class IT500SynapseJavaClient {
 		annos.addAnnotation("foo", "bar");
 		annos.addAnnotation("baz", 10.3D);
 		synapseOne.updateAnnotations(dataset.getId(), annos);
-		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\"";
+		String queryString = "select id, "+key+" from entity where entity.id == \""+dataset.getId()+"\" and entity."+key+" == \"NaN\"";
 		// Wait for the query
-		JSONObject result = waitForQuery(queryString);
+		JSONObject result = waitForQuery(queryString, 1L);
 		// result should look like:
 		// {"totalNumberOfResults":1,"results":[{"entity.testEntityNaNAnnotations":["NaN"],"entity.id":"syn1681661"}]}
 		assertEquals(1, result.get("totalNumberOfResults"));
 		assertEquals("NaN", ((JSONObject)result.getJSONArray("results").get(0)).getJSONArray("entity.testEntityNaNAnnotations").get(0));
 
 		queryString = "select id from entity where entity."+key+" == \"NaN\"";
-		result = waitForQuery(queryString);
+		result = waitForQuery(queryString, 1L);
 		assertEquals(1, result.get("totalNumberOfResults"));
 		assertEquals(dataset.getId(), ((JSONObject)result.getJSONArray("results").get(0)).get("entity.id"));
 	}
@@ -1816,22 +1806,22 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testQueryProjectId() throws SynapseException, JSONException{
+	public void testQueryProjectId() throws SynapseException, JSONException, InterruptedException{
 		String query = "select id from entity where projectId == '"+project.getId()+"'";
-		JSONObject total = synapseOne.query(query);
+		JSONObject total = waitForQuery(query, 2L);
 		Long count = total.getLong("totalNumberOfResults");
 		assertEquals(new Long(2), count);
 	}
 	
 	@Test
-	public void testStructuredQuery() throws SynapseException{
+	public void testStructuredQuery() throws Exception {
 		// setup a query to find the project by ID.
 		EntityQuery query = new EntityQuery();
 		query.setFilterByType(EntityType.project);
 		query.setConditions(new ArrayList<Condition>(1));
 		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
 		// Run the query
-		EntityQueryResults results = synapseOne.entityQuery(query);
+		EntityQueryResults results = waitForQuery(query);
 		assertNotNull(results);
 		assertNotNull(results.getEntities());
 		assertEquals(1, results.getEntities().size());
@@ -1875,5 +1865,10 @@ public class IT500SynapseJavaClient {
 		EntityHeader header = response.getPage().get(0);
 		assertNotNull(header);
 		assertEquals(Project.class.getName(), header.getType());
+	}
+
+	@Test
+	public void testLookupEntity() throws SynapseException {
+		assertEquals(dataset.getId(), synapseOne.lookupChild(project.getId(), dataset.getName()));
 	}
 }

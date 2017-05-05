@@ -26,6 +26,9 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
@@ -41,6 +44,8 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+
+import com.google.common.collect.Lists;
 
 public class ITDocker {
 	private static final String SCOPE_PARAM = "scope";
@@ -216,10 +221,13 @@ public class ITDocker {
 		String body = EntityFactory.createJSONStringForEntity(registryEvents);
 		simpleClient.post(request, body);
 		// check that repo was created
-		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
-		Long count = queryResult.getLong("totalNumberOfResults");
-		assertEquals(new Long(1), count);
-
+		EntityChildrenRequest childRequest = new EntityChildrenRequest();
+		childRequest.setParentId(projectId);
+		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.dockerrepo));
+		EntityChildrenResponse response = synapseOne.getEntityChildren(childRequest);
+		assertNotNull(response);
+		assertNotNull(response.getPage());
+		assertEquals(1, response.getPage().size());
 	}
 
 	@Test
@@ -239,10 +247,13 @@ public class ITDocker {
 		String body = EntityFactory.createJSONStringForEntity(registryEvents);
 		SimpleHttpResponse response = simpleClient.post(request, body);
 		assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
-		JSONObject queryResult = synapseOne.query("select id from dockerrepo where projectId == '"+projectId+"'");
-		Long count = queryResult.getLong("totalNumberOfResults");
-		assertEquals(new Long(0), count);
-
+		EntityChildrenRequest childRequest = new EntityChildrenRequest();
+		childRequest.setParentId(projectId);
+		childRequest.setIncludeTypes(Lists.newArrayList(EntityType.dockerrepo));
+		EntityChildrenResponse childResponse = synapseOne.getEntityChildren(childRequest);
+		assertNotNull(childResponse);
+		assertNotNull(childResponse.getPage());
+		assertEquals(0, childResponse.getPage().size());
 	}
 
 

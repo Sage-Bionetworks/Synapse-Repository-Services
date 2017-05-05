@@ -4,6 +4,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.EntityQueryManagerImpl;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -41,7 +42,7 @@ public class QueryStatement {
 	 * like it is for the rest API. When people query they expect that a query
 	 * with no limit specified defaults to all.
 	 */
-	private Long limit = 50000000l; // MySQL upper limit
+	private Long limit = EntityQueryManagerImpl.MAX_LIMIT; // MySQL upper limit
 	private Long offset;
 
 	private QueryNode parseTree = null;

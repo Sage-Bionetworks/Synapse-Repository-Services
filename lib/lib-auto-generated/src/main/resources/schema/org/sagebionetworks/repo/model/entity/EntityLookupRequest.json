@@ -1,0 +1,14 @@
+{
+	"description": "A request to look up an entity given parentId and the entity name.",
+	"type": "object",
+	"properties": {
+		"parentId": {
+			"type": "string",
+			"description": "The parentID"
+		},
+		"entityName": {
+			"type": "string",
+			"description": "The entity name"
+		}
+	}
+}

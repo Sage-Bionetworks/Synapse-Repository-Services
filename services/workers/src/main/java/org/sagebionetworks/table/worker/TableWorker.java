@@ -44,6 +44,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware {
 
+	public static final String ALREADY_SYNCHRONIZED = "Already Synchronized";
+
+
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
@@ -109,17 +112,23 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			final ChangeMessage change) {
 		// Attempt to run with
 		try {
-			// Only proceed if work is needed.
-			if(!tableManagerSupport.isIndexWorkRequired(tableId)){
-				log.info("No work needed for table "+tableId);
-				return State.SUCCESS;
-			}
-			
 			/*
 			 * Before we start working on the table make sure it is in the processing mode.
 			 * This will generate a new reset token and will not broadcast the change.
 			 */
 			final String tableResetToken = tableManagerSupport.startTableProcessing(tableId);
+			
+			// Only proceed if work is needed.
+			if(!tableManagerSupport.isIndexWorkRequired(tableId)){
+				/*
+				 * See PLFM-4366. When the table is already synchronized, it must be
+				 * unconditionally set to available.
+				 */
+				log.info("Index for table: "+tableId+" is already synchronized. Setting the table to available.");
+				// Attempt to set the table to complete.
+				tableManagerSupport.attemptToSetTableStatusToAvailable(tableId, tableResetToken, ALREADY_SYNCHRONIZED);
+				return State.SUCCESS;
+			}
 
 			// Run with the exclusive lock on the table if we can get it.
 			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback,tableId,

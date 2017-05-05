@@ -200,6 +200,9 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(id);
 		assertNotNull(accessApproval.getEtag());
 
+		// test create again
+		assertEquals(accessApproval, accessApprovalDAO.create(accessApproval));
+
 		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
 				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
 		assertNotNull(approvals);
@@ -238,6 +241,11 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
+		Set<String> approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
+		assertNotNull(approvedUsers);
+		assertEquals(1, approvedUsers.size());
+		assertTrue(approvedUsers.contains(individualGroup.getId().toString()));
+
 		// update it
 		clone = ars.iterator().next();
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
@@ -264,6 +272,9 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// Delete it
 		accessApprovalDAO.delete(id);
+		approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
+		assertNotNull(approvedUsers);
+		assertTrue(approvedUsers.isEmpty());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -301,6 +312,9 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
 		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
 		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+
+		// insert again
+		assertEquals(created, accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2)));
 
 		List<Long> toDelete = new LinkedList<Long>();
 		toDelete.add(created.get(0).getId());

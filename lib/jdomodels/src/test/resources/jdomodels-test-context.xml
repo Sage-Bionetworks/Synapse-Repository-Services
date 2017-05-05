@@ -13,6 +13,7 @@
 	<import resource="classpath:jdomodels-import.xml" />
 	<import resource="stack-configuration.spb.xml" />
 	<import resource="id-generator.spb.xml" />
+	<import resource="table-cluster-spb.xml"/>
 
 	<!-- Used to test node locking -->
 	<bean id="nodeLockerA"
@@ -23,5 +24,10 @@
 	<bean id="nodeLockerB"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl"
 		scope="prototype" />
+	
+	<!-- Used to test node locking -->
+	<bean id="transactionValidator"
+		class=" org.sagebionetworks.repo.model.dbo.dao.transactions.TransactionValidatorImpl"
+		init-method="initialize" />	
 
 </beans>

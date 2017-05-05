@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -67,7 +68,7 @@ public class KeyFactory {
 	 * @return the decoded key
 	 * @throws DatastoreException
 	 */
-	public static List<Long> stringToKey(List<String> ids) throws DatastoreException {
+	public static List<Long> stringToKey(Collection<String> ids) throws DatastoreException {
 		ValidateArgument.required(ids, "ids");
 		List<Long> resutls = new LinkedList<Long>();
 		for(String key: ids){
