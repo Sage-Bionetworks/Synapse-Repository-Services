@@ -322,4 +322,18 @@ public class EntityQueryManagerImplTest {
 		verify(mockDao, never()).executeCountQuery(any(QueryModel.class));
 		verify(mockDao, never()).addAnnotationsToResults(anyList());
 	}
+	
+	/**
+	 * Test for PLFM-4367
+	 */
+	@Test
+	public void testExecuteQueryNoResults(){
+		// return no results
+		when(mockDao.executeQuery(any(QueryModel.class))).thenReturn(new LinkedList<Map<String,Object>>());
+		// call under test
+		NodeQueryResults results = manager.executeQuery(query, mockUser);
+		assertNotNull(results);
+		// annotations should not be added, since the list is empty.
+		verify(mockDao, never()).addAnnotationsToResults(anyList());
+	}
 }
