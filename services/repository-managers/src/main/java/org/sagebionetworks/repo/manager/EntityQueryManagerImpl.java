@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,10 +45,9 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 	
 	public static final String SCOPE_IS_TOO_BROAD = 
 			"The scope of the given query is too broad."
-			+ "  Please narrow the scope and try again."
+			+ "  Please narrow the scope."
 			+ "  The scope can be narrowed using any of the following techniques:"
-			+ " filter by 'projectId', 'parentId', or 'benefactorId' "
-			+ "or select from 'project' to limit the results to projects only.";
+			+ " filter by 'projectId', 'parentId', or 'benefactorId'. ";
 
 	public static final Long MAX_BENEFACTORS_PER_QUERY = 1000L;
 	
