@@ -96,7 +96,7 @@ public class TableViewWorkerTest {
 		viewScope = Sets.newHashSet(1L,2L);
 	
 		when(tableManagerSupport.startTableProcessing(tableId)).thenReturn(token);
-		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(false);
+		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		when(tableManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(viewScope);
 		when(tableManagerSupport.getViewType(tableId)).thenReturn(ViewType.file);
 
@@ -207,9 +207,9 @@ public class TableViewWorkerTest {
 	}
 	
 	@Test
-	public void testRunIsIndexSynchronizedTrue() throws Exception{
+	public void testRunIsIndexWorkRequiredFalse() throws Exception{
 		// Setup the synched state
-		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(true);
+		when(tableManagerSupport.isIndexWorkRequired(tableId)).thenReturn(false);
 		// call under test
 		worker.run(outerCallback, change);
 		// progress should not start for this case
@@ -217,9 +217,9 @@ public class TableViewWorkerTest {
 	}
 	
 	@Test
-	public void testRunIsIndexSynchronizedFalse() throws Exception{
+	public void testRunIsIndexWorkRequiredTrue() throws Exception{
 		// Setup the synched state
-		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(false);
+		when(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)).thenReturn(true);
 		// call under test
 		worker.run(outerCallback, change);
 		// progress should start for this case
