@@ -279,8 +279,10 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 		// execute the query
 		List<Map<String, Object>> results = nodeQueryV2.executeQuery(model);
 		if(model.isSelectStar()){
-			// This is a select * query so the annotations must be added to the results.
-			nodeQueryV2.addAnnotationsToResults(results);
+			if(!results.isEmpty()){
+				// This is a select * query so the annotations must be added to the results.
+				nodeQueryV2.addAnnotationsToResults(results);
+			}
 		}
 		long count = nodeQueryV2.executeCountQuery(model);
 		// Return the results.
