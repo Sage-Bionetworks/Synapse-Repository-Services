@@ -75,6 +75,10 @@ public class NodeQueryDaoV2Impl implements NodeQueryDaoV2 {
 
 	@Override
 	public void addAnnotationsToResults(List<Map<String, Object>> results) {
+		if(results.isEmpty()){
+			// nothing to do if there are no results.
+			return;
+		}
 		// Map each row it its ID
 		final Map<Long, Map<String,Object>> idToRowMap = new HashMap<>(results.size());
 		Set<Long> idSet = new HashSet<>(results.size());

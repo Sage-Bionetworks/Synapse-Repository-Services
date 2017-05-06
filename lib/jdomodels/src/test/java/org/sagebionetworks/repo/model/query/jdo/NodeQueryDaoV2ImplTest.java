@@ -178,6 +178,15 @@ public class NodeQueryDaoV2ImplTest {
 		
 	}
 	
+	/**
+	 * Test for PLFM-4367
+	 */
+	@Test
+	public void testAnnotationsToResultsEmpty(){
+		// call under test
+		nodeQueryDaoV2.addAnnotationsToResults(new LinkedList<Map<String,Object>>());	
+	}
+	
 	@Test
 	public void testExecuteQuerySortOnAnnotation(){
 		BasicQuery query = new BasicQuery();
