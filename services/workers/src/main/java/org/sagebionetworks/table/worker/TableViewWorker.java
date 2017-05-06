@@ -114,7 +114,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 */
 	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<Void> callback, final ChangeMessage message){
 		// Is the index out-of-synch?
-		if(tableManagerSupport.isIndexSynchronizedWithTruth(tableId)){
+		if(!tableManagerSupport.isIndexWorkRequired(tableId)){
 			// nothing to do
 			return;
 		}
