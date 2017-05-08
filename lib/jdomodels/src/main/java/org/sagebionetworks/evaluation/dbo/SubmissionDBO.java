@@ -33,8 +33,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.SubmissionUtils;
-import org.sagebionetworks.evaluation.model.Submission;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
@@ -314,6 +313,16 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	public MigrationType getMigratableTableType() {
 		return MigrationType.SUBMISSION;
 	}
+	
+	
+	private static Object getFromJSONIfPresent(JSONObject jsonObject, String key) throws JSONException {
+		if (jsonObject.has(key)) {
+			return jsonObject.get(key);
+		} else {
+			return null;
+		}
+	}
+	
 	@Override
 	public MigratableTableTranslation<SubmissionDBO, SubmissionDBO> getTranslator() {
 		return new MigratableTableTranslation<SubmissionDBO, SubmissionDBO>(){
@@ -323,14 +332,16 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 					SubmissionDBO backup) {
 				if (backup.getDockerRepositoryName()==null) {
 					try {
-						EntityBundle bundle = EntityFactory.createEntityFromJSONString(
-								new String(backup.getEntityBundle()), EntityBundle.class);
-						Class<Entity> entityType = (Class<Entity>)bundle.getEntity().getClass();
-						if (entityType.equals(DockerRepository.class)) {
-							String repositoryName = ((DockerRepository)bundle.getEntity()).getRepositoryName();
-							backup.setDockerRepositoryName(repositoryName);
+						JSONObject jsonObject = new JSONObject(new String(backup.getEntityBundle()));
+						JSONObject entity = (JSONObject)getFromJSONIfPresent(jsonObject, "entity");
+						if (entity!=null) {
+							String entityType = (String)getFromJSONIfPresent(entity, "concreteType");
+							if (entityType!=null && entityType.equals(DockerRepository.class.getName())) {
+								String repositoryName = (String)getFromJSONIfPresent(entity, "repositoryName");
+								backup.setDockerRepositoryName(repositoryName);
+							}
 						}
-					} catch (JSONObjectAdapterException e) {
+					} catch (JSONException e) {
 						throw new RuntimeException(e);
 					}
 				}
