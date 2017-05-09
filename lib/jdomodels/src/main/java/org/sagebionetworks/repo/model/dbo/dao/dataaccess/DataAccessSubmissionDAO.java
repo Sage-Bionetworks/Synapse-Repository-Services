@@ -5,8 +5,8 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 
 public interface DataAccessSubmissionDAO {
 
@@ -17,7 +17,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param userId
 	 * @return
 	 */
-	public ACTAccessRequirementStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId);
+	public DataAccessSubmissionStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId);
 
 	/**
 	 * Update the state of a submission.
@@ -37,7 +37,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param submissionToCreate
 	 * @return
 	 */
-	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission submissionToCreate);
+	public DataAccessSubmissionStatus createSubmission(DataAccessSubmission submissionToCreate);
 
 	/**
 	 * Cancel a submission.
@@ -48,7 +48,7 @@ public interface DataAccessSubmissionDAO {
 	 * @param etag
 	 * @return
 	 */
-	public ACTAccessRequirementStatus cancel(String submissionId, String userId,
+	public DataAccessSubmissionStatus cancel(String submissionId, String userId,
 			Long timestamp, String etag);
 
 	/**

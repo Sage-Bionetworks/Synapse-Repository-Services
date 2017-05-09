@@ -12,8 +12,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -61,13 +61,13 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public ACTAccessRequirementStatus submit(Long userId, String requestId, String etag) {
+	public DataAccessSubmissionStatus submit(Long userId, String requestId, String etag) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.create(user, requestId, etag);
 	}
 
 	@Override
-	public ACTAccessRequirementStatus cancel(Long userId, String submissionId) {
+	public DataAccessSubmissionStatus cancel(Long userId, String submissionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.cancel(user, submissionId);
 	}

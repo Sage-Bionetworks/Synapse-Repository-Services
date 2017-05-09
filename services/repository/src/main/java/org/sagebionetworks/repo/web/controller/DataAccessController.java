@@ -7,8 +7,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -126,7 +126,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
-	public @ResponseBody ACTAccessRequirementStatus submit(
+	public @ResponseBody DataAccessSubmissionStatus submit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requestId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM) String etag)
@@ -145,7 +145,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
-	public @ResponseBody ACTAccessRequirementStatus cancel(
+	public @ResponseBody DataAccessSubmissionStatus cancel(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().cancel(userId, submissionId);

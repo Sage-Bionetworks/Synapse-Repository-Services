@@ -4,8 +4,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
@@ -19,7 +19,7 @@ public interface DataAccessSubmissionManager {
 	 * @param etag 
 	 * @return
 	 */
-	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag);
+	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag);
 
 	/**
 	 * Cancel a submission.
@@ -28,7 +28,7 @@ public interface DataAccessSubmissionManager {
 	 * @param submissionId
 	 * @return
 	 */
-	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId);
+	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId);
 
 	/**
 	 * Update the state of a submission.

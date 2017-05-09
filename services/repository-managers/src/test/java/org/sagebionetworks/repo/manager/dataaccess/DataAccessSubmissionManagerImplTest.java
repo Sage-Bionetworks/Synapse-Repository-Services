@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -85,7 +86,7 @@ public class DataAccessSubmissionManagerImplTest {
 	@Mock
 	private SubscriptionDAO mockSubscriptionDao;
 	@Mock
-	private ACTAccessRequirementStatus mockStatus;
+	private DataAccessSubmissionStatus mockSubmissionStatus;
 	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
 
@@ -167,8 +168,8 @@ public class DataAccessSubmissionManagerImplTest {
 				.thenReturn(true);
 
 		when(mockDataAccessSubmissionDao.createSubmission(any(DataAccessSubmission.class)))
-				.thenReturn(mockStatus);
-		when(mockStatus.getSubmissionId()).thenReturn(submissionId);
+				.thenReturn(mockSubmissionStatus);
+		when(mockSubmissionStatus.getSubmissionId()).thenReturn(submissionId);
 		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(true);
 	}
 
@@ -428,10 +429,9 @@ public class DataAccessSubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(DataAccessSubmissionState.SUBMITTED);
 		when(mockDataAccessSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
-		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
 		when(mockDataAccessSubmissionDao.cancel(eq(submissionId), eq(userId), anyLong(), anyString()))
-				.thenReturn(status);
-		assertEquals(status, manager.cancel(mockUser, submissionId));
+				.thenReturn(mockSubmissionStatus);
+		assertEquals(mockSubmissionStatus, manager.cancel(mockUser, submissionId));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -690,62 +690,19 @@ public class DataAccessSubmissionManagerImplTest {
 				Arrays.asList(accessRequirementId), Arrays.asList(userId));
 	}
 
-	@Test (expected = IllegalStateException.class)
-	public void testGetAccessRequirementStatusWith2Approvals() {
-		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		AccessApproval approval = new TermsOfUseAccessApproval();
-		approval.setAccessorId(userId);
-		approval.setRequirementId(Long.parseLong(accessRequirementId));
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval, approval));
-		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
-	}
-
-	@Test (expected = IllegalStateException.class)
-	public void testGetAccessRequirementStatusWithWrongApprovalType() {
-		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		AccessApproval approval = new ACTAccessApproval();
-		approval.setAccessorId(userId);
-		approval.setRequirementId(Long.parseLong(accessRequirementId));
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
-		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
-	}
-
-	@Test (expected = IllegalStateException.class)
-	public void testGetAccessRequirementStatusWithWrongUserId() {
-		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		AccessApproval approval = new TermsOfUseAccessApproval();
-		approval.setAccessorId(userId+" ");
-		approval.setRequirementId(Long.parseLong(accessRequirementId));
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
-		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
-	}
-
-	@Test (expected = IllegalStateException.class)
-	public void testGetAccessRequirementStatusWithWrongRequirementId() {
-		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		AccessApproval approval = new TermsOfUseAccessApproval();
-		approval.setAccessorId(userId);
-		approval.setRequirementId(Long.parseLong(accessRequirementId)+1);
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
-		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
-	}
-
 	@Test
 	public void testGetAccessRequirementStatusACT() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
 			.thenReturn(ACTAccessRequirement.class.getName());
-		ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
 		when(mockDataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
-			.thenReturn(status);
-		assertEquals(status, manager.getAccessRequirementStatus(mockUser, accessRequirementId));
+			.thenReturn(mockSubmissionStatus);
+		AccessRequirementStatus arStatus = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+		assertNotNull(arStatus);
+		assertEquals(accessRequirementId, arStatus.getAccessRequirementId());
+		assertFalse(arStatus.getIsApproved());
+		assertTrue(arStatus instanceof ACTAccessRequirementStatus);
+		ACTAccessRequirementStatus actARStatus = (ACTAccessRequirementStatus) arStatus;
+		assertEquals(mockSubmissionStatus, actARStatus.getCurrentSubmissionStatus());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
 		verify(mockDataAccessSubmissionDao).getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId);
 	}

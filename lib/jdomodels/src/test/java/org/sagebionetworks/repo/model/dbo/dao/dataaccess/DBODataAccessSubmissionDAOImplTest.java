@@ -24,8 +24,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -157,9 +157,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 	public void testCRUD() {
 		final DataAccessSubmission dto = createSubmission();
 
-		ACTAccessRequirementStatus status = dataAccessSubmissionDao.createSubmission(dto);
+		DataAccessSubmissionStatus status = dataAccessSubmissionDao.createSubmission(dto);
 		assertNotNull(status);
-		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
 		assertEquals(user1.getId(), status.getSubmittedBy());
 		assertEquals(DataAccessSubmissionState.SUBMITTED, status.getState());
 		assertEquals(dto.getModifiedOn(), status.getModifiedOn());
@@ -282,9 +281,8 @@ public class DBODataAccessSubmissionDAOImplTest {
 
 	@Test
 	public void testGetStatusNotFound() {
-		ACTAccessRequirementStatus status = dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
+		DataAccessSubmissionStatus status = dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
 		assertNotNull(status);
-		assertEquals(accessRequirement.getId().toString(), status.getAccessRequirementId());
 		assertEquals(DataAccessSubmissionState.NOT_SUBMITTED, status.getState());
 		assertNull(status.getModifiedOn());
 		assertNull(status.getRejectedReason());

@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,6 +32,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
@@ -72,7 +72,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirementStatus create(UserInfo userInfo, String requestId, String etag) {
+	public DataAccessSubmissionStatus create(UserInfo userInfo, String requestId, String etag) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
@@ -85,7 +85,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);
-		ACTAccessRequirementStatus status = dataAccessSubmissionDao.createSubmission(submissionToCreate);
+		DataAccessSubmissionStatus status = dataAccessSubmissionDao.createSubmission(submissionToCreate);
 		subscriptionDao.create(userInfo.getId().toString(), status.getSubmissionId(), SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		transactionalMessenger.sendMessageAfterCommit(status.getSubmissionId(),
 				ObjectType.DATA_ACCESS_SUBMISSION, UUID.randomUUID().toString(), ChangeType.CREATE, userInfo.getId());
@@ -178,7 +178,7 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirementStatus cancel(UserInfo userInfo, String submissionId) {
+	public DataAccessSubmissionStatus cancel(UserInfo userInfo, String submissionId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(submissionId, "submissionId");
 		DataAccessSubmission submission = dataAccessSubmissionDao.getForUpdate(submissionId);
@@ -258,25 +258,21 @@ public class DataAccessSubmissionManagerImpl implements DataAccessSubmissionMana
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
+		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
+				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
 		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
 			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
 			status.setAccessRequirementId(accessRequirementId);
-			List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
-					Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
-			if (approvals.isEmpty()) {
-				status.setIsApproved(false);
-			} else if (approvals.size() == 1 
-					&& approvals.get(0) instanceof TermsOfUseAccessApproval
-					&& approvals.get(0).getAccessorId().equals(userInfo.getId().toString())
-					&& approvals.get(0).getRequirementId().toString().equals(accessRequirementId)) {
-				status.setIsApproved(true);
-			} else {
-				throw new IllegalStateException();
-			}
+			status.setIsApproved(!approvals.isEmpty());
 			return status;
 		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
-			return dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(
+			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+			DataAccessSubmissionStatus currentSubmissionStatus = dataAccessSubmissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
+			status.setAccessRequirementId(accessRequirementId);
+			status.setIsApproved(!approvals.isEmpty());
+			status.setCurrentSubmissionStatus(currentSubmissionStatus);
+			return status;
 		} else {
 			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
 		}

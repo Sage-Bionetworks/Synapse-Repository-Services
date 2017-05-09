@@ -27,7 +27,6 @@ import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -82,6 +81,7 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -2782,7 +2782,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
+	DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
 
 	/**
 	 * Cancel a submission.
@@ -2791,7 +2791,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
+	DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.

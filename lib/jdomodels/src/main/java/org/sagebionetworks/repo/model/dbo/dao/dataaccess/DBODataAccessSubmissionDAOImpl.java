@@ -14,10 +14,10 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
@@ -134,11 +134,10 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 			+ " ORDER BY "+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
 			+ " LIMIT ? OFFSET ?";
 
-	private static final RowMapper<ACTAccessRequirementStatus> STATUS_MAPPER = new RowMapper<ACTAccessRequirementStatus>(){
+	private static final RowMapper<DataAccessSubmissionStatus> STATUS_MAPPER = new RowMapper<DataAccessSubmissionStatus>(){
 		@Override
-		public ACTAccessRequirementStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
-			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
-			status.setAccessRequirementId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID));
+		public DataAccessSubmissionStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
 			status.setSubmissionId(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID));
 			status.setSubmittedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY));
 			status.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
@@ -183,12 +182,11 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 	};
 
 	@Override
-	public ACTAccessRequirementStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId) {
+	public DataAccessSubmissionStatus getStatusByRequirementIdAndPrincipalId(String accessRequirementId, String userId) {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_STATUS_FOR_USER, STATUS_MAPPER, accessRequirementId, userId);
 		} catch (EmptyResultDataAccessException e) {
-			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
-			status.setAccessRequirementId(accessRequirementId);
+			DataAccessSubmissionStatus status = new DataAccessSubmissionStatus();
 			status.setState(DataAccessSubmissionState.NOT_SUBMITTED);
 			return status;
 		}
@@ -214,7 +212,7 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirementStatus createSubmission(DataAccessSubmission toCreate) {
+	public DataAccessSubmissionStatus createSubmission(DataAccessSubmission toCreate) {
 		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
 		DBODataAccessSubmission dboSubmission = new DBODataAccessSubmission();
@@ -229,13 +227,13 @@ public class DBODataAccessSubmissionDAOImpl implements DataAccessSubmissionDAO{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public ACTAccessRequirementStatus cancel(String submissionId, String userId, Long timestamp, String etag) {
+	public DataAccessSubmissionStatus cancel(String submissionId, String userId, Long timestamp, String etag) {
 		jdbcTemplate.update(SQL_UPDATE_STATUS, DataAccessSubmissionState.CANCELLED.toString(), userId, timestamp, null, submissionId);
 		jdbcTemplate.update(SQL_UPDATE_SUBMISSION_ETAG, etag, submissionId);
 		return getSubmissionStatus(submissionId);
 	}
 
-	private ACTAccessRequirementStatus getSubmissionStatus(String submissionId) {
+	private DataAccessSubmissionStatus getSubmissionStatus(String submissionId) {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_STATUS_BY_ID, STATUS_MAPPER, submissionId);
 		} catch (EmptyResultDataAccessException e) {

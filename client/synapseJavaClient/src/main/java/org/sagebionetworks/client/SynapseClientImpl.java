@@ -107,8 +107,8 @@ import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -4938,18 +4938,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ACTAccessRequirementStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
+	public DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException {
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
 		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
-		return postJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
+		return postJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
 	}
 
 	@Override
-	public ACTAccessRequirementStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
+	public DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException {
 		ValidateArgument.required(submissionId, "submissionId");
 		String url = DATA_ACCESS_SUBMISSION+"/"+submissionId+"/cancellation";
-		return putJSONEntity(getRepoEndpoint(), url, null, ACTAccessRequirementStatus.class);
+		return putJSONEntity(getRepoEndpoint(), url, null, DataAccessSubmissionStatus.class);
 	}
 
 	@Override
