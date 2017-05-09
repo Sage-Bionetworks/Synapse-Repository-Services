@@ -48,9 +48,9 @@
 			"type":"boolean",
 			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
 		},
-		"acceptDataAccessRequest": {
+		"acceptRequest": {
 			"type":"boolean",
-			"description":  "If true, allow DataAccessRequest to be created for this requirement."
+			"description":  "If true, allow Request to be created for this requirement."
 		}
 	}
 }

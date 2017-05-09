@@ -32,8 +32,8 @@ public class ResearchProjectManagerImpl implements ResearchProjectManager {
 		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
 				"A ResearchProject can only associate with an ACTAccessRequirement.");
 		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		ValidateArgument.requirement(actAR.getAcceptDataAccessRequest() != null
-				&& actAR.getAcceptDataAccessRequest(),
+		ValidateArgument.requirement(actAR.getAcceptRequest() != null
+				&& actAR.getAcceptRequest(),
 				"This Access Requirement doesn't accept Data Access Request.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return researchProjectDao.create(toCreate);

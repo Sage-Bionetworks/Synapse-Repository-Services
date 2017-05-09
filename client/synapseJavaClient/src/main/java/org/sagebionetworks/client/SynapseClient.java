@@ -76,14 +76,11 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionOrder;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -105,7 +102,6 @@ import org.sagebionetworks.repo.model.discussion.UpdateThreadTitle;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -2754,25 +2750,25 @@ public interface SynapseClient extends BaseClient {
 	ResearchProject getResearchProjectForUpdate(String accessRequirementId) throws SynapseException;
 
 	/**
-	 * Create new or update an existing DataAccessRequestInterface.
+	 * Create new or update an existing RequestInterface.
 	 * 
 	 * @param toCreateOrUpdate
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface createOrUpdateDataAccessRequest(DataAccessRequestInterface toCreateOrUpdate) throws SynapseException;
+	RequestInterface createOrUpdateRequest(RequestInterface toCreateOrUpdate) throws SynapseException;
 
 	/**
-	 * Retrieve the current DataAccessRequestInterface to update.
-	 * If one does not exist, an empty DataAccessRequest will be returned.
+	 * Retrieve the current RequestInterface to update.
+	 * If one does not exist, an empty Request will be returned.
 	 * If a submission associated with the request is approved, and the requirement
-	 * requires renewal, a refilled DataAccessRenewal is returned.
+	 * requires renewal, a refilled Renewal is returned.
 	 * 
 	 * @param accessRequirementId
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessRequestInterface getDataAccessRequestForUpdate(String accessRequirementId) throws SynapseException;
+	RequestInterface getRequestForUpdate(String accessRequirementId) throws SynapseException;
 
 	/**
 	 * Submit a submission
@@ -2782,7 +2778,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus submitDataAccessRequest(String requestId, String etag) throws SynapseException;
+	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus submitRequest(String requestId, String etag) throws SynapseException;
 
 	/**
 	 * Cancel a submission.
@@ -2791,7 +2787,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionStatus cancelDataAccessSubmission(String submissionId) throws SynapseException;
+	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus cancelSubmission(String submissionId) throws SynapseException;
 
 	/**
 	 * Request to update the state of a submission.
@@ -2802,7 +2798,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmission updateDataAccessSubmissionState(String submissionId, DataAccessSubmissionState newState, String reason) throws SynapseException;
+	org.sagebionetworks.repo.model.dataaccess.Submission updateSubmissionState(String submissionId, SubmissionState newState, String reason) throws SynapseException;
 
 	/**
 	 * Retrieve a page of submissions.
@@ -2816,7 +2812,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	DataAccessSubmissionPage listDataAccessSubmissions(String requirementId, String nextPageToken, DataAccessSubmissionState filter, DataAccessSubmissionOrder order, Boolean isAscending) throws SynapseException;
+	SubmissionPage listSubmissions(String requirementId, String nextPageToken, SubmissionState filter, SubmissionOrder order, Boolean isAscending) throws SynapseException;
 
 	/**
 	 * Retrieve the status for a given access requirement.
@@ -2837,7 +2833,7 @@ public interface SynapseClient extends BaseClient {
 	RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException;
 
 	/**
-	 * Retrieve the information about submitted DataAccessSubmissions
+	 * Retrieve the information about submitted Submissions
 	 * @param nextPageToken
 	 * @return
 	 * @throws SynapseException

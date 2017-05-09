@@ -122,11 +122,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOResearchProject" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBORequest" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOSubmissionStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -206,10 +206,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationReceipt" />
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOResearchProject" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBORequest" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao..DBOSubmissionAccessor" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

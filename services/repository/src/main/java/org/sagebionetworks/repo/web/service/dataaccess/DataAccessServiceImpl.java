@@ -3,16 +3,16 @@ package org.sagebionetworks.repo.web.service.dataaccess;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManager;
-import org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManager;
+import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
+import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
@@ -28,9 +28,9 @@ public class DataAccessServiceImpl implements DataAccessService{
 	@Autowired
 	private ResearchProjectManager researchProjectManager;
 	@Autowired
-	private DataAccessRequestManager dataAccessRequestManager;
+	private RequestManager dataAccessRequestManager;
 	@Autowired
-	private DataAccessSubmissionManager dataAccessSubmissionManager;
+	private SubmissionManager dataAccessSubmissionManager;
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
 	@Autowired
@@ -49,37 +49,37 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public DataAccessRequestInterface createOrUpdate(Long userId, DataAccessRequestInterface toCreateOrUpdate) {
+	public RequestInterface createOrUpdate(Long userId, RequestInterface toCreateOrUpdate) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessRequestManager.createOrUpdate(user, toCreateOrUpdate);
 	}
 
 	@Override
-	public DataAccessRequestInterface getRequestForUpdate(Long userId, String requirementId) {
+	public RequestInterface getRequestForUpdate(Long userId, String requirementId) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessRequestManager.getDataAccessRequestForUpdate(user, requirementId);
+		return dataAccessRequestManager.getRequestForUpdate(user, requirementId);
 	}
 
 	@Override
-	public DataAccessSubmissionStatus submit(Long userId, String requestId, String etag) {
+	public SubmissionStatus submit(Long userId, String requestId, String etag) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.create(user, requestId, etag);
 	}
 
 	@Override
-	public DataAccessSubmissionStatus cancel(Long userId, String submissionId) {
+	public SubmissionStatus cancel(Long userId, String submissionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.cancel(user, submissionId);
 	}
 
 	@Override
-	public DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request) {
+	public Submission updateState(Long userId, SubmissionStateChangeRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.updateStatus(user, request);
 	}
 
 	@Override
-	public DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request) {
+	public SubmissionPage listSubmissions(Long userId, SubmissionPageRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.listSubmission(user, request);
 	}

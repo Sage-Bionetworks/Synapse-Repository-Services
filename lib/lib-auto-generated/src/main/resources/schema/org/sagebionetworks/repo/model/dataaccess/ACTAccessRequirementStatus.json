@@ -7,7 +7,7 @@
 	],
 	"properties": {
 		"currentSubmissionStatus":{
-			"$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus"
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionStatus"
 		}
 	}
 }

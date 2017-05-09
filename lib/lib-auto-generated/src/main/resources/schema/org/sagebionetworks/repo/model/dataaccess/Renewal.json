@@ -1,0 +1,19 @@
+{
+	"title":"Renewal",
+	"description":"A Renewal contains information required by an AccessRequirement and additional information about renewing a request.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.RequestInterface"
+		}
+	],
+	"properties":{
+		"publication":{
+			"type":"string",
+			"description":"Link(s) to publication that used the controlled data."
+		},
+		"summaryOfUse":{
+			"type":"string",
+			"description":"Summary of how the data has been used."
+		}
+	}
+}

@@ -213,13 +213,13 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
 				</entry>
-				<entry key="DataAccessRequestAttachment">
+				<entry key="RequestAttachment">
 					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestFileHandleAssociationProvider" />
+						class="org.sagebionetworks.repo.manager.dataaccess.RequestFileHandleAssociationProvider" />
 				</entry>
-				<entry key="DataAccessSubmissionAttachment">
+				<entry key="SubmissionAttachment">
 					<bean
-						class="org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionFileHandleAssociationProvider" />
+						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
 				</entry>
 			</map>
 		</property>
@@ -381,12 +381,12 @@
 		class="org.sagebionetworks.repo.manager.message.ThreadMessageBuilderFactory"
 		scope ="singleton" />
 
-	<bean id="dataAccessSubmissionMessageBuilderFactory"
-		class="org.sagebionetworks.repo.manager.message.DataAccessSubmissionMessageBuilderFactory"
+	<bean id="submissionMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.dataaccess.SubmissionMessageBuilderFactory"
 		scope ="singleton" />
 
-	<bean id="dataAccessSubmissionStatusMessageBuilderFactory"
-		class="org.sagebionetworks.repo.manager.message.DataAccessSubmissionStatusMessageBuilderFactory"
+	<bean id="submissionStatusMessageBuilderFactory"
+		class="org.sagebionetworks.repo.manager.message.dataaccess.SubmissionStatusMessageBuilderFactory"
 		scope ="singleton" />
 
 	<!-- The Broadcast Message manager -->
@@ -402,10 +402,10 @@
 					<ref bean="replyMessageBuilderFactory" />
 				</entry>
 				<entry key="DATA_ACCESS_SUBMISSION">
-					<ref bean="dataAccessSubmissionMessageBuilderFactory" />
+					<ref bean="SubmissionMessageBuilderFactory" />
 				</entry>
 				<entry key="DATA_ACCESS_SUBMISSION_STATUS">
-					<ref bean="dataAccessSubmissionStatusMessageBuilderFactory" />
+					<ref bean="SubmissionStatusMessageBuilderFactory" />
 				</entry>
 			</map>
 		</property>
@@ -524,10 +524,10 @@
 	<bean id="researchProjectManager"
 		class="org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManagerImpl"
 		scope="singleton" />
-	<bean id="dataAccessRequestManager"
-		class="org.sagebionetworks.repo.manager.dataaccess.DataAccessRequestManagerImpl"
+	<bean id="requestManager"
+		class="org.sagebionetworks.repo.manager.dataaccess.RequestManagerImpl"
 		scope="singleton" />
-	<bean id="dataAccessSubmissionManager"
-		class="org.sagebionetworks.repo.manager.dataaccess.DataAccessSubmissionManagerImpl"
+	<bean id="dataAccesssubmissionManager"
+		class="org.sagebionetworks.repo.manager.dataaccess.SubmissionManagerImpl"
 		scope="singleton" />
 </beans>

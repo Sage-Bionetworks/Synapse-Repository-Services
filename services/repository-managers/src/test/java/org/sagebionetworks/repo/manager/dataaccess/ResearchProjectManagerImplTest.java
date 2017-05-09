@@ -69,7 +69,7 @@ public class ResearchProjectManagerImplTest {
 		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(true);
+		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 	}
 
 	private ResearchProject createNewResearchProject() {
@@ -154,13 +154,13 @@ public class ResearchProjectManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
-		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(null);
+		when(mockAccessRequirement.getAcceptRequest()).thenReturn(null);
 		manager.create(mockUser, createNewResearchProject());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
-		when(mockAccessRequirement.getAcceptDataAccessRequest()).thenReturn(false);
+		when(mockAccessRequirement.getAcceptRequest()).thenReturn(false);
 		manager.create(mockUser, createNewResearchProject());
 	}
 

@@ -23,13 +23,15 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformation;
 import org.sagebionetworks.repo.model.RestrictionLevel;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -65,7 +67,7 @@ public class ITDataAccessTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setAcceptDataAccessRequest(true);
+		accessRequirement.setAcceptRequest(true);
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
@@ -107,24 +109,27 @@ public class ITDataAccessTest {
 
 		assertEquals(updated, synapseOne.getResearchProjectForUpdate(accessRequirement.getId().toString()));
 
-		DataAccessRequest request = (DataAccessRequest) synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString());
+		Request request = (Request) synapseOne.getRequestForUpdate(accessRequirement.getId().toString());
 		assertNotNull(request);
 
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(updated.getId());
-		DataAccessRequest createdRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(request);
+		Request createdRequest = (Request) synapseOne.createOrUpdateRequest(request);
 
-		assertEquals(createdRequest, synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString()));
+		assertEquals(createdRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		String userId = synapseOne.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		createdRequest.setAccessors(Arrays.asList(adminId, userId));
-		DataAccessRequest updatedRequest = (DataAccessRequest) synapseOne.createOrUpdateDataAccessRequest(createdRequest);
+		Request updatedRequest = (Request) synapseOne.createOrUpdateRequest(createdRequest);
 
-		DataAccessSubmissionStatus status = synapseOne.submitDataAccessRequest(updatedRequest.getId(), updatedRequest.getEtag());
+		SubmissionStatus status = synapseOne.submitRequest(updatedRequest.getId(), updatedRequest.getEtag());
 		assertNotNull(status);
 
-		assertEquals(status, synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString()));
+		AccessRequirementStatus arStatus = synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString());
+		assertNotNull(arStatus);
+		assertTrue(arStatus instanceof ACTAccessRequirementStatus);
+		assertEquals(status, ((ACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
 
 		OpenSubmissionPage openSubmissions = adminSynapse.getOpenSubmissions(null);
 		assertNotNull(openSubmissions);
@@ -133,19 +138,19 @@ public class ITDataAccessTest {
 		assertEquals(accessRequirement.getId().toString(), os.getAccessRequirementId());
 		assertEquals((Long)1L, os.getNumberOfSubmittedSubmission());
 
-		DataAccessSubmission submission = adminSynapse.updateDataAccessSubmissionState(status.getSubmissionId(), DataAccessSubmissionState.APPROVED, null);
+		Submission submission = adminSynapse.updateSubmissionState(status.getSubmissionId(), SubmissionState.APPROVED, null);
 		assertNotNull(submission);
 
 		try {
-			synapseOne.cancelDataAccessSubmission(status.getSubmissionId());
+			synapseOne.cancelSubmission(status.getSubmissionId());
 			fail("should not be able to cancel an approved submission");
 		} catch (SynapseBadRequestException e) {
 			// as expected
 		}
 
-		assertEquals(updatedRequest, synapseOne.getDataAccessRequestForUpdate(accessRequirement.getId().toString()));
+		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
 
-		DataAccessSubmissionPage submissions = adminSynapse.listDataAccessSubmissions(accessRequirement.getId().toString(), null, null, null, null);
+		SubmissionPage submissions = adminSynapse.listSubmissions(accessRequirement.getId().toString(), null, null, null, null);
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
