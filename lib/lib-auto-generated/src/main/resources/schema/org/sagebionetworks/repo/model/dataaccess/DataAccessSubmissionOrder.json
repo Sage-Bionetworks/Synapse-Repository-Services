@@ -1,8 +1,0 @@
-{
-	"type":"string",
-	"name": "DataAccessSubmissionOrder",
-	"enum":[
-		"CREATED_ON",
-		"MODIFIED_ON"
-	]
-}

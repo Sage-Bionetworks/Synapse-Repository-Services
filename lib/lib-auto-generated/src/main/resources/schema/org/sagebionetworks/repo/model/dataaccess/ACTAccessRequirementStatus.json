@@ -6,26 +6,8 @@
 		}
 	],
 	"properties": {
-		"submissionId":{
-			"type": "string",
-			"description": "The ID of the DataAccessSubmission submitted for the given AccessRequirement."
-		},
-		"submittedBy":{
-			"type": "string",
-			"description": "The user who submitted the DataAccessSubmission for the given AccessRequirement."
-		},
-		"rejectedReason": {
-			"type": "string",
-			"description": "The reason the submission is rejected, if it's rejected."
-		},
-		"state":{
-			"description": "The state of the submitted DataAccessSubmission, or NOT_SUBMITTED if none was submitted.",
-			"$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState"
-		},
-		"modifiedOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date the DataAccessSubmission' status was last modified."
+		"currentSubmissionStatus":{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionStatus"
 		}
 	}
 }

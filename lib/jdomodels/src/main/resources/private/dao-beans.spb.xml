@@ -338,13 +338,13 @@
 	<bean id="throttleRulesDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.throttle.DBOThrottleRulesDAOImpl" />
 
-	<!-- DAO for DataAccessRequest Feature -->
+	<!-- DAO for Data Access Feature -->
 	<bean id="researchProjectDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
-	<bean id="dataAccessRequestDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequestDAOImpl" />
-	<bean id="dataAccessSubmissionDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionDAOImpl" />
+	<bean id="requestDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequestDAOImpl" />
+	<bean id="submissionDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionDAOImpl" />
 		
 	<bean id="nodeQueryDaoFactory"
 		class="org.sagebionetworks.repo.model.query.entity.NodeQueryDaoFactoryImpl" />

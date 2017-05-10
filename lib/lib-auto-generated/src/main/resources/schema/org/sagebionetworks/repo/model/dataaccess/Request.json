@@ -1,0 +1,9 @@
+{
+	"title":"Request",
+	"description":"A Request contains information required by an AccessRequirement.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.RequestInterface"
+		}
+	]
+}

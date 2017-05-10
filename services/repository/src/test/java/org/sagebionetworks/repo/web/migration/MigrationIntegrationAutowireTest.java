@@ -85,15 +85,14 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequest;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessRequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
@@ -275,10 +274,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private ResearchProjectDAO researchProjectDAO;
 
 	@Autowired
-	private DataAccessRequestDAO dataAccessRequestDAO;
+	private RequestDAO dataAccessRequestDAO;
 
 	@Autowired
-	private DataAccessSubmissionDAO dataAccessSubmissionDAO;
+	private SubmissionDAO dataAccessSubmissionDAO;
 	
 	private Team team;
 
@@ -322,7 +321,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private String threadId;
 
 	private ResearchProject researchProject;
-	private DataAccessRequest dataAccessRequest;
+	private Request dataAccessRequest;
 
 	@Before
 	public void before() throws Exception {
@@ -369,14 +368,14 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createAuthenticationReceipt();
 		createThrottleRule();
 		createResearchProject();
-		createDataAccessRequest();
-		createDataAccessSubmission();
+		createRequest();
+		createSubmission();
 	}
 	
-	private void createDataAccessSubmission() {
-		DataAccessSubmission submission = new DataAccessSubmission();
+	private void createSubmission() {
+		org.sagebionetworks.repo.model.dataaccess.Submission submission = new org.sagebionetworks.repo.model.dataaccess.Submission();
 		submission.setAccessRequirementId(accessRequirement.getId().toString());
-		submission.setDataAccessRequestId(dataAccessRequest.getId());
+		submission.setRequestId(dataAccessRequest.getId());
 		submission.setSubmittedBy(adminUserIdString);
 		submission.setSubmittedOn(new Date());
 		submission.setModifiedBy(adminUserIdString);
@@ -384,12 +383,12 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setAccessors(Arrays.asList(adminUserIdString));
 		submission.setEtag(UUID.randomUUID().toString());
 		submission.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
-		submission.setState(DataAccessSubmissionState.SUBMITTED);
+		submission.setState(SubmissionState.SUBMITTED);
 		dataAccessSubmissionDAO.createSubmission(submission);
 	}
 
-	private void createDataAccessRequest() {
-		dataAccessRequest = new DataAccessRequest();
+	private void createRequest() {
+		dataAccessRequest = new Request();
 		dataAccessRequest.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
 		dataAccessRequest.setAccessRequirementId(accessRequirement.getId().toString());
 		dataAccessRequest.setResearchProjectId(researchProject.getId());
