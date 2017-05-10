@@ -402,10 +402,10 @@
 					<ref bean="replyMessageBuilderFactory" />
 				</entry>
 				<entry key="DATA_ACCESS_SUBMISSION">
-					<ref bean="SubmissionMessageBuilderFactory" />
+					<ref bean="submissionMessageBuilderFactory" />
 				</entry>
 				<entry key="DATA_ACCESS_SUBMISSION_STATUS">
-					<ref bean="SubmissionStatusMessageBuilderFactory" />
+					<ref bean="submissionStatusMessageBuilderFactory" />
 				</entry>
 			</map>
 		</property>
