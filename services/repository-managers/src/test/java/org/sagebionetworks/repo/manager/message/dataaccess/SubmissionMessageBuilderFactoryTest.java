@@ -41,7 +41,7 @@ public class SubmissionMessageBuilderFactoryTest {
 		factory = new SubmissionMessageBuilderFactory();
 		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
-		ReflectionTestUtils.setField(factory, "SubmissionDao", mockSubmissionDao);
+		ReflectionTestUtils.setField(factory, "submissionDao", mockSubmissionDao);
 
 		actorUserId = 1L;
 		actorUsername = "username";

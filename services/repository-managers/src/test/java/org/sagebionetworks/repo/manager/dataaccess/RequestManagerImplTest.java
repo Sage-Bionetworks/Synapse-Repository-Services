@@ -61,8 +61,8 @@ public class RequestManagerImplTest {
 		MockitoAnnotations.initMocks(this);
 		manager = new RequestManagerImpl();
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(manager, "RequestDao", mockRequestDao);
-		ReflectionTestUtils.setField(manager, "SubmissionDao", mockSubmissionDao);
+		ReflectionTestUtils.setField(manager, "requestDao", mockRequestDao);
+		ReflectionTestUtils.setField(manager, "submissionDao", mockSubmissionDao);
 
 		userId = "1";
 		accessRequirementId = "2";

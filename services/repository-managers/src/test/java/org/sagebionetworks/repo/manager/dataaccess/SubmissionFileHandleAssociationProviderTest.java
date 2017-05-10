@@ -29,7 +29,7 @@ public class SubmissionFileHandleAssociationProviderTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		provider = new SubmissionFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "SubmissionDao", mockSubmissionDao);
+		ReflectionTestUtils.setField(provider, "submissionDao", mockSubmissionDao);
 	}
 
 	@Test

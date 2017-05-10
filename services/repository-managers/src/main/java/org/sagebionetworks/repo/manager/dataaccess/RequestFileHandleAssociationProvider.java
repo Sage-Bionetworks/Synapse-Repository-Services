@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class RequestFileHandleAssociationProvider implements FileHandleAssociationProvider{
 
 	@Autowired
-	RequestDAO RequestDao;
+	RequestDAO requestDao;
 
 	@Override
 	public Set<String> getFileHandleIdsAssociatedWithObject(List<String> fileHandleIds, String objectId) {
 		Set<String> associatedIds = new HashSet<String>();
-		RequestInterface request = RequestDao.get(objectId);
+		RequestInterface request = requestDao.get(objectId);
 		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
 			associatedIds.addAll(request.getAttachments());
 		}

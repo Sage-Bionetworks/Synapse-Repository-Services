@@ -54,7 +54,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
-	private RequestDAO RequestDao;
+	private RequestDAO requestDao;
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 	@Autowired
@@ -76,7 +76,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
-		RequestInterface request = RequestDao.get(requestId);
+		RequestInterface request = requestDao.get(requestId);
 		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
 
 		Submission submissionToCreate = new Submission();

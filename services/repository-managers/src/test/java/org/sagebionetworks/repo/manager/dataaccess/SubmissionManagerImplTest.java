@@ -113,8 +113,8 @@ public class SubmissionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
-		ReflectionTestUtils.setField(manager, "RequestDao", mockRequestDao);
-		ReflectionTestUtils.setField(manager, "SubmissionDao", mockSubmissionDao);
+		ReflectionTestUtils.setField(manager, "requestDao", mockRequestDao);
+		ReflectionTestUtils.setField(manager, "submissionDao", mockSubmissionDao);
 		ReflectionTestUtils.setField(manager, "groupMembersDao", mockGroupMembersDao);
 		ReflectionTestUtils.setField(manager, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(manager, "accessApprovalDao", mockAccessApprovalDao);

@@ -48,7 +48,7 @@ public class DBORequestDAOImplTest {
 	private ResearchProjectDAO researchProjectDao;
 
 	@Autowired
-	private RequestDAO RequestDao;
+	private RequestDAO requestDao;
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
@@ -94,7 +94,7 @@ public class DBORequestDAOImplTest {
 	@After
 	public void after() {
 		if (toDelete != null) {
-			RequestDao.delete(toDelete);
+			requestDao.delete(toDelete);
 		}
 		if (researchProject != null) {
 			researchProjectDao.delete(researchProject.getId());
@@ -114,7 +114,7 @@ public class DBORequestDAOImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() {
 		Request dto = RequestTestUtils.createNewRequest();
-		RequestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
+		requestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy());
 	}
 
 	@Test
@@ -122,26 +122,26 @@ public class DBORequestDAOImplTest {
 		Request dto = RequestTestUtils.createNewRequest();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setResearchProjectId(researchProject.getId());
-		Request created = RequestDao.create(dto);
+		Request created = requestDao.create(dto);
 		dto.setId(created.getId());
 		dto.setEtag(created.getEtag());
 		assertEquals(dto, created);
 
 		// should get back the same object
-		assertEquals(dto, (Request) RequestDao.getUserOwnCurrentRequest(
+		assertEquals(dto, (Request) requestDao.getUserOwnCurrentRequest(
 				dto.getAccessRequirementId(), dto.getCreatedBy()));
-		assertEquals(dto, (Request) RequestDao.get(dto.getId()));
+		assertEquals(dto, (Request) requestDao.get(dto.getId()));
 		toDelete = dto.getId();
 
 		// update
 		dto.setAccessors(Arrays.asList("666"));
-		final RequestInterface updated = RequestDao.update(dto);
+		final RequestInterface updated = requestDao.update(dto);
 		dto.setEtag(updated.getEtag());
 		assertEquals(dto, updated);
 
 		// insert another one with the same accessRequirementId & createdBy
 		try {
-			RequestDao.create(dto);
+			requestDao.create(dto);
 			fail("should fail because of uniqueness constraint");
 		} catch (IllegalArgumentException e){
 			// as expected
@@ -151,7 +151,7 @@ public class DBORequestDAOImplTest {
 		Request locked = transactionTemplate.execute(new TransactionCallback<Request>() {
 			@Override
 			public Request doInTransaction(TransactionStatus status) {
-				return (Request) RequestDao.getForUpdate(updated.getId());
+				return (Request) requestDao.getForUpdate(updated.getId());
 			}
 		});
 		assertEquals(updated, locked);
@@ -160,6 +160,6 @@ public class DBORequestDAOImplTest {
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
 		Request dto = RequestTestUtils.createNewRequest();
-		RequestDao.getForUpdate(dto.getId());
+		requestDao.getForUpdate(dto.getId());
 	}
 }

@@ -341,9 +341,9 @@
 	<!-- DAO for Data Access Feature -->
 	<bean id="researchProjectDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProjectDAOImpl" />
-	<bean id="RequestDao"
+	<bean id="requestDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequestDAOImpl" />
-	<bean id="SubmissionDao"
+	<bean id="submissionDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionDAOImpl" />
 		
 	<bean id="nodeQueryDaoFactory"

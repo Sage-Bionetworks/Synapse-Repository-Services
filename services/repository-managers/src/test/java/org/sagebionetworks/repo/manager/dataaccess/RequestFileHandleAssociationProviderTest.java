@@ -29,7 +29,7 @@ public class RequestFileHandleAssociationProviderTest {
 	public void before() {
 		MockitoAnnotations.initMocks(this);
 		provider = new RequestFileHandleAssociationProvider();
-		ReflectionTestUtils.setField(provider, "RequestDao", mockRequestDao);
+		ReflectionTestUtils.setField(provider, "requestDao", mockRequestDao);
 	}
 
 	@Test

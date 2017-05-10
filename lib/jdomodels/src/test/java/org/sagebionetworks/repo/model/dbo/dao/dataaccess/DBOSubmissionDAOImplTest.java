@@ -55,10 +55,10 @@ public class DBOSubmissionDAOImplTest {
 	private ResearchProjectDAO researchProjectDao;
 
 	@Autowired
-	private RequestDAO RequestDao;
+	private RequestDAO requestDao;
 
 	@Autowired
-	private SubmissionDAO SubmissionDao;
+	private SubmissionDAO submissionDao;
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
@@ -109,13 +109,13 @@ public class DBOSubmissionDAOImplTest {
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(researchProject.getId());
 		request.setAccessors(Arrays.asList(user1.getId()));
-		request = RequestDao.create(request);
+		request = requestDao.create(request);
 	}
 
 	@After
 	public void after() {
 		if (request != null) {
-			RequestDao.delete(request.getId());
+			requestDao.delete(request.getId());
 		}
 		if (researchProject != null) {
 			researchProjectDao.delete(researchProject.getId());
@@ -157,7 +157,7 @@ public class DBOSubmissionDAOImplTest {
 	public void testCRUD() {
 		final Submission dto = createSubmission();
 
-		SubmissionStatus status = SubmissionDao.createSubmission(dto);
+		SubmissionStatus status = submissionDao.createSubmission(dto);
 		assertNotNull(status);
 		assertEquals(user1.getId(), status.getSubmittedBy());
 		assertEquals(SubmissionState.SUBMITTED, status.getState());
@@ -165,40 +165,40 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(dto.getId(), status.getSubmissionId());
 		assertNull(status.getRejectedReason());
 
-		assertTrue(SubmissionDao.isAccessor(status.getSubmissionId(), user1.getId()));
-		assertFalse(SubmissionDao.isAccessor(status.getSubmissionId(), user2.getId()));
+		assertTrue(submissionDao.isAccessor(status.getSubmissionId(), user1.getId()));
+		assertFalse(submissionDao.isAccessor(status.getSubmissionId(), user2.getId()));
 
-		assertEquals(dto, SubmissionDao.getSubmission(dto.getId()));
+		assertEquals(dto, submissionDao.getSubmission(dto.getId()));
 		Submission locked = transactionTemplate.execute(new TransactionCallback<Submission>() {
 			@Override
 			public Submission doInTransaction(TransactionStatus status) {
-				return SubmissionDao.getForUpdate(dto.getId());
+				return submissionDao.getForUpdate(dto.getId());
 			}
 		});
 		assertEquals(dto, locked);
 
 		String etag = UUID.randomUUID().toString();
 		Long modifiedOn = System.currentTimeMillis();
-		status = SubmissionDao.cancel(dto.getId(), user1.getId(), modifiedOn , etag);
+		status = submissionDao.cancel(dto.getId(), user1.getId(), modifiedOn , etag);
 		assertNotNull(status);
 		assertEquals(SubmissionState.CANCELLED, status.getState());
 		assertEquals(modifiedOn, (Long) status.getModifiedOn().getTime());
 		assertEquals(dto.getId(), status.getSubmissionId());
 		assertNull(status.getRejectedReason());
 
-		Submission cancelled = SubmissionDao.getSubmission(dto.getId());
+		Submission cancelled = submissionDao.getSubmission(dto.getId());
 		assertEquals(SubmissionState.CANCELLED, cancelled.getState());
 		assertEquals(modifiedOn, (Long) cancelled.getModifiedOn().getTime());
 		assertEquals(user1.getId(), cancelled.getModifiedBy());
 		assertNull(cancelled.getRejectedReason());
 		assertEquals(etag, cancelled.getEtag());
 
-		assertEquals(status, SubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
+		assertEquals(status, submissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
 
 		etag = UUID.randomUUID().toString();
 		modifiedOn = System.currentTimeMillis();
 		String reason = "no reason";
-		Submission updated = SubmissionDao.updateSubmissionStatus(dto.getId(),
+		Submission updated = submissionDao.updateSubmissionStatus(dto.getId(),
 				SubmissionState.REJECTED, reason, user2.getId(), modifiedOn);
 		assertEquals(SubmissionState.REJECTED, updated.getState());
 		assertEquals(modifiedOn, (Long) updated.getModifiedOn().getTime());
@@ -206,53 +206,53 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(reason, updated.getRejectedReason());
 
 		Submission dto2 = createSubmission();
-		SubmissionDao.createSubmission(dto2);
-		assertEquals(SubmissionState.SUBMITTED, SubmissionDao
+		submissionDao.createSubmission(dto2);
+		assertEquals(SubmissionState.SUBMITTED, submissionDao
 				.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()).getState());
 
-		SubmissionDao.delete(dto.getId());
-		SubmissionDao.delete(dto2.getId());
+		submissionDao.delete(dto.getId());
+		submissionDao.delete(dto2.getId());
 	}
 
 	@Test
 	public void testHasSubmissionWithState() {
 
 		Submission dto1 = createSubmission();
-		SubmissionDao.createSubmission(dto1);
+		submissionDao.createSubmission(dto1);
 
-		assertTrue(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		assertTrue(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.SUBMITTED));
-		assertFalse(SubmissionDao.hasSubmissionWithState(user2.getId(),
+		assertFalse(submissionDao.hasSubmissionWithState(user2.getId(),
 				accessRequirement.getId().toString(), SubmissionState.SUBMITTED));
-		assertFalse(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		assertFalse(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.CANCELLED));
-		assertFalse(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		assertFalse(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.APPROVED));
-		assertFalse(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		assertFalse(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.REJECTED));
 
 		// PLFM-4355
-		SubmissionDao.updateSubmissionStatus(dto1.getId(), SubmissionState.APPROVED, null, user2.getId(), System.currentTimeMillis());
+		submissionDao.updateSubmissionStatus(dto1.getId(), SubmissionState.APPROVED, null, user2.getId(), System.currentTimeMillis());
 		Submission dto2 = createSubmission();
-		SubmissionDao.createSubmission(dto2);
-		SubmissionDao.updateSubmissionStatus(dto2.getId(), SubmissionState.CANCELLED, null, user1.getId(), System.currentTimeMillis());
-		assertTrue(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		submissionDao.createSubmission(dto2);
+		submissionDao.updateSubmissionStatus(dto2.getId(), SubmissionState.CANCELLED, null, user1.getId(), System.currentTimeMillis());
+		assertTrue(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.APPROVED));
-		assertTrue(SubmissionDao.hasSubmissionWithState(user1.getId(),
+		assertTrue(submissionDao.hasSubmissionWithState(user1.getId(),
 				accessRequirement.getId().toString(), SubmissionState.CANCELLED));
 
-		SubmissionDao.delete(dto1.getId());
-		SubmissionDao.delete(dto2.getId());
+		submissionDao.delete(dto1.getId());
+		submissionDao.delete(dto2.getId());
 	}
 
 	@Test
 	public void testListSubmissions() {
 		Submission dto1 = createSubmission();
 		Submission dto2 = createSubmission();
-		SubmissionDao.createSubmission(dto1);
-		SubmissionDao.createSubmission(dto2);
+		submissionDao.createSubmission(dto1);
+		submissionDao.createSubmission(dto2);
 
-		List<Submission> submissions = SubmissionDao.getSubmissions(accessRequirement.getId().toString(),
+		List<Submission> submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
 				SubmissionState.SUBMITTED, SubmissionOrder.CREATED_ON,
 				true, 10L, 0L);
 		assertNotNull(submissions);
@@ -261,27 +261,27 @@ public class DBOSubmissionDAOImplTest {
 		assertEquals(dto2, submissions.get(1));
 
 		assertEquals(new HashSet<Submission>(submissions),
-				new HashSet<Submission>(SubmissionDao.getSubmissions(
+				new HashSet<Submission>(submissionDao.getSubmissions(
 				accessRequirement.getId().toString(), null, null, null, 10L, 0L)));
 
-		submissions = SubmissionDao.getSubmissions(accessRequirement.getId().toString(),
+		submissions = submissionDao.getSubmissions(accessRequirement.getId().toString(),
 				SubmissionState.APPROVED, SubmissionOrder.MODIFIED_ON,
 				false, 10L, 0L);
 		assertNotNull(submissions);
 		assertEquals(0, submissions.size());
 
-		SubmissionDao.delete(dto1.getId());
-		SubmissionDao.delete(dto2.getId());
+		submissionDao.delete(dto1.getId());
+		submissionDao.delete(dto2.getId());
 	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetByIdNotFound() {
-		SubmissionDao.getSubmission("0");
+		submissionDao.getSubmission("0");
 	}
 
 	@Test
 	public void testGetStatusNotFound() {
-		SubmissionStatus status = SubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
+		SubmissionStatus status = submissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
 		assertNotNull(status);
 		assertEquals(SubmissionState.NOT_SUBMITTED, status.getState());
 		assertNull(status.getModifiedOn());
@@ -292,7 +292,7 @@ public class DBOSubmissionDAOImplTest {
 
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
-		SubmissionDao.getForUpdate("0");
+		submissionDao.getForUpdate("0");
 	}
 
 	@Test
@@ -322,39 +322,39 @@ public class DBOSubmissionDAOImplTest {
 
 	@Test
 	public void testGetOpenSubmissions() {
-		List<OpenSubmission> openSubmissions = SubmissionDao.getOpenSubmissions(10L, 0L);
+		List<OpenSubmission> openSubmissions = submissionDao.getOpenSubmissions(10L, 0L);
 		assertNotNull(openSubmissions);
 		assertTrue(openSubmissions.isEmpty());
 
 		Submission dto1 = createSubmission();
 		Submission dto2 = createSubmission();
-		SubmissionDao.createSubmission(dto1);
-		SubmissionDao.createSubmission(dto2);
+		submissionDao.createSubmission(dto1);
+		submissionDao.createSubmission(dto2);
 
-		openSubmissions = SubmissionDao.getOpenSubmissions(10L, 0L);
+		openSubmissions = submissionDao.getOpenSubmissions(10L, 0L);
 		assertNotNull(openSubmissions);
 		assertEquals(1, openSubmissions.size());
 		OpenSubmission openSubmission = openSubmissions.get(0);
 		assertEquals(accessRequirement.getId().toString(), openSubmission.getAccessRequirementId());
 		assertEquals((Long)2L, openSubmission.getNumberOfSubmittedSubmission());
 
-		SubmissionDao.cancel(dto1.getId(), user1.getId(), System.currentTimeMillis() , "etag");
+		submissionDao.cancel(dto1.getId(), user1.getId(), System.currentTimeMillis() , "etag");
 
-		openSubmissions = SubmissionDao.getOpenSubmissions(10L, 0L);
+		openSubmissions = submissionDao.getOpenSubmissions(10L, 0L);
 		assertNotNull(openSubmissions);
 		assertEquals(1, openSubmissions.size());
 		openSubmission = openSubmissions.get(0);
 		assertEquals(accessRequirement.getId().toString(), openSubmission.getAccessRequirementId());
 		assertEquals((Long)1L, openSubmission.getNumberOfSubmittedSubmission());
 
-		SubmissionDao.updateSubmissionStatus(dto2.getId(),
+		submissionDao.updateSubmissionStatus(dto2.getId(),
 				SubmissionState.REJECTED, "reason", user2.getId(), System.currentTimeMillis());
 
-		openSubmissions = SubmissionDao.getOpenSubmissions(10L, 0L);
+		openSubmissions = submissionDao.getOpenSubmissions(10L, 0L);
 		assertNotNull(openSubmissions);
 		assertTrue(openSubmissions.isEmpty());
 
-		SubmissionDao.delete(dto1.getId());
-		SubmissionDao.delete(dto2.getId());
+		submissionDao.delete(dto1.getId());
+		submissionDao.delete(dto2.getId());
 	}
 }
