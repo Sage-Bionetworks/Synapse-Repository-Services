@@ -620,7 +620,10 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getEntityName(), "EntityLookupRequest.entityName");
-		ValidateArgument.required(request.getParentId(), "EntityLookupRequest.parentId");
+		if(request.getParentId() == null){
+			// Null parentId is used to look up projects.
+			request.setParentId(ROOT_ID);
+		}
 		if(!ROOT_ID.equals(request.getParentId())){
 			if(!entityPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, userInfo).getAuthorized()){
 				throw new UnauthorizedException("Lack of READ permission on the parent entity.");
