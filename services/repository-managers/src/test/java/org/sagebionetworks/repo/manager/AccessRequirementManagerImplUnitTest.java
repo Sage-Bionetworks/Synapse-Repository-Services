@@ -44,7 +44,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -397,7 +397,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(new HashSet<String>());
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
@@ -415,7 +415,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
@@ -433,7 +433,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(true);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
@@ -451,7 +451,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
@@ -470,7 +470,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());

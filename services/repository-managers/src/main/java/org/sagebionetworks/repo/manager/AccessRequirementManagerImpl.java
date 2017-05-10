@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -288,10 +288,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	@Override
-	public RestrictionInformation getRestrictionInformation(UserInfo userInfo, String entityId) {
+	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, String entityId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
-		RestrictionInformation info = new RestrictionInformation();
+		RestrictionInformationResponse info = new RestrictionInformationResponse();
 		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
 		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
 		if (stats.getRequirementIdSet().isEmpty()) {

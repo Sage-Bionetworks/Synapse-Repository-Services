@@ -75,7 +75,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -4980,10 +4980,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RestrictionInformation getRestrictionInformation(String entityId) throws SynapseException {
+	public RestrictionInformationResponse getRestrictionInformation(String entityId) throws SynapseException {
 		ValidateArgument.required(entityId, "entityId");
 		String url = ENTITY + "/" + entityId + "/restrictionInformation";
-		return getJSONEntity(getRepoEndpoint(), url, RestrictionInformation.class);
+		return getJSONEntity(getRepoEndpoint(), url, RestrictionInformationResponse.class);
 	}
 
 	@Override

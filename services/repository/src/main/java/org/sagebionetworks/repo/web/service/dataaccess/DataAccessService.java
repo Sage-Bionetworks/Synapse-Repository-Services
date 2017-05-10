@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -33,7 +33,7 @@ public interface DataAccessService {
 
 	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
 
-	RestrictionInformation getRestrictionInformation(Long userId, String entityId);
+	RestrictionInformationResponse getRestrictionInformation(Long userId, String entityId);
 
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
 
