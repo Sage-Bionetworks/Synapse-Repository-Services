@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -316,13 +317,6 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testLookupChildWithNullParentId() {
-		EntityLookupRequest request = new EntityLookupRequest();
-		request.setEntityName("entityName");
-		entityManager.lookupChild(mockUser, request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testLookupChildWithNullEntityName() {
 		EntityLookupRequest request = new EntityLookupRequest();
 		request.setParentId("syn1");
@@ -368,6 +362,19 @@ public class EntityManagerImplUnitTest {
 		String entityId = "syn2";
 		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockNodeManager.lookupChild(request.getParentId(), request.getEntityName())).thenReturn(entityId);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		EntityId result = entityManager.lookupChild(mockUser, request);
+		assertNotNull(result);
+		assertEquals(entityId, result.getId());
+	}
+
+	@Test
+	public void testLookupChildWithNullParentId() {
+		EntityLookupRequest request = new EntityLookupRequest();
+		request.setEntityName("entityName");
+		String entityId = "syn2";
+		when(mockPermissionsManager.hasAccess(request.getParentId(), ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockNodeManager.lookupChild(EntityManagerImpl.ROOT_ID, request.getEntityName())).thenReturn(entityId);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		EntityId result = entityManager.lookupChild(mockUser, request);
 		assertNotNull(result);
