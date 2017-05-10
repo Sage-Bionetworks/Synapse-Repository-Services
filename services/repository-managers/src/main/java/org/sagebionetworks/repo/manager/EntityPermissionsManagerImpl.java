@@ -431,7 +431,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		// if the ACL and access requirements permit DOWNLOAD, then its permitted,
 		// and this applies to any type of entity
-		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		boolean aclAllowsDownload = aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		AuthorizationStatus meetsAccessRequirements = meetsAccessRequirements(userInfo, entityId);
 		if (meetsAccessRequirements.getAuthorized() && aclAllowsDownload) {
 			return AuthorizationManagerUtil.AUTHORIZED;
