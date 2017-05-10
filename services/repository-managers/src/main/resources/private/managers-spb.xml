@@ -213,11 +213,11 @@
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.AccessRequirementFileHandleAssociationProvider" />
 				</entry>
-				<entry key="RequestAttachment">
+				<entry key="DataAccessRequestAttachment">
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.RequestFileHandleAssociationProvider" />
 				</entry>
-				<entry key="SubmissionAttachment">
+				<entry key="DataAccessSubmissionAttachment">
 					<bean
 						class="org.sagebionetworks.repo.manager.dataaccess.SubmissionFileHandleAssociationProvider" />
 				</entry>
