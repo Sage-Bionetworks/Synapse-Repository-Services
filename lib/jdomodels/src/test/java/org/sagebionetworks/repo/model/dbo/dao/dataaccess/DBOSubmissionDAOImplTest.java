@@ -281,13 +281,7 @@ public class DBOSubmissionDAOImplTest {
 
 	@Test
 	public void testGetStatusNotFound() {
-		SubmissionStatus status = submissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString());
-		assertNotNull(status);
-		assertEquals(SubmissionState.NOT_SUBMITTED, status.getState());
-		assertNull(status.getModifiedOn());
-		assertNull(status.getRejectedReason());
-		assertNull(status.getSubmissionId());
-		assertNull(status.getSubmittedBy());
+		assertNull(submissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirement.getId().toString(), user1.getId().toString()));
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

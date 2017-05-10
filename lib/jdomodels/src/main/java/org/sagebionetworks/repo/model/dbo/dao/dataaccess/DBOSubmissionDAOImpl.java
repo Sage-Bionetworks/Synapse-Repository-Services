@@ -186,9 +186,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO{
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_STATUS_FOR_USER, STATUS_MAPPER, accessRequirementId, userId);
 		} catch (EmptyResultDataAccessException e) {
-			SubmissionStatus status = new SubmissionStatus();
-			status.setState(SubmissionState.NOT_SUBMITTED);
-			return status;
+			return null;
 		}
 	}
 
