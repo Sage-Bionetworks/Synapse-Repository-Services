@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,6 +65,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.google.common.collect.Sets;
 
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
+
 	static private Log log = LogFactory
 			.getLog(DBOAccessControlListDaoImpl.class);
 	private static final String IDS_PARAM_NAME = "ids_param";
@@ -90,6 +92,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 									" JOIN "+TABLE_RESOURCE_ACCESS_TYPE+" AC"+
 										" ON (RA."+COL_RESOURCE_ACCESS_ID+" = AC."+COL_RESOURCE_ACCESS_TYPE_ID+
 											" AND AC."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" = '"+ACCESS_TYPE.READ.name()+"'))";
+	
+	private static final String SQL_SELECT_CHILDREN_ENTITIES_WITH_ACLS = 
+			"SELECT N."+COL_NODE_ID+
+				" FROM "+TABLE_NODE+" N"
+						+ " JOIN "+TABLE_ACCESS_CONTROL_LIST+" A"
+								+ " ON (N."+COL_NODE_ID+" = A."+COL_ACL_OWNER_ID+""
+									+ " AND A."+COL_ACL_OWNER_TYPE+" = '"+ObjectType.ENTITY.name()+"'"
+									+ " AND N."+COL_NODE_PARENT_ID+" IN (:"+BIND_PARENT_ID+") )";
 
 	private static final String SELECT_DISTINCT_VISIBLE_PROJECT_IDS = "SELECT distinct acl."
 			+ COL_ACL_OWNER_ID
@@ -561,5 +571,16 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			}
 		});
 		return results;
+	}
+
+	@Override
+	public List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds) {
+		ValidateArgument.required(parentIds, "parentIds");
+		if(parentIds.isEmpty()){
+			return new LinkedList<>();
+		}
+		Map<String, Object> namedParameters = new HashMap<String, Object>(1);
+		namedParameters.put(BIND_PARENT_ID, parentIds);
+		return namedParameterJdbcTemplate.queryForList(SQL_SELECT_CHILDREN_ENTITIES_WITH_ACLS, namedParameters, Long.class);
 	}
 }

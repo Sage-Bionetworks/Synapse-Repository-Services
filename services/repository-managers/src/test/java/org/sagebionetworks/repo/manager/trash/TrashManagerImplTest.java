@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -36,8 +37,6 @@ import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-
 import org.sagebionetworks.repo.model.Node;
 
 public class TrashManagerImplTest {
@@ -49,7 +48,7 @@ public class TrashManagerImplTest {
 	private NodeManager mockNodeManager;
 	
 	@Mock 
-	private NodeInheritanceManager mockNodeInheritanceManager;
+	private NodeInheritanceDAO mockNodeInheritanceDao;
 	
 	@Mock 
 	private NodeDAO mockNodeDAO;
@@ -155,7 +154,7 @@ public class TrashManagerImplTest {
 		setField(trashManager, "trashCanDao", mockTrashCanDao);
 		setField(trashManager, "authorizationManager", mockAuthorizationManager);
 		setField(trashManager, "nodeManager", mockNodeManager);
-		setField(trashManager, "transactionalMessenger", mockTransactionalMessenger);
+		setField(trashManager, "nodeInheritanceDao", mockNodeInheritanceDao);
 		
 		
 		
@@ -210,8 +209,6 @@ public class TrashManagerImplTest {
 	@Test
 	public void testMoveToTrashAuthourized(){
 		//setup
-		
-		
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 		.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		EntityHeader mockChild1EntityHeader = mock(EntityHeader.class);
@@ -226,7 +223,6 @@ public class TrashManagerImplTest {
 		verify(mockNodeDAO,times(1)).getNode(nodeID);
 		verify(mockNodeManager, times(1)).updateForTrashCan(userInfo, testNode, ChangeType.DELETE);
 		verify(mockTrashCanDao, times(1)).create(userInfo.getId().toString(), nodeID, nodeName, nodeParentID);
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
 		
 		//verify for loop 
 		//child1
@@ -241,7 +237,6 @@ public class TrashManagerImplTest {
 		verify(mockNodeDAO).getParentId(child2ID);
 		verify(mockTrashCanDao).create(userInfo.getId().toString(), child2ID, child2Name, nodeID);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, ChangeType.DELETE);
-		
 
 	}
 	
@@ -323,7 +318,6 @@ public class TrashManagerImplTest {
 		final String deletedBy = nodeTrashedEntity.getDeletedByPrincipalId();
 		verify(mockNodeManager).updateForTrashCan(userInfo, testNode, ChangeType.CREATE);
 		verify(mockTrashCanDao).delete(deletedBy ,nodeID);
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
 		
 		verify(mockTrashCanDao).delete(deletedBy, child1ID);
 		verify(mockNodeDAO).getParentId(child1ID);
@@ -429,8 +423,7 @@ public class TrashManagerImplTest {
 		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID))
 		.thenReturn(true);
 		trashManager.purgeTrashForUser(userInfo, nodeID, purgeCallback);
-		
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
+	
 		verify(mockNodeDAO).delete(nodeID);
 		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
 		verify(mockTrashCanDao).delete(userInfo.getId().toString(), nodeID);
@@ -486,50 +479,6 @@ public class TrashManagerImplTest {
 	// purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback)
 	// But it might get replaced very soon by purgeTrashAdmin() so skip for now.
 	//////////////////////////////////////////////////
-	
-	
-	//////////////////////////
-	//getDescendants() Tests
-	/////////////////////////
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetDescendantsNullNodeID(){
-		List<String> descendants = new ArrayList<String>();
-		((TrashManagerImpl) trashManager).getDescendants(null, descendants);//TODO: also expose getDescendants to TrashManager???
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetDescendantsNullDescendantsCollection(){
-		((TrashManagerImpl) trashManager).getDescendants(nodeID, null);
-	}
-	
-	@Test
-	public void testGetDescendantsNoDescendants(){
-		List<String> descendants = new ArrayList<String>();
-		
-		when(mockNodeDAO.getChildrenIdsAsList(nodeID))
-		.thenReturn(new ArrayList<String>());
-		
-		((TrashManagerImpl) trashManager).getDescendants(nodeID,descendants);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(any(String.class));
-		assert(descendants.isEmpty());
-	}
-	
-	@Test
-	public void testGetDescendantsHaveDescendants(){
-		
-		
-		List<String> descendants = new ArrayList<String>();
-		
-		trashManager.getDescendants(nodeID,descendants);
-		
-		
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(nodeID);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(child1ID);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(child2ID);
-		
-		verify(trashManager,times(3)).getDescendants(any(String.class), eq(descendants));
-		assertTrue(descendants.containsAll(childrenIDs));
-	}
 	
 	
 	

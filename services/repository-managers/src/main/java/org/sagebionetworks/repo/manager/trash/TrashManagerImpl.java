@@ -1,31 +1,32 @@
 package org.sagebionetworks.repo.manager.trash;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.NodeManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -42,6 +43,9 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private NodeDAO nodeDao;
+	
+	@Autowired
+	private NodeInheritanceDAO nodeInheritanceDao;
 
 	@Autowired
 	private AccessControlListDAO aclDAO;
@@ -64,9 +68,8 @@ public class TrashManagerImpl implements TrashManager {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 		/*
-		 * If the node is already deleted then do nothing.
+		 * If the node is already deleted or does not exist then do nothing.
 		 * This is a fix for PLFM-2921 and PLFM-3923
-		 * 
 		 */
 		if(!nodeDao.isNodeAvailable(nodeId)){
 			return;
@@ -86,24 +89,34 @@ public class TrashManagerImpl implements TrashManager {
 		node.setName(node.getId());
 		final String trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		node.setParentId(trashCanId);
-		nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
-
+		updateNodeForTrashCan(currentUser, node, ChangeType.DELETE);
+		// If this node has an ACL then delete it.
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		
+		// Delete all ACLs within the hierarchy
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		// Get the list of all parentIds for this hierarchy.
+		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeIdLong);
+		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(allParentIds);
+		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);
 		// Update the trash can table
 		String userGroupId = currentUser.getId().toString();
 		trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
+	}
 
-		// For all the descendants, we need to add them to the trash can table
-		// and send delete messages to 2nd indices
-		Collection<String> descendants = new ArrayList<String>();
-		getDescendants(nodeId, descendants);
-		for (String descendantId : descendants) {
-			final EntityHeader entityHeader =  nodeDao.getEntityHeader(descendantId, null);
-			final String nodeName = entityHeader.getName();
-			final String parentId = nodeDao.getParentId(descendantId);
-			trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
-			String etag = nodeDao.peekCurrentEtag(descendantId);
-			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, ChangeType.DELETE);
+	void updateNodeForTrashCan(UserInfo userInfo, Node node,
+			ChangeType changeType) {
+		// Lock the node and update the etag.
+		final String nextETag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag(), changeType);	
+		// Clear the modified data and fill it in with the new data
+		Long userIndividualGroupId = userInfo.getId();
+		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, node);
+		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
+			// This message will trigger a worker to send a message for each child of this hierarchy.
+			transactionalMessenger.sendMessageAfterCommit(node.getId(), ObjectType.ENTITY_CONTAINER, nextETag, changeType);
 		}
+		// update the node
+		nodeDao.updateNode(node);
 	}
 
 	@WriteTransaction
@@ -152,23 +165,17 @@ public class TrashManagerImpl implements TrashManager {
 		// Now restore
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
-		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
+		updateNodeForTrashCan(currentUser, node, ChangeType.CREATE);
+		// If the node does not have a benefactor then create an ACL.
+		String newBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+		if(newBenefactorId == null){
+			// Create an ACL for this entity.
+			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, currentUser, new Date());
+			aclDAO.create(acl, ObjectType.ENTITY);
+		}
 
 		// Update the trash can table
 		trashCanDao.delete(deletedBy, nodeId);
-
-		// For all the descendants, we need to remove them from the trash can table
-		// and send delete messages to 2nd indices
-		Collection<String> descendants = new ArrayList<String>();
-		getDescendants(nodeId, descendants);
-		for (String descendantId : descendants) {
-			// Remove from the trash can table
-			trashCanDao.delete(deletedBy, descendantId);
-			// Send CREATE message
-			String parentId = nodeDao.getParentId(descendantId);
-			String etag = nodeDao.peekCurrentEtag(descendantId);
-			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, ChangeType.CREATE);
-		}
 	}
 
 	@Override
@@ -244,23 +251,6 @@ public class TrashManagerImpl implements TrashManager {
 
 		if (purgeCallback != null) {
 			purgeCallback.startPurge(nodeId);
-		}
-		Collection<String> descendants = new ArrayList<String>();
-		getDescendants(nodeId, descendants);
-		nodeDao.delete(nodeId);
-		aclDAO.delete(nodeId, ObjectType.ENTITY);
-		trashCanDao.delete(userGroupId, nodeId);
-		if (purgeCallback != null) {
-			purgeCallback.endPurge();
-		}
-		for (String desc : descendants) {
-			if (purgeCallback != null) {
-				purgeCallback.startPurge(nodeId);
-			}
-			trashCanDao.delete(userGroupId, desc);
-			if (purgeCallback != null) {
-				purgeCallback.endPurge();
-			}
 		}
 	}
 
@@ -359,24 +349,6 @@ public class TrashManagerImpl implements TrashManager {
 	@Override
 	public List<Long> getTrashLeavesBefore(long numDays, long maxTrashItems) throws DatastoreException{
 		return trashCanDao.getTrashLeaves(numDays, maxTrashItems);
-	}
-	
-	@Override
-	/**
-	 * Recursively gets the IDs of all the descendants.
-	 */
-	public void getDescendants(String nodeId, Collection<String> descendants) {
-		ValidateArgument.required(nodeId, "nodeId");
-		ValidateArgument.required(descendants, "descendants");
-		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		if (children.isEmpty()) {
-			return;
-		}
-		
-		descendants.addAll(children);
-		for (String child : children) {
-			getDescendants(child, descendants); // Recursion
-		}
 	}
 
 }
