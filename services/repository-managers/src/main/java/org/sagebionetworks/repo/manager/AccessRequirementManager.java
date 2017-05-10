@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -71,11 +72,11 @@ public interface AccessRequirementManager {
 			ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Retrieve restriction information for an entity
+	 * Retrieve restriction information for a restrictable object
 	 * 
 	 * @param userInfo
-	 * @param entityId
+	 * @param request
 	 * @return
 	 */
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, String entityId);
+	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
 }

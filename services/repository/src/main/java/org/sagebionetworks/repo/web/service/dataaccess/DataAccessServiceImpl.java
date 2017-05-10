@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -91,9 +92,9 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(Long userId, String entityId) {
+	public RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return accessRequirementManager.getRestrictionInformation(user, entityId);
+		return accessRequirementManager.getRestrictionInformation(user, request);
 	}
 
 	@Override

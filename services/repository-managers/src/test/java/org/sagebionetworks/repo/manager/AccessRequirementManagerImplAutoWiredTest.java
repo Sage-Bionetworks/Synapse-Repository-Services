@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
@@ -340,7 +341,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testGetRestrictionInformationInherited() {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		RestrictionInformationResponse info = accessRequirementManager.getRestrictionInformation(adminUserInfo, childId);
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(childId);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		RestrictionInformationResponse info = accessRequirementManager.getRestrictionInformation(adminUserInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 	}

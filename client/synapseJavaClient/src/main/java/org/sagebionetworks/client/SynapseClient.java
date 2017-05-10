@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -2824,13 +2825,13 @@ public interface SynapseClient extends BaseClient {
 	AccessRequirementStatus getAccessRequirementStatus(String requirementId) throws SynapseException;
 
 	/**
-	 * Retrieve the restriction information on an entity.
+	 * Retrieve the restriction information on a restrictable object.
 	 * 
-	 * @param entityId
+	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
-	RestrictionInformationResponse getRestrictionInformation(String entityId) throws SynapseException;
+	RestrictionInformationResponse getRestrictionInformation(RestrictionInformationRequest request) throws SynapseException;
 
 	/**
 	 * Retrieve the information about submitted Submissions

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.dataaccess.Request;
@@ -87,8 +88,10 @@ public class ITDataAccessTest {
 
 	@Test
 	public void test() throws SynapseException {
-
-		RestrictionInformationResponse restrictionInfo = synapseOne.getRestrictionInformation(project.getId());
+		RestrictionInformationRequest restrictionInformationRequest = new RestrictionInformationRequest();
+		restrictionInformationRequest.setObjectId(project.getId());
+		restrictionInformationRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		RestrictionInformationResponse restrictionInfo = synapseOne.getRestrictionInformation(restrictionInformationRequest);
 		assertNotNull(restrictionInfo);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, restrictionInfo.getRestrictionLevel());
 		assertTrue(restrictionInfo.getHasUnmetAccessRequirement());

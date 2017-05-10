@@ -1,0 +1,12 @@
+{
+	"description": "A request to retrieve the information about restriction level on a restrict-able object.",
+	"properties": {
+		"restrictableObjectType":{
+			"$ref": "org.sagebionetworks.repo.model.RestrictableObjectType"
+		},
+		"objectId":{
+			"type": "string",
+			"description": "The ID of the requested object."
+		}
+	}
+}

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -288,12 +289,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	@Override
-	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, String entityId) {
+	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getObjectId(), "RestrictionInformationRequest.objectId");
+		ValidateArgument.required(request.getRestrictableObjectType(), "RestrictionInformationRequest.restrictableObjectType");
 		RestrictionInformationResponse info = new RestrictionInformationResponse();
-		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, entityId, true);
-		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
+		List<String> subjectIds;
+		if (RestrictableObjectType.ENTITY == request.getRestrictableObjectType()) {
+			subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, request.getObjectId(), true);
+		} else if (RestrictableObjectType.TEAM == request.getRestrictableObjectType()){
+			subjectIds = Arrays.asList(request.getObjectId());
+		} else {
+			throw new IllegalArgumentException("Do not support retrieving restriction information for type: "+request.getRestrictableObjectType());
+		}
+		AccessRequirementStats stats = accessRequirementDAO.getAccessRequirementStats(subjectIds, request.getRestrictableObjectType());
 		if (stats.getRequirementIdSet().isEmpty()) {
 			info.setRestrictionLevel(RestrictionLevel.OPEN);
 			info.setHasUnmetAccessRequirement(false);
