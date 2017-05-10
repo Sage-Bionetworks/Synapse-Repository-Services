@@ -44,7 +44,7 @@ public class SubmissionStatusMessageBuilderFactoryTest {
 		MockitoAnnotations.initMocks(this);
 		
 		factory = new SubmissionStatusMessageBuilderFactory();
-		ReflectionTestUtils.setField(factory, "SubmissionDao", mockSubmissionDao);
+		ReflectionTestUtils.setField(factory, "submissionDao", mockSubmissionDao);
 		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
 		ReflectionTestUtils.setField(factory, "accessRequirementDao", mockAccessRequirementDao);
 

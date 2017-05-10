@@ -17,7 +17,7 @@ public class SubmissionMessageBuilderFactory implements MessageBuilderFactory {
 	@Autowired
 	private MarkdownDao markdownDao;
 	@Autowired
-	private SubmissionDAO dataAccessSubmissionDao;
+	private SubmissionDAO submissionDao;
 
 	@Override
 	public BroadcastMessageBuilder createMessageBuilder(String objectId, ChangeType changeType, Long userId) {
@@ -25,7 +25,7 @@ public class SubmissionMessageBuilderFactory implements MessageBuilderFactory {
 		ValidateArgument.requirement(changeType != null && changeType.equals(ChangeType.CREATE),
 				"Only send notification on CREATE event for this topic.");
 		ValidateArgument.required(userId, "userId");
-		Submission submission = dataAccessSubmissionDao.getSubmission(objectId);
+		Submission submission = submissionDao.getSubmission(objectId);
 		return new SubmissionBroadcastMessageBuilder(principalAliasDAO.getUserName(userId),
 				userId.toString(), submission.getAccessRequirementId(), markdownDao);
 	}
