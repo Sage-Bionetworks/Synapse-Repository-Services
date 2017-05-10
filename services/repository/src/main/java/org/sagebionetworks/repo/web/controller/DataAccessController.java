@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -202,19 +203,19 @@ public class DataAccessController extends BaseController {
 	}
 
 	/**
-	 * Retrieve restriction information on an entity
+	 * Retrieve restriction information on a restrictable object
 	 * 
 	 * @param userId
-	 * @param id
+	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_RESTRICTION_INFORMATION, method = RequestMethod.GET)
-	public @ResponseBody RestrictionInformation getRestrictionInformation(
+	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION, method = RequestMethod.POST)
+	public @ResponseBody RestrictionInformationResponse getRestrictionInformation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, id);
+			@RequestBody RestrictionInformationRequest request) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, request);
 	}
 
 	/**

@@ -11,6 +11,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
@@ -44,7 +45,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.RestrictionInformation;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -61,7 +63,6 @@ import com.atlassian.jira.rest.client.api.domain.Field;
 import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
-
 
 public class AccessRequirementManagerImplUnitTest {
 
@@ -384,20 +385,48 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetRestrictionInformationWithNullUserInfo() {
-		arm.getRestrictionInformation(null, TEST_ENTITY_ID);
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		arm.getRestrictionInformation(null, request);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetRestrictionInformationWithNullEntityId() {
+	public void testGetRestrictionInformationWithNullRequest() {
 		arm.getRestrictionInformation(userInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRestrictionInformationWithNullObjectId() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		arm.getRestrictionInformation(userInfo, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRestrictionInformationWithNullObjectType() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		arm.getRestrictionInformation(userInfo, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetRestrictionInformationForEvaluation() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.EVALUATION);
+		arm.getRestrictionInformation(userInfo, request);
 	}
 
 	@Test
 	public void testGetRestrictionInformationWithZeroAR() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		stats.setRequirementIdSet(new HashSet<String>());
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.OPEN, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
@@ -406,6 +435,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithToU() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		Set<String> set = new HashSet<String>();
 		set.add("1");
@@ -415,7 +447,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
@@ -424,6 +456,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithLock() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		Set<String> set = new HashSet<String>();
 		set.add("1");
@@ -433,7 +468,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(true);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertTrue(info.getHasUnmetAccessRequirement());
@@ -442,6 +477,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithACT() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		Set<String> set = new HashSet<String>();
 		set.add("1");
@@ -451,7 +489,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
@@ -460,6 +498,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testGetRestrictionInformationWithBoth() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		Set<String> set = new HashSet<String>();
 		set.add("1");
@@ -470,7 +511,7 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats );
 		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(false);
-		RestrictionInformation info = arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
 		assertNotNull(info);
 		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, info.getRestrictionLevel());
 		assertFalse(info.getHasUnmetAccessRequirement());
@@ -479,6 +520,9 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test (expected = IllegalStateException.class)
 	public void testGetRestrictionInformationWithIllegalState() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		AccessRequirementStats stats = new AccessRequirementStats();
 		Set<String> set = new HashSet<String>();
 		set.add("1");
@@ -488,14 +532,34 @@ public class AccessRequirementManagerImplUnitTest {
 		stats.setHasACT(false);
 		stats.setHasLock(false);
 		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).thenReturn(stats);
-		arm.getRestrictionInformation(userInfo, TEST_ENTITY_ID);
+		arm.getRestrictionInformation(userInfo, request);
+	}
+
+	@Test
+	public void testGetRestrictionInformationForTeam() {
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_PRINCIPAL_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.TEAM);
+		AccessRequirementStats stats = new AccessRequirementStats();
+		Set<String> set = new HashSet<String>();
+		set.add("1");
+		stats.setRequirementIdSet(set);
+		stats.setHasToU(true);
+		stats.setHasACT(false);
+		stats.setHasLock(false);
+		when(accessRequirementDAO.getAccessRequirementStats(Arrays.asList(TEST_PRINCIPAL_ID), RestrictableObjectType.TEAM)).thenReturn(stats);
+		when(accessApprovalDAO.hasUnmetAccessRequirement(set, userInfo.getId().toString())).thenReturn(true);
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
+		assertNotNull(info);
+		assertEquals(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, info.getRestrictionLevel());
+		assertTrue(info.getHasUnmetAccessRequirement());
+		verify(nodeDao, never()).getEntityPath(TEST_ENTITY_ID);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testNewLockAccessRequirementWithNullUserInfo(){
 		AccessRequirementManagerImpl.newLockAccessRequirement(null, TEST_ENTITY_ID, "jiraKey");
 	}
-
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testNewLockAccessRequirementWithNullEntityId(){
