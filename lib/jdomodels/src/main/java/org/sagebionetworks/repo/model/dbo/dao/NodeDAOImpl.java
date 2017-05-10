@@ -985,6 +985,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
+	@Override 
+	public boolean isNodeAvailable(String nodeId){
+		ValidateArgument.required("EntityId", nodeId);
+		Long longId = KeyFactory.stringToKey(nodeId);
+		return isNodeAvailable(longId);
+	}
+	
 	@Override
 	public long getCount() {
 		return jdbcTemplate.queryForObject(SQL_COUNT_ALL, Long.class);

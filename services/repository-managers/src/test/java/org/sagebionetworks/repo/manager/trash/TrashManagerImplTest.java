@@ -181,6 +181,8 @@ public class TrashManagerImplTest {
 		.thenReturn(emptyChildIDList);
 		when(mockNodeDAO.getChildrenIdsAsList(child2ID))
 		.thenReturn(emptyChildIDList);
+		
+		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
 	}
 	
 	
@@ -590,6 +592,16 @@ public class TrashManagerImplTest {
 		
 		assertEquals(trashManager.getTrashLeavesBefore(daysBefore, limit), trashIdList);
 		verify(mockTrashCanDao, times(1)).getTrashLeaves(daysBefore, limit);
+	}
+	
+	@Test
+	public void testMoveToTrashAlreadyTrashed(){
+		// not available means deleted or does not exist
+		when(mockNodeDAO.isNodeAvailable(nodeID)).thenReturn(false);
+		// call under test
+		trashManager.moveToTrash(userInfo, nodeID);
+		verify(mockNodeDAO).isNodeAvailable(nodeID);
+		verifyNoMoreInteractions(mockAuthorizationManager);
 	}
 
 }

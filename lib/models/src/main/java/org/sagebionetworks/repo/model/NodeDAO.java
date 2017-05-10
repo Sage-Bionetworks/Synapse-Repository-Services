@@ -213,6 +213,13 @@ public interface NodeDAO {
 	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
+	 * True if the node exists and is not in the trash.
+	 * @param nodeId
+	 * @return
+	 */
+	public boolean isNodeAvailable(String nodeId);
+	
+	/**
 	 * Get the header information for an entity.
 	 * @param nodeId
 	 * @return the entity header

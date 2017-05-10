@@ -63,6 +63,14 @@ public class TrashManagerImpl implements TrashManager {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
+		/*
+		 * If the node is already deleted then do nothing.
+		 * This is a fix for PLFM-2921 and PLFM-3923
+		 * 
+		 */
+		if(!nodeDao.isNodeAvailable(nodeId)){
+			return;
+		}
 
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
