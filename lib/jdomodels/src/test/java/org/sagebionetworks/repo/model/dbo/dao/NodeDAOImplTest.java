@@ -288,10 +288,6 @@ public class NodeDAOImplTest {
 		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
 		assertEquals(toCreate.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(testActivity.getId(), loaded.getActivityId());
-		
-		// Since this node has no parent, it should be its own benefactor.
-		String benefactorId = nodeDao.getBenefactor(id);
-		assertEquals(id, benefactorId);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -3079,7 +3075,8 @@ public class NodeDAOImplTest {
 		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
 		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
 		String benefactorId = nodeDao.getBenefactor(header.getId());
-		assertEquals(benefactorId, header.getBenefactorId());
+		Long benefactorLong = KeyFactory.stringToKey(benefactorId);
+		assertEquals(benefactorLong, header.getBenefactorId());
 	}
 	
 	@Test
