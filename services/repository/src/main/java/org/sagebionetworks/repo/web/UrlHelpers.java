@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionableEntity;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -1211,7 +1211,7 @@ public class UrlHelpers {
 	 * Set the URL of a versionable entity.
 	 * @param entity 
 	 */
-	public static void setVersionableUrl(Versionable entity){
+	public static void setVersionableUrl(VersionableEntity entity){
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
 		if(entity.getVersionNumber() == null) throw new IllegalArgumentException("Entity version number cannot be null");
@@ -1233,8 +1233,8 @@ public class UrlHelpers {
 		setAllEntityUrls(entity);
 		// Set the specialty types
 		// Versions
-		if(entity instanceof Versionable){
-			setVersionableUrl((Versionable)entity);
+		if(entity instanceof VersionableEntity){
+			setVersionableUrl((VersionableEntity)entity);
 		}
 		// Set the entity type
 		entity.setEntityType(entity.getClass().getName());
@@ -1261,8 +1261,8 @@ public class UrlHelpers {
 			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAccessControlList());
 		}
 		// Versionable
-		if(object instanceof Versionable){
-			Versionable able = (Versionable) object;
+		if(object instanceof VersionableEntity){
+			VersionableEntity able = (VersionableEntity) object;
 			expected = object.getUri()+UrlHelpers.VERSION;
 			if(!expected.equals(able.getVersions())){
 				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
