@@ -128,7 +128,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		PaginatedResults<TrashedEntity> results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
-		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());
 	}
 
 	@Test
