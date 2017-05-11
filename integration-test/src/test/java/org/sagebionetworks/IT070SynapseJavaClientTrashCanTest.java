@@ -100,7 +100,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 		PaginatedResults<TrashedEntity> results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(2, results.getResults().size());
+		assertEquals(1, results.getResults().size());
 
 		synapse.restoreFromTrash(parent.getId(), null);
 		Entity entity = synapse.getEntityById(parent.getId());
@@ -116,7 +116,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 	@Test
 	public void testPurge() throws SynapseException {
 		synapse.moveToTrash(parent.getId());
-		synapse.purgeTrashForUser(child.getId());
+		synapse.purgeTrashForUser(parent.getId());
 		try {
 			synapse.getEntityById(child.getId());
 			fail();
@@ -127,21 +127,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		}
 		PaginatedResults<TrashedEntity> results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(1, results.getResults().size());
-		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());
-		synapse.purgeTrashForUser(parent.getId());
-		try {
-			synapse.getEntityById(parent.getId());
-			fail();
-		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
-		} catch (Throwable e) {
-			fail();
-		}
-		results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
-		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
-		// Already purged, no need to clean
 	}
 
 	@Test
@@ -176,8 +162,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.moveToTrash(parent.getId());
 		PaginatedResults<TrashedEntity> results = adminSynapse.viewTrash(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(2, results.getResults().size());
-		assertEquals(2, results.getTotalNumberOfResults());
+		assertEquals(1, results.getResults().size());
+		assertEquals(1, results.getTotalNumberOfResults());
 		adminSynapse.purgeTrash();
 		try {
 			synapse.getEntityById(child.getId());
@@ -214,8 +200,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.moveToTrash(parent.getId());
 		PaginatedResults<TrashedEntity> results = adminSynapse.viewTrash(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(2, results.getResults().size());
-		assertEquals(2, results.getTotalNumberOfResults());
+		assertEquals(1, results.getResults().size());
+		assertEquals(1, results.getTotalNumberOfResults());
 		
 		//purge the trash leaves (child node)
 		adminSynapse.purgeTrashLeaves(daysInTrash, limit);
@@ -223,13 +209,6 @@ public class IT070SynapseJavaClientTrashCanTest {
 		//check parent still in trash
 		results = adminSynapse.viewTrash(offset, limit);
 		assertNotNull(results);
-		assertEquals(1, results.getResults().size());//only 1 item in trash
-		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());//id of trash item matches parent node's id
-		
-		//purge leaves again to empty trash can
-		adminSynapse.purgeTrashLeaves(daysInTrash, limit);
-		results = adminSynapse.viewTrash(offset, limit);
-		assertNotNull(results);
-		assertEquals(0, results.getResults().size());//nothing in trash
+		assertEquals(0, results.getResults().size());//only 1 item in trash
 	}
 }

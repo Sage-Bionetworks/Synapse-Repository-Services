@@ -213,6 +213,13 @@ public interface NodeDAO {
 	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
+	 * True if the node exists and is not in the trash.
+	 * @param nodeId
+	 * @return
+	 */
+	public boolean isNodeAvailable(String nodeId);
+	
+	/**
 	 * Get the header information for an entity.
 	 * @param nodeId
 	 * @return the entity header
@@ -456,6 +463,13 @@ public interface NodeDAO {
 	 *         grandchildren etc
 	 */
 	List<Long> getAllContainerIds(Long parentId);
+	
+	/**
+	 * See: {@link #getAllContainerIds(Long)}
+	 * @param parentId
+	 * @return
+	 */
+	List<Long> getAllContainerIds(String parentId);
 	
 	/**
 	 * Lookup a nodeId using its alias.

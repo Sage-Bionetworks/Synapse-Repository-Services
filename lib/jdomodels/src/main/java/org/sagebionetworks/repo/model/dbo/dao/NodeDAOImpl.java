@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -985,6 +986,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
+	@Override 
+	public boolean isNodeAvailable(String nodeId){
+		ValidateArgument.required("EntityId", nodeId);
+		Long longId = KeyFactory.stringToKey(nodeId);
+		return isNodeAvailable(longId);
+	}
+	
 	@Override
 	public long getCount() {
 		return jdbcTemplate.queryForObject(SQL_COUNT_ALL, Long.class);
@@ -1627,6 +1635,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Children become the parents
 			parameters.put(IDS_PARAM_NAME, childern);
 		}
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
+	 */
+	@Override
+	public List<Long> getAllContainerIds(String parentId){
+		ValidateArgument.required(parentId, "parentId");
+		Long id = KeyFactory.stringToKey(parentId);
+		return getAllContainerIds(id);
 	}
 
 

@@ -1,44 +1,56 @@
 package org.sagebionetworks.repo.manager.trash;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
-import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager.PurgeCallback;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-
-import org.sagebionetworks.repo.model.Node;
+import com.google.common.collect.Lists;
 
 public class TrashManagerImplTest {
 	
@@ -49,7 +61,7 @@ public class TrashManagerImplTest {
 	private NodeManager mockNodeManager;
 	
 	@Mock 
-	private NodeInheritanceManager mockNodeInheritanceManager;
+	private NodeInheritanceDAO mockNodeInheritanceDao;
 	
 	@Mock 
 	private NodeDAO mockNodeDAO;
@@ -66,7 +78,7 @@ public class TrashManagerImplTest {
 	@Mock
 	private StackConfiguration stackConfig;
 	
-	private TrashManager trashManager;
+	private TrashManagerImpl trashManager;
 	private long userID;
 	private long adminUserID;
 	private UserInfo userInfo;
@@ -86,6 +98,7 @@ public class TrashManagerImplTest {
 	private String child2Name;
 	private String child1Etag;
 	private String child2Etag;
+	private String newEtag;
 	
 	private List<TrashedEntity> trashList;
 	
@@ -93,7 +106,7 @@ public class TrashManagerImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		trashManager = spy(new TrashManagerImpl());
+		trashManager = new TrashManagerImpl();
 		MockitoAnnotations.initMocks(this);
 		
 		userID = 12345L;
@@ -110,6 +123,7 @@ public class TrashManagerImplTest {
 		testNode = new Node();
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
+		testNode.setNodeType(EntityType.file);
 		nodeTrashedEntity = spy(new TrashedEntity());
 		nodeTrashedEntity.setOriginalParentId(nodeParentID);
 		nodeTrashedEntity.setEntityId(nodeID);
@@ -155,10 +169,8 @@ public class TrashManagerImplTest {
 		setField(trashManager, "trashCanDao", mockTrashCanDao);
 		setField(trashManager, "authorizationManager", mockAuthorizationManager);
 		setField(trashManager, "nodeManager", mockNodeManager);
+		setField(trashManager, "nodeInheritanceDao", mockNodeInheritanceDao);
 		setField(trashManager, "transactionalMessenger", mockTransactionalMessenger);
-		
-		
-		
 		
 		when(mockNodeDAO.peekCurrentEtag(child1ID)).thenReturn(child1Etag);
 		when(mockNodeDAO.peekCurrentEtag(child2ID)).thenReturn(child2Etag);
@@ -169,9 +181,9 @@ public class TrashManagerImplTest {
 		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(nodeTrashedEntity);
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 		
-		when(mockAuthorizationManager.canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE))
+		when(mockAuthorizationManager.canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class)))
 		.thenReturn(new AuthorizationStatus(true, "DO IT! YES YOU CAN! JUST DO IT!"));
-		when(mockAuthorizationManager.canUserMoveRestrictedEntity(userInfo, nodeTrashedEntity.getOriginalParentId(), nodeParentID))
+		when(mockAuthorizationManager.canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString()))
 		.thenReturn(new AuthorizationStatus(true, "YESTERDAY YOU SAID TOMORROW, SO JUST DO IT!"));
 		
 		//mocking for getDescendants()
@@ -181,6 +193,59 @@ public class TrashManagerImplTest {
 		.thenReturn(emptyChildIDList);
 		when(mockNodeDAO.getChildrenIdsAsList(child2ID))
 		.thenReturn(emptyChildIDList);
+		
+		when(mockNodeDAO.isNodeAvailable(anyString())).thenReturn(true);
+		newEtag = "newEtag";
+		when(mockNodeDAO.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+	}
+	
+	@Test
+	public void testUpdateNodeForTrashCanNonContainer(){
+		testNode.setNodeType(EntityType.file);
+		testNode.setModifiedOn(new Date(0));
+		testNode.setModifiedByPrincipalId(-1L);
+		ArgumentCaptor<Node> nodeCapture = ArgumentCaptor.forClass(Node.class);
+		ChangeType changeType = ChangeType.DELETE;
+		// call under test
+		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
+		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		// the entity is not a container so a message should not be sent.
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
+		verify(mockNodeDAO).updateNode(nodeCapture.capture());
+		Node capturedNode = nodeCapture.getValue();
+		assertNotNull(capturedNode);
+		assertNotNull(capturedNode.getModifiedOn());
+		// modified on should be set be set
+		assertTrue(capturedNode.getModifiedOn().getTime() > 0);
+		// modified by should be set
+		assertEquals(userInfo.getId(), capturedNode.getModifiedByPrincipalId());
+	}
+	
+	@Test
+	public void testUpdateNodeForTrashCanContainer(){
+		testNode.setNodeType(EntityType.folder);
+		testNode.setModifiedOn(new Date(0));
+		testNode.setModifiedByPrincipalId(-1L);
+		ChangeType changeType = ChangeType.DELETE;
+		// call under test
+		trashManager.updateNodeForTrashCan(userInfo, testNode, changeType);
+		verify(mockNodeDAO).lockNodeAndIncrementEtag(testNode.getId(), testNode.getETag(), changeType);
+		// the entity is a container so a container event should be generated.
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(testNode.getId(), ObjectType.ENTITY_CONTAINER, newEtag, changeType);
+	}
+	
+	@Test
+	public void testDeleteAllAclsInHierarchy(){
+		List<Long> parentIds = Lists.newArrayList(123L,456L);
+		when(mockNodeDAO.getAllContainerIds(nodeID)).thenReturn(parentIds);
+		List<Long> childernWithAcls = Lists.newArrayList(456L, 444L);
+		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIds)).thenReturn(childernWithAcls);
+		// call under test
+		trashManager.deleteAllAclsInHierarchy(nodeID);
+		// delete the acl of the node
+		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
+		// delete all acls for the hierarchy.
+		verify(mockAclDAO).delete(childernWithAcls, ObjectType.ENTITY);
 	}
 	
 	
@@ -208,8 +273,6 @@ public class TrashManagerImplTest {
 	@Test
 	public void testMoveToTrashAuthourized(){
 		//setup
-		
-		
 		when(mockAuthorizationManager.canAccess(userInfo, nodeID, ObjectType.ENTITY, ACCESS_TYPE.DELETE))
 		.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		EntityHeader mockChild1EntityHeader = mock(EntityHeader.class);
@@ -222,25 +285,10 @@ public class TrashManagerImplTest {
 		trashManager.moveToTrash(userInfo, nodeID);
 		
 		verify(mockNodeDAO,times(1)).getNode(nodeID);
-		verify(mockNodeManager, times(1)).updateForTrashCan(userInfo, testNode, ChangeType.DELETE);
+		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao, times(1)).create(userInfo.getId().toString(), nodeID, nodeName, nodeParentID);
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
 		
-		//verify for loop 
-		//child1
-		verify(mockNodeDAO,times(1)).getEntityHeader(child1ID, null);
-		verify(mockChild1EntityHeader, times(1)).getName();
-		verify(mockNodeDAO).getParentId(child1ID);
-		verify(mockTrashCanDao).create(userInfo.getId().toString(), child1ID, child1Name, nodeID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, ChangeType.DELETE);
-		//child2
-		verify(mockNodeDAO,times(1)).getEntityHeader(child2ID, null);
-		verify(mockChild2EntityHeader, times(1)).getName();
-		verify(mockNodeDAO).getParentId(child2ID);
-		verify(mockTrashCanDao).create(userInfo.getId().toString(), child2ID, child2Name, nodeID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, ChangeType.DELETE);
-		
-
+		verify(mockAclDAO).delete(anyListOf(Long.class), any(ObjectType.class));
 	}
 	
 	///////////////////////////
@@ -281,7 +329,7 @@ public class TrashManagerImplTest {
 	@Test (expected = ParentInTrashCanException.class)
 	public void testRestoreFromTrashParentIDInTrash(){
 		final String fakeNewParentID = "synFAKEPARENTID";
-		when(mockTrashCanDao.getTrashedEntity(fakeNewParentID)).thenReturn(new TrashedEntity());
+		when(mockNodeDAO.isNodeAvailable(fakeNewParentID)).thenReturn(false);
 		trashManager.restoreFromTrash(userInfo, nodeID, fakeNewParentID);
 	}
 	
@@ -298,7 +346,6 @@ public class TrashManagerImplTest {
 			verify(mockAuthorizationManager).canAccess(userInfo, nodeParentID, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 			verify(mockAuthorizationManager, never()).canUserMoveRestrictedEntity(any(UserInfo.class), anyString(), anyString());
 		}
-		
 	}
 	
 	@Test
@@ -319,19 +366,40 @@ public class TrashManagerImplTest {
 	public void testRestoreFromTrashCan(){
 		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 		final String deletedBy = nodeTrashedEntity.getDeletedByPrincipalId();
-		verify(mockNodeManager).updateForTrashCan(userInfo, testNode, ChangeType.CREATE);
+		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(deletedBy ,nodeID);
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
-		
-		verify(mockTrashCanDao).delete(deletedBy, child1ID);
-		verify(mockNodeDAO).getParentId(child1ID);
-		verify(mockNodeDAO).peekCurrentEtag(child1ID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child1ID, ObjectType.ENTITY, child1Etag, ChangeType.CREATE);
-		
-		verify(mockTrashCanDao).delete(deletedBy, child2ID);
-		verify(mockNodeDAO).getParentId(child2ID);
-		verify(mockNodeDAO).peekCurrentEtag(child2ID);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(child2ID, ObjectType.ENTITY, child2Etag, ChangeType.CREATE);
+		verify(mockAclDAO, never()).create(any(AccessControlList.class), any(ObjectType.class));
+	}
+	
+	/**
+	 * Test restoring a project to root.
+	 * 
+	 */
+	@Test 
+	public void testRestoreFromTrashProjectNewParentRoot(){
+		testNode.setNodeType(EntityType.project);
+		// move the entity to root.
+		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
+		// call under test
+		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
+		final String deletedBy = nodeTrashedEntity.getDeletedByPrincipalId();
+		verify(mockNodeDAO, times(1)).updateNode(testNode);
+		verify(mockTrashCanDao).delete(deletedBy ,nodeID);
+		// An ACL should be created for the project
+		verify(mockAclDAO).create(any(AccessControlList.class), eq(ObjectType.ENTITY));
+	}
+	
+	/**
+	 * Test restoring a non-project to root.
+	 * 
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testRestoreFromTrashNonProjectNewParentRoot(){
+		testNode.setNodeType(EntityType.folder);
+		// move the entity to root.
+		nodeParentID = NodeUtils.ROOT_ENTITY_ID;
+		// call under test
+		trashManager.restoreFromTrash(userInfo, nodeID, nodeParentID);
 	}
 	
 	///////////////////////
@@ -427,18 +495,14 @@ public class TrashManagerImplTest {
 		when(mockTrashCanDao.exists(userInfo.getId().toString(), nodeID))
 		.thenReturn(true);
 		trashManager.purgeTrashForUser(userInfo, nodeID, purgeCallback);
-		
-		verify(trashManager).getDescendants( eq(nodeID), Matchers.<Collection<String>>any() );
+	
 		verify(mockNodeDAO).delete(nodeID);
 		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
 		verify(mockTrashCanDao).delete(userInfo.getId().toString(), nodeID);
-		
-		verify(mockTrashCanDao).delete(userInfo.getId().toString(), child1ID);
-		verify(mockTrashCanDao).delete(userInfo.getId().toString(), child2ID);
-		
+				
 		//not very important but might as well check
-		verify(purgeCallback, times(3)).startPurge(any(String.class));
-		verify(purgeCallback, times(3)).startPurge(any(String.class));
+		verify(purgeCallback).startPurge(any(String.class));
+		verify(purgeCallback).endPurge();
 	}
 	
 	////////////////////////////////
@@ -451,13 +515,10 @@ public class TrashManagerImplTest {
 	
 	@Test
 	public void testPurgeAllTrashForUser(){
-		
 		when(mockTrashCanDao.getInRangeForUser(userInfo.getId().toString(), true, 0, Long.MAX_VALUE))
 		.thenReturn(trashList);
 		trashManager.purgeTrashForUser(userInfo, purgeCallback);
 		verify(mockTrashCanDao).getInRangeForUser(userInfo.getId().toString(), true, 0, Long.MAX_VALUE);
-		verify(trashManager).purgeTrash(trashList, purgeCallback);
-		
 	}
 	
 	/////////////////////////
@@ -476,7 +537,7 @@ public class TrashManagerImplTest {
 		when(mockTrashCanDao.getInRange(true, 0, Long.MAX_VALUE))
 		.thenReturn(trashList);
 		trashManager.purgeTrash(adminUserInfo, purgeCallback);
-		verify(trashManager).purgeTrash(trashList, purgeCallback);
+		verify(mockTrashCanDao).getInRange(true, 0, Long.MAX_VALUE);
 	}
 	
 	//////////////////////////////////////////////////
@@ -484,50 +545,6 @@ public class TrashManagerImplTest {
 	// purgeTrash(List<TrashedEntity> trashList, PurgeCallback purgeCallback)
 	// But it might get replaced very soon by purgeTrashAdmin() so skip for now.
 	//////////////////////////////////////////////////
-	
-	
-	//////////////////////////
-	//getDescendants() Tests
-	/////////////////////////
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetDescendantsNullNodeID(){
-		List<String> descendants = new ArrayList<String>();
-		((TrashManagerImpl) trashManager).getDescendants(null, descendants);//TODO: also expose getDescendants to TrashManager???
-	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetDescendantsNullDescendantsCollection(){
-		((TrashManagerImpl) trashManager).getDescendants(nodeID, null);
-	}
-	
-	@Test
-	public void testGetDescendantsNoDescendants(){
-		List<String> descendants = new ArrayList<String>();
-		
-		when(mockNodeDAO.getChildrenIdsAsList(nodeID))
-		.thenReturn(new ArrayList<String>());
-		
-		((TrashManagerImpl) trashManager).getDescendants(nodeID,descendants);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(any(String.class));
-		assert(descendants.isEmpty());
-	}
-	
-	@Test
-	public void testGetDescendantsHaveDescendants(){
-		
-		
-		List<String> descendants = new ArrayList<String>();
-		
-		trashManager.getDescendants(nodeID,descendants);
-		
-		
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(nodeID);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(child1ID);
-		verify(mockNodeDAO,times(1)).getChildrenIdsAsList(child2ID);
-		
-		verify(trashManager,times(3)).getDescendants(any(String.class), eq(descendants));
-		assertTrue(descendants.containsAll(childrenIDs));
-	}
 	
 	
 	
@@ -590,6 +607,16 @@ public class TrashManagerImplTest {
 		
 		assertEquals(trashManager.getTrashLeavesBefore(daysBefore, limit), trashIdList);
 		verify(mockTrashCanDao, times(1)).getTrashLeaves(daysBefore, limit);
+	}
+	
+	@Test
+	public void testMoveToTrashAlreadyTrashed(){
+		// not available means deleted or does not exist
+		when(mockNodeDAO.isNodeAvailable(nodeID)).thenReturn(false);
+		// call under test
+		trashManager.moveToTrash(userInfo, nodeID);
+		verify(mockNodeDAO).isNodeAvailable(nodeID);
+		verifyNoMoreInteractions(mockAuthorizationManager);
 	}
 
 }

@@ -141,4 +141,11 @@ public interface AccessControlListDAO  {
 	public Set<Long> getNonVisibleChilrenOfEntity(Set<Long> groups,
 			String parentId);
 
+	/**
+	 * Get the children entities that have ACLs for the given
+	 * entity parentIds.
+	 * @param parentIds
+	 */
+	public List<Long> getChildrenEntitiesWithAcls(List<Long> parentIds);
+
 }

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 		// only process messages that are less than 5 days old.
 		if(messageAgeMS < MAX_MESSAGE_AGE_MS){
 			// only process messages 
-			recursiveBroadcastMessages(progressCallback, message.getObjectId());
+			recursiveBroadcastMessages(progressCallback, message.getObjectId(), message.getChangeType());
 		}else{
 			log.info("Ignoring old message:  "+message.toString());
 		}
@@ -68,7 +69,7 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 	 * @throws InterruptedException 
 	 * 
 	 */
-	public void recursiveBroadcastMessages(ProgressCallback<Void> progressCallback, String parentId) throws InterruptedException{
+	public void recursiveBroadcastMessages(ProgressCallback<Void> progressCallback, String parentId, ChangeType changeType) throws InterruptedException{
 		long limit = ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE;
 		long offset = 0;
 		List<NodeIdAndType> children = null;
@@ -88,6 +89,10 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 				}
 				// Get the change messages for the direct children of this container.
 				List<ChangeMessage> changeMessages = changeDao.getChangesForObjectIds(ObjectType.ENTITY, childrenIds);
+				// Set all changes to match the type
+				for(ChangeMessage message:  changeMessages){
+					message.setChangeType(changeType);
+				}
 				// Send this batch of messages
 				messagePublisher.publishBatchToTopic(ObjectType.ENTITY, changeMessages);
 				progressCallback.progressMade(null);
@@ -100,7 +105,7 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 		
 		// recursive call for each child that is also a container.
 		for(String containerId: containerIds){
-			recursiveBroadcastMessages(progressCallback, containerId);
+			recursiveBroadcastMessages(progressCallback, containerId, changeType);
 		}
 	}
 	

@@ -323,16 +323,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
-			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		Node oldNode = nodeDao.getNode(updatedNode.getId());
-		boolean newVersion = false;
-		boolean skipBenefactor = false;
-		updateNode(userInfo, updatedNode, null, newVersion, skipBenefactor, changeType, oldNode);
-	}
-
-	@WriteTransaction
-	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
@@ -373,13 +363,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 						authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD));
 			}
 		}
-		boolean skipBenefactor = true;
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, skipBenefactor, ChangeType.UPDATE, oldNode);
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion, boolean skipBenefactor,
+	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion,
 			ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
@@ -431,27 +420,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			
 			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate, changeType == ChangeType.DELETE);
 			// Update the ACL accordingly
-			if (skipBenefactor) {
-				nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);
-			} else {
-				// If the node is being moved to right under the root, we need to create a new ACL
-				// The root cannot be the benefactor
-				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
-				EntityType type = updatedNode.getNodeType();
-				String defaultPath = EntityTypeUtils.getDefaultParentPath(type);
-				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
-				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
-				if (newAcl) {
-					AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeInUpdate, userInfo, new Date());
-					aclDAO.create(acl, ObjectType.ENTITY);
-					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
-				} else {
-					// Remove the ACLs of all the benefactors
-					removeBenefactorAcl(nodeInUpdate);
-					// Set the new parent as the benefactor
-					nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate, false);
-				}
-			}
+			nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);
 		}
 
 		// Now make the actual update.
@@ -778,32 +747,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private void checkFileHandleId(String entityId, String fileHandleId)
 			throws NotFoundException {
 		if(fileHandleId == null) throw new NotFoundException("Object "+entityId+" does not have a file handle associated with it.");
-	}
-
-	/**
-	 * Recursively remove the ACLs of all the descendants who are benefactors.
-	 */
-	private void removeBenefactorAcl(String nodeId)  {
-		String benefactor = null;
-		try {
-			benefactor = nodeInheritanceManager.getBenefactorCached(nodeId);
-		} catch (NotFoundException e) {
-			benefactor = null;
-		}
-		if (nodeId.equals(benefactor)) {
-			try {
-				aclDAO.delete(nodeId, ObjectType.ENTITY);
-			} catch (NotFoundException e) {
-				throw new DatastoreException("ACL for benefactor " + nodeId + " is not found");
-			}
-		}
-		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		if (children == null || children.size() == 0) {
-			return;
-		}
-		for (String child : children) {
-			removeBenefactorAcl(child);
-		}
 	}
 
 	@Override
