@@ -91,6 +91,7 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
 		accessRequirement.setSerializedEntity(serializedEntity);
 		accessRequirement.setId(id);
+		accessRequirement.setCurrentRevNumber(0L);
 		return accessRequirement;
 	}
 	
