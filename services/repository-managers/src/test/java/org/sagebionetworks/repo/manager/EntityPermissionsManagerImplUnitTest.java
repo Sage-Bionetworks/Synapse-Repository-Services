@@ -264,6 +264,41 @@ public class EntityPermissionsManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testReadButNotDownload() throws Exception {
+		// if READ is in the ACL but DOWNLOAD is not in the ACL, then I can't download
+		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), 
+				eq(ObjectType.ENTITY), eq(ACCESS_TYPE.DOWNLOAD))).thenReturn(false);
+		// check that my mocks are set up correctly
+		assertTrue(mockAclDAO.canAccess(certifiedUserInfo.getGroups(), benefactorId, 
+				ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertFalse(mockAclDAO.canAccess(certifiedUserInfo.getGroups(), benefactorId, 
+				ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+		
+		// now on to the test:
+		UserEntityPermissions uep = entityPermissionsManager.
+				getUserPermissionsForEntity(certifiedUserInfo, folderId);
+		
+		assertTrue(uep.getCanAddChild());
+		assertTrue(uep.getCanChangePermissions()); 
+		assertTrue(uep.getCanChangeSettings()); 
+		assertTrue(uep.getCanDelete());
+		assertTrue(uep.getCanEdit());
+		assertTrue(uep.getCanEnableInheritance());
+		assertFalse(uep.getCanPublicRead());
+		assertTrue(uep.getCanView());
+		assertFalse(uep.getCanDownload());
+		assertTrue(uep.getCanUpload());
+		assertTrue(uep.getCanCertifiedUserAddChild());
+		assertTrue(uep.getCanCertifiedUserEdit());
+		assertTrue(uep.getIsCertifiedUser());
+		assertTrue(uep.getCanModerate());
+		
+		assertTrue(entityPermissionsManager.canCreate(folder.getParentId(), folder.getNodeType(), certifiedUserInfo).getAuthorized());
+		
+		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
+	}
+	
+	@Test
 	public void testGetUserPermissionsForNonCertifiedUserOnFolder() throws Exception {
 		UserEntityPermissions uep = entityPermissionsManager.
 				getUserPermissionsForEntity(nonCertifiedUserInfo, folderId);
