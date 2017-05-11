@@ -100,7 +100,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 		PaginatedResults<TrashedEntity> results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(2, results.getResults().size());
+		assertEquals(1, results.getResults().size());
 
 		synapse.restoreFromTrash(parent.getId(), null);
 		Entity entity = synapse.getEntityById(parent.getId());
@@ -116,7 +116,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 	@Test
 	public void testPurge() throws SynapseException {
 		synapse.moveToTrash(parent.getId());
-		synapse.purgeTrashForUser(child.getId());
+		synapse.purgeTrashForUser(parent.getId());
 		try {
 			synapse.getEntityById(child.getId());
 			fail();
@@ -127,21 +127,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		}
 		PaginatedResults<TrashedEntity> results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
-		assertEquals(1, results.getResults().size());
-		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());
-		synapse.purgeTrashForUser(parent.getId());
-		try {
-			synapse.getEntityById(parent.getId());
-			fail();
-		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
-		} catch (Throwable e) {
-			fail();
-		}
-		results = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
-		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
-		// Already purged, no need to clean
+		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());
 	}
 
 	@Test
