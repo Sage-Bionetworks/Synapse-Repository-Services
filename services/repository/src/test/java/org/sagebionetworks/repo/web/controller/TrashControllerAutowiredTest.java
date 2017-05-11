@@ -181,14 +181,13 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 
 		// The parent and the child should be in the trash can
 		results = servletTestHelper.getTrashCan(testUserId);
-		Assert.assertEquals(baseTotal + 2L, results.getTotalNumberOfResults());
-		Assert.assertEquals(baseCount + 2L, results.getResults().size());
+		Assert.assertEquals(baseTotal + 1L, results.getTotalNumberOfResults());
+		Assert.assertEquals(baseCount + 1L, results.getResults().size());
 		Set<String> idSet = new HashSet<String>();
 		for (TrashedEntity trash : results.getResults()) {
 			idSet.add(trash.getEntityId());
 		}
 		Assert.assertTrue(idSet.contains(parent.getId()));
-		Assert.assertTrue(idSet.contains(child.getId()));
 
 		// Restore the parent
 		servletTestHelper.restoreEntity(testUserId, parent.getId());
@@ -221,8 +220,8 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		servletTestHelper.trashEntity(testUserId, parent.getId());
 
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
-		Assert.assertEquals(2, results.getTotalNumberOfResults());
-		Assert.assertEquals(2, results.getResults().size());
+		Assert.assertEquals(1, results.getTotalNumberOfResults());
+		Assert.assertEquals(1, results.getResults().size());
 
 		// Purge everything
 		servletTestHelper.adminPurgeTrash(adminUserId);
@@ -256,23 +255,13 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		servletTestHelper.trashEntity(testUserId, parent.getId());
 
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
-		Assert.assertEquals(2, results.getTotalNumberOfResults());
-		Assert.assertEquals(2, results.getResults().size());
+		Assert.assertEquals(1, results.getTotalNumberOfResults());
+		Assert.assertEquals(1, results.getResults().size());
 		
 		//purge leaves (i.e. the child)
 		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L/*minimum days in trash, days*/, 10L/*max number to delete*/);
 		
 		//make sure the parent is still in the trashcan
-		results = servletTestHelper.adminGetTrashCan(adminUserId);
-		Assert.assertEquals(1, results.getTotalNumberOfResults());
-		Assert.assertEquals(1, results.getResults().size());
-		Assert.assertEquals(parent.getId(), results.getResults().get(0).getEntityId() );
-		
-		
-		
-		//delete leaves again to clean up trash can
-		servletTestHelper.adminPurgeTrashLeaves(dispatchServlet, adminUserId, 0L/*minimum days in trash, days*/, 10L/*max number to delete*/);
-		
 		results = servletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(0, results.getTotalNumberOfResults());
 		Assert.assertEquals(0, results.getResults().size());
