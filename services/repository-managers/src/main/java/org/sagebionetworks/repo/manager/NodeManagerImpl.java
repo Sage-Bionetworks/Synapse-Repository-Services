@@ -58,7 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * The Sage business logic for node management.
  *
  */
-public class NodeManagerImpl implements NodeManager, InitializingBean {
+public class NodeManagerImpl implements NodeManager {
 
 	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. To download this file, follow the instructions as described in https://www.synapse.org/#!Help:RequesterPays";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
@@ -76,8 +76,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private AccessControlListDAO aclDAO;	
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;	
-	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;	
+
 	@Autowired 
 	private ActivityManager activityManager;
 	@Autowired
@@ -157,17 +156,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String id = newNode.getId();
 		
 		// Setup the ACL for this node.
-		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
-			// This node inherits from its parent.
-			String parentBenefactor = nodeInheritanceManager.getBenefactorCached(newNode.getParentId());
-			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
-		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
+		if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
 			aclDAO.create(rootAcl, ObjectType.ENTITY);
-			// This node is its own benefactor
-			nodeInheritanceManager.addBeneficiary(id, id);
-		}else{
-			throw new IllegalArgumentException("Unknown ACL_SCHEME: "+aclScheme);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -417,10 +408,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// Notify listeners of the hierarchy change to this container.
 				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, nextETag, ChangeType.UPDATE);
 			}
-			
-			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate, changeType == ChangeType.DELETE);
-			// Update the ACL accordingly
-			nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);
 		}
 
 		// Now make the actual update.
@@ -502,12 +489,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 		// Validate the annotation names
 		FieldTypeCache.validateAnnotations(updated);
-	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		// This is a hack because the current DAO is not working with integration tests.
-//		authorizationManager = new TempMockAuthDao();
 	}
 
 	@Override

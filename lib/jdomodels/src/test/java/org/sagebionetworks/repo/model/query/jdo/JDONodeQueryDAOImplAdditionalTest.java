@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -41,9 +40,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class JDONodeQueryDAOImplAdditionalTest {
-	
-	@Autowired
-	NodeInheritanceDAO nodeInheritanceDao;
 	
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
@@ -117,42 +113,6 @@ public class JDONodeQueryDAOImplAdditionalTest {
 		assertTrue(results.getResultIds().contains(project.getId()));
 		assertTrue(results.getResultIds().contains(parent.getId()));
 		assertTrue(results.getResultIds().contains(child.getId()));
-	}
-	
-	/**
-	 * Test that nodes in the trash can do not show up in node queries.
-	 * @throws NotFoundException 
-	 * @throws InvalidModelException 
-	 * @throws DatastoreException 
-	 */
-	@Test
-	public void testPLFM_3227() throws DatastoreException, InvalidModelException, NotFoundException{
-		// parent
-		Node toTrash = new Node();
-		// set a random name to query for.
-		toTrash.setName(UUID.randomUUID().toString());
-		toTrash.setParentId(project.getId());
-		setMetadata(toTrash, EntityType.folder);
-		toTrash.setId(nodeDao.createNew(toTrash));
-		toTrash = nodeDao.getNode(toTrash.getId());
-		
-		// Validate we can find the node before it is in the trash.
-		BasicQuery query = new BasicQuery();
-		query.setFrom("entity");
-		// Filter by the name
-		query.setFilters(new LinkedList<Expression>());
-		query.getFilters().add(new Expression(new CompoundId(null, "name"), Comparator.EQUALS, toTrash.getName()));
-		NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
-		assertNotNull(results);
-		assertEquals(1, results.getTotalNumberOfResults());
-		assertTrue(results.getResultIds().contains(toTrash.getId()));
-		
-		// Now move the node to the trash
-		nodeInheritanceDao.addBeneficiary(toTrash.getId(), ""+BasicQueryUtils.TRASH_FOLDER_ID);
-		// We should not be able to find it
-		results = nodeQueryDao.executeQuery(query, userInfo);
-		assertNotNull(results);
-		assertEquals(0, results.getTotalNumberOfResults());		
 	}
 
 	private void setMetadata(Node node, EntityType type){

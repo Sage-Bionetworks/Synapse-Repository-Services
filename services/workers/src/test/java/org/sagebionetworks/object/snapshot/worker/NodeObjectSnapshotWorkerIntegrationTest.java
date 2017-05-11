@@ -16,13 +16,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.object.snapshot.worker.utils.NodeObjectRecordWriter;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
@@ -44,8 +43,6 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 	@Autowired
 	private NodeDAO nodeDao;
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
 	private ObjectRecordDAO objectRecordDAO;
 	@Autowired
@@ -106,7 +103,7 @@ public class NodeObjectSnapshotWorkerIntegrationTest {
 
 		// fetch it
 		Node node = nodeDao.getNode(toCreate.getId());
-		String benefactorId = nodeInheritanceDao.getBenefactor(toCreate.getId());
+		String benefactorId = nodeDao.getBenefactor(toCreate.getId());
 		String projectId = nodeDao.getProjectId(toCreate.getId());
 		NodeRecord record = NodeObjectRecordWriter.buildNodeRecord(node, benefactorId, projectId);
 		record.setIsPublic(false);

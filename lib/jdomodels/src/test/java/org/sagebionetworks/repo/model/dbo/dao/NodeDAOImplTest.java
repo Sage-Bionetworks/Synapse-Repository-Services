@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -8,6 +7,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl.TRASH_FOLDER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +50,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -101,9 +102,6 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	private NodeDAO nodeDao;
-
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDAO;
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
@@ -166,7 +164,6 @@ public class NodeDAOImplTest {
 		adminUser = new UserInfo(true, creatorUserGroupId);
 		
 		assertNotNull(nodeDao);
-		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
 		
 		testActivity = createTestActivity(new Random().nextLong());
@@ -293,7 +290,7 @@ public class NodeDAOImplTest {
 		assertEquals(testActivity.getId(), loaded.getActivityId());
 		
 		// Since this node has no parent, it should be its own benefactor.
-		String benefactorId = nodeInheritanceDAO.getBenefactorCached(id);
+		String benefactorId = nodeDao.getBenefactor(id);
 		assertEquals(id, benefactorId);
 	}
 	
@@ -328,11 +325,10 @@ public class NodeDAOImplTest {
 	@Test
 	public void testDoesNodeExistAndInTrash(){
 		Node toCreate = privateCreateNewDistinctModifier("exists");
+		toCreate.setParentId(""+TRASH_FOLDER_ID);
 		// put the node in the trash
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
-		// put the node in the trash
-		nodeInheritanceDAO.addBeneficiary(id, ""+TRASH_FOLDER_ID);
 		Long nodeId = KeyFactory.stringToKey(id);
 		// call under test.
 		boolean exists = nodeDao.doesNodeExist(nodeId);
@@ -505,7 +501,7 @@ public class NodeDAOImplTest {
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
 		// This child should be inheriting from its parent by default
-		String childBenefactorId = nodeInheritanceDAO.getBenefactorCached(childId);
+		String childBenefactorId = nodeDao.getBenefactor(childId);
 		assertEquals(parentId, childBenefactorId);
 		
 		// now add a grandchild
@@ -515,7 +511,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandkidId);
 
 		// This grandchild should be inheriting from its grandparent by default
-		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactorCached(grandkidId);
+		String grandChildBenefactorId = nodeDao.getBenefactor(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
@@ -1784,299 +1780,6 @@ public class NodeDAOImplTest {
 		String answerParentId =  nodeDao.getParentId(child1Id);
 		assertEquals(parentId, answerParentId);
 	}
-	
-	/**
-	 * Tests that changeNodeParent correctly sets a node's parent to reference
-	 * the parentNode sent as a parameter.
-	 * @throws Exception
-	 */
-	@Test
-	public void testChangeNodeParent() throws Exception {
-		//make a parent project
-		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project);
-		String parentProjectId = nodeDao.createNew(node);
-		toDelete.add(parentProjectId);
-		assertNotNull(parentProjectId);
-		
-		//add a child to the parent
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId);
-		String childId = nodeDao.createNew(node);
-		toDelete.add(childId);
-		assertNotNull(childId);
-		
-		//make a second project
-		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project);
-		String newParentId = nodeDao.createNew(node);
-		toDelete.add(newParentId);
-		assertNotNull(newParentId);
-		
-		//check state of child node before the change
-		Node oldNode = nodeDao.getNode(childId);
-		assertNotNull(oldNode);
-		assertEquals(parentProjectId, oldNode.getParentId());
-		
-		//change child's parent to newProject
-		boolean changeReturn = nodeDao.changeNodeParent(childId, newParentId, false);
-		assertTrue(changeReturn);
-		
-		Node changedNode = nodeDao.getNode(childId);
-		assertNotNull(changedNode);
-		assertEquals(newParentId, changedNode.getParentId());		
-	}
-	
-	/**
-	 * Tests that changeNodeParent correctly sets a node's parent to reference the parentNode sent as a parameter.
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testChangeNodeParentAndProject() throws Exception {
-		// make a parent project
-		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project);
-		String parentProjectId = nodeDao.createNew(node);
-		toDelete.add(parentProjectId);
-		assertNotNull(parentProjectId);
-
-		// add a child to the parent
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId);
-		String childId = nodeDao.createNew(node);
-		toDelete.add(childId);
-		assertNotNull(childId);
-
-		String[] childChilds = new String[4];
-		// add children to child
-		for (int i = 0; i < childChilds.length; i++) {
-			node = privateCreateNew("child" + i);
-			node.setNodeType(EntityType.folder);
-			node.setParentId(childId);
-			childChilds[i] = nodeDao.createNew(node);
-			toDelete.add(childChilds[i]);
-			assertNotNull(childChilds[i]);
-		}
-
-		// make sure all project ids are set
-		assertEquals(parentProjectId, nodeDao.getProjectId(parentProjectId));
-		assertEquals(parentProjectId, nodeDao.getProjectId(childId));
-		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(parentProjectId, nodeDao.getProjectId(childChilds[i]));
-		}
-
-		// make a second project
-		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project);
-		String newParentId = nodeDao.createNew(node);
-		toDelete.add(newParentId);
-		assertNotNull(newParentId);
-
-		// check state of child node before the change
-		Node oldNode = nodeDao.getNode(childId);
-		assertNotNull(oldNode);
-		assertEquals(parentProjectId, oldNode.getParentId());
-
-		// change child's parent to newProject
-		boolean changeReturn = nodeDao.changeNodeParent(childId, newParentId, false);
-		assertTrue(changeReturn);
-
-		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getProjectId(childId));
-		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
-		}
-
-		// change to trash (no project) and back
-		nodeDao.changeNodeParent(childId, StackConfiguration.getTrashFolderEntityIdStatic(), true);
-
-		// make sure all project ids are set to new project
-		try {
-			nodeDao.getProjectId(childId);
-			fail();
-		} catch (NotFoundException e) {
-			//expected
-		}
-		for (int i = 0; i < childChilds.length; i++) {
-			try {
-				nodeDao.getProjectId(childChilds[i]);
-				fail();
-			} catch (NotFoundException e) {
-				//expected
-			}
-		}
-
-		nodeDao.changeNodeParent(childId, newParentId, false);
-
-		// make sure all project ids are set to new project
-		assertEquals(newParentId, nodeDao.getProjectId(childId));
-		for (int i = 0; i < childChilds.length; i++) {
-			assertEquals(newParentId, nodeDao.getProjectId(childChilds[i]));
-		}
-	}
-
-	/**
-	 * Tests that changeNodeParent correctly throws a IllegalArgumentException when the JDONode's parentId is null
-	 * 
-	 * @throws Exception
-	 */
-	@Test(expected = IllegalArgumentException.class)
-	public void testChangeNodeParentWhenParentIsNull() throws Exception {
-		//make a project
-		Node node = privateCreateNew("root");
-		node.setNodeType(EntityType.project);
-		String rootId = nodeDao.createNew(node);
-		toDelete.add(rootId);
-		assertNotNull(rootId);
-		
-		//make a second project
-		node = privateCreateNew("newParent");
-		node.setNodeType(EntityType.project);
-		String newParentId = nodeDao.createNew(node);
-		toDelete.add(newParentId);
-		assertNotNull(newParentId);
-		
-		Node parent = nodeDao.getNode(rootId);
-		assertNull(parent.getParentId());
-		nodeDao.changeNodeParent(rootId, newParentId, false);
-	}
-	
-	/**
-	 * This was a test added for PLFM-3686, as the method was previously untested.
-	 */
-	@Test
-	public void testUpdateNodeProjectId(){
-		//make a parent project
-		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project);
-		String parentProjectId = nodeDao.createNew(node);
-		toDelete.add(parentProjectId);
-		assertNotNull(parentProjectId);
-		
-		//add a child to the parent
-		node = privateCreateNew("parentFolder");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId);
-		String parentFolderId = nodeDao.createNew(node);
-		Node parentFolder = nodeDao.getNode(parentFolderId);
-		toDelete.add(parentFolderId);
-		assertNotNull(parentFolderId);
-		
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentFolderId);
-		String childId2 = nodeDao.createNew(node);
-		Node child = nodeDao.getNode(parentFolderId);
-		toDelete.add(childId2);
-		assertNotNull(childId2);
-		
-		//make a second project
-		node = privateCreateNew("newProject");
-		node.setNodeType(EntityType.project);
-		String newProjectId = nodeDao.createNew(node);
-		toDelete.add(newProjectId);
-		assertNotNull(newProjectId);
-		
-		// Move the parentFolder to the new project
-		// call under test
-		int count = nodeDao.updateProjectForAllChildren(parentFolder.getId(), newProjectId);
-		assertEquals(2, count);
-		// parent
-		Node updated = nodeDao.getNode(parentFolderId);
-		assertEquals(newProjectId, updated.getProjectId());
-		assertFalse("Changing the projectId should change the etag", parentFolder.getETag().equals(updated.getETag()));
-		//child
-		updated = nodeDao.getNode(parentFolderId);
-		assertEquals(newProjectId, updated.getProjectId());
-		assertFalse("Changing the projectId should change the etag", child.getETag().equals(updated.getETag()));
-	
-	}
-	
-	/**
-	 * Tests that changeNodeParent does nothing if the new parent parameter
-	 * is the parent the current node already references
-	 * @throws Exception
-	 */
-	@Test
-	public void testChangeNodeParentWhenParamParentIsCurrentParent() throws Exception {
-		//make a parent project
-		Node node = privateCreateNew("parentProject");
-		node.setNodeType(EntityType.project);
-		String parentProjectId = nodeDao.createNew(node);
-		toDelete.add(parentProjectId);
-		assertNotNull(parentProjectId);
-		
-		//add a child to the parent
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId);
-		String childId = nodeDao.createNew(node);
-		toDelete.add(childId);
-		assertNotNull(childId);
-		
-		//check current state of node
-		Node oldNode = nodeDao.getNode(childId);
-		assertNotNull(oldNode);
-		assertEquals(childId, oldNode.getId());
-		assertEquals(parentProjectId, oldNode.getParentId());
-		
-		//make the parentChange update
-		boolean updateReturn = nodeDao.changeNodeParent(childId, parentProjectId, false);
-		assertFalse(updateReturn);
-		
-		//check new state of node
-		Node newNode = nodeDao.getNode(childId);
-		assertNotNull(newNode);
-		assertEquals(childId, newNode.getId());
-		assertEquals(parentProjectId, newNode.getParentId());
-	}
-	
-	@Test(expected=NameConflictException.class)
-	public void testChangeNodeParentDuplicateName() throws Exception {
-		// Make a parent-child project/folder
-		Node node = privateCreateNew("parentProject1");
-		node.setNodeType(EntityType.project);
-		String parentProjectId1 = nodeDao.createNew(node);
-		toDelete.add(parentProjectId1);
-		assertNotNull(parentProjectId1);
-		
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId1);
-		String childId1 = nodeDao.createNew(node);
-		toDelete.add(childId1);
-		assertNotNull(childId1);
-		
-		// Make another parent-child project/folder
-		node = privateCreateNew("parentProject2");
-		node.setNodeType(EntityType.project);
-		String parentProjectId2 = nodeDao.createNew(node);
-		toDelete.add(parentProjectId2);
-		assertNotNull(parentProjectId2);
-		
-		node = privateCreateNew("child");
-		node.setNodeType(EntityType.folder);
-		node.setParentId(parentProjectId2);
-		String childId2 = nodeDao.createNew(node);
-		toDelete.add(childId2);
-		assertNotNull(childId2);
-		
-		//check current state of nodes
-		Node oldNode1 = nodeDao.getNode(childId1);
-		assertNotNull(oldNode1);
-		assertEquals(childId1, oldNode1.getId());
-		assertEquals(parentProjectId1, oldNode1.getParentId());
-		Node oldNode2 = nodeDao.getNode(childId2);
-		assertNotNull(oldNode2);
-		assertEquals(childId2, oldNode2.getId());
-		assertEquals(parentProjectId2, oldNode2.getParentId());
-		
-		// Change child2's parents to parentProject1 --> conflict on name 'child'
-		boolean changed = nodeDao.changeNodeParent(childId2, parentProjectId1, false);
-	}
 
 	@Test
 	public void testReferenceDeleteCurrentVersion() throws NotFoundException, DatastoreException, InvalidModelException {
@@ -2842,7 +2545,7 @@ public class NodeDAOImplTest {
 	public void testGetBenefactorIdChildWithNoParent() throws Exception{
 		Node child = setUpChildWithNoParent();
 		// Before the fix, this call call would hang with 100% CPU.
-		nodeInheritanceDAO.getBenefactor(child.getId());
+		nodeDao.getBenefactor(child.getId());
 	}
 	
 	/**
@@ -2868,7 +2571,7 @@ public class NodeDAOImplTest {
 	public void testGetBenefactorIdInfiniteLoop() throws Exception{
 		String id = setUpChildAsItsOwnParent();
 		// Before the fix, this call call would hang with 100% CPU.
-		nodeInheritanceDAO.getBenefactor(id);
+		nodeDao.getBenefactor(id);
 	}
 	
 	/**
@@ -3160,7 +2863,8 @@ public class NodeDAOImplTest {
 		fileId = nodeDao.createNew(file);
 		resutls.add(nodeDao.getNode(fileId));
 		// Set file2 to be its own benefactor
-		nodeInheritanceDAO.addBeneficiary(fileId, fileId);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		toDelete.add(fileId);
 		
 		return resutls;
@@ -3176,7 +2880,7 @@ public class NodeDAOImplTest {
 		project.setId(KeyFactory.keyToString(idGenerator.generateNewId(IdType.ENTITY_ID)));
 		project.setParentId(parentId);
 		project = this.nodeDao.createNewNode(project);
-		toDelete.add(project.getProjectId());
+		toDelete.add(project.getId());
 		return project;
 	}
 
@@ -3374,7 +3078,8 @@ public class NodeDAOImplTest {
 		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.folder), header.getType());
 		assertEquals(folder2.getVersionLabel(), header.getVersionLabel());
 		assertEquals(folder2.getVersionNumber(), header.getVersionNumber());
-		assertEquals(KeyFactory.stringToKey(folder2.getBenefactorId()), header.getBenefactorId());
+		String benefactorId = nodeDao.getBenefactor(header.getId());
+		assertEquals(benefactorId, header.getBenefactorId());
 	}
 	
 	@Test
@@ -3464,5 +3169,74 @@ public class NodeDAOImplTest {
 		String childId = nodeDao.createNew(child);
 		toDelete.add(childId);
 		assertEquals(childId, nodeDao.lookupChild(projectId, entityName));
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetBenefactorEntityDoesNotExist(){
+		// should not exist
+		nodeDao.getBenefactor("syn9999");
+	}
+	
+	@Test
+	public void testGetBenefactorSelf(){
+		// create a parent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		toDelete.add(grandparent.getId());
+		
+		// There is no ACL for this node
+		try{
+			nodeDao.getBenefactor(grandparent.getId());
+			fail("Does not have a benefactor");
+		}catch(NotFoundException expected){
+			// expected
+		}
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
+		// create an ACL with the same ID but wrong type.
+		accessControlListDAO.create(acl, ObjectType.EVALUATION);
+		try{
+			nodeDao.getBenefactor(grandparent.getId());
+			fail("Does not have a benefactor");
+		}catch(NotFoundException expected){
+			// expected
+		}
+		// Create an ACL with the correct type
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		
+		String benefactor = nodeDao.getBenefactor(grandparent.getId());
+		assertEquals("Entity should be its own benefactor",grandparent.getId(), benefactor);
+	}
+	
+	@Test
+	public void testGetBenefactorNotSelf(){
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		toDelete.add(child.getId());
+		// benefactor does not exist yet
+		try{
+			nodeDao.getBenefactor(child.getId());
+			fail("Does not have a benefactor");
+		}catch(NotFoundException expected){
+			// expected
+		}
+		// add an ACL on the grandparent.
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(grandparent.getId(), adminUser, new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		// The benefactor of each should the grandparent.
+		assertEquals(grandparent.getId(), nodeDao.getBenefactor(child.getId()));
+		assertEquals(grandparent.getId(), nodeDao.getBenefactor(parent.getId()));
+		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
 	}
 }

@@ -70,8 +70,6 @@ public class NodeManagerImplUnitTest {
 	@Mock
 	private EntityBootstrapper mockEntityBootstrapper;
 	@Mock
-	private NodeInheritanceManager mockNodeInheritanceManager = null;
-	@Mock
 	private ActivityManager mockActivityManager;
 	@Mock
 	private ProjectSettingsManager projectSettingsManager;
@@ -100,7 +98,6 @@ public class NodeManagerImplUnitTest {
 		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthManager);
 		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
 		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
-		ReflectionTestUtils.setField(nodeManager, "nodeInheritanceManager", mockNodeInheritanceManager);
 		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
 		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", projectSettingsManager);
 		ReflectionTestUtils.setField(nodeManager, "transactionalMessenger", transactionalMessenger);

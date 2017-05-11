@@ -42,10 +42,6 @@
 		
 	<bean id="fileHandleDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl" />
-
-	<!-- Controls how nodes inherit their permissions -->
-	<bean id="nodeInheritanceDao"
-		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 		
 	<!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production -->
 	<util:list id="bootstrapPrincipals">
