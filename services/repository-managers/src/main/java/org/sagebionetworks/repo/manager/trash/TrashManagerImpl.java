@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -90,20 +91,37 @@ public class TrashManagerImpl implements TrashManager {
 		final String trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		node.setParentId(trashCanId);
 		updateNodeForTrashCan(currentUser, node, ChangeType.DELETE);
-		// If this node has an ACL then delete it.
-		aclDAO.delete(nodeId, ObjectType.ENTITY);
-		
-		// Delete all ACLs within the hierarchy
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		// Get the list of all parentIds for this hierarchy.
-		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeIdLong);
-		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(allParentIds);
-		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);
+		deleteAllAclsInHierarchy(nodeId);
 		// Update the trash can table
 		String userGroupId = currentUser.getId().toString();
 		trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
 	}
 
+	/**
+	 * Delete all ACLs in the entire hierarchy defined by the given parent
+	 * ID.
+	 * @param nodeId
+	 */
+	void deleteAllAclsInHierarchy(final String nodeId) {
+		// If this node has an ACL then delete it.
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		
+		// Delete all ACLs within the hierarchy
+		// Get the list of all parentIds for this hierarchy.
+		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeId);
+		// Lookup all children with ACLs for the given parents.
+		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(allParentIds);
+		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);
+	}
+
+	/**
+	 * Updating the node includes an etag check, setting modifiedOn, modifiedBy
+	 * and sending a ENTITY_CONTAINER event to trigger the update of all children.
+	 * 
+	 * @param userInfo
+	 * @param node
+	 * @param changeType
+	 */
 	void updateNodeForTrashCan(UserInfo userInfo, Node node,
 			ChangeType changeType) {
 		// Lock the node and update the etag.
@@ -152,7 +170,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 		
 		// Make sure new parent is not in trash can.
-		if (trashCanDao.getTrashedEntity(newParentId) != null) {
+		if (!nodeDao.isNodeAvailable(newParentId)) {
 			throw new ParentInTrashCanException("The intended parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
@@ -161,14 +179,20 @@ public class TrashManagerImpl implements TrashManager {
 		Node node = nodeDao.getNode(nodeId);
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId));
+		
+		// Only projects can move to root
+		if(NodeUtils.isRootEntityId(newParentId)){
+			if(!EntityType.project.equals(node.getNodeType())){
+				throw new IllegalArgumentException("Ony projects can be restored to root");
+			}
+		}
 
 		// Now restore
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
 		updateNodeForTrashCan(currentUser, node, ChangeType.CREATE);
-		// If the node does not have a benefactor then create an ACL.
-		String newBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
-		if(newBenefactorId == null){
+		// If the new parent is root then add an ACL.
+		if(NodeUtils.isRootEntityId(newParentId)){
 			// Create an ACL for this entity.
 			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, currentUser, new Date());
 			aclDAO.create(acl, ObjectType.ENTITY);
@@ -231,7 +255,8 @@ public class TrashManagerImpl implements TrashManager {
 
 	@WriteTransaction
 	@Override
-	public void purgeTrashForUser(UserInfo currentUser, String nodeId, PurgeCallback purgeCallback) throws DatastoreException,
+	public void purgeTrashForUser(UserInfo currentUser, String nodeId,
+			PurgeCallback purgeCallback) throws DatastoreException,
 			NotFoundException {
 
 		if (currentUser == null) {
@@ -246,11 +271,19 @@ public class TrashManagerImpl implements TrashManager {
 		String userGroupId = currentUser.getId().toString();
 		boolean exists = trashCanDao.exists(userGroupId, nodeId);
 		if (!exists) {
-			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
+			throw new NotFoundException("The node " + nodeId
+					+ " is not in the trash can.");
 		}
 
 		if (purgeCallback != null) {
 			purgeCallback.startPurge(nodeId);
+		}
+
+		nodeDao.delete(nodeId);
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		trashCanDao.delete(userGroupId, nodeId);
+		if (purgeCallback != null) {
+			purgeCallback.endPurge();
 		}
 	}
 

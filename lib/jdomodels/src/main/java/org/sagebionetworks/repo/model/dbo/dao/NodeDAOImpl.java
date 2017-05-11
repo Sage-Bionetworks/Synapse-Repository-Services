@@ -1636,6 +1636,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			parameters.put(IDS_PARAM_NAME, childern);
 		}
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
+	 */
+	@Override
+	public List<Long> getAllContainerIds(String parentId){
+		ValidateArgument.required(parentId, "parentId");
+		Long id = KeyFactory.stringToKey(parentId);
+		return getAllContainerIds(id);
+	}
 
 
 	@Override

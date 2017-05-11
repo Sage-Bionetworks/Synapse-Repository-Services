@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -198,5 +199,15 @@ public class NodeUtilsTest {
 				assertFalse(NodeUtils.isProjectOrFolder(type));
 			}
 		}
+	}
+	
+	@Test
+	public void testIsRootEntityId(){
+		String rootId = StackConfiguration.singleton().getRootFolderEntityId();
+		assertTrue(NodeUtils.isRootEntityId(rootId));
+		assertFalse(NodeUtils.isRootEntityId(rootId+"1"));
+		Long rootLong = KeyFactory.stringToKey(rootId);
+		assertTrue(NodeUtils.isRootEntityId(""+rootLong));
+		assertFalse(NodeUtils.isRootEntityId(""+rootLong+1));
 	}
 }

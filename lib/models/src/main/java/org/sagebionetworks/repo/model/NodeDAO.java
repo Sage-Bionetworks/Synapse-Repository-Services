@@ -465,6 +465,13 @@ public interface NodeDAO {
 	List<Long> getAllContainerIds(Long parentId);
 	
 	/**
+	 * See: {@link #getAllContainerIds(Long)}
+	 * @param parentId
+	 * @return
+	 */
+	List<Long> getAllContainerIds(String parentId);
+	
+	/**
 	 * Lookup a nodeId using its alias.
 	 * @param alias
 	 * @return
