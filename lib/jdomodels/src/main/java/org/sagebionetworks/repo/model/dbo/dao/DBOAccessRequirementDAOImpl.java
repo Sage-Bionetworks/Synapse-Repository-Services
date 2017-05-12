@@ -44,9 +44,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
+	public static final Long DEFAULT_VERSION = 0L;
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -76,10 +77,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
-	private static final String SELECT_ALL_IDS_SQL = 
-			"SELECT "+COL_ACCESS_REQUIREMENT_ID
-			+" FROM "+TABLE_ACCESS_REQUIREMENT;
 
 	private static final String SELECT_FOR_SUBJECT_SQL = 
 			"SELECT DISTINCT ar.*"
@@ -99,10 +96,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				COL_ACCESS_REQUIREMENT_ETAG+
 			" from "+TABLE_ACCESS_REQUIREMENT
 			+" where "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
-	
-	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL = 
-			"delete from "+TABLE_SUBJECT_ACCESS_REQUIREMENT
-			+" where "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 	
 	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
 	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
@@ -155,6 +148,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
+	@Deprecated
+	@Override
+	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
+		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) return dtos;
+		List<Long> subjectIdsAsLong = new ArrayList<Long>();
+		for (String id: subjectIds) {
+			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		List<DBOAccessRequirement> dbos = namedJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL, param, accessRequirementRowMapper);
+		for (DBOAccessRequirement dbo : dbos) {
+			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+
+	@Deprecated
 	@Override
 	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 		if (subjectIds.isEmpty()) return new ArrayList<Long>();
@@ -187,7 +201,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		for (Long arId : arIds) if (arId!=null) result.add(arId);
 		return result;
 	}
-	
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -200,20 +213,20 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException{
-	
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
 		dbo.setId(idGenerator.generateNewId(IdType.ACCESS_REQUIREMENT_ID));
 		dbo.seteTag(UUID.randomUUID().toString());
+		dbo.setCurrentRevNumber(DEFAULT_VERSION);
 		dbo = basicDao.createNew(dbo);
-		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
+		populateSubjectAccessRequirement(dbo.getId(), dbo.getCurrentRevNumber(), dto.getSubjectIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
+		DBOAccessRequirementRevision dboRevision = AccessRequirementUtils.copyDBOAccessRequirementToDBOAccessRequirementRevision(dbo);
+		basicDao.createNew(dboRevision);
 		return result;
 	}
 
-	
-	@WriteTransactionReadCommitted
-	public void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
+	private void populateSubjectAccessRequirement(Long accessRequirementId, Long version, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		if (subjectIds==null || subjectIds.isEmpty()) return;
 
 		List<DBOSubjectAccessRequirement> batch = new ArrayList<DBOSubjectAccessRequirement>();
@@ -245,16 +258,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, entities);
 		return dto;
 	}
-	
-	@Override
-	public List<String> getIds() {
-		return namedJdbcTemplate.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
-			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(SqlConstants.COL_ACCESS_REQUIREMENT_ID);
-			}
-		});
-	}
 
 	@Override
 	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId) {
@@ -275,30 +278,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 
 		return ans;
-	}
-	
-	@Override
-	public long getCount() throws DatastoreException {
-		return basicDao.getCount(DBOAccessRequirement.class);
-	}
-
-	@Override
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
-		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
-		if (subjectIds.isEmpty()) return dtos;
-		List<Long> subjectIdsAsLong = new ArrayList<Long>();
-		for (String id: subjectIds) {
-			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
-		List<DBOAccessRequirement> dbos = namedJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL, param, accessRequirementRowMapper);
-		for (DBOAccessRequirement dbo : dbos) {
-			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
-			dtos.add(dto);
-		}
-		return dtos;
 	}
 
 	@WriteTransactionReadCommitted
@@ -325,7 +304,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 		if (ars.isEmpty()) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");			
+			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 
 		// Check dbo's etag against dto's etag
@@ -341,22 +320,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		boolean success = basicDao.update(dbo);
 
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Requirement in database.");
-		updateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
+		populateSubjectAccessRequirement(dbo.getId(), dbo.getCurrentRevNumber(), dto.getSubjectIds());
 		T updatedAR = (T)AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
 
 		return updatedAR;
-	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
-	
-	// to update the node ids for the Access Requirement, we just delete the existing ones and repopulate
-	private void updateSubjectAccessRequirement(Long acessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
-		{
-			// delete the existing subject-access-requirement records...
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
-			namedJdbcTemplate.update(DELETE_SUBJECT_ACCESS_REQUIREMENT_SQL, param);
-		}
-		// ... now populate with the updated values
-		populateSubjectAccessRequirement(acessRequirementId, subjectIds);
 	}
 
 	@Override
