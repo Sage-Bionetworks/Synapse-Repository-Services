@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
@@ -43,51 +42,6 @@ public class QueryUtils {
 		primaryFields.add(SqlConstants.INPUT_DATA_LAYER_DATASET_ID);
 	}
 
-	/**
-	 * What is the table name for a given field type.
-	 * 
-	 * @param type
-	 * @return
-	 * @throws AttributeDoesNotExist
-	 */
-	public static String getTableNameForFieldType(FieldType type) {
-		// Get the class and use it to lookup the table
-		if(FieldType.BLOB_ATTRIBUTE == type){
-			throw new UnsupportedOperationException("Blob annotaions are no longer supported");
-		}else if(FieldType.DATE_ATTRIBUTE == type){
-			return SqlConstants.TABLE_DATE_ANNOTATIONS;
-		}else if(FieldType.DOUBLE_ATTRIBUTE == type){
-			return SqlConstants.TABLE_DOUBLE_ANNOTATIONS;
-		}else if(FieldType.STRING_ATTRIBUTE == type){
-			return SqlConstants.TABLE_STRING_ANNOTATIONS;
-		}else if(FieldType.LONG_ATTRIBUTE == type){
-			return SqlConstants.TABLE_LONG_ANNOTATIONS;
-		}else{
-			throw new IllegalArgumentException("Unknown type: "+type);
-		}
-	}
-
-	/**
-	 * Build up the authorization filter
-	 * 
-	 * @param userInfo
-	 * @param parameters a mutable parameter list
-	 * @param nodeAlias TODO
-	 * @param groupIndexToStartFrom
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public static String buildAuthorizationFilter(boolean isAdmin, Set<Long> groups, Map<String, Object> parameters, String nodeAlias,
-			int groupIndexToStartFrom)
-			throws DatastoreException {
-		// First off, if the user is an administrator then there is no filter
-		if (isAdmin) {
-			return "";
-		}
-		String sql = buildAuthorizationSelect(groups, parameters, groupIndexToStartFrom);
-		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
-	}
-
 	public static String buildAuthorizationSelect(Collection<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
 		if (parameters == null)
 			throw new IllegalArgumentException("Parameters cannot be null");
@@ -110,28 +64,6 @@ public class QueryUtils {
 			index++;
 		}
 		return sql;
-	}
-
-	/**
-	 * Build up "on (oneAlias.oneColumn = twoAias.twoColumn)"
-	 * 
-	 * @param builder
-	 * @param oneAlias
-	 * @param oneColumn
-	 * @param twoAlias
-	 * @param twoColumn
-	 */
-	private static void buildJoinOn(StringBuilder builder, String oneAlias,
-			String oneColumn, String twoAlias, String twoColumn) {
-		builder.append(" on (");
-		builder.append(oneAlias);
-		builder.append(".");
-		builder.append(oneColumn);
-		builder.append(" = ");
-		builder.append(twoAlias);
-		builder.append(".");
-		builder.append(twoColumn);
-		builder.append(")");
 	}
 
 	public static String buildPaging(long offset, long limit,

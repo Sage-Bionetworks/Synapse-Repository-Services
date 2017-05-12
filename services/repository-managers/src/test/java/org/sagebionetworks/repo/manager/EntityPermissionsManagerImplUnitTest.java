@@ -68,8 +68,6 @@ public class EntityPermissionsManagerImplUnitTest {
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
 	@Mock
-	private NodeInheritanceManager mockNodeInheritanceManager;
-	@Mock
 	private UserManager mockUserManager;
 	@Mock
 	private AuthenticationManager mockAuthenticationManager;
@@ -119,7 +117,6 @@ public class EntityPermissionsManagerImplUnitTest {
     	project.setCreatedByPrincipalId(userId);
     	project.setNodeType(EntityType.project);
        	project.setParentId(projectParentId);
-       	project.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(projectId)).thenReturn(project);
     	when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
     	
@@ -128,7 +125,6 @@ public class EntityPermissionsManagerImplUnitTest {
     	folder.setCreatedByPrincipalId(userId);
         folder.setParentId(folderParentId);
     	folder.setNodeType(EntityType.folder);
-    	folder.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(folderId)).thenReturn(folder);
     	when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
     	
@@ -137,9 +133,10 @@ public class EntityPermissionsManagerImplUnitTest {
     	file.setCreatedByPrincipalId(userId);
     	file.setParentId(folderParentId);
     	file.setNodeType(EntityType.file);
-    	file.setBenefactorId(benefactorId);
     	when(mockNodeDao.getNode(fileId)).thenReturn(file);
     	when(mockNodeDao.getNodeTypeById(fileId)).thenReturn(EntityType.file);
+    	
+    	when(mockNodeDao.getBenefactor(anyString())).thenReturn(benefactorId);
    	
     	dockerRepo = new Node();
     	dockerRepo.setId(dockerRepoId);
@@ -153,13 +150,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
     	when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())).thenReturn(anonymousUser);
 
-		when(mockNodeInheritanceManager.getBenefactor(projectId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(folderId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(fileId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(dockerRepoId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(projectParentId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(folderParentId)).thenReturn(benefactorId);
-		when(mockNodeInheritanceManager.getBenefactor(benefactorId)).thenReturn(benefactorId);
+		when(mockNodeDao.getBenefactor(anyString())).thenReturn(benefactorId);
 		
 		// we make the given user a fully authorized 'owner' of the entity
 		when(mockAclDAO.canAccess(eq(certifiedUserInfo.getGroups()), eq(benefactorId), eq(ObjectType.ENTITY), (ACCESS_TYPE)any())).
@@ -183,7 +174,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.getNonVisibleChilrenOfEntity(anySetOf(Long.class), anyString())).thenReturn(nonvisibleIds);
 		
 		entityId = "syn888";
-		when(mockNodeInheritanceManager.getBenefactor(entityId)).thenReturn(entityId);
+		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
 		when(mockAclDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS)).
 		thenReturn(true);
 	}
@@ -446,7 +437,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testRestoreInheritanceProject(){
-		project.setBenefactorId(project.getId());
+		when(mockNodeDao.getBenefactor(project.getId())).thenReturn(project.getId());
 		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
 		// call under test
@@ -456,7 +447,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testRestoreInheritanceFolder(){
-		folder.setBenefactorId(folder.getId());
+		when(mockNodeDao.getBenefactor(folder.getId())).thenReturn(folder.getId());
 		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
 		// call under test
@@ -466,7 +457,7 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	@Test
 	public void testRestoreInheritanceFile(){
-		file.setBenefactorId(file.getId());
+		when(mockNodeDao.getBenefactor(file.getId())).thenReturn(file.getId());
 		when(mockAclDAO.canAccess(anySetOf(Long.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class))).
 		thenReturn(true);
 		// call under test

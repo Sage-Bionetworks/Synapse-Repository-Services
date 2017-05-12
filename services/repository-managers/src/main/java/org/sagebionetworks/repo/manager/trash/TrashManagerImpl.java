@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -44,9 +43,6 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private NodeDAO nodeDao;
-	
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDao;
 
 	@Autowired
 	private AccessControlListDAO aclDAO;

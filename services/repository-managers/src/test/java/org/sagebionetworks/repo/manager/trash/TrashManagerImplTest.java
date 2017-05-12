@@ -7,10 +7,11 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -59,9 +59,6 @@ public class TrashManagerImplTest {
 	
 	@Mock 
 	private NodeManager mockNodeManager;
-	
-	@Mock 
-	private NodeInheritanceDAO mockNodeInheritanceDao;
 	
 	@Mock 
 	private NodeDAO mockNodeDAO;
@@ -169,7 +166,6 @@ public class TrashManagerImplTest {
 		setField(trashManager, "trashCanDao", mockTrashCanDao);
 		setField(trashManager, "authorizationManager", mockAuthorizationManager);
 		setField(trashManager, "nodeManager", mockNodeManager);
-		setField(trashManager, "nodeInheritanceDao", mockNodeInheritanceDao);
 		setField(trashManager, "transactionalMessenger", mockTransactionalMessenger);
 		
 		when(mockNodeDAO.peekCurrentEtag(child1ID)).thenReturn(child1Etag);

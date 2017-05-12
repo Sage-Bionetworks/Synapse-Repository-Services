@@ -163,12 +163,6 @@ public class NodeUtils {
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
-		if (jdo.getProjectId() != null) {
-			dto.setProjectId(KeyFactory.keyToString(jdo.getProjectId()));
-		}
-		if (jdo.getBenefactorId()!=null) {
-			dto.setBenefactorId(KeyFactory.keyToString(jdo.getBenefactorId()));
-		}
 		if(jdo.getEtag() != null){
 			dto.setETag(jdo.getEtag());
 		}

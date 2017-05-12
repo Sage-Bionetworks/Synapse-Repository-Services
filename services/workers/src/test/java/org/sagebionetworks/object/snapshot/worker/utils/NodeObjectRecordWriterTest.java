@@ -1,7 +1,10 @@
 package org.sagebionetworks.object.snapshot.worker.utils;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,17 +27,15 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
@@ -49,8 +50,6 @@ public class NodeObjectRecordWriterTest {
 
 	@Mock
 	private NodeDAO mockNodeDAO;
-	@Mock
-	private NodeInheritanceDAO mockNodeInheritanceDAO;
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
@@ -75,7 +74,6 @@ public class NodeObjectRecordWriterTest {
 		MockitoAnnotations.initMocks(this);
 		writer = new NodeObjectRecordWriter();
 		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
-		ReflectionTestUtils.setField(writer, "nodeInheritanceDao", mockNodeInheritanceDAO);
 		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(writer, "accessRequirementManager", mockAccessRequirementManager);
 		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityPermissionManager);

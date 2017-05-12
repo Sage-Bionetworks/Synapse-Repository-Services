@@ -15,16 +15,14 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
@@ -39,8 +37,6 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 
 	@Autowired
 	private NodeDAO nodeDAO;
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -129,7 +125,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			} else {
 				try {
 					Node node = nodeDAO.getNode(message.getObjectId());
-					String benefactorId = nodeInheritanceDao.getBenefactor(message.getObjectId());
+					String benefactorId = nodeDAO.getBenefactor(message.getObjectId());
 					String projectId = nodeDAO.getProjectId(message.getObjectId());
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
 					record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);

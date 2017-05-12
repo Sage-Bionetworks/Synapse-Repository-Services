@@ -130,9 +130,6 @@ public class MessageManagerImplTest {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
-	
-	@Autowired
 	private NodeDAO nodeDAO;
 
 	@Autowired
@@ -188,7 +185,6 @@ public class MessageManagerImplTest {
 		ReflectionTestUtils.setField(messageManager, "fileHandleDao", fileDAO);
 		ReflectionTestUtils.setField(messageManager, "nodeDAO", nodeDAO);
 		ReflectionTestUtils.setField(messageManager, "entityPermissionsManager", entityPermissionsManager);
-		ReflectionTestUtils.setField(messageManager, "nodeInheritanceManager", nodeInheritanceManager);
 		// the normally autowired SynapseEmailService diverts email from Amazon SES into an S3
 		// file for testing.  In this test suite, however, we want mail to actually go to SES,
 		// so we override the normal autowiring.
