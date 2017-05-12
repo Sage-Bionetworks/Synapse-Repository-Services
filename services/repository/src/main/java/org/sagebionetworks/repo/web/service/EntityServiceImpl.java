@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -73,8 +72,6 @@ public class EntityServiceImpl implements EntityService {
 	public static final Integer DEFAULT_LIMIT = 10;
 	public static final Integer DEFAULT_OFFSET = 0;
 	
-	@Autowired
-	NodeQueryDao nodeQueryDao;
 	@Autowired
 	EntityManager entityManager;
 	@Autowired

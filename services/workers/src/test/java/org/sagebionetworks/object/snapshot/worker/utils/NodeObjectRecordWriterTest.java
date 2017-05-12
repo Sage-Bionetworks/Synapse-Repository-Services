@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,8 +46,6 @@ public class NodeObjectRecordWriterTest {
 
 	@Mock
 	private NodeDAO mockNodeDAO;
-	@Mock
-	private NodeInheritanceDAO mockNodeInheritanceDAO;
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
@@ -74,7 +71,6 @@ public class NodeObjectRecordWriterTest {
 		MockitoAnnotations.initMocks(this);
 		writer = new NodeObjectRecordWriter();
 		ReflectionTestUtils.setField(writer, "nodeDAO", mockNodeDAO);
-		ReflectionTestUtils.setField(writer, "nodeInheritanceDao", mockNodeInheritanceDAO);
 		ReflectionTestUtils.setField(writer, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(writer, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(writer, "entityPermissionManager", mockEntityPermissionManager);

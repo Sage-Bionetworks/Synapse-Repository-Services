@@ -111,7 +111,7 @@ public class NodeFieldTest {
 	@Test
 	public void testBenefacrorId(){
 		assertEquals("benefactorId", NodeField.BENEFACTOR_ID.getFieldName());
-		assertEquals(SqlConstants.COL_NODE_BENEFACTOR_ID, NodeField.BENEFACTOR_ID.getColumnName());
+		assertEquals(null, NodeField.BENEFACTOR_ID.getColumnName());
 		assertEquals(SqlConstants.TABLE_NODE, NodeField.BENEFACTOR_ID.getTableName());
 		assertEquals(SqlConstants.NODE_ALIAS, NodeField.BENEFACTOR_ID.getTableAlias());
 	}

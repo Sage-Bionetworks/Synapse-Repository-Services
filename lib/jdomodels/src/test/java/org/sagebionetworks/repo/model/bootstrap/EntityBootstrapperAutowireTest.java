@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +28,6 @@ public class EntityBootstrapperAutowireTest {
 	EntityBootstrapper entityBootstrapper;
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
-	@Autowired
-	NodeInheritanceDAO nodeInheritanceDao;
 	
 	
 	@Test
@@ -46,7 +43,7 @@ public class EntityBootstrapperAutowireTest {
 			assertNotNull(id);
 			Node node = nodeDao.getNode(id);
 			assertNotNull(node);
-			String benenefactorId = nodeInheritanceDao.getBenefactorCached(id);
+			String benenefactorId = nodeDao.getBenefactor(id);
 			// This node should inherit from itself
 			assertEquals("A bootstrapped node should be its own benefactor",id, benenefactorId);
 			

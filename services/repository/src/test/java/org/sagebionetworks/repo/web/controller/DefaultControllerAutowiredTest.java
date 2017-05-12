@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -54,8 +53,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 	private NodeManager nodeManager;
 	@Autowired
 	private UserManager userManager;
-	@Autowired
-	private AsynchronousDAO asynchronousDAO;
 
 	private Long userId;
 	private Long otherUserId;
@@ -299,18 +296,6 @@ public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerT
 
 		// Now attempt to update the ACL as the dataset
 		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
-	}
-
-	/**
-	 * Since we have moved the annotation updates to an asynchronous process we need to manually
-	 * update the annotations of all nodes for this test. See PLFM-1548
-	 * 
-	 * @throws NotFoundException
-	 */
-	public void updateAnnotationsAndReferences() throws NotFoundException {
-		for(String id: toDelete){
-			asynchronousDAO.createEntity(id);
-		}
 	}
 
 }

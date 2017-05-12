@@ -58,7 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * The Sage business logic for node management.
  *
  */
-public class NodeManagerImpl implements NodeManager, InitializingBean {
+public class NodeManagerImpl implements NodeManager {
 
 	private static final String REQUESTER_DOWNLOAD_COPY_NEEDED = "This download is marked for requester pays download. To download this file, follow the instructions as described in https://www.synapse.org/#!Help:RequesterPays";
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
@@ -76,8 +76,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private AccessControlListDAO aclDAO;	
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;	
-	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;	
+
 	@Autowired 
 	private ActivityManager activityManager;
 	@Autowired
@@ -157,17 +156,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String id = newNode.getId();
 		
 		// Setup the ACL for this node.
-		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclScheme){
-			// This node inherits from its parent.
-			String parentBenefactor = nodeInheritanceManager.getBenefactorCached(newNode.getParentId());
-			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
-		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
+		if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
 			aclDAO.create(rootAcl, ObjectType.ENTITY);
-			// This node is its own benefactor
-			nodeInheritanceManager.addBeneficiary(id, id);
-		}else{
-			throw new IllegalArgumentException("Unknown ACL_SCHEME: "+aclScheme);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -323,16 +314,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@WriteTransaction
 	@Override
-	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
-			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		Node oldNode = nodeDao.getNode(updatedNode.getId());
-		boolean newVersion = false;
-		boolean skipBenefactor = false;
-		updateNode(userInfo, updatedNode, null, newVersion, skipBenefactor, changeType, oldNode);
-	}
-
-	@WriteTransaction
-	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
@@ -373,13 +354,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 						authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD));
 			}
 		}
-		boolean skipBenefactor = true;
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, skipBenefactor, ChangeType.UPDATE, oldNode);
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, ChangeType.UPDATE, oldNode);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion, boolean skipBenefactor,
+	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion,
 			ChangeType changeType, Node oldNode) throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
@@ -427,30 +407,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if(NodeUtils.isProjectOrFolder(updatedNode.getNodeType())){
 				// Notify listeners of the hierarchy change to this container.
 				transactionalMessenger.sendMessageAfterCommit(updatedNode.getId(), ObjectType.ENTITY_CONTAINER, nextETag, ChangeType.UPDATE);
-			}
-			
-			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate, changeType == ChangeType.DELETE);
-			// Update the ACL accordingly
-			if (skipBenefactor) {
-				nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);
-			} else {
-				// If the node is being moved to right under the root, we need to create a new ACL
-				// The root cannot be the benefactor
-				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
-				EntityType type = updatedNode.getNodeType();
-				String defaultPath = EntityTypeUtils.getDefaultParentPath(type);
-				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
-				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
-				if (newAcl) {
-					AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeInUpdate, userInfo, new Date());
-					aclDAO.create(acl, ObjectType.ENTITY);
-					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
-				} else {
-					// Remove the ACLs of all the benefactors
-					removeBenefactorAcl(nodeInUpdate);
-					// Set the new parent as the benefactor
-					nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate, false);
-				}
 			}
 		}
 
@@ -533,12 +489,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 		// Validate the annotation names
 		FieldTypeCache.validateAnnotations(updated);
-	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		// This is a hack because the current DAO is not working with integration tests.
-//		authorizationManager = new TempMockAuthDao();
 	}
 
 	@Override
@@ -778,32 +728,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private void checkFileHandleId(String entityId, String fileHandleId)
 			throws NotFoundException {
 		if(fileHandleId == null) throw new NotFoundException("Object "+entityId+" does not have a file handle associated with it.");
-	}
-
-	/**
-	 * Recursively remove the ACLs of all the descendants who are benefactors.
-	 */
-	private void removeBenefactorAcl(String nodeId)  {
-		String benefactor = null;
-		try {
-			benefactor = nodeInheritanceManager.getBenefactorCached(nodeId);
-		} catch (NotFoundException e) {
-			benefactor = null;
-		}
-		if (nodeId.equals(benefactor)) {
-			try {
-				aclDAO.delete(nodeId, ObjectType.ENTITY);
-			} catch (NotFoundException e) {
-				throw new DatastoreException("ACL for benefactor " + nodeId + " is not found");
-			}
-		}
-		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
-		if (children == null || children.size() == 0) {
-			return;
-		}
-		for (String child : children) {
-			removeBenefactorAcl(child);
-		}
 	}
 
 	@Override

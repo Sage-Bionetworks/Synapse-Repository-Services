@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
@@ -36,12 +34,10 @@ public class DBONodeMapper implements RowMapper<DBONode> {
 		node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 		node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 		node.setType(rs.getString(COL_NODE_TYPE));
-		node.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
 		// If the value was null we must set it to null
 		if(rs.wasNull()){
 			node.setBenefactorId(null);
 		}
-		node.setProjectId(rs.getLong(COL_NODE_PROJECT_ID));
 		// If the value was null we must set it to null
 		if(rs.wasNull()){
 			node.setProjectId(null);

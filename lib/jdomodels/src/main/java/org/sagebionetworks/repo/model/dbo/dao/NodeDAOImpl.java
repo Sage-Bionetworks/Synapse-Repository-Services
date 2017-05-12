@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
@@ -55,7 +54,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
@@ -111,7 +109,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -123,6 +120,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String SQL_SELECT_GET_ENTITY_BENEFACTOR_ID = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String BIND_NODE_IDS =  "bNodeIds";
 	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
 	private static final String BIND_PARENT_ID = "bParentId";
@@ -316,9 +314,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " WHERE R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND  R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
-
-	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME +", "+COL_NODE_ETAG+" = UUID()"
-			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
 	// Track the trash folder.
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
@@ -973,7 +968,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public boolean isNodeAvailable(Long nodeId) {
 		try{
-			Long benefactorId = this.jdbcTemplate.queryForObject("SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)", Long.class, nodeId);
+			Long benefactorId = getBenefactorId(nodeId);
 			if(benefactorId == null){
 				return false;
 			}
@@ -983,6 +978,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Can occur when the schema does not exist.
 			return false;
 		}
+	}
+
+	/**
+	 * Call the getEntityBenefactorId() function to get the node's benefactor.
+	 * 
+	 * @param nodeId
+	 * @return
+	 */
+	private Long getBenefactorId(Long nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		Long benefactorId = this.jdbcTemplate.queryForObject(SQL_SELECT_GET_ENTITY_BENEFACTOR_ID, Long.class, nodeId);
+		return benefactorId;
+	}
+	
+	@Override 
+	public boolean isNodeAvailable(String nodeId){
+		ValidateArgument.required("EntityId", nodeId);
+		Long longId = KeyFactory.stringToKey(nodeId);
+		return isNodeAvailable(longId);
 	}
 	
 	@Override
@@ -1310,78 +1324,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String toReturn = KeyFactory.keyToString(pId);
 		return toReturn;
 	}
-	
-	@WriteTransaction
-	@Override
-	public boolean changeNodeParent(String nodeId, String newParentId, boolean isMoveToTrash) throws NumberFormatException,
-			NotFoundException, DatastoreException {
-		DBONode node = getNodeById(KeyFactory.stringToKey(nodeId));
-		//if node's parentId is null it is a root and can't have
-		//it's parentId altered
-		if (node.getParentId() == null){
-			throw new IllegalArgumentException("Can't change a root project's parentId");
-		}
-		//does this update need to happen
-		if (newParentId.equals(node.getParentIdString())) {
-			return false;
-		}
-		//get reference to new parent's JDONode, will throw exception if node isn't found
-		DBONode newParentNode = getNodeById(KeyFactory.stringToKey(newParentId));
-		//make the update 
-		node.setParentId(newParentNode.getId());
 
-		Long desiredProjectId = newParentNode.getProjectId();
-		if (desiredProjectId == null && !isMoveToTrash && EntityType.project.name().equals(node.getType())) {
-			// we are our own project
-			desiredProjectId = node.getId();
-		}
-
-		// also update the project, since that might have changed too
-		if (!ObjectUtils.equals(node.getProjectId(), desiredProjectId)) {
-			// this means we need to update all the children also
-			updateProjectForAllChildren(node.getId(), desiredProjectId);
-		}
-		
-		try {
-			jdbcTemplate.update(SQL_UPDATE_PARENT_ID, newParentNode.getId(), node.getId());
-		} catch (DuplicateKeyException e) {
-			if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) {
-				throw new NameConflictException("An entity with the name: " + node.getName() + " already exists with a parentId: " + newParentId);
-			}
-		}
-
-		return true;
-	}
-	
-	@WriteTransaction
-	@Override
-	public int updateProjectForAllChildren(String nodeId, String projectId) {
-		ValidateArgument.required(nodeId, "nodeId");
-		ValidateArgument.required(projectId, "projectId");
-		return updateProjectForAllChildren(KeyFactory.stringToKey(nodeId), KeyFactory.stringToKey(projectId));
-	}
-	
-	private int updateProjectForAllChildren(Long nodeId, Long projectId) {
-		List<Long> allChildren = Lists.newLinkedList();
-		allChildren.add(nodeId);
-		getChildrenIdsRecursive(nodeId, allChildren);
-		// batch the updates, so we don't overwhelm the in clause
-		int count = 0;
-		for (List<Long> batch : Lists.partition(allChildren, 500)) {
-			count += namedParameterJdbcTemplate.update(UPDATE_PROJECT_IDS,
-					new MapSqlParameterSource().addValue(IDS_PARAM_NAME, batch).addValue(PROJECT_ID_PARAM_NAME, projectId));
-		}
-		return count;
-	}
-
-	private void getChildrenIdsRecursive(Long id, List<Long> result) {
-		List<Long> children = jdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, Long.class, id);
-		result.addAll(children);
-		for (Long child : children) {
-			getChildrenIdsRecursive(child, result);
-		}
-	}
-		
 	@Override
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
@@ -1628,6 +1571,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			parameters.put(IDS_PARAM_NAME, childern);
 		}
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
+	 */
+	@Override
+	public List<Long> getAllContainerIds(String parentId){
+		ValidateArgument.required(parentId, "parentId");
+		Long id = KeyFactory.stringToKey(parentId);
+		return getAllContainerIds(id);
+	}
 
 
 	@Override
@@ -1657,6 +1611,22 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			throw new IllegalStateException("Infinite loop detected for: "+nodeId);
 		}
 		return KeyFactory.keyToString(projectId);
+	}
+	
+	@Override
+	public String getBenefactor(String nodeId) {
+		ValidateArgument.required(nodeId, "nodeId");
+		Long id = KeyFactory.stringToKey(nodeId);
+		Long benefactorId = getBenefactorId(id);
+		if(benefactorId == null){
+			/*
+			 * Benefactor will be null if the node does not exist.
+			 */
+			throw new NotFoundException("Benefactor not found for: "+nodeId);
+		}else if (benefactorId < 0){
+			throw new IllegalStateException("Infinite loop detected for: "+nodeId);
+		}
+		return KeyFactory.keyToString(benefactorId);
 	}
 
 	@Override

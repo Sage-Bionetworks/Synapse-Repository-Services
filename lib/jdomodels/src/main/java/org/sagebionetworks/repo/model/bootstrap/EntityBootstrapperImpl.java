@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -58,9 +57,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
 	private AccessControlListDAO aclDAO;
-	
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDao;
 	
 	@Autowired
 	private CountingSemaphore semaphoreDao;
@@ -149,7 +145,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			aclDAO.create(acl, ObjectType.ENTITY);
-			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
 
 			// Verify the bootstrap entity has indeed been created
 			id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());

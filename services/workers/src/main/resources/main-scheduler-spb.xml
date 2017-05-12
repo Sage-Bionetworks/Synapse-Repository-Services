@@ -28,7 +28,6 @@
 	<import resource="classpath:stack-configuration-trigger.spb.xml" />
 	<import resource="classpath:cloudwatch-trigger-spb.xml" />
 	
-	<import resource="classpath:entity-annotations-worker-spb.xml" />
 	<import resource="classpath:aws-worker.spb.xml" />
 	<import resource="classpath:search-sqs-spb.xml" />
 	<import resource="classpath:file-sqs-spb.xml" />	
@@ -66,7 +65,6 @@
 			<list>
 				<!-- workers -->
 				<ref bean="principalPrefixQueueMessageReveiverTrigger" />
-				<ref bean="rdsQueueMessageReveiverTrigger" />
 				<ref bean="searchQueueMessageReveiverTrigger" />
 				<ref bean="fileQueueMessageReveiverTrigger" />
 				<ref bean="evaluationSubmissionAnnotationsWorkerTrigger" />

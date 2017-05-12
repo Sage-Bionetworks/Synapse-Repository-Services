@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -35,7 +34,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	private GroupMembersDAO mockGroupMembersDao;
 	private AuthenticationDAO mockAuthenticationDao;
 	private AccessControlListDAO mockAclDao;
-	private NodeInheritanceDAO mockNodeInheritanceDao;
 	private CountingSemaphore mockSemaphoreDao;
 	
 	private List<EntityBootstrapData> bootstrapData;
@@ -50,7 +48,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		mockGroupMembersDao = Mockito.mock(GroupMembersDAO.class);
 		mockAuthenticationDao = Mockito.mock(AuthenticationDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
-		mockNodeInheritanceDao = Mockito.mock(NodeInheritanceDAO.class);
 		mockSemaphoreDao = Mockito.mock(CountingSemaphore.class);
 		// Inject
 		bootstrapper = new EntityBootstrapperImpl();
@@ -60,7 +57,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		ReflectionTestUtils.setField(bootstrapper, "groupMembersDAO", mockGroupMembersDao);
 		ReflectionTestUtils.setField(bootstrapper, "authDAO", mockAuthenticationDao);
 		ReflectionTestUtils.setField(bootstrapper, "aclDAO", mockAclDao);
-		ReflectionTestUtils.setField(bootstrapper, "nodeInheritanceDao", mockNodeInheritanceDao);
 		ReflectionTestUtils.setField(bootstrapper, "semaphoreDao", mockSemaphoreDao);
 		// Setup EntityBootstrapData
 		bootstrapData = new ArrayList<EntityBootstrapData>();
@@ -92,7 +88,6 @@ public class EntityBootstrapperSemaphoreUnitTest {
 		verify(mockAuthenticationDao).bootstrapCredentials();
 		verify(mockNodeDao).createNew(any(Node.class));
 		verify(mockAclDao).create(any(AccessControlList.class), any(ObjectType.class));
-		verify(mockNodeInheritanceDao).addBeneficiary(any(String.class), any(String.class));
 		verify(mockSemaphoreDao).releaseLock("ENTITYBOOTSTRAPPERLOCK", "token");
 	}
 	

@@ -16,8 +16,6 @@ public class SqlConstants {
 	public static final String TABLE_NODE 				= "JDONODE";
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
-	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
-	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOTATIONS		= "ANNOTATIONS_ID_OID";
 	public static final String COL_NODE_ETAG 			= "ETAG";
@@ -45,17 +43,8 @@ public class SqlConstants {
 	public static final String COL_REVISION_SCOPE_IDS		= "SCOPE_IDS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
-	// Annotations tables
-	public static final String TABLE_ANNOTATIONS_OWNER	= "ANNOTATIONS_OWNER";
-	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
-	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
-	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
-	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
 	
-	// The one column of the annotations owner table
-	public static final String COL_ANNOTATION_OWNER				= "OWNER_ID";
-	public static final String DDL_ANNOTATIONS_OWNER			= "schema/AnnotationsOwner-ddl.sql";
 	
 	// The User Profile table
 	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
@@ -276,15 +265,6 @@ public class SqlConstants {
 	
 	// The width of the string annotations value column
 	public static final int STRING_ANNOTATIONS_VALUE_LENGTH = 500;
-	
-	// There are the column names that all annotation tables have.
-	public static final String ANNOTATION_ATTRIBUTE_COLUMN 		= "ATTRIBUTE";
-	public static final String ANNOTATION_VALUE_COLUMN			= "VALUE";
-	public static final String ANNOTATION_OWNER_ID_COLUMN		= "OWNER_ID";
-	public static final String DDL_FILE_STRING_ANNOTATION		= "schema/StringAnnotation-ddl.sql";
-	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
-	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
-	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
 	
 	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";	
 	

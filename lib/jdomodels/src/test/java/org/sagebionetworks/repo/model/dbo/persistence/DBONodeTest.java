@@ -57,7 +57,6 @@ public class DBONodeTest {
 		DBONode node = new DBONode();
 		node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		node.setName("SomeName");
-		node.setBenefactorId(node.getId());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());

@@ -7,11 +7,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -25,9 +25,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  */
 public class NodeUtils {
 	
-
-		
 	private static final String COLUMN_ID_DELIMITER = ",";
+	
+	public static final String ROOT_ENTITY_ID = StackConfiguration.singleton().getRootFolderEntityId();
 
 	/**
 	 * Used to update an existing object
@@ -47,6 +47,9 @@ public class NodeUtils {
 		}
 		if (dto.getCreatedByPrincipalId() != null){
 			jdo.setCreatedBy(dto.getCreatedByPrincipalId());
+		}
+		if(dto.getParentId() != null){
+			jdo.setParentId(KeyFactory.stringToKey(dto.getParentId()));
 		}
 		jdo.setAlias(StringUtils.isEmpty(dto.getAlias()) ? null : dto.getAlias());
 		if (dto.getModifiedByPrincipalId()==null) throw new InvalidModelException("modifiedByPrincipalId may not be null");
@@ -160,12 +163,6 @@ public class NodeUtils {
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
-		if (jdo.getProjectId() != null) {
-			dto.setProjectId(KeyFactory.keyToString(jdo.getProjectId()));
-		}
-		if (jdo.getBenefactorId()!=null) {
-			dto.setBenefactorId(KeyFactory.keyToString(jdo.getBenefactorId()));
-		}
 		if(jdo.getEtag() != null){
 			dto.setETag(jdo.getEtag());
 		}
@@ -239,6 +236,16 @@ public class NodeUtils {
 	public static boolean isProjectOrFolder(EntityType type){
 		return EntityType.project.equals(type)
 				|| EntityType.folder.equals(type);
+	}
+	
+	/**
+	 * Is the given entity ID root?
+	 * 
+	 * @param entityId
+	 * @return
+	 */
+	public static boolean isRootEntityId(String entityId){
+		return KeyFactory.equals(ROOT_ENTITY_ID, entityId);
 	}
 	
 }

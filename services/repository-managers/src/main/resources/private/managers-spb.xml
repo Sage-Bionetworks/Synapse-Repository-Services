@@ -21,8 +21,6 @@
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
-	<bean id="nodeInheritanceManager"
-		class="org.sagebionetworks.repo.manager.NodeInheritanceManagerImpl" />
 
 	<!-- The Entity manager -->
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl">
