@@ -123,6 +123,10 @@ public class AccessRequirementUtilsTest {
 		assertEquals(2, dbos.size());
 		assertEquals(requirementId, dbos.get(0).getAccessRequirementId());
 		assertEquals(requirementId, dbos.get(1).getAccessRequirementId());
-		assertEquals(Arrays.asList(rod1, rod2), AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(dbos));
+		List<RestrictableObjectDescriptor> rodList = AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(dbos);
+		assertNotNull(rodList);
+		assertEquals(2, rodList.size());
+		assertTrue(rodList.contains(rod1));
+		assertTrue(rodList.contains(rod2));
 	}
 }
