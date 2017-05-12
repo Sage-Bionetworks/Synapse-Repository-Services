@@ -119,6 +119,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
 		accessRequirement.setTermsOfUse(text);
@@ -321,6 +322,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setEtag("etag");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setSubjectIds(Arrays.asList(rod));
+		accessRequirement.setVersionNumber(1L);
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
 		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
@@ -364,6 +366,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedBy(individualGroup.getId());
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod1 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));

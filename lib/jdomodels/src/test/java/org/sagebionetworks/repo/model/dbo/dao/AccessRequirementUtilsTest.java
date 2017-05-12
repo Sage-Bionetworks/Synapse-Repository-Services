@@ -43,8 +43,9 @@ public class AccessRequirementUtilsTest {
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());
 		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAcessRequirement");
-		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);	
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		dto.setTermsOfUse("foo");
+		dto.setVersionNumber(1L);
 		return dto;
 	}
 

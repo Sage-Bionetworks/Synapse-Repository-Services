@@ -33,6 +33,7 @@ public class AccessRequirementUtils {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setAccessType(dto.getAccessType().name());
 		dbo.setConcreteType(dto.getConcreteType());
+		dbo.setCurrentRevNumber(dto.getVersionNumber());
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -46,6 +47,7 @@ public class AccessRequirementUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setSubjectIds(subjectIds);
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
+		dto.setVersionNumber(dbo.getCurrentRevNumber());
 		return dto;
 	}
 
@@ -60,6 +62,24 @@ public class AccessRequirementUtils {
 	public static AccessRequirement copyFromSerializedField(DBOAccessRequirement dbo) throws DatastoreException {
 		try {
 			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	public static void copyDTOToDBOAccessRequirementRevision(AccessRequirement dto, DBOAccessRequirementRevision dbo, Long version) {
+		dbo.setOwnerId(dto.getId());
+		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
+		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		dbo.setAccessType(dto.getAccessType().name());
+		dbo.setConcreteType(dto.getConcreteType());
+		dbo.setNumber(version);
+		copyToSerializedField(dto, dbo);
+	}
+
+	private static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
+		try {
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
