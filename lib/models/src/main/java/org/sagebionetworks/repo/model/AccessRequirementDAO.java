@@ -56,12 +56,6 @@ public interface AccessRequirementDAO {
 
 	/**
 	 * 
-	 * @return all IDs in the system
-	 */
-	List<String> getIds();
-
-	/**
-	 * 
 	 * @param subject the subject of the access restriction
 	 * @param principalIds the principalIds (user and groups) to which a user belongs
 	 * @param accessType
@@ -70,8 +64,6 @@ public interface AccessRequirementDAO {
 	 */
 	List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
 			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
-
-	long getCount() throws DatastoreException;
 
 	/**
 	 * Retrieve a page of AccessRequirements.

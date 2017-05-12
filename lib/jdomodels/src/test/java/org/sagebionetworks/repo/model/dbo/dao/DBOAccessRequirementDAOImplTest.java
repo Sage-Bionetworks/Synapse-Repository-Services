@@ -18,10 +18,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -160,14 +156,10 @@ public class DBOAccessRequirementDAOImplTest {
 		RestrictableObjectDescriptor subjectId = 
 			AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId(), RestrictableObjectType.ENTITY);
 
-		long initialCount = accessRequirementDAO.getCount();
-		
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
 		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId()));
-		
-		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
 		// Fetch it
 		// PLFM-1477, we have to check that retrieval works when there is another access requirement
@@ -229,8 +221,6 @@ public class DBOAccessRequirementDAOImplTest {
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
-
-		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 	
 	@Test
@@ -238,13 +228,9 @@ public class DBOAccessRequirementDAOImplTest {
 		// Create a new object
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		
-		long initialCount = accessRequirementDAO.getCount();
-		
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
-		
-		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
 		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
@@ -296,8 +282,6 @@ public class DBOAccessRequirementDAOImplTest {
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
-
-		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 
 	@Test (expected = NotFoundException.class)

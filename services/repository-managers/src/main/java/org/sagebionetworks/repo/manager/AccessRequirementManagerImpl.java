@@ -191,7 +191,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				if (rod.getType()==RestrictableObjectType.EVALUATION) {
 					accessType = ACCESS_TYPE.SUBMIT;
 				} else {
-					throw new IllegalArgumentException("accessType is required.");	
+					throw new IllegalArgumentException("accessType is required.");
 				}
 			}
 			unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
