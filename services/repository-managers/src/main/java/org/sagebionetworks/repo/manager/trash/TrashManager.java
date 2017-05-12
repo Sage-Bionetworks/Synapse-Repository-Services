@@ -119,10 +119,5 @@ public interface TrashManager {
 	 * @param purgeCallback optional
 	 */
 	public void purgeTrashAdmin(List<Long> trashIDs, UserInfo user);
-
-	public void getDescendants(String nodeID, Collection<String> descendants);
-
-	
-
 	
 }

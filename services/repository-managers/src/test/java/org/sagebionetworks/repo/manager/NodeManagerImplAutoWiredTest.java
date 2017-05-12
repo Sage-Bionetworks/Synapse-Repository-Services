@@ -5,12 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +14,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AnnotationNameSpace;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -36,7 +29,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,7 +60,7 @@ public class NodeManagerImplAutoWiredTest {
 	public UserManager userManager;
 	
 	@Autowired
-	private NodeInheritanceDAO inheritanceDAO;
+	private NodeDAO nodeDAO;
 	
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;
@@ -159,12 +151,12 @@ public class NodeManagerImplAutoWiredTest {
 			ACL_SCHEME expectedSchem = entityBootstrapper.getChildAclSchemeForPath(parentPaht);
 			if(ACL_SCHEME.INHERIT_FROM_PARENT == expectedSchem){
 				// This node should inherit from its parent
-				String benefactorId = inheritanceDAO.getBenefactorCached(id);
-				String parentBenefactor = inheritanceDAO.getBenefactorCached(newNode.getParentId());
+				String benefactorId = nodeDAO.getBenefactor(id);
+				String parentBenefactor = nodeDAO.getBenefactor(newNode.getParentId());
 				assertEquals("This node should inherit from its parent",parentBenefactor, benefactorId);
 			}else if(ACL_SCHEME.GRANT_CREATOR_ALL == expectedSchem){
 				// This node should inherit from itself
-				String benefactorId = inheritanceDAO.getBenefactorCached(id);
+				String benefactorId = nodeDAO.getBenefactor(id);
 				assertEquals("This node should inherit from its parent",id, benefactorId);
 				AccessControlList acl = aclDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);

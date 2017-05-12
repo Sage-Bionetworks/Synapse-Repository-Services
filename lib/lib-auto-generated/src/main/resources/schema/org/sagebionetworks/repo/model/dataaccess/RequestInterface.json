@@ -1,0 +1,68 @@
+{
+	"description": "This is the base interface that all Request implements.",
+	"type": "interface",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique immutable ID for this request. A new ID will be generated for new Request. Once issued, this ID is guaranteed to never change or be re-issued."
+		},
+		"accessRequirementId": {
+			"type": "string",
+			"description": "The ID of the Access Requirement which requires a request to be submitted to gain access to a dataset. This request contains information that satisfies those requirements."
+		},
+		"researchProjectId": {
+			"type": "string",
+			"description": "The ID of the research project associated with this request."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this request was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this request was last modified."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this request."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this request."
+		},
+		"ducFileHandleId": {
+			"type": "string",
+			"description": "The Data Use Certificate uploaded by user."
+		},
+		"irbFileHandleId": {
+			"type": "string",
+			"description": "The Institutional Review Board Approval document uploaded by user."
+		},
+		"attachments": {
+			"type": "array",
+			"description": "The set of file handle ID of attached files to this request.",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
+		},
+		"accessors": {
+			"type": "array",
+			"description": "The set of user ID who will gain access to the data set once the request is approved.",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a request is updated it is used to detect when a client's current representation of a request is out-of-date."
+		},
+		"concreteType":{
+			"type":"string",
+			"description":"Indicates which implementation of RequestInterface this object represents."
+		}
+	}
+}

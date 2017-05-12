@@ -6,8 +6,11 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.MockitoAnnotations;
@@ -39,6 +42,8 @@ public class EntityHierarchyChangeWorkerUnitTest {
 	Clock mockClock;
 	@Mock
 	ProgressCallback<Void> mockProgressCallback;
+	@Captor 
+	private ArgumentCaptor<List<ChangeMessage>> publishCapture;
 	
 	EntityHierarchyChangeWorker worker;
 	ChangeMessage message;
@@ -113,7 +118,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// setup only files in this container.
 		when(mockNodeDao.getChildren(anyString(), anyLong(), anyLong())).thenReturn(filesOnly, empty);
 		// call under test
-		worker.recursiveBroadcastMessages(mockProgressCallback, parentId);
+		worker.recursiveBroadcastMessages(mockProgressCallback, parentId, ChangeType.CREATE);
 		verify(mockNodeDao, times(2)).getChildren(anyString(), anyLong(), anyLong());
 		verify(mockChangeDao).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
 		verify(mockMessagePublisher).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
@@ -126,7 +131,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// setup files and folders for children
 		when(mockNodeDao.getChildren(anyString(), anyLong(), anyLong())).thenReturn(filesAndFolders,empty, filesOnly, empty);
 		// call under test
-		worker.recursiveBroadcastMessages(mockProgressCallback, parentId);
+		worker.recursiveBroadcastMessages(mockProgressCallback, parentId, ChangeType.CREATE);
 		// should be called twice with the original parent
 		verify(mockNodeDao, times(2)).getChildren(eq(parentId), anyLong(), anyLong());
 		// should be called twice for the child folder
@@ -142,13 +147,38 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// setup multiple pages of files
 		when(mockNodeDao.getChildren(anyString(), anyLong(), anyLong())).thenReturn(filesOnly, filesOnly, empty);
 		// call under test
-		worker.recursiveBroadcastMessages(mockProgressCallback, parentId);
+		worker.recursiveBroadcastMessages(mockProgressCallback, parentId, ChangeType.CREATE);
 		// should be called three time with the original parent
 		verify(mockNodeDao, times(3)).getChildren(eq(parentId), anyLong(), anyLong());
 		verify(mockChangeDao, times(2)).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
 		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
 		verify(mockProgressCallback, times(5)).progressMade(null);
 		verify(mockClock, times(2)).sleep(anyLong());
+	}
+	
+	/**
+	 * Test for PLFM-1723.
+	 * 
+	 * @throws InterruptedException
+	 */
+	@Test
+	public void testRecursiveBroadcastMessagesChangeType() throws InterruptedException{
+		ChangeMessage currentMessage = new ChangeMessage();
+		currentMessage.setChangeType(ChangeType.UPDATE);
+		when(mockChangeDao.getChangesForObjectIds(any(ObjectType.class), anySetOf(Long.class))).thenReturn(Lists.newArrayList(currentMessage));
+		
+		// setup multiple pages of files
+		when(mockNodeDao.getChildren(anyString(), anyLong(), anyLong())).thenReturn(filesOnly, empty);
+		// call under test
+		worker.recursiveBroadcastMessages(mockProgressCallback, parentId, ChangeType.DELETE);
+
+		verify(mockMessagePublisher, times(1)).publishBatchToTopic(any(ObjectType.class), publishCapture.capture());
+		List<ChangeMessage> published = publishCapture.getValue();
+		assertNotNull(published);
+		assertEquals(1, published.size());
+		ChangeMessage publishedMessage = published.get(0);
+		// the original message was a create but the pushed message should be a delete.
+		assertEquals(ChangeType.DELETE, publishedMessage.getChangeType());
 	}
 	
 }

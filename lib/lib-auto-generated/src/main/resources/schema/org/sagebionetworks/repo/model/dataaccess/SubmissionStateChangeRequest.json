@@ -1,17 +1,17 @@
 {
-	"description": "A request to change the state of a DataAccessSubmission.",
+	"description": "A request to change the state of a Submission.",
 	"properties": {
 		"submissionId":{
 			"type": "string",
-			"description": "The ID of the requested DataAccessSubmission."
+			"description": "The ID of the requested Submission."
 		},
 		"newState": {
-			"$ref":"org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionState",
-			"description": "The new status to set to the requested DataAccessSubmission."
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionState",
+			"description": "The new status to set to the requested Submission."
 		},
 		"rejectedReason":{
 			"type": "string",
-			"description": "The reason that the DataAccessSubmission is rejected if newState is REJECTED."
+			"description": "The reason that the Submission is rejected if newState is REJECTED."
 		}
 	}
 }

@@ -213,6 +213,13 @@ public interface NodeDAO {
 	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
+	 * True if the node exists and is not in the trash.
+	 * @param nodeId
+	 * @return
+	 */
+	public boolean isNodeAvailable(String nodeId);
+	
+	/**
 	 * Get the header information for an entity.
 	 * @param nodeId
 	 * @return the entity header
@@ -293,21 +300,6 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException;
-	
-	/**
-	 * Handles change to a parentId for a node and saves reference to new parent in database.
-	 * 
-	 * @param nodeId
-	 * @param newParentId
-	 * @param isMoveToTrash
-	 * @return returns true if the parent was actually changed, false if not. So, if parent was already set to the
-	 *         parameter newParentId then it will return false.
-	 * @throws NotFoundException
-	 * @throws NumberFormatException
-	 * @throws DatastoreException
-	 */
-	public boolean changeNodeParent(String nodeId, String newParentId, boolean isMoveToTrash) throws NumberFormatException,
-			NotFoundException, DatastoreException;
 	
 	/**
 	 * Get the current revision number for a node.
@@ -435,14 +427,6 @@ public interface NodeDAO {
 
 
 	long getCount();
-	
-	/**
-	 * Update the project Id for a given node and all of its children.
-	 * @param nodeId
-	 * @param projectId
-	 * @return
-	 */
-	int updateProjectForAllChildren(String nodeId, String projectId);
 
 	/**
 	 * Get the IDs of all container nodes within the hierarchy of the given
@@ -458,6 +442,13 @@ public interface NodeDAO {
 	List<Long> getAllContainerIds(Long parentId);
 	
 	/**
+	 * See: {@link #getAllContainerIds(Long)}
+	 * @param parentId
+	 * @return
+	 */
+	List<Long> getAllContainerIds(String parentId);
+	
+	/**
 	 * Lookup a nodeId using its alias.
 	 * @param alias
 	 * @return
@@ -470,6 +461,14 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getProjectId(String objectId);
+	
+	/**
+	 * A node's permissions benefactor is the node which its permissions are inherited from.
+	 * This is the non-cached version of the node's benefactor.  The returned value is always consistent.
+	 * @param beneficiaryId
+	 * @return
+	 */
+	public String getBenefactor(String beneficiaryId);
 
 	/**
 	 * Return a set of fileHandleIds that associated with entityId and appear in the provided list.

@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -609,6 +611,40 @@ public class DBOAccessControlListDAOImplTest {
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertTrue(results.contains(KeyFactory.stringToKey(visibleToOne.getId())));
+	}
+	
+	@Test
+	public void testGetChildrenEntitiesWithAcls(){
+		// add three children to the project
+		Node visibleToBoth = createFolder("visibleToBoth");
+		Node visibleToOne = createFolder("visibleToOne");
+		Node visibleToTwo = createFolder("visibleToTwo");
+		
+		UserInfo userOne = new UserInfo(false, group.getId());
+		UserInfo userTwo = new UserInfo(false, group2.getId());
+		
+		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
+		aclDAO.create(acl1, ObjectType.ENTITY);
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
+		aclDAO.create(acl2, ObjectType.ENTITY);
+		
+		String parentId = node.getId();
+		Long parentIdLong = KeyFactory.stringToKey(parentId);
+		// one cannot see two
+		List<Long> results = aclDAO.getChildrenEntitiesWithAcls(Lists.newArrayList(parentIdLong));
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertTrue(results.contains(KeyFactory.stringToKey(visibleToOne.getId())));
+		assertTrue(results.contains(KeyFactory.stringToKey(visibleToTwo.getId())));
+		assertFalse(results.contains(KeyFactory.stringToKey(visibleToBoth.getId())));
+	}
+	
+	@Test
+	public void testGetChildrenEntitiesWithAclsEmpty(){
+		// empty list should return an empty list.s
+		List<Long> results = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>());
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 	
 	public Node createFolder(String name){

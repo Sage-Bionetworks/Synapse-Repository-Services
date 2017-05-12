@@ -63,8 +63,6 @@ public class NodeManagerAuthorizationTest {
 	@Mock
 	private EntityBootstrapper mockEntityBootstrapper;
 	@Mock
-	private NodeInheritanceManager mockInheritanceManager;
-	@Mock
 	private ActivityManager mockActivityManager;
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;;
@@ -80,7 +78,6 @@ public class NodeManagerAuthorizationTest {
 		ReflectionTestUtils.setField(nodeManager, "authorizationManager", mockAuthDao);
 		ReflectionTestUtils.setField(nodeManager, "aclDAO", mockAclDao);
 		ReflectionTestUtils.setField(nodeManager, "entityBootstrapper", mockEntityBootstrapper);
-		ReflectionTestUtils.setField(nodeManager, "nodeInheritanceManager", mockInheritanceManager);
 		ReflectionTestUtils.setField(nodeManager, "activityManager", mockActivityManager);
 		ReflectionTestUtils.setField(nodeManager, "projectSettingsManager", mockProjectSettingsManager);
 		// The mocks user for tests
@@ -89,7 +86,6 @@ public class NodeManagerAuthorizationTest {
 		when(mockAnnotations.getEtag()).thenReturn("12");
 		when(mockNode.getParentId()).thenReturn("syn456");
 		when(mockNamed.getEtag()).thenReturn("12");
-		when(mockNode.getProjectId()).thenReturn("syn123");
 
 		// UserGroup
 		when(mockUserGroup.getId()).thenReturn("123");

@@ -42,12 +42,6 @@
         "versionLabel":{
             "type":"string"
         },
-        "benefactorId":{
-            "type":"string"
-        },
-        "projectId":{
-            "type":"string"
-        },
         "activityId":{
             "type":"string"
         },

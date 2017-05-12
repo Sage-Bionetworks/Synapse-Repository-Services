@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -60,12 +59,10 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
 import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessSubmissionDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -108,7 +105,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private V2WikiPageDao mockWikiPageDaoV2;
 	@Mock
-	private SubmissionDAO mockSubmissionDAO;
+	private org.sagebionetworks.repo.model.evaluation.SubmissionDAO mockSubmissionDAO;
 	@Mock
 	private Submission mockSubmission;
 	@Mock
@@ -116,7 +113,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private MessageManager mockMessageManager;
 	@Mock
-	private DataAccessSubmissionDAO mockDataAccessSubmissionDao;
+	private org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO mockDataAccessSubmissionDao;
 	@Mock
 	private UserInfo mockACTUser;
 

@@ -1,0 +1,26 @@
+{
+	"description": "The status of a Submission.",
+	"properties": {
+		"submissionId":{
+			"type": "string",
+			"description": "The ID of the Submission submitted for the given AccessRequirement."
+		},
+		"submittedBy":{
+			"type": "string",
+			"description": "The user who submitted the Submission for the given AccessRequirement."
+		},
+		"rejectedReason": {
+			"type": "string",
+			"description": "The reason the submission is rejected, if it's rejected."
+		},
+		"state":{
+			"description": "The state of the submitted Submission, or NOT_SUBMITTED if none was submitted.",
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the Submission' status was last modified."
+		}
+	}
+}

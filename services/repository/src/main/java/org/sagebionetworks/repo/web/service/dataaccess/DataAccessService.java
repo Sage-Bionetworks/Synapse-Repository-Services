@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.RestrictionInformation;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
@@ -19,21 +20,21 @@ public interface DataAccessService {
 
 	ResearchProject getUserOwnResearchProjectForUpdate(Long userId, String accessRequirementId);
 
-	DataAccessRequestInterface createOrUpdate(Long userId, DataAccessRequestInterface toCreateOrUpdate);
+	RequestInterface createOrUpdate(Long userId, RequestInterface toCreateOrUpdate);
 
-	DataAccessRequestInterface getRequestForUpdate(Long userId, String requirementId);
+	RequestInterface getRequestForUpdate(Long userId, String requirementId);
 
-	ACTAccessRequirementStatus submit(Long userId, String requestId, String etag);
+	SubmissionStatus submit(Long userId, String requestId, String etag);
 
-	ACTAccessRequirementStatus cancel(Long userId, String submissionId);
+	SubmissionStatus cancel(Long userId, String submissionId);
 
-	DataAccessSubmission updateState(Long userId, SubmissionStateChangeRequest request);
+	Submission updateState(Long userId, SubmissionStateChangeRequest request);
 
-	DataAccessSubmissionPage listSubmissions(Long userId, DataAccessSubmissionPageRequest request);
+	SubmissionPage listSubmissions(Long userId, SubmissionPageRequest request);
 
 	AccessRequirementStatus getAccessRequirementStatus(Long userId, String requirementId);
 
-	RestrictionInformation getRestrictionInformation(Long userId, String entityId);
+	RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request);
 
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
 

@@ -129,14 +129,6 @@ public interface NodeManager {
 	public Node update(UserInfo userInfo, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Moves a node in and out of a trash can by updating it. It points the parent
-	 * to the trash can folder by going through the same node update process but
-	 * provides the flexibility of specifying different change types. 
-	 */
-	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
-			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
-
-	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
 	 * @param username
 	 * @param updatedNode

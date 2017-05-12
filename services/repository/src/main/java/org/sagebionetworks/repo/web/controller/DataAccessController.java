@@ -2,18 +2,19 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.RestrictionInformation;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessRequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmission;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.DataAccessSubmissionPageRequest;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -80,26 +81,26 @@ public class DataAccessController extends BaseController {
 	}
 
 	/**
-	 * Create a new DataAccessRequest or update an existing DataAccessRequest.
+	 * Create a new Request or update an existing Request.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
-	 * @param toCreate - The object that contains information needed to create/update a DataAccessRequest.
+	 * @param toCreate - The object that contains information needed to create/update a Request.
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST, method = RequestMethod.POST)
-	public @ResponseBody DataAccessRequestInterface createOrUpdate(
+	public @ResponseBody RequestInterface createOrUpdate(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody DataAccessRequestInterface toCreate) throws NotFoundException {
+			@RequestBody RequestInterface toCreate) throws NotFoundException {
 		return serviceProvider.getDataAccessService().createOrUpdate(userId, toCreate);
 	}
 
 	/**
-	 * Retrieve the DataAccessRequest for update.
-	 * If one does not exist, an DataAccessRequest with some re-filled information is returned.
+	 * Retrieve the Request for update.
+	 * If one does not exist, an Request with some re-filled information is returned.
 	 * If a submission associated with the request is approved, and the requirement
-	 * requires renewal, a refilled DataAccessRenewal is returned.
+	 * requires renewal, a refilled Renewal is returned.
 	 * Only the owner of the request can perform this action.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
@@ -109,24 +110,24 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_DATA_ACCESS_REQUEST_FOR_UPDATE, method = RequestMethod.GET)
-	public @ResponseBody DataAccessRequestInterface getRequestForUpdate(
+	public @ResponseBody RequestInterface getRequestForUpdate(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRequestForUpdate(userId, requirementId);
 	}
 
 	/**
-	 * Submit a DataAccessSubmission using information from a DataAccessRequest.
+	 * Submit a Submission using information from a Request.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
-	 * @param requestId - The ID of the DataAccessRequest that is used to create the submission.
-	 * @param etag - The etag og the DataAccessRequest. Etag must match the current etag of the DataAccessRequest.
+	 * @param requestId - The ID of the Request that is used to create the submission.
+	 * @param etag - The etag og the Request. Etag must match the current etag of the Request.
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SUBMISSION, method = RequestMethod.POST)
-	public @ResponseBody ACTAccessRequirementStatus submit(
+	public @ResponseBody SubmissionStatus submit(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requestId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM) String etag)
@@ -145,7 +146,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID_CANCEL, method = RequestMethod.PUT)
-	public @ResponseBody ACTAccessRequirementStatus cancel(
+	public @ResponseBody SubmissionStatus cancel(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String submissionId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().cancel(userId, submissionId);
@@ -162,7 +163,7 @@ public class DataAccessController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_ID, method = RequestMethod.PUT)
-	public @ResponseBody DataAccessSubmission updateState(
+	public @ResponseBody Submission updateState(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SubmissionStateChangeRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().updateState(userId, request);
@@ -173,16 +174,16 @@ public class DataAccessController extends BaseController {
 	 * Only ACT member can perform this action.
 	 * 
 	 * @param userId
-	 * @param dataAccessSubmissionPageRequest
+	 * @param SubmissionPageRequest
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_ID_LIST_SUBMISSION, method = RequestMethod.POST)
-	public @ResponseBody DataAccessSubmissionPage listSubmissions(
+	public @ResponseBody SubmissionPage listSubmissions(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody DataAccessSubmissionPageRequest dataAccessSubmissionPageRequest) throws NotFoundException {
-		return serviceProvider.getDataAccessService().listSubmissions(userId, dataAccessSubmissionPageRequest);
+			@RequestBody SubmissionPageRequest SubmissionPageRequest) throws NotFoundException {
+		return serviceProvider.getDataAccessService().listSubmissions(userId, SubmissionPageRequest);
 	}
 
 	/**
@@ -202,23 +203,23 @@ public class DataAccessController extends BaseController {
 	}
 
 	/**
-	 * Retrieve restriction information on an entity
+	 * Retrieve restriction information on a restrictable object
 	 * 
 	 * @param userId
-	 * @param id
+	 * @param request
 	 * @return
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_RESTRICTION_INFORMATION, method = RequestMethod.GET)
-	public @ResponseBody RestrictionInformation getRestrictionInformation(
+	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION, method = RequestMethod.POST)
+	public @ResponseBody RestrictionInformationResponse getRestrictionInformation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String id) throws NotFoundException {
-		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, id);
+			@RequestBody RestrictionInformationRequest request) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, request);
 	}
 
 	/**
-	 * Retrieve information about submitted DataAccessSubmissions.
+	 * Retrieve information about submitted Submissions.
 	 * Only ACT member can perform this action.
 	 * 
 	 * @param userId

@@ -41,11 +41,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepositoryName" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODockerCommit" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
@@ -123,10 +118,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -207,9 +202,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.throttle.DBOThrottleRule" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessRequest" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBODataAccessSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionAccessor" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>

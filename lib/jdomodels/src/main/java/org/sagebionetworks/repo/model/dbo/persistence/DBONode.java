@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
@@ -47,8 +45,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
 			new FieldColumn("type", COL_NODE_TYPE),
-			new FieldColumn("benefactorId", COL_NODE_BENEFACTOR_ID),
-			new FieldColumn("projectId", COL_NODE_PROJECT_ID),
 			new FieldColumn("alias", COL_NODE_ALIAS),
 			};
 

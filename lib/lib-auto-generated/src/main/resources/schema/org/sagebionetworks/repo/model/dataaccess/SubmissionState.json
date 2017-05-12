@@ -1,0 +1,10 @@
+{
+	"description":"The state of a Submission.",
+	"type":"string",
+	"enum":[
+		"SUBMITTED",
+		"APPROVED",
+		"REJECTED",
+		"CANCELLED"
+	]
+}

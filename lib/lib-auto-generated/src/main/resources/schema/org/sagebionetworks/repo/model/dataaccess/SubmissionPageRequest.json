@@ -1,0 +1,25 @@
+{
+	"description": "A request to retrieve a page of a Submission.",
+	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of an AccessRequirement."
+		},
+		"nextPageToken":{
+			"type": "string",
+			"description": "The token to get the next page result."
+		},
+		"filterBy":{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionState",
+			"description": "The condition to filter the returned result by."
+		},
+		"orderBy":{
+			"$ref":"org.sagebionetworks.repo.model.dataaccess.SubmissionOrder",
+			"description": "The condition to order the returned result by."
+		},
+		"isAscending":{
+			"type": "boolean",
+			"description": "If true, order the returned result in ascending order. Otherwise, order the returned result in descending order."
+		}
+	}
+}
