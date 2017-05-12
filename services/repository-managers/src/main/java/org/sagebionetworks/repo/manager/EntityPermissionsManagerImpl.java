@@ -64,6 +64,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
+	private NodeInheritanceManager nodeInheritanceManager;
+	@Autowired
 	private UserManager userManager;
 	@Autowired
 	private AuthenticationManager authenticationManager;
@@ -81,7 +83,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// Get the id that this node inherits its permissions from
-		String benefactor = nodeDao.getBenefactor(nodeId);		
+		String benefactor = nodeInheritanceManager.getBenefactor(nodeId);		
 		// This is a fix for PLFM-398
 		if (!benefactor.equals(nodeId)) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
@@ -101,7 +103,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getId();
-		String benefactor = nodeDao.getBenefactor(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
@@ -143,18 +145,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
 		Node node = nodeDao.getNode(entityId);
-		String benefactorId = nodeDao.getBenefactor(entityId);
-		if(KeyFactory.equals(benefactorId, entityId)){
+		if(KeyFactory.equals(node.getBenefactorId(), entityId)){
 			throw new UnauthorizedException("Resource already has an ACL.");
 		}
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				hasAccess(benefactorId, CHANGE_PERMISSIONS, userInfo));
+				hasAccess(node.getBenefactorId(), CHANGE_PERMISSIONS, userInfo));
 		
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		// set permissions 'benefactor' for resource and all resource's descendants to resource
+		nodeInheritanceManager.setNodeToInheritFromItself(entityId);
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
@@ -169,13 +172,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@WriteTransaction
 	@Override
 	public AccessControlList restoreInheritance(String entityId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		
 		// Before we can update the ACL we must grab the lock on the node.
 		Node node = nodeDao.getNode(entityId);
-		String benefactorId = nodeDao.getBenefactor(entityId);
 		// check permissions of user to change permissions for the resource
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				hasAccess(entityId, CHANGE_PERMISSIONS, userInfo));
-		if(!KeyFactory.equals(entityId, benefactorId)){
+		if(!KeyFactory.equals(entityId, node.getBenefactorId())){
 			throw new UnauthorizedException("Resource already inherits its permissions.");	
 		}
 
@@ -183,12 +186,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (nodeDao.isNodesParentRoot(entityId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 		
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(entityId);
 		
 		// delete access control list
 		aclDAO.delete(entityId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
-		String benefactor = nodeDao.getBenefactor(entityId);
+		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		
 		// Send a container message for projects or folders.
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
@@ -210,11 +214,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		Node node = nodeDao.getNode(parentId);
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 
-		String benefactorId = nodeDao.getBenefactor(parentId);
+		String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
 		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
 
 		// return governing parent ACL
-		return aclDAO.get(nodeDao.getBenefactor(parentId), ObjectType.ENTITY);
+		return aclDAO.get(nodeInheritanceManager.getBenefactor(parentId), ObjectType.ENTITY);
 	}
 	
 	private void applyInheritanceToChildrenHelper(final String parentId, final String benefactorId, UserInfo userInfo)
@@ -236,6 +240,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 					// delete ACL
 					aclDAO.delete(idToChange, ObjectType.ENTITY);
 				}								
+				// set benefactor ACL
+				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);
 			}
 		}
 	}
@@ -327,7 +333,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
-		final String benefactor = nodeDao.getBenefactor(entityId);
+		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
@@ -367,7 +373,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 */
 	@Override
 	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
-		return nodeDao.getBenefactor(nodeId);
+		return nodeInheritanceManager.getBenefactor(nodeId);
 	}
 
 	@Override
@@ -376,7 +382,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		Node node = nodeDao.getNode(entityId);
 		
-		String benefactor = nodeDao.getBenefactor(entityId);
+		String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
@@ -412,7 +418,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeDao.getBenefactor(resourceId).equals(resourceId);
+			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
 		}
