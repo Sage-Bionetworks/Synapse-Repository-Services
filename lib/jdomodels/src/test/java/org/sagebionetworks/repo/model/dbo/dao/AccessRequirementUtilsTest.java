@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
@@ -16,13 +18,14 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 
 public class AccessRequirementUtilsTest {
-	
+
 	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id) {
 		return createRestrictableObjectDescriptor(id, RestrictableObjectType.ENTITY);
 	}
-	
+
 	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(id);
@@ -44,7 +47,7 @@ public class AccessRequirementUtilsTest {
 		dto.setTermsOfUse("foo");
 		return dto;
 	}
-	
+
 	@Test
 	public void testRoundtrip() throws Exception {
 		AccessRequirement dto = createDTO();
@@ -83,5 +86,43 @@ public class AccessRequirementUtilsTest {
 		assertEquals(dbo.getAccessType(), dboARR.getAccessType());
 		assertEquals(dbo.getConcreteType(), dboARR.getConcreteType());
 		assertEquals(dbo.getSerializedEntity(), dboARR.getSerializedEntity());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateBatchDBOSubjectAccessRequirementWithNullAccessRequirementId() {
+		AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(null, new LinkedList<RestrictableObjectDescriptor>());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateBatchDBOSubjectAccessRequirementWithNullRodList() {
+		AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(0L, null);
+	}
+
+	@Test
+	public void testCreateBatchDBOSubjectAccessRequirementWithEmptyRodList() {
+		assertTrue(AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(0L, new LinkedList<RestrictableObjectDescriptor>()).isEmpty());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCopyDBOSubjectsToDTOSubjectsWithNullList() {
+		AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(null);
+	}
+
+	@Test
+	public void testCopyDBOSubjectsToDTOSubjectsWithEmptyList() {
+		assertTrue(AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(new LinkedList<DBOSubjectAccessRequirement>()).isEmpty());
+	}
+
+	@Test
+	public void testSubjectAccessRequirementRoundTrip() {
+		RestrictableObjectDescriptor rod1 = createRestrictableObjectDescriptor("syn1", RestrictableObjectType.ENTITY);
+		RestrictableObjectDescriptor rod2 = createRestrictableObjectDescriptor("2", RestrictableObjectType.TEAM);
+		Long requirementId = 3L;
+		List<DBOSubjectAccessRequirement> dbos = AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(requirementId, Arrays.asList(rod1, rod2));
+		assertNotNull(dbos);
+		assertEquals(2, dbos.size());
+		assertEquals(requirementId, dbos.get(0).getAccessRequirementId());
+		assertEquals(requirementId, dbos.get(1).getAccessRequirementId());
+		assertEquals(Arrays.asList(rod1, rod2), AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(dbos));
 	}
 }

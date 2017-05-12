@@ -1264,7 +1264,6 @@ public class IT500SynapseJavaClient {
 
 	@Test
 	public void testTeamRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
-		// Create Evaluation
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";

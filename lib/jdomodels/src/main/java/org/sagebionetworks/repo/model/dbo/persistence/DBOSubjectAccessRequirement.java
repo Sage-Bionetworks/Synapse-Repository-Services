@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_VERSION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_SUBJECT_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
@@ -24,13 +23,11 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	private Long subjectId;
 	private String subjectType;
 	private Long accessRequirementId;
-	private Long versionNumber;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("subjectId", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, true),
 		new FieldColumn("subjectType", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, true),
 		new FieldColumn("accessRequirementId", COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true),
-		new FieldColumn("versionNumber", COL_SUBJECT_ACCESS_REQUIREMENT_VERSION_NUMBER)
 	};
 
 	@Override
@@ -44,7 +41,6 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				sar.setSubjectId(rs.getLong(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID));
 				sar.setSubjectType(rs.getString(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE));
 				sar.setAccessRequirementId(rs.getLong(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID));
-				sar.setVersionNumber(rs.getLong(COL_SUBJECT_ACCESS_REQUIREMENT_VERSION_NUMBER));
 				return sar;
 			}
 
@@ -93,14 +89,6 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 		this.accessRequirementId = accessRequirementId;
 	}
 
-	public Long getVersionNumber() {
-		return versionNumber;
-	}
-
-	public void setVersionNumber(Long versionNumber) {
-		this.versionNumber = versionNumber;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -108,7 +96,6 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
 		result = prime * result + ((subjectId == null) ? 0 : subjectId.hashCode());
 		result = prime * result + ((subjectType == null) ? 0 : subjectType.hashCode());
-		result = prime * result + ((versionNumber == null) ? 0 : versionNumber.hashCode());
 		return result;
 	}
 
@@ -136,18 +123,13 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				return false;
 		} else if (!subjectType.equals(other.subjectType))
 			return false;
-		if (versionNumber == null) {
-			if (other.versionNumber != null)
-				return false;
-		} else if (!versionNumber.equals(other.versionNumber))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "DBOSubjectAccessRequirement [subjectId=" + subjectId + ", subjectType=" + subjectType
-				+ ", accessRequirementId=" + accessRequirementId + ", versionNumber=" + versionNumber + "]";
+				+ ", accessRequirementId=" + accessRequirementId + "]";
 	}
 
 	@Override

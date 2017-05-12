@@ -329,7 +329,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			return AuthorizationManagerUtil.accessDenied("Access Requirements may only be created by a member of the Synapse Access and Compliance Team.");
 		}
 	}
-	
+
 	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;

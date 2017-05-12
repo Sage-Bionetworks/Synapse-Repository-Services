@@ -37,8 +37,8 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	private Long number;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID, true),
-		new FieldColumn("Number", COL_ACCESS_REQUIREMENT_REVISION_NUMBER, true),
+		new FieldColumn("ownerId", COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID, true),
+		new FieldColumn("number", COL_ACCESS_REQUIREMENT_REVISION_NUMBER, true),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_REVISION_ACCESS_TYPE),

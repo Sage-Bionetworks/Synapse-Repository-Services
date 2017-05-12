@@ -1,16 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
 
@@ -69,5 +75,36 @@ public class AccessRequirementUtils {
 		dboARR.setConcreteType(dboAR.getConcreteType());
 		dboARR.setSerializedEntity(dboAR.getSerializedEntity());
 		return dboARR;
+	}
+
+	public static List<DBOSubjectAccessRequirement> createBatchDBOSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> rodList) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(rodList, "rodList");
+		List<DBOSubjectAccessRequirement> batch = new ArrayList<DBOSubjectAccessRequirement>();
+		for (RestrictableObjectDescriptor rod: new HashSet<RestrictableObjectDescriptor>(rodList)) {
+			DBOSubjectAccessRequirement nar = new DBOSubjectAccessRequirement();
+			nar.setAccessRequirementId(accessRequirementId);
+			nar.setSubjectId(KeyFactory.stringToKey(rod.getId()));
+			nar.setSubjectType(rod.getType().toString());
+			batch.add(nar);
+		}
+		return batch;
+	}
+
+	public static List<RestrictableObjectDescriptor> copyDBOSubjectsToDTOSubjects(
+			List<DBOSubjectAccessRequirement> bdos) {
+		ValidateArgument.required(bdos, "bdos");
+		List<RestrictableObjectDescriptor> rodList = new ArrayList<RestrictableObjectDescriptor>();	
+		for (DBOSubjectAccessRequirement dbo: bdos) {
+			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+			subjectId.setType(RestrictableObjectType.valueOf(dbo.getSubjectType()));
+			if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+				subjectId.setId(KeyFactory.keyToString(dbo.getSubjectId()));
+			} else {
+				subjectId.setId(dbo.getSubjectId().toString());
+			}
+			rodList.add(subjectId);
+		}
+		return rodList;
 	}
 }
