@@ -9,21 +9,18 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.audit.dao.ObjectRecordDAO;
 import org.sagebionetworks.audit.utils.ObjectRecordBuilderUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.audit.DeletedNode;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
@@ -44,7 +41,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	@Autowired
 	private UserManager userManager;
 	@Autowired
-	private AccessRequirementManager accessRequirementManager;
+	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
 	private EntityPermissionsManager entityPermissionManager;
 	@Autowired
@@ -63,32 +60,19 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	 */
 	private NodeRecord setAccessProperties(NodeRecord record,
 			UserManager userManager,
-			AccessRequirementManager accessRequirementManager,
-			EntityPermissionsManager entityPermissionManager) {
+			AccessRequirementDAO accessRequirementDao,
+			EntityPermissionsManager entityPermissionManager,
+			NodeDAO nodeDao) {
 
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserEntityPermissions permissions = entityPermissionManager.getUserPermissionsForEntity(adminUserInfo, record.getId());
 
 		record.setIsPublic(permissions.getCanPublicRead());
 
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(record.getId());
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
-
-		record.setIsRestricted(false);
-		record.setIsControlled(false);
-		for (AccessRequirement ar: ars){
-			if (ar instanceof ACTAccessRequirement && !record.getIsControlled()) {
-				record.setIsControlled(true);
-			}
-			if (ar instanceof SelfSignAccessRequirement && !record.getIsRestricted()) {
-				record.setIsRestricted(true);
-			}
-			if (record.getIsControlled() && record.getIsRestricted()) {
-				break;
-			}
-		}
+		List<String> subjectIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, record.getId(), true);
+		AccessRequirementStats stats = accessRequirementDao.getAccessRequirementStats(subjectIds, RestrictableObjectType.ENTITY);
+		record.setIsRestricted(stats.getHasToU());
+		record.setIsControlled(stats.getHasACT());
 		return record;
 	}
 
@@ -132,7 +116,7 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 					String benefactorId = nodeInheritanceDao.getBenefactor(message.getObjectId());
 					String projectId = nodeDAO.getProjectId(message.getObjectId());
 					NodeRecord record = buildNodeRecord(node, benefactorId, projectId);
-					record = setAccessProperties(record, userManager, accessRequirementManager, entityPermissionManager);
+					record = setAccessProperties(record, userManager, accessRequirementDao, entityPermissionManager, nodeDAO);
 					ObjectRecord objectRecord = ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime());
 					nonDeleteRecords.add(objectRecord);
 				} catch (EntityInTrashCanException e) {

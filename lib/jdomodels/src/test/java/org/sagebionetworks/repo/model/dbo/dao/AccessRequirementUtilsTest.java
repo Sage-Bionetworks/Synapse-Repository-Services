@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 
 public class AccessRequirementUtilsTest {
 	
@@ -67,4 +69,19 @@ public class AccessRequirementUtilsTest {
 		assertEquals(dto, dto2);
 	}
 
+	@Test
+	public void testCopyDBOarToDBOarr() throws Exception {
+		AccessRequirement dto = createDTO();
+		DBOAccessRequirement dbo = new DBOAccessRequirement();
+		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
+		DBOAccessRequirementRevision dboARR = AccessRequirementUtils.copyDBOAccessRequirementToDBOAccessRequirementRevision(dbo);
+		assertNotNull(dboARR);
+		assertEquals(dbo.getId(), dboARR.getOwnerId());
+		assertEquals(dbo.getCurrentRevNumber(), dboARR.getNumber());
+		assertEquals(dbo.getModifiedBy(), dboARR.getModifiedBy());
+		assertEquals(dbo.getModifiedOn(), dboARR.getModifiedOn());
+		assertEquals(dbo.getAccessType(), dboARR.getAccessType());
+		assertEquals(dbo.getConcreteType(), dboARR.getConcreteType());
+		assertEquals(dbo.getSerializedEntity(), dboARR.getSerializedEntity());
+	}
 }

@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class AccessRequirementUtils {
@@ -49,12 +50,24 @@ public class AccessRequirementUtils {
 			throw new DatastoreException(e);
 		}
 	}
-	
+
 	public static AccessRequirement copyFromSerializedField(DBOAccessRequirement dbo) throws DatastoreException {
 		try {
 			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+
+	public static DBOAccessRequirementRevision copyDBOAccessRequirementToDBOAccessRequirementRevision(DBOAccessRequirement dboAR) {
+		DBOAccessRequirementRevision dboARR = new DBOAccessRequirementRevision();
+		dboARR.setOwnerId(dboAR.getId());
+		dboARR.setNumber(dboAR.getCurrentRevNumber());
+		dboARR.setModifiedBy(dboAR.getModifiedBy());
+		dboARR.setModifiedOn(dboAR.getModifiedOn());
+		dboARR.setAccessType(dboAR.getAccessType());
+		dboARR.setConcreteType(dboAR.getConcreteType());
+		dboARR.setSerializedEntity(dboAR.getSerializedEntity());
+		return dboARR;
 	}
 }

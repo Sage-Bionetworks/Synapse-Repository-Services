@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -24,21 +25,9 @@ public class AccessRequirementMigrationListener implements MigrationTypeListener
 		}
 		for (D dbo : delta) {
 			DBOAccessRequirement dboAR = (DBOAccessRequirement) dbo;
-			DBOAccessRequirementRevision dboARR = getAccessRequirementRevision(dboAR);
+			DBOAccessRequirementRevision dboARR = AccessRequirementUtils.copyDBOAccessRequirementToDBOAccessRequirementRevision(dboAR);
 			basicDao.createNew(dboARR);
 		}
-	}
-
-	public static DBOAccessRequirementRevision getAccessRequirementRevision(DBOAccessRequirement dboAR) {
-		DBOAccessRequirementRevision dboARR = new DBOAccessRequirementRevision();
-		dboARR.setOwnerId(dboAR.getId());
-		dboARR.setNumber(dboAR.getCurrentRevNumber());
-		dboARR.setModifiedBy(dboAR.getModifiedBy());
-		dboARR.setModifiedOn(dboAR.getModifiedOn());
-		dboARR.setAccessType(dboAR.getAccessType());
-		dboARR.setConcreteType(dboAR.getConcreteType());
-		dboARR.setSerializedEntity(dboAR.getSerializedEntity());
-		return dboARR;
 	}
 
 	@Override
