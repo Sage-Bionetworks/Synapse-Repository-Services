@@ -62,7 +62,8 @@ public class AuthorizationStatus {
 		if (exceptionToThrow == null) {
 			if (other.exceptionToThrow != null)
 				return false;
-		} else if (!exceptionToThrow.equals(other.exceptionToThrow))
+		} else if (!exceptionToThrow.getClass().equals(other.exceptionToThrow.getClass())
+				|| !exceptionToThrow.getMessage().equals(other.exceptionToThrow.getMessage()))
 			return false;
 		return true;
 	}
