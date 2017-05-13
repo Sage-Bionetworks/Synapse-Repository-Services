@@ -281,7 +281,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it,"
 					+ " retrieve it again and reapply the update.");
 		}
-		Long newVersion = current.getCurrentRevNumber()+1;
+
+		Long newVersion = 1L;
+		if (current.getCurrentRevNumber() != null) {
+			newVersion = current.getCurrentRevNumber()+1;
+		}
 
 		DBOAccessRequirement toUpdate = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, toUpdate);
