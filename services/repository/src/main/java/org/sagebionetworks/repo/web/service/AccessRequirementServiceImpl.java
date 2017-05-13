@@ -100,4 +100,11 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
 	}
 
+
+	@Override
+	public AccessRequirement updateVersion(Long userId, Long requirementId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.adminUpdateAccessRequirementVersion(userInfo, requirementId);
+	}
+
 }
