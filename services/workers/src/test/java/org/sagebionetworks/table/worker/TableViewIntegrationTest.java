@@ -98,7 +98,7 @@ public class TableViewIntegrationTest {
 	@Autowired
 	private ColumnModelManager columnModelManager;
 	@Autowired
-	private TableViewManager tableViewMangaer;
+	private TableViewManager tableViewManager;
 	@Autowired
 	private TableQueryManager tableQueryManger;
 	@Autowired
@@ -193,18 +193,39 @@ public class TableViewIntegrationTest {
 			}
 			defaultColumnIds.add(cm.getId());
 		}
-		
-		// Create a new file view
-		EntityView fileView = new EntityView();
-		fileView.setName("aFileView");
-		fileView.setParentId(project.getId());
-		fileView.setColumnIds(defaultColumnIds);
-		fileView.setScopeIds(Lists.newArrayList(project.getId()));
-		fileView.setType(ViewType.file);
-		fileViewId = entityManager.createEntity(adminUserInfo, fileView, null);
-		fileView = entityManager.getEntity(adminUserInfo, fileViewId, EntityView.class);
-		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, fileView.getColumnIds(), fileView.getScopeIds(), fileView.getType(), fileViewId);
 	}
+
+	/**
+	 * Create a File View using the project as a scope.
+	 * 
+	 */
+	private void createFileView(){
+		ViewType type = ViewType.file;
+		List<String> scope = Lists.newArrayList(project.getId());
+		fileViewId = createView(type, scope);
+	}
+	
+
+	/**
+	 * Create a view of the given type and scope.
+	 * 
+	 * @param type
+	 * @param scope
+	 */
+	private String createView(ViewType type, List<String> scope) {
+		// Create a new file view
+		EntityView view = new EntityView();
+		view.setName("aFileView");
+		view.setParentId(project.getId());
+		view.setColumnIds(defaultColumnIds);
+		view.setScopeIds(scope);
+		view.setType(type);
+		String viewId = entityManager.createEntity(adminUserInfo, view, null);
+		view = entityManager.getEntity(adminUserInfo, viewId, EntityView.class);
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, view.getColumnIds(), view.getScopeIds(), view.getType(), viewId);
+		return viewId;
+	}
+	
 	
 	@After
 	public void after(){	
@@ -227,6 +248,7 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testFileView() throws Exception{
+		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// wait for replication
 		waitForEntityReplication(fileViewId, fileViewId);
@@ -276,6 +298,7 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testContentUpdate() throws Exception {
+		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
@@ -314,6 +337,7 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testForPLFM_4031() throws Exception{
+		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
@@ -352,6 +376,7 @@ public class TableViewIntegrationTest {
 	
 	@Test
 	public void testUpdateAnnotationsWithPartialRowSet() throws Exception {
+		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
 		// lookup the file
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
@@ -406,6 +431,7 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testQueryEntityColumnType() throws Exception {
+		createFileView();
 		String fileId = fileIds.get(0);
 		assertTrue(fileId.startsWith("syn"));
 		// lookup the file
@@ -439,6 +465,7 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testPLFM_4235() throws Exception {
+		createFileView();
 		String fileId = fileIds.get(0);
 		// Add a string column to the view
 		ColumnModel stringColumn = new ColumnModel();
@@ -448,7 +475,7 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
-		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
 				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
 
 		// Add an annotation with the same name and a value larger than the size
@@ -475,6 +502,7 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testPLFM_4371() throws Exception {
+		createFileView();
 		String fileId = fileIds.get(0);
 		// Add a string column to the view
 		ColumnModel stringColumn = new ColumnModel();
@@ -484,7 +512,7 @@ public class TableViewIntegrationTest {
 		stringColumn = columnModelManager.createColumnModel(adminUserInfo,
 				stringColumn);
 		defaultColumnIds.add(stringColumn.getId());
-		tableViewMangaer.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, defaultColumnIds,
 				Lists.newArrayList(project.getId()), ViewType.file, fileViewId);
 
 		// Add an annotation with a duplicate name as a primary annotation.
@@ -508,6 +536,7 @@ public class TableViewIntegrationTest {
 	 */
 	@Test
 	public void testPLFM_4366() throws Exception{
+		createFileView();
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query the view as a user that does not permission
@@ -519,6 +548,40 @@ public class TableViewIntegrationTest {
 		// The view should become available again.
 		results = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(results);
+	}
+	
+	@Test
+	public void testProjectView() throws Exception{
+		// Create some projects
+		List<Project> projects = new LinkedList<Project>();
+		projects.add(project);
+		// Create a scope using even projects
+		List<String> scope = new LinkedList<String>();
+		String lastProjectId = null;
+		// create some projects
+		for(int i=0; i<6; i++){
+			Project nextProject = new Project();
+			nextProject.setName(UUID.randomUUID().toString());
+			lastProjectId = entityManager.createEntity(adminUserInfo, nextProject, null);
+			nextProject = entityManager.getEntity(adminUserInfo, lastProjectId, Project.class);
+			entitiesToDelete.add(lastProjectId);
+			projects.add(nextProject);
+			if(i%2 == 0){
+				scope.add(lastProjectId);
+			}
+		}
+		// Create a project view
+		String viewId = createView(ViewType.project, scope);
+		waitForEntityReplication(viewId, lastProjectId);
+		// query the view as a user that does not permission
+		String sql = "select * from "+viewId;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals("Should have one row for each scope.",scope.size(), rows.size());
 	}
 	
 	/**

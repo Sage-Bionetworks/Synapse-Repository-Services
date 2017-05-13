@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -1240,13 +1241,31 @@ public class SQLUtilsTest {
 		ColumnModel id = EntityField.id.getColumnModel();
 		id.setId("2");
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
+		ViewType type = ViewType.file;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
 				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
 				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+	}
+	
+	@Test
+	public void testCreateSelectInsertFromEntityReplicationProjectView(){
+		String viewId = "syn123";
+		ColumnModel one = TableModelTestUtils.createColumn(1L);
+		ColumnModel id = EntityField.id.getColumnModel();
+		id.setId("2");
+		List<ColumnModel> schema = Lists.newArrayList(one, id);
+		ViewType type = ViewType.project;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
+				+ " FROM ENTITY_REPLICATION R"
+				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " WHERE R.ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 
 	@Test
@@ -1257,7 +1276,8 @@ public class SQLUtilsTest {
 		doubleAnnotation.setId("3");
 		doubleAnnotation.setName("doubleAnnotation");
 		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, schema);
+		ViewType type = ViewType.file;
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _DBL_C3_, _C3_)"
 				+ " SELECT R.ID, R.CURRENT_VERSION,"
 					+ " CASE"
@@ -1595,5 +1615,27 @@ public class SQLUtilsTest {
 			// the cause should be kept
 			assertEquals(oringal, expected.getCause());
 		}
+	}
+	
+	@Test
+	public void testGetViewScopeFilterColumnForType() {
+		assertEquals(TableConstants.ENTITY_REPLICATION_COL_ID,
+				SQLUtils.getViewScopeFilterColumnForType(ViewType.project));
+		assertEquals(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID,
+				SQLUtils.getViewScopeFilterColumnForType(ViewType.file));
+	}
+	
+	@Test
+	public void testGetDistinctAnnotationColumnsSqlFileView(){
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewType.file);
+		String expected = TableConstants.ENTITY_REPLICATION_COL_PARENT_ID+" IN (:parentIds)";
+		assertTrue(sql.contains(expected));
+	}
+	
+	@Test
+	public void testGetDistinctAnnotationColumnsSqlProjectView(){
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewType.project);
+		String expected = TableConstants.ENTITY_REPLICATION_COL_ID+" IN (:parentIds)";
+		assertTrue(sql.contains(expected));
 	}
 }

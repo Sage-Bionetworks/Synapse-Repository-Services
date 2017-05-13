@@ -19,7 +19,8 @@
 			"name": "ViewType",
 			"id": "org.sagebionetworks.repo.model.table.ViewType",
 			"enum": [
-				"file"
+				"file",
+				"project"
 			]
 		}
 	}

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
@@ -1182,7 +1183,7 @@ public class SQLUtils {
 	 * @param currentSchema
 	 * @return
 	 */
-	public static String createSelectInsertFromEntityReplication(String viewId,
+	public static String createSelectInsertFromEntityReplication(String viewId, ViewType viewType,
 			List<ColumnModel> currentSchema) {
 		List<ColumnMetadata> metadata = translateColumns(currentSchema);
 		StringBuilder builder = new StringBuilder();
@@ -1200,7 +1201,7 @@ public class SQLUtils {
 		builder.append(" WHERE ");
 		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
-		builder.append(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID);
+		builder.append(getViewScopeFilterColumnForType(viewType));
 		builder.append(" IN (:");
 		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
@@ -1502,6 +1503,35 @@ public class SQLUtils {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Get the column used to filter the rows in a view. Project views scopes
+	 * are filtered by entityIds, while all other view types scopes are filtered
+	 * parentId.
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static String getViewScopeFilterColumnForType(ViewType type) {
+		switch (type) {
+		case project:
+			return TableConstants.ENTITY_REPLICATION_COL_ID;
+		default:
+			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+		}
+	}
+	
+	/**
+	 * Generate the SQL used to get the distinct annotations for a view
+	 * of the given type.
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static String getDistinctAnnotationColumnsSql(ViewType type){
+		String filterColumln = getViewScopeFilterColumnForType(type);
+		return String.format(TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
 
 }

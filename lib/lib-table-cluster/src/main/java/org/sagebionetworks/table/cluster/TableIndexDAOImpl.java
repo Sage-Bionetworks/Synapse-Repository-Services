@@ -737,13 +737,13 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, currentSchema);
+		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewType, currentSchema);
 		namedTemplate.update(sql, param);
 	}
 
 	@Override
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
-			Set<Long> containerIds, Long limit, Long offset) {
+			Set<Long> containerIds, ViewType type, Long limit, Long offset) {
 		ValidateArgument.required(containerIds, "containerIds");
 		ValidateArgument.required(limit, "limit");
 		ValidateArgument.required(offset, "offset");
@@ -755,7 +755,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		param.addValue(PARENT_ID_PARAMETER_NAME, containerIds);
 		param.addValue(P_LIMIT, limit);
 		param.addValue(P_OFFSET, offset);
-		return namedTemplate.query(SELECT_DISTINCT_ANNOTATION_COLUMNS, param, new RowMapper<ColumnModel>() {
+		String sql = SQLUtils.getDistinctAnnotationColumnsSql(type);
+		return namedTemplate.query(sql, param, new RowMapper<ColumnModel>() {
 
 			@Override
 			public ColumnModel mapRow(ResultSet rs, int rowNum)

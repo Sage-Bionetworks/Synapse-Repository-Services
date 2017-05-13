@@ -82,6 +82,8 @@ public class TableIndexManagerImplTest {
 	List<String> scopeSynIds;
 	Set<Long> scopeIds;
 	
+	ViewType viewType;
+	
 	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception{
@@ -147,8 +149,8 @@ public class TableIndexManagerImplTest {
 		tokenString = nextPageToken.toToken();
 		scopeSynIds = Lists.newArrayList("syn123","syn345");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scopeSynIds));
-		
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong())).thenReturn(schema);
+		viewType = ViewType.file;
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong())).thenReturn(schema);
 		when(mockManagerSupport.getAllContainerIdsForViewScope(tableId)).thenReturn(containerIds);
 		when(mockManagerSupport.getAllContainerIdsForScope(scopeIds)).thenReturn(containerIds);
 	}
@@ -510,7 +512,7 @@ public class TableIndexManagerImplTest {
 		annotation.setColumnType(ColumnType.STRING);
 		
 		// setup the annotations 
-		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
+		when(mockIndexDao.getPossibleColumnModelsForContainers(scope, viewType, Long.MAX_VALUE, 0L)).thenReturn(Lists.newArrayList(annotation));
 		// setup a failure
 		IllegalArgumentException error = new IllegalArgumentException("Something went wrong");
 		doThrow(error).when(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
@@ -528,39 +530,39 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPage(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, tokenString);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, limit+1, offset);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, limit+1, offset);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerLastPageNullToken(){
 		tokenString = null;
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, tokenString);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
 	}
 	
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForContainerHasNextPage(){
 		List<ColumnModel> pagePluseOne = new LinkedList<ColumnModel>(schema);
 		pagePluseOne.add(new ColumnModel());
-		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong())).thenReturn(pagePluseOne);
+		when(mockIndexDao.getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong())).thenReturn(pagePluseOne);
 		nextPageToken =  new NextPageToken(schema.size(), 0L);
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
 		assertNotNull(results);
 		assertEquals(new NextPageToken(2L, 2L).toToken(), results.getNextPageToken());
 		assertEquals(schema, results.getResults());
 		// should request one more than the limit
-		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, nextPageToken.getLimit()+1, nextPageToken.getOffset());
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, viewType, nextPageToken.getLimit()+1, nextPageToken.getOffset());
 	}
 	
 	
@@ -569,7 +571,7 @@ public class TableIndexManagerImplTest {
 		String token = nextPageToken.toToken();
 		containerIds = null;
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, token);
+		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
 	}
 	
 	@Test
@@ -577,12 +579,12 @@ public class TableIndexManagerImplTest {
 		String token = nextPageToken.toToken();
 		containerIds = new HashSet<>();
 		// call under test
-		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, token);
+		ColumnModelPage results = manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, token);
 		assertNotNull(results);
 		assertNotNull(results.getResults());
 		assertEquals(null, results.getNextPageToken());
 		// should not call the dao
-		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), anyLong(), anyLong());
+		verify(mockIndexDao, never()).getPossibleColumnModelsForContainers(anySet(), any(ViewType.class), anyLong(), anyLong());
 	}
 	
 	
@@ -591,7 +593,7 @@ public class TableIndexManagerImplTest {
 		limit = NextPageToken.MAX_LIMIT+1;
 		nextPageToken = new NextPageToken(limit, offset);
 		// call under test
-		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken.toToken());
+		manager.getPossibleAnnotationDefinitionsForContainerIds(containerIds, viewType, nextPageToken.toToken());
 	}
 	
 	@Test
@@ -613,17 +615,27 @@ public class TableIndexManagerImplTest {
 	@Test
 	public void testGetPossibleAnnotationDefinitionsForScope(){
 		// call under test
-		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
 		assertNotNull(results);
 		assertEquals(null, results.getNextPageToken());
 		assertEquals(schema, results.getResults());
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationDefinitionsForScopeTypeNull(){
+		viewType = null;
+		// call under test
+		ColumnModelPage results = manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
+		assertNotNull(results);
+		// should default to file view.
+		verify(mockIndexDao).getPossibleColumnModelsForContainers(containerIds, ViewType.file, nextPageToken.getLimit()+1, nextPageToken.getOffset());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetPossibleAnnotationDefinitionsForScopeNullScope(){
 		scopeSynIds = null;
 		// call under test
-		manager.getPossibleColumnModelsForScope(scopeSynIds, tokenString);
+		manager.getPossibleColumnModelsForScope(scopeSynIds, viewType, tokenString);
 	}
 	
 	/**

@@ -1593,8 +1593,46 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Sets.newHashSet(222L, 333L);
 		long limit = 5;
 		long offset = 0;
+		ViewType type = ViewType.file;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
+		assertNotNull(columns);
+		assertEquals(limit, columns.size());
+		// one
+		ColumnModel cm = columns.get(0);
+		assertEquals("key0", cm.getName());
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+		assertEquals(new Long(1L), cm.getMaximumSize());
+		// two
+		cm = columns.get(1);
+		assertEquals("key1", cm.getName());
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+		// three
+		cm = columns.get(2);
+		assertEquals("key10", cm.getName());
+		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
+		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testGetPossibleAnnotationsForContainersProject(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
-		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, limit, offset);
+		// setup some hierarchy.
+		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 15);
+		project1.setParentId(111L);
+		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 12);
+		project2.setParentId(111L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2));
+		
+		Set<Long> containerIds = Sets.newHashSet(2L, 3L);
+		long limit = 5;
+		long offset = 0;
+		ViewType type = ViewType.project;
+		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(containerIds, type, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one

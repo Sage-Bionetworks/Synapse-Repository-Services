@@ -323,7 +323,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableIndexDao.copyEntityReplicationToTable(tableId, viewType, allContainersInScope, currentSchema);
 		} catch (Exception e) {
 			// if the copy failed. Attempt to determine the cause.
-			determineCauseOfReplicationFailure(e, currentSchema, allContainersInScope);
+			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewType);
 		}
 		// calculate the new CRC32;
 		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
@@ -336,9 +336,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param currentSchema
 	 * @throws Exception 
 	 */
-	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope) throws Exception{
+	public void determineCauseOfReplicationFailure(Exception exception, List<ColumnModel> currentSchema, Set<Long> containersInScope, ViewType type) throws Exception{
 		// Calculate the schema from the annotations
-		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, Long.MAX_VALUE, 0L);
+		List<ColumnModel> schemaFromAnnotations = tableIndexDao.getPossibleColumnModelsForContainers(containersInScope, type, Long.MAX_VALUE, 0L);
 		// check the 
 		SQLUtils.determineCauseOfException(exception, currentSchema, schemaFromAnnotations);
 		// Have not determined the cause so throw the original exception
@@ -350,17 +350,22 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			String viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
-		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
+		ViewType type = tableManagerSupport.getViewType(viewId);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
 	@Override
 	public ColumnModelPage getPossibleColumnModelsForScope(
-			List<String> scopeIds, String nextPageToken) {
+			List<String> scopeIds, ViewType type, String nextPageToken) {
 		ValidateArgument.required(scopeIds, "scopeIds");
+		if(type == null){
+			// default to file
+			type = ViewType.file;
+		}
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
 		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet);
-		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, nextPageToken);
+		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
 	/**
@@ -371,7 +376,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 */
 	ColumnModelPage getPossibleAnnotationDefinitionsForContainerIds(
-			Set<Long> containerIds, String nextPageToken) {
+			Set<Long> containerIds, ViewType type, String nextPageToken) {
 		ValidateArgument.required(containerIds, "containerIds");
 		NextPageToken token =  new NextPageToken(nextPageToken);
 		ColumnModelPage results = new ColumnModelPage();
@@ -381,10 +386,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			return results;
 		}
 		// request one page with a limit one larger than the passed limit.
-		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, token.getLimitForQuery(), token.getOffset());
+		List<ColumnModel> columns = tableIndexDao.getPossibleColumnModelsForContainers(containerIds, type, token.getLimitForQuery(), token.getOffset());
 		results.setNextPageToken(token.getNextPageTokenForCurrentResults(columns));
 		results.setResults(columns);
-		
 		return results;
 	}
 
