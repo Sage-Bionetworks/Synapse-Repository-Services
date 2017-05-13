@@ -24,6 +24,7 @@ public class AccessRequirementUtils {
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
 
+	// TODO: an AccessRequirement will be saved to DBOAccessRequirement & DBOAccessRequirementRevision
 	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
 		dbo.setId(dto.getId());
 		dbo.seteTag(dto.getEtag());
@@ -37,6 +38,7 @@ public class AccessRequirementUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
+	// TODO: this method will be changed: an AccessRequirement needs to be build from both DBOAccessRequirement & DBOAccessRequirementRevision
 	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		AccessRequirement dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId());
@@ -51,6 +53,7 @@ public class AccessRequirementUtils {
 		return dto;
 	}
 
+	// TODO: this method should be removed. Only DBOAccessRequirementRevision should store the blob
 	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
 		try {
 			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
@@ -59,6 +62,7 @@ public class AccessRequirementUtils {
 		}
 	}
 
+	// TODO: this method should be changed to take DBOAccessRequirementRevision
 	public static AccessRequirement copyFromSerializedField(DBOAccessRequirement dbo) throws DatastoreException {
 		try {
 			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
@@ -67,6 +71,7 @@ public class AccessRequirementUtils {
 		}
 	}
 
+	// TODO: this method should be combined with copyDtoToDbo()
 	public static void copyDTOToDBOAccessRequirementRevision(AccessRequirement dto, DBOAccessRequirementRevision dbo, Long version) {
 		dbo.setOwnerId(dto.getId());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -83,18 +88,6 @@ public class AccessRequirementUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-	}
-
-	public static DBOAccessRequirementRevision copyDBOAccessRequirementToDBOAccessRequirementRevision(DBOAccessRequirement dboAR) {
-		DBOAccessRequirementRevision dboARR = new DBOAccessRequirementRevision();
-		dboARR.setOwnerId(dboAR.getId());
-		dboARR.setNumber(dboAR.getCurrentRevNumber());
-		dboARR.setModifiedBy(dboAR.getModifiedBy());
-		dboARR.setModifiedOn(dboAR.getModifiedOn());
-		dboARR.setAccessType(dboAR.getAccessType());
-		dboARR.setConcreteType(dboAR.getConcreteType());
-		dboARR.setSerializedEntity(dboAR.getSerializedEntity());
-		return dboARR;
 	}
 
 	public static List<DBOSubjectAccessRequirement> createBatchDBOSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> rodList) {
