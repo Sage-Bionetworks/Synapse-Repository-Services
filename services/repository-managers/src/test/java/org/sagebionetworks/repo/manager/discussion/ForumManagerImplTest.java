@@ -26,7 +26,7 @@ public class ForumManagerImplTest {
 	private String projectId = "syn123";
 	private final ObjectType ENTITY_TYPE = ObjectType.ENTITY;
 	private final ACCESS_TYPE READ_ACCESS = ACCESS_TYPE.READ;
-	private final AuthorizationStatus SUCCESS = new AuthorizationStatus(true, null);
+	private final AuthorizationStatus SUCCESS = new AuthorizationStatus(true, "");
 	private final AuthorizationStatus FAILED = new AuthorizationStatus(false, "no reasons");
 	private UserInfo userInfo = new UserInfo(false /*not admin*/);
 	private Forum dto = new Forum();

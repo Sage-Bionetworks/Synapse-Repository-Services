@@ -331,8 +331,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
-			return AuthorizationManagerUtil.
-					accessDenied("Entity " + entityId + " is in trash can.");
+			return new AuthorizationStatus(false, new EntityInTrashCanException("Entity " + entityId + " is in trash can."));
 		}
 		
 		// Anonymous can at most READ
