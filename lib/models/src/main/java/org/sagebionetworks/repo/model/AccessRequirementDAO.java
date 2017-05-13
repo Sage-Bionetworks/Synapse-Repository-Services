@@ -103,4 +103,13 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
+
+	/**
+	 * Update the version of an existing AccessRequirement.
+	 * This method is used to migrate AccessRequirement, and should be removed after the migration process is finished.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirement updateVersion(Long accessRequirementId);
 }

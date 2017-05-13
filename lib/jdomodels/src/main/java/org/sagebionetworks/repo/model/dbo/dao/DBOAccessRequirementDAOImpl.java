@@ -375,4 +375,32 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		});
 		return stats;
 	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public AccessRequirement updateVersion(Long accessRequirementId) {
+		DBOAccessRequirement current = getAccessRequirementForUpdate(accessRequirementId);
+		Long newVersion = 1L;
+		if (current.getCurrentRevNumber() != null) {
+			newVersion = current.getCurrentRevNumber()+1;
+		}
+		
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
+		param.addValue(COL_ACCESS_REQUIREMENT_ETAG, UUID.randomUUID().toString());
+		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, newVersion);
+		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
+
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+		dboRevision.setOwnerId(current.getId());
+		dboRevision.setNumber(newVersion);
+		dboRevision.setModifiedBy(current.getModifiedBy());
+		dboRevision.setModifiedOn(current.getModifiedOn());
+		dboRevision.setAccessType(current.getAccessType());
+		dboRevision.setConcreteType(current.getConcreteType());
+		dboRevision.setSerializedEntity(current.getSerializedEntity());
+		basicDao.createNew(dboRevision);
+
+		return get(accessRequirementId.toString());
+	}
 }

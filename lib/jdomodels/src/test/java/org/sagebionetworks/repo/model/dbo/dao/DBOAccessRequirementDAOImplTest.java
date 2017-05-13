@@ -69,7 +69,7 @@ public class DBOAccessRequirementDAOImplTest {
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
-		// note:  we set up multiple nodes and multiple evaluations to ensure that filtering works
+		// note: we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDao.createNew(node) );
@@ -147,8 +147,7 @@ public class DBOAccessRequirementDAOImplTest {
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
-	}	
-	
+	}
 
 	@Test
 	public void testEntityAccessRequirementCRUD() throws Exception{
@@ -379,5 +378,17 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, list.get(0));
 
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
+	}
+
+	@Test
+	public void testUpdateVersion() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+
+		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId());
+		assertFalse(accessRequirement.equals(newVersion));
+		accessRequirement.setVersionNumber(newVersion.getVersionNumber());
+		accessRequirement.setEtag(newVersion.getEtag());
+		assertEquals(accessRequirement, newVersion);
 	}
 }

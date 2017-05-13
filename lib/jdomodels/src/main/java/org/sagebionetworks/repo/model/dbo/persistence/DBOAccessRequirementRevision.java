@@ -14,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -37,7 +36,7 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	private Long number;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("ownerId", COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID, true),
+		new FieldColumn("ownerId", COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID, true).withIsBackupId(true),
 		new FieldColumn("number", COL_ACCESS_REQUIREMENT_REVISION_NUMBER, true),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON),
@@ -271,8 +270,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
-		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
-		list.add(new DBOSubjectAccessRequirement());
-		return list;
+		return null;
 	}
 }

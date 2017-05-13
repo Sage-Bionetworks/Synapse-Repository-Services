@@ -252,6 +252,17 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@WriteTransactionReadCommitted
 	@Override
+	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, Long accessRequirementId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only Synapse Admin can perform this action.");
+		}
+		return accessRequirementDAO.updateVersion(accessRequirementId);
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
