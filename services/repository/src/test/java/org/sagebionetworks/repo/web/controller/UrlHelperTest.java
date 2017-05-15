@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Preview;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
 /**
@@ -124,8 +124,8 @@ public class UrlHelperTest {
 		for(EntityType type: array){
 			Entity entity = EntityTypeUtils.getClassForType(type).newInstance();
 			entity.setId(id);
-			if(entity instanceof Versionable){
-				Versionable able = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity able = (VersionableEntity) entity;
 				// Make sure it has a version number
 				able.setVersionNumber(43l);
 			}
@@ -136,9 +136,9 @@ public class UrlHelperTest {
 			assertEquals(expected, entity.getAnnotations());
 			expected =  expectedBase+UrlHelpers.ACL;
 			assertEquals(expected, entity.getAccessControlList());
-			// Versionable
-			if(entity instanceof Versionable){
-				Versionable able = (Versionable) entity;
+			// VersionableEntity
+			if(entity instanceof VersionableEntity){
+				VersionableEntity able = (VersionableEntity) entity;
 				// Make sure it has a version number
 				expected = expectedBase+UrlHelpers.VERSION;
 				assertEquals(expected, able.getVersions());

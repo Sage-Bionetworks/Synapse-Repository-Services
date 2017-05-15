@@ -63,28 +63,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
 		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
 				"No longer support PostMessageContentAccessRequirement.");
+		ValidateArgument.requirement(ar.getAccessType() == ACCESS_TYPE.DOWNLOAD
+				|| ar.getAccessType() == ACCESS_TYPE.PARTICIPATE,
+				"Not support creating AccessRequirement with AccessType: "+ar.getAccessType());
 		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
 			ValidateArgument.requirement(!rod.getType().equals(RestrictableObjectType.EVALUATION),
 					"No longer support RestrictableObjectType.EVALUATION");
 		}
 	}
-	
+
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {
 		Date now = new Date();
 		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getId().toString());
-		a.setModifiedOn(now);
+		populateModifiedFields(userInfo, a);
 	}
 
 	public static void populateModifiedFields(UserInfo userInfo, AccessRequirement a) {
 		Date now = new Date();
-		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
-		a.setCreatedOn(null);
 		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
-	
+
 	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -92,12 +92,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canCreateAccessRequirement(userInfo, accessRequirement));
 		populateCreationFields(userInfo, accessRequirement);
-		if (accessRequirement.getAccessType()==ACCESS_TYPE.UPLOAD) {
-			throw new IllegalArgumentException("Creating UPLOAD Access Requirement is not allowed.");
-		}
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
-	
+
 	public static LockAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId, String jiraKey) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
@@ -113,7 +110,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirement;
 	}
-	
+
 	@WriteTransactionReadCommitted
 	@Override
 	public LockAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -149,7 +146,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
 		return accessRequirementDAO.get(requirementId);
 	}
-	
+
+	@Deprecated
 	@Override
 	public List<AccessRequirement> getAllAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor rod) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();
@@ -191,7 +189,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				if (rod.getType()==RestrictableObjectType.EVALUATION) {
 					accessType = ACCESS_TYPE.SUBMIT;
 				} else {
-					throw new IllegalArgumentException("accessType is required.");	
+					throw new IllegalArgumentException("accessType is required.");
 				}
 			}
 			unmetARIds = accessRequirementDAO.getAllUnmetAccessRequirements(
@@ -237,15 +235,30 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(accessRequirement, "accessRequirement");
+		ValidateArgument.requirement(accessRequirementId.equals(accessRequirement.getId().toString()),
+			"Update specified ID "+accessRequirementId+" but object contains id: "+accessRequirement.getId());
 		validateAccessRequirement(accessRequirement);
-		if (!accessRequirementId.equals(accessRequirement.getId().toString()))
-			throw new InvalidModelException("Update specified ID "+accessRequirementId+" but object contains id: "+
-		accessRequirement.getId());
+
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(userInfo, accessRequirement.getId().toString(),
 						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
+
 		populateModifiedFields(userInfo, accessRequirement);
 		return (T) accessRequirementDAO.update(setDefaultValues(accessRequirement));
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, Long accessRequirementId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only Synapse Admin can perform this action.");
+		}
+		return accessRequirementDAO.updateVersion(accessRequirementId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -284,6 +297,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 		if (actAR.getIsIDUPublic() == null) {
 			actAR.setIsIDUPublic(false);
+		}
+		if (actAR.getAcceptRequest() == null) {
+			actAR.setAcceptRequest(false);
 		}
 		return actAR;
 	}

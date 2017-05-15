@@ -49,6 +49,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />

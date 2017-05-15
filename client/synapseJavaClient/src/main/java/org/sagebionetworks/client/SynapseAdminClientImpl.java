@@ -9,6 +9,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
@@ -370,5 +371,12 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		IdList requestBody = new IdList();
 		requestBody.setList(approvalIds);
 		return postJSONEntity(getRepoEndpoint(), "/accessApprovals", requestBody, Count.class).getCount();
+	}
+
+	@Override
+	public AccessRequirement updateVersion(String accessRequirementId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		String url = "/accessRequirement/"+accessRequirementId+"/version";
+		return putJSONEntity(getRepoEndpoint(), url, null, AccessRequirement.class);
 	}
 }

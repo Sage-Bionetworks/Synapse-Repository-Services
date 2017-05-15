@@ -257,23 +257,22 @@
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
 
 	<bean
-        id="migrationManager"
-        class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
-        scope="singleton" >
-        <property
-            name="backupBatchMax"
-            ref="stackConfiguration.migrationBackupBatchMax" />
-        <property name="migrationListeners" >
-            <list>
-            </list>
-        </property>
-    </bean>
-    
+		id="migrationManager"
+		class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
+		scope="singleton" >
+		<property
+			name="backupBatchMax"
+			ref="stackConfiguration.migrationBackupBatchMax" />
+		<property name="migrationListeners" >
+			<list>
+			</list>
+		</property>
+	</bean>
+
 	<bean id="migrationExecutorService" class="java.util.concurrent.Executors"
 		scope="singleton" factory-method="newFixedThreadPool">
 		<constructor-arg value="10" />
 	</bean>
-	
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
