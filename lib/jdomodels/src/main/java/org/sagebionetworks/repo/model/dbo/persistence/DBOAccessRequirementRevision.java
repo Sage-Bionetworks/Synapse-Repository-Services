@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_ACCESS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY;
@@ -12,13 +10,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -30,8 +24,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	private Long ownerId;
 	private Long modifiedBy;
 	private long modifiedOn;
-	private String accessType;
-	private String concreteType;
 	private byte[] serializedEntity;
 	private Long number;
 	
@@ -40,8 +32,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 		new FieldColumn("number", COL_ACCESS_REQUIREMENT_REVISION_NUMBER, true),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON),
-		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_REVISION_ACCESS_TYPE),
-		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_REVISION_CONCRETE_TYPE),
 		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY)
 		};
 
@@ -75,26 +65,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	}
 
 
-	public String getAccessType() {
-		return accessType;
-	}
-
-
-	public void setAccessType(String accessType) {
-		this.accessType = accessType;
-	}
-
-
-	public String getConcreteType() {
-		return concreteType;
-	}
-
-
-	public void setConcreteType(String concreteType) {
-		this.concreteType = concreteType;
-	}
-
-
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
 	}
@@ -119,8 +89,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((accessType == null) ? 0 : accessType.hashCode());
-		result = prime * result + ((concreteType == null) ? 0 : concreteType.hashCode());
 		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
 		result = prime * result + ((number == null) ? 0 : number.hashCode());
@@ -139,16 +107,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 		if (getClass() != obj.getClass())
 			return false;
 		DBOAccessRequirementRevision other = (DBOAccessRequirementRevision) obj;
-		if (accessType == null) {
-			if (other.accessType != null)
-				return false;
-		} else if (!accessType.equals(other.accessType))
-			return false;
-		if (concreteType == null) {
-			if (other.concreteType != null)
-				return false;
-		} else if (!concreteType.equals(other.concreteType))
-			return false;
 		if (modifiedBy == null) {
 			if (other.modifiedBy != null)
 				return false;
@@ -175,8 +133,7 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	@Override
 	public String toString() {
 		return "DBOAccessRequirementRevision [ownerId=" + ownerId + ", modifiedBy=" + modifiedBy + ", modifiedOn="
-				+ modifiedOn + ", accessType=" + accessType + ", concreteType=" + concreteType + ", serializedEntity="
-				+ Arrays.toString(serializedEntity) + ", number=" + number + "]";
+				+ modifiedOn + ", serializedEntity=" + Arrays.toString(serializedEntity) + ", number=" + number + "]";
 	}
 
 
@@ -191,8 +148,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 				ar.setNumber(rs.getLong(COL_ACCESS_REQUIREMENT_REVISION_NUMBER));
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY));
 				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON));
-				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_REVISION_ACCESS_TYPE));
-				ar.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_REVISION_CONCRETE_TYPE));
 				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY);
 				if(blob != null){
 					ar.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
@@ -226,17 +181,6 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACCESS_REQUIREMENT_REVISION;
-	}
-	
-	public static void copyEntityIdsToAccessRequirement(List<String> entityIds, AccessRequirement ar) {
-		if (entityIds==null) return;
-		if (ar.getSubjectIds()==null) ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
-		for (String entityId : entityIds) {
-			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-			subjectId.setId(entityId);
-			subjectId.setType(RestrictableObjectType.ENTITY);
-			if (!ar.getSubjectIds().contains(subjectId)) ar.getSubjectIds().add(subjectId);
-		}	
 	}
 
 	@Override

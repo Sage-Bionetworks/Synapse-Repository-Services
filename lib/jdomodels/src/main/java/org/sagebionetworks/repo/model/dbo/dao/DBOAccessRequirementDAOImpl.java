@@ -396,8 +396,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		dboRevision.setNumber(newVersion);
 		dboRevision.setModifiedBy(current.getModifiedBy());
 		dboRevision.setModifiedOn(current.getModifiedOn());
-		dboRevision.setAccessType(current.getAccessType());
-		dboRevision.setConcreteType(current.getConcreteType());
 		dboRevision.setSerializedEntity(current.getSerializedEntity());
 		basicDao.createNew(dboRevision);
 
