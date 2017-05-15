@@ -230,7 +230,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		String fileHandleId = fhas.getAssociation().getFileHandleId();
 		// Is the user authorized to download this file?
 		if (!fhas.getStatus().getAuthorized()) {
-			throw new BulkFileException(fhas.getStatus().getExceptionToThrow().getMessage(),
+			throw new BulkFileException(fhas.getStatus().getReason(),
 					FileDownloadCode.UNAUTHORIZED);
 		}
 		// Each file handle should only be added once
