@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
@@ -598,6 +599,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
 		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
+		
+		if (existingDockerRepoId!=null) {
+			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
+			if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))) return permittedActions;
+		}
 
 		for (String requestedActionString : actionTypes.split(",")) {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
