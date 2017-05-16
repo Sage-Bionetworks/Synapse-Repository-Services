@@ -91,7 +91,7 @@ public class ITDataAccessTest {
 	public void testUpdateARVersion() throws SynapseException {
 		AccessRequirement newVersion = adminSynapse.updateVersion(accessRequirement.getId().toString());
 		assertNotNull(newVersion);
-		assertTrue(newVersion.getVersionNumber().equals(accessRequirement.getVersionNumber()+1));
+		assertEquals(newVersion.getVersionNumber(), accessRequirement.getVersionNumber());
 	}
 
 	@Test
