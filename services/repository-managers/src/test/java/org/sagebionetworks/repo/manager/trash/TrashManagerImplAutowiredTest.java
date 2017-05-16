@@ -952,6 +952,7 @@ public class TrashManagerImplAutowiredTest {
 		trashManager.restoreFromTrash(testUserInfo, nodeIdB, nodeIdA);
 	}
 
+	@Test(expected=EntityInTrashCanException.class)
 	public void testCanDownload() throws Exception {
 		final Node node = new Node();
 		final String nodeName = "TrashManagerImplAutowiredTest.testCanDownload()";
@@ -961,7 +962,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeId);
 		toClearList.add(nodeId);
 		trashManager.moveToTrash(testAdminUserInfo, nodeId);
-		assertFalse(entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo).getAuthorized());
+		entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
 	}
 
 	private void cleanUp() throws Exception {

@@ -12,12 +12,12 @@ public class AuthorizationManagerUtil {
 	//  convenience for testing.  In production we don't leave the reason field blank.
 	public static final AuthorizationStatus ACCESS_DENIED = new AuthorizationStatus(false, "");
 	
-	public static void checkAuthorizationAndThrowException(AuthorizationStatus auth) {
-		if (!auth.getAuthorized()) throw auth.getExceptionToThrow();
+	public static void checkAuthorizationAndThrowException(AuthorizationStatus auth) throws UnauthorizedException {
+		if (!auth.getAuthorized()) throw new UnauthorizedException(auth.getReason());
 	}
 
 	public static AuthorizationStatus accessDenied(String reason) {
-		return new AuthorizationStatus(false, new UnauthorizedException(reason));
+		return new AuthorizationStatus(false, reason);
 	}
 
 	

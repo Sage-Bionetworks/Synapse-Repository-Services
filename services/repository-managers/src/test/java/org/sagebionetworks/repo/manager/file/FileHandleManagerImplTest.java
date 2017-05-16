@@ -683,7 +683,7 @@ public class FileHandleManagerImplTest {
 		String benefactorId = "syn99999";
 		proxyStorageLocationSettings.setBenefactorId(benefactorId);
 		// user has create on benefactor.
-		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(true, null));
 		// call under test
 		ProxyFileHandle pfh = manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
 		assertNotNull(pfh);

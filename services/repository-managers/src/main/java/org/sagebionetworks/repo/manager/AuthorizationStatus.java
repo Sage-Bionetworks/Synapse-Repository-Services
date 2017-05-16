@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.UnauthorizedException;
-
 /**
  * Holds the result of an authorization check.
  * If 'authorized' is false then 'reason' gives the user-presentable reason why
@@ -11,15 +9,12 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
  */
 public class AuthorizationStatus {
 	private boolean authorized;
-	private RuntimeException exceptionToThrow;
+	private String reason;
+	
 	
 	public AuthorizationStatus(boolean authorized, String reason) {
-		this(authorized, new UnauthorizedException(reason));
-	}
-	
-	public AuthorizationStatus(boolean authorized, RuntimeException exceptionToThrow) {
 		this.authorized = authorized;
-		this.exceptionToThrow = exceptionToThrow;
+		this.reason = reason;
 	}
 	
 	public boolean getAuthorized() {
@@ -28,13 +23,11 @@ public class AuthorizationStatus {
 	public void setAuthorized(boolean authorized) {
 		this.authorized = authorized;
 	}
-
-	public RuntimeException getExceptionToThrow() {
-		return exceptionToThrow;
+	public String getReason() {
+		return reason;
 	}
-
-	public void setExceptionToThrow(RuntimeException exceptionToThrow) {
-		this.exceptionToThrow = exceptionToThrow;
+	public void setReason(String reason) {
+		this.reason = reason;
 	}
 
 	@Override
@@ -42,9 +35,7 @@ public class AuthorizationStatus {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (authorized ? 1231 : 1237);
-		result = prime
-				* result
-				+ ((exceptionToThrow == null) ? 0 : exceptionToThrow.hashCode());
+		result = prime * result + ((reason == null) ? 0 : reason.hashCode());
 		return result;
 	}
 
@@ -59,19 +50,18 @@ public class AuthorizationStatus {
 		AuthorizationStatus other = (AuthorizationStatus) obj;
 		if (authorized != other.authorized)
 			return false;
-		if (exceptionToThrow == null) {
-			if (other.exceptionToThrow != null)
+		if (reason == null) {
+			if (other.reason != null)
 				return false;
-		} else if (!exceptionToThrow.getClass().equals(other.exceptionToThrow.getClass())
-				|| !exceptionToThrow.getMessage().equals(other.exceptionToThrow.getMessage()))
+		} else if (!reason.equals(other.reason))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "AuthorizationStatus [authorized=" + authorized
-				+ ", exceptionToThrow=" + exceptionToThrow + "]";
+		return "AuthorizationStatus [authorized=" + authorized + ", reason="
+				+ reason + "]";
 	}
 
 }

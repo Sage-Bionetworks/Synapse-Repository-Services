@@ -193,7 +193,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testUpdateProfileFileHandleAuthrorized() throws NotFoundException{
 		String fileHandleId = "123";
-		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(new AuthorizationStatus(true, ""));
+		when(mockAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(new AuthorizationStatus(true, null));
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(""+userInfo.getId());
 		profile.setUserName("some username");
