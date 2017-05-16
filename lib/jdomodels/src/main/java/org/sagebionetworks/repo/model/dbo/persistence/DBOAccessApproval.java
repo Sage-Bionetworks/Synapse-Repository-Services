@@ -318,7 +318,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 					backup.setRequirementVersion(0L);
 				}
 				if (backup.getResearchProjectId() == null) {
-					backup.setResearchProjectId(-1L);
+					backup.setResearchProjectId(0L);
 				}
 				return backup;
 			}
@@ -330,7 +330,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 					dbo.setRequirementVersion(0L);
 				}
 				if (dbo.getResearchProjectId() == null) {
-					dbo.setResearchProjectId(-1L);
+					dbo.setResearchProjectId(0L);
 				}
 				return dbo;
 			}};
