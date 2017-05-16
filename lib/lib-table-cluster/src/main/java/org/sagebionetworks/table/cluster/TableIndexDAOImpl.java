@@ -707,7 +707,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
-		Long crc32 = namedTemplate.queryForObject(SQL_ENTITY_REPLICATION_CRC_32, param, Long.class);
+		String sql = SQLUtils.getCalculateCRC32Sql(viewType);
+		Long crc32 = namedTemplate.queryForObject(sql, param, Long.class);
 		if(crc32 == null){
 			return -1L;
 		}

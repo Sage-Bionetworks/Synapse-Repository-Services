@@ -283,8 +283,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public Long calculateFileViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
-		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId);
 		ViewType type = getViewType(tableId);
+		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, type);
 		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
 		return indexDao.calculateCRC32ofEntityReplicationScope(type, viewContainers);
 	}
@@ -294,11 +294,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getScopeContainerCount(java.util.Set)
 	 */
 	@Override
-	public int getScopeContainerCount(Set<Long> scopeIds) {
+	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type) {
 		if(scopeIds == null || scopeIds.isEmpty()){
 			return 0;
 		}
-		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds);
+		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds, type);
 		return scopeSet.size();
 	}
 
@@ -307,12 +307,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableViewTruthManager#getAllContainerIdsForViewScope(java.lang.String)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForViewScope(String viewIdString) {
+	public Set<Long> getAllContainerIdsForViewScope(String viewIdString, ViewType viewType) {
 		ValidateArgument.required(viewIdString, "viewId");
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		// Lookup the scope for this view.
 		Set<Long> scope = viewScopeDao.getViewScope(viewId);
-		return getAllContainerIdsForScope(scope);
+		return getAllContainerIdsForScope(scope, viewType);
 	}
 
 	/*
@@ -320,7 +320,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getAllContainerIdsForScope(java.util.Set)
 	 */
 	@Override
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope) {
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType) {
+		ValidateArgument.required(scope, "scope");
+		ValidateArgument.required(viewType, "viewType");
+		
+		if(ViewType.project == viewType){
+			return scope;
+		}
 		// Add all containers from the given scope
 		Set<Long> allContainersInScope = new HashSet<Long>(scope);
 		for(Long container: scope){
@@ -451,11 +457,17 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		if(!ViewType.file.equals(viewType)){
+		if(!ViewType.file.equals(viewType) && !ViewType.project.equals(viewType)){
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
 		for(EntityField field: EntityField.values()){
+			if(EntityField.dataFileHandleId == field){
+				// project views do not include file handleIds.
+				if(ViewType.project.equals(viewType)){
+					continue;
+				}
+			}
 			list.add(getColumnModel(field));
 		}
 		return list;

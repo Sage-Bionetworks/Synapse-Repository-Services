@@ -1411,7 +1411,7 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testCalculateCRC32ofEntityReplicationScope(){
+	public void testCalculateCRC32ofEntityReplicationScopeFile(){
 		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
@@ -1437,6 +1437,37 @@ public class TableIndexDAOImplTest {
 		scope = Sets.newHashSet(file2.getParentId());
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
+		assertEquals(new Long(3592651982L), crc);
+	}
+	
+
+	@Test
+	public void testCalculateCRC32ofEntityReplicationScopeProject(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
+		
+		// setup some hierarchy.
+		EntityDTO project1 = createEntityDTO(2L, EntityType.project, 0);
+		project1.setParentId(111L);
+		EntityDTO project2 = createEntityDTO(3L, EntityType.project, 0);
+		project2.setParentId(111L);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project1, project2));
+		// both parents
+		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
+		// call under test
+		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		assertEquals(new Long(3715581114L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(project1.getId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
+		assertEquals(new Long(122929132L), crc);
+		// reduce the scope
+		scope = Sets.newHashSet(project2.getId());
+		// call under test
+		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
 		assertEquals(new Long(3592651982L), crc);
 	}
 	

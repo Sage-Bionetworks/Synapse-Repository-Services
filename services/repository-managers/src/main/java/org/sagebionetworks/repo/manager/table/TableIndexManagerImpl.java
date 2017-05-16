@@ -349,8 +349,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public ColumnModelPage getPossibleColumnModelsForView(
 			String viewId, String nextPageToken) {
 		ValidateArgument.required(viewId, "viewId");
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId);
 		ViewType type = tableManagerSupport.getViewType(viewId);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForViewScope(viewId, type);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	
@@ -364,7 +364,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		}
 		// lookup the containers for the given scope
 		Set<Long> scopeSet = new HashSet<Long>(KeyFactory.stringToKey(scopeIds));
-		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet);
+		Set<Long> containerIds = tableManagerSupport.getAllContainerIdsForScope(scopeSet, type);
 		return getPossibleAnnotationDefinitionsForContainerIds(containerIds, type, nextPageToken);
 	}
 	

@@ -1533,5 +1533,15 @@ public class SQLUtils {
 		String filterColumln = getViewScopeFilterColumnForType(type);
 		return String.format(TableConstants.SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE, filterColumln);
 	}
+	
+	/**
+	 * Generate the SQL used to calculate CRC32 for views. 
+	 * @param type
+	 * @return
+	 */
+	public static String getCalculateCRC32Sql(ViewType type){
+		String filterColumln = getViewScopeFilterColumnForType(type);
+		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, filterColumln);
+	}
 
 }

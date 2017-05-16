@@ -96,7 +96,7 @@ public class TableViewManagerImplTest {
 				return (ColumnModel) invocation.getArguments()[0];
 			}}).when(columnModelDao).createColumnModel(any(ColumnModel.class));
 		
-		when(tableManagerSupport.getAllContainerIdsForViewScope(viewId)).thenReturn(scopeIds);
+		when(tableManagerSupport.getAllContainerIdsForViewScope(viewId, viewType)).thenReturn(scopeIds);
 		
 		rowCount = 13;
 		rows = new LinkedList<Row>();
@@ -127,7 +127,7 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
 		
-		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class))).thenReturn(10);
+		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class), any(ViewType.class))).thenReturn(10);
 		
 		namedAnnotations = new NamedAnnotations();
 		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
@@ -163,7 +163,7 @@ public class TableViewManagerImplTest {
 	@Test
 	public void testSetViewSchemaAndScopeOverLimit(){
 		int containerCount = TableViewManagerImpl.MAX_CONTAINERS_PER_VIEW+1;
-		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class))).thenReturn(containerCount);
+		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class), any(ViewType.class))).thenReturn(containerCount);
 		try {
 			// call under test
 			manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);

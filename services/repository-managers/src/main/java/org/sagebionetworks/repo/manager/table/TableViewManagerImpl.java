@@ -60,7 +60,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		}
 		// validate the scope size
-		int scopeContainerCount  = tableManagerSupport.getScopeContainerCount(scopeIds);
+		int scopeContainerCount  = tableManagerSupport.getScopeContainerCount(scopeIds, type);
 		if(scopeContainerCount > MAX_CONTAINERS_PER_VIEW){
 			throw new IllegalArgumentException(String.format(MAX_CONTAINER_MESSAGE, scopeContainerCount));
 		}
