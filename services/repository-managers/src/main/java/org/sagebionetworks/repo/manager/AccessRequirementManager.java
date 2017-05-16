@@ -86,5 +86,5 @@ public interface AccessRequirementManager {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, Long accessRequirementId);
+	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, String accessRequirementId);
 }

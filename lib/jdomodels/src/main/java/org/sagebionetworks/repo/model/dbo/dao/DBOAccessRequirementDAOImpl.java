@@ -1,20 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CONCRETE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,8 +18,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -47,15 +35,17 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
-	public static final Long DEFAULT_VERSION = 1L;
+	public static final Long DEFAULT_VERSION = 0L;
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -91,7 +81,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
 			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
-	private static final String SELECT_FOR_UPDATE_SQL = GET_ACCESS_REQUIREMENT_SQL
+	private static final String SELECT_INFO_FOR_UPDATE_SQL = "SELECT "
+			+ COL_ACCESS_REQUIREMENT_ID+", "
+			+ COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+", "
+			+ COL_ACCESS_REQUIREMENT_ETAG+", "
+			+ COL_ACCESS_REQUIREMENT_ACCESS_TYPE+", "
+			+ COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+" FROM "+TABLE_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID
 			+ " FOR UPDATE";
 
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENTS_SQL = 
@@ -115,6 +112,16 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+
+	// this is only used for migration
+	private static final String INSERT_IGNORE_ACCESS_REQUIREMENT_REVISION = 
+			"INSERT IGNORE INTO "+TABLE_ACCESS_REQUIREMENT_REVISION+"("
+			+COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID+", "
+			+COL_ACCESS_REQUIREMENT_REVISION_NUMBER+", "
+			+COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY+", "
+			+COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON+", "
+			+COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY+") "
+			+"VALUES(?,?,?,?,?)";
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -263,11 +270,26 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(nars);
 	}
 
-	private DBOAccessRequirement getAccessRequirementForUpdate(Long accessRequirementId) throws NotFoundException{
+	@MandatoryWriteTransaction
+	@Override
+	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException{
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
 		try {
-			return namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, accessRequirementRowMapper);
+			return namedJdbcTemplate.queryForObject(SELECT_INFO_FOR_UPDATE_SQL, param, new RowMapper<AccessRequirementInfoForUpdate>(){
+
+				@Override
+				public AccessRequirementInfoForUpdate mapRow(ResultSet rs, int rowNum) throws SQLException {
+					AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+					info.setAccessRequirementId(rs.getLong(COL_ACCESS_REQUIREMENT_ID));
+					info.setEtag(rs.getString(COL_ACCESS_REQUIREMENT_ETAG));
+					info.setCurrentVersion(rs.getLong(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER));
+					info.setAccessType(ACCESS_TYPE.valueOf(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE)));
+					info.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
+					return info;
+				}
+				
+			});
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -276,20 +298,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@WriteTransactionReadCommitted
 	@Override
 	public <T extends AccessRequirement> T update(T dto) {
-		DBOAccessRequirement current = getAccessRequirementForUpdate(dto.getId());
-		if(!current.geteTag().equals(dto.getEtag())) {
-			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it,"
-					+ " retrieve it again and reapply the update.");
-		}
-
-		Long newVersion = 1L;
-		if (current.getCurrentRevNumber() != null) {
-			newVersion = current.getCurrentRevNumber()+1;
-		}
 
 		DBOAccessRequirement toUpdate = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, toUpdate);
-		toUpdate.setCurrentRevNumber(newVersion);
+		toUpdate.setCurrentRevNumber(dto.getVersionNumber());
 		toUpdate.seteTag(UUID.randomUUID().toString());
 		basicDao.update(toUpdate);
 
@@ -301,7 +313,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);*/
 
 		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
-		AccessRequirementUtils.copyDTOToDBOAccessRequirementRevision(dto, dboRevision, newVersion);
+		AccessRequirementUtils.copyDTOToDBOAccessRequirementRevision(dto, dboRevision, dto.getVersionNumber());
 		basicDao.createNew(dboRevision);
 
 		clearSubjectAccessRequirement(dto.getId());
@@ -378,29 +390,39 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public AccessRequirement updateVersion(Long accessRequirementId) {
-		DBOAccessRequirement current = getAccessRequirementForUpdate(accessRequirementId);
-		Long newVersion = 1L;
-		if (current.getCurrentRevNumber() != null) {
-			newVersion = current.getCurrentRevNumber()+1;
-		}
-		
+	public AccessRequirement updateVersion(String accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
+		DBOAccessRequirement current = namedJdbcTemplate.queryForObject(GET_ACCESS_REQUIREMENT_SQL, param, accessRequirementRowMapper);
+
+		param = new MapSqlParameterSource();
+		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
 		param.addValue(COL_ACCESS_REQUIREMENT_ETAG, UUID.randomUUID().toString());
-		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, newVersion);
+		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, current.getCurrentRevNumber());
 		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
 
 		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
 		dboRevision.setOwnerId(current.getId());
-		dboRevision.setNumber(newVersion);
+		dboRevision.setNumber(current.getCurrentRevNumber());
 		dboRevision.setModifiedBy(current.getModifiedBy());
 		dboRevision.setModifiedOn(current.getModifiedOn());
-		dboRevision.setAccessType(current.getAccessType());
-		dboRevision.setConcreteType(current.getConcreteType());
 		dboRevision.setSerializedEntity(current.getSerializedEntity());
-		basicDao.createNew(dboRevision);
+		populateRevision(dboRevision);
 
 		return get(accessRequirementId.toString());
+	}
+
+	private void populateRevision(final DBOAccessRequirementRevision revision) {
+		jdbcTemplate.update(INSERT_IGNORE_ACCESS_REQUIREMENT_REVISION, new PreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setLong(1, revision.getOwnerId());
+				ps.setLong(2, revision.getNumber());
+				ps.setLong(3, revision.getModifiedBy());
+				ps.setLong(4, revision.getModifiedOn());
+				ps.setBytes(5, revision.getSerializedEntity());
+			}
+		});
 	}
 }

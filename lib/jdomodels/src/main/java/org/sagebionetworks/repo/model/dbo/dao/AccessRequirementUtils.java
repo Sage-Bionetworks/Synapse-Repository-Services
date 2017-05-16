@@ -76,8 +76,6 @@ public class AccessRequirementUtils {
 		dbo.setOwnerId(dto.getId());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
-		dbo.setAccessType(dto.getAccessType().name());
-		dbo.setConcreteType(dto.getConcreteType());
 		dbo.setNumber(version);
 		copyToSerializedField(dto, dbo);
 	}

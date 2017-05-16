@@ -108,8 +108,6 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_NUMBER			= "NUMBER";
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON		= "MODIFIED_ON";
-	public static final String COL_ACCESS_REQUIREMENT_REVISION_ACCESS_TYPE		= "ACCESS_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_REVISION_CONCRETE_TYPE	= "CONCRETE_TYPE";
 	public static final String COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT_REVISION				= "schema/AccessRequirementRevision-ddl.sql";	
 

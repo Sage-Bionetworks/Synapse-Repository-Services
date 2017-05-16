@@ -18,14 +18,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -290,17 +286,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACCESS_REQUIREMENT;
-	}
-	
-	public static void copyEntityIdsToAccessRequirement(List<String> entityIds, AccessRequirement ar) {
-		if (entityIds==null) return;
-		if (ar.getSubjectIds()==null) ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
-		for (String entityId : entityIds) {
-			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-			subjectId.setId(entityId);
-			subjectId.setType(RestrictableObjectType.ENTITY);
-			if (!ar.getSubjectIds().contains(subjectId)) ar.getSubjectIds().add(subjectId);
-		}	
 	}
 
 	@Override

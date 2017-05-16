@@ -102,7 +102,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 
 	@Override
-	public AccessRequirement updateVersion(Long userId, Long requirementId) {
+	public AccessRequirement updateVersion(Long userId, String requirementId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessRequirementManager.adminUpdateAccessRequirementVersion(userInfo, requirementId);
 	}

@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -234,25 +235,34 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@WriteTransactionReadCommitted
 	@Override
-	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
+	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T toUpdate) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		ValidateArgument.required(accessRequirement, "accessRequirement");
-		ValidateArgument.requirement(accessRequirementId.equals(accessRequirement.getId().toString()),
-			"Update specified ID "+accessRequirementId+" but object contains id: "+accessRequirement.getId());
-		validateAccessRequirement(accessRequirement);
+		ValidateArgument.required(toUpdate, "toUpdate");
+		ValidateArgument.requirement(accessRequirementId.equals(toUpdate.getId().toString()),
+			"Update specified ID "+accessRequirementId+" but object contains id: "+toUpdate.getId());
+		validateAccessRequirement(toUpdate);
 
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, accessRequirement.getId().toString(),
+				authorizationManager.canAccess(userInfo, toUpdate.getId().toString(),
 						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 
-		populateModifiedFields(userInfo, accessRequirement);
-		return (T) accessRequirementDAO.update(setDefaultValues(accessRequirement));
+		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
+		if(!current.getEtag().equals(toUpdate.getEtag())
+				|| !current.getCurrentVersion().equals(toUpdate.getVersionNumber())){
+			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
+		}
+		ValidateArgument.requirement(current.getAccessType().equals(toUpdate.getAccessType()), "Cannot modify AccessType");
+		ValidateArgument.requirement(current.getConcreteType().equals(toUpdate.getConcreteType()), "Cannot change "+current.getConcreteType()+" to "+toUpdate.getConcreteType());
+
+		toUpdate.setVersionNumber(current.getCurrentVersion()+1);
+		populateModifiedFields(userInfo, toUpdate);
+		return (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, Long accessRequirementId) {
+	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		if (!userInfo.isAdmin()) {
