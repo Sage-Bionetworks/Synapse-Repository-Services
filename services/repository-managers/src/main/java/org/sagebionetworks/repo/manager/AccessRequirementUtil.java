@@ -17,11 +17,11 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+@Deprecated
 public class AccessRequirementUtil {
-	
+
 	private static final List<Long> EMPTY_LIST = Arrays.asList(new Long[]{});
 
-	
 	public static List<Long> unmetDownloadAccessRequirementIdsForEntity(
 			UserInfo userInfo, 
 			String entityId,

@@ -41,6 +41,7 @@
     	"PROJECT_SETTINGS",
     	"PROJECT_STATS",
         "ACCESS_REQUIREMENT",
+        "ACCESS_REQUIREMENT_REVISION",
         "ACCESS_APPROVAL",
         "ACL",
         "ACL_ACCESS",

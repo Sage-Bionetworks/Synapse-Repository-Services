@@ -5,6 +5,7 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -381,5 +382,23 @@ public class AdministrationController extends BaseController {
 			@RequestBody IdList toDelete) 
 			throws UnauthorizedException, NotFoundException {
 		return serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, toDelete);
+	}
+
+	/**
+	 * Admin service to update AccessRequirement version
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_VERSION, method = RequestMethod.PUT)
+	public @ResponseBody AccessRequirement updateVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable Long requirementId) 
+			throws UnauthorizedException, NotFoundException {
+		return serviceProvider.getAccessRequirementService().updateVersion(userId, requirementId);
 	}
 }

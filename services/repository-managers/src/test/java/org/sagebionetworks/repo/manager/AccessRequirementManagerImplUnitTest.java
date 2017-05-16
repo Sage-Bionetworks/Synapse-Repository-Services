@@ -587,4 +587,27 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(ar.getModifiedBy());
 		assertNotNull(ar.getModifiedOn());
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAdminUpdateAccessRequirementVersionWithNullUserInfo() {
+		arm.adminUpdateAccessRequirementVersion(null, 1L);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAdminUpdateAccessRequirementVersionWithNullAccessRequirementId() {
+		arm.adminUpdateAccessRequirementVersion(userInfo, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testAdminUpdateAccessRequirementVersionUnauthorized() {
+		arm.adminUpdateAccessRequirementVersion(userInfo, 1L);
+	}
+
+	@Test
+	public void testAdminUpdateAccessRequirementVersionAuthorized() {
+		UserInfo mockUser = Mockito.mock(UserInfo.class);
+		when(mockUser.isAdmin()).thenReturn(true);
+		arm.adminUpdateAccessRequirementVersion(mockUser, 1L);
+		verify(accessRequirementDAO).updateVersion(1L);
+	}
 }

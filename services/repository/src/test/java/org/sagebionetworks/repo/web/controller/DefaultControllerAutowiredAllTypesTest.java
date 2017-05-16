@@ -51,7 +51,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -359,9 +359,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			Entity updated = servletTestHelper.updateEntity(dispatchServlet, entity, userId);
 			assertNotNull(updated);
 			// Updating an entity should not create a new version
-			if(updated instanceof Versionable){
-				Versionable updatedVersionable = (Versionable) updated;
-				assertEquals(new Long(1), updatedVersionable.getVersionNumber());
+			if(updated instanceof VersionableEntity){
+				VersionableEntity updatedVersionableEntity = (VersionableEntity) updated;
+				assertEquals(new Long(1), updatedVersionableEntity.getVersionNumber());
 			}
 			// It should have a new etag
 			assertNotNull(updated.getEtag());
@@ -553,8 +553,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
-			if(entity instanceof Versionable){
-				Versionable versionableEntity = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				// Before we start, make sure there is only one version so far
 				assertEquals(new Long(1), versionableEntity.getVersionNumber());
 				assertNotNull(versionableEntity.getVersionLabel());
@@ -562,7 +562,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.createNewVersion()");
-				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -581,14 +581,14 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
-			if(entity instanceof Versionable){
-				Versionable versionableEntity = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity versionableEntity = (VersionableEntity) entity;
 
 				// Now create a new version
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.testGetVersion()");
-				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -596,13 +596,13 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				assertEquals(versionableEntity.getVersionComment(), newVersion.getVersionComment());
 				
 				// Get the first version
-				Versionable v1 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
+				VersionableEntity v1 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
 						versionableEntity.getId(), new Long(1), userId);
 				assertNotNull(v1);
 				assertEquals(new Long(1), v1.getVersionNumber());
 				UrlHelpers.validateAllUrls(v1);
 				// now get the second version
-				Versionable v2 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
+				VersionableEntity v2 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
 						versionableEntity.getId(), new Long(2), userId);
 				assertNotNull(v2);
 				assertEquals(new Long(2), v2.getVersionNumber());
@@ -621,8 +621,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		int numberVersion = 4;
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
-			if(entity instanceof Versionable){
-				Versionable versionableEntity = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				// Create multiple versions for each.
 				for(int i=0; i<numberVersion; i++){
 					// Create a comment and label for each
@@ -671,8 +671,8 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
-			if(entity instanceof Versionable){
-				Versionable versionableEntity = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				
 				// Before we create a new version make sure the current version has some annotations
 				Annotations v1Annos = servletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(),
@@ -687,7 +687,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.EntityAnnotationsForVersion()");
-				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// Make sure the new version has the annotations
@@ -725,15 +725,15 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// Now update each
 		for(Entity entity: created){
 			// We can only create new versions for versionable entities.
-			if(entity instanceof Versionable){
-				Versionable versionableEntity = (Versionable) entity;
+			if(entity instanceof VersionableEntity){
+				VersionableEntity versionableEntity = (VersionableEntity) entity;
 				
 				// Now create a new version
 				// We must give it a new version label or it will fail
 				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.testDeleteVersion()");
-				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				VersionableEntity newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// There should be two versions

@@ -1,0 +1,34 @@
+{
+	"description": "JSON schema for Versionable interface",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.Entity"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.Versionable"
+		}
+	],
+	"properties": {
+		"versionLabel": {
+			"type": "string",
+			"description": "The version label for this entity",
+			"title": "Version"
+		},
+		"versionComment": {
+			"type": "string",
+			"description": "The version comment for this entity",
+			"title": "Version Comment"
+		},
+		"versionUrl": {
+			"type": "string",
+			"description": "The full URL of this exect version. This URL is provided by Synapse.",
+			"transient": true
+		},
+		"versions": {
+			"type": "string",
+			"description": "The URL to get all versions of this entity. This URL is provided by Synapse.",
+			"transient": true
+		}
+	}
+}
