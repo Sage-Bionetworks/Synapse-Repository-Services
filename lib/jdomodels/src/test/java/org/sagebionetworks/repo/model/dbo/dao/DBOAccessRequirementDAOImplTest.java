@@ -199,7 +199,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		// update it
 		clone = ars.iterator().next();
-		clone.setAccessType(ACCESS_TYPE.READ);
+		clone.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		clone.setVersionNumber(accessRequirement.getVersionNumber()+1);
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
 		assertEquals(clone.getAccessType(), updatedAR.getAccessType());
