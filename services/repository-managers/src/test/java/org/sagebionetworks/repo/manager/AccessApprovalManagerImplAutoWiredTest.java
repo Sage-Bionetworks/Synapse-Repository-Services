@@ -324,18 +324,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testUpdateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-
-		// ensure that the 'modifiedOn' date is later
-		Thread.sleep(100L);
-		long aaModifiedOn = aa.getModifiedOn().getTime();
-		accessApprovalManager.updateAccessApproval(adminUserInfo, aa);
-		assertTrue(aa.getModifiedOn().getTime()-aaModifiedOn>0);
-	}
-	
-	@Test
 	public void testDeleteAccessApproval() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);

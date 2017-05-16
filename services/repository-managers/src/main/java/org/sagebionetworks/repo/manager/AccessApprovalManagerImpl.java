@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
@@ -128,23 +127,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			subjectIds.add(rod.getId());
 		}
 		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
-			DatastoreException, UnauthorizedException,
-			ConflictingUpdateException, InvalidModelException {
-
-		if (accessApproval instanceof TermsOfUseAccessApproval) {
-			// fill in the user's identity
-			accessApproval.setAccessorId(userInfo.getId().toString());
-		}
-
-		validateAccessApproval(accessApproval);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE));
-		populateModifiedFields(userInfo, accessApproval);
-		return accessApprovalDAO.update(accessApproval);
 	}
 
 	@WriteTransactionReadCommitted
