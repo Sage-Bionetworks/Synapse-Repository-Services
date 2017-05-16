@@ -277,7 +277,7 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testCreateNewVersionOfEntityWithoutInheritingProvenance_PLFM_1869() throws Exception {
 		Activity act = new Activity();
-		String actId = activityManager.createActivity(adminUserInfo, act);		
+		String actId = activityManager.createActivity(adminUserInfo, act);
 		assertNotNull(actId);
 		activitiesToDelete.add(actId);
 		
@@ -300,7 +300,7 @@ public class EntityManagerImplAutowireTest {
 		ExternalFileHandle external2 = new ExternalFileHandle();
 		external2.setExternalURL("http://www.yahoo.com");
 		external2.setFileName("file.txt");
-		external2 = fileHandleManager.createExternalFileHandle(adminUserInfo, external2);		
+		external2 = fileHandleManager.createExternalFileHandle(adminUserInfo, external2);
 		fileHandlesToDelete.add(external2.getId());
 		
 		file.setDataFileHandleId(external2.getId());
