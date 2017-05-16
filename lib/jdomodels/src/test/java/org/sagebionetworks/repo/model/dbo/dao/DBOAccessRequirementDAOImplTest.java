@@ -387,6 +387,6 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testGetForUpdateWithoutTransaction() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
-		accessRequirementDAO.getAccessRequirementForUpdate(accessRequirement.getId().toString());
+		accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
 	}
 }

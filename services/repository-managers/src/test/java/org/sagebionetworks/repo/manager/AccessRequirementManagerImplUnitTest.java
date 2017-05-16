@@ -372,7 +372,7 @@ public class AccessRequirementManagerImplUnitTest {
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
 		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenThrow(new NotFoundException());
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException());
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -387,7 +387,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("new Etag");
 		info.setCurrentVersion(1L);
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -402,7 +402,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setEtag("etag");
 		info.setCurrentVersion(2L);
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -419,7 +419,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.PARTICIPATE);
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -437,7 +437,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		info.setConcreteType(TermsOfUseAccessRequirement.class.getName());
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 	}
 
@@ -455,7 +455,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		info.setConcreteType(ACTAccessRequirement.class.getName());
-		when(accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId)).thenReturn(info );
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
 

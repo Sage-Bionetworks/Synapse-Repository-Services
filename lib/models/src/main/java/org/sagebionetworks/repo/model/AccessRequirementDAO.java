@@ -120,5 +120,5 @@ public interface AccessRequirementDAO {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public AccessRequirementInfoForUpdate getAccessRequirementForUpdate(String accessRequirementId) throws NotFoundException;
+	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
 }

@@ -247,7 +247,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				authorizationManager.canAccess(userInfo, toUpdate.getId().toString(),
 						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 
-		AccessRequirementInfoForUpdate current = accessRequirementDAO.getAccessRequirementForUpdate(accessRequirementId);
+		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(accessRequirementId);
 		if(!current.getEtag().equals(toUpdate.getEtag())
 				|| !current.getCurrentVersion().equals(toUpdate.getVersionNumber())){
 			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");

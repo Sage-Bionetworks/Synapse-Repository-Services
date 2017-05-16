@@ -272,7 +272,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@MandatoryWriteTransaction
 	@Override
-	public AccessRequirementInfoForUpdate getAccessRequirementForUpdate(String accessRequirementId) throws NotFoundException{
+	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException{
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
 		try {
