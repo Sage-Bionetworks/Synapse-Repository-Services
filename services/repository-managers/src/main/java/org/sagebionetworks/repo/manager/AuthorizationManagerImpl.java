@@ -329,7 +329,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			return AuthorizationManagerUtil.accessDenied("Access Requirements may only be created by a member of the Synapse Access and Compliance Team.");
 		}
 	}
-	
+
 	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
@@ -362,11 +362,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 */
 	@Override
 	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) return AuthorizationManagerUtil.AUTHORIZED;
-		if (sourceParentId.equals(destParentId)) return AuthorizationManagerUtil.AUTHORIZED;
+		if (isACTTeamMemberOrAdmin(userInfo)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		if (sourceParentId.equals(destParentId)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
-		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getAllAccessRequirementsForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
+
+		// TODO: replace the rest of the logic with one AccessRequirementDAO call.
+		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getAllAccessRequirementsForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
 		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getAllAccessRequirementsForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
 		Set<AccessRequirement> diff = new HashSet<AccessRequirement>(allRequirementsForSourceParent);
 		diff.removeAll(allRequirementsForDestParent);
