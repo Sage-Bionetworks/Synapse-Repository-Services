@@ -7,7 +7,6 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
-import org.sagebionetworks.repo.model.query.Comparator;
  
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
@@ -90,24 +89,34 @@ public class SqlConstants {
 	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
 
 	// The ACCESS_REQUIREMENT table
-	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";
-	public static final String COL_ACCESS_REQUIREMENT_ID			= "ID";
-	public static final String COL_ACCESS_REQUIREMENT_ETAG			= "ETAG";
-	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY	= "CREATED_BY";
-	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON	= "CREATED_ON";
-	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
-	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
-	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_CONCRETE_TYPE	= "CONCRETE_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
-	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
+	public static final String TABLE_ACCESS_REQUIREMENT							= "ACCESS_REQUIREMENT";
+	public static final String COL_ACCESS_REQUIREMENT_ID						= "ID";
+	public static final String COL_ACCESS_REQUIREMENT_ETAG						= "ETAG";
+	public static final String COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER	= "CURRENT_REV_NUM";
+	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY				= "CREATED_BY";
+	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON				= "CREATED_ON";
+	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY				= "MODIFIED_BY";
+	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON				= "MODIFIED_ON";
+	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE				= "ACCESS_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_CONCRETE_TYPE				= "CONCRETE_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY			= "SERIALIZED_ENTITY";
+	public static final String DDL_FILE_ACCESS_REQUIREMENT						= "schema/AccessRequirement-ddl.sql";
+	
+	// The ACCESS_REQUIREMENT_REVISION table
+	public static final String TABLE_ACCESS_REQUIREMENT_REVISION				= "ACCESS_REQUIREMENT_REVISION";
+	public static final String COL_ACCESS_REQUIREMENT_REVISION_OWNER_ID			= "OWNER_ID";
+	public static final String COL_ACCESS_REQUIREMENT_REVISION_NUMBER			= "NUMBER";
+	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String COL_ACCESS_REQUIREMENT_REVISION_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String COL_ACCESS_REQUIREMENT_REVISION_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
+	public static final String DDL_FILE_ACCESS_REQUIREMENT_REVISION				= "schema/AccessRequirementRevision-ddl.sql";	
 
 	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
 	// !!! Note: The table name should be SUBJECT_ACCESS_REQUIREMENT, but migration issues prevent
 	// !!!       us from doing that as this time.
-	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
-	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID			= "SUBJECT_ID";
-	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE			= "SUBJECT_TYPE";
+	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT					= "NODE_ACCESS_REQUIREMENT";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID		= "SUBJECT_ID";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE		= "SUBJECT_TYPE";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
 

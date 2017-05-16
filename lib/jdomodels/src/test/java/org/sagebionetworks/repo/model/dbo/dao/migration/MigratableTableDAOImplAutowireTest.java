@@ -595,7 +595,7 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testAllMigrationTypesRegistered() {
 		for (MigrationType t: MigrationType.values()) {
-		    assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
+			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
 		}
 	}
 }

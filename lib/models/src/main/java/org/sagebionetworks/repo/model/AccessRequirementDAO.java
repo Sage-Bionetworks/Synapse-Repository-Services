@@ -56,12 +56,6 @@ public interface AccessRequirementDAO {
 
 	/**
 	 * 
-	 * @return all IDs in the system
-	 */
-	List<String> getIds();
-
-	/**
-	 * 
 	 * @param subject the subject of the access restriction
 	 * @param principalIds the principalIds (user and groups) to which a user belongs
 	 * @param accessType
@@ -70,8 +64,6 @@ public interface AccessRequirementDAO {
 	 */
 	List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
 			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
-
-	long getCount() throws DatastoreException;
 
 	/**
 	 * Retrieve a page of AccessRequirements.
@@ -111,4 +103,22 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
+
+	/**
+	 * Update the version of an existing AccessRequirement.
+	 * This method is used to migrate AccessRequirement, and should be removed after the migration process is finished.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirement updateVersion(String accessRequirementId);
+
+	/**
+	 * Retrieve information to update an AccessRequirement.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
 }

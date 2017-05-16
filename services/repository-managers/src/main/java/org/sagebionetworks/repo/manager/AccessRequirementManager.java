@@ -79,4 +79,12 @@ public interface AccessRequirementManager {
 	 * @return
 	 */
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, String accessRequirementId);
 }

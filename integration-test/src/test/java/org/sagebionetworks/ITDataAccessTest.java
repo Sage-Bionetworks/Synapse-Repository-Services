@@ -18,6 +18,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -84,6 +85,13 @@ public class ITDataAccessTest {
 		try {
 			adminSynapse.deleteUser(userToDelete);
 		} catch (SynapseException e) { }
+	}
+
+	@Test
+	public void testUpdateARVersion() throws SynapseException {
+		AccessRequirement newVersion = adminSynapse.updateVersion(accessRequirement.getId().toString());
+		assertNotNull(newVersion);
+		assertEquals(newVersion.getVersionNumber(), accessRequirement.getVersionNumber());
 	}
 
 	@Test

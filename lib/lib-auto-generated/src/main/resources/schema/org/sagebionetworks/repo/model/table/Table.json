@@ -3,7 +3,7 @@
 	"type": "interface",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.Versionable"
+			"$ref":"org.sagebionetworks.repo.model.VersionableEntity"
 		}
 	],
 	"properties": {

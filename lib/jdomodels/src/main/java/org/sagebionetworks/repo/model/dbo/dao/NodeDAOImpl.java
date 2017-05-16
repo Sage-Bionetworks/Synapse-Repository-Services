@@ -396,7 +396,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			rev.setRevisionNumber(dto.getVersionNumber());
 		}
 		DBONode node = new DBONode();
-		node.setCurrentRevNumber(rev.getRevisionNumber());		
+		node.setCurrentRevNumber(rev.getRevisionNumber());
 		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){

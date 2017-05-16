@@ -47,7 +47,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -332,7 +332,7 @@ public class ServletTestHelper {
 	/**
 	 * Get an entity using an id
 	 */
-	public <T extends Versionable> T getEntityForVersion(
+	public <T extends VersionableEntity> T getEntityForVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			Long versionNumber, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -447,7 +447,7 @@ public class ServletTestHelper {
 	 * Update an entity
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends Versionable> T createNewVersion(
+	public <T extends VersionableEntity> T createNewVersion(
 			HttpServlet dispatchServlet, T entity, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

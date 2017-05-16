@@ -27,7 +27,7 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("subjectId", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, true),
 		new FieldColumn("subjectType", COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, true),
-		new FieldColumn("accessRequirementId", COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true)
+		new FieldColumn("accessRequirementId", COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true),
 	};
 
 	@Override
@@ -93,14 +93,9 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime
-				* result
-				+ ((accessRequirementId == null) ? 0 : accessRequirementId
-						.hashCode());
-		result = prime * result
-				+ ((subjectId == null) ? 0 : subjectId.hashCode());
-		result = prime * result
-				+ ((subjectType == null) ? 0 : subjectType.hashCode());
+		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
+		result = prime * result + ((subjectId == null) ? 0 : subjectId.hashCode());
+		result = prime * result + ((subjectType == null) ? 0 : subjectType.hashCode());
 		return result;
 	}
 
@@ -133,9 +128,8 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 
 	@Override
 	public String toString() {
-		return "DBOSubjectAccessRequirement [subjectId=" + subjectId
-				+ ", subjectType=" + subjectType + ", accessRequirementId="
-				+ accessRequirementId + "]";
+		return "DBOSubjectAccessRequirement [subjectId=" + subjectId + ", subjectType=" + subjectType
+				+ ", accessRequirementId=" + accessRequirementId + "]";
 	}
 
 	@Override
@@ -188,6 +182,4 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
 	}
-
-
 }

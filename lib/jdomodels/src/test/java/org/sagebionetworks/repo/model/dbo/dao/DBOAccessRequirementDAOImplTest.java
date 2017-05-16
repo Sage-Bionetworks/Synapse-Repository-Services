@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,16 +17,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -42,6 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -73,7 +68,7 @@ public class DBOAccessRequirementDAOImplTest {
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
-		// note:  we set up multiple nodes and multiple evaluations to ensure that filtering works
+		// note: we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDao.createNew(node) );
@@ -123,6 +118,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
 		accessRequirement.setTermsOfUse(text);
@@ -150,8 +146,7 @@ public class DBOAccessRequirementDAOImplTest {
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
-	}	
-	
+	}
 
 	@Test
 	public void testEntityAccessRequirementCRUD() throws Exception{
@@ -160,14 +155,10 @@ public class DBOAccessRequirementDAOImplTest {
 		RestrictableObjectDescriptor subjectId = 
 			AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId(), RestrictableObjectType.ENTITY);
 
-		long initialCount = accessRequirementDAO.getCount();
-		
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
 		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId()));
-		
-		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
 		// Fetch it
 		// PLFM-1477, we have to check that retrieval works when there is another access requirement
@@ -208,20 +199,12 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		// update it
 		clone = ars.iterator().next();
-		clone.setAccessType(ACCESS_TYPE.READ);
+		clone.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		clone.setVersionNumber(accessRequirement.getVersionNumber()+1);
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
 		assertEquals(clone.getAccessType(), updatedAR.getAccessType());
 
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAR.getEtag()));
-
-		try {
-			((TermsOfUseAccessRequirement)clone).setTermsOfUse("bar");
-			accessRequirementDAO.update(clone);
-			fail("conflicting update exception not thrown");
-		}
-		catch(ConflictingUpdateException e){
-			// We expected this exception
-		}
 
 		assertEquals(accessRequirement.getClass().getName(),
 				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
@@ -229,8 +212,6 @@ public class DBOAccessRequirementDAOImplTest {
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
-
-		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 	
 	@Test
@@ -238,13 +219,9 @@ public class DBOAccessRequirementDAOImplTest {
 		// Create a new object
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		
-		long initialCount = accessRequirementDAO.getCount();
-		
 		// Create it
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
-		
-		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
 		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
@@ -296,8 +273,6 @@ public class DBOAccessRequirementDAOImplTest {
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
-
-		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
 
 	@Test (expected = NotFoundException.class)
@@ -337,6 +312,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setEtag("etag");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setSubjectIds(Arrays.asList(rod));
+		accessRequirement.setVersionNumber(1L);
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
 		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
@@ -380,6 +356,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedBy(individualGroup.getId());
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setVersionNumber(1L);
 		RestrictableObjectDescriptor rod1 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
 		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
@@ -392,5 +369,24 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, list.get(0));
 
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
+	}
+
+	@Test
+	public void testUpdateVersion() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+
+		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId().toString());
+		assertFalse(accessRequirement.equals(newVersion));
+		accessRequirement.setVersionNumber(newVersion.getVersionNumber());
+		accessRequirement.setEtag(newVersion.getEtag());
+		assertEquals(accessRequirement, newVersion);
+	}
+
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
 	}
 }

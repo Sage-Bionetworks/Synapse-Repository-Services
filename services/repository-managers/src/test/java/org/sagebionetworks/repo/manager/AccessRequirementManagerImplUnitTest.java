@@ -35,7 +35,9 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -55,6 +57,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
@@ -318,12 +321,142 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIDUPublic());
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithNullUserInfo() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		arm.updateAccessRequirement(null, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithNullAccessRequirementId() {
+		AccessRequirement toUpdate = createExpectedAR();
+		toUpdate.setId(1L);
+		arm.updateAccessRequirement(userInfo, null, toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithNullAccessRequirement() {
+		arm.updateAccessRequirement(userInfo, "1", null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithIdDoesNotMatch() {
+		AccessRequirement toUpdate = createExpectedAR();
+		toUpdate.setId(1L);
+		arm.updateAccessRequirement(userInfo, "-1", toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithInvalidAccessRequirement() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setAccessType(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testUpdateUnauthorized() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testUpdateNoneExistingAR() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenThrow(new NotFoundException());
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = ConflictingUpdateException.class)
+	public void testUpdateEtagDoesNotMatch() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("oldEtag");
+		toUpdate.setVersionNumber(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("new Etag");
+		info.setCurrentVersion(1L);
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = ConflictingUpdateException.class)
+	public void testUpdateVersionDoesNotMatch() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(2L);
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateAccessType() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(1L);
+		info.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateConcreteType() {
+		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(1L);
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		info.setConcreteType(TermsOfUseAccessRequirement.class.getName());
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+		arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
+	}
+
 	@Test
 	public void testUpdateACTAccessRequirement() {
 		AccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
 		toUpdate.setId(1L);
-		when(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		toUpdate.setEtag("etag");
+		toUpdate.setVersionNumber(1L);
+		toUpdate.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setEtag("etag");
+		info.setCurrentVersion(1L);
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		info.setConcreteType(ACTAccessRequirement.class.getName());
+		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
+
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
 
 		// test that the right AR was created
@@ -339,6 +472,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 	}
 
 	@Test
@@ -586,5 +720,28 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(ar.getCreatedOn());
 		assertNotNull(ar.getModifiedBy());
 		assertNotNull(ar.getModifiedOn());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAdminUpdateAccessRequirementVersionWithNullUserInfo() {
+		arm.adminUpdateAccessRequirementVersion(null, "1");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAdminUpdateAccessRequirementVersionWithNullAccessRequirementId() {
+		arm.adminUpdateAccessRequirementVersion(userInfo, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testAdminUpdateAccessRequirementVersionUnauthorized() {
+		arm.adminUpdateAccessRequirementVersion(userInfo, "1");
+	}
+
+	@Test
+	public void testAdminUpdateAccessRequirementVersionAuthorized() {
+		UserInfo mockUser = Mockito.mock(UserInfo.class);
+		when(mockUser.isAdmin()).thenReturn(true);
+		arm.adminUpdateAccessRequirementVersion(mockUser, "1");
+		verify(accessRequirementDAO).updateVersion("1");
 	}
 }

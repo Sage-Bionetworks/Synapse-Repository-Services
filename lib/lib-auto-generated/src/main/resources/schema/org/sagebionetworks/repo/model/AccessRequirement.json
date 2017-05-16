@@ -2,6 +2,11 @@
 	"title": "Access Requirement",
 	"type": "interface",
 	"description": "Interface for JSON schema for AccessRequirement.  The Access Requirement mechanism is distinct from the access control list in that it is controlled not by the entity owner but by a separate authority:  Access Requirements are created and maintained by the Synapse Access and Compliance Team (ACT).  ACTAccessRequirements can only be approved by the ACT.  Self-sign Access Requirements can be approved by the user desiring access, but said user first has to meet 'terms of use' associated with the requirement.",
+	"implements":[
+		{
+			"$ref":"org.sagebionetworks.repo.model.Versionable"
+		}
+	],
 	"properties": {
 		"id": {
 			"type": "integer",
@@ -16,14 +21,14 @@
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this object was created.  Provided by the system, the user may not set this field.",
+			"description": "The date this object was created. Provided by the system, the user may not set this field.",
 			"title": "Created On",
 			"transient": true
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this object was last modified.  Provided by the system, the user may not set this field.",
+			"description": "The date this object was last modified. Provided by the system, the user may not set this field.",
 			"title": "Modified On",
 			"transient": true
 		},

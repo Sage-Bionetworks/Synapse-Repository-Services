@@ -3,7 +3,7 @@
     "description":"JSON schema for File POJO",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Versionable"
+            "$ref":"org.sagebionetworks.repo.model.VersionableEntity"
         }
     ],
     "properties":{

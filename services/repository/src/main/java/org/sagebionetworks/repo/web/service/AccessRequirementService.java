@@ -39,4 +39,6 @@ public interface AccessRequirementService {
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 
+	public AccessRequirement updateVersion(Long userId, String requirementId);
+
 }

@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -308,7 +308,7 @@ public class EntityServletTestHelper {
 	/**
 	 * Creates a new version of an entity
 	 */
-	public Versionable createNewVersion(Long userId, Versionable entity)
+	public VersionableEntity createNewVersion(Long userId, VersionableEntity entity)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
@@ -318,7 +318,7 @@ public class EntityServletTestHelper {
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), Versionable.class);
+				response.getContentAsString(), VersionableEntity.class);
 	}
 
 	// ///////////////////////
