@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +22,6 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -38,6 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -201,19 +200,11 @@ public class DBOAccessRequirementDAOImplTest {
 		// update it
 		clone = ars.iterator().next();
 		clone.setAccessType(ACCESS_TYPE.READ);
+		clone.setVersionNumber(accessRequirement.getVersionNumber()+1);
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
 		assertEquals(clone.getAccessType(), updatedAR.getAccessType());
 
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAR.getEtag()));
-
-		try {
-			((TermsOfUseAccessRequirement)clone).setTermsOfUse("bar");
-			accessRequirementDAO.update(clone);
-			fail("conflicting update exception not thrown");
-		}
-		catch(ConflictingUpdateException e){
-			// We expected this exception
-		}
 
 		assertEquals(accessRequirement.getClass().getName(),
 				accessRequirementDAO.getConcreteType(accessRequirement.getId().toString()));
@@ -385,10 +376,17 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 
-		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId());
+		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId().toString());
 		assertFalse(accessRequirement.equals(newVersion));
 		accessRequirement.setVersionNumber(newVersion.getVersionNumber());
 		accessRequirement.setEtag(newVersion.getEtag());
 		assertEquals(accessRequirement, newVersion);
+	}
+
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetForUpdateWithoutTransaction() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		accessRequirementDAO.getAccessRequirementForUpdate(accessRequirement.getId().toString());
 	}
 }

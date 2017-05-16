@@ -111,5 +111,14 @@ public interface AccessRequirementDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public AccessRequirement updateVersion(Long accessRequirementId);
+	public AccessRequirement updateVersion(String accessRequirementId);
+
+	/**
+	 * Retrieve information to update an AccessRequirement.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public AccessRequirementInfoForUpdate getAccessRequirementForUpdate(String accessRequirementId) throws NotFoundException;
 }

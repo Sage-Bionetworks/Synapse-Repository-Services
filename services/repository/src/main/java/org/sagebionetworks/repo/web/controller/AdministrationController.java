@@ -397,7 +397,7 @@ public class AdministrationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_VERSION, method = RequestMethod.PUT)
 	public @ResponseBody AccessRequirement updateVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable Long requirementId) 
+			@PathVariable String requirementId) 
 			throws UnauthorizedException, NotFoundException {
 		return serviceProvider.getAccessRequirementService().updateVersion(userId, requirementId);
 	}
