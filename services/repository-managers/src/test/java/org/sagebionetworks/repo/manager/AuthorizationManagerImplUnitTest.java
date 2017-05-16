@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -214,6 +215,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockNodeDao.getNodeTypeById(PARENT_ID)).thenReturn(EntityType.project);
 		
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(REPO_ENTITY_ID);
+		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(REPO_ENTITY_ID);  // mocked to return something other than trash can
 		
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.READ), eq(USER_INFO))).
 		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -1107,10 +1109,10 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
-	when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
 		Set<RegistryEventAction> permitted = authorizationManager.
@@ -1140,5 +1142,35 @@ public class AuthorizationManagerImplUnitTest {
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.toString(), permitted.isEmpty());
 	}
+	
+	@Test
+	public void testGetPermittedAccessTypesRepoInTrash() throws Exception {
+		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(KeyFactory.keyToString(AuthorizationManagerImpl.TRASH_FOLDER_ID));
+
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		
+		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
+
+	@Test
+	public void testGetPermittedAccessRepoExistsInTrashBUTWasSubmitted() throws Exception {
+		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(KeyFactory.keyToString(AuthorizationManagerImpl.TRASH_FOLDER_ID));
+
+		when(mockEvaluationPermissionsManager.
+				isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
+						USER_INFO.getGroups(), 
+						ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
+
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we can pull (but not push!) since we have admin access to evaluation
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+	}
+
 
 }
