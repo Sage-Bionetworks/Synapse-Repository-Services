@@ -1109,10 +1109,10 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testGetPermittedAccessDownloadButNoRead() throws Exception {
 		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.UPDATE), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
-	when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
-		thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockEntityPermissionsManager.hasAccess(eq(REPO_ENTITY_ID), eq(ACCESS_TYPE.DOWNLOAD), eq(USER_INFO))).
+			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
 		Set<RegistryEventAction> permitted = authorizationManager.
@@ -1152,6 +1152,24 @@ public class AuthorizationManagerImplUnitTest {
 				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.toString(), permitted.isEmpty());
+	}
+
+
+	@Test
+	public void testGetPermittedAccessRepoExistsInTrashBUTWasSubmitted() throws Exception {
+		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(KeyFactory.keyToString(AuthorizationManagerImpl.TRASH_FOLDER_ID));
+
+		when(mockEvaluationPermissionsManager.
+				isDockerRepoNameInEvaluationWithAccess(REPOSITORY_NAME, 
+						USER_INFO.getGroups(), 
+						ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
+
+		// method under test:
+		Set<RegistryEventAction> permitted = authorizationManager.
+				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+
+		// Note, we can pull (but not push!) since we have admin access to evaluation
+		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
 	}
 
 

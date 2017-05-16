@@ -600,9 +600,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 		String existingDockerRepoId = dockerNodeDao.getEntityIdForRepositoryName(repositoryName);
 		
+		boolean isInTrash = false;
 		if (existingDockerRepoId!=null) {
 			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
-			if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))) return permittedActions;
+			isInTrash = TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
 		}
 
 		for (String requestedActionString : actionTypes.split(",")) {
@@ -621,8 +622,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 						as = canCreate(userInfo, parentId, EntityType.dockerrepo);
 					}
 				} else {
-					// check update permission on this entity
-					as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+					if (!isInTrash) {
+						// check update permission on this entity
+						as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+					}
 				}
 				if (as!=null && as.getAuthorized()) {
 					permittedActions.add(requestedAction);
@@ -632,7 +635,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case pull:
 				if (
 					// check DOWNLOAD permission and add to permittedActions
-					(existingDockerRepoId!=null && canAccess(
+					(existingDockerRepoId!=null && !isInTrash && canAccess(
 							userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()) ||
 					// If Docker repository was submitted to an Evaluation and if the requester
 					// has administrative access to the queue, then DOWNLOAD permission is granted
