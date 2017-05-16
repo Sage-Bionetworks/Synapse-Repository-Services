@@ -165,6 +165,6 @@ public interface TableServices {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds,
+	ColumnModelPage getPossibleColumnModelsForScopeIds(List<String> scopeIds, ViewType type,
 			String nextPageToken);
 }
