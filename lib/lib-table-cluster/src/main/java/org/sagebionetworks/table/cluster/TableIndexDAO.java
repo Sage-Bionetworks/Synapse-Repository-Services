@@ -348,6 +348,6 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
-			Set<Long> containerIds, Long limit, Long offset);
+			Set<Long> containerIds, ViewType type, Long limit, Long offset);
 
 }

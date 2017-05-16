@@ -196,7 +196,7 @@ public interface TableManagerSupport {
 	 * @param viewId
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForViewScope(String viewId);
+	public Set<Long> getAllContainerIdsForViewScope(String viewId, ViewType viewType);
 	
 	/**
 	 * Get the set of container ids (Projects and Folders) for a given set
@@ -208,7 +208,7 @@ public interface TableManagerSupport {
 	 * @param scope
 	 * @return
 	 */
-	public Set<Long> getAllContainerIdsForScope(Set<Long> scope);
+	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType);
 
 	
 	/**
@@ -220,7 +220,7 @@ public interface TableManagerSupport {
 	 * @param scopeIds
 	 * @return
 	 */
-	public int getScopeContainerCount(Set<Long> scopeIds);
+	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type);
 
 	/**
 	 * <p>

@@ -180,7 +180,7 @@ public interface TableIndexManager {
 	 * @param nextPageToken Optional: Controls pagination.
 	 * @return A ColumnModel for each distinct annotation for the given scope.
 	 */
-	public ColumnModelPage getPossibleColumnModelsForScope(List<String> scopeIds, String nextPageToken);
+	public ColumnModelPage getPossibleColumnModelsForScope(List<String> scopeIds, ViewType type, String nextPageToken);
 	
 	/**
 	 * Get the possible ColumnModel definitions based on annotations for a given view.

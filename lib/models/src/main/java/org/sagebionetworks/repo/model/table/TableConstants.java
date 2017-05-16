@@ -188,7 +188,7 @@ public class TableConstants {
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
 	//  Select the CRC32 from the entity replication for a given type and scope
-	public static final String SQL_ENTITY_REPLICATION_CRC_32 = "SELECT SUM(CRC32(CONCAT("
+	public static final String SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("
 			+ ENTITY_REPLICATION_COL_ID
 			+ ", '-',"
 			+ ENTITY_REPLICATION_COL_ETAG
@@ -197,7 +197,7 @@ public class TableConstants {
 			+ " WHERE "
 			+ ENTITY_REPLICATION_COL_TYPE
 			+ " = :"+TYPE_PARAMETER_NAME+" AND "
-			+ ENTITY_REPLICATION_COL_PARENT_ID + " IN (:"+PARENT_ID_PARAMETER_NAME+")";
+			+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// template to calculate CRC32 of a table view.
 	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("+ROW_ID+", '-', %1$s))) FROM %2$s";
@@ -252,7 +252,7 @@ public class TableConstants {
 
 	public static final String P_LIMIT = "pLimit";
 	
-	public static final String SELECT_DISTINCT_ANNOTATION_COLUMNS = "SELECT A."
+	public static final String SELECT_DISTINCT_ANNOTATION_COLUMNS_TEMPLATE = "SELECT A."
 			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
 			+ ANNOTATION_REPLICATION_COL_TYPE + ", MAX(LENGTH(A."
 			+ ANNOTATION_REPLICATION_COL_VALUE + "))" + " FROM "
@@ -260,9 +260,10 @@ public class TableConstants {
 			+ ANNOTATION_REPLICATION_TABLE + " AS A" + " ON E."
 			+ ENTITY_REPLICATION_COL_ID + " = A."
 			+ ANNOTATION_REPLICATION_COL_ENTITY_ID + " WHERE E."
-			+ ENTITY_REPLICATION_COL_PARENT_ID + " IN (:"
+			+ "%1$s IN (:"
 			+ PARENT_ID_PARAMETER_NAME + ") GROUP BY A."
 			+ ANNOTATION_REPLICATION_COL_KEY + ", A."
 			+ ANNOTATION_REPLICATION_COL_TYPE + " LIMIT :" + P_LIMIT
 			+ " OFFSET :" + P_OFFSET;
+	
 }

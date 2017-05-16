@@ -106,6 +106,7 @@ public class TableManagerSupportTest {
 	Set<Long> scope;
 	Set<Long> containersInScope;
 	UserInfo userInfo;
+	ViewType viewType;
 	
 	Integer callableReturn;
 	
@@ -135,6 +136,7 @@ public class TableManagerSupportTest {
 		
 		tableId = "syn123";
 		tableIdLong = KeyFactory.stringToKey(tableId);
+		viewType = ViewType.file;
 		
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
@@ -159,7 +161,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.table);
 		
 		// setup the view scope
-		Set<Long> scope = Sets.newHashSet(222L,333L);
+		scope = Sets.newHashSet(222L,333L);
 		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
 		when(mockNodeDao.getAllContainerIds(222L)).thenReturn(Lists.newArrayList(20L,21L));
 		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
@@ -478,22 +480,40 @@ public class TableManagerSupportTest {
 	@Test
 	public void testGetScopeContainerCount(){
 		// call under test.
-		int count = manager.getScopeContainerCount(containersInScope);
+		int count = manager.getScopeContainerCount(containersInScope, viewType);
 		assertEquals(containersInScope.size(), count);
 	}
 	
 	@Test
 	public void testGetScopeContainerCountEmpty(){
 		// call under test.
-		int count = manager.getScopeContainerCount(null);
+		int count = manager.getScopeContainerCount(null, viewType);
 		assertEquals(0, count);
 	}
 	
 	@Test
 	public void testGetAllContainerIdsForViewScope(){
 		// call under test.
-		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId);
+		Set<Long> containers = manager.getAllContainerIdsForViewScope(tableId, viewType);
 		assertEquals(containersInScope, containers);
+	}
+	
+	@Test
+	public void testgetAllContainerIdsForScopeFiewView(){
+		viewType = ViewType.file;
+		// call under test.
+		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
+		assertEquals(containersInScope, containers);
+		verify(mockNodeDao, times(scope.size())).getAllContainerIds(anyLong());
+	}
+	
+	@Test
+	public void testgetAllContainerIdsForScopeProject(){
+		viewType = ViewType.project;
+		// call under test.
+		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
+		assertEquals(scope, containers);
+		verify(mockNodeDao, never()).getAllContainerIds(anyLong());
 	}
 	
 	@Test
@@ -635,6 +655,21 @@ public class TableManagerSupportTest {
 		}
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsProjectView(){
+		// View view defaults are from the FileEntityFields enumeration.
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			if(EntityField.dataFileHandleId == field){
+				continue;
+			}
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project);
 		assertEquals(expected, results);
 	}
 	

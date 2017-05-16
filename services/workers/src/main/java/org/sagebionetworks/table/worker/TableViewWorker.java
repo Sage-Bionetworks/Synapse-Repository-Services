@@ -134,7 +134,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			List<ColumnModel> expandedSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
 			
 			// Get the containers for this view.
-			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId);
+			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewType);
 
 			// create the table in the index.
 			indexManager.setIndexSchema(tableId, callback, expandedSchema);
