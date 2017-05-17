@@ -326,25 +326,9 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	@Override
 	public MigratableTableTranslation<SubmissionDBO, SubmissionDBO> getTranslator() {
 		return new MigratableTableTranslation<SubmissionDBO, SubmissionDBO>(){
-
 			@Override
 			public SubmissionDBO createDatabaseObjectFromBackup(
 					SubmissionDBO backup) {
-				if (backup.getDockerRepositoryName()==null) {
-					try {
-						JSONObject jsonObject = new JSONObject(new String(backup.getEntityBundle()));
-						JSONObject entity = (JSONObject)getFromJSONIfPresent(jsonObject, "entity");
-						if (entity!=null) {
-							String entityType = (String)getFromJSONIfPresent(entity, "concreteType");
-							if (entityType!=null && entityType.equals(DockerRepository.class.getName())) {
-								String repositoryName = (String)getFromJSONIfPresent(entity, "repositoryName");
-								backup.setDockerRepositoryName(repositoryName);
-							}
-						}
-					} catch (JSONException e) {
-						throw new RuntimeException(e);
-					}
-				}
 				return backup;
 			}
 
