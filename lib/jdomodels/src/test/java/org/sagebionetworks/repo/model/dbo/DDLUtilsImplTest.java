@@ -44,4 +44,16 @@ public class DDLUtilsImplTest {
 		result = ddlUtils.validateTableExists(new DBOExample().getTableMapping());
 		assertTrue("The second time we called this method, the table should have already existed", result);
 	}
+	
+	@Test
+	public void testCreateFunctionAndDoesExist() throws IOException{
+		String functionName = "new_function";
+		ddlUtils.dropFunction(functionName);
+		assertFalse(ddlUtils.doesFunctionExist(functionName));
+		String functionDef = "CREATE FUNCTION `"+functionName+"` () RETURNS INTEGER BEGIN RETURN 1; END";
+		ddlUtils.createFunction(functionDef);
+		assertTrue(ddlUtils.doesFunctionExist(functionName));
+		ddlUtils.dropFunction(functionName);
+		assertFalse(ddlUtils.doesFunctionExist(functionName));
+	}
 }

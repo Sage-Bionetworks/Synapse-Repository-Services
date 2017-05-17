@@ -34,5 +34,26 @@ public interface DDLUtils {
 	 * @throws IOException 
 	 */
 	void createFunction(String functionName, String fileName) throws IOException;
+	
+	/**
+	 * Create a function using the provided definition.
+	 * @param definition
+	 * @throws IOException
+	 */
+	void createFunction(String definition) throws IOException;
+	
+	/**
+	 * Drop a function.
+	 * @param functionName
+	 */
+	void dropFunction(String functionName);
+	
+	/**
+	 * Does a function with the given name exist?
+	 * 
+	 * @param functionName
+	 * @return
+	 */
+	public boolean doesFunctionExist(String functionName);
 
 }
