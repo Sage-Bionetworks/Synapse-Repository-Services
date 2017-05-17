@@ -21,6 +21,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public class DDLUtilsImpl implements DDLUtils{
 
+	private static final String DROP_FUNCTION = "DROP FUNCTION ";
+
+	private static final String SHOW_CREATE_FUNCTION = "SHOW CREATE FUNCTION ";
+
 	private static final String FUNCTION_ALREADY_EXISTS = "Function already exists: ";
 
 	private static final String ALREADY_EXISTS = "already exists";
@@ -136,23 +140,53 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public void createFunction(String functionName, String fileName)
 			throws IOException {
+		// Only create the function if it does not exist (see PLFM-4393)
+		if(doesFunctionExist(functionName)){
+			log.info(FUNCTION_ALREADY_EXISTS+functionName);
+			return;
+		}
 		String functionDefinition = loadSchemaSql(fileName);
 		try {
 			// create the function from its definition
-			jdbcTemplate.update(functionDefinition);
+			createFunction(functionDefinition);
 			log.info("Created function: "+functionName);
 		} catch (DataAccessException e) {
 			/*
-			 * MySQL does not have support for creating a function with 'IF NOT
-			 * EXISTS'. Therefore, we look for 'already exists' in the error
-			 * message.
+			 * Even though we check if a function exists before creating it, a
+			 * race condition could exist so we must handle the already-exists
+			 * errors.
 			 */
 			if(e.getMessage().contains(ALREADY_EXISTS)){
-				log.info(FUNCTION_ALREADY_EXISTS+functionName);
+				log.info("Race condition: "+FUNCTION_ALREADY_EXISTS+functionName);
 			}else{
 				throw e;
 			}
 		}
+	}
+
+	@Override
+	public boolean doesFunctionExist(String functionName) {
+		try{
+			jdbcTemplate.queryForList(SHOW_CREATE_FUNCTION+functionName);
+			return true;
+		}catch (DataAccessException e){
+			return false;
+		}
+	}
+
+	@Override
+	public void dropFunction(String functionName) {
+		try{
+			jdbcTemplate.update(DROP_FUNCTION+functionName);
+		}catch (BadSqlGrammarException e){
+			// function does not exist		
+		}
+	}
+
+	@Override
+	public void createFunction(String definition) throws IOException {
+		// create the function from its definition
+		jdbcTemplate.update(definition);
 	}
 
 }
