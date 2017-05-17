@@ -11,6 +11,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_RESEARCH_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
@@ -20,12 +22,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ACTAccessApproval;
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.dao.AccessApprovalUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -43,6 +42,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private Long requirementId;
 	private Long accessorId;
 	private byte[] serializedEntity;
+	private Long requirementVersion;
+	private Long researchProjectId;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_APPROVAL_ID, true).withIsBackupId(true),
@@ -52,6 +53,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		new FieldColumn("modifiedBy", COL_ACCESS_APPROVAL_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_APPROVAL_MODIFIED_ON),
 		new FieldColumn("requirementId", COL_ACCESS_APPROVAL_REQUIREMENT_ID),
+		new FieldColumn("requirementVersion", COL_ACCESS_APPROVAL_REQUIREMENT_VERSION),
+		new FieldColumn("researchProjectId", COL_ACCESS_APPROVAL_RESEARCH_PROJECT_ID),
 		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID),
 		new FieldColumn("serializedEntity", COL_ACCESS_APPROVAL_SERIALIZED_ENTITY)
 		};
@@ -104,12 +107,11 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 
 	@Override
 	public String toString() {
-		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", requirementId=" + requirementId + ", accessorId="
-				+ accessorId + ", serializedEntity="
-				+ Arrays.toString(serializedEntity) + "]";
+		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", requirementId="
+				+ requirementId + ", accessorId=" + accessorId + ", serializedEntity="
+				+ Arrays.toString(serializedEntity) + ", requirementVersion=" + requirementVersion
+				+ ", researchProjectId=" + researchProjectId + "]";
 	}
 
 
@@ -201,22 +203,40 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	}
 
 
+	public Long getRequirementVersion() {
+		return requirementVersion;
+	}
+
+
+	public void setRequirementVersion(Long requirementVersion) {
+		this.requirementVersion = requirementVersion;
+	}
+
+
+	public Long getResearchProjectId() {
+		return researchProjectId;
+	}
+
+
+	public void setResearchProjectId(Long researchProjectId) {
+		this.researchProjectId = researchProjectId;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((accessorId == null) ? 0 : accessorId.hashCode());
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((accessorId == null) ? 0 : accessorId.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
+		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
-		result = prime * result
-				+ ((requirementId == null) ? 0 : requirementId.hashCode());
+		result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
+		result = prime * result + ((requirementVersion == null) ? 0 : requirementVersion.hashCode());
+		result = prime * result + ((researchProjectId == null) ? 0 : researchProjectId.hashCode());
 		result = prime * result + Arrays.hashCode(serializedEntity);
 		return result;
 	}
@@ -265,6 +285,16 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				return false;
 		} else if (!requirementId.equals(other.requirementId))
 			return false;
+		if (requirementVersion == null) {
+			if (other.requirementVersion != null)
+				return false;
+		} else if (!requirementVersion.equals(other.requirementVersion))
+			return false;
+		if (researchProjectId == null) {
+			if (other.researchProjectId != null)
+				return false;
+		} else if (!researchProjectId.equals(other.researchProjectId))
+			return false;
 		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
@@ -284,12 +314,24 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
+				if (backup.getRequirementVersion() == null) {
+					backup.setRequirementVersion(0L);
+				}
+				if (backup.getResearchProjectId() == null) {
+					backup.setResearchProjectId(0L);
+				}
 				return backup;
 			}
 
 			@Override
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
+				if (dbo.getRequirementVersion() == null) {
+					dbo.setRequirementVersion(0L);
+				}
+				if (dbo.getResearchProjectId() == null) {
+					dbo.setResearchProjectId(0L);
+				}
 				return dbo;
 			}};
 	}
@@ -312,6 +354,4 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		return null;
 	}
 
-
-	
 }

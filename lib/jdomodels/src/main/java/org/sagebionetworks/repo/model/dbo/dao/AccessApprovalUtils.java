@@ -22,12 +22,20 @@ public class AccessApprovalUtils {
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
 		dbo.setId(dto.getId());
 		dbo.seteTag(dto.getEtag());
-		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedBy()!=null) {
+			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		}
+		if (dto.getCreatedOn()!=null) {
+			dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
+		dbo.setRequirementVersion(dto.getRequirementVersion());
+		if (dto.getResearchProjectId() != null) {
+			dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectId()));
+		}
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -41,6 +49,10 @@ public class AccessApprovalUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
+		dto.setRequirementVersion(dbo.getRequirementVersion());
+		if (dbo.getResearchProjectId() != null) {
+			dto.setResearchProjectId(dbo.getResearchProjectId().toString());
+		}
 		return dto;
 	}
 

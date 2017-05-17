@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The ID of the Access Requirement which requires a request to be submitted to gain access to a dataset. This submission contains information that satisfies those requirements."
 		},
+		"accessRequirementVersion": {
+			"type": "integer",
+			"description": "The version of the Access Requirement which requires a request to be submitted to gain access to a dataset. This submission contains information that satisfies those requirements."
+		},
 		"requestId": {
 			"type": "string",
 			"description": "The ID of the Request which is used to create this submission."
