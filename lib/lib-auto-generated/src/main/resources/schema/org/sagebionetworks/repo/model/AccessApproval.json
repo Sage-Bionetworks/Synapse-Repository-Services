@@ -51,7 +51,7 @@
 			"transient": true
 		},
 		"researchProjectId": {
-			"type": "integer",
+			"type": "string",
 			"description": "The research project that this object approves.",
 			"transient": true
 		},

@@ -97,6 +97,7 @@ public class SubmissionManagerImplTest {
 	private String requestId;
 	private String researchProjectId;
 	private String accessRequirementId;
+	private Long accessRequirementVersion;
 	private String ducFileHandleId;
 	private String irbFileHandleId;
 	private String attachmentId;
@@ -133,6 +134,7 @@ public class SubmissionManagerImplTest {
 		summaryOfUse = "summaryOfUse";
 		submissionId = "8";
 		etag = "etag";
+		accessRequirementVersion = 9L;
 		accessors = Arrays.asList(userId);
 
 		request = new Renewal();
@@ -150,6 +152,7 @@ public class SubmissionManagerImplTest {
 		when(mockRequestDao.get(requestId)).thenReturn(request);
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockResearchProjectDao.get(researchProjectId)).thenReturn(mockResearchProject);
+		when(mockResearchProject.getId()).thenReturn(researchProjectId);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockSubmissionDao.hasSubmissionWithState(
 				userId, accessRequirementId, SubmissionState.SUBMITTED))
@@ -160,6 +163,8 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirement.getIsCertifiedUserRequired()).thenReturn(true);
 		when(mockAccessRequirement.getIsValidatedProfileRequired()).thenReturn(true);
 		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(accessRequirementVersion);
 		when(mockGroupMembersDao.areMemberOf(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 				new HashSet<String>(accessors)))
@@ -170,7 +175,6 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.createSubmission(any(Submission.class)))
 				.thenReturn(mockSubmissionStatus);
 		when(mockSubmissionStatus.getSubmissionId()).thenReturn(submissionId);
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -571,6 +575,8 @@ public class SubmissionManagerImplTest {
 		submission.setAccessors(Arrays.asList(userId));
 		submission.setEtag(etag);
 		submission.setId(submissionId);
+		submission.setAccessRequirementVersion(accessRequirementVersion);
+		submission.setResearchProjectSnapshot(mockResearchProject);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
 		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
 				eq(SubmissionState.APPROVED), eq(reason), eq(userId),
