@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -246,24 +245,10 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, approvedUsers.size());
 		assertTrue(approvedUsers.contains(individualGroup.getId().toString()));
 
-		// update it
-		clone = ars.iterator().next();
-		AccessApproval updatedAA = accessApprovalDAO.update(clone);
-		assertEquals(((TermsOfUseAccessApproval)clone).getConcreteType(), ((TermsOfUseAccessApproval)updatedAA).getConcreteType());
-		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
-
-		try {
-			accessApprovalDAO.update(clone);
-			fail("conflicting update exception not thrown");
-		}
-		catch(ConflictingUpdateException e){
-			// We expected this exception
-		}
-		
 		// creating an approval is idempotent:
 		// make a second one...
 		accessApproval2 = accessApprovalDAO.create(newAccessApproval(individualGroup, accessRequirement));
-		assertEquals(updatedAA, accessApproval2);
+		assertEquals(clone, accessApproval2);
 		// .. there is still only one:
 		ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
 				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
