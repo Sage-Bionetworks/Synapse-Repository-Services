@@ -150,7 +150,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setModifiedOn(new Date());
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		accessApproval.setSubmitterId(principal.getId());
 		return accessApproval;
 	}
 	

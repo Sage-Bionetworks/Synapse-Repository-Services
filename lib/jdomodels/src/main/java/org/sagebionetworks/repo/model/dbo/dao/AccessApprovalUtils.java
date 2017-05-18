@@ -33,9 +33,7 @@ public class AccessApprovalUtils {
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
 		dbo.setRequirementVersion(dto.getRequirementVersion());
-		if (dto.getResearchProjectId() != null) {
-			dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectId()));
-		}
+		dbo.setSubmitterId(Long.parseLong(dto.getSubmitterId()));
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -50,9 +48,7 @@ public class AccessApprovalUtils {
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
 		dto.setRequirementVersion(dbo.getRequirementVersion());
-		if (dbo.getResearchProjectId() != null) {
-			dto.setResearchProjectId(dbo.getResearchProjectId().toString());
-		}
+		dto.setSubmitterId(dbo.getSubmitterId().toString());
 		return dto;
 	}
 

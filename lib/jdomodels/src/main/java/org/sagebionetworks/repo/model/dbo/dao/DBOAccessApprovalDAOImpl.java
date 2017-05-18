@@ -9,7 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_RESEARCH_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
@@ -112,7 +112,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_MODIFIED_ON+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+", "
-			+COL_ACCESS_APPROVAL_RESEARCH_PROJECT_ID+", "
+			+COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
 			+COL_ACCESS_APPROVAL_ACCESSOR_ID+", "
 			+COL_ACCESS_APPROVAL_SERIALIZED_ENTITY
 			+") VALUES (?,?,?,?,?,?,?,?,?,?,?)";
@@ -228,8 +228,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				} else {
 					ps.setLong(8, DBOAccessRequirementDAOImpl.DEFAULT_VERSION);
 				}
-				if (dbos.get(i).getResearchProjectId() != null) {
-					ps.setLong(9, dbos.get(i).getResearchProjectId());
+				if (dbos.get(i).getSubmitterId() != null) {
+					ps.setLong(9, dbos.get(i).getSubmitterId());
 				} else {
 					ps.setNull(9, Types.INTEGER);
 				}

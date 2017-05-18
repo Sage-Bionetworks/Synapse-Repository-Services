@@ -232,7 +232,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setModifiedOn(createdOn);
 			approval.setRequirementId(requirementId);
 			approval.setRequirementVersion(submission.getAccessRequirementVersion());
-			approval.setResearchProjectId(submission.getResearchProjectSnapshot().getId());
+			approval.setSubmitterId(submission.getSubmittedBy());
 			approvals.add(approval);
 		}
 		return approvals;

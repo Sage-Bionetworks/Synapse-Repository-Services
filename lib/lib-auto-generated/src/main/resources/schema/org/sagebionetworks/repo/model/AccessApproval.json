@@ -50,9 +50,9 @@
 			"description": "The version of the Access Requirement that this object approves.",
 			"transient": true
 		},
-		"researchProjectId": {
+		"submitterId": {
 			"type": "string",
-			"description": "The research project that this object approves.",
+			"description": "The user who performed the necessary action(s) to gain this approval.",
 			"transient": true
 		},
 		"accessorId": {

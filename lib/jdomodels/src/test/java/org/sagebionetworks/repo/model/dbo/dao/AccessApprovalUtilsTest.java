@@ -29,6 +29,7 @@ public class AccessApprovalUtilsTest {
 		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		dto.setRequirementId(888L);
 		dto.setRequirementVersion(3L);
+		dto.setSubmitterId("555");
 		return dto;
 	}
 	
