@@ -1,23 +1,26 @@
 {
-	"description": "Represents a file stored in a S3 Bucket to which Synapse cannot access",
+	"description": "Represents a file stored in a S3 Bucket to which Synapse cannot access. Contains the necessary information to be accessed via user's S3 client implementation.",
 	"type": "interface",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+			"$ref": "org.sagebionetworks.repo.model.file.ClientDelegatedFileHandleInterface"
 		}
 	],
 	"properties": {
 		"bucketName": {
 			"type": "string",
-			"description": "The name of the S3 bucket where this file resides"
+			"description": "The name of the S3 bucket where this file resides",
+			"required": true
 		},
 		"key": {
 			"type": "string",
-			"description": "The S3 key for this object"
+			"description": "The S3 key for this object",
+			"required": true
 		},
 		"endpointUrl": {
 			"type": "string",
-			"description": "The S3 endpoint for this object"
+			"description": "The S3 endpoint for this object",
+			"required": true
 		}
 	}
 }

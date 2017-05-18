@@ -2,7 +2,7 @@
 	"description": "The upload destination contains information to start an upload to different types of destinations.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+			"$ref": "org.sagebionetworks.repo.model.file.ClientDelegatedUploadDestinationInterface"
 		}
 	],
 	"properties": {

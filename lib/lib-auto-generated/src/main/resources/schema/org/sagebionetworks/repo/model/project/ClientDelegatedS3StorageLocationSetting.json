@@ -1,0 +1,23 @@
+{
+	"description": "The external upload destination setting contains information to generate an SFTP or HTTPS upload destination.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.ClientDelegatedStorageLocationSettingInterface"
+		}
+	],
+	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "the optional s3 endpoint URL for uploading to (default: https://s3.amazonaws.com)"
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use",
+			"required": true
+		},
+		"baseKey": {
+			"type": "string",
+			"description": "the optional base key to use"
+		}
+	}
+}
