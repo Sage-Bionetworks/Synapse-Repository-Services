@@ -227,15 +227,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	}
 
 	@Override
-	public <T extends StorageLocationSetting> T updateStorageLocationSetting(UserInfo userInfo, T storageLocationSetting)
-			throws DatastoreException, NotFoundException {
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Cannot update settings on this project");
-		}
-		return storageLocationDAO.update(storageLocationSetting);
-	}
-
-	@Override
 	public List<StorageLocationSetting> getMyStorageLocationSettings(UserInfo userInfo) throws DatastoreException, NotFoundException {
 		return storageLocationDAO.getByOwner(userInfo.getId());
 	}
