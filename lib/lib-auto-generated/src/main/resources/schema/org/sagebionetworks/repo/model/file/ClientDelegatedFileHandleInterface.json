@@ -1,0 +1,9 @@
+{
+	"description": "Defines FileHandles for files that are stored externally and can not be controlled by Synapse. All file access authentication and download/upload/delete operations are delegated the client.",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+		}
+	]
+}
