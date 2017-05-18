@@ -223,16 +223,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(5, dbos.get(i).getModifiedBy());
 				ps.setLong(6, dbos.get(i).getModifiedOn());
 				ps.setLong(7, dbos.get(i).getRequirementId());
-				if (dbos.get(i).getRequirementVersion() != null) {
-					ps.setLong(8, dbos.get(i).getRequirementVersion());
-				} else {
-					ps.setLong(8, DBOAccessRequirementDAOImpl.DEFAULT_VERSION);
-				}
-				if (dbos.get(i).getSubmitterId() != null) {
-					ps.setLong(9, dbos.get(i).getSubmitterId());
-				} else {
-					ps.setNull(9, Types.INTEGER);
-				}
+				ps.setLong(8, DBOAccessRequirementDAOImpl.DEFAULT_VERSION);
+				ps.setLong(9, dbos.get(i).getSubmitterId());
 				ps.setLong(10, dbos.get(i).getAccessorId());
 				ps.setBytes(11, dbos.get(i).getSerializedEntity());
 				principalIds.add(dbos.get(i).getAccessorId().toString());
