@@ -150,6 +150,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setModifiedOn(new Date());
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
+		accessApproval.setRequirementVersion(ar.getVersionNumber());
 		accessApproval.setSubmitterId(principal.getId());
 		return accessApproval;
 	}

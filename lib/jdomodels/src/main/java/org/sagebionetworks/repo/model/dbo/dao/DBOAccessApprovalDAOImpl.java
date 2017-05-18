@@ -19,7 +19,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJEC
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
