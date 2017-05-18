@@ -8,6 +8,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
@@ -16,7 +18,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,14 +26,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
@@ -41,7 +39,6 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -95,13 +92,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
-	private static final String SELECT_FOR_UPDATE_SQL = "select "
-				+COL_ACCESS_APPROVAL_CREATED_BY+", "
-				+COL_ACCESS_APPROVAL_CREATED_ON+", "
-				+COL_ACCESS_APPROVAL_ETAG
-			+" from "+TABLE_ACCESS_APPROVAL
-			+" where "+COL_ACCESS_APPROVAL_ID+"=:"+COL_ACCESS_APPROVAL_ID+" for update";
-
 	private static final String DELETE_ACCESS_APPROVAL = "DELETE"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
@@ -120,9 +110,11 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_MODIFIED_BY+", "
 			+COL_ACCESS_APPROVAL_MODIFIED_ON+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
+			+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+", "
+			+COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
 			+COL_ACCESS_APPROVAL_ACCESSOR_ID+", "
 			+COL_ACCESS_APPROVAL_SERIALIZED_ENTITY
-			+") VALUES (?,?,?,?,?,?,?,?,?)";
+			+") VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
@@ -131,7 +123,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
-
 
 	@WriteTransactionReadCommitted
 	@Override
@@ -175,51 +166,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			dtos.add(dto);
 		}
 		return dtos;
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
-		List<DBOAccessApproval> aas = null;
-		try{
-			aas = namedJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, param, new RowMapper<DBOAccessApproval>(){
-				@Override
-				public DBOAccessApproval mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					DBOAccessApproval aa = new DBOAccessApproval();
-					aa.setCreatedOn(rs.getLong(COL_ACCESS_APPROVAL_CREATED_ON));
-					aa.setCreatedBy(rs.getLong(COL_ACCESS_APPROVAL_CREATED_BY));
-					aa.seteTag(rs.getString(COL_ACCESS_APPROVAL_ETAG));
-					return aa;
-				}
-			});
-		}catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
-		}
-		if (aas.isEmpty()) {
-			throw new NotFoundException("The resource you are attempting to access cannot be found");			
-		}
-
-		// Check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		DBOAccessApproval dbo = aas.get(0);
-		if (!dbo.geteTag().equals(dto.getEtag())) {
-			throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
-		}
-		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		
-		// Update with a new e-tag
-		dbo.seteTag(UUID.randomUUID().toString());
-
-		boolean success = basicDao.update(dbo);
-		if (!success) throw new DatastoreException("Unsuccessful updating user Access Approval in database.");
-
-		T resultantDto = (T)AccessApprovalUtils.copyDboToDto(dbo);
-
-		return resultantDto;
 	}
 
 	@Override
@@ -276,8 +222,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(5, dbos.get(i).getModifiedBy());
 				ps.setLong(6, dbos.get(i).getModifiedOn());
 				ps.setLong(7, dbos.get(i).getRequirementId());
-				ps.setLong(8, dbos.get(i).getAccessorId());
-				ps.setBytes(9, dbos.get(i).getSerializedEntity());
+				ps.setLong(8, dbos.get(i).getRequirementVersion());
+				ps.setLong(9, dbos.get(i).getSubmitterId());
+				ps.setLong(10, dbos.get(i).getAccessorId());
+				ps.setBytes(11, dbos.get(i).getSerializedEntity());
 				principalIds.add(dbos.get(i).getAccessorId().toString());
 				requirementIds.add(dbos.get(i).getRequirementId().toString());
 			}

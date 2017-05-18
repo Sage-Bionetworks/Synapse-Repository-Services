@@ -14,9 +14,6 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class AccessApprovalUtilsTest {
 
@@ -31,15 +28,15 @@ public class AccessApprovalUtilsTest {
 		dto.setAccessorId("777");
 		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		dto.setRequirementId(888L);
+		dto.setRequirementVersion(3L);
+		dto.setSubmitterId("555");
 		return dto;
 	}
 	
 	@Test
 	public void testRoundtrip() throws Exception {
 		AccessApproval dto = createDTO();
-			
 		DBOAccessApproval dbo = new DBOAccessApproval();
-		String jsonString = (String) AccessApproval.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		AccessApproval dto2 =  AccessApprovalUtils.copyDboToDto(dbo);
 		assertEquals(dto, dto2);
@@ -50,8 +47,6 @@ public class AccessApprovalUtilsTest {
 		AccessApproval dto = createDTO();
 		dto.setId(null);
 		DBOAccessApproval dbo = new DBOAccessApproval();
-		String jsonString = (String) AccessApproval.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		AccessApproval dto2 =  AccessApprovalUtils.copyDboToDto(dbo);
 		assertEquals(dto, dto2);

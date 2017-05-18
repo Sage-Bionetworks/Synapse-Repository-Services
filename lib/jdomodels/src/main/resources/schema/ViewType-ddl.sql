@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS `VIEW_TYPE` (
   `VIEW_ID` bigint(20) NOT NULL,
-  `VIEW_TYPE` ENUM('file') NOT NULL,
+  `VIEW_TYPE` ENUM('file','project') NOT NULL,
   `ETAG` char(36) NOT NULL,
   PRIMARY KEY (`VIEW_ID`)
 )

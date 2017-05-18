@@ -45,18 +45,6 @@ public interface AccessApprovalDAO {
 	public List<AccessApproval> getForAccessRequirementsAndPrincipals(Collection<String> accessRequirementIds, Collection<String> principalIds) throws DatastoreException;
 
 	/**
-	 * Updates the 'shallow' properties of an object.
-	 *
-	 * @param dto
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public <T extends AccessApproval> T  update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException;
-
-	/**
 	 * delete the object given by the given ID
 	 * 
 	 * @param id

@@ -22,12 +22,18 @@ public class AccessApprovalUtils {
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
 		dbo.setId(dto.getId());
 		dbo.seteTag(dto.getEtag());
-		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedBy()!=null) {
+			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		}
+		if (dto.getCreatedOn()!=null) {
+			dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
+		dbo.setRequirementVersion(dto.getRequirementVersion());
+		dbo.setSubmitterId(Long.parseLong(dto.getSubmitterId()));
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -41,6 +47,8 @@ public class AccessApprovalUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
+		dto.setRequirementVersion(dbo.getRequirementVersion());
+		dto.setSubmitterId(dbo.getSubmitterId().toString());
 		return dto;
 	}
 

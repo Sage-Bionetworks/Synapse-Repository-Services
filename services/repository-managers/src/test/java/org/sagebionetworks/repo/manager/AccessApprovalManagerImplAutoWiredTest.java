@@ -165,11 +165,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		return ar;
 	}
 
-	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
+	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, Long requirementVersion, String accessorId) {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(accessorId);
 		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
+		aa.setRequirementVersion(requirementVersion);
 		return aa;
 	}
 	
@@ -186,17 +187,18 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		return ar;
 	}
 	
-	private static ACTAccessApproval newACTAccessApproval(Long requirementId, String accessorId) {
+	private static ACTAccessApproval newACTAccessApproval(Long requirementId, Long requirementVersion, String accessorId) {
 		ACTAccessApproval aa = new ACTAccessApproval();
 		aa.setAccessorId(accessorId);
 		aa.setConcreteType(aa.getClass().getName());
 		aa.setRequirementId(requirementId);
+		aa.setRequirementVersion(requirementVersion);
 		return aa;
 	}
 	
 	@Test
 	public void testCreateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		assertNotNull(aa.getCreatedBy());
 		assertNotNull(aa.getCreatedOn());
@@ -211,7 +213,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// since the user is not an admin they can't delete
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateAccessApprovalForbidden() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), null);
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		accessApprovalManager.deleteAccessApproval(testUserInfo, aa.getId().toString());
 	}
@@ -222,7 +224,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// can't download at first
 		assertFalse(authorizationManager.canAccess(testUserInfo, nodeAId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 		// then he signs the terms of use for the data
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), testUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), testUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		// now he *can* download the data
 		assertTrue(authorizationManager.canAccess(testUserInfo, nodeAId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
@@ -231,7 +233,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// can't download at first
 		assertFalse(authorizationManager.canAccess(testUserInfo, nodeBId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 		// then he signs the terms of use for the data
-		TermsOfUseAccessApproval aa2 = newToUAccessApproval(arB.getId(), testUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa2 = newToUAccessApproval(arB.getId(), arB.getVersionNumber(), testUserInfo.getId().toString());
 		aa2 = accessApprovalManager.createAccessApproval(testUserInfo, aa2);
 		// now he *can* download the data
 		assertTrue(authorizationManager.canAccess(testUserInfo, nodeBId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
@@ -239,21 +241,21 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 		
 	public void testCreateAccessApprovalAndFillInUser() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), null);
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam2() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(null, adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(null, ar.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	// can't apply an ACTAccessApproval to a TermsOfUse requirement
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam3() throws Exception {
-		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), adminUserInfo.getId().toString());
+		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
@@ -262,7 +264,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void testCreateAccessApprovalBadParam4() throws Exception {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), actAr.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 
@@ -270,7 +272,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// the service fills in the accessor ID appropriately
 	@Test
 	public void testCreateAccessApprovalBadAccessorId() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		assertEquals(testUserInfo.getId().toString(), aa.getAccessorId());
 	}
@@ -280,7 +282,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void testGiveACTApproval() throws Exception {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getId().toString());
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), actAr.getVersionNumber(), testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(adminUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
@@ -290,7 +292,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void testGiveACTApprovalForbidden() throws Exception {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(),  testUserInfo.getId().toString());
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), actAr.getVersionNumber(), testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(testUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
@@ -303,7 +305,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 
 		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(),ar.getVersionNumber(),  adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, aas.size());
@@ -316,7 +318,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, aas.size());
 		
-		TermsOfUseAccessApproval aaB = newToUAccessApproval(arB.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aaB = newToUAccessApproval(arB.getId(), arB.getVersionNumber(), adminUserInfo.getId().toString());
 		aaB = accessApprovalManager.createAccessApproval(adminUserInfo, aaB);
 		
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
@@ -324,20 +326,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testUpdateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-
-		// ensure that the 'modifiedOn' date is later
-		Thread.sleep(100L);
-		long aaModifiedOn = aa.getModifiedOn().getTime();
-		accessApprovalManager.updateAccessApproval(adminUserInfo, aa);
-		assertTrue(aa.getModifiedOn().getTime()-aaModifiedOn>0);
-	}
-	
-	@Test
 	public void testDeleteAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		accessApprovalManager.deleteAccessApproval(adminUserInfo, aa.getId().toString());
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -345,5 +335,14 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
+	}
+
+	@Test
+	public void testApprovalForSecondRequirementVersion() throws Exception {
+		ar = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar.getId().toString(), ar);
+		assertEquals((Long)1L, ar.getVersionNumber());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
+		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+		assertEquals(ar.getVersionNumber(), aa.getRequirementVersion());
 	}
 }
