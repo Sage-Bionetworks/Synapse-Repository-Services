@@ -112,6 +112,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
 				"A Submission can only be created for an ACTAccessRequirement.");
+		submissionToCreate.setAccessRequirementVersion(ar.getVersionNumber());
 
 		// validate based on the access requirement
 		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
@@ -230,6 +231,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setModifiedBy(createdBy);
 			approval.setModifiedOn(createdOn);
 			approval.setRequirementId(requirementId);
+			approval.setRequirementVersion(submission.getAccessRequirementVersion());
+			approval.setSubmitterId(submission.getSubmittedBy());
 			approvals.add(approval);
 		}
 		return approvals;

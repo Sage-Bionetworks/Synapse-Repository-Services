@@ -605,7 +605,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
 			isInTrash = TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
 		}
-		
 		for (String requestedActionString : actionTypes.split(",")) {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
@@ -625,7 +624,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					if (!isInTrash) {
 						// check update permission on this entity
 						as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-					}				}
+					}
+				}
 				if (as!=null && as.getAuthorized()) {
 					permittedActions.add(requestedAction);
 					if (existingDockerRepoId==null) permittedActions.add(pull);
