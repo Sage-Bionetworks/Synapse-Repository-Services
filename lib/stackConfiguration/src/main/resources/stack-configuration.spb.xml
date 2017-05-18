@@ -36,6 +36,7 @@
 	<bean name="stackConfiguration.workerQueueName[SyncSettingsModificationsWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[TableViewWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.workerQueueName[TableEntityReplicationWorkerDeadLetter]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean name="stackConfiguration.workerQueueName[EntityHierarchyChangeWorker]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<!-- Topics -->
 	<bean name="stackConfiguration.repositoryChangeTopic[ACCESS_CONTROL_LIST]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

@@ -9,6 +9,7 @@ import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDriven
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -19,8 +20,12 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
+
+import com.amazonaws.AmazonServiceException;
 
 /**
  * This worker listens to entity change events and replicates the changes to the
@@ -52,11 +57,29 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 			Exception {
 		try{
 			replicate(progressCallback, messages);
+		}catch (LockReleaseFailedException e){
+			handleRecoverableException(e);
+		}catch (CannotAcquireLockException e){
+			handleRecoverableException(e);
+		}catch (DeadlockLoserDataAccessException e){
+			handleRecoverableException(e);
+		}catch (AmazonServiceException e){
+			handleRecoverableException(e);
 		}catch (Exception e){
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(EntityReplicationWorker.class.getName(), e, willRetry);
 			log.error("Failed while replicating:", e);
 		}
+	}
+	
+	/**
+	 * Handle a Recoverable exception.
+	 * @param exception
+	 * @throws RecoverableMessageException
+	 */
+	private void handleRecoverableException(Exception exception) throws RecoverableMessageException{
+		log.error("Failed while replicating. Will retry. Message: "+exception.getMessage());
+		throw new RecoverableMessageException(exception);
 	}
 
 	/**

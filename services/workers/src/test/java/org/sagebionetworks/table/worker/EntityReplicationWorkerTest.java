@@ -14,6 +14,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -23,10 +24,14 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.google.common.collect.Lists;
 
 
@@ -121,5 +126,68 @@ public class EntityReplicationWorkerTest {
 		// the exception should be logged.
 		verify(mockWorkerLog).logWorkerFailure(EntityReplicationWorker.class.getName(), exception, willRetry);
 	}
+	
+	@Test
+	public void testLockReleaseFailedException() throws RecoverableMessageException, Exception{
+		LockReleaseFailedException exception = new LockReleaseFailedException("something went wrong");
+		// setup an exception
+		doThrow(exception).when(mockIndexDao).addEntityData(any(ProgressCallback.class), anyListOf(EntityDTO.class));
+		// call under test
+		try {
+			worker.run(mockPogressCallback, changes);
+			fail("Should have thrown RecoverableMessageException");
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
+		// the exception should not be logged.
+		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
 
+	@Test
+	public void testCannotAcquireLockException() throws RecoverableMessageException, Exception{
+		CannotAcquireLockException exception = new CannotAcquireLockException("something went wrong");
+		// setup an exception
+		doThrow(exception).when(mockIndexDao).addEntityData(any(ProgressCallback.class), anyListOf(EntityDTO.class));
+		// call under test
+		try {
+			worker.run(mockPogressCallback, changes);
+			fail("Should have thrown RecoverableMessageException");
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
+		// the exception should not be logged.
+		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
+	
+	@Test
+	public void testDeadlockLoserDataAccessException() throws RecoverableMessageException, Exception{
+		DeadlockLoserDataAccessException exception = new DeadlockLoserDataAccessException("message", new RuntimeException());
+		// setup an exception
+		doThrow(exception).when(mockIndexDao).addEntityData(any(ProgressCallback.class), anyListOf(EntityDTO.class));
+		// call under test
+		try {
+			worker.run(mockPogressCallback, changes);
+			fail("Should have thrown RecoverableMessageException");
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
+		// the exception should not be logged.
+		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
+	
+	@Test
+	public void testAmazonServiceException() throws RecoverableMessageException, Exception{
+		AmazonServiceException exception = new AmazonSQSException("message");
+		// setup an exception
+		doThrow(exception).when(mockIndexDao).addEntityData(any(ProgressCallback.class), anyListOf(EntityDTO.class));
+		// call under test
+		try {
+			worker.run(mockPogressCallback, changes);
+			fail("Should have thrown RecoverableMessageException");
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
+		// the exception should not be logged.
+		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
 }
