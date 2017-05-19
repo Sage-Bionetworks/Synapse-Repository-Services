@@ -5,7 +5,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -95,7 +95,7 @@ public class ChangeMessageBatchProcessorTest {
 	}
 
 	@Test
-	public void testRecoverableBatch() throws RecoverableMessageException,
+	public void testRecoverableBatchWithSingleProcessor() throws RecoverableMessageException,
 			Exception {
 		// setup RecoverableMessageException failures
 		doThrow(new RecoverableMessageException()).when(mockRunner).run(
@@ -105,6 +105,32 @@ public class ChangeMessageBatchProcessorTest {
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
 		verify(mockProgressCallback, times(2)).progressMade(null);
+		verify(mockAwsSQSClient).sendMessage(queueUrl,
+				EntityFactory.createJSONStringForEntity(one));
+		verify(mockAwsSQSClient).sendMessage(queueUrl,
+				EntityFactory.createJSONStringForEntity(two));
+	}
+	
+	/**
+	 * When a batch processor fails with RecoverableMessageException, each
+	 * change message should be restored to the queue individually.  
+	 * 
+	 * @throws RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testRecoverableBatchWithBatchProcessor() throws RecoverableMessageException,
+			Exception {
+		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
+				queueName, mockBatchRunner);
+		// setup RecoverableMessageException failures
+		doThrow(new RecoverableMessageException()).when(mockBatchRunner).run(
+				any(ProgressCallback.class), anyListOf(ChangeMessage.class));
+		// call under test
+		processor.run(mockProgressCallback, awsMessage);
+		verify(mockBatchRunner).run(any(ProgressCallback.class),
+				anyListOf(ChangeMessage.class));
+		verify(mockProgressCallback, times(3)).progressMade(null);
 		verify(mockAwsSQSClient).sendMessage(queueUrl,
 				EntityFactory.createJSONStringForEntity(one));
 		verify(mockAwsSQSClient).sendMessage(queueUrl,

@@ -50,12 +50,37 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 				.extractChangeMessageBatch(message);
 		if (runner instanceof BatchChangeMessageDrivenRunner) {
 			BatchChangeMessageDrivenRunner batchRunner = (BatchChangeMessageDrivenRunner) runner;
-			batchRunner.run(progressCallback, batch);
+			runAsBatch(progressCallback, batch, batchRunner);
 		} else if(runner instanceof ChangeMessageDrivenRunner) {
 			ChangeMessageDrivenRunner singleRunner = (ChangeMessageDrivenRunner) runner;
 			runAsSingleChangeMessages(progressCallback, batch, singleRunner);
 		}else{
 			throw new IllegalArgumentException("Unknown runner type: "+runner.getClass().getName());
+		}
+	}
+
+	private void runAsBatch(final ProgressCallback<Void> progressCallback,
+			List<ChangeMessage> batch,
+			BatchChangeMessageDrivenRunner batchRunner)
+			throws RecoverableMessageException, Exception {
+		try{
+			progressCallback.progressMade(null);
+			batchRunner.run(progressCallback, batch);
+		} catch (RecoverableMessageException e) {
+			if (batch.size() == 1) {
+				// Let the container handle retry for single messages.
+				throw e;
+			} else {
+				// Push each single message back onto the queue
+				for(ChangeMessage message: batch){
+					progressCallback.progressMade(null);
+					// Add the message back to the queue as a single message
+					awsSQSClient.sendMessage(queueUrl,
+							EntityFactory.createJSONStringForEntity(message));
+				}
+			}
+		} catch (Throwable e) {
+			log.error("Failed on Batch: " + batch.toString(), e);
 		}
 	}
 

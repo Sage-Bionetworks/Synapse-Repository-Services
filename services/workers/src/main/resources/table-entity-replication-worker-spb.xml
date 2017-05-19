@@ -41,6 +41,9 @@
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
+								<property name="deadLetterQueueName"
+									ref="stackConfiguration.workerQueueName[TableEntityReplicationWorkerDeadLetter]" />
+								<property name="deadLetterMaxFailureCount" value="100" />
 							</bean>
 						</constructor-arg>
 					</bean>
