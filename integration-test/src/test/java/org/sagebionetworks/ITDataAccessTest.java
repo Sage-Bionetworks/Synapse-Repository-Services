@@ -26,12 +26,14 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
@@ -159,7 +161,9 @@ public class ITDataAccessTest {
 			// as expected
 		}
 
-		assertEquals(updatedRequest, synapseOne.getRequestForUpdate(accessRequirement.getId().toString()));
+		RequestInterface renewal = synapseOne.getRequestForUpdate(accessRequirement.getId().toString());
+		assertNotNull(renewal);
+		assertTrue(renewal instanceof Renewal);
 
 		SubmissionPage submissions = adminSynapse.listSubmissions(accessRequirement.getId().toString(), null, null, null, null);
 		assertNotNull(submissions);
