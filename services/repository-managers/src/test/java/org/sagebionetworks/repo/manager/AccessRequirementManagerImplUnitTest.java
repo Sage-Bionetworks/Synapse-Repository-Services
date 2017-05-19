@@ -318,7 +318,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
 
-		assertEquals((Long)0L, ar.getExpirationPeriod());
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -473,7 +473,7 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIDUPublic());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
 
-		assertEquals((Long) 0L, ar.getExpirationPeriod());
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test

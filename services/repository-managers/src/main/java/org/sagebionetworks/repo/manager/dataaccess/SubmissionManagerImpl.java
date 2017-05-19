@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -220,7 +221,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 
 	public static Date calculateExpiredOn(Long expirationPeriod) {
 		ValidateArgument.required(expirationPeriod, "expirationPeriod");
-		if (expirationPeriod.equals((Long)0L)) {
+		if (expirationPeriod.equals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD)) {
 			return null;
 		}
 		return new Date(System.currentTimeMillis() + expirationPeriod);

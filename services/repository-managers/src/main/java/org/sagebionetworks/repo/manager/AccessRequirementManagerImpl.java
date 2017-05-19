@@ -40,6 +40,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long DEFAULT_LIMIT = 50L;
 	public static final Long MAX_LIMIT = 50L;
 	public static final Long DEFAULT_OFFSET = 0L;
+	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
@@ -307,6 +308,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 		if (actAR.getAcceptRequest() == null) {
 			actAR.setAcceptRequest(false);
+		}
+		if (actAR.getExpirationPeriod() == null) {
+			actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
 		}
 		return actAR;
 	}
