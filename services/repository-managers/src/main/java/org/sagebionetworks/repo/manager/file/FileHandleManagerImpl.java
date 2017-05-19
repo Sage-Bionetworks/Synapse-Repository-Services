@@ -64,6 +64,8 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ClientDelegatedS3FileHandle;
+import org.sagebionetworks.repo.model.file.ClientDelegatedS3UploadDestination;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
@@ -90,6 +92,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ClientDelegatedS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -100,6 +103,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -338,11 +342,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
-		} else if(handle instanceof ProxyFileHandle){
+		} else if (handle instanceof ProxyFileHandle) {
 			ProxyFileHandle proxyHandle = (ProxyFileHandle) handle;
 			StorageLocationSetting storage = this.storageLocationDAO.get(proxyHandle.getStorageLocationId());
-			if(!(storage instanceof ProxyStorageLocationSettings)){
-				throw new IllegalArgumentException("ProxyFileHandle.storageLocation is not of type"+ProxyStorageLocationSettings.class.getName());
+			if (!(storage instanceof ProxyStorageLocationSettings)) {
+				throw new IllegalArgumentException("ProxyFileHandle.storageLocation is not of type" + ProxyStorageLocationSettings.class.getName());
 			}
 			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
 			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
@@ -365,7 +369,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			request.setResponseHeaders(responseHeaderOverrides);
 			return s3Client.generatePresignedUrl(request).toExternalForm();
-		} else {
+		}else if (handle instanceof ClientDelegatedS3FileHandle){
+			throw new IllegalArgumentException("URL Cannot be generated because the user client is responsible for accessing the FileHandle");
+		}else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
 					+ handle.getClass().getName());
 		}
@@ -433,6 +439,45 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
 		return (ExternalFileHandle) fileHandleDao.createFile(fileHandle);
+	}
+
+	@WriteTransaction
+	@Override
+	public ClientDelegatedS3FileHandle createClientDelegatedS3FileHandle(UserInfo userInfo, ClientDelegatedS3FileHandle fileHandle){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(fileHandle, "fileHandle");
+		ValidateArgument.required(fileHandle.getBucketName(),"FileHandle.bucketName");
+		ValidateArgument.required(fileHandle.getKey(),"FileHandle.key");
+		ValidateArgument.required(fileHandle.getStorageLocationId(),"FileHandle.storageLocationId");
+		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		if (fileHandle.getFileName() == null) {
+			fileHandle.setFileName(NOT_SET);
+		}
+		if (fileHandle.getContentType() == null) {
+			fileHandle.setContentType(NOT_SET);
+		}
+		//TODO:z refactor out common ValidateArgument calls and duplicate code with createExternalS3FileHandle that check storageLocation
+		// Lookup the storage location
+		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
+		if(!(sls instanceof ClientDelegatedS3StorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ClientDelegatedS3StorageLocationSetting.class.getName());
+		}
+		ClientDelegatedS3StorageLocationSetting clientS3StorageLocation = (ClientDelegatedS3StorageLocationSetting) sls;
+		if(!fileHandle.getBucketName().equals(clientS3StorageLocation.getBucket())){
+			throw new IllegalArgumentException("The bucket for ClientDelegatedS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
+		}
+		if( StringUtils.isNotEmpty(fileHandle.getEndpointUrl()) && !fileHandle.getEndpointUrl().equals(clientS3StorageLocation.getEndpointUrl())){
+			throw new IllegalArgumentException(("The endpointUrl for ClientDelegatedS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided endpointUrl: "+fileHandle.getEndpointUrl()));
+		}
+		//TODO:z also check baseKey??? but first, verify realtionship between filehandle.key and storageLocation.Basekey
+
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setCreatedOn(new Date());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		// Save the file metadata to the DB.
+		return (ClientDelegatedS3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	/**
@@ -726,6 +771,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 			uploadDestination = createExternalUploadDestination((ExternalStorageLocationSetting) storageLocationSetting,
 					nodePath, filename);
+		} else if (storageLocationSetting instanceof ClientDelegatedS3StorageLocationSetting){ //TODO:z use a converter instead of this giant if-else block
+			ClientDelegatedS3StorageLocationSetting clientDelegatedS3StorageLocationSetting = (ClientDelegatedS3StorageLocationSetting) storageLocationSetting;
+			ClientDelegatedS3UploadDestination clientDelegatedS3UploadDestination = new ClientDelegatedS3UploadDestination() ;
+			clientDelegatedS3UploadDestination.setBucket(clientDelegatedS3StorageLocationSetting.getBucket());
+			clientDelegatedS3UploadDestination.setBaseKey(clientDelegatedS3StorageLocationSetting.getBaseKey());
+			clientDelegatedS3UploadDestination.setEndpointUrl(clientDelegatedS3StorageLocationSetting.getEndpointUrl());
+			uploadDestination = clientDelegatedS3UploadDestination;
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ClientDelegatedS3FileHandle;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.event.ProgressListener;
@@ -127,7 +129,10 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	ExternalFileHandle createExternalFileHandle(UserInfo userInfo,	ExternalFileHandle fileHandle);
-	
+
+	@WriteTransaction
+	ClientDelegatedS3FileHandle createClientDelegatedS3FileHandle(UserInfo userInfo, ClientDelegatedS3FileHandle fileHandle);
+
 	/**
 	 * Ge the bucket CORS settings
 	 * @return

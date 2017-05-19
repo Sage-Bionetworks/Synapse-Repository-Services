@@ -8,6 +8,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
+import org.sagebionetworks.repo.model.file.ClientDelegatedS3FileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
@@ -45,6 +46,8 @@ public class FileMetadataUtils {
 			dbo.setMetadataType(MetadataType.PREVIEW);
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
+		}else if (fileHandle instanceof ClientDelegatedS3FileHandle){
+			dbo.setMetadataType(MetadataType.CLIENT_S3);
 		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
@@ -58,6 +61,10 @@ public class FileMetadataUtils {
 		}
 		if(fileHandle instanceof ProxyFileHandle){
 			updateDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
+		}
+		if(fileHandle instanceof ClientDelegatedS3FileHandle){
+			updateDBOFromDTO(dbo, (ClientDelegatedS3FileHandle) fileHandle);
+
 		}
 
 		return dbo;
@@ -106,6 +113,12 @@ public class FileMetadataUtils {
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 
+	private static void updateDBOFromDTo(DBOFileHandle dbo, ClientDelegatedS3FileHandle fileHandle){
+		dbo.setBucketName(fileHandle.getBucketName());
+		dbo.setKey(fileHandle.getKey());
+		dbo.setContentSize(fileHandle.getContentSize());
+	}
+
 	/**
 	 * Create a DTO from the DBO.
 	 * 
@@ -129,11 +142,13 @@ public class FileMetadataUtils {
 			fileHandle = new PreviewFileHandle();
 			break;
 		case PROXY:
-			// preview
+			// proxy
 			fileHandle = new ProxyFileHandle();
 			break;
+		case CLIENT_S3:
+			fileHandle = new ClientDelegatedS3FileHandle();
 		default:
-			throw new IllegalArgumentException("Must be External, S3 or Preview but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be External, S3, Preview, Proxy, Client_S3 but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
@@ -149,6 +164,9 @@ public class FileMetadataUtils {
 		}
 		if (fileHandle instanceof ProxyFileHandle) {
 			updateDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
+		}
+		if (fileHandle instanceof ClientDelegatedS3FileHandle) {
+			updateDTOFromDBO((ClientDelegatedS3FileHandle) fileHandle, dbo);
 		}
 		return fileHandle;
 	}
@@ -188,6 +206,12 @@ public class FileMetadataUtils {
 	
 	private static void updateDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFilePath(dbo.getKey());
+	}
+
+	private static void updateDTOFromDBO(ClientDelegatedS3FileHandle fileHandle, DBOFileHandle dbo) {
+		fileHandle.setBucketName(dbo.getBucketName());
+		fileHandle.setKey(dbo.getKey());
+		fileHandle.setContentSize(dbo.getContentSize());
 	}
 
 	/**

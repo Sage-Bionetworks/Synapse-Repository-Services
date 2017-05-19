@@ -1,6 +1,5 @@
 {
 	"description": "Represents a file stored in a S3 Bucket to which Synapse cannot access. Contains the necessary information to be accessed via user's S3 client implementation.",
-	"type": "interface",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.ClientDelegatedFileHandleInterface"

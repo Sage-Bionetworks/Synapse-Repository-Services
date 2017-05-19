@@ -48,7 +48,8 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		S3,
 		EXTERNAL,
 		PREVIEW,
-		PROXY
+		PROXY,
+		CLIENT_S3
 	}
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {

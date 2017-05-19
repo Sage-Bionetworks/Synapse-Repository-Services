@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.project.ClientDelegatedS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
@@ -202,6 +203,9 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
+		}else if (storageLocationSetting instanceof ClientDelegatedS3StorageLocationSetting){ //TODO:z refactor this into a StorageLocationSettingValidator instead of this giant if-else block??
+			ClientDelegatedS3StorageLocationSetting clientDelegatedS3StorageLocationSetting = (ClientDelegatedS3StorageLocationSetting) storageLocationSetting;
+			ValidateArgument.required(clientDelegatedS3StorageLocationSetting.getBucket(), "bucket");
 		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");

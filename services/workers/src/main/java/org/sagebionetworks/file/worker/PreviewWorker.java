@@ -7,6 +7,7 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.file.ClientDelegatedS3FileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -63,6 +64,9 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 				} else if (metadata instanceof ProxyFileHandle) {
 					// we need to add support for this
 					log.warn("Currently do not support previews for ProxyFileHandles");
+				} else if (metadata instanceof ClientDelegatedS3FileHandle) {
+					// we need to add support for this
+					log.warn("ClientDelegatedS3FileHandle is not supported becuase Synapse does not have access to this file(user client is responsible for that)");
 				} else {
 					// We will never be able to process such a message.
 					throw new IllegalArgumentException("Unknown file type: "
