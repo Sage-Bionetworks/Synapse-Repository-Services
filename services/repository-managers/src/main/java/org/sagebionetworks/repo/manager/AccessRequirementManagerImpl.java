@@ -302,9 +302,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (actAR.getAreOtherAttachmentsRequired() == null) {
 			actAR.setAreOtherAttachmentsRequired(false);
 		}
-		if (actAR.getIsAnnualReviewRequired() == null) {
-			actAR.setIsAnnualReviewRequired(false);
-		}
 		if (actAR.getIsIDUPublic() == null) {
 			actAR.setIsIDUPublic(false);
 		}

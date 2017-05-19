@@ -198,21 +198,13 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
-	public void testGetForUpdateNotRequireRenewal() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
-	}
-
-	@Test
-	public void testGetForUpdateRequireRenewalDoesNotHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+	public void testGetForUpdateDoesNotHasApprovedSubmission() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(false);
 		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
 	}
 
 	@Test
-	public void testGetForUpdateRequireRenewalHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+	public void testGetForUpdateHasApprovedSubmission() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
 		Renewal renewal = (Renewal) manager.getRequestForUpdate(mockUser, accessRequirementId);
 		assertEquals(requestId, renewal.getId());
@@ -317,46 +309,9 @@ public class RequestManagerImplTest {
 		manager.update(mockUser, request);
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalNotRequired() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
-		manager.update(mockUser, toUpdate);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalRequiredAndHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		manager.update(mockUser, request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalRequiredAndDoesNotHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(false);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
-		manager.update(mockUser, toUpdate);
-	}
-
 	@Test
 	public void testUpdate() {
-		Request toUpdate = createNewRequest();
-		toUpdate.setDucFileHandleId("777");
-		assertEquals(request, manager.update(mockUser, toUpdate));
-		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
-		verify(mockRequestDao).update(captor.capture());
-		Request updated = captor.getValue();
-		assertEquals(requestId, updated.getId());
-		assertEquals(userId, updated.getCreatedBy());
-		assertEquals(userId, updated.getModifiedBy());
-		assertEquals("777", updated.getDucFileHandleId());
-	}
-
-	@Test
-	public void testUpdateRenewalRequired() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
 		Renewal toUpdate = manager.createRenewalFromRequest(request);
 		toUpdate.setDucFileHandleId("777");
 		assertEquals(request, manager.update(mockUser, toUpdate));

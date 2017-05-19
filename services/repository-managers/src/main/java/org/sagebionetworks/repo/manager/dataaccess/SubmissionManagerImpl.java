@@ -152,10 +152,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				"Submitter has to be an accessor.");
 		submissionToCreate.setAccessors(new LinkedList<String>(accessors));
 
-		if (!actAR.getIsAnnualReviewRequired() && request instanceof Renewal) {
-			throw new IllegalArgumentException("The associated AccessRequirement does not require renewal.");
-		}
-		if (actAR.getIsAnnualReviewRequired() && request instanceof Renewal) {
+		if (request instanceof Renewal) {
 			submissionToCreate.setIsRenewalSubmission(true);
 			Renewal renewalRequest = (Renewal) request;
 			submissionToCreate.setPublication(renewalRequest.getPublication());
@@ -209,7 +206,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
-			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString());
+			ACTAccessRequirement ar = (ACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
+			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
+			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
 			accessApprovalDao.createBatch(approvalsToCreate);
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
@@ -219,7 +218,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return submission;
 	}
 
-	public List<AccessApproval> createApprovalForSubmission(Submission submission, String createdBy) {
+	public static Date calculateExpiredOn(Long expirationPeriod) {
+		ValidateArgument.required(expirationPeriod, "expirationPeriod");
+		if (expirationPeriod.equals((Long)0L)) {
+			return null;
+		}
+		return new Date(System.currentTimeMillis() + expirationPeriod);
+	}
+
+	public List<AccessApproval> createApprovalForSubmission(Submission submission, String createdBy, Date expiredOn) {
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
 		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
@@ -233,6 +240,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setRequirementId(requirementId);
 			approval.setRequirementVersion(submission.getAccessRequirementVersion());
 			approval.setSubmitterId(submission.getSubmittedBy());
+			approval.setExpiredOn(expiredOn);
 			approvals.add(approval);
 		}
 		return approvals;

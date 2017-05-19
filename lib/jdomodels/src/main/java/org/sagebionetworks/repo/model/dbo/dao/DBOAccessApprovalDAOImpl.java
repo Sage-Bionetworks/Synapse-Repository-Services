@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_EXPIRED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
@@ -45,10 +46,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-/**
- * @author brucehoff
- *
- */
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
@@ -109,12 +106,13 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_CREATED_ON+", "
 			+COL_ACCESS_APPROVAL_MODIFIED_BY+", "
 			+COL_ACCESS_APPROVAL_MODIFIED_ON+", "
+			+COL_ACCESS_APPROVAL_EXPIRED_ON+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+", "
 			+COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
 			+COL_ACCESS_APPROVAL_ACCESSOR_ID+", "
 			+COL_ACCESS_APPROVAL_SERIALIZED_ENTITY
-			+") VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+			+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
@@ -221,11 +219,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(4, dbos.get(i).getCreatedOn());
 				ps.setLong(5, dbos.get(i).getModifiedBy());
 				ps.setLong(6, dbos.get(i).getModifiedOn());
-				ps.setLong(7, dbos.get(i).getRequirementId());
-				ps.setLong(8, dbos.get(i).getRequirementVersion());
-				ps.setLong(9, dbos.get(i).getSubmitterId());
-				ps.setLong(10, dbos.get(i).getAccessorId());
-				ps.setBytes(11, dbos.get(i).getSerializedEntity());
+				ps.setLong(7, dbos.get(i).getExpiredOn());
+				ps.setLong(8, dbos.get(i).getRequirementId());
+				ps.setLong(9, dbos.get(i).getRequirementVersion());
+				ps.setLong(10, dbos.get(i).getSubmitterId());
+				ps.setLong(11, dbos.get(i).getAccessorId());
+				ps.setBytes(12, dbos.get(i).getSerializedEntity());
 				principalIds.add(dbos.get(i).getAccessorId().toString());
 				requirementIds.add(dbos.get(i).getRequirementId().toString());
 			}

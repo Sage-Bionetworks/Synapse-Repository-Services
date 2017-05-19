@@ -30,6 +30,9 @@ public class AccessApprovalUtils {
 		}
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		if (dto.getExpiredOn() != null) {
+			dbo.setExpiredOn(dto.getModifiedOn().getTime());
+		}
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
 		dbo.setRequirementVersion(dto.getRequirementVersion());
@@ -49,6 +52,9 @@ public class AccessApprovalUtils {
 		dto.setAccessorId(dbo.getAccessorId().toString());
 		dto.setRequirementVersion(dbo.getRequirementVersion());
 		dto.setSubmitterId(dbo.getSubmitterId().toString());
+		if (dbo.getExpiredOn() != 0L) {
+			dto.setExpiredOn(new Date(dbo.getExpiredOn()));
+		}
 		return dto;
 	}
 
