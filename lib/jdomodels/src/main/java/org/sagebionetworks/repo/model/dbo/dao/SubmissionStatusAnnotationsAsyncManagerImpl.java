@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.CancelControl;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
@@ -65,32 +66,32 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@WriteTransaction
 	@Override
-	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
+	public void createEvaluationSubmissionStatuses(ProgressCallback<Void> progressCallback, String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
-		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
+		createOrUpdateEvaluationSubmissionStatuses(progressCallback, evalId, submissionsEtag);
 	}
 
 	@WriteTransaction
 	@Override
-	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
+	public void updateEvaluationSubmissionStatuses(ProgressCallback<Void> progressCallback, String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
-		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
+		createOrUpdateEvaluationSubmissionStatuses(progressCallback, evalId, submissionsEtag);
 	}
 	
-	private void createOrUpdateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+	private void createOrUpdateEvaluationSubmissionStatuses(ProgressCallback<Void> progressCallback, String evalId, String submissionsEtag) 
 			throws NumberFormatException, NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
 		if (!isSubmissionsEtagValid(evalId, submissionsEtag)) return;
-		replaceAnnotationsForEvaluation(evalId);
+		replaceAnnotationsForEvaluation(progressCallback, evalId);
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
 		// delete any annotations for which the SubmissionStatus has been deleted
 		annotationsDAO.deleteAnnotationsByScope(evalIdLong);
 		
 	}
 
-	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	private void replaceAnnotationsForEvaluation(ProgressCallback<Void> progressCallback, String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// get the submissions and statuses that are new or have changed
 		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
 		if (changedSubmissions.isEmpty()) return;
@@ -100,7 +101,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			annoList.add(fillInAnnotations(sb.getSubmission(), sb.getSubmissionStatus()));
 		}
 		// push the updated annotations to the database
-		annotationsDAO.replaceAnnotations(annoList);
+		annotationsDAO.replaceAnnotations(progressCallback, annoList);
 	}
 
 	@WriteTransaction
