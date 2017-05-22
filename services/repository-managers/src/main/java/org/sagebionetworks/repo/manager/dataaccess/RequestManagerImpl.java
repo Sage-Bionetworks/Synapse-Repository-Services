@@ -78,9 +78,7 @@ public class RequestManagerImpl implements RequestManager{
 			if (current instanceof Renewal) {
 				return current;
 			}
-			ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(accessRequirementId);
-			if (requirement.getIsAnnualReviewRequired()
-					&& submissionDao.hasSubmissionWithState(
+			if (submissionDao.hasSubmissionWithState(
 					userInfo.getId().toString(), accessRequirementId,
 					SubmissionState.APPROVED)) {
 				return createRenewalFromRequest(current);
@@ -141,23 +139,6 @@ public class RequestManagerImpl implements RequestManager{
 				userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
 				SubmissionState.SUBMITTED),
 				"A submission has been created. User needs to cancel the created submission or wait for an ACT member to review it before create another submission.");
-
-		ACTAccessRequirement requirement = (ACTAccessRequirement) accessRequirementDao.get(toUpdate.getAccessRequirementId());
-		if (requirement.getIsAnnualReviewRequired()) {
-			boolean hasApprovedSubmission = submissionDao.hasSubmissionWithState(
-					userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
-					SubmissionState.APPROVED);
-			if (toUpdate instanceof Renewal) {
-				ValidateArgument.requirement(hasApprovedSubmission,
-						"Can only create/update a renewal request after a submission is approved.");
-			} else {
-				ValidateArgument.requirement(!hasApprovedSubmission,
-						"The AccessRequirement requires renewal.");
-			}
-		} else {
-			ValidateArgument.requirement(toUpdate instanceof Request,
-					"AccessRequirement does not require renewal.");
-		}
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		return requestDao.update(toUpdate);

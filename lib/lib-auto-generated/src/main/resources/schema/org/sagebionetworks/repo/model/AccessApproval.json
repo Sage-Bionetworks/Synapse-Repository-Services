@@ -61,6 +61,13 @@
 			"title": "Accessor",
 			"transient": true
 		},
+		"expiredOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this object will be expired.",
+			"title": "Expired On",
+			"transient": true
+		},
 		"concreteType":{
 			"type":"string",
 			"description":"Indicates which implementation of AccessApproval this object represents."

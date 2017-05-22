@@ -296,7 +296,6 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
 	}
 
@@ -317,8 +316,9 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -470,9 +470,10 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test
