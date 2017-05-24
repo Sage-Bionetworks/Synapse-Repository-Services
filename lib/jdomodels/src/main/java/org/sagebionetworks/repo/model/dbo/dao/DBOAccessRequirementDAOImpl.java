@@ -203,6 +203,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	 * @return
 	 */
 	private List<AccessRequirement> getAccessRequirements(List<Long> requirementIds){
+		if(requirementIds.isEmpty()){
+			return new LinkedList<>();
+		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), requirementIds);
 		List<AccessRequirement> dtos = namedJdbcTemplate.query(SELECT_CURRENT_REQUIREMENTS_BY_ID, param, requirmentMapper);

@@ -147,6 +147,14 @@ public class DBOAccessRequirementDAOImplTest {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
 	}
+	
+	@Test
+	public void testGetAccessRequirementForSubjectEmpty(){
+		List<String> subjects = Collections.singletonList("-1");
+		List<AccessRequirement> results = accessRequirementDAO.getAllAccessRequirementsForSubject(subjects, RestrictableObjectType.ENTITY);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
 
 	@Test
 	public void testEntityAccessRequirementCRUD() throws Exception{
@@ -273,6 +281,11 @@ public class DBOAccessRequirementDAOImplTest {
 		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetDoesNotExist(){
+		accessRequirementDAO.get("-1");
 	}
 
 	@Test (expected = NotFoundException.class)
