@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -12,7 +11,6 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -20,6 +18,8 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+
+import com.google.common.collect.Lists;
 
 public class AccessRequirementUtilsTest {
 
@@ -38,7 +38,7 @@ public class AccessRequirementUtilsTest {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
 		dto.setId(101L);
 		dto.setEtag("0");
-		dto.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{createRestrictableObjectDescriptor("syn999")}));
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
 		dto.setCreatedBy("555");
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
@@ -53,14 +53,16 @@ public class AccessRequirementUtilsTest {
 	@Test
 	public void testRoundtrip() throws Exception {
 		AccessRequirement dto = createDTO();
+		RestrictableObjectDescriptor rod = dto.getSubjectIds().get(0);
+		// add a duplicate
+		dto.getSubjectIds().add(rod);
 			
 		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
 		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
 		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
-		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
-		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);
-		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, nodeIds, dboRevision);
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
 		assertEquals(dto, dto2);
+		assertEquals(1, dto.getSubjectIds().size());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -184,5 +186,27 @@ public class AccessRequirementUtilsTest {
 		AccessRequirement dto = createDTO();
 		dto.setVersionNumber(null);
 		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test
+	public void testGetUniqueRestrictableObjectDescriptor(){
+		List<RestrictableObjectDescriptor> start = Lists.newArrayList(
+				createRestrictableObjectDescriptor("syn999"),
+				createRestrictableObjectDescriptor("syn111"),
+				createRestrictableObjectDescriptor("syn111")
+				);
+		List<RestrictableObjectDescriptor> expected = Lists.newArrayList(
+				createRestrictableObjectDescriptor("syn999"),
+				createRestrictableObjectDescriptor("syn111")
+				);
+		List<RestrictableObjectDescriptor> result = AccessRequirementUtils.getUniqueRestrictableObjectDescriptor(start);
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetUniqueRestrictableObjectDescriptorNull(){
+		List<RestrictableObjectDescriptor> start = null;
+		List<RestrictableObjectDescriptor> result = AccessRequirementUtils.getUniqueRestrictableObjectDescriptor(start);
+		assertEquals(null, result);
 	}
 }

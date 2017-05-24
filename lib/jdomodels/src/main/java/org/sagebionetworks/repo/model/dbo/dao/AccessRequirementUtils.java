@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -27,6 +29,7 @@ public class AccessRequirementUtils {
 
 	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dboRequirement, DBOAccessRequirementRevision dboRevision) throws DatastoreException {
 		validateFields(dto);
+		dto.setSubjectIds(getUniqueRestrictableObjectDescriptor(dto.getSubjectIds()));
 		// requirement
 		dboRequirement.setId(dto.getId());
 		dboRequirement.seteTag(dto.getEtag());
@@ -43,8 +46,22 @@ public class AccessRequirementUtils {
 		dboRevision.setNumber(dto.getVersionNumber());
 		copyToSerializedField(dto, dboRevision);
 	}
+	
+	/**
+	 * Get the unique RestrictableObjectDescriptor from the passed set.
+	 * 
+	 * @param input
+	 * @return
+	 */
+	public static List<RestrictableObjectDescriptor> getUniqueRestrictableObjectDescriptor(List<RestrictableObjectDescriptor> input){
+		if(input == null){
+			return null;
+		}
+		LinkedHashSet<RestrictableObjectDescriptor> set = new LinkedHashSet<RestrictableObjectDescriptor>(input);
+		return new LinkedList<RestrictableObjectDescriptor>(set);
+	}
 
-	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<RestrictableObjectDescriptor> subjectIds, DBOAccessRequirementRevision revision) throws DatastoreException {
+	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, DBOAccessRequirementRevision revision) throws DatastoreException {
 		AccessRequirement dto = copyFromSerializedField(revision);
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
@@ -52,7 +69,6 @@ public class AccessRequirementUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(revision.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(revision.getModifiedOn()));
-		dto.setSubjectIds(subjectIds);
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setVersionNumber(dbo.getCurrentRevNumber());
 		return dto;
