@@ -48,11 +48,39 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Lists;
+
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
+	
+	private static final List<ColumnModel> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
+			EntityField.id.getColumnModel(),
+			EntityField.name.getColumnModel(),
+			EntityField.createdOn.getColumnModel(),
+			EntityField.createdBy.getColumnModel(),
+			EntityField.etag.getColumnModel(),
+			EntityField.type.getColumnModel(),
+			EntityField.currentVersion.getColumnModel(),
+			EntityField.parentId.getColumnModel(),
+			EntityField.benefactorId.getColumnModel(),
+			EntityField.projectId.getColumnModel(),
+			EntityField.modifiedOn.getColumnModel(),
+			EntityField.modifiedBy.getColumnModel(),
+			EntityField.dataFileHandleId.getColumnModel()
+			);
+	
+	private static final List<ColumnModel> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
+			EntityField.id.getColumnModel(),
+			EntityField.name.getColumnModel(),
+			EntityField.createdOn.getColumnModel(),
+			EntityField.createdBy.getColumnModel(),
+			EntityField.etag.getColumnModel(),
+			EntityField.modifiedOn.getColumnModel(),
+			EntityField.modifiedBy.getColumnModel()
+			);
 
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -457,20 +485,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		if(!ViewType.file.equals(viewType) && !ViewType.project.equals(viewType)){
+		ValidateArgument.required(viewType, "viewType");
+		switch(viewType){
+		case file:
+			return new LinkedList<ColumnModel>(FILE_VIEW_DEFAULT_COLUMNS);
+		case project:
+			return new LinkedList<ColumnModel>(PROEJCT_VIEW_DEAFULT_COLUMNS);
+		default:
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
-		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
-			if(EntityField.dataFileHandleId == field){
-				// project views do not include file handleIds.
-				if(ViewType.project.equals(viewType)){
-					continue;
-				}
-			}
-			list.add(getColumnModel(field));
-		}
-		return list;
 	}
 
 	@Override
