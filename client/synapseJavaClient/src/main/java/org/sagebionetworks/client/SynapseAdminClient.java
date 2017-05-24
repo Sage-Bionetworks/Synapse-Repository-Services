@@ -296,12 +296,4 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public Long deleteAccessApprovals(List<Long> approvalIds) throws SynapseException;
 
-	/**
-	 * Update the version of an existing AccessRequirement
-	 * 
-	 * @param accessRequirementId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public AccessRequirement updateVersion(String accessRequirementId) throws SynapseException;
 }

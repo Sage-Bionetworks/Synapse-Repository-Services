@@ -373,10 +373,4 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return postJSONEntity(getRepoEndpoint(), "/accessApprovals", requestBody, Count.class).getCount();
 	}
 
-	@Override
-	public AccessRequirement updateVersion(String accessRequirementId) throws SynapseException {
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		String url = "/accessRequirement/"+accessRequirementId+"/version";
-		return putJSONEntity(getRepoEndpoint(), url, null, AccessRequirement.class);
-	}
 }

@@ -1,6 +1,9 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 
@@ -18,25 +21,24 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
-import org.sagebionetworks.repo.model.dataaccess.Request;
-import org.sagebionetworks.repo.model.dataaccess.Submission;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 
 public class ITDataAccessTest {
 
@@ -87,12 +89,6 @@ public class ITDataAccessTest {
 		} catch (SynapseException e) { }
 	}
 
-	@Test
-	public void testUpdateARVersion() throws SynapseException {
-		AccessRequirement newVersion = adminSynapse.updateVersion(accessRequirement.getId().toString());
-		assertNotNull(newVersion);
-		assertEquals(newVersion.getVersionNumber(), accessRequirement.getVersionNumber());
-	}
 
 	@Test
 	public void test() throws SynapseException {
