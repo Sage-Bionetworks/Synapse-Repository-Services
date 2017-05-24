@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
 import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -205,8 +207,9 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	}
 
 	@Override
-	public void replaceAnnotations(List<Annotations> annotationsList)
+	public void replaceAnnotations(ProgressCallback<Void> progressCallback, List<Annotations> annotationsList)
 			throws DatastoreException, JSONObjectAdapterException {
+		ValidateArgument.required(progressCallback, "progressCallback");
 		// Create DBOs
 		// Note that a copy of every Annotation is stored on the String table, regardless of type.
 		// This is necessary to support queries on Annotations of unknown type.
@@ -220,6 +223,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		for (Annotations annotations : annotationsList) {
 			if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
 			if(annotations.getObjectId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
+			progressCallback.progressMade(null);
 			Long ownerId = KeyFactory.stringToKey(annotations.getObjectId());
 			ownerIds.add(ownerId);
 			if (annotations.getScopeId() != null) {

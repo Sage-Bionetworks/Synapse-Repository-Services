@@ -34,10 +34,10 @@ public class EvaluationSubmissionAnnotationsWorker implements ChangeMessageDrive
 			try {
 				// Is this a create, update, or delete?
 				if (ChangeType.CREATE == change.getChangeType()) {
-					ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.createEvaluationSubmissionStatuses(progressCallback, change.getObjectId(), change.getObjectEtag());
 				} else if (ChangeType.UPDATE == change.getChangeType()) {
 					// update
-					ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.updateEvaluationSubmissionStatuses(progressCallback, change.getObjectId(), change.getObjectEtag());
 				} else if(ChangeType.DELETE == change.getChangeType()) {
 					// delete
 					ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());

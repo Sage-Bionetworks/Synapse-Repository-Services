@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.evaluation;
 
 import java.util.List;
 
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.annotation.Annotations;
@@ -38,7 +39,7 @@ public interface AnnotationsDAO {
 	 * @throws DatastoreException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void replaceAnnotations(List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
+	public void replaceAnnotations(ProgressCallback<Void> progressCallback, List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
 	
 	/**
 	 * Deletes all annotations associated with the given scope

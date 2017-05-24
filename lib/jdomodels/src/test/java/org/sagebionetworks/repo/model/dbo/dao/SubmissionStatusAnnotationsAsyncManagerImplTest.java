@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,7 +22,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.CancelControl;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
@@ -52,13 +55,18 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private Submission submission;
 	private SubmissionStatus subStatus;
 
+	@Mock
 	private AnnotationsDAO mockSubStatusAnnoDAO;
+	@Mock
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	private Annotations annosIn;
 	private Annotations expectedAnnosOut;
 	@Captor
 	private ArgumentCaptor<List<Annotations>> annosCaptor;
+	
+	@Mock
+	ProgressCallback<Void> mockProgressCallback;
 	
 	private static final String EVAL_ID = "456";
 	private static final Long EVAL_ID_AS_LONG = Long.parseLong(EVAL_ID);
@@ -70,9 +78,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Before
 	public void before() throws Exception {
-
-		mockSubStatusAnnoDAO = mock(AnnotationsDAO.class);
-		mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 		
 		// Submission
 		submission = new Submission();
@@ -262,9 +267,9 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
 		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
-		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));		
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(any(ProgressCallback.class), anyListOf(Annotations.class));		
 	}
 
 	@Test
@@ -272,16 +277,16 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
 		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));
+		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(any(ProgressCallback.class), anyListOf(Annotations.class));
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
 	}
 
 	@Test
 	public void testStaleCreateChangeMessageNullEtag() throws Exception {
 		when(mockEvaluationSubmissionsDAO.getForEvaluationIfExists(EVAL_ID_AS_LONG)).thenReturn(null);
-		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
-		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(anyListOf(Annotations.class));
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);		
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations(any(ProgressCallback.class), anyListOf(Annotations.class));
 		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
 	}
 	
@@ -296,8 +301,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		// Annotations will initially be null when the SubmissionStatus object is created
 		subStatus.setAnnotations(null);
 		
-		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
+		verify(mockSubStatusAnnoDAO).replaceAnnotations(any(ProgressCallback.class), annosCaptor.capture());
 		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
@@ -328,8 +333,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		expectedAnnosOut.getStringAnnos().add(sa1);
 		expectedAnnosOut.getStringAnnos().add(sa2);
 		
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
+		verify(mockSubStatusAnnoDAO).replaceAnnotations(any(ProgressCallback.class), annosCaptor.capture());
 		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
@@ -353,8 +358,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annosIn.setStringAnnos(stringAnnos);
 		// This Annotation should not make it through to the DAO.
 		
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
+		verify(mockSubStatusAnnoDAO).replaceAnnotations(any(ProgressCallback.class), annosCaptor.capture());
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
 		assertTrue(actualAnnosOut.getLongAnnos().containsAll(expectedAnnosOut.getLongAnnos()));
@@ -379,8 +384,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		insertExpectedAnnos(expectedAnnosOut);
 		
 		//method under test
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(mockProgressCallback, submission.getEvaluationId(), EVAL_SUB_ETAG);
+		verify(mockSubStatusAnnoDAO).replaceAnnotations(any(ProgressCallback.class), annosCaptor.capture());
 		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		
