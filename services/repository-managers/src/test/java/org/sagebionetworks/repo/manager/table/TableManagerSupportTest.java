@@ -637,12 +637,18 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetColumModel(){
+	public void testGetColumModelCached(){
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
 		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		// The first call should cache the column so create should only be called once.
+		verify(mockColumnModelDao, times(1)).createColumnModel(any(ColumnModel.class));
 	}
 	
 	

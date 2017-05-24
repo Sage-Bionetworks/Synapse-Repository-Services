@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -56,30 +59,30 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
 	
-	private static final List<ColumnModel> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			EntityField.id.getColumnModel(),
-			EntityField.name.getColumnModel(),
-			EntityField.createdOn.getColumnModel(),
-			EntityField.createdBy.getColumnModel(),
-			EntityField.etag.getColumnModel(),
-			EntityField.type.getColumnModel(),
-			EntityField.currentVersion.getColumnModel(),
-			EntityField.parentId.getColumnModel(),
-			EntityField.benefactorId.getColumnModel(),
-			EntityField.projectId.getColumnModel(),
-			EntityField.modifiedOn.getColumnModel(),
-			EntityField.modifiedBy.getColumnModel(),
-			EntityField.dataFileHandleId.getColumnModel()
+	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
+			EntityField.id,
+			EntityField.name,
+			EntityField.createdOn,
+			EntityField.createdBy,
+			EntityField.etag,
+			EntityField.type,
+			EntityField.currentVersion,
+			EntityField.parentId,
+			EntityField.benefactorId,
+			EntityField.projectId,
+			EntityField.modifiedOn,
+			EntityField.modifiedBy,
+			EntityField.dataFileHandleId
 			);
 	
-	private static final List<ColumnModel> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
-			EntityField.id.getColumnModel(),
-			EntityField.name.getColumnModel(),
-			EntityField.createdOn.getColumnModel(),
-			EntityField.createdBy.getColumnModel(),
-			EntityField.etag.getColumnModel(),
-			EntityField.modifiedOn.getColumnModel(),
-			EntityField.modifiedBy.getColumnModel()
+	private static final List<EntityField> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
+			EntityField.id,
+			EntityField.name,
+			EntityField.createdOn,
+			EntityField.createdBy,
+			EntityField.etag,
+			EntityField.modifiedOn,
+			EntityField.modifiedBy
 			);
 
 	@Autowired
@@ -104,6 +107,12 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	AuthorizationManager authorizationManager;
 	@Autowired
 	ExecutorService tableSupportExecutorService;
+	
+	/*
+	 * Cache of default ColumnModels for views.  Once created, these columns will not change
+	 * and will be the same across the cluster.
+	 */
+	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new HashMap<EntityField, ColumnModel>());
 	
 	/*
 	 * (non-Javadoc)
@@ -454,7 +463,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
-		return columnModelDao.createColumnModel(field.getColumnModel());
+		// check the cache.
+		ColumnModel model = defaultColumnCache.get(field);
+		if(model == null){
+			// not in the cache so create the column.
+			model = columnModelDao.createColumnModel(field.getColumnModel());
+			defaultColumnCache.put(field, model);
+		}
+		return model;
 	}
 	
 	@Override
@@ -488,12 +504,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(viewType, "viewType");
 		switch(viewType){
 		case file:
-			return new LinkedList<ColumnModel>(FILE_VIEW_DEFAULT_COLUMNS);
+			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
 		case project:
-			return new LinkedList<ColumnModel>(PROEJCT_VIEW_DEAFULT_COLUMNS);
+			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);
 		default:
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
+	}
+	
+	/**
+	 * Get the ColumnModels for the given entity fields.
+	 * @param fields
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModels(List<EntityField> fields){
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(EntityField field: fields){
+			results.add(getColumnModel(field));
+		}
+		return results;
 	}
 
 	@Override
