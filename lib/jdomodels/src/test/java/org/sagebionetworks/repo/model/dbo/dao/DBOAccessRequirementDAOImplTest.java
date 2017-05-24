@@ -371,18 +371,6 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 
-	@Test
-	public void testUpdateVersion() {
-		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
-		accessRequirement = accessRequirementDAO.create(accessRequirement);
-
-		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId().toString());
-		assertFalse(accessRequirement.equals(newVersion));
-		accessRequirement.setVersionNumber(newVersion.getVersionNumber());
-		accessRequirement.setEtag(newVersion.getEtag());
-		assertEquals(accessRequirement, newVersion);
-	}
-
 	@Test (expected = IllegalTransactionStateException.class)
 	public void testGetForUpdateWithoutTransaction() {
 		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");

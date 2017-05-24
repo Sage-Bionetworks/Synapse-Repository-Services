@@ -384,21 +384,5 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, toDelete);
 	}
 
-	/**
-	 * Admin service to update AccessRequirement version
-	 * 
-	 * @param userId
-	 * @param requirementId
-	 * @return
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_VERSION, method = RequestMethod.PUT)
-	public @ResponseBody AccessRequirement updateVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId) 
-			throws UnauthorizedException, NotFoundException {
-		return serviceProvider.getAccessRequirementService().updateVersion(userId, requirementId);
-	}
+
 }

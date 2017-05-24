@@ -415,41 +415,4 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return stats;
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public AccessRequirement updateVersion(String accessRequirementId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
-		DBOAccessRequirement current = namedJdbcTemplate.queryForObject(GET_ACCESS_REQUIREMENT_SQL, param, accessRequirementRowMapper);
-
-		param = new MapSqlParameterSource();
-		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
-		param.addValue(COL_ACCESS_REQUIREMENT_ETAG, UUID.randomUUID().toString());
-		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, current.getCurrentRevNumber());
-		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
-
-		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
-		dboRevision.setOwnerId(current.getId());
-		dboRevision.setNumber(current.getCurrentRevNumber());
-		dboRevision.setModifiedBy(current.getModifiedBy());
-		dboRevision.setModifiedOn(current.getModifiedOn());
-		dboRevision.setSerializedEntity(current.getSerializedEntity());
-		populateRevision(dboRevision);
-
-		return get(accessRequirementId.toString());
-	}
-
-	private void populateRevision(final DBOAccessRequirementRevision revision) {
-		jdbcTemplate.update(INSERT_IGNORE_ACCESS_REQUIREMENT_REVISION, new PreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setLong(1, revision.getOwnerId());
-				ps.setLong(2, revision.getNumber());
-				ps.setLong(3, revision.getModifiedBy());
-				ps.setLong(4, revision.getModifiedOn());
-				ps.setBytes(5, revision.getSerializedEntity());
-			}
-		});
-	}
 }
