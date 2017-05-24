@@ -12,11 +12,13 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 
 public class AccessRequirementUtilsTest {
@@ -41,7 +43,7 @@ public class AccessRequirementUtilsTest {
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());
-		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAcessRequirement");
+		dto.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		dto.setTermsOfUse("foo");
 		dto.setVersionNumber(1L);
@@ -52,23 +54,12 @@ public class AccessRequirementUtilsTest {
 	public void testRoundtrip() throws Exception {
 		AccessRequirement dto = createDTO();
 			
-		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
 		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
 		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);
-		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo, nodeIds);
-		assertEquals(dto, dto2);
-	}
-
-	@Test
-	public void testRoundtripWithNulls() throws Exception {
-		AccessRequirement dto = createDTO();
-		dto.setId(null);
-		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
-		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);
-		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo, nodeIds);
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, nodeIds, dboRevision);
 		assertEquals(dto, dto2);
 	}
 
@@ -112,5 +103,86 @@ public class AccessRequirementUtilsTest {
 		assertEquals(2, rodList.size());
 		assertTrue(rodList.contains(rod1));
 		assertTrue(rodList.contains(rod2));
+	}
+	
+	@Test
+	public void testValidateFieldsValid(){
+		AccessRequirement dto = createDTO();
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNull(){
+		AccessRequirementUtils.validateFields(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullAccessType(){
+		AccessRequirement dto = createDTO();
+		dto.setAccessType(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullConcreteType(){
+		AccessRequirement dto = createDTO();
+		dto.setConcreteType(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsWrongConcreteType(){
+		AccessRequirement dto = createDTO();
+		dto.setConcreteType("not.correct");
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullCreatedBy(){
+		AccessRequirement dto = createDTO();
+		dto.setCreatedBy(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullCreatedOn(){
+		AccessRequirement dto = createDTO();
+		dto.setCreatedOn(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullEtag(){
+		AccessRequirement dto = createDTO();
+		dto.setEtag(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullId(){
+		AccessRequirement dto = createDTO();
+		dto.setId(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullModifiedBy(){
+		AccessRequirement dto = createDTO();
+		dto.setModifiedBy(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullModifiedOn(){
+		AccessRequirement dto = createDTO();
+		dto.setModifiedOn(null);
+		AccessRequirementUtils.validateFields(dto);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateFieldsNullVersionNumber(){
+		AccessRequirement dto = createDTO();
+		dto.setVersionNumber(null);
+		AccessRequirementUtils.validateFields(dto);
 	}
 }
