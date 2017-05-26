@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -135,10 +136,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 					"You must provide the required attachment(s).");
 			submissionToCreate.setAttachments(request.getAttachments());
 		}
-		ValidateArgument.requirement(request.getAccessors() != null && !request.getAccessors().isEmpty(),
+		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
 		Set<String> accessors = new HashSet<String>();
-		accessors.addAll(request.getAccessors());
+		for(AccessorChange change: request.getAccessorChanges()){
+			accessors.add(change.getUserId());
+		}
 		if (actAR.getIsCertifiedUserRequired()) {
 			ValidateArgument.requirement(groupMembersDao.areMemberOf(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
@@ -151,7 +154,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		}
 		ValidateArgument.requirement(accessors.contains(userInfo.getId().toString()),
 				"Submitter has to be an accessor.");
-		submissionToCreate.setAccessors(new LinkedList<String>(accessors));
+		submissionToCreate.setAccessorChanges(new LinkedList<AccessorChange>(request.getAccessorChanges()));
 
 		if (request instanceof Renewal) {
 			submissionToCreate.setIsRenewalSubmission(true);
@@ -231,9 +234,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
 		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
-		for (String accessor : submission.getAccessors()) {
+		for (AccessorChange accessor : submission.getAccessorChanges()) {
 			ACTAccessApproval approval = new ACTAccessApproval();
-			approval.setAccessorId(accessor);
+			approval.setAccessorId(accessor.getUserId());
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);
 			approval.setModifiedBy(createdBy);

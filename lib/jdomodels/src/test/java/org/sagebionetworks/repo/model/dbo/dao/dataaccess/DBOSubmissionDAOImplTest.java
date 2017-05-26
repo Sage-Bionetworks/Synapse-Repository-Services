@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
@@ -108,7 +110,10 @@ public class DBOSubmissionDAOImplTest {
 		request = RequestTestUtils.createNewRequest();
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(researchProject.getId());
-		request.setAccessors(Arrays.asList(user1.getId()));
+		AccessorChange add = new AccessorChange();
+		add.setUserId(user1.getId());
+		add.setType(AccessType.GAIN_ACCESS);
+		request.setAccessorChanges(Arrays.asList(add));
 		request = requestDao.create(request);
 	}
 
@@ -139,7 +144,10 @@ public class DBOSubmissionDAOImplTest {
 		Submission dto = new Submission();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setRequestId(request.getId());
-		dto.setAccessors(Arrays.asList(user1.getId()));
+		AccessorChange change = new AccessorChange();
+		change.setType(AccessType.GAIN_ACCESS);
+		change.setUserId(user1.getId());
+		dto.setAccessorChanges(Arrays.asList(change));
 		dto.setAttachments(Arrays.asList("1"));
 		dto.setDucFileHandleId("2");
 		dto.setIrbFileHandleId("3");

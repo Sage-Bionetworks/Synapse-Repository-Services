@@ -37,6 +37,8 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -58,6 +60,8 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Sets;
 
 public class SubmissionManagerImplTest {
 
@@ -101,7 +105,8 @@ public class SubmissionManagerImplTest {
 	private String ducFileHandleId;
 	private String irbFileHandleId;
 	private String attachmentId;
-	private List<String> accessors;
+	private List<AccessorChange> accessors;
+	private HashSet<String> accessorIds;
 	private String publication;
 	private String summaryOfUse;
 	private String submissionId;
@@ -135,7 +140,12 @@ public class SubmissionManagerImplTest {
 		submissionId = "8";
 		etag = "etag";
 		accessRequirementVersion = 9L;
-		accessors = Arrays.asList(userId);
+		AccessorChange accesorChange = new AccessorChange();
+		accesorChange.setUserId(userId);
+		accesorChange.setType(AccessType.RENEW_ACCESS);
+		accessors = Arrays.asList(accesorChange);
+		
+		accessorIds = Sets.newHashSet(userId);
 
 		request = new Renewal();
 		request.setId(requestId);
@@ -144,7 +154,7 @@ public class SubmissionManagerImplTest {
 		request.setDucFileHandleId(ducFileHandleId);
 		request.setIrbFileHandleId(irbFileHandleId);
 		request.setAttachments(Arrays.asList(attachmentId));
-		request.setAccessors(accessors);
+		request.setAccessorChanges(accessors);
 		request.setPublication(publication);
 		request.setSummaryOfUse(summaryOfUse);
 		request.setEtag(etag);
@@ -166,9 +176,9 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(accessRequirementVersion);
 		when(mockGroupMembersDao.areMemberOf(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				new HashSet<String>(accessors)))
+				accessorIds))
 				.thenReturn(true);
-		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
+		when(mockVerificationDao.haveValidatedProfiles(accessorIds))
 				.thenReturn(true);
 
 		when(mockSubmissionDao.createSubmission(any(Submission.class)))
@@ -273,13 +283,13 @@ public class SubmissionManagerImplTest {
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullAccessors() {
-		request.setAccessors(null);
+		request.setAccessorChanges(null);
 		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithEmptyAccessorList() {
-		request.setAccessors(new LinkedList<String>());
+		request.setAccessorChanges(new LinkedList<AccessorChange>());
 		manager.create(mockUser, requestId, etag);
 	}
 
@@ -287,14 +297,14 @@ public class SubmissionManagerImplTest {
 	public void testCreateWithNonCertifiedUser() {
 		when(mockGroupMembersDao.areMemberOf(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				new HashSet<String>(accessors)))
+				accessorIds))
 				.thenReturn(false);
 		manager.create(mockUser, requestId, etag);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonValidatedProfile() {
-		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessors)))
+		when(mockVerificationDao.haveValidatedProfiles(accessorIds))
 				.thenReturn(false);
 		manager.create(mockUser, requestId, etag);
 	}
@@ -322,7 +332,7 @@ public class SubmissionManagerImplTest {
 		assertEquals(ducFileHandleId, captured.getDucFileHandleId());
 		assertEquals(irbFileHandleId, captured.getIrbFileHandleId());
 		assertEquals(Arrays.asList(attachmentId), captured.getAttachments());
-		assertEquals(accessors, captured.getAccessors());
+		assertEquals(accessors, captured.getAccessorChanges());
 		assertTrue(captured.getIsRenewalSubmission());
 		assertEquals(publication, captured.getPublication());
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
@@ -341,7 +351,7 @@ public class SubmissionManagerImplTest {
 		request.setDucFileHandleId(ducFileHandleId);
 		request.setIrbFileHandleId(irbFileHandleId);
 		request.setAttachments(Arrays.asList(attachmentId));
-		request.setAccessors(accessors);
+		request.setAccessorChanges(accessors);
 		request.setEtag(etag);
 		when(mockRequestDao.get(requestId)).thenReturn(request);
 		manager.create(mockUser, requestId, etag);
@@ -357,7 +367,7 @@ public class SubmissionManagerImplTest {
 		assertEquals(ducFileHandleId, captured.getDucFileHandleId());
 		assertEquals(irbFileHandleId, captured.getIrbFileHandleId());
 		assertEquals(Arrays.asList(attachmentId), captured.getAttachments());
-		assertEquals(accessors, captured.getAccessors());
+		assertEquals(accessors, captured.getAccessorChanges());
 		assertFalse(captured.getIsRenewalSubmission());
 		assertNull(captured.getPublication());
 		assertNull(captured.getSummaryOfUse());
@@ -541,7 +551,10 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.SUBMITTED);
 		submission.setAccessRequirementId(accessRequirementId);
-		submission.setAccessors(Arrays.asList(userId));
+		AccessorChange change = new AccessorChange();
+		change.setUserId(userId);
+		change.setType(AccessType.RENEW_ACCESS);
+		submission.setAccessorChanges(Arrays.asList(change));
 		submission.setEtag(etag);
 		submission.setId(submissionId);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
@@ -564,7 +577,10 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.SUBMITTED);
 		submission.setAccessRequirementId(accessRequirementId);
-		submission.setAccessors(Arrays.asList(userId));
+		AccessorChange change = new AccessorChange();
+		change.setUserId(userId);
+		change.setType(AccessType.RENEW_ACCESS);
+		submission.setAccessorChanges(Arrays.asList(change));
 		submission.setEtag(etag);
 		submission.setId(submissionId);
 		submission.setAccessRequirementVersion(accessRequirementVersion);
@@ -603,7 +619,10 @@ public class SubmissionManagerImplTest {
 		submission.setSubmittedBy(userId);
 		submission.setState(SubmissionState.SUBMITTED);
 		submission.setAccessRequirementId(accessRequirementId);
-		submission.setAccessors(Arrays.asList(userId));
+		AccessorChange change = new AccessorChange();
+		change.setUserId(userId);
+		change.setType(AccessType.RENEW_ACCESS);
+		submission.setAccessorChanges(Arrays.asList(change));
 		submission.setEtag(etag);
 		submission.setId(submissionId);
 		submission.setAccessRequirementVersion(accessRequirementVersion);

@@ -14,6 +14,8 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 
+import com.google.common.collect.Sets;
+
 public class SubmissionUtilsTest {
 
 	@Test
@@ -47,7 +49,9 @@ public class SubmissionUtilsTest {
 			assertEquals(dto.getAccessRequirementId(), accessor.getAccessRequirementId().toString());
 			accessorsSet.add(accessor.getAccessorId().toString());
 		}
-		assertEquals(accessorsSet, new HashSet<String>(dto.getAccessors()));
+		// user '8' is being revoked so should be excluded.
+		Set<String> expectedAccessor = Sets.newHashSet("6","7");
+		assertEquals(expectedAccessor, accessorsSet);
 	}
 
 }

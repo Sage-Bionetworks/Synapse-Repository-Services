@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -36,10 +38,14 @@ public class SubmissionUtils {
 
 	public static List<DBOSubmissionAccessor> createDBOSubmissionAccessor(Submission dto, IdGenerator idGenerator) {
 		List<DBOSubmissionAccessor> accessors = new ArrayList<DBOSubmissionAccessor>();
-		for (String userId : dto.getAccessors()) {
+		for (AccessorChange change : dto.getAccessorChanges()) {
+			if(AccessType.REVOKE_ACCESS.equals(change.getType())){
+				// do not record users that are being revoked
+				continue;
+			}
 			DBOSubmissionAccessor dbo = new DBOSubmissionAccessor();
 			dbo.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
-			dbo.setAccessorId(Long.parseLong(userId));
+			dbo.setAccessorId(Long.parseLong(change.getUserId()));
 			dbo.setCurrentSubmissionId(Long.parseLong(dto.getId()));
 			dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
 			dbo.setEtag(UUID.randomUUID().toString());
