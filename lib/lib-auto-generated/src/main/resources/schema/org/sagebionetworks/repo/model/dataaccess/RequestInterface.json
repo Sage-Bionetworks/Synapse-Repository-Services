@@ -48,12 +48,11 @@
 				"type": "string"
 			}
 		},
-		"accessors": {
+		"accessorChanges": {
 			"type": "array",
-			"description": "The set of user ID who will gain access to the data set once the request is approved.",
-			"uniqueItems": false,
+			"description": "List of user changes. A user can gain access, renew access or have access revoked.",
 			"items": {
-				"type": "string"
+				"$ref":"org.sagebionetworks.repo.model.dataaccess.AccessorChange"
 			}
 		},
 		"etag": {

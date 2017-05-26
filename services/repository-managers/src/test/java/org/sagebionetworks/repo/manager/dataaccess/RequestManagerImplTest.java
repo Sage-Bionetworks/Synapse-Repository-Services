@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -30,6 +32,8 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
 
 public class RequestManagerImplTest {
 
@@ -218,7 +222,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
+		assertEquals(request.getAccessorChanges(), renewal.getAccessorChanges());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
@@ -326,7 +330,18 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateRenewalFromRequest() {
+		AccessorChange one = new AccessorChange();
+		one.setType(AccessType.GAIN_ACCESS);
+		one.setUserId("1");
+		AccessorChange two = new AccessorChange();
+		two.setType(AccessType.RENEW_ACCESS);
+		two.setUserId("2");
+		AccessorChange three = new AccessorChange();
+		three.setType(AccessType.REVOKE_ACCESS);
+		three.setUserId("3");
+		
 		Request request = createNewRequest();
+		request.setAccessorChanges(Lists.newArrayList(one,two,three));
 		request.setDucFileHandleId("ducFileHandleId");
 		Renewal renewal = manager.createRenewalFromRequest(request);
 		assertEquals(requestId, renewal.getId());
@@ -340,7 +355,14 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
+		// expected changes
+		one = new AccessorChange();
+		one.setType(AccessType.RENEW_ACCESS);
+		one.setUserId("1");
+		two = new AccessorChange();
+		two.setType(AccessType.RENEW_ACCESS);
+		two.setUserId("2");
+		assertEquals(Lists.newArrayList(one,two), renewal.getAccessorChanges());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
