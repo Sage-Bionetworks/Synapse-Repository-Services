@@ -261,16 +261,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return (T) accessRequirementDAO.update(setDefaultValues(toUpdate));
 	}
 
-	@WriteTransactionReadCommitted
-	@Override
-	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, String accessRequirementId) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Only Synapse Admin can perform this action.");
-		}
-		return accessRequirementDAO.updateVersion(accessRequirementId);
-	}
 
 	@WriteTransactionReadCommitted
 	@Override

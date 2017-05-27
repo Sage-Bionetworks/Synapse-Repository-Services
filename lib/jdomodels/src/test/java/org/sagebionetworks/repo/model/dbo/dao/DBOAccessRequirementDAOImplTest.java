@@ -147,6 +147,14 @@ public class DBOAccessRequirementDAOImplTest {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
 	}
+	
+	@Test
+	public void testGetAccessRequirementForSubjectEmpty(){
+		List<String> subjects = Collections.singletonList("-1");
+		List<AccessRequirement> results = accessRequirementDAO.getAllAccessRequirementsForSubject(subjects, RestrictableObjectType.ENTITY);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
 
 	@Test
 	public void testEntityAccessRequirementCRUD() throws Exception{
@@ -274,6 +282,11 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
 	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetDoesNotExist(){
+		accessRequirementDAO.get("-1");
+	}
 
 	@Test (expected = NotFoundException.class)
 	public void testGetConcreteTypeNotFound() {
@@ -369,18 +382,6 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, list.get(0));
 
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
-	}
-
-	@Test
-	public void testUpdateVersion() {
-		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
-		accessRequirement = accessRequirementDAO.create(accessRequirement);
-
-		AccessRequirement newVersion = accessRequirementDAO.updateVersion(accessRequirement.getId().toString());
-		assertFalse(accessRequirement.equals(newVersion));
-		accessRequirement.setVersionNumber(newVersion.getVersionNumber());
-		accessRequirement.setEtag(newVersion.getEtag());
-		assertEquals(accessRequirement, newVersion);
 	}
 
 	@Test (expected = IllegalTransactionStateException.class)

@@ -9,7 +9,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.Date;
@@ -87,6 +87,8 @@ public class EntityPermissionsManagerImplUnitTest {
 	
 	String entityId;
 	Long userId;
+	
+	String newEtag;
 
 	// here we set up a certified and a non-certified user, a project and a non-project Node
 	@Before
@@ -177,6 +179,9 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
 		when(mockAclDAO.canAccess(mockUser.getGroups(), entityId, ObjectType.ENTITY, ACCESS_TYPE.CHANGE_PERMISSIONS)).
 		thenReturn(true);
+		
+		newEtag = "newEtag";
+		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString())).thenReturn(newEtag);
 	}
 
 	@Test
@@ -409,7 +414,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.get(projectId, ObjectType.ENTITY)).thenReturn(acl);
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -420,7 +425,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
-		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -432,8 +437,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		// call under test
 		entityPermissionsManager.overrideInheritance(acl, mockUser);
 		// file should not trigger container message
-		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(anyString(), any(ObjectType.class), anyString(), any(ChangeType.class));
-	}
+		verifyNoMoreInteractions(mockTransactionalMessenger);	}
 	
 	@Test
 	public void testRestoreInheritanceProject(){
@@ -442,7 +446,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		// call under test
 		entityPermissionsManager.restoreInheritance(projectId, mockUser);
-		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -452,7 +456,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		// call under test
 		entityPermissionsManager.restoreInheritance(folderId, mockUser);
-		verify(mockTransactionalMessenger).sendDeleteMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 	}
 	
 	@Test
@@ -462,6 +466,6 @@ public class EntityPermissionsManagerImplUnitTest {
 		thenReturn(true);
 		// call under test
 		entityPermissionsManager.restoreInheritance(fileId, mockUser);
-		verify(mockTransactionalMessenger, never()).sendDeleteMessageAfterCommit(anyString(), any(ObjectType.class));
+		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
 }
