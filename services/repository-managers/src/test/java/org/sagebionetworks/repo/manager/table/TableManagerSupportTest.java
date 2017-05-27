@@ -637,18 +637,23 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetColumModel(){
+	public void testGetColumModelCached(){
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
 		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		// The first call should cache the column so create should only be called once.
+		verify(mockColumnModelDao, times(1)).createColumnModel(any(ColumnModel.class));
 	}
 	
 	
 	@Test
 	public void testGetDefaultTableViewColumnsFileView(){
-		// View view defaults are from the FileEntityFields enumeration.
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
@@ -660,17 +665,25 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetDefaultTableViewColumnsProjectView(){
-		// View view defaults are from the FileEntityFields enumeration.
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
-			if(EntityField.dataFileHandleId == field){
-				continue;
-			}
-			expected.add(field.getColumnModel());
-		}
+		List<ColumnModel> expected = Lists.newArrayList(
+				EntityField.id.getColumnModel(),
+				EntityField.name.getColumnModel(),
+				EntityField.createdOn.getColumnModel(),
+				EntityField.createdBy.getColumnModel(),
+				EntityField.etag.getColumnModel(),
+				EntityField.modifiedOn.getColumnModel(),
+				EntityField.modifiedBy.getColumnModel()
+				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project);
 		assertEquals(expected, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDefaultTableViewColumnsNull(){
+		ViewType type = null;
+		// call under test
+		manager.getDefaultTableViewColumns(type);
 	}
 	
 	@Test
