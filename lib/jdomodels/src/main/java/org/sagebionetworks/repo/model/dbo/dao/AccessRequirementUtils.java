@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -24,60 +26,61 @@ public class AccessRequirementUtils {
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
 
-	// TODO: an AccessRequirement will be saved to DBOAccessRequirement & DBOAccessRequirementRevision
-	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
-		dbo.setId(dto.getId());
-		dbo.seteTag(dto.getEtag());
-		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
-		dbo.setModifiedOn(dto.getModifiedOn().getTime());
-		dbo.setAccessType(dto.getAccessType().name());
-		dbo.setConcreteType(dto.getConcreteType());
-		dbo.setCurrentRevNumber(dto.getVersionNumber());
-		copyToSerializedField(dto, dbo);
+
+	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dboRequirement, DBOAccessRequirementRevision dboRevision) throws DatastoreException {
+		validateFields(dto);
+		dto.setSubjectIds(getUniqueRestrictableObjectDescriptor(dto.getSubjectIds()));
+		// requirement
+		dboRequirement.setId(dto.getId());
+		dboRequirement.seteTag(dto.getEtag());
+		dboRequirement.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		dboRequirement.setCreatedOn(dto.getCreatedOn().getTime());
+		dboRequirement.setAccessType(dto.getAccessType().name());
+		dboRequirement.setConcreteType(dto.getConcreteType());
+		dboRequirement.setCurrentRevNumber(dto.getVersionNumber());
+
+		// revision
+		dboRevision.setOwnerId(dto.getId());
+		dboRevision.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
+		dboRevision.setModifiedOn(dto.getModifiedOn().getTime());
+		dboRevision.setNumber(dto.getVersionNumber());
+		copyToSerializedField(dto, dboRevision);
+	}
+	
+	/**
+	 * Get the unique RestrictableObjectDescriptor from the passed set.
+	 * 
+	 * @param input
+	 * @return
+	 */
+	public static List<RestrictableObjectDescriptor> getUniqueRestrictableObjectDescriptor(List<RestrictableObjectDescriptor> input){
+		if(input == null){
+			return null;
+		}
+		LinkedHashSet<RestrictableObjectDescriptor> set = new LinkedHashSet<RestrictableObjectDescriptor>(input);
+		return new LinkedList<RestrictableObjectDescriptor>(set);
 	}
 
-	// TODO: this method will be changed: an AccessRequirement needs to be build from both DBOAccessRequirement & DBOAccessRequirementRevision
-	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
-		AccessRequirement dto = copyFromSerializedField(dbo);
+	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, DBOAccessRequirementRevision revision) throws DatastoreException {
+		AccessRequirement dto = copyFromSerializedField(revision);
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setModifiedBy(dbo.getModifiedBy().toString());
-		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
-		dto.setSubjectIds(subjectIds);
+		dto.setModifiedBy(revision.getModifiedBy().toString());
+		dto.setModifiedOn(new Date(revision.getModifiedOn()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setVersionNumber(dbo.getCurrentRevNumber());
 		return dto;
 	}
+	
 
-	// TODO: this method should be removed. Only DBOAccessRequirementRevision should store the blob
-	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-
-	// TODO: this method should be changed to take DBOAccessRequirementRevision
-	public static AccessRequirement copyFromSerializedField(DBOAccessRequirement dbo) throws DatastoreException {
+	public static AccessRequirement copyFromSerializedField(DBOAccessRequirementRevision dbo) throws DatastoreException {
 		try {
 			return (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-	}
-
-	// TODO: this method should be combined with copyDtoToDbo()
-	public static void copyDTOToDBOAccessRequirementRevision(AccessRequirement dto, DBOAccessRequirementRevision dbo, Long version) {
-		dbo.setOwnerId(dto.getId());
-		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
-		dbo.setModifiedOn(dto.getModifiedOn().getTime());
-		dbo.setNumber(version);
-		copyToSerializedField(dto, dbo);
 	}
 
 	private static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
@@ -117,5 +120,23 @@ public class AccessRequirementUtils {
 			rodList.add(subjectId);
 		}
 		return rodList;
+	}
+	
+	/**
+	 * Validate the required fields.
+	 * @param dto
+	 */
+	public static void validateFields(AccessRequirement dto){
+		ValidateArgument.required(dto, "AccessRequirement");
+		ValidateArgument.required(dto.getAccessType(), "dto.accessType");
+		ValidateArgument.required(dto.getConcreteType(), "dto.concreteType");
+		ValidateArgument.requirement(dto.getClass().getName().equals(dto.getConcreteType()), "Unexpected concreteType: "+dto.getConcreteType()+" expected: "+dto.getClass().getName());
+		ValidateArgument.required(dto.getCreatedBy(), "dto.createBy");
+		ValidateArgument.required(dto.getCreatedOn(), "dto.createOn");
+		ValidateArgument.required(dto.getEtag(), "dto.etag");
+		ValidateArgument.required(dto.getId(), "dto.id");
+		ValidateArgument.required(dto.getModifiedBy(), "dto.modifiedBy");
+		ValidateArgument.required(dto.getModifiedOn(), "dto.modifiedOn");
+		ValidateArgument.required(dto.getVersionNumber(), "dto.versionNumber");
 	}
 }

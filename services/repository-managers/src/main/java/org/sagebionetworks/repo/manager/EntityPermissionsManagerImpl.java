@@ -154,14 +154,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate the Entity owners will still have access.
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 		// Before we can update the ACL we must grab the lock on the node.
-		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// persist acl and return
 		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		// Send a container message for projects or folders.
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// Notify listeners of the hierarchy change to this container.
-			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, acl.getEtag(), ChangeType.CREATE);
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 		}
 		return acl;
 	}
@@ -182,7 +182,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// if parent is root, than can't inherit, must have own ACL
 		if (nodeDao.isNodesParentRoot(entityId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 		
-		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		
 		// delete access control list
 		aclDAO.delete(entityId, ObjectType.ENTITY);
@@ -192,8 +192,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		
 		// Send a container message for projects or folders.
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
-			// Notify listeners of the hierarchy change to this container.
-			transactionalMessenger.sendDeleteMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER);
+			/*
+			 *  Notify listeners of the hierarchy change to this container.
+			 *  See PLFM-4410.
+			 */
+			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, newEtag, ChangeType.UPDATE);
 		}
 		
 		return aclDAO.get(benefactor, ObjectType.ENTITY);
