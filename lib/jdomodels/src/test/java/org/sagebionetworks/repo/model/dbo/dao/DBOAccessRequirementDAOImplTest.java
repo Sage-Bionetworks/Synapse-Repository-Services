@@ -155,6 +155,21 @@ public class DBOAccessRequirementDAOImplTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
+	
+	/**
+	 * PLFM-4415 When subjectIds is null return an empty list.
+	 * 
+	 */
+	@Test
+	public void testPLFM_4415(){
+		// Create a new object
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement.setSubjectIds(null);
+		// Create it
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		assertNotNull(accessRequirement.getSubjectIds());
+		assertTrue(accessRequirement.getSubjectIds().isEmpty());
+	}
 
 	@Test
 	public void testEntityAccessRequirementCRUD() throws Exception{
