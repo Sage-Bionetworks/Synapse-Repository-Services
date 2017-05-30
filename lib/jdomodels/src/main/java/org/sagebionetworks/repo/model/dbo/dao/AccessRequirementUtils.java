@@ -63,6 +63,9 @@ public class AccessRequirementUtils {
 
 	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, DBOAccessRequirementRevision revision) throws DatastoreException {
 		AccessRequirement dto = copyFromSerializedField(revision);
+		if(dto.getSubjectIds() == null){
+			dto.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
+		}
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
