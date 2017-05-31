@@ -1,21 +1,12 @@
 {
-	"title": "ACT Access Requirement",
-	"description": "JSON schema for out of band 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement. This access requirement directs user to contact an ACT member to gain access to the data.",
+	"title": "Managed ACT Access Requirement",
+	"description": "JSON schema for in-Synapse 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement. This access requirement allows the ACT managing the detail requirements, and submissions within Synapse.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.ACTAccessRequirementInterface"
 		}
 	],
 	"properties": {
-		"actContactInfo": {
-			"type": "string",
-			"description": "Information on how to contact the Synapse ACT for access approval (external to Synapse).  Required when creating or updating.",
-			"title": "ACT Contact Information"
-		},
-		"openJiraIssue": {
-			"type":"boolean",
-			"description":  "If true, then in addition to following directions in the 'actContactInfo' the client should open a JIRA issue to notify the ACT.  If omitted, default is 'true'."
-		},
 		"isCertifiedUserRequired": {
 			"type":"boolean",
 			"description":  "If true, then accessor needs to be a Synapse Certified User to gain access to the data."
