@@ -31,7 +31,7 @@ public class AccessApprovalUtils {
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		if (dto.getExpiredOn() != null) {
-			dbo.setExpiredOn(dto.getModifiedOn().getTime());
+			dbo.setExpiredOn(dto.getExpiredOn().getTime());
 		}
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
