@@ -716,8 +716,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId, String etagColumnId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+	public long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorColumnId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
 			return -1L;

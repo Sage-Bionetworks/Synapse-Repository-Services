@@ -1300,8 +1300,9 @@ public class SQLUtilsTest {
 	public void testBuildTableViewCRC32Sql(){
 		String viewId = "syn123";
 		String etagColumnId = "444";
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
-		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_))) FROM T123", sql);
+		String benefactorId = "555";
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorId);
+		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_, '-', _C555_))) FROM T123", sql);
 	}
 	
 	@Test

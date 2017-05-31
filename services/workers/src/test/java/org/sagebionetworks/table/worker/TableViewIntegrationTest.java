@@ -612,9 +612,11 @@ public class TableViewIntegrationTest {
 		 * the project. This should be reflected in the view.
 		 */
 		entityPermissionsManager.restoreInheritance(folderId, adminUserInfo);
-		// Query for the rows
+
+		// Query for the the file with the project as its benefactor.
 		sql = "select * from "+fileViewId+" where benefactorId="+project.getId()+" and id = "+fileId;
-		results = waitForConsistentQuery(adminUserInfo, sql);
+		int expectedRowCount = 1;
+		results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		row = rows.get(0);
@@ -659,6 +661,28 @@ public class TableViewIntegrationTest {
 			case COMPLETE:
 				return (T)status.getResponseBody();
 			}
+		}
+	}
+	
+	/**
+	 * Wait for a query to return the expected number of rows.
+	 * @param user
+	 * @param sql
+	 * @param rowCount
+	 * @return
+	 * @throws Exception
+	 */
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql, int rowCount) throws Exception {
+		long start = System.currentTimeMillis();
+		while(true){
+			QueryResultBundle results = waitForConsistentQuery(user, sql);
+			List<Row> rows = extractRows(results);
+			if(rows.size() == rowCount){
+				return results;
+			}
+			System.out.println("Waiting for row count: "+rowCount+". Current count: "+rows.size());
+			assertTrue("Timed out waiting for table view worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+			Thread.sleep(1000);
 		}
 	}
 	

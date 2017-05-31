@@ -183,7 +183,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long calculateFileViewCRC32(String table);
+	public Long calculateViewCRC32(String table);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
