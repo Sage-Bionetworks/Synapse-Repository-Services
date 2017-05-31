@@ -150,7 +150,7 @@ public class TableIndexManagerImplTest {
 			}
 		});
 		crc32 = 5678L;
-		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString())).thenReturn(crc32);
+		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString(), anyString())).thenReturn(crc32);
 		
 		containerIds = Sets.newHashSet(1l,2L,3L);
 		limit = 10L;
@@ -403,12 +403,13 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId, mockCallback, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -478,12 +479,13 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 	}
 	
 	@Test

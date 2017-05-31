@@ -318,7 +318,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
 	 */
 	@Override
-	public Long calculateFileViewCRC32(String tableId) {
+	public Long calculateViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		ViewType type = getViewType(tableId);
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, type);
@@ -387,7 +387,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return getVersionOfLastTableEntityChange(tableId);
 		case ENTITY_VIEW:
 			// For FileViews the CRC of all files in the view is used.
-			return calculateFileViewCRC32(tableId);
+			return calculateViewCRC32(tableId);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}

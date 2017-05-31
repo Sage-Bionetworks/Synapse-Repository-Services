@@ -1427,17 +1427,17 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(file1.getParentId(), file2.getParentId());
 		// call under test
 		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
-		assertEquals(new Long(3715581114L), crc);
+		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file1.getParentId());
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
-		assertEquals(new Long(122929132L), crc);
+		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(file2.getParentId());
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.file, scope);
-		assertEquals(new Long(3592651982L), crc);
+		assertEquals(new Long(378040906L), crc);
 	}
 	
 
@@ -1458,17 +1458,17 @@ public class TableIndexDAOImplTest {
 		Set<Long> scope = Sets.newHashSet(project1.getId(), project2.getId());
 		// call under test
 		Long crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
-		assertEquals(new Long(3715581114L), crc);
+		assertEquals(new Long(381255304L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project1.getId());
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
-		assertEquals(new Long(122929132L), crc);
+		assertEquals(new Long(3214398L), crc);
 		// reduce the scope
 		scope = Sets.newHashSet(project2.getId());
 		// call under test
 		crc = tableIndexDAO.calculateCRC32ofEntityReplicationScope(ViewType.project, scope);
-		assertEquals(new Long(3592651982L), crc);
+		assertEquals(new Long(378040906L), crc);
 	}
 	
 	@Test
@@ -1530,8 +1530,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, count);
 		// Check the CRC of the view
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
-		assertEquals(3715581114L, crc32);
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		assertEquals(381255304L, crc32);
 	}
 	
 	/*
@@ -1603,7 +1604,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(0, count);
 		// Check the CRC of the view
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 		assertEquals(-1L, crc32);
 	}
 	

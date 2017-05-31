@@ -523,7 +523,7 @@ public class TableManagerSupportTest {
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
 		
-		Long crcResult = manager.calculateFileViewCRC32(tableId);
+		Long crcResult = manager.calculateViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
 	}
 	
