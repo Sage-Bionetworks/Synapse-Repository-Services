@@ -188,19 +188,21 @@ public class TableConstants {
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
 	//  Select the CRC32 from the entity replication for a given type and scope
-	public static final String SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("
-			+ ENTITY_REPLICATION_COL_ID
-			+ ", '-',"
-			+ ENTITY_REPLICATION_COL_ETAG
-			+ "))) FROM "
-			+ ENTITY_REPLICATION_TABLE
+	public static final String SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE = 
+			"SELECT"
+			+ " SUM(CRC32(CONCAT("
+					+ ENTITY_REPLICATION_COL_ID+ ", '-',"+ ENTITY_REPLICATION_COL_ETAG+", '-', "+ENTITY_REPLICATION_COL_BENEFACTOR_ID
+			+ ")))"
+			+ " FROM "+ ENTITY_REPLICATION_TABLE
 			+ " WHERE "
-			+ ENTITY_REPLICATION_COL_TYPE
-			+ " = :"+TYPE_PARAMETER_NAME+" AND "
-			+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
+			+ ENTITY_REPLICATION_COL_TYPE + " = :"+TYPE_PARAMETER_NAME+""
+					+ " AND "+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// template to calculate CRC32 of a table view.
-	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("+ROW_ID+", '-', %1$s))) FROM %2$s";
+	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 
+			"SELECT"
+			+ " SUM(CRC32(CONCAT("
+					+ROW_ID+", '-', %1$s, '-', %2$s))) FROM %3$s";
 	
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 		="ANNOTATION_REPLICATION";

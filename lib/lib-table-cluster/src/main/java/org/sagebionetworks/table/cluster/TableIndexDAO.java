@@ -325,10 +325,11 @@ public interface TableIndexDAO {
 	 * 
 	 * @param viewId
 	 * @param etagColumnId The ID of the view's ETAG column.
+	 * @param benefactorColumnId The ID of the view's benefactorId column.
 	 * 
 	 * @return
 	 */
-	long calculateCRC32ofTableView(String viewId, String etagColumnId);
+	long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId);
 
 	/**
 	 * Save both the current version and schema MD5 for current index.

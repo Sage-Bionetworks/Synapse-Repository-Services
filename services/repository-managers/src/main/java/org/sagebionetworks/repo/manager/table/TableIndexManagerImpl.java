@@ -326,7 +326,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewType);
 		}
 		// calculate the new CRC32;
-		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId());
+		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 	}
 	
 	/**
