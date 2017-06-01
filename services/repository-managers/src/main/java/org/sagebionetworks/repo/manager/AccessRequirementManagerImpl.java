@@ -177,12 +177,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 						userInfo, rod.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
-			} else if (accessType==ACCESS_TYPE.UPLOAD) {
-				List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
-				entityAndAncestorIds.add(rod.getId());
-				unmetARIds.addAll(AccessRequirementUtil.
-				unmetUploadAccessRequirementIdsForEntity(userInfo, 
-							entityAndAncestorIds, nodeDao, accessRequirementDAO));
 			} else {
 				throw new IllegalArgumentException("Unexpected access type "+accessType);
 			}

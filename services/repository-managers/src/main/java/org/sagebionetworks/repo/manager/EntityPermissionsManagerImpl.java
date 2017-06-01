@@ -470,18 +470,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (projectSettingForNode != null && BooleanUtils.isTrue(projectSettingForNode.getAutoSync())) {
 			return AuthorizationManagerUtil.accessDenied("This is an autosync folder. No content can be placed in this container.");
 		}
-
-		// if there are any unmet access requirements return false
-		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentOrNodeId, true);
-
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(
-				userInfo, nodeAncestorIds, nodeDao, accessRequirementDAO);
-		if (accessRequirementIds.isEmpty()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil
-					.accessDenied("There are unmet access requirements that must be met to place content in the requested container.");
-		}
+		return AuthorizationManagerUtil.AUTHORIZED;
 	}
 
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
