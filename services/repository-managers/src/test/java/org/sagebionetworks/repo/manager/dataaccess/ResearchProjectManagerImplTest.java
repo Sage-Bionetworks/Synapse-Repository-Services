@@ -10,9 +10,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -30,7 +30,7 @@ public class ResearchProjectManagerImplTest {
 	@Mock
 	private UserInfo mockUser;
 	@Mock
-	private ACTAccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockAccessRequirement;
 
 	private ResearchProjectManagerImpl manager;
 	private String accessRequirementId;
@@ -69,7 +69,6 @@ public class ResearchProjectManagerImplTest {
 		when(mockResearchProjectDao.getForUpdate(researchProjectId)).thenReturn(researchProject);
 		when(mockResearchProjectDao.update(any(ResearchProject.class))).thenReturn(researchProject);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 	}
 
 	private ResearchProject createNewResearchProject() {
@@ -150,18 +149,6 @@ public class ResearchProjectManagerImplTest {
 	public void testCreateWithNotACTAccessRequirementId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
 		manager.create(null, createNewResearchProject());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(null);
-		manager.create(mockUser, createNewResearchProject());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(false);
-		manager.create(mockUser, createNewResearchProject());
 	}
 
 	@Test

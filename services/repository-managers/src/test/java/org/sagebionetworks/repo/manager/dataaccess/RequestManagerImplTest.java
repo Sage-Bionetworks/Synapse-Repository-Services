@@ -16,9 +16,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,7 +42,7 @@ public class RequestManagerImplTest {
 	@Mock
 	private UserInfo mockUser;
 	@Mock
-	private ACTAccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockAccessRequirement;
 
 	private RequestManagerImpl manager;
 	private String accessRequirementId;
@@ -80,7 +80,6 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
 	}
 
@@ -125,18 +124,6 @@ public class RequestManagerImplTest {
 	public void testCreateWithNotACTAccessRequirementId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
 		manager.create(null, createNewRequest());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(null);
-		manager.create(mockUser, createNewRequest());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(false);
-		manager.create(mockUser, createNewRequest());
 	}
 
 	@Test

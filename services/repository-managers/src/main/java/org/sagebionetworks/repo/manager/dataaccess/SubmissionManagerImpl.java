@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -111,15 +112,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				"A submission has been created. It has to be reviewed or cancelled before another submission can be created.");
 
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
-				"A Submission can only be created for an ACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
+				"A Submission can only be created for an ManagedACTAccessRequirement.");
 		submissionToCreate.setAccessRequirementVersion(ar.getVersionNumber());
 
 		// validate based on the access requirement
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		ValidateArgument.requirement(actAR.getAcceptRequest() != null
-				&& actAR.getAcceptRequest(),
-				"This Access Requirement doesn't accept Data Access Request.");
+		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
 		if (actAR.getIsDUCRequired()) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
 					"You must provide a Data Use Certification document.");
@@ -207,7 +205,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
-			ACTAccessRequirement ar = (ACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
+			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
 			accessApprovalDao.createBatch(approvalsToCreate);
@@ -265,6 +263,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return pageResult;
 	}
 
+	// TODO: this API will change
 	@Override
 	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -277,7 +276,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			status.setAccessRequirementId(accessRequirementId);
 			status.setIsApproved(!approvals.isEmpty());
 			return status;
-		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
+		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())
+				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
 			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());

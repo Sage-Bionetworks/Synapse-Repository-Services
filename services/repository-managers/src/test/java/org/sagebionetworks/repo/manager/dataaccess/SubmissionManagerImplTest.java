@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -80,7 +81,7 @@ public class SubmissionManagerImplTest {
 	@Mock
 	private UserInfo mockUser;
 	@Mock
-	private ACTAccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockAccessRequirement;
 	@Mock
 	private ResearchProject mockResearchProject;
 	@Mock
@@ -162,7 +163,6 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirement.getAreOtherAttachmentsRequired()).thenReturn(true);
 		when(mockAccessRequirement.getIsCertifiedUserRequired()).thenReturn(true);
 		when(mockAccessRequirement.getIsValidatedProfileRequired()).thenReturn(true);
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(accessRequirementVersion);
 		when(mockGroupMembersDao.areMemberOf(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
@@ -232,18 +232,6 @@ public class SubmissionManagerImplTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonACTAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		manager.create(mockUser, requestId, etag);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(null);
-		manager.create(mockUser, requestId, etag);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(false);
 		manager.create(mockUser, requestId, etag);
 	}
 

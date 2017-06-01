@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -162,9 +163,8 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 	
 	private AccessRequirement createExpectedAR() {
-		ACTAccessRequirement expectedAR = new ACTAccessRequirement();
+		ManagedACTAccessRequirement expectedAR = new ManagedACTAccessRequirement();
 		expectedAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		expectedAR.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
@@ -289,8 +289,8 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testSetDefaultValues() {
-		ACTAccessRequirement ar = (ACTAccessRequirement) createExpectedAR();
-		ar = (ACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) createExpectedAR();
+		ar = (ManagedACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());
@@ -310,7 +310,7 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).create(argument.capture());
 
 		// verify that all default fields are set
-		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());
@@ -442,7 +442,7 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateACTAccessRequirement() {
+	public void testUpdateManagedACTAccessRequirement() {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
@@ -454,7 +454,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		info.setConcreteType(ACTAccessRequirement.class.getName());
+		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
@@ -464,7 +464,7 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).update(argument.capture());
 
 		// verify that all default fields are set
-		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());

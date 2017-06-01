@@ -18,11 +18,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -72,7 +72,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private String nodeBId;
 	
 	private TermsOfUseAccessRequirement ar;
-	private ACTAccessRequirement actAr;
+	private ManagedACTAccessRequirement actAr;
 	
 	private TermsOfUseAccessRequirement arB;
 
@@ -174,8 +174,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		return aa;
 	}
 	
-	private static ACTAccessRequirement newACTAccessRequirement(String entityId) {
-		ACTAccessRequirement ar = new ACTAccessRequirement();
+	private static ManagedACTAccessRequirement newManagedACTAccessRequirement(String entityId) {
+		ManagedACTAccessRequirement ar = new ManagedACTAccessRequirement();
 		
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
@@ -183,7 +183,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setActContactInfo("send a message in a bottle");
 		return ar;
 	}
 	
@@ -262,7 +261,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// can't apply a TermsOfUseApproval to an ACT requirement
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateAccessApprovalBadParam4() throws Exception {
-		actAr = newACTAccessRequirement(nodeAId);
+		actAr = newManagedACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
 		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), actAr.getVersionNumber(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
@@ -280,7 +279,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// it's OK for an administrator of the resource to give ACT approval
 	@Test
 	public void testGiveACTApproval() throws Exception {
-		actAr = newACTAccessRequirement(nodeAId);
+		actAr = newManagedACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
 		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), actAr.getVersionNumber(), testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(adminUserInfo, actAa);
@@ -290,7 +289,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// it's not ok for a non-admin to give ACT approval (in this case for themselves)
 	@Test(expected=UnauthorizedException.class)
 	public void testGiveACTApprovalForbidden() throws Exception {
-		actAr = newACTAccessRequirement(nodeAId);
+		actAr = newManagedACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
 		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), actAr.getVersionNumber(), testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(testUserInfo, actAa);

@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
@@ -33,12 +33,8 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toCreate);
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
-				"A Request can only associate with an ACTAccessRequirement.");
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		ValidateArgument.requirement(actAR.getAcceptRequest() != null
-				&& actAR.getAcceptRequest(),
-				"This Access Requirement doesn't accept Data Access Request.");
+		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
+				"A Request can only associate with an ManagedACTAccessRequirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		return requestDao.create(toCreate);
 	}

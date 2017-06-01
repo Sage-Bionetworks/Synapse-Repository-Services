@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -77,7 +78,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
 				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
 		if (((ar instanceof TermsOfUseAccessRequirement) && !(accessApproval instanceof TermsOfUseAccessApproval))
-			|| ((ar instanceof ACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))) {
+			|| ((ar instanceof ACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))
+			|| ((ar instanceof ManagedACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))) {
 			throw new IllegalArgumentException("Cannot apply an approval of type "+accessApproval.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
 		}
 		if (accessApproval instanceof TermsOfUseAccessApproval) {

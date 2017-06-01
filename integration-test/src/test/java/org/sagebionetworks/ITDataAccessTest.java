@@ -20,7 +20,7 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -48,7 +48,7 @@ public class ITDataAccessTest {
 	private static SynapseClient synapseOne;
 	private static Long userToDelete;
 	private Project project;
-	private ACTAccessRequirement accessRequirement;
+	private ManagedACTAccessRequirement accessRequirement;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -66,14 +66,13 @@ public class ITDataAccessTest {
 	public void before() throws SynapseException {
 		project = synapseOne.createEntity(new Project());
 		// add an access requirement
-		accessRequirement = new ACTAccessRequirement();
+		accessRequirement = new ManagedACTAccessRequirement();
 		
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(project.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setAcceptRequest(true);
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
