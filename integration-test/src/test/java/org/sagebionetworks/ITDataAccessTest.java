@@ -27,10 +27,10 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
@@ -136,8 +136,8 @@ public class ITDataAccessTest {
 
 		AccessRequirementStatus arStatus = synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString());
 		assertNotNull(arStatus);
-		assertTrue(arStatus instanceof ACTAccessRequirementStatus);
-		assertEquals(status, ((ACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
+		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
+		assertEquals(status, ((ManagedACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
 
 		OpenSubmissionPage openSubmissions = adminSynapse.getOpenSubmissions(null);
 		assertNotNull(openSubmissions);
