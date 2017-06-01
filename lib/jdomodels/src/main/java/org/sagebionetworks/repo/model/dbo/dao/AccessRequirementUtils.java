@@ -109,10 +109,10 @@ public class AccessRequirementUtils {
 	}
 
 	public static List<RestrictableObjectDescriptor> copyDBOSubjectsToDTOSubjects(
-			List<DBOSubjectAccessRequirement> bdos) {
-		ValidateArgument.required(bdos, "bdos");
+			List<DBOSubjectAccessRequirement> dbos) {
+		ValidateArgument.required(dbos, "dbos");
 		List<RestrictableObjectDescriptor> rodList = new ArrayList<RestrictableObjectDescriptor>();	
-		for (DBOSubjectAccessRequirement dbo: bdos) {
+		for (DBOSubjectAccessRequirement dbo: dbos) {
 			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 			subjectId.setType(RestrictableObjectType.valueOf(dbo.getSubjectType()));
 			if (RestrictableObjectType.ENTITY==subjectId.getType()) {
