@@ -11,7 +11,6 @@ import java.util.HashSet;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -68,18 +67,6 @@ public class NodeSerializerUtilTest {
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setId(104L);
-
-		AccessApproval accessApproval = new AccessApproval();
-		accessApproval.setCreatedBy("101");
-		accessApproval.setCreatedOn(new Date());
-		accessApproval.setModifiedBy("102");
-		accessApproval.setModifiedOn(new Date());
-		accessApproval.setEtag("10");
-		accessApproval.setAccessorId("100");
-		accessApproval.setRequirementId(accessRequirement.getId());
-		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
-		
-		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		NodeSerializerUtil.writePrincipalBackups(pbs, baos);
 		baos.close();

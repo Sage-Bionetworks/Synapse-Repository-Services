@@ -251,7 +251,6 @@ public class SynapseTest {
 	@Test
 	public void testCreateAccessApproval() throws Exception {
 		AccessApproval aa = new AccessApproval();
-		aa.setConcreteType(aa.getClass().getName());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		aa.writeToJSONObject(adapter);
 		configureMockHttpResponse(201, adapter.toJSONString());
