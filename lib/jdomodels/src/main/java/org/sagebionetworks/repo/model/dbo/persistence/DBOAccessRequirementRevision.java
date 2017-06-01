@@ -13,9 +13,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -190,13 +193,38 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 			@Override
 			public DBOAccessRequirementRevision createDatabaseObjectFromBackup(
 					DBOAccessRequirementRevision backup) {
+				return emptyDefaultFields(backup);
+			}
+
+			/**
+			 * These fields will be removed from the schema in future stack.
+			 * 
+			 * @param backup
+			 * @return
+			 */
+			public DBOAccessRequirementRevision emptyDefaultFields(DBOAccessRequirementRevision backup) {
+				AccessRequirement dto = AccessRequirementUtils.copyFromSerializedField(backup);
+				if (dto instanceof ACTAccessRequirement) {
+					ACTAccessRequirement act = (ACTAccessRequirement) dto;
+					act.setAcceptRequest(null);
+					act.setAreOtherAttachmentsRequired(null);
+					act.setDucTemplateFileHandleId(null);
+					act.setExpirationPeriod(null);
+					act.setIsAnnualReviewRequired(null);
+					act.setIsCertifiedUserRequired(null);
+					act.setIsDUCRequired(null);
+					act.setIsIDUPublic(null);
+					act.setIsIRBApprovalRequired(null);
+					act.setIsValidatedProfileRequired(null);
+					AccessRequirementUtils.copyToSerializedField(act, backup);
+				}
 				return backup;
 			}
-			
+
 			@Override
 			public DBOAccessRequirementRevision createBackupFromDatabaseObject(
 					DBOAccessRequirementRevision dbo) {
-				return dbo;
+				return emptyDefaultFields(dbo);
 			}};
 	}
 

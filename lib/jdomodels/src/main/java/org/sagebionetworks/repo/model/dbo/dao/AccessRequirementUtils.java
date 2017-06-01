@@ -86,7 +86,7 @@ public class AccessRequirementUtils {
 		}
 	}
 
-	private static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
+	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirementRevision dbo) {
 		try {
 			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
 		} catch (IOException e) {
