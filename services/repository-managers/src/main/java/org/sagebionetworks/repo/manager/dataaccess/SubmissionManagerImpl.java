@@ -25,8 +25,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
-import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -270,14 +270,14 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
 		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
 				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
-		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
-			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
+		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
+				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
+			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
 			status.setAccessRequirementId(accessRequirementId);
 			status.setIsApproved(!approvals.isEmpty());
 			return status;
-		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())
-				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
-			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
+			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
 			status.setAccessRequirementId(accessRequirementId);

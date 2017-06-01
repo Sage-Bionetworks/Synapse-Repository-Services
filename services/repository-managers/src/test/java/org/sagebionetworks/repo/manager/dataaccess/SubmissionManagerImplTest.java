@@ -34,8 +34,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -48,7 +49,6 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
-import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -683,8 +683,8 @@ public class SubmissionManagerImplTest {
 			.thenReturn(new LinkedList<AccessApproval>());
 		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(status);
-		assertTrue(status instanceof TermsOfUseAccessRequirementStatus);
-		TermsOfUseAccessRequirementStatus touStatus = (TermsOfUseAccessRequirementStatus) status;
+		assertTrue(status instanceof BasicAccessRequirementStatus);
+		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
 		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
 		assertFalse(touStatus.getIsApproved());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
@@ -703,8 +703,28 @@ public class SubmissionManagerImplTest {
 			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
 		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(status);
-		assertTrue(status instanceof TermsOfUseAccessRequirementStatus);
-		TermsOfUseAccessRequirementStatus touStatus = (TermsOfUseAccessRequirementStatus) status;
+		assertTrue(status instanceof BasicAccessRequirementStatus);
+		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
+		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
+		assertTrue(touStatus.getIsApproved());
+		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
+		verify(mockAccessApprovalDao).getForAccessRequirementsAndPrincipals(
+				Arrays.asList(accessRequirementId), Arrays.asList(userId));
+	}
+
+	@Test
+	public void testGetAccessRequirementStatusACTApproved() {
+		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
+			.thenReturn(ACTAccessRequirement.class.getName());
+		AccessApproval approval = new AccessApproval();
+		approval.setAccessorId(userId);
+		approval.setRequirementId(Long.parseLong(accessRequirementId));
+		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
+			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
+		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+		assertNotNull(status);
+		assertTrue(status instanceof BasicAccessRequirementStatus);
+		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
 		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
 		assertTrue(touStatus.getIsApproved());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
@@ -715,15 +735,15 @@ public class SubmissionManagerImplTest {
 	@Test
 	public void testGetAccessRequirementStatusACT() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn(ACTAccessRequirement.class.getName());
+			.thenReturn(ManagedACTAccessRequirement.class.getName());
 		when(mockSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
 			.thenReturn(mockSubmissionStatus);
 		AccessRequirementStatus arStatus = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(arStatus);
 		assertEquals(accessRequirementId, arStatus.getAccessRequirementId());
 		assertFalse(arStatus.getIsApproved());
-		assertTrue(arStatus instanceof ACTAccessRequirementStatus);
-		ACTAccessRequirementStatus actARStatus = (ACTAccessRequirementStatus) arStatus;
+		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
+		ManagedACTAccessRequirementStatus actARStatus = (ManagedACTAccessRequirementStatus) arStatus;
 		assertEquals(mockSubmissionStatus, actARStatus.getCurrentSubmissionStatus());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
 		verify(mockSubmissionDao).getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId);
