@@ -1,6 +1,5 @@
 {
 	"title": "Access Approval",
-	"type": "interface",
 	"description": "JSON schema for AccessApproval POJO",
 	"name": "AccessApproval",
 	"properties": {

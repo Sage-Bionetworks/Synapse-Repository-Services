@@ -50,7 +50,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -404,7 +403,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	private AccessApproval createEntityAccessApproval() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(userInfo.getId().toString());
 		aa.setId(656L);
 		aa.setRequirementId(ar.getId());
@@ -429,7 +428,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	private AccessApproval createEvaluationAccessApproval() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(userInfo.getId().toString());
 		aa.setId(656L);
 		aa.setRequirementId(ar.getId());
@@ -718,12 +717,6 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// but if the user is an admin, will be true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(adminUser, parentId, newParentId).getAuthorized());
-	}
-	
-	@Test
-	public void testCanCreateToUAccessApproval() throws Exception {
-		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
-		this.authorizationManager.canCreateAccessApproval(userInfo, accessApproval);
 	}
 	
 	@Test

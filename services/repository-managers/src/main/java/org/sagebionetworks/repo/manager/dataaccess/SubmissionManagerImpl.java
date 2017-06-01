@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -230,7 +229,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
 		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
 		for (String accessor : submission.getAccessors()) {
-			ACTAccessApproval approval = new ACTAccessApproval();
+			AccessApproval approval = new AccessApproval();
 			approval.setAccessorId(accessor);
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);

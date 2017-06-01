@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -18,13 +17,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -75,16 +72,13 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
+		if (ar instanceof TermsOfUseAccessRequirement) {
+			accessApproval.setAccessorId(userInfo.getId().toString());
+		} else if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("User is not an ACT Member.");
+		}
 		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
 				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
-		if (((ar instanceof TermsOfUseAccessRequirement) && !(accessApproval instanceof TermsOfUseAccessApproval))
-			|| ((ar instanceof ACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))
-			|| ((ar instanceof ManagedACTAccessRequirement) && !(accessApproval instanceof ACTAccessApproval))) {
-			throw new IllegalArgumentException("Cannot apply an approval of type "+accessApproval.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
-		}
-		if (accessApproval instanceof TermsOfUseAccessApproval) {
-			accessApproval.setAccessorId(userInfo.getId().toString());
-		}
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
 		if (accessApproval.getRequirementVersion() == null) {
 			accessApproval.setRequirementVersion(ar.getVersionNumber());
@@ -92,7 +86,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		if (accessApproval.getSubmitterId() == null) {
 			accessApproval.setSubmitterId(accessApproval.getAccessorId());
 		}
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreateAccessApproval(userInfo, accessApproval));
 		populateCreationFields(userInfo, accessApproval);
 		return accessApprovalDAO.create(accessApproval);
 	}

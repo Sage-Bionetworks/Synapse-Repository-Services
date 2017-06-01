@@ -16,7 +16,6 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -31,12 +30,9 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.SelfSignAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
@@ -387,26 +383,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AuthorizationStatus canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
 		return canAdminAccessRequirement(userInfo, accessRequirement);
-	}
-
-	@Override
-	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo,
-			AccessApproval accessApproval) {
-		if (accessApproval instanceof ACTAccessApproval) {
-			if (isACTTeamMemberOrAdmin(userInfo)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
-			} else {
-				return new AuthorizationStatus(false, "User is not an ACT Member.");
-			}
-		} else if (accessApproval instanceof SelfSignAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else if (accessApproval instanceof TermsOfUseAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else if (accessApproval instanceof PostMessageContentAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			throw new IllegalArgumentException("Unrecognized type: "+accessApproval.getClass().getName());
-		}
 	}
 
 	@Override

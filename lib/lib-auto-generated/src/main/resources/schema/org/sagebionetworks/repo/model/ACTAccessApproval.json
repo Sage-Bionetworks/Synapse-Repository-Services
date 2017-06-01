@@ -1,9 +1,0 @@
-{
-    "title":"ACT Access Approval",
-    "description":"JSON schema for ACT Access Approval, used for a 'tier 3' Access Approval",
-     "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.AccessApproval"
-        }
-    ]
-}

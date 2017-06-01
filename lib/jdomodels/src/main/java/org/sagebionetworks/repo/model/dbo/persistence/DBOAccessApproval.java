@@ -14,13 +14,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -39,7 +37,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private long expiredOn;
 	private Long requirementId;
 	private Long accessorId;
-	private byte[] serializedEntity;
 	private Long requirementVersion;
 	private Long submitterId;
 	
@@ -54,8 +51,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		new FieldColumn("requirementId", COL_ACCESS_APPROVAL_REQUIREMENT_ID),
 		new FieldColumn("requirementVersion", COL_ACCESS_APPROVAL_REQUIREMENT_VERSION),
 		new FieldColumn("submitterId", COL_ACCESS_APPROVAL_SUBMITTER_ID),
-		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID),
-		new FieldColumn("serializedEntity", COL_ACCESS_APPROVAL_SERIALIZED_ENTITY)
+		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID)
 		};
 
 
@@ -77,10 +73,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				aa.setRequirementVersion(rs.getLong(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION));
 				aa.setSubmitterId(rs.getLong(COL_ACCESS_APPROVAL_SUBMITTER_ID));
 				aa.setAccessorId(rs.getLong(COL_ACCESS_APPROVAL_ACCESSOR_ID));
-				java.sql.Blob blob = rs.getBlob(COL_ACCESS_APPROVAL_SERIALIZED_ENTITY);
-				if(blob != null){
-					aa.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
-				}
 				return aa;
 			}
 
@@ -111,9 +103,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	public String toString() {
 		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", expiredOn=" + expiredOn
-				+ ", requirementId=" + requirementId + ", accessorId=" + accessorId + ", serializedEntity="
-				+ Arrays.toString(serializedEntity) + ", requirementVersion=" + requirementVersion + ", submitterId="
-				+ submitterId + "]";
+				+ ", requirementId=" + requirementId + ", accessorId=" + accessorId + ", requirementVersion="
+				+ requirementVersion + ", submitterId=" + submitterId + "]";
 	}
 
 
@@ -205,16 +196,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	}
 
 
-	public byte[] getSerializedEntity() {
-		return serializedEntity;
-	}
-
-
-	public void setSerializedEntity(byte[] serilizedEntity) {
-		this.serializedEntity = serilizedEntity;
-	}
-
-
 	public Long getRequirementVersion() {
 		return requirementVersion;
 	}
@@ -249,7 +230,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
 		result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
 		result = prime * result + ((requirementVersion == null) ? 0 : requirementVersion.hashCode());
-		result = prime * result + Arrays.hashCode(serializedEntity);
 		result = prime * result + ((submitterId == null) ? 0 : submitterId.hashCode());
 		return result;
 	}
@@ -304,8 +284,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			if (other.requirementVersion != null)
 				return false;
 		} else if (!requirementVersion.equals(other.requirementVersion))
-			return false;
-		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		if (submitterId == null) {
 			if (other.submitterId != null)

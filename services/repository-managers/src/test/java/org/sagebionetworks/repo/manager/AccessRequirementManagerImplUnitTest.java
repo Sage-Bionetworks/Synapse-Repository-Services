@@ -268,12 +268,6 @@ public class AccessRequirementManagerImplUnitTest {
 				Collections.singleton(userInfo.getId()), 
 				Collections.singletonList(DOWNLOAD))).
 				thenReturn(Collections.singletonList(mockDownloadARId));
-		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(TEST_ENTITY_ID), 
-				RestrictableObjectType.ENTITY, 
-				Collections.singleton(userInfo.getId()), 
-				Collections.singletonList(UPLOAD))).
-				thenReturn(Collections.singletonList(mockUploadARId));
 		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
 		downloadAR.setId(mockDownloadARId);
 		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
@@ -283,8 +277,6 @@ public class AccessRequirementManagerImplUnitTest {
 			thenReturn(arList);
 		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
-		result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
-		assertEquals(Collections.singletonList(uploadAR), result);
 	}
 
 	@Test

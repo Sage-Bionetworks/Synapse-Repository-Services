@@ -12,13 +12,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 
 public class AccessApprovalUtilsTest {
 
 	private static AccessApproval createDTO() {
-		TermsOfUseAccessApproval dto = new TermsOfUseAccessApproval();
+		AccessApproval dto = new AccessApproval();
 		dto.setId(101L);
 		dto.setEtag("0");
 		dto.setCreatedBy("555");
@@ -26,7 +25,6 @@ public class AccessApprovalUtilsTest {
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());	
 		dto.setAccessorId("777");
-		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		dto.setRequirementId(888L);
 		dto.setRequirementVersion(3L);
 		dto.setSubmitterId("555");

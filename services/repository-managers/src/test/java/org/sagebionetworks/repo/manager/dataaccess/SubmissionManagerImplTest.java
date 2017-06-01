@@ -20,7 +20,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -566,8 +564,7 @@ public class SubmissionManagerImplTest {
 		verify(mockAccessApprovalDao).createBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(1, approvals.size());
-		assertTrue(approvals.get(0) instanceof ACTAccessApproval);
-		ACTAccessApproval approval = (ACTAccessApproval) approvals.get(0);
+		AccessApproval approval = approvals.get(0);
 		assertEquals(userId, approval.getAccessorId());
 		assertEquals(userId, approval.getCreatedBy());
 		assertNotNull(approval.getCreatedOn());
@@ -605,8 +602,7 @@ public class SubmissionManagerImplTest {
 		verify(mockAccessApprovalDao).createBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(1, approvals.size());
-		assertTrue(approvals.get(0) instanceof ACTAccessApproval);
-		ACTAccessApproval approval = (ACTAccessApproval) approvals.get(0);
+		AccessApproval approval = approvals.get(0);
 		assertEquals(userId, approval.getAccessorId());
 		assertEquals(userId, approval.getCreatedBy());
 		assertNotNull(approval.getCreatedOn());
@@ -700,7 +696,7 @@ public class SubmissionManagerImplTest {
 	public void testGetAccessRequirementStatusToUApproved() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
 			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		AccessApproval approval = new TermsOfUseAccessApproval();
+		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(userId);
 		approval.setRequirementId(Long.parseLong(accessRequirementId));
 		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(

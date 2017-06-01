@@ -75,7 +75,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -410,7 +410,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(otherProfile.getOwnerId());
 		aa.setRequirementId(ar.getId());
 		
@@ -780,10 +780,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L));
 		
 		// create approval for the requirement
-		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
+		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		TermsOfUseAccessApproval created = synapseTwo.createAccessApproval(approval);
+		AccessApproval created = synapseTwo.createAccessApproval(approval);
 		
 		// make sure we can retrieve by ID
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
@@ -1297,7 +1297,7 @@ public class IT500SynapseJavaClient {
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setRequirementId(tou.getId());
 		synapseTwo.createAccessApproval(aa);
 		

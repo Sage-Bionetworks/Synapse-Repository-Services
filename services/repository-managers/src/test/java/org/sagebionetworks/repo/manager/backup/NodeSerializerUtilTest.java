@@ -11,11 +11,11 @@ import java.util.HashSet;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -69,7 +69,7 @@ public class NodeSerializerUtilTest {
 		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setId(104L);
 
-		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
+		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setCreatedBy("101");
 		accessApproval.setCreatedOn(new Date());
 		accessApproval.setModifiedBy("102");

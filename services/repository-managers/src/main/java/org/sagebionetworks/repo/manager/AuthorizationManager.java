@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -69,15 +68,6 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
-
-	/**
-	 * Checks whether the given user can create the given access approval
-	 * 
-	 * @param userInfo
-	 * @param accessApproval
-	 * @return whether access is granted and, if not, a String giving the reason why
-	 */
-	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
 
 	/**
 	 * 

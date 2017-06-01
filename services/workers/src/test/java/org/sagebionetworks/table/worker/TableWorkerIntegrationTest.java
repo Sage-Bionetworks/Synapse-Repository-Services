@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,7 +59,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -1651,7 +1651,7 @@ public class TableWorkerIntegrationTest {
 		} catch (UnauthorizedException e) {
 		}
 
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(notOwner.getId().toString());
 		aa.setRequirementId(downloadAR.getId());
 		accessApprovalManager.createAccessApproval(notOwner, aa);
