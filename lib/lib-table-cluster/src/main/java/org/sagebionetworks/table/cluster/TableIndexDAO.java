@@ -351,4 +351,11 @@ public interface TableIndexDAO {
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, ViewType type, Long limit, Long offset);
 
+	/**
+	 * Get the sum of the CRC32s of the ids and etags for each entity parentId.
+	 *   
+	 * @return Map.key = parentId and map.value = CRC.
+	 */
+	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
+
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -374,11 +375,6 @@ public interface NodeDAO {
 	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * Gets a page of parent relations.
-	 */
-	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
-
-	/**
 	 * Get the FileHandle Id for a given version number.
 	 * 
 	 * @param id
@@ -530,4 +526,20 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
+	
+	/**
+	 * Get one page of distinct parentIds.
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<Long> getParenIds(long limit, long offset);
+
+	/**
+	 * Get the sum of the CRC32s of the ids and etags for each entity parentId.
+	 *   
+	 * @return Map.key = parentId and map.value = CRC.
+	 */
+	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
 }

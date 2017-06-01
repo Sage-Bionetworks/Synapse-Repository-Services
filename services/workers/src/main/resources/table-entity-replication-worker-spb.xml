@@ -26,7 +26,7 @@
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.EntityReplicationWorker" />
+									<bean class="org.sagebionetworks.worker.entity.EntityReplicationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
 								<property name="semaphoreMaxLockCount" value="1" />

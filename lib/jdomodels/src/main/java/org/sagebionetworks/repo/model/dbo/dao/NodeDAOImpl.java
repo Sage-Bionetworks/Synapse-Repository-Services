@@ -54,7 +54,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -71,12 +70,10 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
-import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -101,10 +98,10 @@ import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -127,6 +124,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_NODE_TYPES = "bNodeTypes";
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
+	
+	private static final String SQL_DISTINCT_PARENT_IDS =
+			"SELECT DISTINCT "+COL_NODE_PARENT_ID+" FROM "+TABLE_NODE+" LIMIT ? OFFSET ?";
+	
+	private static final String SQL_SELECT_CHILD_CRC32 = 
+			"SELECT "+COL_NODE_PARENT_ID+","
+					+ " SUM(CRC32(CONCAT("+COL_NODE_ID+",\"-\","+COL_NODE_ETAG+"))) AS 'CRC'"
+							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+") GROUP BY "+COL_NODE_PARENT_ID;;
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
 			+ " FROM "+TABLE_NODE
@@ -221,7 +226,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
-	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
 			ENTITY_HEADER_SELECT +
@@ -232,7 +236,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
-	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -294,13 +297,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ TABLE_FILES+" ff on (rr."+COL_REVISION_FILE_HANDLE_ID+" = ff."+COL_FILES_ID+") WHERE rr."
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY rr." + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-
-
-	private static final String SQL_SELECT_NODE_PARENT_PAGINATED =
-			"SELECT " + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", " + COL_NODE_ETAG
-			+ " FROM " + TABLE_NODE
-			+ " LIMIT :" + LIMIT_PARAM_NAME
-			+ " OFFSET :" + OFFSET_PARAM_NAME;
 
 	/**
 	 * The max number of entity versions a MD5 string can map to. This puts a check
@@ -911,39 +907,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 
 		});
-	}
-
-	@Override
-	public QueryResults<NodeParentRelation> getParentRelations(long offset, long limit)
-			throws DatastoreException {
-
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);
-
-		List<NodeParentRelation> results = this.namedParameterJdbcTemplate.query(SQL_SELECT_NODE_PARENT_PAGINATED, params,
-				new RowMapper<NodeParentRelation>() {
-
-					@Override
-					public NodeParentRelation mapRow(ResultSet rs, int rowNum) throws SQLException {
-						NodeParentRelation p = new NodeParentRelation();
-						p.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-						long parentId = rs.getLong(COL_NODE_PARENT_ID);
-						if (parentId != 0) {
-							p.setParentId(KeyFactory.keyToString(parentId));
-						}
-						p.setETag(rs.getString(COL_NODE_ETAG));
-						p.setTimestamp(DateTime.now());
-						return p;
-					}
-
-				});
-
-		QueryResults<NodeParentRelation> queryResults = new QueryResults<NodeParentRelation>();
-		queryResults.setTotalNumberOfResults(this.getCount());
-		queryResults.setResults(results);
-
-		return queryResults;
 	}
 
 	@WriteTransaction
@@ -1799,6 +1762,30 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}
+	}
+	
+	@Override
+	public List<Long> getParenIds(long limit, long offset) {
+		return jdbcTemplate.queryForList(SQL_DISTINCT_PARENT_IDS, Long.class, limit, offset);
+	}
+
+	@Override
+	public Map<Long, Long> getParentCRCs(List<Long> parentIds) {
+		ValidateArgument.required(parentIds, "parentIdS");
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(COL_NODE_PARENT_ID , parentIds);
+		final Map<Long, Long> results = new HashMap<Long, Long>();
+		namedParameterJdbcTemplate.query(SQL_SELECT_CHILD_CRC32, parameters, new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				Long id = rs.getLong(COL_NODE_PARENT_ID);
+				if(id != null){
+					Long crc = rs.getLong("CRC");
+					results.put(id, crc);
+				}
+			}
+		});
+		return results;
 	}
 
 }

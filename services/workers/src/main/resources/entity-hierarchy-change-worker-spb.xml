@@ -27,7 +27,7 @@
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
-									<bean class="org.sagebionetworks.change.workers.EntityHierarchyChangeWorker" />
+									<bean class="org.sagebionetworks.worker.entity.EntityHierarchyChangeWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="entityHierarchyChangeWorker" />
 								<property name="semaphoreMaxLockCount" value="1" />
