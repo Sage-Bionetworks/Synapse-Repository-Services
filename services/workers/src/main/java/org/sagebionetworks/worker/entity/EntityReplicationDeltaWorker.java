@@ -14,6 +14,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -101,7 +102,14 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 			ProgressCallback<Void> progressCallback,
 			TableIndexDAO firstIndex, Long outOfSynchParentId,
 			boolean isParentInTrash) {
-		// TODO Auto-generated method stub
+		List<IdAndEtag> replicaChildren = firstIndex.getEntityChildren(outOfSynchParentId);
+		if(isParentInTrash){
+			// the parent is the the trash so setup the delete of any children that appear in the replica.
+			
+		}else{
+			// The parent is not in the trash so find entities that are out-of-synch
+			List<IdAndEtag> truthChildren = nodeDao.getChildren(outOfSynchParentId);
+		}
 		return null;
 	}
 

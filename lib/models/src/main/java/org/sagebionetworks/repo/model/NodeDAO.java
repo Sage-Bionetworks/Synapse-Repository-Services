@@ -542,4 +542,11 @@ public interface NodeDAO {
 	 * @return Map.key = parentId and map.value = CRC.
 	 */
 	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
+	
+	/**
+	 * Get the Id and Etag of all of the children for the given parentId.
+	 * @param parentId
+	 * @return
+	 */
+	public List<IdAndEtag> getChildren(long parentId);
 }

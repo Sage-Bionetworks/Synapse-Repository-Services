@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -131,7 +132,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_SELECT_CHILD_CRC32 = 
 			"SELECT "+COL_NODE_PARENT_ID+","
 					+ " SUM(CRC32(CONCAT("+COL_NODE_ID+",\"-\","+COL_NODE_ETAG+"))) AS 'CRC'"
-							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+") GROUP BY "+COL_NODE_PARENT_ID;;
+							+ " FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN(:"+BIND_PARENT_ID+") GROUP BY "+COL_NODE_PARENT_ID;
+	
+	private static final String SQL_SELECT_CHILDREN_ID_AND_ETAG = 
+			"SELECT "+COL_NODE_ID+", "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ?";
 
 	private static final String SQL_SELECT_CHILD = "SELECT "+COL_NODE_ID
 			+ " FROM "+TABLE_NODE
@@ -1786,6 +1790,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 		});
 		return results;
+	}
+
+	@Override
+	public List<IdAndEtag> getChildren(long parentId) {
+		return jdbcTemplate.query(SQL_SELECT_CHILDREN_ID_AND_ETAG, new RowMapper<IdAndEtag>(){
+			@Override
+			public IdAndEtag mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Long id = rs.getLong(COL_NODE_ID);
+				String etag = rs.getString(COL_NODE_ETAG);
+				return new IdAndEtag(id, etag);
+			}}, parentId);
 	}
 
 }

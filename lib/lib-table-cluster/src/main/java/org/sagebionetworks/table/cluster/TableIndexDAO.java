@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -357,5 +358,12 @@ public interface TableIndexDAO {
 	 * @return Map.key = parentId and map.value = CRC.
 	 */
 	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
+
+	/**
+	 * Get the Id and Etag for each child of the given Entity parentId.
+	 * @param outOfSynchParentId
+	 * @return
+	 */
+	public List<IdAndEtag> getEntityChildren(Long outOfSynchParentId);
 
 }
