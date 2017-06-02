@@ -224,7 +224,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(9, dbos.get(i).getRequirementVersion());
 				ps.setLong(10, dbos.get(i).getSubmitterId());
 				ps.setLong(11, dbos.get(i).getAccessorId());
-				ps.setString(12, dbos.get(i).getState().name());
+				ps.setString(12, dbos.get(i).getState());
 				principalIds.add(dbos.get(i).getAccessorId().toString());
 				requirementIds.add(dbos.get(i).getRequirementId().toString());
 			}

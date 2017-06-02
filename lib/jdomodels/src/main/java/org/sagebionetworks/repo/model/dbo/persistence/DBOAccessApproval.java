@@ -42,7 +42,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private Long accessorId;
 	private Long requirementVersion;
 	private Long submitterId;
-	private ApprovalState state;
+	private String state;
 
 	// TODO: remove this field after stack-185
 	private byte[] serializedEntity;
@@ -88,7 +88,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				aa.setRequirementVersion(rs.getLong(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION));
 				aa.setSubmitterId(rs.getLong(COL_ACCESS_APPROVAL_SUBMITTER_ID));
 				aa.setAccessorId(rs.getLong(COL_ACCESS_APPROVAL_ACCESSOR_ID));
-				aa.setState(ApprovalState.valueOf(rs.getString(COL_ACCESS_APPROVAL_STATE)));
+				aa.setState(rs.getString(COL_ACCESS_APPROVAL_STATE));
 				return aa;
 			}
 
@@ -233,11 +233,11 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	}
 
 
-	public ApprovalState getState() {
+	public String getState() {
 		return state;
 	}
 
-	public void setState(ApprovalState state) {
+	public void setState(String state) {
 		this.state = state;
 	}
 
@@ -339,7 +339,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
 				if (backup.getState() == null) {
-					backup.setState(ApprovalState.APPROVED);
+					backup.setState(ApprovalState.APPROVED.name());
 				}
 				return backup;
 			}
@@ -348,7 +348,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
 				if (dbo.getState() == null) {
-					dbo.setState(ApprovalState.APPROVED);
+					dbo.setState(ApprovalState.APPROVED.name());
 				}
 				return dbo;
 			}};
