@@ -13,8 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -66,7 +66,7 @@ public class DBOSubmissionDAOImplTest {
 	private UserGroup user1 = null;
 	private UserGroup user2 = null;
 	private Node node = null;
-	private ACTAccessRequirement accessRequirement = null;
+	private ManagedACTAccessRequirement accessRequirement = null;
 	private ResearchProject researchProject = null;
 	private Request request;
 
@@ -88,7 +88,7 @@ public class DBOSubmissionDAOImplTest {
 		node.setId(nodeDao.createNew(node));
 
 		// create an ACTAccessRequirement
-		accessRequirement = new ACTAccessRequirement();
+		accessRequirement = new ManagedACTAccessRequirement();
 		accessRequirement.setCreatedBy(user1.getId());
 		accessRequirement.setCreatedOn(new Date());
 		accessRequirement.setModifiedBy(user1.getId());

@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -17,6 +16,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -177,12 +177,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				subjectIds.addAll(nodeAncestorIds);
 				unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 						userInfo, rod.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
-			} else if (accessType==ACCESS_TYPE.UPLOAD) {
-				List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
-				entityAndAncestorIds.add(rod.getId());
-				unmetARIds.addAll(AccessRequirementUtil.
-				unmetUploadAccessRequirementIdsForEntity(userInfo, 
-							entityAndAncestorIds, nodeDao, accessRequirementDAO));
 			} else {
 				throw new IllegalArgumentException("Unexpected access type "+accessType);
 			}
@@ -274,10 +268,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {
-		if (!(ar instanceof ACTAccessRequirement)) {
+		if (!(ar instanceof ManagedACTAccessRequirement)) {
 			return ar;
 		}
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
+		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
 		if (actAR.getIsCertifiedUserRequired() == null) {
 			actAR.setIsCertifiedUserRequired(false);
 		}
@@ -295,9 +289,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		}
 		if (actAR.getIsIDUPublic() == null) {
 			actAR.setIsIDUPublic(false);
-		}
-		if (actAR.getAcceptRequest() == null) {
-			actAR.setAcceptRequest(false);
 		}
 		if (actAR.getExpirationPeriod() == null) {
 			actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);

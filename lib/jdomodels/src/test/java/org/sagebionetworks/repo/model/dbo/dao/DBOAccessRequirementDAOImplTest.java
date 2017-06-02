@@ -18,11 +18,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -350,7 +350,7 @@ public class DBOAccessRequirementDAOImplTest {
 		assertFalse(stats.getHasLock());
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement.getId().toString()));
 
-		ACTAccessRequirement accessRequirement2 = new ACTAccessRequirement();
+		ManagedACTAccessRequirement accessRequirement2 = new ManagedACTAccessRequirement();
 		accessRequirement2.setCreatedBy(individualGroup.getId());
 		accessRequirement2.setCreatedOn(new Date());
 		accessRequirement2.setModifiedBy(individualGroup.getId());

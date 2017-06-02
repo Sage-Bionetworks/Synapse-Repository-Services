@@ -1,9 +1,0 @@
-{
-    "title":"Post Message Content Access Approval",
-    "description":"This class is deprecated and should not being used.",
-     "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.SelfSignAccessApproval"
-        }
-    ]
-}

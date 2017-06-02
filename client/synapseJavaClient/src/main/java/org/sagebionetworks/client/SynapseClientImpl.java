@@ -1212,7 +1212,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		ValidateArgument.required(aa, "AccessApproval");
-		aa.setConcreteType(aa.getClass().getName());
 		return (T) postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL, aa, aa.getClass());
 	}
 

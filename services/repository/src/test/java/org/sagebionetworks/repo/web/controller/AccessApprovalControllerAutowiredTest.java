@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -106,10 +105,9 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 		}
 	}
 
-	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+	private static AccessApproval newAccessApproval(Long requirementId, String accessorId) {
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
 	}
@@ -118,7 +116,7 @@ public class AccessApprovalControllerAutowiredTest extends AbstractAutowiredCont
 	public void testEntityAccessApprovalRoundTrip() throws Exception {
 		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(entityAccessRequirement.getId(), testUser.getId().toString());
+		AccessApproval accessApproval = newAccessApproval(entityAccessRequirement.getId(), testUser.getId().toString());
 		String entityId = project.getId();
 		AccessApproval clone = servletTestHelper.createAccessApproval(
 				 dispatchServlet, accessApproval, userId, extraParams);

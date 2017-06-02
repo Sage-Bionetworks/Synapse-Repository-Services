@@ -20,17 +20,17 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
@@ -48,7 +48,7 @@ public class ITDataAccessTest {
 	private static SynapseClient synapseOne;
 	private static Long userToDelete;
 	private Project project;
-	private ACTAccessRequirement accessRequirement;
+	private ManagedACTAccessRequirement accessRequirement;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -66,14 +66,13 @@ public class ITDataAccessTest {
 	public void before() throws SynapseException {
 		project = synapseOne.createEntity(new Project());
 		// add an access requirement
-		accessRequirement = new ACTAccessRequirement();
+		accessRequirement = new ManagedACTAccessRequirement();
 		
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(project.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setAcceptRequest(true);
 		accessRequirement = adminSynapse.createAccessRequirement(accessRequirement);
 	}
 	
@@ -137,8 +136,8 @@ public class ITDataAccessTest {
 
 		AccessRequirementStatus arStatus = synapseOne.getAccessRequirementStatus(accessRequirement.getId().toString());
 		assertNotNull(arStatus);
-		assertTrue(arStatus instanceof ACTAccessRequirementStatus);
-		assertEquals(status, ((ACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
+		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
+		assertEquals(status, ((ManagedACTAccessRequirementStatus)arStatus).getCurrentSubmissionStatus());
 
 		OpenSubmissionPage openSubmissions = adminSynapse.getOpenSubmissions(null);
 		assertNotNull(openSubmissions);

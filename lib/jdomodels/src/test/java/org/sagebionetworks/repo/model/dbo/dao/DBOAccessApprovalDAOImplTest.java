@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -142,8 +141,8 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 	}
 	
-	public static TermsOfUseAccessApproval newAccessApproval(UserGroup principal, AccessRequirement ar) throws DatastoreException {
-		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
+	public static AccessApproval newAccessApproval(UserGroup principal, AccessRequirement ar) throws DatastoreException {
+		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setCreatedBy(principal.getId());
 		accessApproval.setCreatedOn(new Date());
 		accessApproval.setModifiedBy(principal.getId());

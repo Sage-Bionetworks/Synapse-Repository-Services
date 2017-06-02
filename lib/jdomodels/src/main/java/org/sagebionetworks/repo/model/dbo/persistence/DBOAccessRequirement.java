@@ -10,9 +10,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
@@ -286,18 +283,12 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
-				if (backup.getCurrentRevNumber() == null) {
-					backup.setCurrentRevNumber(0L);
-				}
 				return backup;
 			}
 			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
-				if (dbo.getCurrentRevNumber() == null) {
-					dbo.setCurrentRevNumber(0L);
-				}
 				return dbo;
 			}};
 	}

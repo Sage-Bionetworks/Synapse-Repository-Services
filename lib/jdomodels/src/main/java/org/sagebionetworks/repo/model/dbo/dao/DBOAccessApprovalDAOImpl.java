@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
@@ -110,9 +109,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
 			+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+", "
 			+COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
-			+COL_ACCESS_APPROVAL_ACCESSOR_ID+", "
-			+COL_ACCESS_APPROVAL_SERIALIZED_ENTITY
-			+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+") VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
@@ -224,14 +222,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(9, dbos.get(i).getRequirementVersion());
 				ps.setLong(10, dbos.get(i).getSubmitterId());
 				ps.setLong(11, dbos.get(i).getAccessorId());
-				ps.setBytes(12, dbos.get(i).getSerializedEntity());
 				principalIds.add(dbos.get(i).getAccessorId().toString());
 				requirementIds.add(dbos.get(i).getRequirementId().toString());
 			}
 
 			@Override
 			public int getBatchSize() {
-				// TODO Auto-generated method stub
 				return dbos.size();
 			}
 		});

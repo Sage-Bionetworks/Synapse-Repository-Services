@@ -24,6 +24,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -33,7 +34,6 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -250,8 +250,7 @@ public class SynapseTest {
 	
 	@Test
 	public void testCreateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setConcreteType(aa.getClass().getName());
+		AccessApproval aa = new AccessApproval();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		aa.writeToJSONObject(adapter);
 		configureMockHttpResponse(201, adapter.toJSONString());

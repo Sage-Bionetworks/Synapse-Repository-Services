@@ -66,7 +66,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -620,7 +619,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	public void createAccessApproval() throws Exception {
-		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminUserIdString);
+		accessApproval = newAccessApproval(accessRequirement.getId(), adminUserIdString);
 		accessApproval = servletTestHelper.createAccessApproval(dispatchServlet, accessApproval, adminUserId,
 				new HashMap<String, String>());
 	}
@@ -638,10 +637,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 				new HashMap<String, String>());
 	}
 
-	private TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+	private AccessApproval newAccessApproval(Long requirementId, String accessorId) {
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
 	}

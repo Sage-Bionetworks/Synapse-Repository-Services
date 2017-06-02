@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -18,6 +17,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -25,8 +25,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
-import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -111,15 +111,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				"A submission has been created. It has to be reviewed or cancelled before another submission can be created.");
 
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
-				"A Submission can only be created for an ACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
+				"A Submission can only be created for an ManagedACTAccessRequirement.");
 		submissionToCreate.setAccessRequirementVersion(ar.getVersionNumber());
 
 		// validate based on the access requirement
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		ValidateArgument.requirement(actAR.getAcceptRequest() != null
-				&& actAR.getAcceptRequest(),
-				"This Access Requirement doesn't accept Data Access Request.");
+		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
 		if (actAR.getIsDUCRequired()) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
 					"You must provide a Data Use Certification document.");
@@ -207,7 +204,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
-			ACTAccessRequirement ar = (ACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
+			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
 			accessApprovalDao.createBatch(approvalsToCreate);
@@ -232,7 +229,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
 		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
 		for (String accessor : submission.getAccessors()) {
-			ACTAccessApproval approval = new ACTAccessApproval();
+			AccessApproval approval = new AccessApproval();
 			approval.setAccessorId(accessor);
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);
@@ -272,13 +269,14 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
 		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
 				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
-		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
-			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
+		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
+				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
+			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
 			status.setAccessRequirementId(accessRequirementId);
 			status.setIsApproved(!approvals.isEmpty());
 			return status;
-		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
-			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
+			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
 			status.setAccessRequirementId(accessRequirementId);

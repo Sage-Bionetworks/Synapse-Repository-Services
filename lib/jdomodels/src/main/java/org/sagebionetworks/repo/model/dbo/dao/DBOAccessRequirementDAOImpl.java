@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -136,10 +137,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOAccessRequirementRevision> revisionRowMapper = new DBOAccessRequirementRevision().getTableMapping();
+
 	/*
 	 * This mapper can be used for the join of requirement and revision.
 	 */
-	private static final RowMapper<AccessRequirement> requirmentMapper = new RowMapper<AccessRequirement>() {
+	private static final RowMapper<AccessRequirement> requirementMapper = new RowMapper<AccessRequirement>() {
 		@Override
 		public AccessRequirement mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
@@ -196,21 +198,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return getAccessRequirements(ids);
 	}
 	
-	/**
-	 * Get the fully populated DTO for the given IDs.
-	 * 
-	 * @param requirementIds
-	 * @return
-	 */
-	private List<AccessRequirement> getAccessRequirements(List<Long> requirementIds){
-		if(requirementIds.isEmpty()){
-			return new LinkedList<>();
-		}
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), requirementIds);
-		return namedJdbcTemplate.query(SELECT_CURRENT_REQUIREMENTS_BY_ID, param, requirmentMapper);
-	}
-
 	@Deprecated
 	@Override
 	public List<Long> getAllUnmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
@@ -266,6 +253,21 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.createNew(dboRevision);
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		return (T) get(dbo.getId().toString());
+	}
+
+	/**
+	 * Get the fully populated DTO for the given IDs.
+	 * 
+	 * @param requirementIds
+	 * @return
+	 */
+	private List<AccessRequirement> getAccessRequirements(List<Long> requirementIds){
+		if(requirementIds.isEmpty()){
+			return new LinkedList<>();
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), requirementIds);
+		return namedJdbcTemplate.query(SELECT_CURRENT_REQUIREMENTS_BY_ID, param, requirementMapper);
 	}
 
 	private void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> rodList) {
@@ -402,7 +404,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 				String type = rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE);
 				if (type.equals(TermsOfUseAccessRequirement.class.getName())) {
 					stats.setHasToU(true);
-				} else if (type.equals(ACTAccessRequirement.class.getName())) {
+				} else if (type.equals(ACTAccessRequirement.class.getName())
+						|| type.equals(ManagedACTAccessRequirement.class.getName())) {
 					stats.setHasACT(true);
 				} else if (type.equals(LockAccessRequirement.class.getName())) {
 					stats.setHasLock(true);
