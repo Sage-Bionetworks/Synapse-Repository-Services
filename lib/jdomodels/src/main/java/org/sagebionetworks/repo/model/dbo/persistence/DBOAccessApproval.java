@@ -39,7 +39,18 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private Long accessorId;
 	private Long requirementVersion;
 	private Long submitterId;
-	
+
+	// TODO: remove this field after stack-185
+	private byte[] serializedEntity;
+
+	public byte[] getSerializedEntity() {
+		return serializedEntity;
+	}
+
+	public void setSerializedEntity(byte[] serializedEntity) {
+		this.serializedEntity = serializedEntity;
+	}
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_APPROVAL_ID, true).withIsBackupId(true),
 		new FieldColumn("eTag", COL_ACCESS_APPROVAL_ETAG).withIsEtag(true),
@@ -53,7 +64,6 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		new FieldColumn("submitterId", COL_ACCESS_APPROVAL_SUBMITTER_ID),
 		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID)
 		};
-
 
 	@Override
 	public TableMapping<DBOAccessApproval> getTableMapping() {
@@ -307,24 +317,12 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
-				if (backup.getRequirementVersion() == null) {
-					backup.setRequirementVersion(0L);
-				}
-				if (backup.getSubmitterId() == null) {
-					backup.setSubmitterId(backup.getAccessorId());
-				}
 				return backup;
 			}
 
 			@Override
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
-				if (dbo.getRequirementVersion() == null) {
-					dbo.setRequirementVersion(0L);
-				}
-				if (dbo.getSubmitterId() == null) {
-					dbo.setSubmitterId(dbo.getAccessorId());
-				}
 				return dbo;
 			}};
 	}
