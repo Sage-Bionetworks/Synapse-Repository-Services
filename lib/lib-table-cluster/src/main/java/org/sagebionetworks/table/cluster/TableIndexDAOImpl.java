@@ -21,6 +21,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -777,6 +778,34 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return cm;
 			}
 		});
+	}
+
+	@Override
+	public Map<Long, Long> getParentCRCs(List<Long> parentIds) {
+		ValidateArgument.required(parentIds, "parentIds");
+		final Map<Long, Long> results = new HashMap<>();
+		if(parentIds.isEmpty()){
+			return results;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		namedTemplate.query(TableConstants.SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
+			
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				Long parentId = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID);
+				Long crc = rs.getLong("CRC");
+				results.put(parentId, crc);
+			}
+		});
+		return results;
+	}
+
+	@Override
+	public List<IdAndEtag> getEntityChildren(Long outOfSynchParentId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

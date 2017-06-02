@@ -1779,6 +1779,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(COL_NODE_PARENT_ID , parentIds);
 		final Map<Long, Long> results = new HashMap<Long, Long>();
+		if(parentIds.isEmpty()){
+			return results;
+		}
 		namedParameterJdbcTemplate.query(SQL_SELECT_CHILD_CRC32, parameters, new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
