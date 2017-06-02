@@ -262,7 +262,6 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return pageResult;
 	}
 
-	// TODO: this API will change
 	@Override
 	public AccessRequirementStatus getAccessRequirementStatus(UserInfo userInfo, String accessRequirementId) {
 		ValidateArgument.required(userInfo, "userInfo");
