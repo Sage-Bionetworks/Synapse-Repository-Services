@@ -138,6 +138,7 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_SUBMITTER_ID				= "SUBMITTER_ID";
 	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID				= "ACCESSOR_ID";
 	public static final String COL_ACCESS_APPROVAL_EXPIRED_ON				= "EXPIRED_ON";
+	public static final String COL_ACCESS_APPROVAL_STATE					= "STATE";
 	public static final String DDL_FILE_ACCESS_APPROVAL						= "schema/AccessApproval-ddl.sql";
 	
 	// The CHANGES table

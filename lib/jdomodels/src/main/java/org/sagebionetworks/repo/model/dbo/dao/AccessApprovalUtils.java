@@ -31,6 +31,7 @@ public class AccessApprovalUtils {
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
 		dbo.setRequirementVersion(dto.getRequirementVersion());
 		dbo.setSubmitterId(Long.parseLong(dto.getSubmitterId()));
+		dbo.setState(dto.getState());
 	}
 
 	public static AccessApproval copyDboToDto(DBOAccessApproval dbo) throws DatastoreException {
@@ -48,6 +49,7 @@ public class AccessApprovalUtils {
 		if (dbo.getExpiredOn() != 0L) {
 			dto.setExpiredOn(new Date(dbo.getExpiredOn()));
 		}
+		dto.setState(dbo.getState());
 		return dto;
 	}
 

@@ -14,13 +14,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -39,6 +42,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	private Long accessorId;
 	private Long requirementVersion;
 	private Long submitterId;
+	private ApprovalState state;
 
 	// TODO: remove this field after stack-185
 	private byte[] serializedEntity;
@@ -62,7 +66,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		new FieldColumn("requirementId", COL_ACCESS_APPROVAL_REQUIREMENT_ID),
 		new FieldColumn("requirementVersion", COL_ACCESS_APPROVAL_REQUIREMENT_VERSION),
 		new FieldColumn("submitterId", COL_ACCESS_APPROVAL_SUBMITTER_ID),
-		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID)
+		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID),
+		new FieldColumn("state", COL_ACCESS_APPROVAL_STATE)
 		};
 
 	@Override
@@ -83,6 +88,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				aa.setRequirementVersion(rs.getLong(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION));
 				aa.setSubmitterId(rs.getLong(COL_ACCESS_APPROVAL_SUBMITTER_ID));
 				aa.setAccessorId(rs.getLong(COL_ACCESS_APPROVAL_ACCESSOR_ID));
+				aa.setState(ApprovalState.valueOf(rs.getString(COL_ACCESS_APPROVAL_STATE)));
 				return aa;
 			}
 
@@ -114,7 +120,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		return "DBOAccessApproval [id=" + id + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", expiredOn=" + expiredOn
 				+ ", requirementId=" + requirementId + ", accessorId=" + accessorId + ", requirementVersion="
-				+ requirementVersion + ", submitterId=" + submitterId + "]";
+				+ requirementVersion + ", submitterId=" + submitterId + ", state=" + state + ", serializedEntity="
+				+ Arrays.toString(serializedEntity) + "]";
 	}
 
 
@@ -226,6 +233,14 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	}
 
 
+	public ApprovalState getState() {
+		return state;
+	}
+
+	public void setState(ApprovalState state) {
+		this.state = state;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -240,6 +255,8 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
 		result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
 		result = prime * result + ((requirementVersion == null) ? 0 : requirementVersion.hashCode());
+		result = prime * result + Arrays.hashCode(serializedEntity);
+		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result + ((submitterId == null) ? 0 : submitterId.hashCode());
 		return result;
 	}
@@ -295,6 +312,10 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 				return false;
 		} else if (!requirementVersion.equals(other.requirementVersion))
 			return false;
+		if (!Arrays.equals(serializedEntity, other.serializedEntity))
+			return false;
+		if (state != other.state)
+			return false;
 		if (submitterId == null) {
 			if (other.submitterId != null)
 				return false;
@@ -317,12 +338,18 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 			@Override
 			public DBOAccessApproval createDatabaseObjectFromBackup(
 					DBOAccessApproval backup) {
+				if (backup.getState() == null) {
+					backup.setState(ApprovalState.APPROVED);
+				}
 				return backup;
 			}
 
 			@Override
 			public DBOAccessApproval createBackupFromDatabaseObject(
 					DBOAccessApproval dbo) {
+				if (dbo.getState() == null) {
+					dbo.setState(ApprovalState.APPROVED);
+				}
 				return dbo;
 			}};
 	}

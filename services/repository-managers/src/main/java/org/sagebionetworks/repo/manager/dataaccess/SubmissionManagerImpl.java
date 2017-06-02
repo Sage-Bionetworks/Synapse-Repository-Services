@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -239,6 +240,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setRequirementVersion(submission.getAccessRequirementVersion());
 			approval.setSubmitterId(submission.getSubmittedBy());
 			approval.setExpiredOn(expiredOn);
+			approval.setState(ApprovalState.APPROVED);
 			approvals.add(approval);
 		}
 		return approvals;

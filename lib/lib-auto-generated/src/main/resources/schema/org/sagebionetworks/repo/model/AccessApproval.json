@@ -66,6 +66,10 @@
 			"description": "The date this object will be expired.",
 			"title": "Expired On",
 			"transient": true
+		},
+		"state": {
+			"description": "The state of this approval.",
+			"$ref": "org.sagebionetworks.repo.model.ApprovalState"
 		}
 	}
 }
