@@ -12,6 +12,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 
 public class AccessApprovalUtilsTest {
@@ -28,6 +29,7 @@ public class AccessApprovalUtilsTest {
 		dto.setRequirementId(888L);
 		dto.setRequirementVersion(3L);
 		dto.setSubmitterId("555");
+		dto.setState(ApprovalState.APPROVED);
 		return dto;
 	}
 	
