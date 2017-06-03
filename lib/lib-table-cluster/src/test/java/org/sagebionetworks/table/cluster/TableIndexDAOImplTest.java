@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -1683,6 +1684,74 @@ public class TableIndexDAOImplTest {
 		assertEquals("key10", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParent(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		Long parentThreeId = 444L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		List<Long> parentIds = Lists.newArrayList(parentOneId,parentTwoId,parentThreeId);
+		// call under test
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(new Long(122929132L), results.get(parentOneId));
+		assertEquals(new Long(3592651982L), results.get(parentTwoId));
+		assertEquals(null, results.get(parentThreeId));
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParentEmpty(){		
+		List<Long> parentIds = new LinkedList<Long>();
+		// call under test
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetEntityChildren(){
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		Long parentThreeId = 444L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		List<IdAndEtag> results = tableIndexDAO.getEntityChildren(parentOneId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag()), results.get(0));
+		
+		results = tableIndexDAO.getEntityChildren(parentTwoId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag()), results.get(0));
+		
+		results = tableIndexDAO.getEntityChildren(parentThreeId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
 	}
 	
 	/**

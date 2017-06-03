@@ -86,14 +86,14 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 			long limit = MAX_PAGE_SIZE;
 			long offset = 0L;
 			// process one page of parentIds at a time.
-			List<Long> parentIds = nodeDao.getParenIds(limit, offset);
+			List<Long> parentIds = nodeDao.getContainerIds(limit, offset);
 			while(!parentIds.isEmpty()){
 				// make progress between each page
 				progressCallback.progressMade(null);
 				findDeltas(progressCallback, parentIds, trashedParents);
 				// get the next page
 				offset = offset+limit;
-				parentIds = nodeDao.getParenIds(limit, offset);
+				parentIds = nodeDao.getContainerIds(limit, offset);
 			}
 		}catch (Throwable cause){
 			boolean willRetry = true;
@@ -194,26 +194,33 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 	public Set<Long> compareCheckSums(ProgressCallback<Void> progressCallback,
 			List<Long> parentIds,
 			TableIndexDAO indexDao, Set<Long> trashedParents) {
-		Map<Long, Long> truthCRCs = nodeDao.getParentCRCs(parentIds);
-		Map<Long, Long> indexCRCs = indexDao.getParentCRCs(parentIds);
+		Map<Long, Long> truthCRCs = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
+		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for(Long parentId: truthCRCs.keySet()){
 			progressCallback.progressMade(null);
 			Long truthCRC = truthCRCs.get(parentId);
 			Long indexCRC = indexCRCs.get(parentId);
-			if(!truthCRC.equals(indexCRC)){
-				// The CRCs do not match
-				if(!trashedParents.contains(truthCRC)){
-					// The parent is not in the trash
+			if(truthCRC == null){
+				if(indexCRC != null){
 					parentsOutOfSynch.add(parentId);
-				}else{
-					// the parent is in the trash.
-					if(indexCRC != null){
+				}
+			}else{
+				if(!truthCRC.equals(indexCRC)){
+					// The CRCs do not match
+					if(!trashedParents.contains(truthCRC)){
+						// The parent is not in the trash
 						parentsOutOfSynch.add(parentId);
+					}else{
+						// the parent is in the trash.
+						if(indexCRC != null){
+							parentsOutOfSynch.add(parentId);
+						}
 					}
 				}
 			}
+
 		}
 		return parentsOutOfSynch;
 	}

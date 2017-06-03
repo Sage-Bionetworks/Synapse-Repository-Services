@@ -10,12 +10,9 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -353,17 +350,17 @@ public interface TableIndexDAO {
 			Set<Long> containerIds, ViewType type, Long limit, Long offset);
 
 	/**
-	 * Get the sum of the CRC32s of the ids and etags for each entity parentId.
+	 * For each parent, get the sum of CRCs of their children.
 	 *   
-	 * @return Map.key = parentId and map.value = CRC.
+	 * @return Map.key = parentId and map.value = sum of children CRCs.
 	 */
-	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
 
 	/**
 	 * Get the Id and Etag for each child of the given Entity parentId.
 	 * @param outOfSynchParentId
 	 * @return
 	 */
-	public List<IdAndEtag> getEntityChildren(Long outOfSynchParentId);
+	public List<IdAndEtag> getEntityChildren(Long parentId);
 
 }

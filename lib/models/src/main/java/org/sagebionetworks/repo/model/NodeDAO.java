@@ -528,20 +528,21 @@ public interface NodeDAO {
 	public String lookupChild(String parentId, String entityName);
 	
 	/**
-	 * Get one page of distinct parentIds.
+	 * Get one page of entity container (projects and folders) ids..
 	 * 
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	List<Long> getParenIds(long limit, long offset);
+	List<Long> getContainerIds(long limit, long offset);
 
 	/**
-	 * Get the sum of the CRC32s of the ids and etags for each entity parentId.
+	 * For each parent, get the sum of CRCs of their children.
 	 *   
-	 * @return Map.key = parentId and map.value = CRC.
+	 * @return Map.key = parentId and map.value = sum of children CRCs.
+	 * 
 	 */
-	public Map<Long, Long> getParentCRCs(List<Long> parentIds);
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
 	
 	/**
 	 * Get the Id and Etag of all of the children for the given parentId.

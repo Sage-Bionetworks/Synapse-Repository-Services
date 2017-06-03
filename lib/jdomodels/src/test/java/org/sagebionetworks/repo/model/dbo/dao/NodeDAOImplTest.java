@@ -43,19 +43,17 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
-import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -3162,5 +3160,113 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(child.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(parent.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
+	}
+	
+	@Test
+	public void testGetParenIds(){
+		long limit =1L;
+		long offset = 0;
+		List<Long> results = nodeDao.getContainerIds(limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// First should always be root.
+		Long rootId = Long.parseLong(StackConfiguration.getRootFolderEntityIdStatic());
+		assertEquals(rootId, results.get(0));
+		limit =1L;
+		offset = 1l;
+		results = nodeDao.getContainerIds(limit, offset);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// second should be trash
+		Long trashId = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
+		assertEquals(trashId, results.get(0));
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParentEmpty(){
+		// Setup some hierarchy.
+		List<Long> parentIds = new LinkedList<Long>();
+		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParent(){
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		Long parentId = KeyFactory.stringToKey(parent.getId());
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		Long childId = KeyFactory.stringToKey(child.getId());
+		toDelete.add(child.getId());
+		
+		Long doesNotExist = -1L;
+		List<Long> parentIds = Lists.newArrayList(grandId, parentId, childId, doesNotExist);
+		// call under test
+		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		Long crc = results.get(grandId);
+		assertNotNull(results.get(grandId));
+		assertNotNull(results.get(parentId));
+		assertEquals(null, results.get(child));
+		assertEquals(null, results.get(doesNotExist));
+	}
+	
+	@Test
+	public void testGetChildrenIdAndEtag(){
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		Long parentId = KeyFactory.stringToKey(parent.getId());
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		Long childId = KeyFactory.stringToKey(child.getId());
+		toDelete.add(child.getId());
+		// call under test
+		List<IdAndEtag> results = nodeDao.getChildren(grandId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(parentId, parent.getETag()), results.get(0));
+		// call under test
+		results = nodeDao.getChildren(parentId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(childId, child.getETag()), results.get(0));
+		// call under test
+		results = nodeDao.getChildren(childId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetChildrenIdAndEtagDoesNotExist(){
+		Long doesNotExist = -1L;
+		// call under test
+		List<IdAndEtag> results = nodeDao.getChildren(doesNotExist);
+		assertNotNull(results);
+		assertEquals(0, results.size());
 	}
 }

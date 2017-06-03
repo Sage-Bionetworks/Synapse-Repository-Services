@@ -127,7 +127,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_OFFSET = "bOffset";
 	
 	private static final String SQL_DISTINCT_PARENT_IDS =
-			"SELECT DISTINCT "+COL_NODE_PARENT_ID+" FROM "+TABLE_NODE+" LIMIT ? OFFSET ?";
+			"SELECT "
+					+COL_NODE_ID
+					+" FROM "+TABLE_NODE
+					+" WHERE "+COL_NODE_TYPE+" IN ("
+							+ "'"+EntityType.project.name()+"'"
+							+ ", '"+EntityType.folder.name()+"')"
+					+" LIMIT ? OFFSET ?";
 	
 	private static final String SQL_SELECT_CHILD_CRC32 = 
 			"SELECT "+COL_NODE_PARENT_ID+","
@@ -1769,15 +1775,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	@Override
-	public List<Long> getParenIds(long limit, long offset) {
+	public List<Long> getContainerIds(long limit, long offset) {
 		return jdbcTemplate.queryForList(SQL_DISTINCT_PARENT_IDS, Long.class, limit, offset);
 	}
 
 	@Override
-	public Map<Long, Long> getParentCRCs(List<Long> parentIds) {
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
 		ValidateArgument.required(parentIds, "parentIdS");
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(COL_NODE_PARENT_ID , parentIds);
+		parameters.put(BIND_PARENT_ID , parentIds);
 		final Map<Long, Long> results = new HashMap<Long, Long>();
 		if(parentIds.isEmpty()){
 			return results;

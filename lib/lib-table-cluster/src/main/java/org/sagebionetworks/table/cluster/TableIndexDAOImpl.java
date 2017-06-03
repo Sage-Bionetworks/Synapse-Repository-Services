@@ -781,7 +781,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Map<Long, Long> getParentCRCs(List<Long> parentIds) {
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
 		ValidateArgument.required(parentIds, "parentIds");
 		final Map<Long, Long> results = new HashMap<>();
 		if(parentIds.isEmpty()){
@@ -790,12 +790,12 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		namedTemplate.query(TableConstants.SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
+		namedTemplate.query(SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
 			
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Long parentId = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID);
-				Long crc = rs.getLong("CRC");
+				Long parentId = rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID);
+				Long crc = rs.getLong(CRC_ALIAS);
 				results.put(parentId, crc);
 			}
 		});
@@ -803,9 +803,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public List<IdAndEtag> getEntityChildren(Long outOfSynchParentId) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<IdAndEtag> getEntityChildren(Long parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		return this.template.query(SELECT_ENTITY_CHILD_ID_ETAG, new RowMapper<IdAndEtag>(){
+
+			@Override
+			public IdAndEtag mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Long id = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_ID);
+				String etag = rs.getString(ENTITY_REPLICATION_COL_ETAG);
+				return new IdAndEtag(id, etag);
+			}}, parentId);
 	}
 
 }
