@@ -198,29 +198,38 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
-		for(Long parentId: truthCRCs.keySet()){
+		for(Long parentId: parentIds){
 			progressCallback.progressMade(null);
 			Long truthCRC = truthCRCs.get(parentId);
 			Long indexCRC = indexCRCs.get(parentId);
+			/* 
+			 * If the parent is in the trash then it should not
+			 * exist in the replica.
+			 */
+			if(trashedParents.contains(parentId)){
+				if(indexCRC != null){
+					parentsOutOfSynch.add(parentId);
+				}
+				continue;
+			}
+			/*
+			 *If the truth CRC is null then the index
+			 *CRC must also be null. 
+			 */
 			if(truthCRC == null){
 				if(indexCRC != null){
 					parentsOutOfSynch.add(parentId);
 				}
-			}else{
-				if(!truthCRC.equals(indexCRC)){
-					// The CRCs do not match
-					if(!trashedParents.contains(truthCRC)){
-						// The parent is not in the trash
-						parentsOutOfSynch.add(parentId);
-					}else{
-						// the parent is in the trash.
-						if(indexCRC != null){
-							parentsOutOfSynch.add(parentId);
-						}
-					}
-				}
+				continue;
 			}
-
+			/*
+			 * The parent is not in the trash
+			 * and the truth CRC is not null.
+			 * The index CRC must match the truth.
+			 */
+			if(!truthCRC.equals(indexCRC)){
+				parentsOutOfSynch.add(parentId);
+			}
 		}
 		return parentsOutOfSynch;
 	}
