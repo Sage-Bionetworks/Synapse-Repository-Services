@@ -1,0 +1,8 @@
+{
+	"description":"JSON enum for the state of AccessApproval",
+	"type":"string",
+	"enum":[
+		"APPROVED",
+		"REVOKED"
+	]
+}

@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 
@@ -31,6 +32,7 @@ public class AccessApprovalUtils {
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
 		dbo.setRequirementVersion(dto.getRequirementVersion());
 		dbo.setSubmitterId(Long.parseLong(dto.getSubmitterId()));
+		dbo.setState(dto.getState().name());
 	}
 
 	public static AccessApproval copyDboToDto(DBOAccessApproval dbo) throws DatastoreException {
@@ -48,6 +50,7 @@ public class AccessApprovalUtils {
 		if (dbo.getExpiredOn() != 0L) {
 			dto.setExpiredOn(new Date(dbo.getExpiredOn()));
 		}
+		dto.setState(ApprovalState.valueOf(dbo.getState()));
 		return dto;
 	}
 

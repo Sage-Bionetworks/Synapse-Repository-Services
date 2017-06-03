@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
@@ -49,6 +50,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
+		a.setState(ApprovalState.APPROVED);
 		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
 		populateModifiedFields(userInfo, a);
