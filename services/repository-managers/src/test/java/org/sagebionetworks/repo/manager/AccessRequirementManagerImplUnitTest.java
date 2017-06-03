@@ -15,7 +15,6 @@ import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -715,4 +714,26 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(ar.getModifiedOn());
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteAccessRequirementWithNullUserInfo() {
+		arm.deleteAccessRequirement(null, "1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteAccessRequirementWithNullUserRequirementId() {
+		arm.deleteAccessRequirement(userInfo, null);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testDeleteAccessRequirementUnauthorized() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		arm.deleteAccessRequirement(userInfo, "1");
+	}
+
+	@Test
+	public void testDeleteAccessRequirementAuthorized() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		arm.deleteAccessRequirement(userInfo, "1");
+		verify(accessRequirementDAO).delete("1");
+	}
 }
