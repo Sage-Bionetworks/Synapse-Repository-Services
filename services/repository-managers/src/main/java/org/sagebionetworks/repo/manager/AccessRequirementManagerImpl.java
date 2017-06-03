@@ -261,9 +261,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, accessRequirementId,
-						ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.DELETE));
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can delete an AccessRequirement.");
+		}
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 
