@@ -17,7 +17,7 @@ public class DBOSubmissionSubmitter implements MigratableDatabaseObject<DBOSubmi
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID).withIsBackupId(true),
 			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID, true),
-			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID, true),
+			new FieldColumn("submitterId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID, true),
 			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID),
 			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG).withIsEtag(true)
 		};
