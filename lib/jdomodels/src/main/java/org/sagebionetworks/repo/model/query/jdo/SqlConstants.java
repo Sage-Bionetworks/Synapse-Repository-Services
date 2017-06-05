@@ -857,7 +857,7 @@ public class SqlConstants {
 
 	// DataAccessSubmissionSubmitter
 	public static final String DDL_DATA_ACCESS_SUBMISSION_SUBMITTER = 							"schema/DataAccessSubmissionSubmitter-ddl.sql";
-	public static final String TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER = 						"DATA_ACCESS_SUBMISSION_ACCESSOR";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER = 						"DATA_ACCESS_SUBMISSION_SUBMITTER";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID = 						"ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID = 				"SUBMITTER_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
