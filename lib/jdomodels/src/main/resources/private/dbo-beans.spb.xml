@@ -121,7 +121,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionStatus" />
 			</list>
 		</property>
@@ -205,7 +205,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOResearchProject" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest" />
 				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionAccessor" />
+				<bean class="org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmissionSubmitter" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>
 		</property>
