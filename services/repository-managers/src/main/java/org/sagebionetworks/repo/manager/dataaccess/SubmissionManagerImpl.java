@@ -271,23 +271,58 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
 		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
 				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
+
+		boolean isApproved = !approvals.isEmpty();
+		Date expiredOn = null;
+		if (isApproved) {
+			expiredOn = getLatestExpirationDate(approvals);
+		}
+
 		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
 				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
 			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			return status;
 		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
 			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			status.setCurrentSubmissionStatus(currentSubmissionStatus);
 			return status;
 		} else {
 			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
 		}
+	}
+
+	/**
+	 * @param accessRequirementId
+	 * @param isApproved
+	 * @param expiredOn
+	 * @param status
+	 */
+	public void setApprovalStatus(String accessRequirementId, boolean isApproved, Date expiredOn,
+			AccessRequirementStatus status) {
+		status.setAccessRequirementId(accessRequirementId);
+		status.setIsApproved(isApproved);
+		status.setExpiredOn(expiredOn);
+	}
+
+	/**
+	 * @param approvals
+	 * @param expiredOn
+	 * @return
+	 */
+	public static Date getLatestExpirationDate(List<AccessApproval> approvals) {
+		ValidateArgument.required(approvals, "approvals");
+		Date expiredOn = null;
+		for (AccessApproval approval : approvals) {
+			if (approval.getExpiredOn() != null
+					&& (expiredOn == null || approval.getExpiredOn().after(expiredOn))) {
+					expiredOn = approval.getExpiredOn();
+			}
+		}
+		return expiredOn;
 	}
 
 	@Override
