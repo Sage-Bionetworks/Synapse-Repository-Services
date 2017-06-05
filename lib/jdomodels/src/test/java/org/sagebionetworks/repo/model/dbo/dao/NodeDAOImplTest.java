@@ -3162,25 +3162,6 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
 	}
 	
-	@Test
-	public void testGetParenIds(){
-		long limit =1L;
-		long offset = 0;
-		List<Long> results = nodeDao.getContainerIds(limit, offset);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		// First should always be root.
-		Long rootId = Long.parseLong(StackConfiguration.getRootFolderEntityIdStatic());
-		assertEquals(rootId, results.get(0));
-		limit =1L;
-		offset = 1l;
-		results = nodeDao.getContainerIds(limit, offset);
-		assertNotNull(results);
-		assertEquals(1, results.size());
-		// second should be trash
-		Long trashId = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
-		assertEquals(trashId, results.get(0));
-	}
 	
 	@Test
 	public void testGetSumOfChildCRCsForEachParentEmpty(){

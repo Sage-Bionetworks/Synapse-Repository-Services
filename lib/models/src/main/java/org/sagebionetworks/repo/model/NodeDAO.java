@@ -526,15 +526,6 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
-	
-	/**
-	 * Get one page of entity container (projects and folders) ids..
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	List<Long> getContainerIds(long limit, long offset);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.

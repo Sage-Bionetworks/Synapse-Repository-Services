@@ -348,6 +348,34 @@ public interface TableIndexDAO {
 	 */
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, ViewType type, Long limit, Long offset);
+	
+	/**
+	 * The process for synchronizing entity replication data with the truth is
+	 * expensive, so the frequency of the synchronization is limited. Since
+	 * synchronization occurs at the entity container level, each time a
+	 * container is synchronized, a new expiration date is set for that
+	 * container. The container should not be re-synchronized until the set
+	 * expiration date is past.
+	 * 
+	 * For a given set of entity container IDs, this method will return the sub-set
+	 * of containers which have expired.
+	 * 
+	 * If a given container ID does not have a set expiration, it will be returned.
+	 * 
+	 * @param entityContainerIds
+	 * @return
+	 */
+	List<Long> getExpiredContainerIds(List<Long> entityContainerIds);
+	
+
+	/**
+	 * @see {@link #getExpiredContainerIds(List)}.
+	 * 
+	 * Set the expiration for a set of containers.
+	 * 
+	 * @param expirations
+	 */
+	public void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.

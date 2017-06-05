@@ -12,11 +12,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ProgressingRunner;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.IdAndEtag;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -26,10 +27,13 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.collect.Lists;
 
@@ -44,7 +48,9 @@ import com.google.common.collect.Lists;
  * redundancy check CRC32) between the truth and the replicated data.
  * 
  */
-public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
+public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
+	
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000*60*10; // 10 minutes.
 	
 	public static final long THROTTLE_FREQUENCY_MS = 1000*30;
 	static Long MAX_PAGE_SIZE = 10000L;
@@ -62,6 +68,9 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 	@Autowired
 	WorkerLogger workerLogger;
 	
+	@Autowired
+	Clock clock;
+	
 	String queueName;
 	String queueUrl;
 	
@@ -75,30 +84,59 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback) throws Exception {
+	public void run(ProgressCallback<Void> progressCallback, Message message){
 		try{
 			// wrap the callback to throttle
 			progressCallback = new ThrottlingProgressCallback<Void>(progressCallback, THROTTLE_FREQUENCY_MS);
+			// extract the containerIds to check from the message.
+			List<Long> containerIds = getContainerIdsForMessage(message);
+			if(containerIds.isEmpty()){
+				// nothing to do.
+				return;
+			}
+			
+			TableIndexDAO indexDao = getRandomConnection();
+			List<Long> expiredContainerIds = indexDao.getExpiredContainerIds(containerIds);
+			if(expiredContainerIds.isEmpty()){
+				// nothing to do.
+				return;
+			}
+			progressCallback.progressMade(null);
+			
 			// All parentIds that are in the trash need to be ignored.
 			Set<Long> trashedParents = new HashSet<Long>(
 					nodeDao.getAllContainerIds(StackConfiguration.getTrashFolderEntityIdStatic()));
+			
+			// Find all deltas for the expired containers.
+			findDeltas(progressCallback, indexDao, expiredContainerIds, trashedParents);
+			
+			// re-set the expiration for all containers that were synchronized.
+			long newExpirationDateMs = clock.currentTimeMillis() + SYNCHRONIZATION_FEQUENCY_MS;
+			indexDao.setContainerSynchronizationExpiration(expiredContainerIds, newExpirationDateMs);
 					
-			long limit = MAX_PAGE_SIZE;
-			long offset = 0L;
-			// process one page of parentIds at a time.
-			List<Long> parentIds = nodeDao.getContainerIds(limit, offset);
-			while(!parentIds.isEmpty()){
-				// make progress between each page
-				progressCallback.progressMade(null);
-				findDeltas(progressCallback, parentIds, trashedParents);
-				// get the next page
-				offset = offset+limit;
-				parentIds = nodeDao.getContainerIds(limit, offset);
-			}
 		}catch (Throwable cause){
-			boolean willRetry = true;
+			log.error("Failed:", cause);
+			boolean willRetry = false;
 			workerLogger.logWorkerFailure(EntityReplicationDeltaWorker.class.getName(), cause, willRetry);
 		}
+	}
+	
+	
+	/**
+	 * Extract the containerIs from the message.
+	 * 
+	 * @param message
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public List<Long> getContainerIdsForMessage(Message message) throws JSONObjectAdapterException{
+		ValidateArgument.required(message, "message");
+		ValidateArgument.required(message.getBody(), "message.body");
+		// Extract the container IDs to check from the message.
+		IdList containers = EntityFactory.createEntityFromJSONString(message.getBody(), IdList.class);
+		ValidateArgument.required(containers, "containers");
+		ValidateArgument.required(containers.getList(), "containers.list");
+		return containers.getList();
 	}
 	
 	/**
@@ -107,21 +145,30 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void findDeltas(ProgressCallback<Void> progressCallback, List<Long> parentIds, Set<Long> trashedParents) throws JSONObjectAdapterException{
-		// Synch with each index.
-		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
-		Collections.shuffle(indexDaos);
-		TableIndexDAO firstIndex = indexDaos.get(0);
+	public void findDeltas(ProgressCallback<Void> progressCallback, TableIndexDAO indexDao, List<Long> parentIds, Set<Long> trashedParents) throws JSONObjectAdapterException{
 		// Find the parents out-of-synch.
-		Set<Long> outOfSynchParentIds = compareCheckSums(progressCallback, parentIds, firstIndex, trashedParents);
+		Set<Long> outOfSynchParentIds = compareCheckSums(progressCallback, indexDao, parentIds, trashedParents);
 		log.info("Out-of-synch parents: "+outOfSynchParentIds.size());
 		
 		for(Long outOfSynchParentId: outOfSynchParentIds){
 			boolean isParentInTrash = trashedParents.contains(outOfSynchParentId);
-			List<ChangeMessage> childChanges = findChangesForParentId(progressCallback, firstIndex, outOfSynchParentId, isParentInTrash);
+			List<ChangeMessage> childChanges = findChangesForParentId(progressCallback, indexDao, outOfSynchParentId, isParentInTrash);
 			pushMessagesToQueue(childChanges);
 			log.info("Published: "+childChanges.size()+" messages to "+queueUrl);
 		}
+	}
+
+
+	/**
+	 * Get a random connection from the connection factory.
+	 * 
+	 * @return
+	 */
+	private TableIndexDAO getRandomConnection() {
+		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
+		Collections.shuffle(indexDaos);
+		TableIndexDAO firstIndex = indexDaos.get(0);
+		return firstIndex;
 	}
 
 	/**
@@ -192,8 +239,9 @@ public class EntityReplicationDeltaWorker implements ProgressingRunner<Void> {
 	 * @return
 	 */
 	public Set<Long> compareCheckSums(ProgressCallback<Void> progressCallback,
+			TableIndexDAO indexDao,
 			List<Long> parentIds,
-			TableIndexDAO indexDao, Set<Long> trashedParents) {
+			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
 		Map<Long, Long> indexCRCs = indexDao.getSumOfChildCRCsForEachParent(parentIds);
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();

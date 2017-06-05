@@ -816,4 +816,17 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}}, parentId);
 	}
 
+	@Override
+	public List<Long> getExpiredContainerIds(List<Long> entityContainerIds) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setContainerSynchronizationExpiration(List<Long> toSet,
+			long newExpirationDateMS) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

@@ -134,7 +134,6 @@ public class EntityReplicationDeltaWorkerTest {
 		truthCRCs.put(3L, 333L);
 		truthCRCs.put(4L, 333L);
 		truthCRCs.put(6L, 666L);
-		truthCRCs.put(6L, 666L);
 		when(mockNodeDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(truthCRCs);
 		// replica
 		Map<Long, Long> replicaCRCs = new HashMap<Long, Long>();
@@ -145,15 +144,16 @@ public class EntityReplicationDeltaWorkerTest {
 		replicaCRCs.put(3L, 333L);
 		// 4 does not match
 		replicaCRCs.put(4L, -444L);
-		// 5 is not in the truth.
+		// 5 in in replica but not truth.
 		replicaCRCs.put(5L, 555L);
-		// 6 is missing
+		// 6 is missing from the replica and in the trash.
+		
 		when(mockIndexDao.getSumOfChildCRCsForEachParent(anyListOf(Long.class))).thenReturn(replicaCRCs);
 		
 		List<Long> parentIds = Lists.newArrayList(1L,2L,3L,4L,5L,6L);
 		Set<Long> trashedParents = Sets.newHashSet(3L, 6L);
 		// call under test
-		Set<Long> results = worker.compareCheckSums(mockProgressCallback, parentIds, mockIndexDao, trashedParents);
+		Set<Long> results = worker.compareCheckSums(mockProgressCallback, mockIndexDao, parentIds, trashedParents);
 		assertNotNull(results);
 		// 1 is in the truth but not replica
 		assertTrue(results.contains(1L));

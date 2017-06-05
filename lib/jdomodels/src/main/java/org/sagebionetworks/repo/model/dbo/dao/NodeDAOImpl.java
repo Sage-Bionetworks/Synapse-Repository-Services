@@ -126,15 +126,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BIND_LIMIT = "bLimit";
 	private static final String BIND_OFFSET = "bOffset";
 	
-	private static final String SQL_DISTINCT_PARENT_IDS =
-			"SELECT "
-					+COL_NODE_ID
-					+" FROM "+TABLE_NODE
-					+" WHERE "+COL_NODE_TYPE+" IN ("
-							+ "'"+EntityType.project.name()+"'"
-							+ ", '"+EntityType.folder.name()+"')"
-					+" LIMIT ? OFFSET ?";
-	
 	private static final String SQL_SELECT_CHILD_CRC32 = 
 			"SELECT "+COL_NODE_PARENT_ID+","
 					+ " SUM(CRC32(CONCAT("+COL_NODE_ID+",\"-\","+COL_NODE_ETAG+"))) AS 'CRC'"
@@ -1772,11 +1763,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException();
 		}
-	}
-	
-	@Override
-	public List<Long> getContainerIds(long limit, long offset) {
-		return jdbcTemplate.queryForList(SQL_DISTINCT_PARENT_IDS, Long.class, limit, offset);
 	}
 
 	@Override
