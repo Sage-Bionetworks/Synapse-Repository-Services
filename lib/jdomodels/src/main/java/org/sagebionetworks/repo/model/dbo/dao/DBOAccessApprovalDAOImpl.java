@@ -88,9 +88,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
-			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
-			+ " AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
-					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
 	private static final String DELETE_ACCESS_APPROVAL = "DELETE"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
@@ -127,18 +125,14 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+" FROM "+TABLE_ACCESS_APPROVAL
 			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
-			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
-			+" AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
-					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
+			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
 	private static final String SELECT_ACTIVE_APPROVALS = 
 			"SELECT * "
 			+ "FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
-			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
-			+ " AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
-					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -283,7 +277,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Override
 	public List<AccessApproval> getActiveApprovalsForUser(String accessRequirementId, String userId) {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
-		MapSqlParameterSource params = new MapSqlParameterSource();		
+		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
 		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, rowMapper);
