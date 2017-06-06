@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
 import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
@@ -128,7 +130,16 @@ public class ITDataAccessTest {
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		String userId = synapseOne.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		createdRequest.setAccessors(Arrays.asList(adminId, userId));
+
+		AccessorChange adminChange = new AccessorChange();
+		adminChange.setUserId(adminId);
+		adminChange.setType(AccessType.GAIN_ACCESS);
+
+		AccessorChange userChange = new AccessorChange();
+		userChange.setUserId(userId);
+		userChange.setType(AccessType.GAIN_ACCESS);
+
+		createdRequest.setAccessorChanges(Arrays.asList(adminChange, userChange));
 		Request updatedRequest = (Request) synapseOne.createOrUpdateRequest(createdRequest);
 
 		SubmissionStatus status = synapseOne.submitRequest(updatedRequest.getId(), updatedRequest.getEtag());
