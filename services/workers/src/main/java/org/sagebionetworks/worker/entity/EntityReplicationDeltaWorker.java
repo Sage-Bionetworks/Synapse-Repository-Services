@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -103,9 +102,8 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 			}
 			progressCallback.progressMade(null);
 			
-			// All parentIds that are in the trash need to be ignored.
-			Set<Long> trashedParents = new HashSet<Long>(
-					nodeDao.getAllContainerIds(StackConfiguration.getTrashFolderEntityIdStatic()));
+			// Determine which parents are in the trash
+			Set<Long> trashedParents = getTrashedContainers(expiredContainerIds);
 			
 			// Find all deltas for the expired containers.
 			findDeltas(progressCallback, indexDao, expiredContainerIds, trashedParents);
@@ -119,6 +117,23 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(EntityReplicationDeltaWorker.class.getName(), cause, willRetry);
 		}
+	}
+	
+	/**
+	 * Get the sub-set of containerIds that are in the trash.
+	 * @param containerIds
+	 * @return
+	 */
+	public Set<Long> getTrashedContainers(List<Long> containerIds){
+		// find the sub-set that is available.
+		Set<Long> availableIds = nodeDao.getAvailableNodes(containerIds);
+		Set<Long> inTrash = new HashSet<Long>();
+		for(Long id: availableIds){
+			if(!availableIds.contains(id)){
+				inTrash.add(id);
+			}
+		}
+		return inTrash;
 	}
 	
 	

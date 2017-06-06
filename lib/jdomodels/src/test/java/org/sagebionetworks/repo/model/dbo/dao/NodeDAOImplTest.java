@@ -3250,4 +3250,37 @@ public class NodeDAOImplTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
+	
+	@Test
+	public void testGetAvailableNodesEmpty(){
+		List<Long> empty = new LinkedList<Long>();
+		Set<Long> availableIds = nodeDao.getAvailableNodes(empty);
+		assertNotNull(availableIds);
+		assertTrue(availableIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetAvailableNodes(){
+		// one
+		Node one = NodeTestUtils.createNew("one", creatorUserGroupId);
+		one = nodeDao.createNewNode(one);
+		Long oneId = KeyFactory.stringToKey(one.getId());
+		toDelete.add(one.getId());
+		// two is in the trash.
+		Node two = NodeTestUtils.createNew("two", creatorUserGroupId);
+		two.setParentId(""+NodeDAOImpl.TRASH_FOLDER_ID);
+		two = nodeDao.createNewNode(two);
+		Long twoId = KeyFactory.stringToKey(two.getId());
+		toDelete.add(two.getId());
+		
+		Long doesNotExist = -1L;
+		
+		List<Long> ids = Lists.newArrayList(oneId, twoId, doesNotExist);
+		Set<Long> availableIds = nodeDao.getAvailableNodes(ids);
+		assertNotNull(availableIds);
+		assertEquals(1, availableIds.size());
+		assertTrue(availableIds.contains(oneId));
+		assertFalse(availableIds.contains(twoId));
+		assertFalse(availableIds.contains(doesNotExist));
+	}
 }

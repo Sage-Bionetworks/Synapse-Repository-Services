@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -531,6 +532,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void createEntityReplicationTablesIfDoesNotExist(){
 		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
@@ -818,15 +820,57 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public List<Long> getExpiredContainerIds(List<Long> entityContainerIds) {
-		// TODO Auto-generated method stub
-		return null;
+		ValidateArgument.required(entityContainerIds, "entityContainerIds");
+		if(entityContainerIds.isEmpty()){
+			return new LinkedList<Long>();
+		}
+		/*
+		 * An ID that does not exist, should be treated the same as an expired
+		 * ID. Therefore, start off with all of the IDs expired, so the
+		 * non-expired IDs can be removed.
+		 */
+		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(entityContainerIds);
+		// Query for those that are not expired.
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAMETER_NAME, entityContainerIds);
+		param.addValue(EXPIRES_PARAM, System.currentTimeMillis());
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
+		// remove all that are not expired.
+		expiredId.removeAll(nonExpiredIds);
+		// return the remain.
+		return new LinkedList<Long>(expiredId);
 	}
 
 	@Override
-	public void setContainerSynchronizationExpiration(List<Long> toSet,
-			long newExpirationDateMS) {
-		// TODO Auto-generated method stub
+	public void setContainerSynchronizationExpiration(final List<Long> toSet,
+			final long newExpirationDateMS) {
+		ValidateArgument.required(toSet, "toSet");
+		if(toSet.isEmpty()){
+			return;
+		}
+		template.batchUpdate(BATCH_INSERT_REPLICATION_SYNC_EXP, new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				Long idToSet = toSet.get(i);
+				int index = 1;
+				ps.setLong(index++, idToSet);
+				ps.setLong(index++, newExpirationDateMS);
+				ps.setLong(index++, newExpirationDateMS);
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return toSet.size();
+			}
+		});
 		
+	}
+
+	@Override
+	public void truncateReplicationSyncExpiration() {
+		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
 	}
 
 }

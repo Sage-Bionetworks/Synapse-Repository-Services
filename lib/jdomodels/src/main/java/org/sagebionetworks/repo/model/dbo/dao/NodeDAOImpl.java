@@ -203,6 +203,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String BENEFACTOR_ALIAS = "BENEFACTOR";
 	private static final String SQL_SELECT_BENEFACTOR_N = FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(N."+COL_NODE_ID+") AS "+BENEFACTOR_ALIAS;
 	
+	private static final String SQL_SELECT_BENEFACTORS =
+			"SELECT N."+COL_NODE_ID+", "+SQL_SELECT_BENEFACTOR_N
+			+ " FROM "+TABLE_NODE+" N"
+			+ " WHERE N."+COL_NODE_ID+" IN (:"+BIND_NODE_IDS+")";
+	
 	private static final String ENTITY_HEADER_SELECT = "SELECT N."+COL_NODE_ID+", R."+COL_REVISION_LABEL+", N."+COL_NODE_NAME+", N."+COL_NODE_TYPE+", "+SQL_SELECT_BENEFACTOR_N+", R."+COL_REVISION_NUMBER;
 	
 	private static final String SQL_SELECT_CHIDREN_TEMPLATE =
@@ -1789,6 +1794,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Override
 	public List<IdAndEtag> getChildren(long parentId) {
+		ValidateArgument.required(parentId, "parentId");
 		return jdbcTemplate.query(SQL_SELECT_CHILDREN_ID_AND_ETAG, new RowMapper<IdAndEtag>(){
 			@Override
 			public IdAndEtag mapRow(ResultSet rs, int rowNum)
@@ -1797,6 +1803,27 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				String etag = rs.getString(COL_NODE_ETAG);
 				return new IdAndEtag(id, etag);
 			}}, parentId);
+	}
+
+	@Override
+	public Set<Long> getAvailableNodes(List<Long> nodeIds) {
+		ValidateArgument.required(nodeIds, "nodeIds");
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(BIND_NODE_IDS , nodeIds);
+		final HashSet<Long> results = new HashSet<Long>();
+		if(nodeIds.isEmpty()){
+			return results;
+		}
+		namedParameterJdbcTemplate.query(SQL_SELECT_BENEFACTORS, parameters, new RowCallbackHandler(){
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				Long id = rs.getLong(COL_NODE_ID);
+				Long benefactorId = rs.getLong(BENEFACTOR_ALIAS);
+				if(!TRASH_FOLDER_ID.equals(benefactorId)){
+					results.add(id);
+				}
+			}});
+		return results;
 	}
 
 }

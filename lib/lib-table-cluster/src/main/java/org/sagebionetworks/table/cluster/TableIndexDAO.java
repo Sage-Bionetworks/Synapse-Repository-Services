@@ -376,6 +376,11 @@ public interface TableIndexDAO {
 	 * @param expirations
 	 */
 	public void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	
+	/**
+	 * Clear all expirations.
+	 */
+	public void truncateReplicationSyncExpiration();
 
 	/**
 	 * For each parent, get the sum of CRCs of their children.

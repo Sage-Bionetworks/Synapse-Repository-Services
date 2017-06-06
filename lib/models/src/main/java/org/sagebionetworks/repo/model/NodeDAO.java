@@ -214,6 +214,15 @@ public interface NodeDAO {
 	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
+	 * From the given set of Node IDs, get the sub-set of
+	 * nodes that are available.  A node is available if it exists
+	 * and is not in the trash.
+	 * @param nodeIds
+	 * @return
+	 */
+	public Set<Long> getAvailableNodes(List<Long> nodeIds);
+	
+	/**
 	 * True if the node exists and is not in the trash.
 	 * @param nodeId
 	 * @return
