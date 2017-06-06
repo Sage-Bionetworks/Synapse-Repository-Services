@@ -91,12 +91,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+ " ORDER BY REQ."+COL_ACCESS_REQUIREMENT_ID;
 
 	private static final String GET_ACCESS_REQUIREMENTS_IDS_FOR_SUBJECTS_SQL = 
-			"SELECT DISTINCT ar."+COL_ACCESS_REQUIREMENT_ID
-			+" FROM "+TABLE_ACCESS_REQUIREMENT+" ar, "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar"
-			+" WHERE ar."+COL_ACCESS_REQUIREMENT_ID+" = nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
-			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
-			+" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
-
+			"SELECT DISTINCT "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 
 	private static final String GET_SUBJECT_ACCESS_REQUIREMENT_SQL = "SELECT *"
 			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
@@ -133,6 +131,15 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+" = "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+
+	private static final String SOURCE_SUBJECTS = "SOURCE_SUBJECTS";
+	private static final String DEST_SUBJECTS = "DEST_SUBJECTS";
+	private static final String SELECT_ACCESS_REQUIREMENT_DIFF = "SELECT DISTINCT "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID
+			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+SOURCE_SUBJECTS+")"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" NOT IN (:"+DEST_SUBJECTS+")"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
+
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -416,4 +423,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return stats;
 	}
 
+	@Override
+	public List<String> getAccessRequirementDiff(List<String> sourceSubjects, List<String> destSubjects, RestrictableObjectType type) {
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(sourceSubjects, "sourceSubjects");
+		ValidateArgument.required(destSubjects, "destSubjects");
+		ValidateArgument.requirement(!sourceSubjects.isEmpty(), "Need at least one source subject.");
+		ValidateArgument.requirement(!destSubjects.isEmpty(), "Need at least one destination subject.");
+
+		List<Long> sourceSubjectIdsAsLong = new ArrayList<Long>();
+		for (String id: sourceSubjects) {
+			sourceSubjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
+		List<Long> destSubjectIdsAsLong = new ArrayList<Long>();
+		for (String id: destSubjects) {
+			destSubjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SOURCE_SUBJECTS, sourceSubjectIdsAsLong);
+		param.addValue(DEST_SUBJECTS, destSubjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		List<String> ids = namedJdbcTemplate.queryForList(SELECT_ACCESS_REQUIREMENT_DIFF, param, String.class);
+		return ids;
+	}
 }

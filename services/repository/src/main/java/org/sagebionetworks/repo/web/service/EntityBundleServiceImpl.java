@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -127,13 +128,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		// EntityBundle.ACCESS_REQUIREMENTS && EntityBundle.UNMET_ACCESS_REQUIREMENTS
-		// will be deprecated after ACT feature
-		// TODO: throw IllegalArgumentException
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			eb.setAccessRequirements(accessRequirementManager.getAllAccessRequirementsForSubject(
-					userManager.getUserInfo(userId), subjectId));
-		}		
+			// This is deprecated.
+			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
+		}
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
 			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
 					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));

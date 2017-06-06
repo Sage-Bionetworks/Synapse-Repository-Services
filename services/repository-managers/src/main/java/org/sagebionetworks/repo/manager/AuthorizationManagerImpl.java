@@ -368,12 +368,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
 
-		// TODO: replace the rest of the logic with one AccessRequirementDAO call.
-		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getAllAccessRequirementsForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
-		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getAllAccessRequirementsForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
-		Set<AccessRequirement> diff = new HashSet<AccessRequirement>(allRequirementsForSourceParent);
-		diff.removeAll(allRequirementsForDestParent);
-		if (diff.isEmpty()) { // only OK if destParent has all the requirements that source parent has
+		List<String> missingRequirements = accessRequirementDAO.getAccessRequirementDiff(sourceParentAncestorIds, destParentAncestorIds, RestrictableObjectType.ENTITY);
+		if (missingRequirements.isEmpty()) { // only OK if destParent has all the requirements that source parent has
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
 			return AuthorizationManagerUtil.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");

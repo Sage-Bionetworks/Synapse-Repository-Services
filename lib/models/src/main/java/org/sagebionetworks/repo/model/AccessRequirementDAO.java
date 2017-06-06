@@ -112,4 +112,15 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
+
+	/**
+	 * Returns all access requirement IDs that applies to source subjects but does not apply to destination subjects.
+	 * 
+	 * @param sourceSubjects
+	 * @param destSubjects
+	 * @param type
+	 * @return
+	 */
+	public List<String> getAccessRequirementDiff(List<String> sourceSubjects, List<String> destSubjects,
+			RestrictableObjectType type);
 }

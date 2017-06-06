@@ -31,11 +31,6 @@ public interface AccessRequirementManager {
 	 * @throws DatastoreException 
 	 */
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException;
-	
-	/**
-	 *  get all the access requirements for an entity
-	 */
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 *  get a page of the access requirements for an entity

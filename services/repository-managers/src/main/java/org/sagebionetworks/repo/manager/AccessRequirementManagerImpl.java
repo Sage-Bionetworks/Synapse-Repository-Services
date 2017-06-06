@@ -151,18 +151,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Deprecated
 	@Override
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor rod) throws DatastoreException, NotFoundException {
-		List<String> subjectIds = new ArrayList<String>();
-		if (RestrictableObjectType.ENTITY==rod.getType()) {
-			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, rod.getId(), true));
-		} else {
-			subjectIds.add(rod.getId());
-		}
-		return accessRequirementDAO.getAllAccessRequirementsForSubject(subjectIds, rod.getType());
-	}
-
-	@Deprecated
-	@Override
 	public List<AccessRequirement> getAllUnmetAccessRequirements(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, ACCESS_TYPE accessType)
 					throws DatastoreException, NotFoundException {
