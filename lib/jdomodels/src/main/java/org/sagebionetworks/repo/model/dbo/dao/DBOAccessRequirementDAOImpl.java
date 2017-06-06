@@ -219,10 +219,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		for (ACCESS_TYPE type : accessTypes) {
 			accessTypeStrings.add(type.toString());
 		}
-		List<Long> subjectIdsAsLong = new ArrayList<Long>();
-		for (String id: subjectIds) {
-			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
+		List<Long> subjectIdsAsLong = KeyFactory.stringToKey(subjectIds);
 		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
@@ -372,10 +369,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		if (subjectIds.isEmpty()) {
 			return dtos;
 		}
-		List<Long> subjectIdsAsLong = new ArrayList<Long>();
-		for (String id: subjectIds) {
-			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
+		List<Long> subjectIdsAsLong = KeyFactory.stringToKey(subjectIds);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
@@ -435,14 +429,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		ValidateArgument.requirement(!sourceSubjects.isEmpty(), "Need at least one source subject.");
 		ValidateArgument.requirement(!destSubjects.isEmpty(), "Need at least one destination subject.");
 
-		List<Long> sourceSubjectIdsAsLong = new ArrayList<Long>();
-		for (String id: sourceSubjects) {
-			sourceSubjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
-		List<Long> destSubjectIdsAsLong = new ArrayList<Long>();
-		for (String id: destSubjects) {
-			destSubjectIdsAsLong.add(KeyFactory.stringToKey(id));
-		}
+		List<Long> sourceSubjectIdsAsLong = KeyFactory.stringToKey(sourceSubjects);
+		List<Long> destSubjectIdsAsLong = KeyFactory.stringToKey(destSubjects);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SOURCE_SUBJECTS, sourceSubjectIdsAsLong);
 		param.addValue(DEST_SUBJECTS, destSubjectIdsAsLong);
