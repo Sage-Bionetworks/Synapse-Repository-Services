@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -561,7 +562,7 @@ public class SubmissionManagerImplTest {
 				anyLong())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-		verify(mockAccessApprovalDao).createBatch(captor.capture());
+		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(1, approvals.size());
 		AccessApproval approval = approvals.get(0);
@@ -599,7 +600,7 @@ public class SubmissionManagerImplTest {
 				anyLong())).thenReturn(submission);
 		assertEquals(submission, manager.updateStatus(mockUser, request));
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
-		verify(mockAccessApprovalDao).createBatch(captor.capture());
+		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(1, approvals.size());
 		AccessApproval approval = approvals.get(0);
@@ -678,18 +679,19 @@ public class SubmissionManagerImplTest {
 	public void testGetAccessRequirementStatusToUNotApproved() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
 			.thenReturn(TermsOfUseAccessRequirement.class.getName());
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userId)))
+		when(mockAccessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userId))
 			.thenReturn(new LinkedList<AccessApproval>());
 		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(status);
 		assertTrue(status instanceof BasicAccessRequirementStatus);
-		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
-		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
-		assertFalse(touStatus.getIsApproved());
+		BasicAccessRequirementStatus basicStatus = (BasicAccessRequirementStatus) status;
+		assertEquals(accessRequirementId, basicStatus.getAccessRequirementId());
+		assertFalse(basicStatus.getIsApproved());
+		assertNull(basicStatus.getExpiredOn());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
-		verify(mockAccessApprovalDao).getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userId));
+		verify(mockAccessApprovalDao).getActiveApprovalsForUser(
+				accessRequirementId, userId);
 	}
 
 	@Test
@@ -699,17 +701,20 @@ public class SubmissionManagerImplTest {
 		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(userId);
 		approval.setRequirementId(Long.parseLong(accessRequirementId));
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
+		approval.setExpiredOn(new Date());
+		when(mockAccessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userId))
+			.thenReturn(Arrays.asList(approval));
 		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(status);
 		assertTrue(status instanceof BasicAccessRequirementStatus);
-		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
-		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
-		assertTrue(touStatus.getIsApproved());
+		BasicAccessRequirementStatus basicStatus = (BasicAccessRequirementStatus) status;
+		assertEquals(accessRequirementId, basicStatus.getAccessRequirementId());
+		assertTrue(basicStatus.getIsApproved());
+		assertEquals(basicStatus.getExpiredOn(), approval.getExpiredOn());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
-		verify(mockAccessApprovalDao).getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userId));
+		verify(mockAccessApprovalDao).getActiveApprovalsForUser(
+				accessRequirementId, userId);
 	}
 
 	@Test
@@ -719,17 +724,20 @@ public class SubmissionManagerImplTest {
 		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(userId);
 		approval.setRequirementId(Long.parseLong(accessRequirementId));
-		when(mockAccessApprovalDao.getForAccessRequirementsAndPrincipals(
-			anyCollection(), anyCollection())).thenReturn(Arrays.asList(approval));
+		approval.setExpiredOn(new Date());
+		when(mockAccessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userId))
+			.thenReturn(Arrays.asList(approval));
 		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 		assertNotNull(status);
 		assertTrue(status instanceof BasicAccessRequirementStatus);
-		BasicAccessRequirementStatus touStatus = (BasicAccessRequirementStatus) status;
-		assertEquals(accessRequirementId, touStatus.getAccessRequirementId());
-		assertTrue(touStatus.getIsApproved());
+		BasicAccessRequirementStatus basicStatus = (BasicAccessRequirementStatus) status;
+		assertEquals(accessRequirementId, basicStatus.getAccessRequirementId());
+		assertTrue(basicStatus.getIsApproved());
+		assertEquals(basicStatus.getExpiredOn(), approval.getExpiredOn());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
-		verify(mockAccessApprovalDao).getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userId));
+		verify(mockAccessApprovalDao).getActiveApprovalsForUser(
+				accessRequirementId, userId);
 	}
 
 	@Test
@@ -743,6 +751,7 @@ public class SubmissionManagerImplTest {
 		assertEquals(accessRequirementId, arStatus.getAccessRequirementId());
 		assertFalse(arStatus.getIsApproved());
 		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
+		assertNull(arStatus.getExpiredOn());
 		ManagedACTAccessRequirementStatus actARStatus = (ManagedACTAccessRequirementStatus) arStatus;
 		assertEquals(mockSubmissionStatus, actARStatus.getCurrentSubmissionStatus());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
@@ -775,5 +784,39 @@ public class SubmissionManagerImplTest {
 		assertNotNull(result);
 		assertEquals(list, result.getOpenSubmissionList());
 		verify(mockSubmissionDao).getOpenSubmissions(NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetLatestExpirationDateWithNullList() {
+		SubmissionManagerImpl.getLatestExpirationDate(null);
+	}
+
+	@Test
+	public void testGetLatestExpirationDateWithEmptyList() {
+		assertNull(SubmissionManagerImpl.getLatestExpirationDate(new LinkedList<AccessApproval>()));
+	}
+
+	@Test
+	public void testGetLatestExpirationDateWithoutExpiration() {
+		AccessApproval approval = new AccessApproval();
+		assertNull(SubmissionManagerImpl.getLatestExpirationDate(Arrays.asList(approval)));
+	}
+
+	@Test
+	public void testGetLatestExpirationDateWithOneExpiration() {
+		AccessApproval approval = new AccessApproval();
+		approval.setExpiredOn(new Date());
+		assertEquals(approval.getExpiredOn(),
+				SubmissionManagerImpl.getLatestExpirationDate(Arrays.asList(approval)));
+	}
+
+	@Test
+	public void testGetLatestExpirationDateWithMultipleExpiration() {
+		AccessApproval approval1 = new AccessApproval();
+		approval1.setExpiredOn(new Date(1496703298000L) /* June 5th 2017 */);
+		AccessApproval approval2 = new AccessApproval();
+		approval2.setExpiredOn(new Date(1496357698000L) /* June 1st 2017 */);
+		assertEquals(approval1.getExpiredOn(),
+				SubmissionManagerImpl.getLatestExpirationDate(Arrays.asList(approval1, approval2)));
 	}
 }

@@ -19,7 +19,7 @@ public interface AccessApprovalManager {
 	/**
 	 *  create access approval
 	 */
-	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

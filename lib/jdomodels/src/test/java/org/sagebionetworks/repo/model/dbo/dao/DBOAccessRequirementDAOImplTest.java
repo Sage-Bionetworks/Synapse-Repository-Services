@@ -405,4 +405,60 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
 	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementDiffForNullSource() {
+		List<String> destSubjects = Arrays.asList(node.getId());
+		accessRequirementDAO.getAccessRequirementDiff(null, destSubjects , RestrictableObjectType.ENTITY);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementDiffForNullDest() {
+		List<String> sourceSubjects = Arrays.asList(node.getId());
+		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, null , RestrictableObjectType.ENTITY);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementDiffForEmptySource() {
+		List<String> sourceSubjects = new LinkedList<String>();
+		List<String> destSubjects = Arrays.asList(node.getId());
+		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessRequirementDiffForEmptyDest() {
+		List<String> sourceSubjects = Arrays.asList(node.getId());
+		List<String> destSubjects = new LinkedList<String>();
+		accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY);
+	}
+
+	@Test
+	public void testGetAccessRequirementDiffWithDestinationMoreRestricted() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		List<String> sourceSubjects = Arrays.asList(node2.getId());
+		List<String> destSubjects = Arrays.asList(node.getId());
+		assertEquals(new LinkedList<String>(),
+				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
+	}
+
+	@Test
+	public void testGetAccessRequirementDiffWithMatchingAR() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		List<String> sourceSubjects = Arrays.asList(node.getId());
+		List<String> destSubjects = Arrays.asList(node.getId());
+		assertEquals(new LinkedList<String>(),
+				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
+	}
+
+	@Test
+	public void testGetAccessRequirementDiffWithSourceMoreRestricted() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		List<String> sourceSubjects = Arrays.asList(node.getId());
+		List<String> destSubjects = Arrays.asList(node2.getId());
+		assertEquals(Arrays.asList(accessRequirement.getId().toString()),
+				accessRequirementDAO.getAccessRequirementDiff(sourceSubjects, destSubjects , RestrictableObjectType.ENTITY));
+	}
 }

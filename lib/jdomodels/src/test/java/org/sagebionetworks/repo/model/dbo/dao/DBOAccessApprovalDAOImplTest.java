@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -202,7 +201,9 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(accessApproval.getEtag());
 
 		// test create again
-		assertEquals(accessApproval, accessApprovalDAO.create(accessApproval));
+		AccessApproval updated = accessApprovalDAO.create(accessApproval);
+		accessApproval.setEtag(updated.getEtag());
+		assertEquals(accessApproval, updated);
 
 		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
 				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
@@ -235,10 +236,8 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(clone);
 		assertEquals(accessApproval, clone);
 		
-		// Get by Node Id
-		Collection<AccessApproval> ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
-				Arrays.asList(new String[]{individualGroup.getId().toString()}));
+		List<AccessApproval> ars = accessApprovalDAO.getActiveApprovalsForUser(
+				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
@@ -250,12 +249,10 @@ public class DBOAccessApprovalDAOImplTest {
 		// creating an approval is idempotent:
 		// make a second one...
 		accessApproval2 = accessApprovalDAO.create(newAccessApproval(individualGroup, accessRequirement));
-		assertEquals(clone, accessApproval2);
-		// .. there is still only one:
-		ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
-				Arrays.asList(new String[]{individualGroup.getId().toString()}));
+		ars = accessApprovalDAO.getActiveApprovalsForUser(
+				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
+		assertEquals(accessApproval2, ars.get(0));
 
 		// Delete it
 		accessApprovalDAO.delete(id);
@@ -294,20 +291,60 @@ public class DBOAccessApprovalDAOImplTest {
 
 	@Test
 	public void testCreateAndDeleteBatch() {
-		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
-		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
-		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+
+		accessApproval = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		accessApproval2 = accessApprovalDAO.getByPrimaryKey(
+				accessApproval2.getRequirementId(),
+				accessApproval2.getRequirementVersion(),
+				accessApproval2.getSubmitterId(),
+				accessApproval2.getAccessorId());
 
 		// insert again
-		assertEquals(created, accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2)));
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+		AccessApproval updated = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		accessApproval.setEtag(updated.getEtag());
+		assertEquals(accessApproval, updated);
+		AccessApproval updated2 = accessApprovalDAO.getByPrimaryKey(
+				accessApproval2.getRequirementId(),
+				accessApproval2.getRequirementVersion(),
+				accessApproval2.getSubmitterId(),
+				accessApproval2.getAccessorId());
+		accessApproval2.setEtag(updated2.getEtag());
+		assertEquals(accessApproval2, updated2);
 
 		List<Long> toDelete = new LinkedList<Long>();
-		toDelete.add(created.get(0).getId());
-		toDelete.add(created.get(1).getId());
+		toDelete.add(accessApproval.getId());
+		toDelete.add(accessApproval2.getId());
 
 		assertEquals(2, accessApprovalDAO.deleteBatch(toDelete));
-		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
+		try {
+			accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		} catch (NotFoundException e) {
+			// as expected
+		}
+		try {
+			accessApprovalDAO.getByPrimaryKey(
+				accessApproval2.getRequirementId(),
+				accessApproval2.getRequirementVersion(),
+				accessApproval2.getSubmitterId(),
+				accessApproval2.getAccessorId());
+		} catch (NotFoundException e) {
+			// as expected
+		}
 	}
 }

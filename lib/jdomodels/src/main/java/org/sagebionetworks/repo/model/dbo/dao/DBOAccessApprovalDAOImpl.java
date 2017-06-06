@@ -22,7 +22,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +30,7 @@ import java.util.Set;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -49,6 +50,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
 	public static final String OFFSET_PARAM = "OFFSET";
+	public static final long DEFAULT_NOT_EXPIRED = 0L;
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -73,21 +75,22 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " LIMIT :"+LIMIT_PARAM
 			+ " OFFSET :"+OFFSET_PARAM;
 
-	private static final String SELECT_FOR_REQUIREMENT_SQL = 
-			"SELECT * FROM "+TABLE_ACCESS_APPROVAL
-			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+"=:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-
-	private static final String SELECT_FOR_REQUIREMENTS_AND_PRINCIPALS_SQL = 
-			"SELECT * "
-			+ "FROM "+TABLE_ACCESS_APPROVAL
-			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+") "
-			+ "AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+	private static final String SELECT_BY_PRIMARY_KEY= 
+			"SELECT *"
+			+" FROM "+TABLE_ACCESS_APPROVAL
+			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+" AND "+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION
+			+" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
 	private static final String SELECT_MET_ACCESS_REQUIREMENT_COUNT =
 			"SELECT COUNT(DISTINCT "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
-			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
+			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
+			+ " AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
+					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
 
 	private static final String DELETE_ACCESS_APPROVAL = "DELETE"
 			+ " FROM "+TABLE_ACCESS_APPROVAL
@@ -98,7 +101,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_ID+" IN (:"+COL_ACCESS_APPROVAL_ID+")";
 
-	private static final String SQL_INSERT_IGNORE = "INSERT IGNORE INTO "
+	private static final String SQL_CREATE_OR_UPDATE = "INSERT INTO "
 			+TABLE_ACCESS_APPROVAL+"("
 			+COL_ACCESS_APPROVAL_ID+", "
 			+COL_ACCESS_APPROVAL_ETAG+", "
@@ -112,13 +115,30 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
 			+COL_ACCESS_APPROVAL_ACCESSOR_ID+", "
 			+COL_ACCESS_APPROVAL_STATE
-			+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+			+COL_ACCESS_APPROVAL_ETAG+" = ?, "
+			+COL_ACCESS_APPROVAL_MODIFIED_BY+" = ?, "
+			+COL_ACCESS_APPROVAL_MODIFIED_ON+" = ?, "
+			+COL_ACCESS_APPROVAL_EXPIRED_ON+" = ?, "
+			+COL_ACCESS_APPROVAL_STATE+" = ? ";
 
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+" FROM "+TABLE_ACCESS_APPROVAL
 			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
-			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
+			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
+			+" AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
+					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
+
+	private static final String SELECT_ACTIVE_APPROVALS = 
+			"SELECT * "
+			+ "FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'"
+			+ " AND ("+COL_ACCESS_APPROVAL_EXPIRED_ON+" = "+DEFAULT_NOT_EXPIRED
+					+ " OR "+COL_ACCESS_APPROVAL_EXPIRED_ON+" > UNIX_TIMESTAMP(CURDATE()) * 1000)";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -132,8 +152,24 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public <T extends AccessApproval> T create(T dto) throws DatastoreException {
-		return (T) createBatch(Arrays.asList((AccessApproval)dto)).get(0);
+	public AccessApproval create(AccessApproval dto) throws DatastoreException {
+		createOrUpdateBatch(Arrays.asList((AccessApproval)dto));
+		return getByPrimaryKey(dto.getRequirementId(), dto.getRequirementVersion(), dto.getSubmitterId(), dto.getAccessorId());
+	}
+
+	@Override
+	public AccessApproval getByPrimaryKey(Long requirementId, Long requirementVersion, String submitterId, String accessorId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, requirementId);
+		param.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_VERSION, requirementVersion);
+		param.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
+		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
+		try {
+			DBOAccessApproval dbo =  namedJdbcTemplate.queryForObject(SELECT_BY_PRIMARY_KEY, param, rowMapper);
+			return AccessApprovalUtils.copyDboToDto(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException();
+		}
 	}
 
 	@Override
@@ -146,42 +182,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dto;
 	}
 
-	@Override
-	public List<AccessApproval> getForAccessRequirementsAndPrincipals(Collection<String> accessRequirementIds, Collection<String> principalIds) throws DatastoreException {
-		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
-		if (accessRequirementIds.isEmpty() || principalIds.isEmpty()) return dtos;
-		MapSqlParameterSource params = new MapSqlParameterSource();		
-		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
-		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_FOR_REQUIREMENTS_AND_PRINCIPALS_SQL, params, rowMapper);
-		for (DBOAccessApproval dbo : dbos) {
-			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
-			// validate:  The principal ID and accessor ID should each be from the passed in lists
-			if (!principalIds.contains(dto.getAccessorId())) 
-				throw new IllegalStateException("PrincipalIDs: "+principalIds+" but accessorId: "+dto.getAccessorId());
-			if (!accessRequirementIds.contains(dto.getRequirementId().toString()))
-				throw new IllegalStateException("accessRequirementIds: "+accessRequirementIds+" but requirementId: "+dto.getRequirementId());
-			dtos.add(dto);
-		}
-		return dtos;
-	}
-
-	@Override
-	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException {
-		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
-		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_FOR_REQUIREMENT_SQL, params, rowMapper);
-		for (DBOAccessApproval dbo : dbos) {
-			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
-			if (!accessRequirementId.equals(dto.getRequirementId().toString()))
-				throw new IllegalStateException("accessRequirementId: "+accessRequirementId+
-						" but dto.getRequirementId(): "+dto.getRequirementId());
-			dtos.add(dto);
-		}
-		return dtos;
-	}
-
+	@Deprecated
 	@Override
 	public void delete(String accessRequirementId, String accessorId) {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
@@ -205,14 +206,14 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public List<AccessApproval> createBatch(List<AccessApproval> dtos) {
+	public void createOrUpdateBatch(List<AccessApproval> dtos) {
 		final List<DBOAccessApproval> dbos = AccessApprovalUtils.copyDtosToDbos(dtos, true/*for creation*/, idGenerator);
-		final List<String> principalIds = new LinkedList<String>();
-		final List<String> requirementIds = new LinkedList<String>();
-		jdbcTemplate.batchUpdate(SQL_INSERT_IGNORE, new BatchPreparedStatementSetter(){
+		final List<String> ids = new LinkedList<String>();
+		jdbcTemplate.batchUpdate(SQL_CREATE_OR_UPDATE, new BatchPreparedStatementSetter(){
 
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				// create fields
 				ps.setLong(1, dbos.get(i).getId());
 				ps.setString(2, dbos.get(i).geteTag());
 				ps.setLong(3, dbos.get(i).getCreatedBy());
@@ -225,8 +226,13 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setLong(10, dbos.get(i).getSubmitterId());
 				ps.setLong(11, dbos.get(i).getAccessorId());
 				ps.setString(12, dbos.get(i).getState());
-				principalIds.add(dbos.get(i).getAccessorId().toString());
-				requirementIds.add(dbos.get(i).getRequirementId().toString());
+				// update fields
+				ps.setString(13, dbos.get(i).geteTag());
+				ps.setLong(14, dbos.get(i).getModifiedBy());
+				ps.setLong(15, dbos.get(i).getModifiedOn());
+				ps.setLong(16, dbos.get(i).getExpiredOn());
+				ps.setString(17, dbos.get(i).getState());
+				ids.add(dbos.get(i).getId().toString());
 			}
 
 			@Override
@@ -234,7 +240,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				return dbos.size();
 			}
 		});
-		return getForAccessRequirementsAndPrincipals(requirementIds, principalIds);
 	}
 
 	@Override
@@ -273,5 +278,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
 		result.addAll(approvedUsers);
 		return result;
+	}
+
+	@Override
+	public List<AccessApproval> getActiveApprovalsForUser(String accessRequirementId, String userId) {
+		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
+		MapSqlParameterSource params = new MapSqlParameterSource();		
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
+		List<DBOAccessApproval> dbos = namedJdbcTemplate.query(SELECT_ACTIVE_APPROVALS, params, rowMapper);
+		for (DBOAccessApproval dbo : dbos) {
+			dtos.add(AccessApprovalUtils.copyDboToDto(dbo));
+		}
+		return dtos;
 	}
 }

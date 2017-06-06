@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -208,7 +207,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
-			accessApprovalDao.createBatch(approvalsToCreate);
+			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
@@ -269,25 +268,60 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
-		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
+		List<AccessApproval> approvals = accessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userInfo.getId().toString());
+
+		boolean isApproved = !approvals.isEmpty();
+		Date expiredOn = null;
+		if (isApproved) {
+			expiredOn = getLatestExpirationDate(approvals);
+		}
+
 		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
 				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
 			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			return status;
 		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
 			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			status.setCurrentSubmissionStatus(currentSubmissionStatus);
 			return status;
 		} else {
 			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
 		}
+	}
+
+	/**
+	 * @param accessRequirementId
+	 * @param isApproved
+	 * @param expiredOn
+	 * @param status
+	 */
+	public void setApprovalStatus(String accessRequirementId, boolean isApproved, Date expiredOn,
+			AccessRequirementStatus status) {
+		status.setAccessRequirementId(accessRequirementId);
+		status.setIsApproved(isApproved);
+		status.setExpiredOn(expiredOn);
+	}
+
+	/**
+	 * @param approvals
+	 * @param expiredOn
+	 * @return
+	 */
+	public static Date getLatestExpirationDate(List<AccessApproval> approvals) {
+		ValidateArgument.required(approvals, "approvals");
+		Date expiredOn = null;
+		for (AccessApproval approval : approvals) {
+			if (approval.getExpiredOn() != null
+					&& (expiredOn == null || approval.getExpiredOn().after(expiredOn))) {
+					expiredOn = approval.getExpiredOn();
+			}
+		}
+		return expiredOn;
 	}
 
 	@Override

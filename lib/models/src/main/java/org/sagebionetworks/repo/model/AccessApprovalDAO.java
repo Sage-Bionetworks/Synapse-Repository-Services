@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -15,7 +14,7 @@ public interface AccessApprovalDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public <T extends AccessApproval> T create(T dto) throws DatastoreException, InvalidModelException;
+	public AccessApproval create(AccessApproval dto);
 
 	/**
 	 * Retrieves the object given its id
@@ -25,24 +24,7 @@ public interface AccessApprovalDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessApproval get(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get all the access approvals related to the given access requirement.  This is used by the migrator.
-	 * @param accessRequirementId
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException;
-	
-	/**
-	 * 
-	 * @param accessRequirementIds
-	 * @param principalIds
-	 * @return the AccessApprovals for the given accessRequirements, for the given principals
-	 * @throws DatastoreException
-	 */
-	public List<AccessApproval> getForAccessRequirementsAndPrincipals(Collection<String> accessRequirementIds, Collection<String> principalIds) throws DatastoreException;
+	public AccessApproval get(String id) throws NotFoundException;
 
 	/**
 	 * delete the object given by the given ID
@@ -72,11 +54,11 @@ public interface AccessApprovalDAO {
 	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId);
 
 	/**
-	 * Create a batch of access approval
+	 * Create or update a batch of access approval
 	 * 
 	 * @param approvalsToCreate - objects to be created
 	 */
-	public List<AccessApproval> createBatch(List<AccessApproval> approvalsToCreate);
+	public void createOrUpdateBatch(List<AccessApproval> approvalsToCreate);
 
 	/**
 	 * Retrieve a list of access approvals for a given subjectIdList
@@ -106,4 +88,24 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
+
+	/**
+	 * Retrieve all active approvals, approvals that have APPROVED state and haven't expired, for the given user.
+	 * 
+	 * @param accessRequirementId
+	 * @param userId
+	 * @return
+	 */
+	public List<AccessApproval> getActiveApprovalsForUser(String accessRequirementId, String userId);
+
+	/**
+	 * Retrieve an access approval given the primary fields
+	 * 
+	 * @param requirementId
+	 * @param requirementVersion
+	 * @param submitterId
+	 * @param accessorId
+	 * @return
+	 */
+	public AccessApproval getByPrimaryKey(Long requirementId, Long requirementVersion, String submitterId, String accessorId);
 }

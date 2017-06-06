@@ -70,7 +70,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
+	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
@@ -129,6 +129,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
+	@Deprecated
 	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
