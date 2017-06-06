@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -208,7 +207,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
-			accessApprovalDao.createBatch(approvalsToCreate);
+			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
@@ -269,8 +268,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
-		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
+		List<AccessApproval> approvals = accessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userInfo.getId().toString());
 
 		boolean isApproved = !approvals.isEmpty();
 		Date expiredOn = null;
