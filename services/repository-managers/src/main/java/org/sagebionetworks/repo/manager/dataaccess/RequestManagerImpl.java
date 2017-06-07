@@ -1,12 +1,17 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -100,7 +105,22 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setCreatedOn(current.getCreatedOn());
 		renewal.setModifiedBy(current.getModifiedBy());
 		renewal.setModifiedOn(current.getModifiedOn());
-		renewal.setAccessors(current.getAccessors());
+		// All current users should be renewed
+		if(current.getAccessorChanges() != null){
+			List<AccessorChange> list = new LinkedList<>();
+			for(AccessorChange oldChange: current.getAccessorChanges()){
+				if(AccessType.REVOKE_ACCESS.equals(oldChange.getType())){
+					// users that were revoked can be ignored this time.
+					continue;
+				}
+				// All other users should be renewed.
+				AccessorChange newChagne = new AccessorChange();
+				newChagne.setUserId(oldChange.getUserId());
+				newChagne.setType(AccessType.RENEW_ACCESS);
+				list.add(newChagne);
+			}
+			renewal.setAccessorChanges(list);
+		}
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
