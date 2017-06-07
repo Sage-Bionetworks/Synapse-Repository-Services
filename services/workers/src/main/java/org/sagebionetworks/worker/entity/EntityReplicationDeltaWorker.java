@@ -14,13 +14,12 @@ import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
-import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -30,32 +29,26 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.google.common.collect.Lists;
 
 /**
  * <p>
- * Entity replication data is normally, kept in-synch with the truth by the
- * {@link EntityReplicationWorker} which replicates entity data by listening to
- * entity change events. However, message delivery is not guaranteed so a
- * secondary process is needed to ensure the entity replication data is kept
- * up-to-date with the truth.
+ * Entity replication data is normally kept in-synch with the truth by the
+ * {@link EntityReplicationWorker} by listening to entity change events.
+ * However, message delivery is not guaranteed so a secondary process is needed
+ * to ensure the entity replication data is kept up-to-date with the truth.
  * </p>
  * <p>
- * This worker provides redundancy for the entity replication process, by
- * checking for delta between the truth and the replicated data. This worker is
- * driven by query events. Each time a query is executed against the entity
- * replication data, an event is generated that includes the container IDs
- * involved in the query. For example, when a query is executed against a table
- * view, an event is generated that includes that IDs of the view's fully
- * expanded scope. This worker 'listens' to these events and performs delta
- * checking for each container ID that has not been checked in the past 10
- * minutes. When deltas are detected, change events are generated to trigger the
- * {@link EntityReplicationWorker} to create, update, or deleted entity
- * replicated data as needed.
+ * This worker checks for discrepancies between the truth and the replicated data for
+ * a given list of container IDs. This worker is driven by query events. Each time a query
+ * is executed against the entity replication data, an event is generated that
+ * includes the container IDs involved in the query. For example, when a query
+ * is executed against a table view, an event is generated that includes that
+ * IDs of the view's fully expanded scope. This worker 'listens' to these events
+ * and performs delta checking for each container ID that has not been checked
+ * in the past 10 minutes. When deltas are detected, change events are generated
+ * to trigger the {@link EntityReplicationWorker} to create, update, or deleted
+ * entity replicated data as needed.
  * </p>
  */
 public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
@@ -66,8 +59,7 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 	/**
 	 * Each container can only be re-synchronized at this frequency.
 	 */
-	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 10; // 10
-																			// minutes.
+	public static final long SYNCHRONIZATION_FEQUENCY_MS = 1000 * 60 * 10; // 10 minutes.
 
 	/**
 	 * The frequency that progress events will propagate to out of this worker.
@@ -82,6 +74,9 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 
 	@Autowired
 	WorkerLogger workerLogger;
+	
+	@Autowired
+	ReplicationMessageManager replicationMessageManager;
 
 	@Autowired
 	Clock clock;
@@ -189,7 +184,7 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 			List<ChangeMessage> childChanges = findChangesForParentId(
 					progressCallback, indexDao, outOfSynchParentId,
 					isParentInTrash);
-			pushMessagesToQueue(childChanges);
+			replicationMessageManager.pushChangeMessagesToReplicationQueue(childChanges);
 			log.info("Published: " + childChanges.size() + " messages to replication queue");
 		}
 	}

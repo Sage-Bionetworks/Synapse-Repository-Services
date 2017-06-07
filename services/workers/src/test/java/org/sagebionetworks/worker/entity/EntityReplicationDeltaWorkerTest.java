@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -27,13 +26,12 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -41,10 +39,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -65,7 +60,7 @@ public class EntityReplicationDeltaWorkerTest {
 	TableIndexDAO mockIndexDao;
 	
 	@Mock
-	AmazonSQSClient mockSqsClient;
+	ReplicationMessageManager mockReplicationMessageManager;
 	
 	@Mock
 	WorkerLogger mockWorkerLog;
@@ -76,8 +71,6 @@ public class EntityReplicationDeltaWorkerTest {
 	@Mock
 	Clock mockClock;
 	
-	String queueName;
-	String queueUrl;
 	
 	EntityReplicationDeltaWorker worker;
 	
@@ -99,18 +92,11 @@ public class EntityReplicationDeltaWorkerTest {
 		worker = new EntityReplicationDeltaWorker();
 		ReflectionTestUtils.setField(worker, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
-		ReflectionTestUtils.setField(worker, "sqsClient", mockSqsClient);
+		ReflectionTestUtils.setField(worker, "replicationMessageManager", mockReplicationMessageManager);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockWorkerLog);
 		ReflectionTestUtils.setField(worker, "clock", mockClock);
 		
 		when(mockConnectionFactory.getAllConnections()).thenReturn(Lists.newArrayList(mockIndexDao));
-		
-		queueName = "someQueueName";
-		queueUrl = "someQueueUrl";
-		worker.setQueueName(queueName);
-		CreateQueueResult cqr = new CreateQueueResult();
-		cqr.setQueueUrl(queueUrl);
-		when(mockSqsClient.createQueue(queueName)).thenReturn(cqr);
 		
 		// truth
 		Map<Long, Long> truthCRCs = new HashMap<Long, Long>();
@@ -167,55 +153,7 @@ public class EntityReplicationDeltaWorkerTest {
 		when(mockClock.currentTimeMillis()).thenReturn(nowMS);
 	}
 	
-	@Test
-	public void testLazyLoadQueueUrl(){
-		// call under test
-		String loadedUrl = worker.lazyLoadQueueUrl();
-		assertEquals(queueUrl, loadedUrl);
-		// multiple calls should only load the URL once.
-		loadedUrl = worker.lazyLoadQueueUrl();
-		loadedUrl = worker.lazyLoadQueueUrl();
-		// should only be called once.
-		verify(mockSqsClient, times(1)).createQueue(queueName);
-	}
-	
-	@Test(expected=IllegalStateException.class)
-	public void testLazyLoadQueueUrlNullQueueName(){
-		worker.setQueueName(null);
-		// call under test
-		worker.lazyLoadQueueUrl();
-	}
-	
-	@Test
-	public void testPushMessagesToQueueOverLimit() throws JSONObjectAdapterException{
-		// Create more messages than the max per batch.
-		List<ChangeMessage> changes = createMessages(ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE+1);
-		// call under test
-		worker.pushMessagesToQueue(changes);
-		// two batches are needed to send all of the messages.
-		verify(mockSqsClient, times(2)).sendMessage(any(SendMessageRequest.class));
-	}
-	
-	@Test
-	public void testPushMessagesToQueue() throws JSONObjectAdapterException{
-		// create a single message
-		List<ChangeMessage> changes = createMessages(1);
-		// call under test
-		worker.pushMessagesToQueue(changes);
-		ChangeMessages messages = new ChangeMessages();
-		messages.setList(changes);
-		String messageBody = EntityFactory.createJSONStringForEntity(messages);
-		SendMessageRequest expected = new SendMessageRequest(queueUrl, messageBody);
-		verify(mockSqsClient).sendMessage(expected);
-	}
-	
-	@Test
-	public void testPushMessagesToQueuEmpty() throws JSONObjectAdapterException{
-		List<ChangeMessage> empty = new LinkedList<>();
-		// call under test
-		worker.pushMessagesToQueue(empty);
-		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
-	}
+
 	
 	@Test
 	public void testCompareCheckSums(){
@@ -324,8 +262,8 @@ public class EntityReplicationDeltaWorkerTest {
 		verify(mockIndexDao, times(4)).getEntityChildren(anyLong());
 		// three non-trashed parents are out-of-synch
 		verify(mockNodeDao, times(3)).getChildren(anyLong());
-		// one batch of changes should be sent.
-		verify(mockSqsClient, times(1)).sendMessage(any(SendMessageRequest.class));
+		// four batches should be set.
+		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(anyListOf(ChangeMessage.class));
 		verify(mockProgressCallback, times(13)).progressMade(null);
 	}
 	

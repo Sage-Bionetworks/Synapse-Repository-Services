@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
@@ -17,6 +19,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,7 +36,6 @@ import com.google.common.collect.Lists;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityReplicationDeltaWorkerIntegrationTest {
-
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
@@ -45,6 +47,8 @@ public class EntityReplicationDeltaWorkerIntegrationTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	ReplicationMessageManager replicationMessageManager;
 	
 	@Mock
 	ProgressCallback<Void> mockProgressCallback;
@@ -80,7 +84,7 @@ public class EntityReplicationDeltaWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testFileView() throws Exception{
+	public void testReconciliation() throws Exception{
 		// wait for the project to replicate from the entity creation event
 		EntityDTO dto = waitForEntityDto(projectId);
 		assertNotNull(dto);
@@ -88,6 +92,15 @@ public class EntityReplicationDeltaWorkerIntegrationTest {
 		
 		// Simulate out-of-synch by deleting the project's replication data
 		indexDao.deleteEntityData(mockProgressCallback, Lists.newArrayList(projectIdLong));
+		
+		// trigger the reconciliation of the container.
+		List<Long> scope = Arrays.asList(projectIdLong);
+		replicationMessageManager.pushContainerIdsToReconciliationQueue(scope);
+		
+		// wait for reconciliation to restore the deleted data.
+		dto = waitForEntityDto(projectId);
+		assertNotNull(dto);
+		assertEquals(projectIdLong, dto.getId());
 	}
 	
 	/**
