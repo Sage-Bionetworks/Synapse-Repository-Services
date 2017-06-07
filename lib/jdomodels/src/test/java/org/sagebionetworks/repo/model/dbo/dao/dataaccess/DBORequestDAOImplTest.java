@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -132,9 +134,13 @@ public class DBORequestDAOImplTest {
 				dto.getAccessRequirementId(), dto.getCreatedBy()));
 		assertEquals(dto, (Request) requestDao.get(dto.getId()));
 		toDelete = dto.getId();
+		
+		AccessorChange add = new AccessorChange();
+		add.setUserId("666");
+		add.setType(AccessType.GAIN_ACCESS);
 
 		// update
-		dto.setAccessors(Arrays.asList("666"));
+		dto.setAccessorChanges(Arrays.asList(add));
 		final RequestInterface updated = requestDao.update(dto);
 		dto.setEtag(updated.getEtag());
 		assertEquals(dto, updated);

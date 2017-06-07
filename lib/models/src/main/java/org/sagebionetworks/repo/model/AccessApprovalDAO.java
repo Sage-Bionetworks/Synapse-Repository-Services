@@ -81,15 +81,6 @@ public interface AccessApprovalDAO {
 	public int deleteBatch(List<Long> list);
 
 	/**
-	 * Retrieve approved users
-	 * 
-	 * @param userIds
-	 * @param accessRequirementId
-	 * @return
-	 */
-	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
-
-	/**
 	 * Retrieve all active approvals, approvals that have APPROVED state and haven't expired, for the given user.
 	 * 
 	 * @param accessRequirementId
@@ -108,4 +99,13 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	public AccessApproval getByPrimaryKey(Long requirementId, Long requirementVersion, String submitterId, String accessorId);
+
+	/**
+	 * @param accessorsIds
+	 * @param string
+	 * @param accessRequirementId
+	 * @return true if all accessors have an approval for the given access requirement
+	 * submitted by submitterId; false otherise.
+	 */
+	public boolean hasApprovalsSubmittedBy(Set<String> accessorsIds, String submitterId, String accessRequirementId);
 }

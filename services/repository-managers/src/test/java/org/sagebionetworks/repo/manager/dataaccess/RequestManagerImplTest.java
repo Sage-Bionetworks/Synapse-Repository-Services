@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
+import java.util.Arrays;
 import java.util.Date;
 
 import org.junit.Before;
@@ -22,6 +23,8 @@ import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -205,7 +208,6 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
@@ -314,6 +316,16 @@ public class RequestManagerImplTest {
 	@Test
 	public void testCreateRenewalFromRequest() {
 		Request request = createNewRequest();
+		AccessorChange change1 = new AccessorChange();
+		change1.setUserId("1");
+		change1.setType(AccessType.GAIN_ACCESS);
+		AccessorChange change2 = new AccessorChange();
+		change2.setUserId("2");
+		change2.setType(AccessType.RENEW_ACCESS);
+		AccessorChange change3 = new AccessorChange();
+		change3.setUserId("3");
+		change3.setType(AccessType.REVOKE_ACCESS);
+		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
 		Renewal renewal = manager.createRenewalFromRequest(request);
 		assertEquals(requestId, renewal.getId());
@@ -327,9 +339,10 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+		change1.setType(AccessType.RENEW_ACCESS);
+		assertEquals(renewal.getAccessorChanges(), Arrays.asList(change1, change2));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

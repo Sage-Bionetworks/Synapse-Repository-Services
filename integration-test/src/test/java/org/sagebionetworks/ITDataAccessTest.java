@@ -28,8 +28,8 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -128,7 +128,16 @@ public class ITDataAccessTest {
 
 		String adminId = adminSynapse.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
 		String userId = synapseOne.getMyOwnUserBundle(1).getUserProfile().getOwnerId();
-		createdRequest.setAccessors(Arrays.asList(adminId, userId));
+
+		AccessorChange adminChange = new AccessorChange();
+		adminChange.setUserId(adminId);
+		adminChange.setType(AccessType.GAIN_ACCESS);
+
+		AccessorChange userChange = new AccessorChange();
+		userChange.setUserId(userId);
+		userChange.setType(AccessType.GAIN_ACCESS);
+
+		createdRequest.setAccessorChanges(Arrays.asList(adminChange, userChange));
 		Request updatedRequest = (Request) synapseOne.createOrUpdateRequest(createdRequest);
 
 		SubmissionStatus status = synapseOne.submitRequest(updatedRequest.getId(), updatedRequest.getEtag());
@@ -164,14 +173,6 @@ public class ITDataAccessTest {
 		assertNotNull(submissions);
 		assertEquals(1, submissions.getResults().size());
 		assertEquals(submission, submissions.getResults().get(0));
-
-		BatchAccessApprovalRequest batchRequest = new BatchAccessApprovalRequest();
-		batchRequest.setUserIds(Arrays.asList(userId));
-		batchRequest.setAccessRequirementId(accessRequirement.getId().toString());
-		BatchAccessApprovalResult batchResult = adminSynapse.getAccessApprovalInfo(batchRequest);
-		assertNotNull(batchResult);
-		assertNotNull(batchResult.getResults());
-		assertEquals(1, batchResult.getResults().size());
 	}
 
 }

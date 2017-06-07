@@ -1,0 +1,20 @@
+{
+	"description": "Request for a single user change access to a resource.",
+	"properties": {
+		"userId":{
+			"type": "string",
+			"description": "The ID of the user."
+		},
+		"type": {
+			"type": "string",
+			"description": "The type of access change for this user. Users can gain access, renew access, or have access revoked.",
+			"name": "AccessType",
+			"id": "org.sagebionetworks.repo.model.dataaccess.AccessType",
+			"enum": [
+				"GAIN_ACCESS",
+				"RENEW_ACCESS",
+				"REVOKE_ACCESS"
+			]
+		}
+	}
+}

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
@@ -132,23 +133,46 @@ public class SubmissionManagerImpl implements SubmissionManager{
 					"You must provide the required attachment(s).");
 			submissionToCreate.setAttachments(request.getAttachments());
 		}
-		ValidateArgument.requirement(request.getAccessors() != null && !request.getAccessors().isEmpty(),
+		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
-		Set<String> accessors = new HashSet<String>();
-		accessors.addAll(request.getAccessors());
+
+		Set<String> accessorsWillHaveAccess = new HashSet<String>();
+		Set<String> accessorsAlreadyHaveAccess = new HashSet<String>();
+		for (AccessorChange ac : request.getAccessorChanges()) {
+			switch (ac.getType()) {
+				case GAIN_ACCESS:
+					accessorsWillHaveAccess.add(ac.getUserId());
+					break;
+				case RENEW_ACCESS:
+					accessorsWillHaveAccess.add(ac.getUserId());
+					accessorsAlreadyHaveAccess.add(ac.getUserId());
+					break;
+				case REVOKE_ACCESS:
+					accessorsAlreadyHaveAccess.add(ac.getUserId());
+					break;
+			}
+		}
+
 		if (actAR.getIsCertifiedUserRequired()) {
 			ValidateArgument.requirement(groupMembersDao.areMemberOf(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors),
+					accessorsWillHaveAccess),
 					"Accessors must be Synapse Certified Users.");
 		}
 		if (actAR.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
+			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessorsWillHaveAccess),
 					"Accessors must have validated profiles.");
 		}
-		ValidateArgument.requirement(accessors.contains(userInfo.getId().toString()),
+
+		if (!accessorsAlreadyHaveAccess.isEmpty()) {
+			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
+					accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
+					"Cannot revoke / renew access for user who ");
+		}
+
+		ValidateArgument.requirement(accessorsWillHaveAccess.contains(userInfo.getId().toString()),
 				"Submitter has to be an accessor.");
-		submissionToCreate.setAccessors(new LinkedList<String>(accessors));
+		submissionToCreate.setAccessorChanges(request.getAccessorChanges());
 
 		if (request instanceof Renewal) {
 			submissionToCreate.setIsRenewalSubmission(true);
@@ -228,9 +252,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
 		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
-		for (String accessor : submission.getAccessors()) {
+		for (AccessorChange ac : submission.getAccessorChanges()) {
 			AccessApproval approval = new AccessApproval();
-			approval.setAccessorId(accessor);
+			approval.setAccessorId(ac.getUserId());
 			approval.setCreatedBy(createdBy);
 			approval.setCreatedOn(createdOn);
 			approval.setModifiedBy(createdBy);
@@ -239,7 +263,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setRequirementVersion(submission.getAccessRequirementVersion());
 			approval.setSubmitterId(submission.getSubmittedBy());
 			approval.setExpiredOn(expiredOn);
-			approval.setState(ApprovalState.APPROVED);
+			switch (ac.getType()) {
+				case GAIN_ACCESS:
+				case RENEW_ACCESS:
+					approval.setState(ApprovalState.APPROVED);
+					break;
+				case REVOKE_ACCESS:
+					approval.setState(ApprovalState.REVOKED);
+					break;
+			}
 			approvals.add(approval);
 		}
 		return approvals;

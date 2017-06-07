@@ -124,6 +124,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+" FROM "+TABLE_ACCESS_APPROVAL
 			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID
 			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
 			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
@@ -261,20 +262,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	}
 
 	@Override
-	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId) {
-		Set<String> result = new HashSet<String>();
-		if (userIds.isEmpty()){
-			return result;
-		}
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
-		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userIds);
-		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
-		result.addAll(approvedUsers);
-		return result;
-	}
-
-	@Override
 	public List<AccessApproval> getActiveApprovalsForUser(String accessRequirementId, String userId) {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -285,5 +272,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			dtos.add(AccessApprovalUtils.copyDboToDto(dbo));
 		}
 		return dtos;
+	}
+
+	@Override
+	public boolean hasApprovalsSubmittedBy(Set<String> accessorIds, String submitterId, String accessRequirementId) {
+		if (accessorIds.isEmpty()) {
+			return true;
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorIds);
+		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
+		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
+		return approvedUsers.containsAll(accessorIds);
 	}
 }

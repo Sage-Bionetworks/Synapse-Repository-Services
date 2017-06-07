@@ -108,8 +108,6 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -4992,13 +4990,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url += "?nextPageToken="+nextPageToken;
 		}
 		return getJSONEntity(getRepoEndpoint(), url, OpenSubmissionPage.class);
-	}
-
-	@Override
-	public BatchAccessApprovalResult getAccessApprovalInfo(BatchAccessApprovalRequest batchRequest)
-			throws SynapseException {
-		ValidateArgument.required(batchRequest, "batchRequest");
-		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/batch", batchRequest, BatchAccessApprovalResult.class);
 	}
 
 	@Override
