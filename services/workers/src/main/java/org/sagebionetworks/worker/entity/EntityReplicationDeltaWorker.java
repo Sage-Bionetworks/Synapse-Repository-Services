@@ -81,9 +81,6 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 	ConnectionFactory connectionFactory;
 
 	@Autowired
-	AmazonSQSClient sqsClient;
-
-	@Autowired
 	WorkerLogger workerLogger;
 
 	@Autowired
