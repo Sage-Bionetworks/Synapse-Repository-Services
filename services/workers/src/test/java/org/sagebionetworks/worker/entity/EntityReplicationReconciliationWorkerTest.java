@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
  *
  */
 @RunWith(MockitoJUnitRunner.class)
-public class EntityReplicationDeltaWorkerTest {
+public class EntityReplicationReconciliationWorkerTest {
 
 	@Mock
 	NodeDAO mockNodeDao;
@@ -72,7 +72,7 @@ public class EntityReplicationDeltaWorkerTest {
 	Clock mockClock;
 	
 	
-	EntityReplicationDeltaWorker worker;
+	EntityReplicationReconciliationWorker worker;
 	
 	Long firstParentId;
 	List<Long> parentIds;
@@ -89,7 +89,7 @@ public class EntityReplicationDeltaWorkerTest {
 	
 	@Before
 	public void before() throws JSONObjectAdapterException{
-		worker = new EntityReplicationDeltaWorker();
+		worker = new EntityReplicationReconciliationWorker();
 		ReflectionTestUtils.setField(worker, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(worker, "connectionFactory", mockConnectionFactory);
 		ReflectionTestUtils.setField(worker, "replicationMessageManager", mockReplicationMessageManager);
@@ -253,7 +253,7 @@ public class EntityReplicationDeltaWorkerTest {
 	public void testFindDeltas() throws Exception{
 		// see before() for test setup.
 		// call under test
-		worker.findDeltas(mockProgressCallback, mockIndexDao, parentIds, trashedParents);
+		worker.findChildrenDeltas(mockProgressCallback, mockIndexDao, parentIds, trashedParents);
 		
 		verify(mockNodeDao).getSumOfChildCRCsForEachParent(parentIds);
 		verify(mockIndexDao).getSumOfChildCRCsForEachParent(parentIds);
@@ -312,7 +312,7 @@ public class EntityReplicationDeltaWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		// The expiration should be set for the first parent
-		long expectedExpires = nowMS + EntityReplicationDeltaWorker.SYNCHRONIZATION_FEQUENCY_MS;
+		long expectedExpires = nowMS + EntityReplicationReconciliationWorker.SYNCHRONIZATION_FEQUENCY_MS;
 		verify(mockIndexDao).setContainerSynchronizationExpiration(Lists.newArrayList(firstParentId), expectedExpires);
 		
 		// no exceptions should occur.
@@ -329,7 +329,7 @@ public class EntityReplicationDeltaWorkerTest {
 		
 		// the exception should be logged
 		boolean willRetry = false;
-		verify(mockWorkerLog).logWorkerFailure(EntityReplicationDeltaWorker.class.getName(), exception, willRetry);
+		verify(mockWorkerLog).logWorkerFailure(EntityReplicationReconciliationWorker.class.getName(), exception, willRetry);
 	}
 	
 	/**

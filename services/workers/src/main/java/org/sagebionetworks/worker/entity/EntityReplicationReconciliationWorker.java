@@ -11,7 +11,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.common.util.Clock;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
@@ -39,7 +39,7 @@ import com.amazonaws.services.sqs.model.Message;
  * to ensure the entity replication data is kept up-to-date with the truth.
  * </p>
  * <p>
- * This worker checks for discrepancies between the truth and the replicated data for
+ * This worker reconciles discrepancies between the truth and the replicated data for
  * a given list of container IDs. This worker is driven by query events. Each time a query
  * is executed against the entity replication data, an event is generated that
  * includes the container IDs involved in the query. For example, when a query
@@ -51,10 +51,10 @@ import com.amazonaws.services.sqs.model.Message;
  * entity replicated data as needed.
  * </p>
  */
-public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
+public class EntityReplicationReconciliationWorker implements MessageDrivenRunner {
 
 	static private Logger log = LogManager
-			.getLogger(EntityReplicationDeltaWorker.class);
+			.getLogger(EntityReplicationReconciliationWorker.class);
 
 	/**
 	 * Each container can only be re-synchronized at this frequency.
@@ -107,11 +107,11 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 
 			// Determine which parents are in the trash
 			Set<Long> trashedParents = getTrashedContainers(expiredContainerIds);
-
-			// Find all deltas for the expired containers.
-			findDeltas(progressCallback, indexDao, expiredContainerIds,
+			
+			// Find all children deltas for the expired containers.
+			findChildrenDeltas(progressCallback, indexDao, expiredContainerIds,
 					trashedParents);
-
+			
 			// re-set the expiration for all containers that were synchronized.
 			long newExpirationDateMs = clock.currentTimeMillis()
 					+ SYNCHRONIZATION_FEQUENCY_MS;
@@ -122,7 +122,7 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 			log.error("Failed:", cause);
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(
-					EntityReplicationDeltaWorker.class.getName(), cause,
+					EntityReplicationReconciliationWorker.class.getName(), cause,
 					willRetry);
 		}
 	}
@@ -165,13 +165,13 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 	}
 
 	/**
-	 * Find the deltas for one page of parentIds.
+	 * Find the children deltas for the parents that are out-of-synch.
 	 * 
 	 * @param progressCallback
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException
 	 */
-	public void findDeltas(ProgressCallback<Void> progressCallback,
+	public void findChildrenDeltas(ProgressCallback<Void> progressCallback,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) throws JSONObjectAdapterException {
 		// Find the parents out-of-synch.

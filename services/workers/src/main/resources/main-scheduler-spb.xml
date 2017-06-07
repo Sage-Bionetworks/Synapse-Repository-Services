@@ -52,6 +52,7 @@
     <import resource="classpath:table-entity-replication-worker-spb.xml"/>
     <import resource="classpath:migration-sqs-spb.xml" />
     <import resource="classpath:entity-hierarchy-change-worker-spb.xml" />
+    <import resource="classpath:entity-replication-reconciliation-worker-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -90,9 +91,10 @@
 				<!-- workers publish messages too -->
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="tableViewWorkerTrigger" />
-				<ref bean="tableTransactionMessageReveiverTrigger" />
-				<ref bean="tableEntityReplicationWorkerReveiverTrigger" />
+				<ref bean="tableTransactionMessageTrigger" />
+				<ref bean="tableEntityReplicationWorkerTrigger" />
 				<ref bean="entityHierarchyChangeWorkerTrigger" />
+				<ref bean="entityReplicationReconciliationWorkerTrigger" />
 			</list>
 		</property>
 	</bean>

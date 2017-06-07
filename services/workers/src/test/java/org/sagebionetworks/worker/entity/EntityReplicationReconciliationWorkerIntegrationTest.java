@@ -35,7 +35,7 @@ import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityReplicationDeltaWorkerIntegrationTest {
+public class EntityReplicationReconciliationWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
@@ -94,7 +94,8 @@ public class EntityReplicationDeltaWorkerIntegrationTest {
 		indexDao.deleteEntityData(mockProgressCallback, Lists.newArrayList(projectIdLong));
 		
 		// trigger the reconciliation of the container.
-		List<Long> scope = Arrays.asList(projectIdLong);
+		Long projectParent = KeyFactory.stringToKey(project.getParentId());
+		List<Long> scope = Arrays.asList(projectParent);
 		replicationMessageManager.pushContainerIdsToReconciliationQueue(scope);
 		
 		// wait for reconciliation to restore the deleted data.
