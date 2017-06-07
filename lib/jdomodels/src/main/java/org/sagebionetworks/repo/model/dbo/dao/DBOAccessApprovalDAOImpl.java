@@ -276,6 +276,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	@Override
 	public boolean hasApprovalsSubmittedBy(Set<String> accessorIds, String submitterId, String accessRequirementId) {
+		if (accessorIds.isEmpty()) {
+			return true;
+		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorIds);

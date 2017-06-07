@@ -164,9 +164,11 @@ public class SubmissionManagerImpl implements SubmissionManager{
 					"Accessors must have validated profiles.");
 		}
 
-		ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
-				accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
-				"Cannot revoke / renew access for user who ");
+		if (!accessorsAlreadyHaveAccess.isEmpty()) {
+			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
+					accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
+					"Cannot revoke / renew access for user who ");
+		}
 
 		ValidateArgument.requirement(accessorsWillHaveAccess.contains(userInfo.getId().toString()),
 				"Submitter has to be an accessor.");
