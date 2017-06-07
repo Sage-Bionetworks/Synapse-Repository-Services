@@ -86,17 +86,6 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 	@Autowired
 	Clock clock;
 
-	String queueName;
-	String queueUrl;
-
-	/**
-	 * Injected.
-	 * 
-	 * @param queueName
-	 */
-	public void setQueueName(String queueName) {
-		this.queueName = queueName;
-	}
 
 	@Override
 	public void run(ProgressCallback<Void> progressCallback, Message message) {
@@ -201,8 +190,7 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 					progressCallback, indexDao, outOfSynchParentId,
 					isParentInTrash);
 			pushMessagesToQueue(childChanges);
-			log.info("Published: " + childChanges.size() + " messages to "
-					+ queueUrl);
+			log.info("Published: " + childChanges.size() + " messages to replication queue");
 		}
 	}
 
@@ -334,52 +322,4 @@ public class EntityReplicationDeltaWorker implements MessageDrivenRunner {
 		}
 		return parentsOutOfSynch;
 	}
-
-	/**
-	 * Publish the given messages to the Entity replication queue.
-	 * 
-	 * @param toPush
-	 * @throws JSONObjectAdapterException
-	 */
-	public void pushMessagesToQueue(List<ChangeMessage> toPush)
-			throws JSONObjectAdapterException {
-		if (toPush.isEmpty()) {
-			// nothing to do.
-			return;
-		}
-		List<List<ChangeMessage>> batches = Lists
-				.partition(
-						toPush,
-						ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE);
-		for (List<ChangeMessage> batch : batches) {
-			ChangeMessages messages = new ChangeMessages();
-			messages.setList(batch);
-			String messageBody = EntityFactory
-					.createJSONStringForEntity(messages);
-			String queueUrl = lazyLoadQueueUrl();
-			sqsClient
-					.sendMessage(new SendMessageRequest(queueUrl, messageBody));
-		}
-	}
-
-	/**
-	 * Lazy load the queue URL.
-	 * 
-	 * @return
-	 */
-	public String lazyLoadQueueUrl() {
-		if (queueName == null) {
-			throw new IllegalStateException("Queue name cannot be null");
-		}
-		if (this.sqsClient == null) {
-			throw new IllegalStateException("SQS client cannot be null");
-		}
-		if (queueUrl == null) {
-			// lookup the queue name the first time only.
-			CreateQueueResult result = this.sqsClient.createQueue(queueName);
-			this.queueUrl = result.getQueueUrl();
-		}
-		return this.queueUrl;
-	}
-
 }
