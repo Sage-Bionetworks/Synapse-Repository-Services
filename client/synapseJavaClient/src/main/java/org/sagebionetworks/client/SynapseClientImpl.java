@@ -4995,13 +4995,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public BatchAccessApprovalResult getAccessApprovalInfo(BatchAccessApprovalRequest batchRequest)
-			throws SynapseException {
-		ValidateArgument.required(batchRequest, "batchRequest");
-		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/batch", batchRequest, BatchAccessApprovalResult.class);
-	}
-
-	@Override
 	public String lookupChild(String parentId, String entityName) throws SynapseException {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(entityName, "entityName");

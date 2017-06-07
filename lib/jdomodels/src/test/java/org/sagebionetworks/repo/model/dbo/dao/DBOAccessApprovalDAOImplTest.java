@@ -37,6 +37,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Sets;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessApprovalDAOImplTest {
@@ -241,10 +243,9 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
-		Set<String> approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
-		assertNotNull(approvedUsers);
-		assertEquals(1, approvedUsers.size());
-		assertTrue(approvedUsers.contains(individualGroup.getId().toString()));
+		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
+				Sets.newHashSet(individualGroup.getId().toString()),
+				individualGroup.getId(), accessRequirement.getId().toString()));
 
 		// creating an approval is idempotent:
 		// make a second one...
@@ -256,9 +257,9 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// Delete it
 		accessApprovalDAO.delete(id);
-		approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
-		assertNotNull(approvedUsers);
-		assertTrue(approvedUsers.isEmpty());
+		assertFalse(accessApprovalDAO.hasApprovalsSubmittedBy(
+				Sets.newHashSet(individualGroup.getId().toString()),
+				individualGroup.getId(), accessRequirement.getId().toString()));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
