@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -84,6 +85,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
 		tableIndexDAO.deleteSecondaryTables(tableId);
+		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 	}
 
 	@After
@@ -378,195 +380,6 @@ public class TableIndexDAOImplTest {
 		verify(mockProgressCallback, times(2)).progressMade(null);
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
-	}
-
-	private StackConfiguration oldStackConfiguration = null;
-
-	@Test
-	@Ignore
-	public void testLargeTableReverse() throws ParseException {
-		oldStackConfiguration = StackConfiguration.singleton();
-		StackConfiguration mockedStackConfiguration = Mockito
-				.spy(oldStackConfiguration);
-		stub(mockedStackConfiguration.getTableAllIndexedEnabled()).toReturn(!oldStackConfiguration
-						.getTableAllIndexedEnabled());
-		ReflectionTestUtils.setField(StackConfiguration.singleton(),
-				"singleton", mockedStackConfiguration);
-
-		testLargeTable();
-
-		try {
-		} finally {
-			if (oldStackConfiguration != null) {
-				ReflectionTestUtils.setField(StackConfiguration.singleton(),
-						"singleton", oldStackConfiguration);
-			}
-		}
-	}
-
-	@Test
-	@Ignore
-	public void testLargeTableJustInTime() throws ParseException {
-		oldStackConfiguration = StackConfiguration.singleton();
-		StackConfiguration mockedStackConfiguration = Mockito
-				.spy(oldStackConfiguration);
-		// stub(mockedStackConfiguration.getTableJustInTimeIndexedEnabled()).toReturn(new
-		// ImmutablePropertyAccessor<Boolean>(true));
-		ReflectionTestUtils.setField(StackConfiguration.singleton(),
-				"singleton", mockedStackConfiguration);
-
-		testLargeTable();
-
-		try {
-		} finally {
-			if (oldStackConfiguration != null) {
-				ReflectionTestUtils.setField(StackConfiguration.singleton(),
-						"singleton", oldStackConfiguration);
-			}
-		}
-	}
-
-	@Test
-	@Ignore
-	public void testLargeTable() throws ParseException {
-		// Create the table
-		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		createOrUpdateTable(allTypes, tableId);
-		// Now add some data
-		long startTime = System.currentTimeMillis();
-		List<SelectColumn> headers = TableModelUtils.getSelectColumns(allTypes);
-		final int endgoal = 10000000;
-		final int batchsize = 100000;
-		final int distinctCount = 100;
-		for (int i = 0; i < endgoal / batchsize; i++) {
-			System.out.print(i);
-			List<Row> rows = Lists.newArrayListWithCapacity(batchsize);
-			for (int j = 0; j < batchsize; j += distinctCount) {
-				rows.addAll(TableModelTestUtils.createRows(allTypes,
-						distinctCount));
-			}
-			RowSet set = new RowSet();
-			set.setRows(rows);
-			set.setHeaders(headers);
-			set.setTableId(tableId);
-			IdRange range = new IdRange();
-			range.setMinimumId(100L + i * batchsize);
-			range.setMaximumId(100L + i * batchsize + batchsize);
-			range.setVersionNumber(3L + i);
-			TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-			// Now fill the table with data
-			createOrUpdateOrDeleteRows(set, allTypes);
-		}
-		System.out.println("");
-
-		List<Object> times = Lists.newArrayList();
-
-		times.add("Loading");
-		times.add(System.currentTimeMillis() - startTime);
-
-		runTest(allTypes, endgoal, distinctCount, times);
-		runTest(allTypes, endgoal, distinctCount, times);
-
-		System.err.println("All indexes: "
-				+ StackConfiguration.singleton().getTableAllIndexedEnabled());
-		// System.err.println("Just in time indexes: " +
-		// StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get());
-		for (int i = 0; i < times.size(); i += 2) {
-			System.err.println(times.get(i) + ": "
-					+ ((Long) times.get(i + 1) / 1000L));
-		}
-	}
-
-	private void runTest(List<ColumnModel> allTypes, final int endgoal,
-			final int distinctCount, List<Object> times) throws ParseException {
-		long now;
-		long startTime = System.currentTimeMillis();
-
-		SqlQuery query;
-		RowSet results;
-
-		query = new SqlQuery("select distinct * from " + tableId, allTypes);
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		assertEquals(distinctCount, results.getRows().size());
-		now = System.currentTimeMillis();
-		times.add("Distinct");
-		times.add(now - startTime);
-		startTime = now;
-
-		query = new SqlQuery("select distinct * from " + tableId, allTypes);
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		assertEquals(distinctCount, results.getRows().size());
-		now = System.currentTimeMillis();
-		times.add("Distinct2");
-		times.add(now - startTime);
-		startTime = now;
-
-		// if
-		// (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get())
-		// {
-		// tableIndexDAO.addIndex(tableId, allTypes.get(0));
-		// }
-		query = new SqlQuery("select * from " + tableId + " where "
-				+ allTypes.get(0).getName() + " = '"
-				+ results.getRows().get(0).getValues().get(0) + "'", allTypes);
-		// Now query for the results
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		now = System.currentTimeMillis();
-		times.add("Select");
-		times.add(now - startTime);
-		startTime = now;
-
-		query = new SqlQuery("select * from " + tableId + " limit 20", allTypes);
-		// Now query for the results
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		now = System.currentTimeMillis();
-		times.add("Limit");
-		times.add(now - startTime);
-		startTime = now;
-
-		// if
-		// (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get())
-		// {
-		// tableIndexDAO.addIndex(tableId, allTypes.get(1));
-		// }
-		query = new SqlQuery("select * from " + tableId + " order by "
-				+ allTypes.get(1).getName() + " asc limit 20", allTypes);
-		// Now query for the results
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		now = System.currentTimeMillis();
-		times.add("Limit sort asc");
-		times.add(now - startTime);
-		startTime = now;
-
-		// if
-		// (StackConfiguration.singleton().getTableJustInTimeIndexedEnabled().get())
-		// {
-		// tableIndexDAO.addIndex(tableId, allTypes.get(2));
-		// }
-		query = new SqlQuery("select * from " + tableId + " order by "
-				+ allTypes.get(2).getName() + " desc limit 20", allTypes);
-		// Now query for the results
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		now = System.currentTimeMillis();
-		times.add("Limit sort desc");
-		times.add(now - startTime);
-		startTime = now;
-
-		query = new SqlQuery("select count(*) from " + tableId, allTypes);
-		// Now query for the results
-		results = tableIndexDAO.query(mockProgressCallback, query);
-		assertNotNull(results);
-		assertEquals("" + endgoal, results.getRows().get(0).getValues().get(0));
-		now = System.currentTimeMillis();
-		times.add("Count");
-		times.add(now - startTime);
-		startTime = now;
 	}
 
 	@Test
@@ -1356,7 +1169,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testEntityReplication(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
 		
@@ -1376,7 +1188,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testEntityReplicationWithNulls(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
 		
@@ -1394,7 +1205,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testEntityReplicationUpdate(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
 		
@@ -1412,7 +1222,6 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCalculateCRC32ofEntityReplicationScopeFile(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
 		
@@ -1443,7 +1252,6 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCalculateCRC32ofEntityReplicationScopeProject(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L));
 		
@@ -1473,7 +1281,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testCalculateCRC32ofEntityReplicationNoRows(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// nothing should have this scope
 		Set<Long> scope = Sets.newHashSet(99999L);
 		// call under test
@@ -1505,7 +1312,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testCopyEntityReplicationToTable(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1540,7 +1346,6 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1579,7 +1384,6 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1611,7 +1415,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationsForContainers(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1649,7 +1452,6 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetPossibleAnnotationsForContainersProject(){
-		tableIndexDAO.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1683,6 +1485,120 @@ public class TableIndexDAOImplTest {
 		assertEquals("key10", cm.getName());
 		assertEquals(ColumnType.DOUBLE, cm.getColumnType());
 		assertEquals(null, cm.getMaximumSize());
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParent(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		Long parentThreeId = 444L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		List<Long> parentIds = Lists.newArrayList(parentOneId,parentTwoId,parentThreeId);
+		// call under test
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(new Long(122929132L), results.get(parentOneId));
+		assertEquals(new Long(3592651982L), results.get(parentTwoId));
+		assertEquals(null, results.get(parentThreeId));
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParentEmpty(){		
+		List<Long> parentIds = new LinkedList<Long>();
+		// call under test
+		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testGetEntityChildren(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
+		
+		Long parentOneId = 333L;
+		Long parentTwoId = 222L;
+		Long parentThreeId = 444L;
+		// setup some hierarchy.
+		EntityDTO file1 = createEntityDTO(2L, EntityType.file, 2);
+		file1.setParentId(parentOneId);
+		EntityDTO file2 = createEntityDTO(3L, EntityType.file, 3);
+		file2.setParentId(parentTwoId);
+		
+		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(file1, file2));
+		
+		List<IdAndEtag> results = tableIndexDAO.getEntityChildren(parentOneId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag()), results.get(0));
+		
+		results = tableIndexDAO.getEntityChildren(parentTwoId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag()), results.get(0));
+		
+		results = tableIndexDAO.getEntityChildren(parentThreeId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testReplicationExpiration() throws InterruptedException{
+		tableIndexDAO.truncateReplicationSyncExpiration();
+		Long one = 111L;
+		Long two = 222L;
+		Long three = 333L;
+		List<Long> input = Lists.newArrayList(one,two,three);
+		// call under test
+		List<Long> expired = tableIndexDAO.getExpiredContainerIds(input);
+		assertNotNull(expired);
+		// all three should be expired
+		assertEquals(Lists.newArrayList(one,two,three), expired);
+		
+		// Set two and three to expire in the future
+		long now = System.currentTimeMillis();
+		long timeout = 4 * 1000;
+		long expires = now + timeout;
+		// call under test
+		tableIndexDAO.setContainerSynchronizationExpiration(Lists.newArrayList(two, three), expires);
+		// set one to already be expired
+		expires = now - 1;
+		tableIndexDAO.setContainerSynchronizationExpiration(Lists.newArrayList(one), expires);
+		// one should still be expired.
+		expired = tableIndexDAO.getExpiredContainerIds(input);
+		assertNotNull(expired);
+		// all three should be expired
+		assertEquals(Lists.newArrayList(one), expired);
+		// wait for the two to expire
+		Thread.sleep(timeout+1);
+		// all three should be expired
+		expired = tableIndexDAO.getExpiredContainerIds(input);
+		assertNotNull(expired);
+		// all three should be expired
+		assertEquals(Lists.newArrayList(one,two,three), expired);
+	}
+	
+	@Test
+	public void testReplicationExpirationEmpty() throws InterruptedException{
+		List<Long> empty = new LinkedList<Long>();
+		// call under test
+		List<Long> results  = tableIndexDAO.getExpiredContainerIds(empty);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+		Long expires = 0L;
+		// call under test
+		tableIndexDAO.setContainerSynchronizationExpiration(empty, expires);
 	}
 	
 	/**

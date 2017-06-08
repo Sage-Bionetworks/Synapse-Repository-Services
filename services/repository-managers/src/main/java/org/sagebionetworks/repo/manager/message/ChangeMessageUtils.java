@@ -25,6 +25,11 @@ public class ChangeMessageUtils {
 	 * Amazon SQS messages body.
 	 */
 	public static final int MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE = 500;
+	
+	/**
+	 * The maximum number of IDs that can be written to a single Amazon SQL message body.
+	 */
+	public static final int MAX_NUMBER_OF_ID_MESSAGES_PER_SQS_MESSAGE = 1000;
 
 	/**
 	 * Given an unbounded list of ChangeMessages, first group all change

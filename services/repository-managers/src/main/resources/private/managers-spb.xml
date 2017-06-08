@@ -526,4 +526,12 @@
 	<bean id="dataAccessSubmissionManager"
 		class="org.sagebionetworks.repo.manager.dataaccess.SubmissionManagerImpl"
 		scope="singleton" />
+
+	<bean id="replicationMessageManager"
+		class="org.sagebionetworks.repo.manager.entity.ReplicationMessageManagerImpl"
+		scope="singleton" init-method="initialize">
+		<property name="replicationQueueName" ref="stackConfiguration.workerQueueName[TableEntityReplicationWorker]" />
+		<property name="reconciliationQueueName" ref="stackConfiguration.workerQueueName[EntityReplicationReconciliationWorker]" />
+	</bean>
+
 </beans>

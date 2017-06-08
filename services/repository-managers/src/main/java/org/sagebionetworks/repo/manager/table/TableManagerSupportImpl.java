@@ -12,11 +12,13 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -107,6 +109,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	AuthorizationManager authorizationManager;
 	@Autowired
 	ExecutorService tableSupportExecutorService;
+	@Autowired
+	ReplicationMessageManager replicationMessageManager;
 	
 	/*
 	 * Cache of default ColumnModels for views.  Once created, these columns will not change
@@ -322,8 +326,25 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		// Start with all container IDs that define the view's scope
 		ViewType type = getViewType(tableId);
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, type);
+		// Trigger the reconciliation of this view's scope.
+		triggerScopeReconciliation(type, viewContainers);
 		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
 		return indexDao.calculateCRC32ofEntityReplicationScope(type, viewContainers);
+	}
+
+	@Override
+	public void triggerScopeReconciliation(ViewType type, Set<Long> viewContainers) {
+		// Trigger the reconciliation of this view
+		List<Long> containersToReconcile = new LinkedList<Long>();
+		if(ViewType.project.equals(type)){
+			// project views reconcile with root.
+			Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+			containersToReconcile.add(rootId);
+		}else{
+			// all other views reconcile one the view's scope.
+			containersToReconcile.addAll(viewContainers);
+		}
+		this.replicationMessageManager.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
 	
 	/*

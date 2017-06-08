@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="tableTransactionMessageTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+	<bean id="entityReplicationReconciliationWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,16 +26,14 @@
 							<bean
 								class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.TableTransactionWorker"/>
+									<bean class="org.sagebionetworks.worker.entity.EntityReplicationReconciliationWorker" />
 								</property>
-								<property name="semaphoreLockKey" value="tableTransactionWorker" />
-								<property name="semaphoreMaxLockCount" value="8" />
-								<property name="semaphoreLockAndMessageVisibilityTimeoutSec"
-									value="300" />
-								<property name="queueName"
-									ref="stackConfiguration.asyncQueueName[TABLE_UPDATE_TRANSACTION]" />
+								<property name="semaphoreLockKey" value="entityReplicationReconciliationWorker" />
+								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="60" />
+								<property name="queueName" ref="stackConfiguration.workerQueueName[EntityReplicationReconciliationWorker]"/>
 								<property name="gate">
-									<bean class="org.sagebionetworks.worker.utils.StackStatusGate" />
+									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
 							</bean>
 						</constructor-arg>
@@ -46,8 +44,8 @@
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="13" />
-		<property name="repeatInterval" value="1377" />
+		<property name="startDelay" value="17" />
+		<property name="repeatInterval" value="2034" />
 	</bean>
 
 </beans>
