@@ -2,12 +2,9 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -51,39 +48,11 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Lists;
-
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
-	
-	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.type,
-			EntityField.currentVersion,
-			EntityField.parentId,
-			EntityField.benefactorId,
-			EntityField.projectId,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy,
-			EntityField.dataFileHandleId
-			);
-	
-	private static final List<EntityField> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
-			EntityField.id,
-			EntityField.name,
-			EntityField.createdOn,
-			EntityField.createdBy,
-			EntityField.etag,
-			EntityField.modifiedOn,
-			EntityField.modifiedBy
-			);
 
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -107,12 +76,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	AuthorizationManager authorizationManager;
 	@Autowired
 	ExecutorService tableSupportExecutorService;
-	
-	/*
-	 * Cache of default ColumnModels for views.  Once created, these columns will not change
-	 * and will be the same across the cluster.
-	 */
-	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new HashMap<EntityField, ColumnModel>());
 	
 	/*
 	 * (non-Javadoc)
@@ -463,14 +426,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
-		// check the cache.
-		ColumnModel model = defaultColumnCache.get(field);
-		if(model == null){
-			// not in the cache so create the column.
-			model = columnModelDao.createColumnModel(field.getColumnModel());
-			defaultColumnCache.put(field, model);
-		}
-		return model;
+		return columnModelDao.createColumnModel(field.getColumnModel());
 	}
 	
 	@Override
@@ -501,28 +457,20 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		ValidateArgument.required(viewType, "viewType");
-		switch(viewType){
-		case file:
-			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
-		case project:
-			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);
-		default:
+		if(!ViewType.file.equals(viewType) && !ViewType.project.equals(viewType)){
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
-	}
-	
-	/**
-	 * Get the ColumnModels for the given entity fields.
-	 * @param fields
-	 * @return
-	 */
-	public List<ColumnModel> getColumnModels(List<EntityField> fields){
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(EntityField field: fields){
-			results.add(getColumnModel(field));
+		List<ColumnModel> list = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			if(EntityField.dataFileHandleId == field){
+				// project views do not include file handleIds.
+				if(ViewType.project.equals(viewType)){
+					continue;
+				}
+			}
+			list.add(getColumnModel(field));
 		}
-		return results;
+		return list;
 	}
 
 	@Override
