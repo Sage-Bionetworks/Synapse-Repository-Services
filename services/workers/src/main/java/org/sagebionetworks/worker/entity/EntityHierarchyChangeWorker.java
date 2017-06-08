@@ -1,4 +1,4 @@
-package org.sagebionetworks.change.workers;
+package org.sagebionetworks.worker.entity;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -8,6 +8,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
+import org.sagebionetworks.change.workers.ChangeSentMessageSynchWorker;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
