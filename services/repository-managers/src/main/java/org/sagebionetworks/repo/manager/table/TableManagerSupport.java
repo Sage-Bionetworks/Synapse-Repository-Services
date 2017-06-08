@@ -419,4 +419,14 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 */
 	public void rebuildTable(UserInfo userInfo, String tableId);
+
+	/**
+	 * This will trigger a worker to detect and reconcile any entity replication
+	 * data that is out-of-synch with the truth for the given view's scope.
+	 * 
+	 * @param type
+	 * @param expandedScope
+	 *            The fully expanded scope of the view.
+	 */
+	void triggerScopeReconciliation(ViewType type, Set<Long> expandedScope);
 }

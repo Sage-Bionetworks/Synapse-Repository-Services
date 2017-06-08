@@ -74,6 +74,8 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		projectIdLong = KeyFactory.stringToKey(projectId);
 		indexDao = tableConnectionFactory.getAllConnections().get(0);
+		// ensure a sycn can occur.
+		indexDao.truncateReplicationSyncExpiration();
 	}
 	
 	@After

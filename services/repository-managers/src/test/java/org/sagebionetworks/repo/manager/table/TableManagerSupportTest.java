@@ -14,7 +14,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +38,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -95,6 +98,9 @@ public class TableManagerSupportTest {
 	Future<Integer> mockFuture;
 	@Mock
 	ProgressCallback<Void> mockCallback;
+	@Mock
+	ReplicationMessageManager mockReplicationMessageManager;
+	
 	
 	String schemaMD5Hex;
 	
@@ -127,6 +133,7 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "tableSupportExecutorService", mockExecutor);
+		ReflectionTestUtils.setField(manager, "replicationMessageManager", mockReplicationMessageManager);
 		
 		when(mockExecutor.submit(any(Callable.class))).thenReturn(mockFuture);
 		callableReturn = 123;
@@ -166,7 +173,7 @@ public class TableManagerSupportTest {
 		when(mockNodeDao.getAllContainerIds(222L)).thenReturn(Lists.newArrayList(20L,21L));
 		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
 		
-		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
+		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,21L,20L,333L,31L,30L));
 		
 		// mirror passed columns.
 		doAnswer(new Answer<ColumnModel>() {
@@ -522,9 +529,32 @@ public class TableManagerSupportTest {
 		ViewType type = ViewType.file;
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
-		
+		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
 		Long crcResult = manager.calculateViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+	}
+	
+	@Test
+	public void testTriggerScopeReconciliationFileView(){
+		ViewType type = ViewType.file;
+		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
+		// call under test
+		manager.triggerScopeReconciliation(type, containersInScope);
+		// the scope should be sent
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+	}
+	
+	@Test
+	public void testTriggerScopeReconciliationProjectView(){
+		ViewType type = ViewType.project;
+		Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+		// project views reconcile on root.
+		List<Long> toReconcile = Lists.newArrayList(rootId);
+		// call under test
+		manager.triggerScopeReconciliation(type, containersInScope);
+		// the scope should be sent
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
 	
 	@Test

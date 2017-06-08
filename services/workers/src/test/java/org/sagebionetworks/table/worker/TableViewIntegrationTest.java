@@ -601,7 +601,8 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query for the file that inherits from the folder.
 		String sql = "select * from "+fileViewId+" where benefactorId="+folderId+" and id = "+fileId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		int expectedRowCount = 1;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		List<Row> rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		Row row = rows.get(0);
@@ -615,14 +616,75 @@ public class TableViewIntegrationTest {
 
 		// Query for the the file with the project as its benefactor.
 		sql = "select * from "+fileViewId+" where benefactorId="+project.getId()+" and id = "+fileId;
-		int expectedRowCount = 1;
+		expectedRowCount = 1;
 		results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		row = rows.get(0);
 		assertEquals(fileIdLong, row.getRowId());
 	}
+	
+	/**
+	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * entity replication with the truth.  This test ensure that when
+	 * replication data is missing for a FileView, a query of the
+	 * view triggers the reconciliation.
+	 * @throws Exception 
+	 * 
+	 */
+	@Test
+	public void testFileViewReconciliation() throws Exception{
+		createFileView();
+		String firstFileId = fileIds.get(0);
+		Long firtFileIdLong = KeyFactory.stringToKey(firstFileId);
+		// wait for the view to be available for query
+		waitForEntityReplication(fileViewId, firstFileId);
+		// query the view as a user that does not permission
+		String sql = "select * from "+fileViewId+" where id ="+firstFileId;
+		int rowCount = 1;
+		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		
+		// manually delete the replicated data the file to simulate a data loss.
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(fileViewId);
+		indexDao.truncateReplicationSyncExpiration();
+		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(firtFileIdLong));
+		
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+	}
 
+	
+	/**
+	 * The fix for PLFM-4399 involved adding a worker to reconcile 
+	 * entity replication with the truth.  This test ensure that when
+	 * replication data is missing for a ProjectView, a query of the
+	 * view triggers the reconciliation.
+	 * @throws Exception 
+	 * 
+	 */
+	@Test
+	public void testProjectViewReconciliation() throws Exception{
+		String projectId = project.getId();
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		List<String> scope = Lists.newArrayList(projectId);
+		String viewId = createView(ViewType.project, scope);
+		// wait for the view.
+		waitForEntityReplication(viewId, projectId);
+		// query the view as a user that does not permission
+		String sql = "select * from "+viewId+" where id ="+projectId;
+		int rowCount = 1;
+		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		
+		// manually delete the replicated data of the project to simulate a data loss.
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(viewId);
+		indexDao.truncateReplicationSyncExpiration();
+		indexDao.deleteEntityData(mockProgressCallbackVoid, Lists.newArrayList(projectIdLong));
+		
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		waitForConsistentQuery(adminUserInfo, sql, rowCount);
+	}
 	/**
 	 * Helper to get the rows from a query.
 	 * 
