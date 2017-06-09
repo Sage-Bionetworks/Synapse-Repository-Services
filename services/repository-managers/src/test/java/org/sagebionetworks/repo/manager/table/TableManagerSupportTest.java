@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -170,7 +171,7 @@ public class TableManagerSupportTest {
 		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
 		
 		List<Long> expanedScope = Arrays.asList(222L,333L,20L,21L,30L,31L);
-		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
+		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
 		
 		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(expanedScope);
 		
@@ -514,12 +515,12 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeProject() throws LimitExceededException{
+	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
 		viewType = ViewType.project;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
-		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
 	}
 	
 	/**
