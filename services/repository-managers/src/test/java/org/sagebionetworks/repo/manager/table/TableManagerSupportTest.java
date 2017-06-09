@@ -7,14 +7,12 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -163,10 +161,12 @@ public class TableManagerSupportTest {
 		// setup the view scope
 		scope = Sets.newHashSet(222L,333L);
 		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(222L)).thenReturn(Lists.newArrayList(20L,21L));
-		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
 		
+		List<Long> expanedScope = Arrays.asList(222L,333L,20L,21L,30L,31L);
 		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
+		
+		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(expanedScope);
+		
 		
 		// mirror passed columns.
 		doAnswer(new Answer<ColumnModel>() {
@@ -477,19 +477,6 @@ public class TableManagerSupportTest {
 		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(tableId));
 	}
 	
-	@Test
-	public void testGetScopeContainerCount(){
-		// call under test.
-		int count = manager.getScopeContainerCount(containersInScope, viewType);
-		assertEquals(containersInScope.size(), count);
-	}
-	
-	@Test
-	public void testGetScopeContainerCountEmpty(){
-		// call under test.
-		int count = manager.getScopeContainerCount(null, viewType);
-		assertEquals(0, count);
-	}
 	
 	@Test
 	public void testGetAllContainerIdsForViewScope(){
@@ -498,13 +485,25 @@ public class TableManagerSupportTest {
 		assertEquals(containersInScope, containers);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testgetAllContainerIdsForScopeOverLimit(){
+		Set<Long> overLimit = new HashSet<>();
+		int countOverLimit = TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1;
+		for(long i=0; i<countOverLimit; i++){
+			overLimit.add(i);
+		}
+		viewType = ViewType.file;
+		// call under test.
+		manager.getAllContainerIdsForScope(overLimit, viewType);
+	}
+	
 	@Test
 	public void testgetAllContainerIdsForScopeFiewView(){
 		viewType = ViewType.file;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(containersInScope, containers);
-		verify(mockNodeDao, times(scope.size())).getAllContainerIds(anyLong());
+		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
@@ -513,7 +512,7 @@ public class TableManagerSupportTest {
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
-		verify(mockNodeDao, never()).getAllContainerIds(anyLong());
+		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test

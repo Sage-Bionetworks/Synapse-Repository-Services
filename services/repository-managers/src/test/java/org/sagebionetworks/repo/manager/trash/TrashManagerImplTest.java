@@ -233,7 +233,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testDeleteAllAclsInHierarchy(){
 		List<Long> parentIds = Lists.newArrayList(123L,456L);
-		when(mockNodeDAO.getAllContainerIds(nodeID)).thenReturn(parentIds);
+		when(mockNodeDAO.getAllContainerIds(nodeID, Integer.MAX_VALUE)).thenReturn(parentIds);
 		List<Long> childernWithAcls = Lists.newArrayList(456L, 444L);
 		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIds)).thenReturn(childernWithAcls);
 		// call under test

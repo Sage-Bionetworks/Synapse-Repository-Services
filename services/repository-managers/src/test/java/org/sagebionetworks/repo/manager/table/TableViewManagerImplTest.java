@@ -127,8 +127,6 @@ public class TableViewManagerImplTest {
 				return results;
 			}}).when(tableManagerSupport).getColumnModels(Matchers.<EntityField>anyVararg());
 		
-		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class), any(ViewType.class))).thenReturn(10);
-		
 		namedAnnotations = new NamedAnnotations();
 		when(mockNodeManager.getAnnotations(any(UserInfo.class), anyString())).thenReturn(namedAnnotations);
 
@@ -160,23 +158,20 @@ public class TableViewManagerImplTest {
 		row.setValues(values);
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testSetViewSchemaAndScopeOverLimit(){
-		int containerCount = TableViewManagerImpl.MAX_CONTAINERS_PER_VIEW+1;
-		when(tableManagerSupport.getScopeContainerCount(anySetOf(Long.class), any(ViewType.class))).thenReturn(containerCount);
-		try {
-			// call under test
-			manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
-			fail("Should have failed");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains(""+containerCount));
-		}
+		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
+		doThrow(overLimit).when(tableManagerSupport).validateScopeSize(anySetOf(Long.class), any(ViewType.class));
+		// call under test
+		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
 	}
 	
 	@Test
 	public void testSetViewSchemaAndScope(){
 		// call under test
 		manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+		// the size should be validated
+		verify(tableManagerSupport).validateScopeSize(scopeIds, viewType);
 		verify(viewScopeDao).setViewScopeAndType(555L, Sets.newHashSet(123L, 456L), viewType);
 		verify(columnModelManager).bindColumnToObject(userInfo, schema, viewId);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);

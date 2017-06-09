@@ -210,17 +210,6 @@ public interface TableManagerSupport {
 	 */
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType);
 
-	
-	/**
-	 * Get the count of the number of containers (projects, folder) 
-	 *  defined by the given scope IDs.
-	 *  For example, if the given scopeId is a project entity, then
-	 *  the count will be number of folders contained in the given project.
-	 *  
-	 * @param scopeIds
-	 * @return
-	 */
-	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type);
 
 	/**
 	 * <p>
@@ -419,4 +408,12 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 */
 	public void rebuildTable(UserInfo userInfo, String tableId);
+
+	/**
+	 * Validate that the given scope is within the size limit.
+	 * 
+	 * @param scopeIds
+	 * @param type
+	 */
+	public void validateScopeSize(Set<Long> scopeIds, ViewType type);
 }

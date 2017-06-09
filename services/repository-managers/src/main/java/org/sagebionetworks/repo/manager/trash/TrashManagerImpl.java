@@ -104,7 +104,7 @@ public class TrashManagerImpl implements TrashManager {
 		
 		// Delete all ACLs within the hierarchy
 		// Get the list of all parentIds for this hierarchy.
-		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeId);
+		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeId, Integer.MAX_VALUE);
 		// Lookup all children with ACLs for the given parents.
 		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(allParentIds);
 		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);

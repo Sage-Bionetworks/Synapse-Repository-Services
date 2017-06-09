@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -434,19 +435,21 @@ public interface NodeDAO {
 	 * hierarchy.
 	 * 
 	 * @param parentId
+	 * @param maxNumberIds the maximum number of IDs that should be loaded.
 	 * @return The returned List is the IDs of each container within the
 	 *         hierarchy. The passed parent ID is the first element. IDs are in
 	 *         in ascending order starting with the direct children followed by
 	 *         grandchildren etc
 	 */
-	List<Long> getAllContainerIds(Long parentId);
+	List<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds);
 	
 	/**
 	 * See: {@link #getAllContainerIds(Long)}
 	 * @param parentId
+	 * @param maxNumberIds the maximum number of IDs that should be loaded.
 	 * @return
 	 */
-	List<Long> getAllContainerIds(String parentId);
+	List<Long> getAllContainerIds(String parentId, int maxNumberIds);
 	
 	/**
 	 * Lookup a nodeId using its alias.

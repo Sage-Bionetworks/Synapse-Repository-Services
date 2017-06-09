@@ -2443,27 +2443,28 @@ public class NodeDAOImplTest {
 		// Generate some hierarchy
 		List<Node> hierarchy = createHierarchy();
 		assertEquals(7, hierarchy.size());
+		int maxIds = hierarchy.size()+1;
 		Long projectId = KeyFactory.stringToKey(hierarchy.get(0).getId());
 		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
 		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
 		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
 
 		// Lookup all of the containers in this hierarchy
-		List<Long> containers = nodeDao.getAllContainerIds(projectId);
+		List<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
 		List<Long> expected = Lists.newArrayList(
 				projectId, folder0Id, folder1Id, folder2Id
 		);
 		assertEquals(expected, containers);
 		
 		// Folder1 contains folder2
-		containers = nodeDao.getAllContainerIds(folder1Id);
+		containers = nodeDao.getAllContainerIds(Arrays.asList(folder1Id), maxIds);
 		expected = Lists.newArrayList(
 				folder1Id, folder2Id
 		);
 		assertEquals(expected, containers);
 		
 		// Folder2 contains nothing
-		containers = nodeDao.getAllContainerIds(folder2Id);
+		containers = nodeDao.getAllContainerIds(Arrays.asList(folder2Id), maxIds);
 		expected = Lists.newArrayList(
 				folder2Id
 		);

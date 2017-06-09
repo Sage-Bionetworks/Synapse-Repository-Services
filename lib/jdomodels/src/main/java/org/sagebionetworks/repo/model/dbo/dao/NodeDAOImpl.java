@@ -43,6 +43,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -120,6 +121,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String MAXIMUM_NUMBER_OF_IDS_EXCEEDED = "Maximum number of IDs exceeded";
 	private static final String SQL_SELECT_GET_ENTITY_BENEFACTOR_ID = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String BIND_NODE_IDS =  "bNodeIds";
 	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
@@ -221,7 +223,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String SELECT_FUNCTION_PROJECT_ID = "SELECT "+FUNCTION_GET_ENTITY_PROJECT_ID+"(?)";
 	private static final String SQL_SELECT_NODE_ID_BY_ALIAS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ALIAS+" = ?";
-	private static final String SQL_UPDATE_PARENT_ID = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_PARENT_ID+" = ?, "+COL_NODE_ETAG+" = UUID() WHERE "+COL_NODE_ID+" = ?";
 	
 	private static final String SELECT_ENTITY_HEADERS_FOR_ENTITY_IDS =
 			ENTITY_HEADER_SELECT +
@@ -231,8 +232,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
-	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
+	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = 
+			"SELECT "+COL_NODE_ID
+			+" FROM "+TABLE_NODE
+			+" WHERE "
+				+ COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")"
+				+ " AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"')"
+						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -1551,20 +1557,31 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(Long parentId) {
+	public List<Long> getAllContainerIds(Collection<Long> parentId, int maxNumberIds) {
 		ValidateArgument.required(parentId, "parentId");
-		List<Long> parents = new LinkedList<Long>();
-		parents.add(parentId);
-		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
-		parameters.put(IDS_PARAM_NAME, parents);
-		List<Long> results = new LinkedList<Long>();
-		results.add(parentId);
+		// the parentIds are always included.
+		List<Long> results = new LinkedList<Long>(parentId);
+		if(parentId.isEmpty()){
+			return results;
+		}
+		Map<String, Object> parameters = new HashMap<String, Object>(2);
+		parameters.put(IDS_PARAM_NAME, parentId);
+		parameters.put(BIND_LIMIT, maxNumberIds+1);
 		while(true){
 			// Get all children at this level.
 			List<Long> childern = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
 			if(childern.isEmpty()){
 				// done
 				return results;
+			}
+			/*
+			 * If the children size is over the max then a single page exceeded
+			 * the max. If the children size + result size is over the max then
+			 * the total number exceed the max.
+			 */
+			if(childern.size() > maxNumberIds
+					|| childern.size()+results.size() > maxNumberIds){
+				throw new IllegalArgumentException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
 			}
 			results.addAll(childern);
 			// Children become the parents
@@ -1577,10 +1594,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(String parentId){
+	public List<Long> getAllContainerIds(String parentId, int maxNumberIds){
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
-		return getAllContainerIds(id);
+		List<Long> ids = new LinkedList<>();
+		ids.add(id);
+		return getAllContainerIds(ids, maxNumberIds);
 	}
 
 
