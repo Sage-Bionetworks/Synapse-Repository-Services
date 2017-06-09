@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -63,9 +64,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
 	
 	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW+" projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
-	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW+" projects.";
-
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW
+			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW + " projects.";
 	
 	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
 			EntityField.id,
@@ -387,7 +390,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		try {
 			List<Long> expandedScope = nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
 			return new LinkedHashSet<Long>(expandedScope);
-		} catch (IllegalArgumentException e) {
+		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
 		}
@@ -398,7 +401,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * 
 	 * @param viewType
 	 */
-	private String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
+	public String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
 		ValidateArgument.required(viewType, "ViewType");
 		if(ViewType.project.equals(viewType)){
 			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;

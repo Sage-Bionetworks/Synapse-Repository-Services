@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -2364,7 +2365,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetAllContainerIds(){
+	public void testGetAllContainerIds() throws Exception {
 		// Generate some hierarchy
 		List<Node> hierarchy = createHierarchy();
 		assertEquals(7, hierarchy.size());
@@ -2394,6 +2395,67 @@ public class NodeDAOImplTest {
 				folder2Id
 		);
 		assertEquals(expected, containers);
+	}
+	
+
+	/**
+	 * Exceed the limit with one page of children.
+	 * 
+	 * @throws LimitExceededException
+	 */
+	@Test (expected=LimitExceededException.class)
+	public void testGetAllContainerIdsLimitExceededFlat() throws LimitExceededException{
+		// Generate some hierarchy
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+		
+		// Add three folders to the project
+		for(int i=0; i<3; i++){
+			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
+			folder.setNodeType(EntityType.folder);
+			folder.setParentId(projectId);
+			String folderId = nodeDao.createNew(folder);
+			toDelete.add(folderId);
+		}
+		// loading more than two from a single page should fail.
+		int maxIds = 2;
+		// call under test
+		nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
+	}
+	
+	/**
+	 * Exceed the limit with multiple calls.
+	 * 
+	 * @throws LimitExceededException
+	 */
+	@Test (expected=LimitExceededException.class)
+	public void testGetAllContainerIdsLimitExceededExpanded() throws LimitExceededException{
+		// Generate some hierarchy
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+		// for this test create hierarchy
+		String parentId = projectId;
+		// Add three folders to the project
+		for(int i=0; i<3; i++){
+			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
+			folder.setNodeType(EntityType.folder);
+			folder.setParentId(parentId);
+			String folderId = nodeDao.createNew(folder);
+			toDelete.add(folderId);
+			parentId = folderId;
+		}
+		// loading more than two from a single page should fail.
+		int maxIds = 2;
+		// call under test
+		nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
 	}
 	
 	@Test

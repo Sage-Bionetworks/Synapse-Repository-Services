@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -503,7 +505,7 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeFiewView(){
+	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
 		viewType = ViewType.file;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
@@ -512,12 +514,53 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeProject(){
+	public void testgetAllContainerIdsForScopeProject() throws LimitExceededException{
 		viewType = ViewType.project;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
 		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+	}
+	
+	/**
+	 * For this case the number of IDs in the scope is already over the limit.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllContainerIdsForScopeOverLimit(){
+		Set<Long> tooMany = new HashSet<Long>();
+		for(long i=0; i<TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1; i++){
+			tooMany.add(i);
+		}
+		// call under test
+		manager.getAllContainerIdsForScope(tooMany, viewType);
+	}
+	
+	/**
+	 * For this case the scope is under the limit, but the expanded containers
+	 * would go over the limit.
+	 * @throws LimitExceededException 
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
+		// setup limit exceeded.
+		LimitExceededException exception = new LimitExceededException("too many");
+		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyListOf(Long.class), anyInt());
+		// call under test
+		manager.getAllContainerIdsForScope(scope, viewType);
+	}
+	
+	@Test
+	public void testcreateViewOverLimitMessageFileView(){
+		// call under test
+		String message = manager.createViewOverLimitMessage(ViewType.file);
+		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
+	}
+	
+	@Test
+	public void testcreateViewOverLimitMessageProjectView(){
+		// call under test
+		String message = manager.createViewOverLimitMessage(ViewType.project);
+		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test

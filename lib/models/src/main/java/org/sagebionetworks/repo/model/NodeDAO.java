@@ -440,13 +440,16 @@ public interface NodeDAO {
 	 * hierarchy.
 	 * 
 	 * @param parentId
-	 * @param maxNumberIds the maximum number of IDs that should be loaded.
+	 * @param maxNumberOfIds the maximum number of IDs that should be loaded. An attempt to exceed
+	 * this maximum will result in a LimitExceededException.
 	 * @return The returned List is the IDs of each container within the
 	 *         hierarchy. The passed parent ID is the first element. IDs are in
 	 *         in ascending order starting with the direct children followed by
 	 *         grandchildren etc
+	 * @throws LimitExceededException if the number of container IDs loaded would exceed
+	 * the passed maxNumberOfIds. 
 	 */
-	List<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds);
+	List<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberOfIds) throws LimitExceededException;
 	
 	/**
 	 * See: {@link #getAllContainerIds(Long)}
@@ -454,7 +457,7 @@ public interface NodeDAO {
 	 * @param maxNumberIds the maximum number of IDs that should be loaded.
 	 * @return
 	 */
-	List<Long> getAllContainerIds(String parentId, int maxNumberIds);
+	List<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
 	
 	/**
 	 * Lookup a nodeId using its alias.

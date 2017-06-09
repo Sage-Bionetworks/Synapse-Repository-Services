@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -1529,7 +1530,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(Collection<Long> parentId, int maxNumberIds) {
+	public List<Long> getAllContainerIds(Collection<Long> parentId, int maxNumberIds) throws LimitExceededException {
 		ValidateArgument.required(parentId, "parentId");
 		// the parentIds are always included.
 		List<Long> results = new LinkedList<Long>(parentId);
@@ -1553,7 +1554,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			 */
 			if(childern.size() > maxNumberIds
 					|| childern.size()+results.size() > maxNumberIds){
-				throw new IllegalArgumentException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
+				throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
 			}
 			results.addAll(childern);
 			// Children become the parents
@@ -1566,7 +1567,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(String parentId, int maxNumberIds){
+	public List<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException{
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
 		List<Long> ids = new LinkedList<>();
