@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.worker.entity;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -29,8 +29,7 @@ import com.amazonaws.AmazonServiceException;
 
 /**
  * This worker listens to entity change events and replicates the changes to the
- * index database. The replicated data is to build EntityView tables in the
- * index database.
+ * index database. The replicated data supports both entity views and entity queries.
  * 
  * @author John
  *
@@ -131,7 +130,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	 * @param createOrUpdateIds
 	 * @param deleteIds
 	 */
-	static void groupByChangeType(List<ChangeMessage> messages,
+	public static void groupByChangeType(List<ChangeMessage> messages,
 			List<String> createOrUpdateIds, List<String> deleteIds) {
 		for (ChangeMessage change : messages) {
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {

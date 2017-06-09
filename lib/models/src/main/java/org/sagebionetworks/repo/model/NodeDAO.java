@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.entity.Direction;
@@ -214,6 +215,15 @@ public interface NodeDAO {
 	public boolean isNodeAvailable(Long nodeId);
 	
 	/**
+	 * From the given set of Node IDs, get the sub-set of
+	 * nodes that are available.  A node is available if it exists
+	 * and is not in the trash.
+	 * @param nodeIds
+	 * @return
+	 */
+	public Set<Long> getAvailableNodes(List<Long> nodeIds);
+	
+	/**
 	 * True if the node exists and is not in the trash.
 	 * @param nodeId
 	 * @return
@@ -375,11 +385,6 @@ public interface NodeDAO {
 	public Reference getNodeReference(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * Gets a page of parent relations.
-	 */
-	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
-
-	/**
 	 * Get the FileHandle Id for a given version number.
 	 * 
 	 * @param id
@@ -533,4 +538,19 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String lookupChild(String parentId, String entityName);
+
+	/**
+	 * For each parent, get the sum of CRCs of their children.
+	 *   
+	 * @return Map.key = parentId and map.value = sum of children CRCs.
+	 * 
+	 */
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+	
+	/**
+	 * Get the Id and Etag of all of the children for the given parentId.
+	 * @param parentId
+	 * @return
+	 */
+	public List<IdAndEtag> getChildren(long parentId);
 }

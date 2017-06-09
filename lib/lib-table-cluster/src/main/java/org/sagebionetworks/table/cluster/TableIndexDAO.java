@@ -5,16 +5,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -350,5 +348,52 @@ public interface TableIndexDAO {
 	 */
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, ViewType type, Long limit, Long offset);
+	
+	/**
+	 * The process for synchronizing entity replication data with the truth is
+	 * expensive, so the frequency of the synchronization is limited. Since
+	 * synchronization occurs at the entity container level, each time a
+	 * container is synchronized, a new expiration date is set for that
+	 * container. The container should not be re-synchronized until the set
+	 * expiration date is past.
+	 * 
+	 * For a given set of entity container IDs, this method will return the sub-set
+	 * of containers which have expired.
+	 * 
+	 * If a given container ID does not have a set expiration, it will be returned.
+	 * 
+	 * @param entityContainerIds
+	 * @return
+	 */
+	List<Long> getExpiredContainerIds(List<Long> entityContainerIds);
+	
+
+	/**
+	 * @see {@link #getExpiredContainerIds(List)}.
+	 * 
+	 * Set the expiration for a set of containers.
+	 * 
+	 * @param expirations
+	 */
+	public void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	
+	/**
+	 * Clear all expirations.
+	 */
+	public void truncateReplicationSyncExpiration();
+
+	/**
+	 * For each parent, get the sum of CRCs of their children.
+	 *   
+	 * @return Map.key = parentId and map.value = sum of children CRCs.
+	 */
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+
+	/**
+	 * Get the Id and Etag for each child of the given Entity parentId.
+	 * @param outOfSynchParentId
+	 * @return
+	 */
+	public List<IdAndEtag> getEntityChildren(Long parentId);
 
 }
