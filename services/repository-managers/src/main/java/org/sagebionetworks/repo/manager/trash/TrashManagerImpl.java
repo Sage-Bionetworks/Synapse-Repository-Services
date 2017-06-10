@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.trash;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -34,6 +36,13 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TrashManagerImpl implements TrashManager {
+	
+	/**
+	 * The maximum number of sub-folder IDs that can be loaded into memory.
+	 */
+	public static final int MAX_IDS_TO_LOAD = 10*1000;
+
+	private static final String UNABLE_TO_DELETE_TOO_MANY_SUB_FOLDERS = "Unable to delete a project/folder with more than "+MAX_IDS_TO_LOAD+" sub-folders. Please delete the sub-folders first.";
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -104,9 +113,14 @@ public class TrashManagerImpl implements TrashManager {
 		
 		// Delete all ACLs within the hierarchy
 		// Get the list of all parentIds for this hierarchy.
-		List<Long> allParentIds = nodeDao.getAllContainerIds(nodeId);
+		Set<Long> allParentIds;
+		try {
+			allParentIds = nodeDao.getAllContainerIds(nodeId, MAX_IDS_TO_LOAD);
+		} catch (LimitExceededException e) {
+			throw new IllegalArgumentException(UNABLE_TO_DELETE_TOO_MANY_SUB_FOLDERS);
+		}
 		// Lookup all children with ACLs for the given parents.
-		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(allParentIds);
+		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>(allParentIds));
 		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);
 	}
 

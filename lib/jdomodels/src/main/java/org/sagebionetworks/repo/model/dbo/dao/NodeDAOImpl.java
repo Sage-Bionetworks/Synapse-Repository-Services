@@ -43,10 +43,12 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -118,6 +121,7 @@ import com.google.common.collect.Sets;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
+	private static final String MAXIMUM_NUMBER_OF_IDS_EXCEEDED = "Maximum number of IDs exceeded";
 	private static final String SQL_SELECT_GET_ENTITY_BENEFACTOR_ID = "SELECT "+FUNCTION_GET_ENTITY_BENEFACTOR_ID+"(?)";
 	private static final String BIND_NODE_IDS =  "bNodeIds";
 	private static final String BIND_PROJECT_STAT_USER_ID = "bUserIds";
@@ -241,7 +245,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			" WHERE "+COL_NODE_ID+" IN (:nodeIds)";
 	
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+") AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"') ORDER BY "+COL_NODE_ID+" ASC";
+
+	private static final String SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE = 
+			"SELECT "+COL_NODE_ID
+			+" FROM "+TABLE_NODE
+			+" WHERE "
+				+ COL_NODE_PARENT_ID+" IN (:"+IDS_PARAM_NAME+")"
+				+ " AND "+COL_NODE_TYPE+" IN ('"+EntityType.folder.name()+"', '"+EntityType.project.name()+"')"
+						+ " ORDER BY "+COL_NODE_ID+" ASC LIMIT :"+BIND_LIMIT;
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REF_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -1520,24 +1531,35 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(Long parentId) {
-		ValidateArgument.required(parentId, "parentId");
-		List<Long> parents = new LinkedList<Long>();
-		parents.add(parentId);
-		Map<String, List<Long>> parameters = new HashMap<String, List<Long>>(1);
-		parameters.put(IDS_PARAM_NAME, parents);
-		List<Long> results = new LinkedList<Long>();
-		results.add(parentId);
+	public Set<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds) throws LimitExceededException {
+		ValidateArgument.required(parentIds, "parentIds");
+		// the parentIds are always included.
+		Set<Long> results = new LinkedHashSet<Long>(parentIds);
+		if(parentIds.isEmpty()){
+			return results;
+		}
+		Map<String, Object> parameters = new HashMap<String, Object>(2);
+		parameters.put(IDS_PARAM_NAME, parentIds);
+		parameters.put(BIND_LIMIT, maxNumberIds+1);
 		while(true){
 			// Get all children at this level.
-			List<Long> childern = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
-			if(childern.isEmpty()){
+			List<Long> children = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
+			if(children.isEmpty()){
 				// done
 				return results;
 			}
-			results.addAll(childern);
+			/*
+			 * If the children size is over the max then a single page exceeded
+			 * the max. If the children size + result size is over the max then
+			 * the total number exceed the max.
+			 */
+			if(children.size() > maxNumberIds
+					|| children.size()+results.size() > maxNumberIds){
+				throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
+			}
+			results.addAll(children);
 			// Children become the parents
-			parameters.put(IDS_PARAM_NAME, childern);
+			parameters.put(IDS_PARAM_NAME, children);
 		}
 	}
 	
@@ -1546,10 +1568,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(String parentId){
+	public Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException{
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
-		return getAllContainerIds(id);
+		List<Long> ids = new LinkedList<>();
+		ids.add(id);
+		return getAllContainerIds(ids, maxNumberIds);
 	}
 
 

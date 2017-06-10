@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -60,6 +62,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
+	
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW
+			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW + " projects.";
 	
 	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
 			EntityField.id,
@@ -347,18 +356,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		this.replicationMessageManager.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getScopeContainerCount(java.util.Set)
-	 */
-	@Override
-	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type) {
-		if(scopeIds == null || scopeIds.isEmpty()){
-			return 0;
-		}
-		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds, type);
-		return scopeSet.size();
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -381,17 +378,35 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(viewType, "viewType");
+		// Validate the given scope is under the limit.
+		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
+		}
 		
 		if(ViewType.project == viewType){
 			return scope;
 		}
-		// Add all containers from the given scope
-		Set<Long> allContainersInScope = new HashSet<Long>(scope);
-		for(Long container: scope){
-			List<Long> containers = nodeDao.getAllContainerIds(container);
-			allContainersInScope.addAll(containers);
+		// Expand the scope to include all sub-folders
+		try {
+			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
+		} catch (LimitExceededException e) {
+			// Convert the generic exception to a specific exception.
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
 		}
-		return allContainersInScope;
+	}
+	
+	/**
+	 * Throw an IllegalArgumentException that indicates the view is over the limit.
+	 * 
+	 * @param viewType
+	 */
+	public String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
+		ValidateArgument.required(viewType, "ViewType");
+		if(ViewType.project.equals(viewType)){
+			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
+		}else{
+			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
+		}
 	}
 	
 	/*
@@ -587,5 +602,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
 		message.setObjectEtag(resetToken);
 		transactionalMessenger.sendMessageAfterCommit(message);
+	}
+
+	@Override
+	public void validateScopeSize(Set<Long> scopeIds, ViewType type) {
+		if(scopeIds != null){
+			// Validation is built into getAllContainerIdsForScope() call
+			getAllContainerIdsForScope(scopeIds, type);
+		}
 	}
 }
