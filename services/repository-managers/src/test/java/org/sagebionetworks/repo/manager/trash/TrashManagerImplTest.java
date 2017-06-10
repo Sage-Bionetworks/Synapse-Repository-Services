@@ -8,19 +8,15 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -233,10 +229,11 @@ public class TrashManagerImplTest {
 	
 	@Test
 	public void testDeleteAllAclsInHierarchy() throws LimitExceededException{
-		List<Long> parentIds = Lists.newArrayList(123L,456L);
+		List<Long> parentIdsList = Lists.newArrayList(123L,456L);
+		Set<Long> parentIds = new LinkedHashSet<Long>(parentIdsList);
 		when(mockNodeDAO.getAllContainerIds(nodeID, TrashManagerImpl.MAX_IDS_TO_LOAD)).thenReturn(parentIds);
 		List<Long> childernWithAcls = Lists.newArrayList(456L, 444L);
-		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIds)).thenReturn(childernWithAcls);
+		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIdsList)).thenReturn(childernWithAcls);
 		// call under test
 		trashManager.deleteAllAclsInHierarchy(nodeID);
 		// delete the acl of the node

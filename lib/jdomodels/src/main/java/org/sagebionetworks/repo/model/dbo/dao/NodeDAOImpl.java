@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1530,20 +1531,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#lockAllContainers(java.lang.Long)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(Collection<Long> parentId, int maxNumberIds) throws LimitExceededException {
-		ValidateArgument.required(parentId, "parentId");
+	public Set<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberIds) throws LimitExceededException {
+		ValidateArgument.required(parentIds, "parentIds");
 		// the parentIds are always included.
-		List<Long> results = new LinkedList<Long>(parentId);
-		if(parentId.isEmpty()){
+		Set<Long> results = new LinkedHashSet<Long>(parentIds);
+		if(parentIds.isEmpty()){
 			return results;
 		}
 		Map<String, Object> parameters = new HashMap<String, Object>(2);
-		parameters.put(IDS_PARAM_NAME, parentId);
+		parameters.put(IDS_PARAM_NAME, parentIds);
 		parameters.put(BIND_LIMIT, maxNumberIds+1);
 		while(true){
 			// Get all children at this level.
-			List<Long> childern = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
-			if(childern.isEmpty()){
+			List<Long> children = namedParameterJdbcTemplate.queryForList(SQL_SELECT_CONTAINERS_WITH_PARENT_IDS_IN_CLAUSE, parameters, Long.class);
+			if(children.isEmpty()){
 				// done
 				return results;
 			}
@@ -1552,13 +1553,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			 * the max. If the children size + result size is over the max then
 			 * the total number exceed the max.
 			 */
-			if(childern.size() > maxNumberIds
-					|| childern.size()+results.size() > maxNumberIds){
+			if(children.size() > maxNumberIds
+					|| children.size()+results.size() > maxNumberIds){
 				throw new LimitExceededException(MAXIMUM_NUMBER_OF_IDS_EXCEEDED);
 			}
-			results.addAll(childern);
+			results.addAll(children);
 			// Children become the parents
-			parameters.put(IDS_PARAM_NAME, childern);
+			parameters.put(IDS_PARAM_NAME, children);
 		}
 	}
 	
@@ -1567,7 +1568,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @see org.sagebionetworks.repo.model.NodeDAO#getAllContainerIds(java.lang.String)
 	 */
 	@Override
-	public List<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException{
+	public Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException{
 		ValidateArgument.required(parentId, "parentId");
 		Long id = KeyFactory.stringToKey(parentId);
 		List<Long> ids = new LinkedList<>();

@@ -170,10 +170,9 @@ public class TableManagerSupportTest {
 		scope = Sets.newHashSet(222L,333L);
 		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
 		
-		List<Long> expanedScope = Arrays.asList(222L,333L,20L,21L,30L,31L);
 		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
 		
-		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(expanedScope);
+		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(containersInScope);
 		
 		
 		// mirror passed columns.
@@ -548,6 +547,22 @@ public class TableManagerSupportTest {
 		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyListOf(Long.class), anyInt());
 		// call under test
 		manager.getAllContainerIdsForScope(scope, viewType);
+	}
+	
+	@Test
+	public void testValidateScopeSize() throws LimitExceededException{
+		// call under test
+		manager.validateScopeSize(scope, viewType);
+		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+	}
+	
+	@Test
+	public void testValidateScopeSizeNullScope() throws LimitExceededException{
+		// The scope can be null.
+		scope = null;
+		// call under test
+		manager.validateScopeSize(scope, viewType);
+		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
 	}
 	
 	@Test

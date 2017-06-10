@@ -388,8 +388,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		}
 		// Expand the scope to include all sub-folders
 		try {
-			List<Long> expandedScope = nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
-			return new LinkedHashSet<Long>(expandedScope);
+			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
 		} catch (LimitExceededException e) {
 			// Convert the generic exception to a specific exception.
 			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
@@ -607,7 +606,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public void validateScopeSize(Set<Long> scopeIds, ViewType type) {
-		// Validation is built into getAllContainerIdsForScope() call
-		getAllContainerIdsForScope(scopeIds, type);
+		if(scopeIds != null){
+			// Validation is built into getAllContainerIdsForScope() call
+			getAllContainerIdsForScope(scopeIds, type);
+		}
 	}
 }

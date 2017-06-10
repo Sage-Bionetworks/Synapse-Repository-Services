@@ -177,6 +177,7 @@ public class TableViewManagerImplTest {
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
+	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullSchema(){
 		schema = null;

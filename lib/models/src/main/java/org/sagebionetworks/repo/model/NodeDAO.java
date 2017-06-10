@@ -449,7 +449,7 @@ public interface NodeDAO {
 	 * @throws LimitExceededException if the number of container IDs loaded would exceed
 	 * the passed maxNumberOfIds. 
 	 */
-	List<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberOfIds) throws LimitExceededException;
+	Set<Long> getAllContainerIds(Collection<Long> parentIds, int maxNumberOfIds) throws LimitExceededException;
 	
 	/**
 	 * See: {@link #getAllContainerIds(Long)}
@@ -457,7 +457,7 @@ public interface NodeDAO {
 	 * @param maxNumberIds the maximum number of IDs that should be loaded.
 	 * @return
 	 */
-	List<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
+	Set<Long> getAllContainerIds(String parentId, int maxNumberIds) throws LimitExceededException;
 	
 	/**
 	 * Lookup a nodeId using its alias.

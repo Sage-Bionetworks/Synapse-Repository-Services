@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -2376,24 +2377,24 @@ public class NodeDAOImplTest {
 		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
 
 		// Lookup all of the containers in this hierarchy
-		List<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
-		List<Long> expected = Lists.newArrayList(
+		Set<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
+		Set<Long> expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				projectId, folder0Id, folder1Id, folder2Id
-		);
+		));
 		assertEquals(expected, containers);
 		
 		// Folder1 contains folder2
 		containers = nodeDao.getAllContainerIds(Arrays.asList(folder1Id), maxIds);
-		expected = Lists.newArrayList(
+		expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				folder1Id, folder2Id
-		);
+		));
 		assertEquals(expected, containers);
 		
 		// Folder2 contains nothing
 		containers = nodeDao.getAllContainerIds(Arrays.asList(folder2Id), maxIds);
-		expected = Lists.newArrayList(
+		expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				folder2Id
-		);
+		));
 		assertEquals(expected, containers);
 	}
 	
