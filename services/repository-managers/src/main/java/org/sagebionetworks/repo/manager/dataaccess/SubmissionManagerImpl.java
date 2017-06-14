@@ -56,7 +56,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
-	private RequestDAO requestDao;
+	private RequestManager requestManager;
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 	@Autowired
@@ -78,7 +78,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
-		RequestInterface request = requestDao.get(requestId);
+		RequestInterface request = requestManager.getRequestForSubmission(requestId);
 		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
 
 		Submission submissionToCreate = new Submission();
@@ -232,6 +232,10 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
 			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
+			/*
+			 * See PLFM-4442.
+			 */
+			requestManager.updateApprovedRequest(submission.getRequestId());
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),

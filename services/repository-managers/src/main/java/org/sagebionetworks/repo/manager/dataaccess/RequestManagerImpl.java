@@ -75,16 +75,7 @@ public class RequestManagerImpl implements RequestManager{
 	public RequestInterface getRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
 		try {
-			RequestInterface current = getUserOwnCurrentRequest(userInfo, accessRequirementId);
-			if (current instanceof Renewal) {
-				return current;
-			}
-			if (submissionDao.hasSubmissionWithState(
-					userInfo.getId().toString(), accessRequirementId,
-					SubmissionState.APPROVED)) {
-				return createRenewalFromRequest(current);
-			}
-			return current;
+			return getUserOwnCurrentRequest(userInfo, accessRequirementId);
 		} catch (NotFoundException e) {
 			return createNewRequest(accessRequirementId);
 		}
@@ -96,7 +87,7 @@ public class RequestManagerImpl implements RequestManager{
 		return request;
 	}
 
-	public Renewal createRenewalFromRequest(RequestInterface current) {
+	public static Renewal createRenewalFromRequest(RequestInterface current) {
 		Renewal renewal = new Renewal();
 		renewal.setId(current.getId());
 		renewal.setAccessRequirementId(current.getAccessRequirementId());
@@ -145,7 +136,7 @@ public class RequestManagerImpl implements RequestManager{
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
 				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
-				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
+				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
@@ -171,6 +162,33 @@ public class RequestManagerImpl implements RequestManager{
 		} else {
 			return update(userInfo, toCreateOrUpdate);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.dataaccess.RequestManager#updateApprovedRequest(java.lang.String)
+	 */
+	@Override
+	public void updateApprovedRequest(String requestId) {
+		ValidateArgument.required(requestId, "requestId");
+		RequestInterface original = requestDao.getForUpdate(requestId);
+		original = createRenewalFromRequest(original);
+		/*
+		 * Note: Since this method is called when a submission is approved by
+		 * ACT, modifiedOn and modifiedBy are not changed.  The dao.update() 
+		 * will change the etag.
+		 * 
+		 */
+		requestDao.update(original);
+	}
+
+	/*
+	 * 
+	 */
+	@Override
+	public RequestInterface getRequestForSubmission(String requestId) {
+		ValidateArgument.required(requestId, "requestId");
+		return requestDao.get(requestId);
 	}
 
 }
