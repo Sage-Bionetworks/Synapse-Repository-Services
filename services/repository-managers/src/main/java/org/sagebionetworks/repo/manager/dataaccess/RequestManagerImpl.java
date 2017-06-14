@@ -63,19 +63,14 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
 	}
 
-	@Override
-	public RequestInterface getUserOwnCurrentRequest(UserInfo userInfo, String accessRequirementId)
-			throws NotFoundException {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
-	}
 
 	@Override
 	public RequestInterface getRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		try {
-			return getUserOwnCurrentRequest(userInfo, accessRequirementId);
+			return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
 			return createNewRequest(accessRequirementId);
 		}
@@ -168,6 +163,7 @@ public class RequestManagerImpl implements RequestManager{
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.dataaccess.RequestManager#updateApprovedRequest(java.lang.String)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateApprovedRequest(String requestId) {
 		ValidateArgument.required(requestId, "requestId");

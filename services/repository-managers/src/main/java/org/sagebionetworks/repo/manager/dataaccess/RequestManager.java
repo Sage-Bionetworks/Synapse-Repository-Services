@@ -18,16 +18,6 @@ public interface RequestManager {
 	public Request create(UserInfo userInfo, Request toCreate);
 
 	/**
-	 * Retrieve the recent Request, which is created by or has associated research project owned by the user, for a given accessRequirementId.
-	 * 
-	 * @param userInfo
-	 * @param accessRequirementId
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public RequestInterface getUserOwnCurrentRequest(UserInfo userInfo, String accessRequirementId) throws NotFoundException;
-
-	/**
 	 * Retrieve a Request object suitable for update, which has the original one created by or has associated research project owned by the user, for a given accessRequirementId.
 	 * 
 	 * @param userInfo

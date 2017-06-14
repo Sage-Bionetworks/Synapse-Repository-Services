@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -157,24 +158,18 @@ public class RequestManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetWithNullUserInfo() {
-		manager.getUserOwnCurrentRequest(null, accessRequirementId);
+	public void testGetRequestForUpdateWithNullUserInfo() {
+		manager.getRequestForUpdate(null, accessRequirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetWithNullAccessRequirementId() {
-		manager.getUserOwnCurrentRequest(mockUser, null);
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetNotFound() {
-		when(mockRequestDao.getUserOwnCurrentRequest(anyString(), anyString())).thenThrow(new NotFoundException());
-		manager.getUserOwnCurrentRequest(mockUser, accessRequirementId);
+	public void testGetRequestForUpdateWithNullAccessRequirementId() {
+		manager.getRequestForUpdate(mockUser, null);
 	}
 
 	@Test
-	public void testGet() {
-		assertEquals(request, manager.getUserOwnCurrentRequest(mockUser, accessRequirementId));
+	public void testGetRequestForUpdate() {
+		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
 		verify(mockRequestDao).getUserOwnCurrentRequest(accessRequirementId, userId);
 	}
 
@@ -187,20 +182,27 @@ public class RequestManagerImplTest {
 		assertEquals(Request.class.getName(), request.getConcreteType());
 	}
 
+	/**
+	 * For this case the current request is a request (not a renewal).
+	 */
 	@Test
-	public void testGetForUpdateDoesNotHasApprovedSubmission() {
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(false);
-		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
-	}
-
-	@Test
-	public void testGetForUpdateHasApprovedSubmission() {
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		Renewal renewal = (Renewal) manager.getRequestForUpdate(mockUser, accessRequirementId);
+	public void testUpdateApprovedRequestCurrentRequest() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		// call under test
+		manager.updateApprovedRequest(requestId);
+		verify(mockRequestDao).getForUpdate(requestId);
+		ArgumentCaptor<RequestInterface> updateCapture = ArgumentCaptor.forClass(RequestInterface.class);
+		verify(mockRequestDao).update(updateCapture.capture());
+		
+		RequestInterface requesInt = updateCapture.getValue();
+		assertNotNull(requesInt);
+		assertTrue(requesInt instanceof Renewal);
+		Renewal renewal = (Renewal) requesInt;
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
 		assertEquals(createdOn, renewal.getCreatedOn());
 		assertEquals(userId, renewal.getModifiedBy());
+		// modified on should not be changed.
 		assertEquals(modifiedOn, renewal.getModifiedOn());
 		assertEquals(etag, renewal.getEtag());
 		assertEquals(accessRequirementId, renewal.getAccessRequirementId());
@@ -210,6 +212,23 @@ public class RequestManagerImplTest {
 		assertEquals(request.getAttachments(), renewal.getAttachments());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+	}
+	
+	/**
+	 * For this case the current request is a renewal.
+	 */
+	@Test
+	public void testUpdateApprovedRequestCurrentRenewal() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(renewal);
+		// call under test
+		manager.updateApprovedRequest(requestId);
+		verify(mockRequestDao).getForUpdate(requestId);
+		ArgumentCaptor<RequestInterface> updateCapture = ArgumentCaptor.forClass(RequestInterface.class);
+		verify(mockRequestDao).update(updateCapture.capture());
+		
+		RequestInterface requesInt = updateCapture.getValue();
+		assertNotNull(requesInt);
+		assertTrue(requesInt instanceof Renewal);
 	}
 
 	@Test
