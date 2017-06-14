@@ -82,7 +82,17 @@ public class RequestManagerImpl implements RequestManager{
 		return request;
 	}
 
-	public static Renewal createRenewalFromRequest(RequestInterface current) {
+	/**
+	 * Given a request/renewal that was approved, create a renewal that includes
+	 * all accessors that still have access to {@link AccessType.RENEW_ACCESS}
+	 * and excludes all accssors that were revoked.
+	 * All other fields from the original request/renewal are copied into the new
+	 * renewal.
+	 * 
+	 * @param current
+	 * @return
+	 */
+	public static Renewal createRenewalFromApprovedRequest(RequestInterface current) {
 		Renewal renewal = new Renewal();
 		renewal.setId(current.getId());
 		renewal.setAccessRequirementId(current.getAccessRequirementId());
@@ -168,7 +178,7 @@ public class RequestManagerImpl implements RequestManager{
 	public void updateApprovedRequest(String requestId) {
 		ValidateArgument.required(requestId, "requestId");
 		RequestInterface original = requestDao.getForUpdate(requestId);
-		original = createRenewalFromRequest(original);
+		original = createRenewalFromApprovedRequest(original);
 		/*
 		 * Note: Since this method is called when a submission is approved by
 		 * ACT, modifiedOn and modifiedBy are not changed. The dao.update() will

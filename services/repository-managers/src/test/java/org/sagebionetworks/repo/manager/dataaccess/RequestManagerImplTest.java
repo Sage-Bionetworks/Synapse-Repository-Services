@@ -76,7 +76,7 @@ public class RequestManagerImplTest {
 		modifiedOn = new Date();
 		etag = "etag";
 		request = createNewRequest();
-		renewal = manager.createRenewalFromRequest(request);
+		renewal = manager.createRenewalFromApprovedRequest(request);
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
@@ -320,8 +320,9 @@ public class RequestManagerImplTest {
 	@Test
 	public void testUpdate() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
+		// call under test.
 		assertEquals(request, manager.update(mockUser, toUpdate));
 		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
 		verify(mockRequestDao).update(captor.capture());
@@ -333,7 +334,7 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
-	public void testCreateRenewalFromRequest() {
+	public void testCreateRenewalFromApprovedRequest() {
 		Request request = createNewRequest();
 		AccessorChange change1 = new AccessorChange();
 		change1.setUserId("1");
@@ -346,7 +347,7 @@ public class RequestManagerImplTest {
 		change3.setType(AccessType.REVOKE_ACCESS);
 		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
-		Renewal renewal = manager.createRenewalFromRequest(request);
+		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
 		assertEquals(createdOn, renewal.getCreatedOn());
