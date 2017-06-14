@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
@@ -414,10 +415,18 @@ public class DBOChangeDAOImplAutowiredTest {
 	@Test
 	public void testRegisterMessageSentBatch(){
 		List<ChangeMessage> batch = createList(5, ObjectType.ENTITY);
+		ChangeMessage fistMessage = batch.get(0);
 		batch  = changeDAO.replaceChange(batch);
 		changeDAO.registerMessageSent(ObjectType.ENTITY, batch);
 		List<ChangeMessage> unsent = changeDAO.listUnsentMessages(10L);
 		assertEquals(0, unsent.size());
+		
+		// check the first sent (PLFM-3739).
+		DBOSentMessage sent = changeDAO.getSentMessage(fistMessage.getObjectId(), fistMessage.getObjectType());
+		assertNotNull(sent);
+		assertNotNull(sent.getTimeStamp());
+		assertEquals(KeyFactory.stringToKey(fistMessage.getObjectId()), sent.getObjectId());
+		assertEquals(fistMessage.getObjectType(), sent.getObjectType());
 	}
 	
 	

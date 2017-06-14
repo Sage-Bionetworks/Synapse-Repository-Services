@@ -51,7 +51,9 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 
 /**
@@ -283,6 +285,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(batch == null){
 			throw new IllegalArgumentException("Batch cannot be null");
 		}
+		Timestamp now = new Timestamp(System.currentTimeMillis());
 		// Create the dto batch
 		List<DBOSentMessage> dboBatch = new LinkedList<DBOSentMessage>();
 		for(ChangeMessage message: batch){
@@ -296,11 +299,14 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			sent.setChangeNumber(message.getChangeNumber());
 			sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
 			sent.setObjectType(message.getObjectType());
+			sent.setTimeStamp(now);
 			dboBatch.add(sent);
 		}
 		// batch insert all.
 		basicDao.createOrUpdateBatch(dboBatch);
 	}
+	
+	
 
 
 	/**
@@ -410,6 +416,14 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			dboList =  namedParameterJdbcTemplate.query(SQL_SELECT_CHANGES_BY_OBJECT_IDS_AND_TYPE, params, rowMapper);
 		}
 		return ChangeMessageUtils.createDTOList(dboList);
+	}
+
+	@Override
+	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("objectId", objectId);
+		params.addValue("objectType", objectType.name());
+		return basicDao.getObjectByPrimaryKey(DBOSentMessage.class, params);
 	}
 
 }
