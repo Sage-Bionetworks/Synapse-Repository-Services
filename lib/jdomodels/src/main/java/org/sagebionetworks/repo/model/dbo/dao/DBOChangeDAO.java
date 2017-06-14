@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 /**
@@ -149,4 +150,13 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 */
 	public List<ChangeMessage> getChangesForObjectIds(ObjectType objectType,
 			Set<Long> objectIds);
+
+	/**
+	 * Fetch a sent message for a given object ID and type.
+	 * 
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	public DBOSentMessage getSentMessage(String objectId, ObjectType objectType);
 }
