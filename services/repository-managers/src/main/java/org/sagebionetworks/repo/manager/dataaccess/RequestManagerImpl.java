@@ -175,9 +175,8 @@ public class RequestManagerImpl implements RequestManager{
 		original = createRenewalFromRequest(original);
 		/*
 		 * Note: Since this method is called when a submission is approved by
-		 * ACT, modifiedOn and modifiedBy are not changed.  The dao.update() 
-		 * will change the etag.
-		 * 
+		 * ACT, modifiedOn and modifiedBy are not changed. The dao.update() will
+		 * change the etag.
 		 */
 		requestDao.update(original);
 	}
