@@ -63,28 +63,14 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
 	}
 
-	@Override
-	public RequestInterface getUserOwnCurrentRequest(UserInfo userInfo, String accessRequirementId)
-			throws NotFoundException {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
-	}
 
 	@Override
 	public RequestInterface getRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		try {
-			RequestInterface current = getUserOwnCurrentRequest(userInfo, accessRequirementId);
-			if (current instanceof Renewal) {
-				return current;
-			}
-			if (submissionDao.hasSubmissionWithState(
-					userInfo.getId().toString(), accessRequirementId,
-					SubmissionState.APPROVED)) {
-				return createRenewalFromRequest(current);
-			}
-			return current;
+			return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
 			return createNewRequest(accessRequirementId);
 		}
@@ -96,7 +82,17 @@ public class RequestManagerImpl implements RequestManager{
 		return request;
 	}
 
-	public Renewal createRenewalFromRequest(RequestInterface current) {
+	/**
+	 * Given a request/renewal that was approved, create a renewal that includes
+	 * all accessors that still have access to {@link AccessType.RENEW_ACCESS}
+	 * and excludes all accssors that were revoked.
+	 * All other fields from the original request/renewal are copied into the new
+	 * renewal.
+	 * 
+	 * @param current
+	 * @return
+	 */
+	public static Renewal createRenewalFromApprovedRequest(RequestInterface current) {
 		Renewal renewal = new Renewal();
 		renewal.setId(current.getId());
 		renewal.setAccessRequirementId(current.getAccessRequirementId());
@@ -145,7 +141,7 @@ public class RequestManagerImpl implements RequestManager{
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
 				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
-				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be editted.");
+				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
@@ -171,6 +167,33 @@ public class RequestManagerImpl implements RequestManager{
 		} else {
 			return update(userInfo, toCreateOrUpdate);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.dataaccess.RequestManager#updateApprovedRequest(java.lang.String)
+	 */
+	@WriteTransactionReadCommitted
+	@Override
+	public void updateApprovedRequest(String requestId) {
+		ValidateArgument.required(requestId, "requestId");
+		RequestInterface original = requestDao.getForUpdate(requestId);
+		original = createRenewalFromApprovedRequest(original);
+		/*
+		 * Note: Since this method is called when a submission is approved by
+		 * ACT, modifiedOn and modifiedBy are not changed. The dao.update() will
+		 * change the etag.
+		 */
+		requestDao.update(original);
+	}
+
+	/*
+	 * 
+	 */
+	@Override
+	public RequestInterface getRequestForSubmission(String requestId) {
+		ValidateArgument.required(requestId, "requestId");
+		return requestDao.get(requestId);
 	}
 
 }

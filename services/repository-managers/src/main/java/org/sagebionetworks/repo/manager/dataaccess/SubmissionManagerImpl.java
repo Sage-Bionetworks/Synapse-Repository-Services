@@ -29,19 +29,18 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -56,7 +55,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
-	private RequestDAO requestDao;
+	private RequestManager requestManager;
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 	@Autowired
@@ -78,7 +77,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
-		RequestInterface request = requestDao.get(requestId);
+		RequestInterface request = requestManager.getRequestForSubmission(requestId);
 		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
 
 		Submission submissionToCreate = new Submission();
@@ -232,6 +231,10 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
 			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
+			/*
+			 * See PLFM-4442.
+			 */
+			requestManager.updateApprovedRequest(submission.getRequestId());
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
