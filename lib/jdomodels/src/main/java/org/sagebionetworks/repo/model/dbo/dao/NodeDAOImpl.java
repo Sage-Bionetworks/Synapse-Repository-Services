@@ -430,24 +430,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Get the parent
 			parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
 			node.setParentId(parent.getId());
-			// By default a node should inherit from the same 
-			// benefactor as its parent
-			node.setBenefactorId(parent.getBenefactorId());
-		}
-		if(node.getBenefactorId() == null){
-			// For nodes that have no parent, they are
-			// their own benefactor.
-			node.setBenefactorId(node.getId());
-		}
-		if (node.getProjectId() == null) {
-			// we need to find the project id for this node if possible
-			if (EntityType.project.name().equals(node.getType())) {
-				// we are our own project
-				node.setProjectId(node.getId());
-			} else if (parent != null) {
-				// just copy from parent if we have the parent anyway
-				node.setProjectId(parent.getProjectId());
-			}
 		}
 
 		// Start it with a new e-tag
