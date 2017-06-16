@@ -34,14 +34,6 @@ public class DBONodeMapper implements RowMapper<DBONode> {
 		node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 		node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 		node.setType(rs.getString(COL_NODE_TYPE));
-		// If the value was null we must set it to null
-		if(rs.wasNull()){
-			node.setBenefactorId(null);
-		}
-		// If the value was null we must set it to null
-		if(rs.wasNull()){
-			node.setProjectId(null);
-		}
 		node.setAlias(rs.getString(COL_NODE_ALIAS));
 		return node;
 	}
