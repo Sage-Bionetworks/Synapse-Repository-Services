@@ -147,5 +147,19 @@ public class QueryTranslatorTest {
 		assertEquals("Human", results.getFilters().get(0).getValue());
 		assertEquals(100L, results.getFilters().get(1).getValue());
 	}
+	
+	
+	@Test
+	public void testForPLFM_2783() throws ParseException, UnsupportedEncodingException{
+		String urlEncoded = "select+*+from+file+order+by+foo+limit+3+offset+1";
+		String decoded = URLDecoder.decode(urlEncoded, "UTF-8");
+		System.out.println(decoded);
+		QueryStatement stmt = new QueryStatement(decoded);
+		assertNotNull(stmt);
+		assertEquals(new Long(3), stmt.getLimit());
+		assertEquals(new Long(1), stmt.getOffset());
+		assertEquals("foo", stmt.getSortField());
+	}
+	
 
 }

@@ -1100,7 +1100,7 @@ public class EvaluationController extends BaseController {
 	 * Examples:<br/>
 	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"<br/>
 	 * SELECT entityId, status, myAnnotation FROM evaluation_123 WHERE myAnnotation == "foo" AND status="RECEIVED"<br/>
-	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc<br/>
+	 * SELECT * FROM evaluation_123 order by status asc limit 20 offset 10<br/>
 	 * <p/>
 	 * Note:  The query is a <i>parameter</i> of the http request whose key is 'query' and the query parameter is URL encoded, so the URI is of the form:
 	 * <br/>/evaluation/submission/query?query=select+*+from+evalution_123+WHERE+...<br/>
