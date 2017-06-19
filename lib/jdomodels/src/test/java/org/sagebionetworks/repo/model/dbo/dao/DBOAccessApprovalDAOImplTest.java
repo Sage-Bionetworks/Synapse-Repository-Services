@@ -285,12 +285,11 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
-		String revokedBy = "2";
-		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), revokedBy);
+		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
 		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
 		assertNotNull(approval);
 		assertEquals(ApprovalState.REVOKED, approval.getState());
-		assertEquals(revokedBy, approval.getModifiedBy());
+		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
 		assertFalse(accessApproval.getModifiedOn().equals(approval.getModifiedOn()));
 		assertFalse(accessApproval.getEtag().equals(approval.getEtag()));
 	}
