@@ -67,10 +67,10 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@WriteTransaction
 	@Override
-	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId) 
+	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId) 
 			throws UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		accessApprovalManager.deleteAccessApprovals(userInfo, accessRequirementId, accessorId);
+		accessApprovalManager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
 	@Override

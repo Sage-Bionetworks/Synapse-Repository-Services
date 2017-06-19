@@ -181,7 +181,8 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	/**
-	 * Delete Access Approval. This service is only available to the ACT.
+	 * Revoke all Access Approvals an accessor may have for a given Access Requirement.
+	 * This service is only available to the ACT.
 	 * @param userId - The user who is making the request
 	 * @param accessRequirementId - The access requirement to look for
 	 * @param accessorId - The user whose access is being revoked
@@ -190,11 +191,11 @@ public class AccessApprovalController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.DELETE)
-	public void deleteAccessApprovals(
+	public void revokeAccessApprovals(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.ACCESS_REQUIREMENT_ID_PARAM, required = true) String requirementId,
 			@RequestParam(value = ServiceConstants.ACCESSOR_ID_PARAM, required = true) String accessorId)
 					throws UnauthorizedException, NotFoundException {
-		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, requirementId, accessorId);
+		serviceProvider.getAccessApprovalService().revokeAccessApprovals(userId, requirementId, accessorId);
 	}
 }

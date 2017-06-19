@@ -41,8 +41,9 @@ public interface AccessApprovalDAO {
 	 * 
 	 * @param accessRequirementId
 	 * @param accessorId
+	 * @param revokedBy
 	 */
-	public void delete(String accessRequirementId, String accessorId);
+	public void revokeAll(String accessRequirementId, String accessorId, String revokedBy);
 
 	/**
 	 * Return true if there is an unmet access requirement for the given user; false otherwise.
