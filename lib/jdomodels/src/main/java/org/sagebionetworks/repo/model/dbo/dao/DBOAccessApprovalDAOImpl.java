@@ -22,10 +22,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -90,8 +90,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
-	private static final String DELETE_ACCESS_APPROVAL = "DELETE"
-			+ " FROM "+TABLE_ACCESS_APPROVAL
+	private static final String REVOKE_ACCESS_APPROVALS = "UPDATE "
+			+TABLE_ACCESS_APPROVAL
+			+" SET "+COL_ACCESS_APPROVAL_ETAG+" = :"+COL_ACCESS_APPROVAL_ETAG+", "
+					+COL_ACCESS_APPROVAL_MODIFIED_BY+" = :"+COL_ACCESS_APPROVAL_MODIFIED_BY+", "
+					+COL_ACCESS_APPROVAL_MODIFIED_ON+" = :"+COL_ACCESS_APPROVAL_MODIFIED_ON+", "
+					+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.REVOKED.name()+"' "
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
@@ -177,15 +181,19 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		return dto;
 	}
 
-	@Deprecated
+	@WriteTransactionReadCommitted
 	@Override
-	public void delete(String accessRequirementId, String accessorId) {
+	public void revokeAll(String accessRequirementId, String accessorId, String revokedBy) {
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		ValidateArgument.required(accessorId, "accessorId");
+		ValidateArgument.required(revokedBy, "revokedBy");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorId);
-		namedJdbcTemplate.update(DELETE_ACCESS_APPROVAL, params);
+		params.addValue(COL_ACCESS_APPROVAL_ETAG, UUID.randomUUID().toString());
+		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_BY, revokedBy);
+		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_ON, System.currentTimeMillis());
+		namedJdbcTemplate.update(REVOKE_ACCESS_APPROVALS, params);
 	}
 
 	@Override

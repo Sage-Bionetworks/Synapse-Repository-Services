@@ -799,7 +799,7 @@ public class IT500SynapseJavaClient {
 		adminSynapse.deleteAccessApproval(created.getId());
 
 		try {
-			adminSynapse.deleteAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
+			adminSynapse.revokeAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
 			fail("Expecting IllegalArgumentException");
 		} catch (SynapseBadRequestException e) {
 			// The service is wired up.

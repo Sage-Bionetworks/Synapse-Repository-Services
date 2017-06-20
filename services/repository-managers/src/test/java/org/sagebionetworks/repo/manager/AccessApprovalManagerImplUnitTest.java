@@ -43,54 +43,60 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullUserInfo() {
-		manager.deleteAccessApprovals(null, "1", "1");
+	public void testRevokeAccessApprovalsWithNullUserInfo() {
+		manager.revokeAccessApprovals(null, "1", "1");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessRequirementId() {
-		manager.deleteAccessApprovals(new UserInfo(false), null, "1");
+	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
+		manager.revokeAccessApprovals(new UserInfo(false), null, "1");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessorId() {
-		manager.deleteAccessApprovals(new UserInfo(false), "1", null);
+	public void testRevokeAccessApprovalsWithNullAccessorId() {
+		manager.revokeAccessApprovals(new UserInfo(false), "1", null);
 	}
 
 	@Test (expected = UnauthorizedException.class)
-	public void testDeleteAccessApprovalWithNonACTNorAdminUser() {
+	public void testRevokeAccessApprovalsWithNonACTNorAdminUser() {
 		UserInfo userInfo = new UserInfo(false);
+		String accessRequirementId = "1";
+		String accessorId = "3";
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
-		manager.deleteAccessApprovals(userInfo, "1", "1");
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
 	@Test (expected = NotFoundException.class)
-	public void testDeleteAccessApprovalWithNonExistingAccessRequirement() {
+	public void testRevokeAccessApprovalsWithNonExistingAccessRequirement() {
 		UserInfo userInfo = new UserInfo(false);
 		String accessRequirementId = "1";
+		String accessorId = "3";
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenThrow(new NotFoundException());
-		manager.deleteAccessApprovals(userInfo, accessRequirementId, "1");
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNonACTAccessRequirement() {
+	public void testRevokeAccessApprovalsWithToUAccessRequirement() {
 		UserInfo userInfo = new UserInfo(false);
 		String accessRequirementId = "1";
+		String accessorId = "3";
 		AccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
-		manager.deleteAccessApprovals(userInfo, accessRequirementId, "1");
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
 	@Test
-	public void testDeleteAccessApprovalWithACTAccessRequirement() {
+	public void testRevokeAccessApprovalsWithACTAccessRequirement() {
 		UserInfo userInfo = new UserInfo(false);
-		String accessRequirementId = "1";
+		userInfo.setId(1L);
+		String accessRequirementId = "2";
+		String accessorId = "3";
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
-		manager.deleteAccessApprovals(userInfo, accessRequirementId, "1");
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

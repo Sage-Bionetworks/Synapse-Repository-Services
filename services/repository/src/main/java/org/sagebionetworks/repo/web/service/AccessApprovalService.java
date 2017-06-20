@@ -31,7 +31,7 @@ public interface AccessApprovalService {
 	public void deleteAccessApproval(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId);
+	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
 
 	public Count deleteAccessApprovals(Long userId, IdList toDelete);
 

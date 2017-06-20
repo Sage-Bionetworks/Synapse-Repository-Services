@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -124,21 +125,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
-	@Deprecated
 	@WriteTransactionReadCommitted
 	@Override
-	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
+	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
 			throws UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		ValidateArgument.required(accessorId, "accessorId");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
-			throw new UnauthorizedException("Only ACT member may delete an access approval.");
+			throw new UnauthorizedException("Only ACT member may delete access approvals.");
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
 		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
-		accessApprovalDAO.delete(accessRequirementId, accessorId);
+		accessApprovalDAO.revokeAll(accessRequirementId, accessorId, userInfo.getId().toString());
 	}
 
 	@WriteTransactionReadCommitted

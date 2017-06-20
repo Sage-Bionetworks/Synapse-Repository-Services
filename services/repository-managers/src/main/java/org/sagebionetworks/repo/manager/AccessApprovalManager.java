@@ -47,7 +47,7 @@ public interface AccessApprovalManager {
 	 * @param accessorId - the user whose access is being revoked
 	 * @throws UnauthorizedException - if the user is not an admin or an ACT member
 	 */
-	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
+	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
 
 	/**
 	 * Delete a batch of AccessApproval

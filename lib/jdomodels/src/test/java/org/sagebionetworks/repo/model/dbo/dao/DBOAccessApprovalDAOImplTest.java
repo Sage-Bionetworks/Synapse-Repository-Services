@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -263,31 +262,36 @@ public class DBOAccessApprovalDAOImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessRequirementId() {
-		accessApprovalDAO.delete(null, "1");
+	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
+		accessApprovalDAO.revokeAll(null, "1", "2");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessorId() {
-		accessApprovalDAO.delete("1", null);
+	public void testRevokeAccessApprovalsWithNullAccessorId() {
+		accessApprovalDAO.revokeAll("1", null, "2");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeAccessApprovalsWithNullRevokedBy() {
+		accessApprovalDAO.revokeAll("1", "2", null);
 	}
 
 	@Test
-	public void testDeleteAccessApprovalWithNotExistingAccessApproval() {
-		accessApprovalDAO.delete("-1", "-1");
+	public void testRevokeAccessApprovalsWithNotExistingAccessApproval() {
+		accessApprovalDAO.revokeAll("-1", "-1", "2");
 	}
 
 	@Test
-	public void testDeleteAccessApprovalWithExistingAccessApproval() {
+	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
-		accessApprovalDAO.delete(accessRequirement.getId().toString(), individualGroup.getId());
-		try {
-			accessApprovalDAO.get(accessApproval.getId().toString());
-			fail("Expecting a NotFoundException");
-		} catch (NotFoundException e) {
-			// make sure that the exception is thrown here and not before this call
-		}
+		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
+		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
+		assertNotNull(approval);
+		assertEquals(ApprovalState.REVOKED, approval.getState());
+		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
+		assertFalse(accessApproval.getModifiedOn().equals(approval.getModifiedOn()));
+		assertFalse(accessApproval.getEtag().equals(approval.getEtag()));
 	}
 
 	@Test
