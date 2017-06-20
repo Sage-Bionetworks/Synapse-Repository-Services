@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
@@ -28,7 +28,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public AccessApproval createAccessApproval(Long userId,
 			AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, 
@@ -57,7 +57,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		return PaginatedResults.createMisusedPaginatedResults(results);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessApproval(Long userId, String approvalId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -65,7 +65,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		accessApprovalManager.deleteAccessApproval(userInfo, approvalId);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId) 
 			throws UnauthorizedException, NotFoundException {

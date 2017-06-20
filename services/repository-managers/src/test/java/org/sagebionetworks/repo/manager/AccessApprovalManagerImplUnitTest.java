@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -95,18 +94,6 @@ public class AccessApprovalManagerImplUnitTest {
 		String accessRequirementId = "2";
 		String accessorId = "3";
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
-		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
-	}
-
-	@Test
-	public void testRevokeAccessApprovalsWithManagedACTAccessRequirement() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(1L);
-		String accessRequirementId = "2";
-		String accessorId = "3";
-		AccessRequirement accessRequirement = new ManagedACTAccessRequirement();
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
 		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);

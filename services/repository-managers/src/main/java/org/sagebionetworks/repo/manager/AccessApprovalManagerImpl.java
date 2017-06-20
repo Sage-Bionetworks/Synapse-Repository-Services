@@ -136,8 +136,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("Only ACT member may delete access approvals.");
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
-		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName())
-				|| accessRequirement.getConcreteType().equals(ManagedACTAccessRequirement.class.getName()),
+		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
 		accessApprovalDAO.revokeAll(accessRequirementId, accessorId, userInfo.getId().toString());
 	}
