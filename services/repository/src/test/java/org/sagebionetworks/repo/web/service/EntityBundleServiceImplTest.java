@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
@@ -53,6 +55,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.web.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -75,6 +78,8 @@ public class EntityBundleServiceImplTest {
 	private DoiService mockDoiService;
 	@Mock
 	private DiscussionService mockDiscussionService;
+	@Mock
+	private DataAccessService mockDataAccessService;
 	
 	private Project project;
 	private Folder study;
@@ -101,6 +106,7 @@ public class EntityBundleServiceImplTest {
 		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
 		when(mockServiceProvider.getDoiService()).thenReturn(mockDoiService);
 		when(mockServiceProvider.getDiscussionService()).thenReturn(mockDiscussionService);
+		when(mockServiceProvider.getDataAccessService()).thenReturn(mockDataAccessService);
 		
 		// Entities
 		project = new Project();
@@ -383,5 +389,16 @@ public class EntityBundleServiceImplTest {
 		threadCount.setCount(1L);
 		threadCounts.setList(Arrays.asList(threadCount, threadCount));
 		entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+	}
+
+	@Test
+	public void testRestrictionInfo() throws Exception {
+		String entityId = "syn123";
+		int mask = EntityBundle.RESTRICTION_INFORMATION;
+		entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(entityId);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
 	}
 }

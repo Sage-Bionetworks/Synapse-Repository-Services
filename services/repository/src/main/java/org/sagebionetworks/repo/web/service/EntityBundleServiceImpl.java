@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -209,9 +210,15 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalStateException("Unexpected EntityThreadCount list size: "+result.getList().size());
 			}
 		}
+		if ((mask & EntityBundle.RESTRICTION_INFORMATION) > 0) {
+			RestrictionInformationRequest restrictionInfoRequest = new RestrictionInformationRequest();
+			restrictionInfoRequest.setObjectId(entityId);
+			restrictionInfoRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+			eb.setRestrictionInformation(serviceProvider.getDataAccessService().getRestrictionInformation(userId, restrictionInfoRequest));
+		}
 		return eb;
-	}	
-	
+	}
+
 	@WriteTransaction
 	@Override
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
