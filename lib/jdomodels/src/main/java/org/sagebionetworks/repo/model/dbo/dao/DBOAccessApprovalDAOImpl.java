@@ -19,9 +19,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +35,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -138,6 +141,28 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
+
+	private static final String SEPARATOR = ",";
+	private static final String ACCESSOR_LIST = "ACCESSOR_LIST";
+
+	private static final String SELECT_ACCESSOR_GROUP_PREFIX = "SELECT "
+				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
+				+ COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
+				+ "GROUP_CONCAT(DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" SEPARATOR '"+SEPARATOR+"') AS "+ACCESSOR_LIST
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
+	private static final String REQUIREMENT_ID_COND =
+			" AND "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+	private static final String SUBMITTER_ID_COND =
+			" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID;
+	private static final String EXPIRED_ON_COND =
+			" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <= :"+COL_ACCESS_APPROVAL_EXPIRED_ON;
+	private static final String SELECT_ACCESSOR_GROUP_POSTFIX = " GROUP BY "
+				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
+				+ COL_ACCESS_APPROVAL_SUBMITTER_ID
+			+ " ORDER BY "+COL_ACCESS_APPROVAL_EXPIRED_ON
+			+ " LIMIT :"+LIMIT_PARAM
+			+ " OFFSET :"+OFFSET_PARAM;
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -293,5 +318,51 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
 		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
 		return approvedUsers.containsAll(accessorIds);
+	}
+
+	@Override
+	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
+			long limit, long offset) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
+		if (expireBefore != null) {
+			params.addValue(COL_ACCESS_APPROVAL_EXPIRED_ON, expireBefore.getTime());
+		}
+		params.addValue(LIMIT_PARAM, limit);
+		params.addValue(OFFSET_PARAM, offset);
+		String query = buildAccessorGroupQuery(accessRequirementId, submitterId, expireBefore);
+		return namedJdbcTemplate.query(query, params, new RowMapper<AccessorGroup>(){
+
+			@Override
+			public AccessorGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
+				AccessorGroup group = new AccessorGroup();
+				group.setSubmitterId(rs.getString(COL_ACCESS_APPROVAL_SUBMITTER_ID));
+				group.setAccessorIds(convertToList(rs.getString(ACCESSOR_LIST)));
+				return group;
+			}
+		});
+	}
+
+	public static List<String> convertToList(String accessorList) {
+		if (accessorList == null) {
+			return new LinkedList<String>();
+		}
+		String[] accessors = accessorList.split(SEPARATOR);
+		return Arrays.asList(accessors);
+	}
+
+	public static String buildAccessorGroupQuery(String accessRequirementId, String submitterId, Date expireBefore) {
+		String query = SELECT_ACCESSOR_GROUP_PREFIX;
+		if (accessRequirementId != null) {
+			query+= REQUIREMENT_ID_COND;
+		}
+		if (submitterId != null) {
+			query+= SUBMITTER_ID_COND;
+		}
+		if (expireBefore != null) {
+			query+= EXPIRED_ON_COND;
+		}
+		return query+=SELECT_ACCESSOR_GROUP_POSTFIX;
 	}
 }
