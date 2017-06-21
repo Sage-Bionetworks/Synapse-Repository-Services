@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,9 +19,13 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -139,4 +145,34 @@ public class AccessApprovalManagerImplUnitTest {
 		verify(mockAccessApprovalDAO).deleteBatch(Arrays.asList(1L));
 	}
 
+	@Test  (expected = IllegalArgumentException.class)
+	public void testListAccessorGroupWithNullUserInfo() {
+		AccessorGroupRequest request = new AccessorGroupRequest();
+		manager.listAccessorGroup(null, request);
+	}
+
+	@Test  (expected = IllegalArgumentException.class)
+	public void testListAccessorGroupWithNullRequest() {
+		UserInfo userInfo = new UserInfo(false);
+		manager.listAccessorGroup(userInfo, null);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testListAccessorGroupUnauthorized() {
+		UserInfo userInfo = new UserInfo(false);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		AccessorGroupRequest request = new AccessorGroupRequest();
+		manager.listAccessorGroup(userInfo, request);
+	}
+
+	@Test
+	public void testListAccessorGroupAuthorized() {
+		UserInfo userInfo = new UserInfo(false);
+		AccessorGroupRequest request = new AccessorGroupRequest();
+		List<AccessorGroup> result = new LinkedList<AccessorGroup>();
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
+		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
+		assertEquals(result, response.getResults());
+	}
 }
