@@ -12,11 +12,14 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -97,6 +100,7 @@ public class RequestManagerImplTest {
 		dto.setEtag(etag);
 		dto.setAccessRequirementId(accessRequirementId);
 		dto.setResearchProjectId(researchProjectId);
+		dto.setAccessorChanges(new LinkedList<AccessorChange>());
 		return dto;
 	}
 
@@ -128,6 +132,16 @@ public class RequestManagerImplTest {
 	public void testCreateWithNotACTAccessRequirementId() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
 		manager.create(null, createNewRequest());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithMoreThanMaxAccessorChanges() {
+		request = createNewRequest();
+		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
+		when(mockAccessorChanges.isEmpty()).thenReturn(false);
+		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
+		request.setAccessorChanges(mockAccessorChanges );
+		manager.create(null, request);
 	}
 
 	@Test
@@ -315,6 +329,17 @@ public class RequestManagerImplTest {
 	public void testUpdateWithSubmittedSubmission() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(true);
 		manager.update(mockUser, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testUpdateWithMoreThanMaxAccessorChanges() {
+		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
+		when(mockAccessorChanges.isEmpty()).thenReturn(false);
+		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
+		toUpdate.setAccessorChanges(mockAccessorChanges );
+		manager.update(mockUser, toUpdate);
 	}
 
 	@Test
