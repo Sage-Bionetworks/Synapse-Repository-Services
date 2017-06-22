@@ -1515,6 +1515,8 @@ public class EntityController extends BaseController {
 	
 	/**
 	 * Get a page of children for a given parent ID.
+	 * This service can also be used to list projects by setting the parentId to NULL in EntityChildrenRequest.
+	 * 
 	 * @param userId
 	 * @param parentId
 	 * @param request
@@ -1530,6 +1532,8 @@ public class EntityController extends BaseController {
 
 	/**
 	 * Retrieve an entityId for a given parent ID and entity name.
+	 * This service can also be used to lookup projectId by setting the parentId to NULL in EntityLookupRequest.
+	 * 
 	 * @param userId
 	 * @param request
 	 * @return
