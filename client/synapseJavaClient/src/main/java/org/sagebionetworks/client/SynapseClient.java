@@ -2849,4 +2849,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	AccessorGroupResponse listAccessorGroup(AccessorGroupRequest request) throws SynapseException;
+
+	/**
+	 * Revoke a group of accessors.
+	 * 
+	 * @param accessRequirementId
+	 * @param submitterId
+	 * @throws SynapseException
+	 */
+	void revokeGroup(String accessRequirementId, String submitterId) throws SynapseException;
 }

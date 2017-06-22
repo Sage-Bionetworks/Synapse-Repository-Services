@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalService {
@@ -34,5 +35,7 @@ public interface AccessApprovalService {
 	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
 
 	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
+
+	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
 
 }

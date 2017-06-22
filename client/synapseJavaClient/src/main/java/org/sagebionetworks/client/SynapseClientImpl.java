@@ -110,6 +110,7 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -5008,5 +5009,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public AccessorGroupResponse listAccessorGroup(AccessorGroupRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/group", request, AccessorGroupResponse.class);
+	}
+
+	@Override
+	public void revokeGroup(String accessRequirementId, String submitterId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(submitterId, "submitterId");
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setSubmitterId(submitterId);
+		voidPut(getRepoEndpoint(), ACCESS_APPROVAL+"/group/revoke", request);
 	}
 }

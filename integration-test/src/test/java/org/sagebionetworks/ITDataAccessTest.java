@@ -179,6 +179,8 @@ public class ITDataAccessTest {
 		AccessorGroupRequest accessorGroupRequest = new AccessorGroupRequest();
 		AccessorGroupResponse response = adminSynapse.listAccessorGroup(accessorGroupRequest);
 		assertNotNull(response);
+
+		adminSynapse.revokeGroup(accessRequirement.getId().toString(), userId);
 	}
 
 }
