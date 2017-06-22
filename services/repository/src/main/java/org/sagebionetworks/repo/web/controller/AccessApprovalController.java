@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -114,6 +115,24 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	/**
+	 * Revoke a group of accessors.
+	 * Only ACT can perform this action.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP_REVOKE, method = RequestMethod.PUT)
+	public void revokeGroup(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessorGroupRevokeRequest request
+			) throws UnauthorizedException, NotFoundException {	
+		serviceProvider.getAccessApprovalService().revokeGroup(userId, request);
+	}
+
+	/**
 	 * Retrieve the Access Approvals for the given Entity. This service is only available to the ACT.
 	 * 
 	 * @param userId
@@ -125,6 +144,7 @@ public class AccessApprovalController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -152,6 +172,7 @@ public class AccessApprovalController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
 	public @ResponseBody

@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,8 +15,6 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -26,6 +22,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -106,52 +103,12 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteBatchWithNullUserInfo() {
-		IdList toDelete = new IdList();
-		toDelete.setList(Arrays.asList(1L));
-		manager.deleteBatch(null, toDelete);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteBatchWithNullIdList() {
-		UserInfo userInfo = new UserInfo(false);
-		manager.deleteBatch(userInfo, null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteBatchWithEmptyIdList() {
-		UserInfo userInfo = new UserInfo(false);
-		IdList toDelete = new IdList();
-		manager.deleteBatch(userInfo, toDelete);
-	}
-
-	@Test (expected = UnauthorizedException.class)
-	public void testDeleteBatchUnauthorized() {
-		UserInfo userInfo = new UserInfo(false);
-		IdList toDelete = new IdList();
-		toDelete.setList(Arrays.asList(1L));
-		manager.deleteBatch(userInfo, toDelete);
-	}
-
-	@Test
-	public void testDeleteBatchAuthorized() {
-		UserInfo userInfo = new UserInfo(true);
-		IdList toDelete = new IdList();
-		toDelete.setList(Arrays.asList(1L));
-		when(mockAccessApprovalDAO.deleteBatch(Arrays.asList(1L))).thenReturn(1);
-		Count count = manager.deleteBatch(userInfo, toDelete);
-		assertNotNull(count);
-		assertEquals((Long)1L, count.getCount());
-		verify(mockAccessApprovalDAO).deleteBatch(Arrays.asList(1L));
-	}
-
-	@Test  (expected = IllegalArgumentException.class)
 	public void testListAccessorGroupWithNullUserInfo() {
 		AccessorGroupRequest request = new AccessorGroupRequest();
 		manager.listAccessorGroup(null, request);
 	}
 
-	@Test  (expected = IllegalArgumentException.class)
+	@Test (expected = IllegalArgumentException.class)
 	public void testListAccessorGroupWithNullRequest() {
 		UserInfo userInfo = new UserInfo(false);
 		manager.listAccessorGroup(userInfo, null);
@@ -174,5 +131,58 @@ public class AccessApprovalManagerImplUnitTest {
 		when(mockAccessApprovalDAO.listAccessorGroup(null, null, null, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(result );
 		AccessorGroupResponse response = manager.listAccessorGroup(userInfo, request);
 		assertEquals(result, response.getResults());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeGroupWithNullUserInfo() {
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId("1");
+		request.setSubmitterId("2");
+		manager.revokeGroup(null, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeGroupWithNullRequest() {
+		UserInfo userInfo = new UserInfo(false);
+		manager.revokeGroup(userInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeGroupWithNullRequirementId() {
+		UserInfo userInfo = new UserInfo(false);
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setSubmitterId("2");
+		manager.revokeGroup(userInfo, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeGroupWithNullSubmitterId() {
+		UserInfo userInfo = new UserInfo(false);
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId("1");
+		manager.revokeGroup(userInfo, request);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testRevokeGroupUnauthorized() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(3L);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId("1");
+		request.setSubmitterId("2");
+		manager.revokeGroup(userInfo, request);
+	}
+
+	@Test
+	public void testRevokeGroupAuthorized() {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(3L);
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId("1");
+		request.setSubmitterId("2");
+		manager.revokeGroup(userInfo, request);
+		verify(mockAccessApprovalDAO).revokeGroup("1", "2","3");
 	}
 }

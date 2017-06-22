@@ -7,19 +7,18 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
@@ -76,14 +75,14 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	}
 
 	@Override
-	public Count deleteAccessApprovals(Long userId, IdList toDelete) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return accessApprovalManager.deleteBatch(userInfo, toDelete);
-	}
-
-	@Override
 	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.listAccessorGroup(userInfo, request);
+	}
+
+	@Override
+	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		accessApprovalManager.revokeGroup(userInfo, request);
 	}
 }
