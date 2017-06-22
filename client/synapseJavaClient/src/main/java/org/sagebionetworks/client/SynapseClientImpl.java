@@ -108,6 +108,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -5000,5 +5002,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setEntityName(entityName);
 		request.setParentId(parentId);
 		return postJSONEntity(getRepoEndpoint(), ENTITY+"/child", request, EntityId.class).getId();
+	}
+
+	@Override
+	public AccessorGroupResponse listAccessorGroup(AccessorGroupRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/group", request, AccessorGroupResponse.class);
 	}
 }

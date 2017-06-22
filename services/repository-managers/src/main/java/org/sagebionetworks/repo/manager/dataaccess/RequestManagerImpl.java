@@ -62,7 +62,8 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(toUpdate, "toCreate");
 		ValidateArgument.required(toUpdate.getAccessRequirementId(), "Request.accessRequirementId");
 		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
-		ValidateArgument.requirement(toUpdate.getAccessorChanges().isEmpty()
+		ValidateArgument.requirement(toUpdate.getAccessorChanges() == null
+				|| toUpdate.getAccessorChanges().isEmpty()
 				|| toUpdate.getAccessorChanges().size() <= MAX_ACCESSORS,
 				"A request cannot have more than "+MAX_ACCESSORS+" changes.");
 	}
