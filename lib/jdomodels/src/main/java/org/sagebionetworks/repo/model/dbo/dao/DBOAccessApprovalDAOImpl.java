@@ -93,18 +93,20 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
-	private static final String REVOKE_ACCESS_APPROVALS = "UPDATE "
-			+TABLE_ACCESS_APPROVAL
+	private static final String REVOKE = "UPDATE "
+					+TABLE_ACCESS_APPROVAL
 			+" SET "+COL_ACCESS_APPROVAL_ETAG+" = :"+COL_ACCESS_APPROVAL_ETAG+", "
 					+COL_ACCESS_APPROVAL_MODIFIED_BY+" = :"+COL_ACCESS_APPROVAL_MODIFIED_BY+", "
 					+COL_ACCESS_APPROVAL_MODIFIED_ON+" = :"+COL_ACCESS_APPROVAL_MODIFIED_ON+", "
 					+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.REVOKED.name()+"' "
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"' ";
+
+	private static final String REVOKE_ACCESSOR = REVOKE
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID;
 
-	private static final String DELETE_ACCESS_APPROVALS = "DELETE"
-			+ " FROM "+TABLE_ACCESS_APPROVAL
-			+ " WHERE "+COL_ACCESS_APPROVAL_ID+" IN (:"+COL_ACCESS_APPROVAL_ID+")";
+	private static final String REVOKE_GROUP = REVOKE
+			+ " AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID;
 
 	private static final String SQL_CREATE_OR_UPDATE = "INSERT INTO "
 			+TABLE_ACCESS_APPROVAL+"("
@@ -219,7 +221,21 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_ETAG, UUID.randomUUID().toString());
 		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_BY, revokedBy);
 		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_ON, System.currentTimeMillis());
-		namedJdbcTemplate.update(REVOKE_ACCESS_APPROVALS, params);
+		namedJdbcTemplate.update(REVOKE_ACCESSOR, params);
+	}
+
+	@Override
+	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy) {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(submitterId, "submitterId");
+		ValidateArgument.required(revokedBy, "revokedBy");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
+		params.addValue(COL_ACCESS_APPROVAL_ETAG, UUID.randomUUID().toString());
+		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_BY, revokedBy);
+		params.addValue(COL_ACCESS_APPROVAL_MODIFIED_ON, System.currentTimeMillis());
+		namedJdbcTemplate.update(REVOKE_GROUP, params);
 	}
 
 	@Override
@@ -271,6 +287,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		});
 	}
 
+	@Deprecated
 	@Override
 	public List<AccessApproval> getAccessApprovalsForSubjects(List<String> subjectIdList, RestrictableObjectType type, long limit, long offset) {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
@@ -285,14 +302,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			dtos.add(dto);
 		}
 		return dtos;
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public int deleteBatch(List<Long> toDelete) {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(COL_ACCESS_APPROVAL_ID, toDelete);
-		return namedJdbcTemplate.update(DELETE_ACCESS_APPROVALS, params);
 	}
 
 	@Override

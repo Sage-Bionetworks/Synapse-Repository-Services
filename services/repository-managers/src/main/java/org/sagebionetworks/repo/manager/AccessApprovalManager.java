@@ -3,15 +3,14 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalManager {
@@ -52,15 +51,6 @@ public interface AccessApprovalManager {
 	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
 
 	/**
-	 * Delete a batch of AccessApproval
-	 * 
-	 * @param userInfo
-	 * @param toDelete
-	 * @return
-	 */
-	public Count deleteBatch(UserInfo userInfo, IdList toDelete);
-
-	/**
 	 * List a page of accessor groups.
 	 * 
 	 * @param userInfo
@@ -68,4 +58,12 @@ public interface AccessApprovalManager {
 	 * @return
 	 */
 	public AccessorGroupResponse listAccessorGroup(UserInfo userInfo, AccessorGroupRequest request);
+
+	/**
+	 * Revoke a group of accessors
+	 * 
+	 * @param userInfo
+	 * @param request
+	 */
+	public void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request);
 }

@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -329,37 +328,18 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval2.setEtag(updated2.getEtag());
 		assertEquals(accessApproval2, updated2);
 
-		List<Long> toDelete = new LinkedList<Long>();
-		toDelete.add(accessApproval.getId());
-		toDelete.add(accessApproval2.getId());
-
-		assertEquals(2, accessApprovalDAO.deleteBatch(toDelete));
-		try {
-			accessApprovalDAO.getByPrimaryKey(
-				accessApproval.getRequirementId(),
-				accessApproval.getRequirementVersion(),
-				accessApproval.getSubmitterId(),
-				accessApproval.getAccessorId());
-		} catch (NotFoundException e) {
-			// as expected
-		}
-		try {
-			accessApprovalDAO.getByPrimaryKey(
-				accessApproval2.getRequirementId(),
-				accessApproval2.getRequirementVersion(),
-				accessApproval2.getSubmitterId(),
-				accessApproval2.getAccessorId());
-		} catch (NotFoundException e) {
-			// as expected
-		}
+		accessApprovalDAO.delete(accessApproval.getId().toString());
+		accessApprovalDAO.delete(accessApproval2.getId().toString());
 	}
 
 	@Test
-	public void testListAccessorList() {
+	public void testListAccessorListAndRevokeGroup() {
 		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
 				individualGroup.getId(), null, 10L, 0L);
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
+
+		// create some approvals
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
 		accessApproval2.setSubmitterId(individualGroup.getId());
@@ -373,6 +353,26 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(individualGroup.getId(), group.getSubmitterId());
 		assertTrue(group.getAccessorIds().contains(individualGroup.getId()));
 		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
+
+		// revoke the group
+		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
+		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
+
+		// check each approval
+		AccessApproval approval = accessApprovalDAO.getByPrimaryKey(accessRequirement.getId(),
+				accessRequirement.getVersionNumber(), individualGroup.getId(), individualGroup.getId());
+		assertNotNull(approval);
+		assertEquals(ApprovalState.REVOKED, approval.getState());
+		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
+
+		AccessApproval approval2 = accessApprovalDAO.getByPrimaryKey(accessRequirement.getId(),
+				accessRequirement.getVersionNumber(), individualGroup.getId(), individualGroup2.getId());
+		assertNotNull(approval2);
+		assertEquals(ApprovalState.REVOKED, approval2.getState());
+		assertEquals(individualGroup2.getId(), approval2.getModifiedBy());
 	}
 
 	@Test

@@ -11,9 +11,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -28,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -60,7 +59,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
-	
+
 	@Override
 	public AccessApproval getAccessApproval(UserInfo userInfo, String approvalId) 
 			throws DatastoreException, NotFoundException {
@@ -91,6 +90,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.create(accessApproval);
 	}
 
+	@Deprecated
 	@Override
 	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, Long limit, Long offset)
@@ -116,6 +116,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.getAccessApprovalsForSubjects(subjectIds, rod.getType(), limit, offset);
 	}
 
+	@Deprecated
 	@WriteTransactionReadCommitted
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
@@ -128,6 +129,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
+	@Deprecated
 	@WriteTransactionReadCommitted
 	@Override
 	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId)
@@ -142,21 +144,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
 				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
 		accessApprovalDAO.revokeAll(accessRequirementId, accessorId, userInfo.getId().toString());
-	}
-
-	@WriteTransactionReadCommitted
-	@Override
-	public Count deleteBatch(UserInfo userInfo, IdList toDelete) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(toDelete, "toDelete");
-		ValidateArgument.requirement(toDelete.getList() != null && !toDelete.getList().isEmpty(),
-				"toDelete must has at least one item.");
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Only admin can use this API.");
-		}
-		Count result = new Count();
-		result.setCount(new Long(accessApprovalDAO.deleteBatch(toDelete.getList())));
-		return result;
 	}
 
 	@Override
@@ -175,5 +162,18 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		response.setResults(groups);
 		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(groups));
 		return response;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementId(), "requirementId");
+		ValidateArgument.required(request.getSubmitterId(), "submitterId");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		accessApprovalDAO.revokeGroup(request.getAccessRequirementId(), request.getSubmitterId(), userInfo.getId().toString());
 	}
 }

@@ -76,14 +76,6 @@ public interface AccessApprovalDAO {
 			long limit, long offset);
 
 	/**
-	 * Delete a batch of AccessApprovals
-	 * 
-	 * @param list
-	 * @return
-	 */
-	public int deleteBatch(List<Long> list);
-
-	/**
 	 * Retrieve all active approvals, approvals that have APPROVED state and haven't expired, for the given user.
 	 * 
 	 * @param accessRequirementId
@@ -124,4 +116,13 @@ public interface AccessApprovalDAO {
 	 */
 	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
 			long limit, long offset);
+
+	/**
+	 * Revoke a group of accessors
+	 * 
+	 * @param accessRequirementId
+	 * @param submitterId
+	 * @param revokedBy
+	 */
+	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy);
 }
