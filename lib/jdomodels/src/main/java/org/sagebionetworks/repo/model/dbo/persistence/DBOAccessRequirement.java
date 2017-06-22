@@ -298,7 +298,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return DBOAccessRequirement.class;
 	}
 
-
 	@Override
 	public Class<? extends DBOAccessRequirement> getDatabaseObjectClass() {
 		return DBOAccessRequirement.class;
