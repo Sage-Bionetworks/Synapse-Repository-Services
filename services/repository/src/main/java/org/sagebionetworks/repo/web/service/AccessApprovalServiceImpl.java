@@ -76,12 +76,6 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	}
 
 	@Override
-	public Count deleteAccessApprovals(Long userId, IdList toDelete) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return accessApprovalManager.deleteBatch(userInfo, toDelete);
-	}
-
-	@Override
 	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.listAccessorGroup(userInfo, request);
