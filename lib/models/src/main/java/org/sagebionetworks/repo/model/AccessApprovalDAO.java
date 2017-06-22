@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalDAO {
@@ -109,4 +111,17 @@ public interface AccessApprovalDAO {
 	 * submitted by submitterId; false otherise.
 	 */
 	public boolean hasApprovalsSubmittedBy(Set<String> accessorsIds, String submitterId, String accessRequirementId);
+
+	/**
+	 * Retrieve a page of AccessorGroup, group by accessRequirementId and submitterId.
+	 * 
+	 * @param accessRequirementId
+	 * @param submitterId
+	 * @param expireBefore
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
+			long limit, long offset);
 }

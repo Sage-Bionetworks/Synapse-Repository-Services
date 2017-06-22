@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
@@ -25,6 +25,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -156,4 +159,21 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return result;
 	}
 
+	@Override
+	public AccessorGroupResponse listAccessorGroup(UserInfo userInfo, AccessorGroupRequest request){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<AccessorGroup> groups = accessApprovalDAO.listAccessorGroup(
+				request.getAccessRequirementId(), request.getSubmitterId(), 
+				request.getExpireBefore(), nextPageToken.getLimitForQuery(),
+				nextPageToken.getOffset());
+		AccessorGroupResponse response = new AccessorGroupResponse();
+		response.setResults(groups);
+		response.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(groups));
+		return response;
+	}
 }

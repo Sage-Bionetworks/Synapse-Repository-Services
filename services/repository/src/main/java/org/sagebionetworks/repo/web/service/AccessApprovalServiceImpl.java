@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,5 +79,11 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	public Count deleteAccessApprovals(Long userId, IdList toDelete) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessApprovalManager.deleteBatch(userInfo, toDelete);
+	}
+
+	@Override
+	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessApprovalManager.listAccessorGroup(userInfo, request);
 	}
 }

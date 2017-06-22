@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -68,7 +70,17 @@ public class AccessApprovalController extends BaseController {
 			@RequestBody AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
 		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, accessApproval);
 	}
-	
+
+	/**
+	 * Retrieving an AccessApproval given its ID.
+	 * 
+	 * @param userId
+	 * @param approvalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -80,7 +92,26 @@ public class AccessApprovalController extends BaseController {
 		return serviceProvider.getAccessApprovalService().getAccessApproval(userId, approvalId);
 	}
 
-
+	/**
+	 * Retrieving a page of AccessorGroup.
+	 * This service is only available for ACT.
+	 * ACT can filter on AccessRequirementId, submitterId, and expiredOn by setting
+	 * the associated fields in AccessorGroupRequest.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_GROUP, method = RequestMethod.POST)
+	public @ResponseBody AccessorGroupResponse listAccessorGroup(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessorGroupRequest request
+			) throws UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessApprovalService().listAccessorGroup(userId, request);
+	}
 
 	/**
 	 * Retrieve the Access Approvals for the given Entity. This service is only available to the ACT.
@@ -110,6 +141,33 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	/**
+	 * Retrieve the Access Approvals for the given Team.  This service is only available to the ACT.
+	 * 
+	 * @param userId
+	 * @param id the Team of interest
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessApproval> getTeamAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+				@PathVariable String id,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
+	}
+
+	/**
 	 * Retrieve the Access Approvals for the given Evaluation.  This service is only available to the ACT.
 	 * 
 	 * @param userId
@@ -134,33 +192,6 @@ public class AccessApprovalController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
-	}
-
-	/**
-	 * Retrieve the Access Approvals for the given Team.  This service is only available to the ACT.
-	 * 
-	 * @param userId
-	 * @param id the Team of interest
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessApproval> getTeamAccessApprovals(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable String id,
-				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(id);
-		subjectId.setType(RestrictableObjectType.TEAM);
 		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, limit, offset);
 	}
 

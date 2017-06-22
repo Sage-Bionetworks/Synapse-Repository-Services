@@ -1,0 +1,15 @@
+{
+	"description": "A group of accessors who gained access by the same submitter.",
+	"properties": {
+		"accessorIds": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"submitterId":{
+			"description":"The ID of the submitter.",
+			"type": "string"
+		}
+	}
+}

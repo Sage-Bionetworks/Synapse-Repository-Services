@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -351,5 +352,73 @@ public class DBOAccessApprovalDAOImplTest {
 		} catch (NotFoundException e) {
 			// as expected
 		}
+	}
+
+	@Test
+	public void testListAccessorList() {
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		accessApproval2.setSubmitterId(individualGroup.getId());
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		AccessorGroup group = result.get(0);
+		assertNotNull(group);
+		assertEquals(individualGroup.getId(), group.getSubmitterId());
+		assertTrue(group.getAccessorIds().contains(individualGroup.getId()));
+		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
+	}
+
+	@Test
+	public void testConvertToList() {
+		assertEquals(new LinkedList<String>(), DBOAccessApprovalDAOImpl.convertToList(null));
+		assertEquals(Arrays.asList("1"), DBOAccessApprovalDAOImpl.convertToList("1"));
+		assertEquals(Arrays.asList("1","2"), DBOAccessApprovalDAOImpl.convertToList("1,2"));
+	}
+
+	@Test
+	public void testBuildQuery() {
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND REQUIREMENT_ID = :REQUIREMENT_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND SUBMITTER_ID = :SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND EXPIRED_ON <> 0"
+				+ " AND EXPIRED_ON <= :EXPIRED_ON"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, new Date()));
 	}
 }

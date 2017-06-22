@@ -24,6 +24,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class RequestManagerImpl implements RequestManager{
+	public static final int MAX_ACCESSORS = 500;
 
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
@@ -61,6 +62,10 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(toUpdate, "toCreate");
 		ValidateArgument.required(toUpdate.getAccessRequirementId(), "Request.accessRequirementId");
 		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
+		ValidateArgument.requirement(toUpdate.getAccessorChanges() == null
+				|| toUpdate.getAccessorChanges().isEmpty()
+				|| toUpdate.getAccessorChanges().size() <= MAX_ACCESSORS,
+				"A request cannot have more than "+MAX_ACCESSORS+" changes.");
 	}
 
 

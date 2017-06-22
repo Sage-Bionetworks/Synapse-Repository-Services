@@ -83,6 +83,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2832,10 +2834,19 @@ public interface SynapseClient extends BaseClient {
 	RestrictionInformationResponse getRestrictionInformation(RestrictionInformationRequest request) throws SynapseException;
 
 	/**
-	 * Retrieve the information about submitted Submissions
+	 * Retrieve the information about submitted Submissions.
 	 * @param nextPageToken
 	 * @return
 	 * @throws SynapseException
 	 */
 	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
+
+	/**
+	 * Retrieve a page of AccessorGroup.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessorGroupResponse listAccessorGroup(AccessorGroupRequest request) throws SynapseException;
 }

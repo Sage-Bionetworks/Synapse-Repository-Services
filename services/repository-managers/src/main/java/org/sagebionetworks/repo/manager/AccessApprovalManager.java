@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalManager {
@@ -57,4 +59,13 @@ public interface AccessApprovalManager {
 	 * @return
 	 */
 	public Count deleteBatch(UserInfo userInfo, IdList toDelete);
+
+	/**
+	 * List a page of accessor groups.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	public AccessorGroupResponse listAccessorGroup(UserInfo userInfo, AccessorGroupRequest request);
 }
