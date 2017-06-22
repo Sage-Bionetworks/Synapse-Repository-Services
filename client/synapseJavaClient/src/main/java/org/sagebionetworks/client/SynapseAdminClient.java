@@ -1,10 +1,7 @@
 package org.sagebionetworks.client;
 
-import java.util.List;
-
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -287,13 +284,5 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	public AsynchronousJobStatus getAdminAsynchronousJobStatus(String jobId) throws SynapseException;
-
-	/**
-	 * Delete a batch of access approval
-	 * 
-	 * @param approvalIds
-	 * @throws SynapseException
-	 */
-	public Long deleteAccessApprovals(List<Long> approvalIds) throws SynapseException;
 
 }
