@@ -239,6 +239,7 @@ public class TeamManagerImpl implements TeamManager {
 		// create UserGroup (fail if UG with the given name already exists)
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
+		ug.setCreationDate(new Date());
 		Long id = userGroupDAO.create(ug);
 		// bind the team name to this principal
 		bindTeamName(team.getName(), id);
