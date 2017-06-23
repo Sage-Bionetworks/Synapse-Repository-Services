@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -301,6 +302,15 @@ public class TeamManagerImplTest {
 		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
 		Team created = teamManagerImpl.create(userInfo,team);
 		assertEquals(team, created);
+		/*
+		 *  PLFM-3078 - verify that UserGroup's creationDate is set
+		 */
+		ArgumentCaptor<UserGroup> captor = ArgumentCaptor.forClass(UserGroup.class);
+		verify(mockUserGroupDAO).create(captor.capture());
+		UserGroup ug = captor.getValue();
+		assertNotNull(ug);
+		assertNotNull(ug.getCreationDate());
+
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
 		verify(mockTeamDAO).create(team);
