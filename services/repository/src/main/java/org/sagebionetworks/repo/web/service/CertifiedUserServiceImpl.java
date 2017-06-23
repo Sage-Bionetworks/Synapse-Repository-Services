@@ -19,8 +19,9 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 	private CertifiedUserManager certifiedUserManager;
 	
 	@Override
-	public Quiz getCertificationQuiz() {
-		return certifiedUserManager.getCertificationQuiz();
+	public Quiz getCertificationQuiz(Long userId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return certifiedUserManager.getCertificationQuiz(userInfo);
 	}
 
 	@Override

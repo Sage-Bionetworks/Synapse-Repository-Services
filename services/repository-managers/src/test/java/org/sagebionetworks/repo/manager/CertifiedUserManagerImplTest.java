@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
@@ -311,14 +312,24 @@ public class CertifiedUserManagerImplTest {
 			}
 		}
 	}
-	
+
+	/*
+	 * PLFM-3478
+	 */
+	@Test (expected=UnauthorizedException.class)
+	public void testGetCertificationQuizUnauthorized() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
+	}
+
 	@Test
 	public void testGetCertificationQuiz() throws Exception {
-		// the internal logic is tested elsewhere.  Here we just check 
-		// that some quiz is returned and it has an ID
-		assertNotNull(certifiedUserManager.getCertificationQuiz().getId());
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(789L);
+		assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
 	}
-	
+
 	@Test
 	public void testCloneAndScrubPrivateFields() throws Exception {
 		MultichoiceQuestion mcq = new MultichoiceQuestion();
@@ -587,6 +598,18 @@ public class CertifiedUserManagerImplTest {
 		// this will throw an IllegalArgumentException
 		QuizResponse resp = createIllegalQuizResponse(gen.getId());
 		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+	}
+
+	/*
+	 * PLFM-3478
+	 */
+	@Test (expected=UnauthorizedException.class)
+	public void testSubmitCertificationQuizUnauthorized() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		QuizGenerator quizGenerator = createQuizGenerator();
+		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
+		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 	}
 
 	@Test
