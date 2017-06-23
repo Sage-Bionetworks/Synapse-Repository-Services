@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -31,8 +32,6 @@ import com.amazonaws.services.sqs.model.Message;
  *
  */
 public class TableTransactionWorker implements MessageDrivenRunner {
-	
-	private static final int THROTTLING_FREQUENCY_MS = 2000;
 
 	public static final String WAITING_FOR_TABLE_LOCK = "Waiting for table lock";
 
@@ -65,24 +64,21 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			EntityType tableType = tableManagerSupport.getTableEntityType(request.getEntityId());
 			// Lookup the manger for this type
 			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
-			// setup a callback to make progress
-			ProgressCallback<Void> statusCallback = new ProgressCallback<Void>(){
+			// Listen to progress events.
+			progressCallback.addProgressListener(new ProgressListener<Void>(){
 				
-				int count = 1;
+				long count = 1;
 
 				@Override
 				public void progressMade(Void param) {
-					// forward to the outside
-					progressCallback.progressMade(null);
+					count++;
 					// update the job status.
-					asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Update: "+(count++));
+					asynchJobStatusManager.updateJobProgress(status.getJobId(), count, Long.MAX_VALUE, "Update: "+(count++));
 				}
 				
-			};
-			// Use a throttling callback to suppress too many updates.
-			ThrottlingProgressCallback<Void> throttlingCallback = new ThrottlingProgressCallback<>(statusCallback, THROTTLING_FREQUENCY_MS);
+			});
 			// The manager does the rest of the work.
-			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(throttlingCallback, userInfo, request);
+			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(progressCallback, userInfo, request);
 			// Set the job complete.
 			asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
 			log.info("JobId: "+status.getJobId()+" complete");

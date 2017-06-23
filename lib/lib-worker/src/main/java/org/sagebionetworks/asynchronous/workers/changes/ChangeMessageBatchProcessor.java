@@ -101,12 +101,7 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 			try {
 				// Make progress before each message
 				progressCallback.progressMade(null);
-				runner.run(new ProgressCallback<Void>() {
-					@Override
-					public void progressMade(Void t) {
-						progressCallback.progressMade(null);
-					}
-				}, change);
+				runner.run(progressCallback, change);
 			} catch (RecoverableMessageException e) {
 				if (batch.size() == 1) {
 					// Let the container handle retry for single messages.

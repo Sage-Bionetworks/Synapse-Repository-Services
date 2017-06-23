@@ -7,6 +7,7 @@ import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -90,21 +91,22 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 			// Create a reader from the passed parameters
 			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
 			
-			// Report progress every 2 seconds.
-			long progressIntervalMs = 2000;
-			ThrottlingProgressCallback<Integer> throttledProgressCallback = new ThrottlingProgressCallback<Integer>(new ProgressCallback<Integer>() {
+			// Listen to progress events.
+			progressCallback.addProgressListener(new ProgressListener<Void>() {
+				 
+				int counter = 0;
+				
 				@Override
-				public void progressMade(Integer rowNumber) {
+				public void progressMade(Void t) {
 					// update the job progress.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(),
 							countingInputStream.getByteCount(), progressTotal,
-							"Processed: " + rowNumber + " rows");
-					// update the message.
-					progressCallback.progressMade(null);
+							"Processed: " + (counter++));
+					
 				}
-			}, progressIntervalMs);
+			});
 			// This builder does the work of building an actual preview.
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, throttledProgressCallback, body);
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressCallback, body);
 			UploadToTablePreviewResult result = builder.buildResult();
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){

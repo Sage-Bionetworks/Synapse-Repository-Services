@@ -11,9 +11,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.IdList;
@@ -25,6 +23,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,9 +84,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	@Override
 	public void run(ProgressCallback<Void> progressCallback, Message message) {
 		try {
-			// wrap the callback to throttle
-			progressCallback = new ThrottlingProgressCallback<Void>(
-					progressCallback, PROGRESS_THROTTLE_FREQUENCY_MS);
 			// extract the containerIds to check from the message.
 			List<Long> containerIds = getContainerIdsFromMessage(message);
 			if (containerIds.isEmpty()) {
