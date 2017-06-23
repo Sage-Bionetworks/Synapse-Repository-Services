@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -98,6 +99,13 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
+	}
+
+
+	@Override
+	public AccessRequirement convertAccessRequirements(Long userId, AccessRequirementConversionRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.convertAccessRequirement(userInfo, request);
 	}
 
 }
