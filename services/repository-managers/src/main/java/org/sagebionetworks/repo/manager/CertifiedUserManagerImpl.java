@@ -226,7 +226,13 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuiz()
 	 */
 	@Override
-	public Quiz getCertificationQuiz() {
+	public Quiz getCertificationQuiz(UserInfo userInfo) {
+		/*
+		 * PLFM-3478 - anonymous cannot become certified user
+		 */
+		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userInfo.getId())) {
+			throw new UnauthorizedException("You need to login to take the Certification Quiz.");
+		}
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		Quiz quiz = selectQuiz(quizGenerator);
 		return quiz;
@@ -341,7 +347,13 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public PassingRecord submitCertificationQuizResponse(
-			UserInfo userInfo, QuizResponse response) throws NotFoundException {
+			UserInfo userInfo, QuizResponse response) throws NotFoundException, UnauthorizedException {
+		/*
+		 * PLFM-3478 - anonymous cannot become certified user
+		 */
+		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userInfo.getId())) {
+			throw new UnauthorizedException("You need to login to submit the Certification Quiz.");
+		}
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		
 		// don't let someone take the test twice

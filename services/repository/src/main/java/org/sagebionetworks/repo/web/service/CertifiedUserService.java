@@ -14,7 +14,7 @@ public interface CertifiedUserService {
 	 * Get the (static) Certified Users Quiz
 	 * @return
 	 */
-	public Quiz getCertificationQuiz();
+	public Quiz getCertificationQuiz(Long userId);
 	
 	/**
 	 * Store the response and score it. If the user passes they are added to the 
