@@ -16,10 +16,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -69,8 +66,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
-	private AccessApprovalDAO  accessApprovalDAO;
-	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
@@ -116,20 +111,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
-				if (userInfo.isAdmin()) {
+				if (isACTTeamMemberOrAdmin(userInfo)) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
-				return canAdminAccessRequirement(userInfo, accessRequirement);
+				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
 			case ACCESS_APPROVAL:
-				if (userInfo.isAdmin()) {
+				if (isACTTeamMemberOrAdmin(userInfo)) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				AccessApproval accessApproval = accessApprovalDAO.get(objectId);
-				return canAdminAccessApproval(userInfo, accessApproval);
+				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
 			case TEAM:
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
@@ -318,34 +311,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo,
-			AccessRequirement accessRequirement) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil.accessDenied("Access Requirements may only be created by a member of the Synapse Access and Compliance Team.");
-		}
-	}
-
-	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
 		if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;
 		return false;
-	}
-
-	/**
-	 * Check that user is an administrator or ACT member. 
-	 * @param userInfo
-	 * @param accessRequirement
-	 * @throws NotFoundException
-	 */
-	private AuthorizationStatus canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil.accessDenied("Only ACT member may create or modify Access Restrictions.");
-		}
 	}
 	
 	/**
@@ -374,11 +343,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		} else {
 			return AuthorizationManagerUtil.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
 		}
-	}
-	
-	private AuthorizationStatus canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
-		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
-		return canAdminAccessRequirement(userInfo, accessRequirement);
 	}
 
 	@Override

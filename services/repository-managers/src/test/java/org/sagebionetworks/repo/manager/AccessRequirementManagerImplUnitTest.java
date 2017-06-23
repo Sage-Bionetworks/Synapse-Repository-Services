@@ -19,7 +19,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
@@ -244,7 +247,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		when(authorizationManager.canCreateAccessRequirement(userInfo, ar)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, ar);
 	}
 	
@@ -293,7 +296,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testCreateACTAccessRequirement() {
 		AccessRequirement toCreate = createExpectedAR();
-		when(authorizationManager.canCreateAccessRequirement(userInfo, toCreate)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, toCreate);
 
 		// test that the right AR was created
@@ -735,5 +738,165 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.deleteAccessRequirement(userInfo, "1");
 		verify(accessRequirementDAO).delete("1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertWillNullACTAccessRequirement() {
+		AccessRequirementManagerImpl.convert(null, "1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertWillNullModifiedBy() {
+		ACTAccessRequirement ar = createACTAccessRequirement();
+		AccessRequirementManagerImpl.convert(ar, null);
+	}
+
+	@Test
+	public void testConvert() {
+		ACTAccessRequirement ar = createACTAccessRequirement();
+		String modifiedBy = "111";
+		ManagedACTAccessRequirement managed = AccessRequirementManagerImpl.convert(ar, modifiedBy);
+		assertNotNull(managed);
+		assertEquals(ar.getId(), managed.getId());
+		assertEquals(ar.getAccessType(), managed.getAccessType());
+		assertEquals(ar.getCreatedBy(), managed.getCreatedBy());
+		assertEquals(ar.getCreatedOn(), managed.getCreatedOn());
+		assertEquals(ar.getSubjectIds(), managed.getSubjectIds());
+		assertTrue(managed.getVersionNumber().equals(ar.getVersionNumber()+1));
+		assertEquals(modifiedBy, managed.getModifiedBy());
+		assertFalse(managed.getEtag().equals(ar.getEtag()));
+	}
+
+	private ACTAccessRequirement createACTAccessRequirement() {
+		ACTAccessRequirement ar = new ACTAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setActContactInfo("actContactInfo");
+		ar.setCreatedBy("1");
+		ar.setCreatedOn(new Date());
+		ar.setEtag("etag");
+		ar.setId(2L);
+		ar.setModifiedBy("3");
+		ar.setModifiedOn(new Date());
+		ar.setOpenJiraIssue(true);
+		ar.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
+		ar.setVersionNumber(1L);
+		return ar;
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullUserInfo() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(null, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullRequest() {
+		arm.convertAccessRequirement(userInfo, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullRequirementId() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullEtag() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullVersion() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testConvertAccessRequirementUnauthorized() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testConvertAccessRequirementNotFound() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenThrow(new NotFoundException());
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=ConflictingUpdateException.class)
+	public void testConvertAccessRequirementEtagDoesNotMatch() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag does not match");
+		request.setCurrentVersion(current.getVersionNumber());
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=ConflictingUpdateException.class)
+	public void testConvertAccessRequirementVersionDoesNotMatch() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag(current.getEtag());
+		request.setCurrentVersion(current.getVersionNumber()-1);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementNotSupported() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(new TermsOfUseAccessRequirement());
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test
+	public void testConvertAccessRequirement() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag(current.getEtag());
+		request.setCurrentVersion(current.getVersionNumber());
+		arm.convertAccessRequirement(userInfo, request);
+		ArgumentCaptor<ManagedACTAccessRequirement> captor = ArgumentCaptor.forClass(ManagedACTAccessRequirement.class);
+		verify(accessRequirementDAO).update(captor.capture());
+		ManagedACTAccessRequirement updated = captor.getValue();
+		assertNotNull(updated);
+		assertEquals(current.getId(), updated.getId());
+		assertEquals(current.getAccessType(), updated.getAccessType());
+		assertEquals(current.getCreatedBy(), updated.getCreatedBy());
+		assertEquals(current.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(current.getSubjectIds(), updated.getSubjectIds());
+		assertTrue(updated.getVersionNumber().equals(current.getVersionNumber()+1));
+		assertEquals(userInfo.getId().toString(), updated.getModifiedBy());
+		assertFalse(updated.getEtag().equals(current.getEtag()));
 	}
 }

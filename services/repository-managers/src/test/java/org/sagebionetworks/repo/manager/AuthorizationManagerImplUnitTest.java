@@ -84,8 +84,6 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private AccessRequirementDAO  mockAccessRequirementDAO;
 	@Mock
-	private AccessApprovalDAO mockAccessApprovalDAO;
-	@Mock
 	private ActivityDAO mockActivityDAO;
 	@Mock
 	private FileHandleDao mockFileHandleDao;
@@ -157,9 +155,7 @@ public class AuthorizationManagerImplUnitTest {
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "dockerNodeDao", mockDockerNodeDao);
-		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
-		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
 		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
 		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
@@ -402,16 +398,6 @@ public class AuthorizationManagerImplUnitTest {
 		return ar;
 	}
 
-	private AccessApproval createEntityAccessApproval() throws Exception {
-		AccessRequirement ar = createEntityAccessRequirement();
-		AccessApproval aa = new AccessApproval();
-		aa.setAccessorId(userInfo.getId().toString());
-		aa.setId(656L);
-		aa.setRequirementId(ar.getId());
-		when(mockAccessApprovalDAO.get(aa.getId().toString())).thenReturn(aa);
-		return aa;
-	}
-
 	private static RestrictableObjectDescriptor createEvaluationSubjectId() {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.EVALUATION);
@@ -425,16 +411,6 @@ public class AuthorizationManagerImplUnitTest {
 		ar.setId(1234L);
 		when(mockAccessRequirementDAO.get(ar.getId().toString())).thenReturn(ar);
 		return ar;
-	}
-
-	private AccessApproval createEvaluationAccessApproval() throws Exception {
-		AccessRequirement ar = createEvaluationAccessRequirement();
-		AccessApproval aa = new AccessApproval();
-		aa.setAccessorId(userInfo.getId().toString());
-		aa.setId(656L);
-		aa.setRequirementId(ar.getId());
-		when(mockAccessApprovalDAO.get(aa.getId().toString())).thenReturn(aa);
-		return aa;
 	}
 
 	@Test
@@ -462,33 +438,9 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testCanAccessEntityAccessApproval() throws Exception {
-		AccessApproval aa = createEntityAccessApproval();
-		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
 		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
-		assertTrue(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
-	}
-
-	@Test
-	public void testCanAccessEvaluationAccessApproval() throws Exception {
-		AccessApproval aa = createEvaluationAccessApproval();
-		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
-		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
-		// only ACT may review access approvals
-		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
-	}
-
-	@Test
-	public void testCanCreateEntityAccessRequirement() throws Exception {
-		AccessRequirement ar = createEntityAccessRequirement();
-		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar).getAuthorized());
-		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID); 
-		assertTrue(authorizationManager.canCreateAccessRequirement(userInfo, ar).getAuthorized());
-		userInfo.getGroups().remove(TeamConstants.ACT_TEAM_ID);
-		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar).getAuthorized());
-		// give user edit ability on entity 101
-		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		// only ACT may create access requirements
-		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar).getAuthorized());
+		assertTrue(authorizationManager.canAccess(userInfo, "1", ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ).getAuthorized());
 	}
 
 	@Test

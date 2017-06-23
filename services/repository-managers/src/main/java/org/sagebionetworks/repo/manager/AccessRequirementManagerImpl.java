@@ -5,8 +5,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -91,8 +94,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canCreateAccessRequirement(userInfo, accessRequirement));
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
+		}
 		populateCreationFields(userInfo, accessRequirement);
 		return (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 	}
@@ -194,6 +198,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return unmetRequirements;
 	}
 
+	@Deprecated
 	@Override
 	public List<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor rod, Long limit, Long offset)
@@ -316,5 +321,45 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			info.setHasUnmetAccessRequirement(accessApprovalDAO.hasUnmetAccessRequirement(stats.getRequirementIdSet(), userInfo.getId().toString()));
 		}
 		return info;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request) throws NotFoundException, UnauthorizedException, ConflictingUpdateException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAccessRequirementId(), "requirementId");
+		ValidateArgument.required(request.getEtag(), "etag");
+		ValidateArgument.required(request.getCurrentVersion(), "currentVersion");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can perform this action.");
+		}
+
+		AccessRequirement current = accessRequirementDAO.getAccessRequirementForUpdate(request.getAccessRequirementId());
+		ValidateArgument.requirement(current.getConcreteType().equals(ACTAccessRequirement.class.getName()),
+				"Do not support converting AccessRequirement type "+current.getConcreteType());
+		if(!current.getEtag().equals(request.getEtag())
+				|| !current.getVersionNumber().equals(request.getCurrentVersion())){
+			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
+		}
+
+		ManagedACTAccessRequirement toUpdate = convert((ACTAccessRequirement) current, userInfo.getId().toString());
+		return accessRequirementDAO.update(setDefaultValues(toUpdate));
+	}
+
+	public static ManagedACTAccessRequirement convert(ACTAccessRequirement current, String modifiedBy) {
+		ValidateArgument.required(current, "current");
+		ValidateArgument.required(modifiedBy, "modifiedBy");
+		ManagedACTAccessRequirement toUpdate = new ManagedACTAccessRequirement();
+		toUpdate.setId(current.getId());
+		toUpdate.setAccessType(current.getAccessType());
+		toUpdate.setCreatedBy(current.getCreatedBy());
+		toUpdate.setCreatedOn(current.getCreatedOn());
+		toUpdate.setEtag(UUID.randomUUID().toString());
+		toUpdate.setModifiedBy(modifiedBy);
+		toUpdate.setModifiedOn(new Date());
+		toUpdate.setSubjectIds(current.getSubjectIds());
+		toUpdate.setVersionNumber(current.getVersionNumber()+1);
+		return toUpdate;
 	}
 }

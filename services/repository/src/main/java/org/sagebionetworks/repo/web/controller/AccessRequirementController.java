@@ -6,11 +6,13 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -170,33 +172,6 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	/**
-	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
-	 * @param userId
-	 * @param entityId the id of the entity whose Access Requirements are retrieved
-	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
-	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getEntityAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
-	}
-
-	/**
 	 * Retrieve all unfulfilled Access Requirements (of type PARTICIPATE) for a Team.
 	 * @param userId
 	 * @param id the ID of the Team whose unfulfilled Access Requirements are retrived.
@@ -221,6 +196,32 @@ public class AccessRequirementController extends BaseController {
 		subjectId.setId(id);
 		subjectId.setType(RestrictableObjectType.TEAM);
 		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, accessType);
+	}
+	/**
+	 * Retrieve paginated list of ALL Access Requirements associated with an entity.
+	 * @param userId
+	 * @param entityId the id of the entity whose Access Requirements are retrieved
+	 * @param limit - Limits the size of the page returned. For example, a page size of 10 require limit = 10. The maximum limit for this call is 50.
+	 * @param offset - The index of the pagination offset. For a page size of 10, the first page would be at offset = 0, and the second page would be at offset = 10.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getEntityAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
+				@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+				@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, limit, offset);
 	}
 
 	/**
@@ -267,5 +268,25 @@ public class AccessRequirementController extends BaseController {
 			@PathVariable String requirementId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {	
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
+	}
+
+	/**
+	 * Convert an ACTAccessRequirement to a ManagedACTAccessRequirement.
+	 * Only ACT member can perform this action.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_CONVERSION, method = RequestMethod.PUT)
+	public @ResponseBody AccessRequirement convertAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessRequirementConversionRequest request
+			) throws ConflictingUpdateException, UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessRequirementService().convertAccessRequirements(userId, request);
 	}
 }

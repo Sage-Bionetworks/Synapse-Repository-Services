@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -58,16 +57,6 @@ public interface AuthorizationManager {
 	 * 
 	 */
 	public AuthorizationStatus canChangeSettings(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException;
-	
-	/**
-	 * Checks whether the given user can create the given access requirement
-	 * 
-	 * @param userInfo
-	 * @param accessRequirement
-	 * @return whether access is granted and, if not, a String giving the reason why
-	 * @throws NotFoundException 
-	 */
-	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
 
 	/**
 	 * 

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementManager {
@@ -74,5 +75,18 @@ public interface AccessRequirementManager {
 	 * @return
 	 */
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
+
+	/**
+	 * Convert an ACTAccessRequirement to a ManagedACTAccessRequirement
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	public AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request)
+			throws NotFoundException, UnauthorizedException, ConflictingUpdateException;
 
 }

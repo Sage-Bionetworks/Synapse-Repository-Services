@@ -107,6 +107,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -5019,5 +5020,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setAccessRequirementId(accessRequirementId);
 		request.setSubmitterId(submitterId);
 		voidPut(getRepoEndpoint(), ACCESS_APPROVAL+"/group/revoke", request);
+	}
+
+	@Override
+	public AccessRequirement convertAccessRequirement(AccessRequirementConversionRequest request)
+			throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return putJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT+"/conversion", request, AccessRequirement.class);
 	}
 }
