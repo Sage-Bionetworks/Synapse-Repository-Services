@@ -1,0 +1,17 @@
+{
+	"description": "A request to convert an ACTAccessRequirement to a ManagedACTAccessRequirement.",
+	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of an ACTAccessRequirement."
+		},
+		"etag":{
+			"type": "string",
+			"description": "The etag of the AccessRequirement. This field is used for concurrency check."
+		},
+		"currentVersion":{
+			"type": "integer",
+			"description": "The current version of the AccessRequirement. This field is used for concurrency check."
+		}
+	}
+}

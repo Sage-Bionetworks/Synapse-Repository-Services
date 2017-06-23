@@ -406,6 +406,13 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.getForUpdate(accessRequirement.getId().toString());
 	}
 
+	@Test (expected = IllegalTransactionStateException.class)
+	public void testGetAccessRequirementForUpdateWithoutTransaction() {
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		accessRequirementDAO.getAccessRequirementForUpdate(accessRequirement.getId().toString());
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetAccessRequirementDiffForNullSource() {
 		List<String> destSubjects = Arrays.asList(node.getId());

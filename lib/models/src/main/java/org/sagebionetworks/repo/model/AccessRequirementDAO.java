@@ -123,4 +123,12 @@ public interface AccessRequirementDAO {
 	 */
 	public List<String> getAccessRequirementDiff(List<String> sourceSubjects, List<String> destSubjects,
 			RestrictableObjectType type);
+
+	/**
+	 * Retrieve an AccessRequirement for update
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirement getAccessRequirementForUpdate(String accessRequirementId);
 }

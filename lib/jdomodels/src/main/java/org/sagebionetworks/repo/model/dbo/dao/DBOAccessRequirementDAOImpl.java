@@ -110,6 +110,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID
 			+ " FOR UPDATE";
 
+	private static final String SELECT_FOR_UPDATE_SQL = "SELECT * "
+			+" FROM "+TABLE_ACCESS_REQUIREMENT
+			+" WHERE "+COL_ACCESS_REQUIREMENT_ID+"=:"+COL_ACCESS_REQUIREMENT_ID
+			+ " FOR UPDATE";
+
 	private static final String DELETE_SUBJECT_ACCESS_REQUIREMENTS_SQL = 
 			"DELETE FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
 			+ " WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
@@ -437,5 +442,17 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		List<String> ids = namedJdbcTemplate.queryForList(SELECT_ACCESS_REQUIREMENT_DIFF, param, String.class);
 		return ids;
+	}
+
+	@MandatoryWriteTransaction
+	@Override
+	public AccessRequirement getAccessRequirementForUpdate(String accessRequirementId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_ACCESS_REQUIREMENT_ID, accessRequirementId);
+		try {
+			return namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, requirementMapper);
+		}catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		}
 	}
 }
