@@ -78,7 +78,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final String UPDATE_ACCESS_REQUIREMENT_SQL = "UPDATE "
 			+ TABLE_ACCESS_REQUIREMENT
 			+ " SET "+COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+" = :"+COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+", "
-			+ COL_ACCESS_REQUIREMENT_ETAG+" = :"+COL_ACCESS_REQUIREMENT_ETAG
+			+ COL_ACCESS_REQUIREMENT_ETAG+" = :"+COL_ACCESS_REQUIREMENT_ETAG+", "
+			+ COL_ACCESS_REQUIREMENT_CONCRETE_TYPE+" = :"+COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
 			+ " WHERE "+COL_ACCESS_REQUIREMENT_ID+" = :"+COL_ACCESS_REQUIREMENT_ID;
 	
 	private static final String SELECT_CURRENT_REQUIREMENTS_BY_ID = 
@@ -354,11 +355,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement toUpdate = new DBOAccessRequirement();
 		DBOAccessRequirementRevision revision = new DBOAccessRequirementRevision();
 		AccessRequirementUtils.copyDtoToDbo(dto, toUpdate, revision);
+
 		// update the etag and version of the requirement
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, toUpdate.getId());
 		param.addValue(COL_ACCESS_REQUIREMENT_ETAG, UUID.randomUUID().toString());
 		param.addValue(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER, toUpdate.getCurrentRevNumber());
+		param.addValue(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE, toUpdate.getConcreteType());
 		namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
 
 		// Create the new revision.
