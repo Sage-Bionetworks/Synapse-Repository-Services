@@ -244,7 +244,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		when(authorizationManager.canCreateAccessRequirement(userInfo, ar)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, ar);
 	}
 	
@@ -293,7 +293,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Test
 	public void testCreateACTAccessRequirement() {
 		AccessRequirement toCreate = createExpectedAR();
-		when(authorizationManager.canCreateAccessRequirement(userInfo, toCreate)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, toCreate);
 
 		// test that the right AR was created
