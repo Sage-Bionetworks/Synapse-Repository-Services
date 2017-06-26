@@ -373,11 +373,11 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder order,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionReplyOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@RequestParam(value = ServiceConstants.FILTER_PARAM) DiscussionFilter filter,
 			@PathVariable String threadId) {
-		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, order, ascending, filter);
+		return serviceProvider.getDiscussionService().getReplies(userId, threadId, limit, offset, sort, ascending, filter);
 	}
 
 	/**
@@ -459,10 +459,10 @@ public class DiscussionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = true) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = true) Long offset,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder order,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) DiscussionThreadOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending,
 			@PathVariable String id) {
-		return serviceProvider.getDiscussionService().getThreadsForEntity(userId, id, limit, offset, order, ascending);
+		return serviceProvider.getDiscussionService().getThreadsForEntity(userId, id, limit, offset, sort, ascending);
 	}
 
 	/**
