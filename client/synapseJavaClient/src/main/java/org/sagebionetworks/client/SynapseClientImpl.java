@@ -4103,11 +4103,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void createUser(NewUser user) throws SynapseException {
-		voidPost(getAuthEndpoint(), "/user", user, null);
-	}
-
-	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException {
 		Username user = new Username();
 		user.setEmail(email);

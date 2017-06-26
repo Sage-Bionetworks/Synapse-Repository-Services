@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.UUID;
@@ -19,11 +18,9 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -94,21 +91,6 @@ public class IT990AuthenticationController {
 	public void testLoginThenLogout() throws Exception {
 		synapse.logout();
 		assertNull(synapse.getCurrentSessionToken());
-	}
-	
-	@Test
-	public void testCreateExistingUser() throws Exception {
-		NewUser user = new NewUser();
-		user.setEmail(email);
-		user.setUserName(UUID.randomUUID().toString());
-		user.setFirstName("Foo");
-		user.setLastName("Bar");
-		
-		try {
-			synapse.createUser(user);
-		} catch (SynapseServerException e) {
-			assertTrue(e.getStatusCode()==409);
-		}
 	}
 	
 	@Test

@@ -1628,11 +1628,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
-
-	/**
-	 * Creates a user
-	 */
-	public void createUser(NewUser user) throws SynapseException;
 	
 	/**
 	 * Changes the registering user's password
