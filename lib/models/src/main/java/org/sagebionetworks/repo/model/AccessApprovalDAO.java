@@ -125,4 +125,11 @@ public interface AccessApprovalDAO {
 	 * @param revokedBy
 	 */
 	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy);
+
+	/**
+	 * Renew a batch of access approvals
+	 * 
+	 * @param approvalsToRenew
+	 */
+	public void renew(List<AccessApproval> approvalsToRenew);
 }

@@ -126,8 +126,18 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_ETAG+" = ?, "
 			+COL_ACCESS_APPROVAL_MODIFIED_BY+" = ?, "
 			+COL_ACCESS_APPROVAL_MODIFIED_ON+" = ?, "
-			+COL_ACCESS_APPROVAL_EXPIRED_ON+" = ?, "
 			+COL_ACCESS_APPROVAL_STATE+" = ? ";
+
+	private static final String SQL_RENEW = "UPDATE "+TABLE_ACCESS_APPROVAL
+			+" SET "+COL_ACCESS_APPROVAL_REQUIREMENT_VERSION+" = ?, "
+					+COL_ACCESS_APPROVAL_ETAG+" = ?, "
+					+COL_ACCESS_APPROVAL_MODIFIED_BY+" = ?, "
+					+COL_ACCESS_APPROVAL_MODIFIED_ON+" = ?, "
+					+COL_ACCESS_APPROVAL_EXPIRED_ON+" = ?, "
+					+COL_ACCESS_APPROVAL_STATE+" = ? "
+			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = ?"
+			+" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = ?"
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = ?";
 
 	private static final String SELECT_APPROVED_USERS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
@@ -275,8 +285,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				ps.setString(13, dbos.get(i).geteTag());
 				ps.setLong(14, dbos.get(i).getModifiedBy());
 				ps.setLong(15, dbos.get(i).getModifiedOn());
-				ps.setLong(16, dbos.get(i).getExpiredOn());
-				ps.setString(17, dbos.get(i).getState());
+				ps.setString(16, dbos.get(i).getState());
 				ids.add(dbos.get(i).getId().toString());
 			}
 
@@ -374,5 +383,29 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			query+= EXPIRED_ON_COND;
 		}
 		return query+=SELECT_ACCESSOR_GROUP_POSTFIX;
+	}
+
+	@Override
+	public void renew(final List<AccessApproval> approvalsToRenew) {
+		jdbcTemplate.batchUpdate(SQL_RENEW, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, approvalsToRenew.get(i).getRequirementVersion());
+				ps.setString(2, UUID.randomUUID().toString());
+				ps.setLong(3, Long.parseLong(approvalsToRenew.get(i).getModifiedBy()));
+				ps.setLong(4, approvalsToRenew.get(i).getModifiedOn().getTime());
+				ps.setLong(5, approvalsToRenew.get(i).getExpiredOn().getTime());
+				ps.setString(6, approvalsToRenew.get(i).getState().name());
+				ps.setLong(7, approvalsToRenew.get(i).getRequirementId());
+				ps.setLong(8, Long.parseLong(approvalsToRenew.get(i).getSubmitterId()));
+				ps.setLong(9, Long.parseLong(approvalsToRenew.get(i).getAccessorId()));
+			}
+
+			@Override
+			public int getBatchSize() {
+				return approvalsToRenew.size();
+			}
+		});
 	}
 }

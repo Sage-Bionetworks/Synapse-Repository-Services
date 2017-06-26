@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -135,9 +135,13 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
 
+		Set<String> accessors = new HashSet<String>();
 		Set<String> accessorsWillHaveAccess = new HashSet<String>();
 		Set<String> accessorsAlreadyHaveAccess = new HashSet<String>();
 		for (AccessorChange ac : request.getAccessorChanges()) {
+			ValidateArgument.requirement(!accessors.contains(ac.getUserId()),
+					"Accessor "+ac.getUserId()+" is listed more than one.");
+			accessors.add(ac.getUserId());
 			switch (ac.getType()) {
 				case GAIN_ACCESS:
 					accessorsWillHaveAccess.add(ac.getUserId());
@@ -229,8 +233,15 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
-			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
-			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
+			List<AccessApproval> approvalsToCreateAndRevoke = new ArrayList<AccessApproval>();
+			List<AccessApproval> approvalsToRenew = new ArrayList<AccessApproval>();
+			createApprovalsForSubmission(submission, userInfo.getId().toString(), expiredOn, approvalsToCreateAndRevoke, approvalsToRenew);
+			if (!approvalsToCreateAndRevoke.isEmpty()) {
+				accessApprovalDao.createOrUpdateBatch(approvalsToCreateAndRevoke);
+			}
+			if (!approvalsToRenew.isEmpty()) {
+				accessApprovalDao.renew(approvalsToRenew);
+			}
 			/*
 			 * See PLFM-4442.
 			 */
@@ -251,10 +262,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return new Date(System.currentTimeMillis() + expirationPeriod);
 	}
 
-	public List<AccessApproval> createApprovalForSubmission(Submission submission, String createdBy, Date expiredOn) {
+	public void createApprovalsForSubmission(Submission submission, String createdBy, Date expiredOn, List<AccessApproval> approvalsToCreateAndRevoke, List<AccessApproval> approvalsToRenew) {
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
-		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
 		for (AccessorChange ac : submission.getAccessorChanges()) {
 			AccessApproval approval = new AccessApproval();
 			approval.setAccessorId(ac.getUserId());
@@ -268,16 +278,19 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			approval.setExpiredOn(expiredOn);
 			switch (ac.getType()) {
 				case GAIN_ACCESS:
+					approval.setState(ApprovalState.APPROVED);
+					approvalsToCreateAndRevoke.add(approval);
+					break;
 				case RENEW_ACCESS:
 					approval.setState(ApprovalState.APPROVED);
+					approvalsToRenew.add(approval);
 					break;
 				case REVOKE_ACCESS:
 					approval.setState(ApprovalState.REVOKED);
+					approvalsToCreateAndRevoke.add(approval);
 					break;
 			}
-			approvals.add(approval);
 		}
-		return approvals;
 	}
 
 	@Override
