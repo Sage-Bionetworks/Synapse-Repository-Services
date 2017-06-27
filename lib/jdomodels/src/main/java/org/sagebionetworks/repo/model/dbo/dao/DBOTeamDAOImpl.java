@@ -169,6 +169,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
 
+	private static final String SELECT_ALL_TEAMS_USER_IS_ADMIN = "SELECT gm."+COL_GROUP_MEMBERS_GROUP_ID
+				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
+				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
+
 	public static class TeamMemberPair {
 		private Team team;
 		private TeamMember teamMember;
@@ -555,4 +559,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return namedJdbcTemplate.queryForObject(SELECT_MEMBERS_OF_TEAM_COUNT, param, Long.class);
 	}
 
+	@Override
+	public List<String> getAllTeamsUserIsAdmin(String userId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, userId);
+		return namedJdbcTemplate.queryForList(SELECT_ALL_TEAMS_USER_IS_ADMIN, param, String.class);
+	}
 }

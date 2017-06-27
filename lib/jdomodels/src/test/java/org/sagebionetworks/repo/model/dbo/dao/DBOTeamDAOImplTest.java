@@ -56,7 +56,7 @@ public class DBOTeamDAOImplTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private GroupMembersDAO groupMembersDAO;	
+	private GroupMembersDAO groupMembersDAO;
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
@@ -168,24 +168,22 @@ public class DBOTeamDAOImplTest {
 		Team updated = teamDAO.update(clone);
 		clone.setEtag(updated.getEtag()); // for comparison
 		assertEquals(clone, updated);
-		
+
 		Team retrieved = teamDAO.get(updated.getId());
 		assertEquals(updated, retrieved);
-				
 		assertEquals(1, teamDAO.getInRange(1, 0).size());
 		assertEquals(0, teamDAO.getInRange(2, 1).size());
 		assertEquals(1, teamDAO.getCount());
-		
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
-		
+
 		ListWrapper<Team> listed = teamDAO.list(Collections.singletonList(id));
 		assertEquals(1, listed.getList().size());
 		assertEquals(updated, listed.getList().get(0));
-		
+
 		List<Long> emptyIds = Collections.emptyList();
-		
+
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 		assertTrue(teamDAO.list(emptyIds).getList().isEmpty());
 
@@ -194,13 +192,13 @@ public class DBOTeamDAOImplTest {
 		user.setIsIndividual(true);
 		user.setId(userGroupDAO.create(user).toString());
 		userToDelete = user.getId();
-		
+
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("user-name");
 		alias.setPrincipalId(Long.parseLong(user.getId()));
 		alias.setType(AliasType.USER_NAME);
 		principalAliasDAO.bindAliasToPrincipal(alias);
-		
+
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(user.getId());
 		userProfileDAO.create(profile);
@@ -211,7 +209,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(retrieved, membersTeams.get(0));
 		assertEquals(0, teamDAO.getForMemberInRange(user.getId(), 3, 1).size());
 		assertEquals(1, teamDAO.getCountForMember(user.getId()));
-		
+
 		Long teamId = Long.parseLong(team.getId());
 		Long userIdLong = Long.parseLong(user.getId());
 		ListWrapper<TeamMember> listedMembers = 
@@ -234,7 +232,7 @@ public class DBOTeamDAOImplTest {
 		}
 
 		assertTrue(teamDAO.listMembers(Collections.singletonList(teamId), emptyIds).getList().isEmpty());
-		
+
 		UserProfile up = userProfileDAO.get(user.getId());
 		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
 		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
@@ -246,7 +244,7 @@ public class DBOTeamDAOImplTest {
 		List<TeamMember> tmList = new ArrayList<TeamMember>();
 		tmList.add(tm);
 		expectedAllTeamsAndMembers.put(updated,  tmList);
-		
+
 		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
 		Map<Team,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
 		assertEquals(expectedAllTeamsAndMembers.size(), actualAllTeamsAndMembers.size());
@@ -259,7 +257,7 @@ public class DBOTeamDAOImplTest {
 				assertTrue("expected "+m+" but found "+actualTeamMembers, actualTeamMembers.contains(m));
 			}
 		}
-		
+
 		// the team has one member,  'pg'
 		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
 		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
@@ -269,22 +267,28 @@ public class DBOTeamDAOImplTest {
 		assertEquals(user.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
 		assertTrue(teamDAO.getAdminTeamMembers(updated.getId()).isEmpty());
-		
+
 		// check pagination
 		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), 1, 2).size());
 		// try some other team.  should get no results
 		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
-		
+
 		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
 		assertEquals(updated.getId(), member.getTeamId());
 		assertFalse(member.getIsAdmin());
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());
+
+		List<String> teamIds = teamDAO.getAllTeamsUserIsAdmin(user.getId());
+		assertNotNull(teamIds);
+		assertTrue(teamIds.isEmpty());
+
 		// now make the member an admin
 		AccessControlList acl = createAdminAcl(user.getId(), updated.getId(), new Date());
 		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
+
 		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
 		member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
@@ -294,11 +298,16 @@ public class DBOTeamDAOImplTest {
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());
-		
+
+		teamIds = teamDAO.getAllTeamsUserIsAdmin(user.getId());
+		assertNotNull(teamIds);
+		assertEquals(1, teamIds.size());
+		assertEquals(updated.getId(), teamIds.get(0));
+
 		members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
 		assertEquals(1, members.size());
 		assertEquals(member, members.get(0));
-		
+
 		listedMembers = teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
 		assertEquals(member, listedMembers.getList().get(0));
 	}
