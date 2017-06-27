@@ -258,6 +258,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param, Long.class);
 	}
 
+	@Deprecated
 	@Override
 	public long getOpenByTeamAndUserCount(long teamId, long userId,
 			long now) throws DatastoreException, NotFoundException {
@@ -268,6 +269,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param, Long.class);
 	}
 
+	@Deprecated
 	@Override
 	public long getOpenByTeamCount(long teamId,
 			long now) throws DatastoreException, NotFoundException {

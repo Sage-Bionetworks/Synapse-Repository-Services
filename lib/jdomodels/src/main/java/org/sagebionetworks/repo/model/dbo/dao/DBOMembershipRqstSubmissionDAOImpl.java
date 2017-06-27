@@ -197,6 +197,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		return namedJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED, param, membershipRequestRowMapper);
 	}
 
+	@Deprecated
 	@Override
 	public long getOpenByTeamCount(long teamId, long now)
 			throws DatastoreException, NotFoundException {
@@ -219,6 +220,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, membershipRqstSubmissionRowMapper);
 	}
 
+	@Deprecated
 	@Override
 	public long getOpenByTeamAndRequesterCount(long teamId,
 			long requestorId, long now) throws DatastoreException,
@@ -242,6 +244,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		return namedJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, param, membershipRqstSubmissionRowMapper);
 	}
 
+	@Deprecated
 	@Override
 	public long getOpenByRequesterCount(long requesterId, long now) throws DatastoreException,
 			NotFoundException {
