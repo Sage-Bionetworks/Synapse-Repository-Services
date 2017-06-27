@@ -325,6 +325,19 @@ public class SubmissionManagerImplTest {
 		manager.create(mockUser, requestId, etag);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateListAccessorTwice() {
+		AccessorChange accesorChange = new AccessorChange();
+		accesorChange.setUserId(userId);
+		accesorChange.setType(AccessType.GAIN_ACCESS);
+		AccessorChange accesorChange2 = new AccessorChange();
+		accesorChange2.setUserId(userId);
+		accesorChange2.setType(AccessType.RENEW_ACCESS);
+		accessors = Arrays.asList(accesorChange, accesorChange2);
+		request.setAccessorChanges(accessors);
+		manager.create(mockUser, requestId, etag);
+	}
+
 	@Test
 	public void testCreate() {
 		manager.create(mockUser, requestId, etag);
@@ -600,10 +613,20 @@ public class SubmissionManagerImplTest {
 				anyLong())).thenReturn(submission);
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
+
+		ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockAccessApprovalDao).revokeBySubmitter(stringCaptor.capture(),
+				stringCaptor.capture(), captor.capture(), stringCaptor.capture());
+		List accessorsToRevoke = captor.getValue();
+		assertNotNull(accessorsToRevoke);
+		assertEquals(2, accessorsToRevoke.size());
+		assertTrue(accessorsToRevoke.contains(userId));
+		assertTrue(accessorsToRevoke.contains("2"));
+
 		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
-		assertEquals(3, approvals.size());
+		assertEquals(2, approvals.size());
 		AccessApproval approval1 = approvals.get(0);
 		assertEquals(userId, approval1.getAccessorId());
 		assertEquals(userId, approval1.getCreatedBy());
@@ -613,16 +636,7 @@ public class SubmissionManagerImplTest {
 		assertNull(approval1.getExpiredOn());
 		assertEquals(approval1.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval1.getRequirementId().toString());
-		AccessApproval approval2 = approvals.get(1);
-		assertEquals("2", approval2.getAccessorId());
-		assertEquals(userId, approval2.getCreatedBy());
-		assertNotNull(approval2.getCreatedOn());
-		assertEquals(userId, approval2.getModifiedBy());
-		assertNotNull(approval2.getModifiedOn());
-		assertNull(approval2.getExpiredOn());
-		assertEquals(approval2.getState(), ApprovalState.REVOKED);
-		assertEquals(accessRequirementId, approval2.getRequirementId().toString());
-		AccessApproval approval3 = approvals.get(2);
+		AccessApproval approval3 = approvals.get(1);
 		assertEquals("3", approval3.getAccessorId());
 		assertEquals(userId, approval3.getCreatedBy());
 		assertNotNull(approval3.getCreatedOn());
@@ -631,6 +645,7 @@ public class SubmissionManagerImplTest {
 		assertNull(approval3.getExpiredOn());
 		assertEquals(approval3.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval3.getRequirementId().toString());
+
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION_STATUS, etag, ChangeType.UPDATE, userIdLong);
 		verify(mockRequestManager).updateApprovedRequest(requestId);
 	}
@@ -651,7 +666,16 @@ public class SubmissionManagerImplTest {
 				anyLong())).thenReturn(submission);
 		// call under test
 		assertEquals(submission, manager.updateStatus(mockUser, request));
+
+		ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockAccessApprovalDao).revokeBySubmitter(stringCaptor.capture(),
+				stringCaptor.capture(), captor.capture(), stringCaptor.capture());
+		List accessorsToRevoke = captor.getValue();
+		assertNotNull(accessorsToRevoke);
+		assertEquals(1, accessorsToRevoke.size());
+		assertTrue(accessorsToRevoke.contains(userId));
+
 		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
 		List<AccessApproval> approvals = captor.getValue();
 		assertEquals(1, approvals.size());
@@ -662,7 +686,9 @@ public class SubmissionManagerImplTest {
 		assertEquals(userId, approval.getModifiedBy());
 		assertNotNull(approval.getModifiedOn());
 		assertNotNull(approval.getExpiredOn());
+		assertEquals(approval.getState(), ApprovalState.APPROVED);
 		assertEquals(accessRequirementId, approval.getRequirementId().toString());
+
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(submissionId, ObjectType.DATA_ACCESS_SUBMISSION_STATUS, etag, ChangeType.UPDATE, userIdLong);
 		verify(mockRequestManager).updateApprovedRequest(requestId);
 	}

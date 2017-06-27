@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -135,9 +136,13 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
 
+		Set<String> accessors = new HashSet<String>();
 		Set<String> accessorsWillHaveAccess = new HashSet<String>();
 		Set<String> accessorsAlreadyHaveAccess = new HashSet<String>();
 		for (AccessorChange ac : request.getAccessorChanges()) {
+			ValidateArgument.requirement(!accessors.contains(ac.getUserId()),
+					"Accessor "+ac.getUserId()+" is listed more than one.");
+			accessors.add(ac.getUserId());
 			switch (ac.getType()) {
 				case GAIN_ACCESS:
 					accessorsWillHaveAccess.add(ac.getUserId());
@@ -229,8 +234,17 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
 			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
-			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString(), expiredOn);
-			accessApprovalDao.createOrUpdateBatch(approvalsToCreate);
+			List<AccessApproval> approvalsToCreateOrUpdate = new ArrayList<AccessApproval>();
+			List<String> accessorsToRevoke = new LinkedList<String>();
+			String modifiedBy =  userInfo.getId().toString();
+			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
+
+			if (!accessorsToRevoke.isEmpty()) {
+				accessApprovalDao.revokeBySubmitter(submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke, modifiedBy);
+			}
+			if (!approvalsToCreateOrUpdate.isEmpty()) {
+				accessApprovalDao.createOrUpdateBatch(approvalsToCreateOrUpdate);
+			}
 			/*
 			 * See PLFM-4442.
 			 */
@@ -251,33 +265,34 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return new Date(System.currentTimeMillis() + expirationPeriod);
 	}
 
-	public List<AccessApproval> createApprovalForSubmission(Submission submission, String createdBy, Date expiredOn) {
+	public void createApprovalsForSubmission(Submission submission, String createdBy,
+			Date expiredOn, List<AccessApproval> approvalsToCreateOrUpdate,
+			List<String> accessorsToRevoke) {
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
-		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
 		for (AccessorChange ac : submission.getAccessorChanges()) {
-			AccessApproval approval = new AccessApproval();
-			approval.setAccessorId(ac.getUserId());
-			approval.setCreatedBy(createdBy);
-			approval.setCreatedOn(createdOn);
-			approval.setModifiedBy(createdBy);
-			approval.setModifiedOn(createdOn);
-			approval.setRequirementId(requirementId);
-			approval.setRequirementVersion(submission.getAccessRequirementVersion());
-			approval.setSubmitterId(submission.getSubmittedBy());
-			approval.setExpiredOn(expiredOn);
 			switch (ac.getType()) {
-				case GAIN_ACCESS:
-				case RENEW_ACCESS:
-					approval.setState(ApprovalState.APPROVED);
-					break;
 				case REVOKE_ACCESS:
-					approval.setState(ApprovalState.REVOKED);
+					accessorsToRevoke.add(ac.getUserId());
+					break;
+				case RENEW_ACCESS:
+					accessorsToRevoke.add(ac.getUserId());
+				case GAIN_ACCESS:
+					AccessApproval approval = new AccessApproval();
+					approval.setAccessorId(ac.getUserId());
+					approval.setCreatedBy(createdBy);
+					approval.setCreatedOn(createdOn);
+					approval.setModifiedBy(createdBy);
+					approval.setModifiedOn(createdOn);
+					approval.setRequirementId(requirementId);
+					approval.setRequirementVersion(submission.getAccessRequirementVersion());
+					approval.setSubmitterId(submission.getSubmittedBy());
+					approval.setExpiredOn(expiredOn);
+					approval.setState(ApprovalState.APPROVED);
+					approvalsToCreateOrUpdate.add(approval);
 					break;
 			}
-			approvals.add(approval);
 		}
-		return approvals;
 	}
 
 	@Override
