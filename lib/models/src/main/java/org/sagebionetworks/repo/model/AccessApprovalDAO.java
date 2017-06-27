@@ -127,9 +127,9 @@ public interface AccessApprovalDAO {
 	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy);
 
 	/**
-	 * Renew a batch of access approvals
+	 * Revoke a batch of accessors
 	 * 
 	 * @param approvalsToRenew
 	 */
-	public void renew(List<AccessApproval> approvalsToRenew);
+	public void revokeBySubmitter(String accessRequirementId, String submitterId, List<String> accessors, String revokedBy);
 }

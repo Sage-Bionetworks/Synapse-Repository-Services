@@ -330,7 +330,11 @@ public class DBOAccessApprovalDAOImplTest {
 
 		// revoke
 		accessApproval.setState(ApprovalState.REVOKED);
-		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval));
+		accessApprovalDAO.revokeBySubmitter(
+				accessApproval.getRequirementId().toString(),
+				accessApproval.getSubmitterId(),
+				Arrays.asList(accessApproval.getAccessorId()),
+				individualGroup2.getId());
 		updated = accessApprovalDAO.getByPrimaryKey(
 				accessApproval.getRequirementId(),
 				accessApproval.getRequirementVersion(),
@@ -341,16 +345,16 @@ public class DBOAccessApprovalDAOImplTest {
 		// renew
 		Date newExpirationDate = new Date();
 		Long newVersion = 9L;
-		accessApproval2.setExpiredOn(newExpirationDate);
-		accessApproval2.setRequirementVersion(newVersion);
-		accessApprovalDAO.renew(Arrays.asList(accessApproval2));
-		updated2 = accessApprovalDAO.getByPrimaryKey(
-				accessApproval2.getRequirementId(),
+		accessApproval.setExpiredOn(newExpirationDate);
+		accessApproval.setRequirementVersion(newVersion);
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval));
+		updated = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
 				newVersion,
-				accessApproval2.getSubmitterId(),
-				accessApproval2.getAccessorId());
-		assertEquals(newVersion, updated2.getRequirementVersion());
-		assertEquals(newExpirationDate, updated2.getExpiredOn());
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		assertEquals(newVersion, updated.getRequirementVersion());
+		assertEquals(newExpirationDate, updated.getExpiredOn());
 
 		// clean up
 		accessApprovalDAO.delete(accessApproval.getId().toString());
