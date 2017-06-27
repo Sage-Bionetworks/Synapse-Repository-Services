@@ -6,9 +6,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -18,10 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Assume;
 import org.junit.Before;
@@ -92,10 +95,6 @@ public class TableManagerSupportTest {
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
-	ExecutorService mockExecutor;
-	@Mock
-	Future<Integer> mockFuture;
-	@Mock
 	ProgressCallback<Void> mockCallback;
 	@Mock
 	ReplicationMessageManager mockReplicationMessageManager;
@@ -131,12 +130,9 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "tableSupportExecutorService", mockExecutor);
 		ReflectionTestUtils.setField(manager, "replicationMessageManager", mockReplicationMessageManager);
 		
-		when(mockExecutor.submit(any(Callable.class))).thenReturn(mockFuture);
 		callableReturn = 123;
-		when(mockFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(callableReturn);
 		
 		userInfo = new UserInfo(false, 8L);
 		
@@ -783,14 +779,6 @@ public class TableManagerSupportTest {
 		// call under test
 		Set<Long> results = manager.getEntityPath(tableId);
 		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testCallWithAutoProgress() throws Exception{
-		Callable<Integer> callable = Mockito.mock(Callable.class);
-		Integer result = manager.callWithAutoProgress(mockCallback, callable);
-		assertEquals(callableReturn, result);
-		verify(mockCallback, times(1)).progressMade(null);
 	}
 
 	@Test (expected = UnauthorizedException.class)

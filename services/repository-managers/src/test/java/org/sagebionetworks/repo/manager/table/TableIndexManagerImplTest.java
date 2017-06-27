@@ -140,15 +140,6 @@ public class TableIndexManagerImplTest {
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		
-		// setup callable.
-		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Object>() {
-
-			@Override
-			public Object answer(InvocationOnMock invocation) throws Throwable {
-				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[1];
-				return callable.call();
-			}
-		});
 		crc32 = 5678L;
 		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString(), anyString())).thenReturn(crc32);
 		
@@ -381,8 +372,6 @@ public class TableIndexManagerImplTest {
 	public void testCreateTemporaryTableCopy() throws Exception{
 		// call under test
 		manager.createTemporaryTableCopy(tableId, mockCallback);
-		// auto progress should be used.
-		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).createTemporaryTable(tableId);
 		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
 	}
@@ -392,8 +381,6 @@ public class TableIndexManagerImplTest {
 	public void testDeleteTemporaryTableCopy() throws Exception{
 		// call under test
 		manager.deleteTemporaryTableCopy(tableId, mockCallback);
-		// auto progress should be used.
-		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).deleteTemporaryTable(tableId);
 	}
 	

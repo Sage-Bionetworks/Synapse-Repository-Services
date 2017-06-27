@@ -1,12 +1,9 @@
 package org.sagebionetworks.migration.worker;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -15,7 +12,15 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.migration.*;
+import org.sagebionetworks.repo.model.migration.AdminRequest;
+import org.sagebionetworks.repo.model.migration.AdminResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -35,8 +40,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 	private UserManager userManager;
 	@Autowired
 	private MigrationManager migrationManager;
-	@Autowired
-	private ExecutorService migrationExecutorService;
 
 
 	@Override
@@ -58,16 +61,10 @@ public class MigrationWorker implements MessageDrivenRunner {
 			final AsyncMigrationRequest mReq, final String jobId) throws Throwable {
 
 		try {
-			callWithAutoProgress(progressCallback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					AdminResponse resp = processRequest(user, mReq.getAdminRequest(), jobId);
-					AsyncMigrationResponse mResp = new AsyncMigrationResponse();
-					mResp.setAdminResponse(resp);
-					asynchJobStatusManager.setComplete(jobId, mResp);
-					return null;
-				}
-			});
+			AdminResponse resp = processRequest(user, mReq.getAdminRequest(), jobId);
+			AsyncMigrationResponse mResp = new AsyncMigrationResponse();
+			mResp.setAdminResponse(resp);
+			asynchJobStatusManager.setComplete(jobId, mResp);
 		} catch (Throwable e) {
 			// Record the error
 			asynchJobStatusManager.setJobFailed(jobId, e);
@@ -89,12 +86,6 @@ public class MigrationWorker implements MessageDrivenRunner {
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}
-	}
-
-	private <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
-		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
-				migrationExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
-		return auto.call(callback);
 	}
 
 }

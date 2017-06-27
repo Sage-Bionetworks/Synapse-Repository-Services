@@ -190,13 +190,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @throws Exception
 	 */
 	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
-		 try {
-			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
-				@Override
-				public Boolean call() throws Exception {
-					return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-				}
-			});
+		try {
+			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -239,17 +234,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void createTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
 		// creating a temp table can take a long time so auto-progress is used.
-		 try {
-			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					// create the table.
-					tableIndexDao.createTemporaryTable(tableId);
-					// copy all the data from the original to the temp.
-					tableIndexDao.copyAllDataToTemporaryTable(tableId);
-					return null;
-				}
-			});
+		try {
+			// create the table.
+			tableIndexDao.createTemporaryTable(tableId);
+			// copy all the data from the original to the temp.
+			tableIndexDao.copyAllDataToTemporaryTable(tableId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -257,37 +246,20 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	@Override
 	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
-		// deleting a temp table can take a long time so auto-progress is used.
-		 try {
-			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					// create the table.
-					tableIndexDao.deleteTemporaryTable(tableId);
-					return null;
-				}
-			});
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		// delete
+		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
 	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback<Void> callback, final ViewType viewType,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
-		// this can take a long time with no chance to make progress.
-		 try {
-			return tableManagerSupport.callWithAutoProgress(callback, new Callable<Long>() {
-				@Override
-				public Long call() throws Exception {
-					// create the table.
-					return populateViewFromEntityReplicationWithProgress(tableId, viewType, allContainersInScope, currentSchema);
-				}
-			});
+		try {
+			return populateViewFromEntityReplicationWithProgress(tableId,
+					viewType, allContainersInScope, currentSchema);
 		} catch (Exception e) {
-			if(e instanceof RuntimeException){
-				throw ((RuntimeException)e);
-			}else{
+			if (e instanceof RuntimeException) {
+				throw ((RuntimeException) e);
+			} else {
 				throw new RuntimeException(e);
 			}
 		}

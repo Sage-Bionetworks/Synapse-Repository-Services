@@ -10,7 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -317,7 +317,7 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		// no exceptions should occur.
 		verifyZeroInteractions(mockWorkerLog);
-		verify(mockProgressCallback, times(1)).progressMade(null);
+		verify(mockProgressCallback, atLeast(1)).progressMade(null);
 	}
 	
 	@Test

@@ -117,8 +117,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
-	ExecutorService tableSupportExecutorService;
-	@Autowired
 	ReplicationMessageManager replicationMessageManager;
 	
 	/*
@@ -569,14 +567,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			results.add(KeyFactory.stringToKey(header.getId()));
 		}
 		return results;
-	}
-
-
-	@Override
-	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
-		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
-				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
-		return auto.call(callback);
 	}
 
 	@Override
