@@ -153,6 +153,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private static final String SELECT_ACCESSOR_GROUP_PREFIX = "SELECT "
 				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
 				+ COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
+				+ COL_ACCESS_APPROVAL_EXPIRED_ON+", "
 				+ "GROUP_CONCAT(DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" SEPARATOR '"+SEPARATOR+"') AS "+ACCESSOR_LIST
 			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
@@ -165,7 +166,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+" AND "+COL_ACCESS_APPROVAL_EXPIRED_ON+" <= :"+COL_ACCESS_APPROVAL_EXPIRED_ON;
 	private static final String SELECT_ACCESSOR_GROUP_POSTFIX = " GROUP BY "
 				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID+", "
-				+ COL_ACCESS_APPROVAL_SUBMITTER_ID
+				+ COL_ACCESS_APPROVAL_SUBMITTER_ID+", "
+				+ COL_ACCESS_APPROVAL_EXPIRED_ON
 			+ " ORDER BY "+COL_ACCESS_APPROVAL_EXPIRED_ON
 			+ " LIMIT :"+LIMIT_PARAM
 			+ " OFFSET :"+OFFSET_PARAM;
@@ -375,8 +377,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			@Override
 			public AccessorGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
 				AccessorGroup group = new AccessorGroup();
+				group.setAccessRequirementId(rs.getString(COL_ACCESS_APPROVAL_REQUIREMENT_ID));
 				group.setSubmitterId(rs.getString(COL_ACCESS_APPROVAL_SUBMITTER_ID));
 				group.setAccessorIds(convertToList(rs.getString(ACCESSOR_LIST)));
+				group.setExpiredOn(new Date(rs.getLong(COL_ACCESS_APPROVAL_EXPIRED_ON)));
 				return group;
 			}
 		});

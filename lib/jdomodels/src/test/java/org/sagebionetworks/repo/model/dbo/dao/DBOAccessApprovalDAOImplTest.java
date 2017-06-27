@@ -379,9 +379,11 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, result.size());
 		AccessorGroup group = result.get(0);
 		assertNotNull(group);
+		assertEquals(accessRequirement.getId().toString(), group.getAccessRequirementId());
 		assertEquals(individualGroup.getId(), group.getSubmitterId());
 		assertTrue(group.getAccessorIds().contains(individualGroup.getId()));
 		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
+		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
 
 		// revoke the group
 		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
@@ -413,38 +415,38 @@ public class DBOAccessApprovalDAOImplTest {
 
 	@Test
 	public void testBuildQuery() {
-		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
-				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null));
-		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND REQUIREMENT_ID = :REQUIREMENT_ID"
-				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null));
-		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND SUBMITTER_ID = :SUBMITTER_ID"
-				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null));
-		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND EXPIRED_ON <> 0"
 				+ " AND EXPIRED_ON <= :EXPIRED_ON"
-				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
 				+ " ORDER BY EXPIRED_ON"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
