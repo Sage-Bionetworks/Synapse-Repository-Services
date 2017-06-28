@@ -1,10 +1,11 @@
 package org.sagebionetworks.table.worker;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressListener;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
@@ -65,23 +66,30 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			// Lookup the manger for this type
 			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
 			// Listen to progress events.
-			progressCallback.addProgressListener(new ProgressListener<Void>(){
+			ProgressListener<Void> listener = new ProgressListener<Void>(){
 				
-				long count = 1;
+				AtomicLong counter = new AtomicLong();
 
 				@Override
 				public void progressMade(Void param) {
-					count++;
+					long count = counter.getAndIncrement();
 					// update the job status.
-					asynchJobStatusManager.updateJobProgress(status.getJobId(), count, Long.MAX_VALUE, "Update: "+(count++));
+					asynchJobStatusManager.updateJobProgress(status.getJobId(), count, Long.MAX_VALUE, "Update: "+count);
 				}
 				
-			});
-			// The manager does the rest of the work.
-			TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(progressCallback, userInfo, request);
-			// Set the job complete.
-			asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
-			log.info("JobId: "+status.getJobId()+" complete");
+			};
+			progressCallback.addProgressListener(listener);
+			try{
+				// The manager does the rest of the work.
+				TableUpdateTransactionResponse responseBody = transactionManager.updateTableWithTransaction(progressCallback, userInfo, request);
+				// Set the job complete.
+				asynchJobStatusManager.setComplete(status.getJobId(), responseBody);
+				log.info("JobId: "+status.getJobId()+" complete");
+			}finally{
+				// unconditionally remove the listener.
+				progressCallback.removeProgressListener(listener);
+			}
+
 		}catch (TableUnavailableException e){
 			log.info(WAITING_FOR_TABLE_LOCK);
 			// reset the job progress.

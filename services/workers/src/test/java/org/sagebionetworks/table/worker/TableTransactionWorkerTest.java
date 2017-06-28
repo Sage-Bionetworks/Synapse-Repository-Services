@@ -4,12 +4,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.SimpleProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -26,6 +22,7 @@ import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -117,16 +114,32 @@ public class TableTransactionWorkerTest {
 	
 	@Test
 	public void testBasicRun() throws Exception{
+		ProgressCallback<Void> callback = new SimpleProgressCallback<>();
 		// call under test
-		worker.run(mockProgressCallback, mockMessage);
+		worker.run(callback, mockMessage);
 		// progress should be made three times
-		verify(mockProgressCallback, atLeast(1)).progressMade(null);
 		// status should be made three times
-		verify(mockAsynchJobStatusManager).updateJobProgress(jobId, 0L, 100L, "Update: 1");
+		verify(mockAsynchJobStatusManager, times(3)).updateJobProgress(eq(jobId), anyLong(), anyLong(), anyString());
 		// the job should be set complete
 		verify(mockAsynchJobStatusManager).setComplete(jobId, responseBody);
 		// the managers do the actual transaction work.
 		verify(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), eq(userInfo), eq(request));
+	}
+	
+	/** 
+	 * The progress listener must be removed even if there is an exception.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testProgressListenerRemovedException() throws Exception{
+		IllegalStateException error = new IllegalStateException("an error");
+		doThrow(error).when(mockAsynchJobStatusManager).setComplete(anyString(), any(AsynchronousResponseBody.class));
+		// call under test
+		worker.run(mockProgressCallback, mockMessage);
+		verify(mockProgressCallback).addProgressListener(any(ProgressCallback.class));
+		verify(mockProgressCallback).removeProgressListener(any(ProgressCallback.class));
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, error);
 	}
 	
 	@Test

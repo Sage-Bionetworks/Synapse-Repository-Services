@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
@@ -86,29 +87,34 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
-			// This stream is used to keep track of the bytes read.
-			final CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			// Create a reader from the passed parameters
-			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
+			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
 			
 			// Listen to progress events.
-			progressCallback.addProgressListener(new ProgressListener<Void>() {
+			ProgressListener<Void> listener = new ProgressListener<Void>() {
 				 
-				int counter = 0;
+				AtomicLong counter = new AtomicLong();
 				
 				@Override
 				public void progressMade(Void t) {
+					long count = counter.incrementAndGet();
 					// update the job progress.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(),
-							countingInputStream.getByteCount(), progressTotal,
-							"Processed: " + (counter++));
+							count, Long.MAX_VALUE,
+							"Processed: " + (count));
 					
 				}
-			});
-			// This builder does the work of building an actual preview.
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressCallback, body);
-			UploadToTablePreviewResult result = builder.buildResult();
-			asynchJobStatusManager.setComplete(status.getJobId(), result);
+			};
+			progressCallback.addProgressListener(listener);
+			try {
+				// This builder does the work of building an actual preview.
+				UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressCallback, body);
+				UploadToTablePreviewResult result = builder.buildResult();
+				asynchJobStatusManager.setComplete(status.getJobId(), result);
+			} finally {
+				// unconditionally remove the listener
+				progressCallback.removeProgressListener(listener);
+			}
 		}catch(Throwable e){
 			// Record the error
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
