@@ -120,4 +120,13 @@ public interface MembershipRqstSubmissionDAO {
 	 * @throws DatastoreException
 	 */
 	public void deleteByTeamAndRequester(long teamId, long requesterId) throws DatastoreException;
+
+	/**
+	 * Retrieve the number of open requests for all teamIds
+	 * 
+	 * @param teamIds
+	 * @param expireAfter
+	 * @return
+	 */
+	public long getOpenRequestByTeamsCount(List<String> teamIds, long expireAfter);
 }

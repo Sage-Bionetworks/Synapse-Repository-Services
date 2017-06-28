@@ -64,7 +64,12 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 			+" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL"
 					+ " OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON
 					+" ) ";
-	
+
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAMS_COUNT =
+			"SELECT COUNT(*)"
+			+SELECT_OPEN_REQUESTS_CORE
+			+" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" IN (:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+")";
+
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_CORE = 
 			SELECT_OPEN_REQUESTS_CORE
 			+" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID;
@@ -205,6 +210,14 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_REQUESTS_BY_TEAM_COUNT, param, Long.class);
+	}
+
+	@Override
+	public long getOpenRequestByTeamsCount(List<String> teamIds, long expireAfter) {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamIds);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, expireAfter);	
+		return namedJdbcTemplate.queryForObject(SELECT_OPEN_REQUESTS_BY_TEAMS_COUNT, param, Long.class);
 	}
 
 	@Override
