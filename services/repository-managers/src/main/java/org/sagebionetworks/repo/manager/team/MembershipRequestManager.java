@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -107,5 +108,13 @@ public interface MembershipRequestManager {
 	 */
 	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint);
+
+	/**
+	 * Retrieve all open request submissions for teams of which user is admin
+	 * 
+	 * @param userInfo
+	 * @return
+	 */
+	public Count getOpenSubmissionsCountForTeamAdmin(UserInfo userInfo);
 
 }
