@@ -190,12 +190,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	@Override
 	public List<MembershipInvitation> getOpenByUserInRange(long userId, long now, long limit,
 			long offset) throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();	
+		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
+		param.addValue(LIMIT_PARAM_NAME, limit);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);
 		return namedJdbcTemplate.query(SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED, param, membershipInvitationRowMapper);
 	}
 

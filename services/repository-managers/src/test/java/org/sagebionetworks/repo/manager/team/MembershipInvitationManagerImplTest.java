@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -35,21 +37,22 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipInvitationManagerImplTest {
-	
-	private MembershipInvitationManagerImpl membershipInvitationManagerImpl = null;
+
+	private MembershipInvitationManagerImpl membershipInvitationManagerImpl;
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
 	private TeamDAO mockTeamDAO = null;
-	
+
 	private UserInfo userInfo = null;
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 
 	private static final String TEAM_ID = "123";
 	private static final String MIS_ID = "987";
-	
+
 	private static MembershipInvtnSubmission createMembershipInvtnSubmission(String id) {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setId(id);
@@ -71,11 +74,10 @@ public class MembershipInvitationManagerImplTest {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
-		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl(
-				mockAuthorizationManager,
-				mockMembershipInvtnSubmissionDAO,
-				mockTeamDAO
-				);
+		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl();
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "teamDAO", mockTeamDAO);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
 	}
 
@@ -296,6 +298,19 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
 		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getUserId());
 	}
-	
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetOpenInvitationCountForUserWithNullPrincipalId() {
+		membershipInvitationManagerImpl.getOpenInvitationCountForUser(null);
+	}
+
+	@Test
+	public void testGetOpenInvitationCountForUser() {
+		Long count = 7L;
+		when(mockMembershipInvtnSubmissionDAO.getOpenByUserCount(anyLong(), anyLong())).thenReturn(count);
+		Count result = membershipInvitationManagerImpl.getOpenInvitationCountForUser(MEMBER_PRINCIPAL_ID);
+		assertNotNull(result);
+		assertEquals(count, result.getCount());
+	}
 
 }
