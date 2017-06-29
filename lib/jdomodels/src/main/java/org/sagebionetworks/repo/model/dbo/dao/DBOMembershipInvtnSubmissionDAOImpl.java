@@ -157,6 +157,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			mi.setUserId(rs.getString(INVITEE_ID_COLUMN_LABEL));
 			mi.setTeamId(rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
 			mi.setExpiresOn(new Date(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON)));
+			mi.setCreatedOn(new Date(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON)));
 			Blob misProperties = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 			MembershipInvtnSubmission mis = MembershipInvtnSubmissionUtils.deserialize(misProperties.getBytes(1, (int) misProperties.length()));
 			mi.setMessage(mis.getMessage());
