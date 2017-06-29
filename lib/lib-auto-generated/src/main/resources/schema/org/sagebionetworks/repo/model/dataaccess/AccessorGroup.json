@@ -1,6 +1,10 @@
 {
 	"description": "A group of accessors who gained access by the same submitter.",
 	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of an AccessRequirement."
+		},
 		"accessorIds": {
 			"type": "array",
 			"items": {
@@ -10,6 +14,11 @@
 		"submitterId":{
 			"description":"The ID of the submitter.",
 			"type": "string"
+		},
+		"expiredOn":{
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this group will be expired."
 		}
 	}
 }
