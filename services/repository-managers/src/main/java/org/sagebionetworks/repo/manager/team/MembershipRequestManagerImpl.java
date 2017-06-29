@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -60,24 +62,6 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private TeamDAO teamDAO;
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
-	
-	
-	public MembershipRequestManagerImpl() {}
-	
-	// for testing
-	public MembershipRequestManagerImpl(
-			AuthorizationManager authorizationManager,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
-			UserProfileManager userProfileManager,
-			TeamDAO teamDAO,
-			AccessRequirementDAO accessRequirementDAO
-			) {
-		this.authorizationManager=authorizationManager;
-		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
-		this.userProfileManager = userProfileManager;
-		this.teamDAO=teamDAO;
-		this.accessRequirementDAO = accessRequirementDAO;
-	}
 	
 	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
 	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "Someone Has Requested to Join Your Team";
@@ -258,4 +242,16 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		return results;
 	}
 
+	@Override
+	public Count getOpenSubmissionsCountForTeamAdmin(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		List<String> teamIds = teamDAO.getAllTeamsUserIsAdmin(userInfo.getId().toString());
+		Count result = new Count();
+		if (teamIds.isEmpty()) {
+			result.setCount(0L);
+		} else {
+			result.setCount(membershipRqstSubmissionDAO.getOpenRequestByTeamsCount(teamIds, System.currentTimeMillis()));
+		}
+		return result;
+	}
 }

@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
@@ -16,6 +14,7 @@ import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.util.SerializationUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipRequestManagerImplTest {
 	
@@ -65,13 +66,13 @@ public class MembershipRequestManagerImplTest {
 		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
-		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
-				mockAuthorizationManager,
-				mockMembershipRqstSubmissionDAO,
-				mockUserProfileManager,
-				mockTeamDAO,
-				mockAccessRequirementDAO
-				);
+		membershipRequestManagerImpl = new MembershipRequestManagerImpl();
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "authorizationManager", mockAuthorizationManager);
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "membershipRqstSubmissionDAO", mockMembershipRqstSubmissionDAO);
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "userProfileManager", mockUserProfileManager);
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "teamDAO", mockTeamDAO);
+		ReflectionTestUtils.setField(membershipRequestManagerImpl, "accessRequirementDAO", mockAccessRequirementDAO);
+
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
 		userInfo.setGroups(Collections.singleton(Long.parseLong(MEMBER_PRINCIPAL_ID)));
@@ -384,7 +385,30 @@ public class MembershipRequestManagerImplTest {
 		long teamId = 111L;
 		long userId = userInfo.getId();
 		membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
-
 	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetOpenSubmissionsCountForTeamAdminWithNullUserInfo() {
+		membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(null);
+	}
+
+	@Test
+	public void testGetOpenSubmissionsCountForTeamAdminWithEmptyTeams() {
+		when(mockTeamDAO.getAllTeamsUserIsAdmin(MEMBER_PRINCIPAL_ID)).thenReturn(new LinkedList<String>());
+		Count result = membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(userInfo);
+		assertNotNull(result);
+		assertEquals((Long)0L, result.getCount());
+		verify(mockMembershipRqstSubmissionDAO, never()).getOpenRequestByTeamsCount(anyList(), anyLong());
+	}
+
+	@Test
+	public void testGetOpenSubmissionsCountForTeamAdmin() {
+		Long count = 7L;
+		List<String> teams = Arrays.asList("1");
+		when(mockTeamDAO.getAllTeamsUserIsAdmin(MEMBER_PRINCIPAL_ID)).thenReturn(teams);
+		when(mockMembershipRqstSubmissionDAO.getOpenRequestByTeamsCount(eq(teams), anyLong())).thenReturn(count);
+		Count result = membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(userInfo);
+		assertNotNull(result);
+		assertEquals(count, result.getCount());
+	}
 }

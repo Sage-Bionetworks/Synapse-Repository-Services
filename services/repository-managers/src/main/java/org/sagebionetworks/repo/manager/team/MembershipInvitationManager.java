@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -102,5 +103,13 @@ public interface MembershipInvitationManager {
 	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForUserAndTeamInRange(
 			UserInfo userInfo, String inviteeId, String teamId, long limit,
 			long offset)  throws NotFoundException;
+
+	/**
+	 * Retrieve the number of open invitation for a user
+	 * 
+	 * @param principalId
+	 * @return
+	 */
+	public Count getOpenInvitationCountForUser(String principalId);
 
 }

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -50,19 +52,6 @@ public class MembershipInvitationManagerImpl implements
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "You Have Been Invited to Join a Team";
 
-	public MembershipInvitationManagerImpl() {}
-	
-	// for testing
-	public MembershipInvitationManagerImpl(
-			AuthorizationManager authorizationManager,
-			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			TeamDAO teamDAO
-			) {
-		this.authorizationManager = authorizationManager;
-		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
-		this.teamDAO=teamDAO;
-	}
-	
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
@@ -162,6 +151,15 @@ public class MembershipInvitationManagerImpl implements
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;
+	}
+
+	@Override
+	public Count getOpenInvitationCountForUser(String principalId) {
+		ValidateArgument.required(principalId, "principalId");
+		Count result = new Count();
+		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(Long.parseLong(principalId), System.currentTimeMillis());
+		result.setCount(count);
+		return result;
 	}
 
 	/* (non-Javadoc)

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -148,5 +147,13 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	long getAdminMemberCount(String teamId) throws DatastoreException;
+
+	/**
+	 * retrieve all teams that a user is an admin
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	public List<String> getAllTeamsUserIsAdmin(String userId);
 
 }
