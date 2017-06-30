@@ -250,6 +250,9 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
 	}
 	
+	/*
+	 * PLFM-4479
+	 */
 	@Test
 	public void testCreatedOn() throws Exception {
 		Long teamId = Long.parseLong(team.getId());

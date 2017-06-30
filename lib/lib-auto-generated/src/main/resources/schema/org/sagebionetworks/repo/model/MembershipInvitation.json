@@ -24,7 +24,7 @@
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this MembershipInvtnSubmission was created.",
+			"description": "The date this MembershipInvitation was created.",
 			"title": "Created On"
 		}
 	}
