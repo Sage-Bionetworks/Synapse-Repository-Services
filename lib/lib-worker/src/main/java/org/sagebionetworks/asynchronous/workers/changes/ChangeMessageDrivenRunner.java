@@ -31,6 +31,6 @@ public interface ChangeMessageDrivenRunner extends ChangeMessageRunner {
 	 *             indicates to the container that the message should be
 	 *             returned to the queue for future processing.
 	 */
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
+	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException, Exception;
 }

@@ -95,7 +95,7 @@ public class TableManagerSupportTest {
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	@Mock
 	ReplicationMessageManager mockReplicationMessageManager;
 	

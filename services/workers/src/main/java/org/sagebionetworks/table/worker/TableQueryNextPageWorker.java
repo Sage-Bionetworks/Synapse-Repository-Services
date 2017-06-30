@@ -35,7 +35,7 @@ public class TableQueryNextPageWorker implements MessageDrivenRunner {
 	private UserManager userManger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{

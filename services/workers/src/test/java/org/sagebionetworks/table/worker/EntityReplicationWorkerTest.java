@@ -47,7 +47,7 @@ public class EntityReplicationWorkerTest {
 	@Mock
 	TransactionStatus transactionStatus;
 	@Mock
-	ProgressCallback<Void> mockPogressCallback;
+	ProgressCallback mockPogressCallback;
 	@Mock
 	WorkerLogger mockWorkerLog;
 	
@@ -112,7 +112,6 @@ public class EntityReplicationWorkerTest {
 		verify(mockIndexDao).createEntityReplicationTablesIfDoesNotExist();
 		verify(mockIndexDao).deleteEntityData(any(ProgressCallback.class) ,eq(Lists.newArrayList(111L,222L,333L)));
 		verify(mockIndexDao).addEntityData(any(ProgressCallback.class) ,eq(entityData));
-		verify(mockPogressCallback, times(2)).progressMade(null);
 		verifyZeroInteractions(mockWorkerLog);
 	}
 	

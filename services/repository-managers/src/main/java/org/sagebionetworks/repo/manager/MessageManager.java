@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -95,7 +94,7 @@ public interface MessageManager {
 	 * </br>
 	 * Note: This method is to be used by the MessageToUserWorker and should not be exposed via the REST API.
 	 */
-	public List<String> processMessage(String messageId, ProgressCallback<Void> progressCallback) throws NotFoundException;
+	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException;
 	
 	/**
 	 * Deletes a message, only accessible to admins

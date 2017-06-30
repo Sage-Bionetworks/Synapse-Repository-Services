@@ -52,7 +52,7 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback, Message message)
+	public void run(final ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try{
@@ -66,12 +66,12 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			// Lookup the manger for this type
 			TableTransactionManager transactionManager = tableTransactionManagerProvider.getTransactionManagerForType(tableType);
 			// Listen to progress events.
-			ProgressListener<Void> listener = new ProgressListener<Void>(){
+			ProgressListener listener = new ProgressListener(){
 				
 				AtomicLong counter = new AtomicLong();
 
 				@Override
-				public void progressMade(Void param) {
+				public void progressMade() {
 					long count = counter.getAndIncrement();
 					// update the job status.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(), count, Long.MAX_VALUE, "Update: "+count);

@@ -102,9 +102,9 @@ public class TableQueryManagerImplTest {
 	@Mock
 	TableIndexDAO mockTableIndexDAO;
 	@Mock
-	ProgressCallback<Void> mockProgressCallbackVoid;
+	ProgressCallback mockProgressCallbackVoid;
 	@Mock
-	ProgressCallback<Object> mockProgressCallback2;
+	ProgressCallback mockProgressCallback2;
 	
 	TableQueryManagerImpl manager;
 	
@@ -158,7 +158,7 @@ public class TableQueryManagerImplTest {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
+				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[3];
 						if (callable != null) {
 							return callable.call(mockProgressCallback2);
 						} else {

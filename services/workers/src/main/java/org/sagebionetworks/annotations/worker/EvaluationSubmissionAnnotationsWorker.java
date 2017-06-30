@@ -27,17 +27,17 @@ public class EvaluationSubmissionAnnotationsWorker implements ChangeMessageDrive
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// We only care about Submission messages here
 		if (ObjectType.EVALUATION_SUBMISSIONS == change.getObjectType()) {
 			try {
 				// Is this a create, update, or delete?
 				if (ChangeType.CREATE == change.getChangeType()) {
-					ssAsyncMgr.createEvaluationSubmissionStatuses(progressCallback, change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
 				} else if (ChangeType.UPDATE == change.getChangeType()) {
 					// update
-					ssAsyncMgr.updateEvaluationSubmissionStatuses(progressCallback, change.getObjectId(), change.getObjectEtag());
+					ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
 				} else if(ChangeType.DELETE == change.getChangeType()) {
 					// delete
 					ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());

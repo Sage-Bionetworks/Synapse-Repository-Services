@@ -72,7 +72,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	BulkDownloadManager bulkDownloadManager; 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
@@ -102,7 +102,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @throws IOException 
 	 */
 	public BulkFileDownloadResponse buildZip(
-			final ProgressCallback<Void> progressCallback,
+			final ProgressCallback progressCallback,
 			final Message message, AsynchronousJobStatus status,
 			BulkFileDownloadRequest request) throws IOException {
 		// The generated zip will be written to this temp file.
@@ -135,7 +135,6 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 									@Override
 									public void progressChanged(
 											ProgressEvent progressEvent) {
-										progressCallback.progressMade(null);
 									}
 								});
 				resultFileHandleId = resultHandle.getId();
@@ -163,7 +162,7 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 	 * @param zipOut
 	 */
 	public List<FileDownloadSummary> addFilesToZip(
-			ProgressCallback<Void> progressCallback, Message message,
+			ProgressCallback progressCallback, Message message,
 			List<FileHandleAssociationAuthorizationStatus> authResults,
 			File tempResultFile, ZipOutputStream zipOut,
 			AsynchronousJobStatus status,
@@ -175,8 +174,6 @@ public class BulkFileDownloadWorker implements MessageDrivenRunner {
 		// process each request in order.
 		for (FileHandleAssociationAuthorizationStatus fhas : authResults) {
 			String fileHandleId = fhas.getAssociation().getFileHandleId();
-			// Make progress between each file
-			progressCallback.progressMade(null);
 			// update the job progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(),
 					currentProgress, totalProgress, PROCESSING_FILE_HANDLE_ID

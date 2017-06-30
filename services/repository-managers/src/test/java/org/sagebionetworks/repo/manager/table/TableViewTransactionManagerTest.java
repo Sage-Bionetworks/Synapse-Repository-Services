@@ -63,7 +63,7 @@ public class TableViewTransactionManagerTest {
 	@Mock
 	TableViewManager mockTableViewManger;
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	TableUploadManager mockTableUploadManager;
 	@Mock
@@ -209,7 +209,6 @@ public class TableViewTransactionManagerTest {
 		assertEquals(schema, schemaResponse.getSchema());
 		// user must have write on the view.
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, viewId);
-		verify(mockProgressCallback, times(1)).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

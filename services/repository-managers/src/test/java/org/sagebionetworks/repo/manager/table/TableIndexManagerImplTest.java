@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +68,7 @@ public class TableIndexManagerImplTest {
 	@Mock
 	TableManagerSupport mockManagerSupport;
 	@Mock
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	@Captor 
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	

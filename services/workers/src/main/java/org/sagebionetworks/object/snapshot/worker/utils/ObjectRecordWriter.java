@@ -15,5 +15,5 @@ public interface ObjectRecordWriter {
 	 * @param message
 	 * @throws IOException 
 	 */
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException;
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException;
 }

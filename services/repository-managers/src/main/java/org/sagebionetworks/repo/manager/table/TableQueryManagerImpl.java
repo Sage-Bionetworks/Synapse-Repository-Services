@@ -87,7 +87,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	@Override
 	public QueryResultBundle querySinglePage(
-			ProgressCallback<Void> progressCallback, UserInfo user,
+			ProgressCallback progressCallback, UserInfo user,
 			String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset,
 			Long limit, boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent)
 			throws TableUnavailableException,
@@ -145,7 +145,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException 
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStream(final ProgressCallback<Void> progressCallback,
+	QueryResultBundle queryAsStream(final ProgressCallback progressCallback,
 			final UserInfo user, final SqlQuery query, final List<FacetColumnRequest> selectedFacets,
 			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets, final boolean isConsistent)
 			throws DatastoreException, NotFoundException,
@@ -155,11 +155,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// run with the read lock
 			return tryRunWithTableReadLock(
 					progressCallback, query.getTableId(),
-					new ProgressingCallable<QueryResultBundle, Void>(){
+					new ProgressingCallable<QueryResultBundle>(){
 
 					@Override
 					public QueryResultBundle call(
-							ProgressCallback<Void> callback) throws Exception {
+							ProgressCallback callback) throws Exception {
 						// We can only run this query if the table is available.
 						final TableStatus status = validateTableIsAvailable(query.getTableId());
 						// run the query
@@ -188,8 +188,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException 
 	 */
-	<R, T> R tryRunWithTableReadLock(ProgressCallback<T> callback, String tableId,
-			ProgressingCallable<R, T> runner) throws TableUnavailableException, TableFailedException, EmptyResultException{
+	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, String tableId,
+			ProgressingCallable<R> runner) throws TableUnavailableException, TableFailedException, EmptyResultException{
 		
 		try {
 			return tableManagerSupport.tryRunWithTableNonexclusiveLock(callback, tableId, READ_LOCK_TIMEOUT_SEC, runner);
@@ -225,7 +225,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws EmptyResultException 
 	 */
-	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback<Void> progressCallback, UserInfo user, SqlQuery query, List<FacetColumnRequest> selectedFacets,
+	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback progressCallback, UserInfo user, SqlQuery query, List<FacetColumnRequest> selectedFacets,
 			RowHandler rowHandler, boolean runCount, boolean returnFacets) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
@@ -263,7 +263,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback<Void> progressCallback, SqlQuery query, List<FacetColumnRequest> queryFacetColumns,
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query, List<FacetColumnRequest> queryFacetColumns,
 			RowHandler rowHandler, boolean runCount, boolean returnFacets,TableIndexDAO indexDao)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
@@ -356,7 +356,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	@Override
-	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback,
+	public QueryResult queryNextPage(ProgressCallback progressCallback,
 			UserInfo user, QueryNextPageToken nextPageToken)
 			throws TableUnavailableException, TableFailedException,
 			LockUnavilableException {
@@ -368,7 +368,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	@Override
 	public QueryResultBundle queryBundle(
-			ProgressCallback<Void> progressCallback, UserInfo user,
+			ProgressCallback progressCallback, UserInfo user,
 			QueryBundleRequest queryBundle) throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		ValidateArgument.required(queryBundle.getQuery(), "query");
@@ -486,7 +486,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(
-			ProgressCallback<Void> progressCallback, UserInfo user, String sql,
+			ProgressCallback progressCallback, UserInfo user, String sql,
 			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets,final CSVWriterStream writer,
 			boolean includeRowIdAndVersion, final boolean writeHeader)
 			throws TableUnavailableException, NotFoundException,
@@ -532,7 +532,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param rowHandler
 	 * @return
 	 */
-	RowSet runQueryAsStream(ProgressCallback<Void> callback,
+	RowSet runQueryAsStream(ProgressCallback callback,
 			SqlQuery query, RowHandler rowHandler, TableIndexDAO indexDao) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(rowHandler, "rowHandler");

@@ -62,7 +62,7 @@ public interface TableIndexDAO {
 	 * @param query
 	 * @return
 	 */
-	public RowSet query(ProgressCallback<Void> callback, SqlQuery query);
+	public RowSet query(ProgressCallback callback, SqlQuery query);
 	
 	/**
 	 * Run a simple count query.
@@ -79,7 +79,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowHandler handler);
+	public boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.
@@ -279,14 +279,14 @@ public interface TableIndexDAO {
 	 * 
 	 * @param allIds
 	 */
-	public void deleteEntityData(ProgressCallback<Void> progressCallback, List<Long> allIds);
+	public void deleteEntityData(ProgressCallback progressCallback, List<Long> allIds);
 
 	/**
 	 * Add the given entity data to the index.
 	 * 
 	 * @param entityDTOs
 	 */
-	public void addEntityData(ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs);
+	public void addEntityData(ProgressCallback progressCallback, List<EntityDTO> entityDTOs);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.

@@ -23,9 +23,8 @@ public class ObjectSnapshotWorker implements BatchChangeMessageDrivenRunner {
 	}
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, List<ChangeMessage> changeMessages) throws IOException {
+	public void run(ProgressCallback progressCallback, List<ChangeMessage> changeMessages) throws IOException {
 		// Keep this message invisible
-		progressCallback.progressMade(null);
 		ObjectRecordWriter objectRecordWriter = writerFactory.getObjectRecordWriter(changeMessages.get(0).getObjectType());
 		objectRecordWriter.buildAndWriteRecords(progressCallback, changeMessages);
 	}

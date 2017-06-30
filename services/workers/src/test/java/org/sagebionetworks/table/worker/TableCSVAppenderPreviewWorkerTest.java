@@ -46,7 +46,7 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private AmazonS3Client mockS3Client;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	@Mock
 	private Message mockMessage;
 	@Mock

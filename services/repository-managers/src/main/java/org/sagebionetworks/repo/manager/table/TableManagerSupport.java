@@ -238,8 +238,8 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
-			String tableId, int timeoutMS, ProgressingCallable<R, Void> runner)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+			String tableId, int timeoutMS, ProgressingCallable<R> runner)
 			throws Exception;
 
 	/**
@@ -266,9 +266,9 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws Exception;
+	public <R> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback callback, String tableId, int timeoutMS,
+			ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.

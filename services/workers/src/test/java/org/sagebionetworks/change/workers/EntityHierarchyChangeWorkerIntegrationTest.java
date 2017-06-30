@@ -46,7 +46,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	
 	TableIndexDAO indexDao;
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	UserInfo adminUser;
 	Long userId;

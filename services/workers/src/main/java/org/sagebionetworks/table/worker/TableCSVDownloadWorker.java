@@ -56,7 +56,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	Clock clock;	
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message) throws Exception {
+	public void run(ProgressCallback progressCallback, Message message) throws Exception {
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		String fileName = "Job-"+status.getJobId();
 		File temp = null;

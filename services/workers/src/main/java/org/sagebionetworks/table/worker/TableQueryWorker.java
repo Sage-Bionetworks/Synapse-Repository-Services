@@ -39,7 +39,7 @@ public class TableQueryWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback, final Message message) throws JSONObjectAdapterException, RecoverableMessageException{
+	public void run(final ProgressCallback progressCallback, final Message message) throws JSONObjectAdapterException, RecoverableMessageException{
 		AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		try {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());

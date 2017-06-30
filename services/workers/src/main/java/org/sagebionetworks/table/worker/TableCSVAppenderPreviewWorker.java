@@ -55,7 +55,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		// We should only get one message
 		try{
@@ -71,7 +71,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+	public void processStatus(final ProgressCallback progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		CSVReader reader = null;
 		try{
@@ -91,12 +91,12 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
 			
 			// Listen to progress events.
-			ProgressListener<Void> listener = new ProgressListener<Void>() {
+			ProgressListener listener = new ProgressListener() {
 				 
 				AtomicLong counter = new AtomicLong();
 				
 				@Override
-				public void progressMade(Void t) {
+				public void progressMade() {
 					long count = counter.incrementAndGet();
 					// update the job progress.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(),

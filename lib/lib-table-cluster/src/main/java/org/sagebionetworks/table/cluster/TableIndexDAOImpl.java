@@ -247,7 +247,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback<Void> callback, final SqlQuery query) {
+	public RowSet query(ProgressCallback callback, final SqlQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -275,7 +275,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
+	public boolean queryAsStream(final ProgressCallback callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
@@ -283,10 +283,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				// refresh the lock.
-				if(callback != null){
-					callback.progressMade(null);
-				}
 				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
 				handler.nextRow(row);
 			}
@@ -536,7 +532,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void deleteEntityData(final ProgressCallback<Void> progressCallback, List<Long> entityIds) {
+	public void deleteEntityData(final ProgressCallback progressCallback, List<Long> entityIds) {
 		final List<Long> sorted = new ArrayList<Long>(entityIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -546,7 +542,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				progressCallback.progressMade(null);
 				ps.setLong(1, sorted.get(i));
 			}
 
@@ -558,7 +553,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addEntityData(final ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs) {
+	public void addEntityData(final ProgressCallback progressCallback, List<EntityDTO> entityDTOs) {
 		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(entityDTOs);
 		Collections.sort(sorted);
 		// batch update the entity table
@@ -567,8 +562,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				// progress for each row.
-				progressCallback.progressMade(null);
 				EntityDTO dto = sorted.get(i);
 				int parameterIndex = 1;
 				ps.setLong(parameterIndex++, dto.getId());
@@ -621,8 +614,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				// progress for each row.
-				progressCallback.progressMade(null);
 				AnnotationDTO dto = annotations.get(i);
 				int parameterIndex = 1;
 				ps.setLong(parameterIndex++, dto.getEntityId());

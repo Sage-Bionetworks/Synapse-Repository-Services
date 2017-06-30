@@ -15,9 +15,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
-import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -59,8 +56,6 @@ public class AnnotationsDAOImplTest {
 	@Autowired
 	NodeDAO nodeDAO;
 	
-	ProgressCallback<Void> mockProgressCallback;
-	
 	private String nodeId;
 	private String userId;
     private List<String> submissionIds;
@@ -91,9 +86,7 @@ public class AnnotationsDAOImplTest {
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(); 
-		
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
-				
+						
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(SUBMISSION_NAME, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
@@ -163,9 +156,7 @@ public class AnnotationsDAOImplTest {
 		stringAnnos.add(sa2);
 		stringAnnos.add(sa1);
 		annos.setStringAnnos(stringAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
-		
-		verify(mockProgressCallback).progressMade(null);;
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -184,7 +175,7 @@ public class AnnotationsDAOImplTest {
 		stringAnnos.add(sa1);
 		stringAnnos.add(sa3);
 		annos.setStringAnnos(stringAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -221,7 +212,7 @@ public class AnnotationsDAOImplTest {
 		longAnnos.add(la1);
 		longAnnos.add(la2);
 		annos.setLongAnnos(longAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -240,7 +231,7 @@ public class AnnotationsDAOImplTest {
 		longAnnos.add(la1);
 		longAnnos.add(la3);
 		annos.setLongAnnos(longAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -289,7 +280,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da3);
 		doubleAnnos.add(daNULL);
 		annos.setDoubleAnnos(doubleAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
         Annotations finiteAnnos = createAnnotations(evalId, submissionId);
 		List<DoubleAnnotation> finiteDoubleAnnos = new ArrayList<DoubleAnnotation>();
@@ -314,7 +305,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da4);
 		annos.setDoubleAnnos(doubleAnnos);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -410,7 +401,7 @@ public class AnnotationsDAOImplTest {
 		}
 		
 		
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, annotationsList);
+		subStatusAnnoDAO.replaceAnnotations(annotationsList);
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -469,7 +460,7 @@ public class AnnotationsDAOImplTest {
 			annos.setDoubleAnnos(doubleAnnos);
 		}
 		
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone3 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -533,7 +524,7 @@ public class AnnotationsDAOImplTest {
 		annos = status.getAnnotations();
 		// we're on the initial version of the annotations
 		assertEquals(new Long(0L), annos.getVersion());
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// now the queryable annotations match the 'truth'
 		changed = subStatusAnnoDAO.getChangedSubmissions(Long.parseLong(evalId));
@@ -559,7 +550,7 @@ public class AnnotationsDAOImplTest {
         
         // create annotations table entry
         Annotations annos = createAnnotations(evalId, submissionId);
-		subStatusAnnoDAO.replaceAnnotations(mockProgressCallback, Collections.singletonList(annos));
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		

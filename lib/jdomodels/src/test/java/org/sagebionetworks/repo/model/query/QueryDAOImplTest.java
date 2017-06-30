@@ -59,8 +59,6 @@ public class QueryDAOImplTest {
 
 	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
-	ProgressCallback<Void> mockProgressCallback;
-	
 	private static final String EVAL_ID1 = "42";
 	private static final String EVAL_ID2 = "99";
     private Set<String> submissionIds;
@@ -76,8 +74,6 @@ public class QueryDAOImplTest {
 		Annotations annos;
 		submissionIds = new HashSet<String>();
 		annoMap = new HashMap<String, Object>();
-		
-		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		
 		List<Annotations> eval1List = new ArrayList<Annotations>();
 		List<Annotations> eval2List = new ArrayList<Annotations>();
@@ -98,8 +94,8 @@ public class QueryDAOImplTest {
 	    	dumpAnnosToMap(annoMap, annos);
 	    	eval2List.add(annos);
 		}
-    	annotationsDAO.replaceAnnotations(mockProgressCallback, eval1List);
-    	annotationsDAO.replaceAnnotations(mockProgressCallback, eval2List);
+    	annotationsDAO.replaceAnnotations(eval1List);
+    	annotationsDAO.replaceAnnotations(eval2List);
 		
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);

@@ -26,16 +26,6 @@ public class DefaultClock implements Clock {
 	}
 
 	@Override
-	public void sleepWithFrequentCallback(long millis, long frequencyInMillis, ProgressCallback<Long> progressCallback) {
-		for (long i = millis; i > 0; i -= frequencyInMillis) {
-			sleepNoInterrupt(Math.min(frequencyInMillis, i));
-			if (progressCallback != null) {
-				progressCallback.progressMade(i);
-			}
-		}
-	}
-
-	@Override
 	public Date now() {
 		return new Date();
 	}

@@ -19,6 +19,6 @@ public interface TableUploadManager {
 	 * @return
 	 * @throws IOException
 	 */
-	public TableUpdateResponse uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor);
+	public TableUpdateResponse uploadCSV(ProgressCallback progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor);
 
 }

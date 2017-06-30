@@ -13,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.common.util.progress.SimpleProgressCallback;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -41,7 +42,7 @@ public class TableTransactionWorkerTest {
 	@Mock
 	UserManager mockUserManager;
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	Message mockMessage;
 	@Mock
@@ -101,22 +102,27 @@ public class TableTransactionWorkerTest {
 			@Override
 			public TableUpdateTransactionResponse answer(
 					InvocationOnMock invocation) throws Throwable {
-				// the first argument is the progress callback
-				ProgressCallback<Void> statusCallback = (ProgressCallback<Void>) invocation.getArguments()[0];
-				// make some progress
-				statusCallback.progressMade(null);
-				statusCallback.progressMade(null);
-				statusCallback.progressMade(null);
 				return responseBody;
 			}}).when(mockTableTransactionManager).updateTableWithTransaction(any(ProgressCallback.class), any(UserInfo.class), any(TableUpdateTransactionRequest.class));
+		
+		doAnswer(new Answer<Void>() {
+
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				ProgressListener listener = (ProgressListener) invocation.getArguments()[0];
+				listener.progressMade();
+				listener.progressMade();
+				listener.progressMade();
+				return null;
+			}
+		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
 
 	}
 	
 	@Test
 	public void testBasicRun() throws Exception{
-		ProgressCallback<Void> callback = new SimpleProgressCallback<>();
 		// call under test
-		worker.run(callback, mockMessage);
+		worker.run(mockProgressCallback, mockMessage);
 		// progress should be made three times
 		// status should be made three times
 		verify(mockAsynchJobStatusManager, times(3)).updateJobProgress(eq(jobId), anyLong(), anyLong(), anyString());
@@ -137,8 +143,8 @@ public class TableTransactionWorkerTest {
 		doThrow(error).when(mockAsynchJobStatusManager).setComplete(anyString(), any(AsynchronousResponseBody.class));
 		// call under test
 		worker.run(mockProgressCallback, mockMessage);
-		verify(mockProgressCallback).addProgressListener(any(ProgressCallback.class));
-		verify(mockProgressCallback).removeProgressListener(any(ProgressCallback.class));
+		verify(mockProgressCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockProgressCallback).removeProgressListener(any(ProgressListener.class));
 		verify(mockAsynchJobStatusManager).setJobFailed(jobId, error);
 	}
 	

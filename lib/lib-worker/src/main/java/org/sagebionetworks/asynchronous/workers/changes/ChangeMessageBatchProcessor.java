@@ -42,7 +42,7 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	}
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback,
+	public void run(final ProgressCallback progressCallback,
 			final Message message) throws RecoverableMessageException,
 			Exception {
 		// read the batch.
@@ -59,12 +59,11 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 		}
 	}
 
-	private void runAsBatch(final ProgressCallback<Void> progressCallback,
+	private void runAsBatch(final ProgressCallback progressCallback,
 			List<ChangeMessage> batch,
 			BatchChangeMessageDrivenRunner batchRunner)
 			throws RecoverableMessageException, Exception {
 		try{
-			progressCallback.progressMade(null);
 			batchRunner.run(progressCallback, batch);
 		} catch (RecoverableMessageException e) {
 			if (batch.size() == 1) {
@@ -73,7 +72,6 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 			} else {
 				// Push each single message back onto the queue
 				for(ChangeMessage message: batch){
-					progressCallback.progressMade(null);
 					// Add the message back to the queue as a single message
 					awsSQSClient.sendMessage(queueUrl,
 							EntityFactory.createJSONStringForEntity(message));
@@ -93,14 +91,13 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	 * @throws RecoverableMessageException
 	 */
 	void runAsSingleChangeMessages(
-			final ProgressCallback<Void> progressCallback,
+			final ProgressCallback progressCallback,
 			List<ChangeMessage> batch, ChangeMessageDrivenRunner runner)
 			throws JSONObjectAdapterException, RecoverableMessageException {
 		// Run each batch
 		for (ChangeMessage change : batch) {
 			try {
 				// Make progress before each message
-				progressCallback.progressMade(null);
 				runner.run(progressCallback, change);
 			} catch (RecoverableMessageException e) {
 				if (batch.size() == 1) {

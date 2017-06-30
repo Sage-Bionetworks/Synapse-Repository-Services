@@ -39,7 +39,7 @@ public interface AnnotationsDAO {
 	 * @throws DatastoreException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void replaceAnnotations(ProgressCallback<Void> progressCallback, List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
+	public void replaceAnnotations(List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
 	
 	/**
 	 * Deletes all annotations associated with the given scope

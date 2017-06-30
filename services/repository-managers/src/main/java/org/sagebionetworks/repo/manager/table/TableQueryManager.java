@@ -43,7 +43,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle querySinglePage(ProgressCallback<Void> progressCallback, UserInfo user, String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset, Long limit,
+	public QueryResultBundle querySinglePage(ProgressCallback progressCallback, UserInfo user, String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset, Long limit,
 			boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavailableException,
 			TableFailedException, ParseException, LockUnavilableException;
 
@@ -60,7 +60,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResult queryNextPage(ProgressCallback<Void> progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+	public QueryResult queryNextPage(ProgressCallback progressCallback, UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, ParseException, LockUnavilableException;
 
 	/**
@@ -76,7 +76,7 @@ public interface TableQueryManager {
 	 * @throws ParseException 
 	 * @throws TableLockUnavailableException 
 	 */
-	public QueryResultBundle queryBundle(ProgressCallback<Void> progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
+	public QueryResultBundle queryBundle(ProgressCallback progressCallback, UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, ParseException, LockUnavilableException;
 
 	/**
@@ -96,7 +96,7 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback<Void> progressCallback, UserInfo user, String sql, List<SortItem> list, List<FacetColumnRequest> selectedFacets
+	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback progressCallback, UserInfo user, String sql, List<SortItem> list, List<FacetColumnRequest> selectedFacets
 			,CSVWriterStream writer, boolean includeRowIdAndVersion, boolean writeHeader) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
 
 

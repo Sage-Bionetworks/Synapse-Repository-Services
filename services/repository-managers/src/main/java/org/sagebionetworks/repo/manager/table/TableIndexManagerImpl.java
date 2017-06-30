@@ -118,7 +118,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final String tableId, ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final String tableId, ProgressCallback progressCallback, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
@@ -151,7 +151,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	
 	@Override
-	public boolean updateTableSchema(final String tableId, ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
@@ -176,7 +176,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
 		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 	}
@@ -189,7 +189,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+	private boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
@@ -232,7 +232,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void createTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
+	public void createTemporaryTableCopy(final String tableId, ProgressCallback callback) {
 		// creating a temp table can take a long time so auto-progress is used.
 		try {
 			// create the table.
@@ -245,12 +245,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
+	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback callback) {
 		// delete
 		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback<Void> callback, final ViewType viewType,
+	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final ViewType viewType,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
 		try {

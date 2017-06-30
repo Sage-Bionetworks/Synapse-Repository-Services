@@ -24,7 +24,7 @@ public interface TableTransactionManager {
 	 * should be re-tried in the future.
 	 */
 	TableUpdateTransactionResponse updateTableWithTransaction(
-			ProgressCallback<Void> progressCallback,
+			ProgressCallback progressCallback,
 			UserInfo userInfo,
 			TableUpdateTransactionRequest request) throws RecoverableMessageException, TableUnavailableException;
 

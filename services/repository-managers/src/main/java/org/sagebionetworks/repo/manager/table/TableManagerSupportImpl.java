@@ -5,16 +5,12 @@ import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -428,8 +424,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 	
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
-			String tableId, int timeoutSec, ProgressingCallable<R, Void> callable)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+			String tableId, int timeoutSec, ProgressingCallable<R> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
@@ -437,9 +433,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public <R, T> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback<T> callback, String tableId, int lockTimeoutSec,
-			ProgressingCallable<R, T> callable) throws Exception
+	public <R> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback callback, String tableId, int lockTimeoutSec,
+			ProgressingCallable<R> callable) throws Exception
 			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.

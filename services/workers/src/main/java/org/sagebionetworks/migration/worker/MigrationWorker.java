@@ -43,7 +43,7 @@ public class MigrationWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		
 		try {
@@ -57,7 +57,7 @@ public class MigrationWorker implements MessageDrivenRunner {
 	}
 	
 	public void processAsyncMigrationRequest(
-			final ProgressCallback<Void> progressCallback, final UserInfo user,
+			final ProgressCallback progressCallback, final UserInfo user,
 			final AsyncMigrationRequest mReq, final String jobId) throws Throwable {
 
 		try {
