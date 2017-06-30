@@ -10,13 +10,13 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.message.dataaccess.HasAccessorRequirementUtil;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -157,16 +157,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 
-		if (actAR.getIsCertifiedUserRequired()) {
-			ValidateArgument.requirement(groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessorsWillHaveAccess),
-					"Accessors must be Synapse Certified Users.");
-		}
-		if (actAR.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessorsWillHaveAccess),
-					"Accessors must have validated profiles.");
-		}
+		HasAccessorRequirementUtil.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess, groupMembersDao, verificationDao);
 
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(

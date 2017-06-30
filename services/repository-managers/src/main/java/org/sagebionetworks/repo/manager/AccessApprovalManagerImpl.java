@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.message.dataaccess.HasAccessorRequirementUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -12,6 +13,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -23,6 +26,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -31,6 +35,8 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Sets;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long DEFAULT_LIMIT = 50L;
@@ -45,6 +51,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private NodeDAO nodeDao;
+	@Autowired
+	private GroupMembersDAO groupMembersDao;
+	@Autowired
+	private VerificationDAO verificationDao;
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
@@ -80,6 +90,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
 				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		if (ar instanceof HasAccessorRequirement) {
+			HasAccessorRequirementUtil.validateHasAccessorRequirement((HasAccessorRequirement) ar,
+					Sets.newHashSet(accessApproval.getAccessorId()), groupMembersDao, verificationDao);
+		}
 		if (accessApproval.getRequirementVersion() == null) {
 			accessApproval.setRequirementVersion(ar.getVersionNumber());
 		}

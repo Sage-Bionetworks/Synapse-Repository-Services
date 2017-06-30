@@ -3,7 +3,7 @@
 	"description": "JSON schema for Terms of Use Access Requirement, used for a 'tier 2' Access Requirement",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface"
 		}
 	],
 	"properties": {

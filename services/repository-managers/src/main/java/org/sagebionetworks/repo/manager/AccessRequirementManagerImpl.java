@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -263,32 +264,41 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {
-		if (!(ar instanceof ManagedACTAccessRequirement)) {
-			return ar;
+		if (ar instanceof ManagedACTAccessRequirement) {
+			ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
+			if (actAR.getIsCertifiedUserRequired() == null) {
+				actAR.setIsCertifiedUserRequired(false);
+			}
+			if (actAR.getIsValidatedProfileRequired() == null) {
+				actAR.setIsValidatedProfileRequired(false);
+			}
+			if (actAR.getIsDUCRequired() == null) {
+				actAR.setIsDUCRequired(false);
+			}
+			if (actAR.getIsIRBApprovalRequired() == null) {
+				actAR.setIsIRBApprovalRequired(false);
+			}
+			if (actAR.getAreOtherAttachmentsRequired() == null) {
+				actAR.setAreOtherAttachmentsRequired(false);
+			}
+			if (actAR.getIsIDUPublic() == null) {
+				actAR.setIsIDUPublic(false);
+			}
+			if (actAR.getExpirationPeriod() == null) {
+				actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
+			}
+			return actAR;
+		} else if (ar instanceof SelfSignAccessRequirement) {
+			SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
+			if (req.getIsCertifiedUserRequired() == null) {
+				req.setIsCertifiedUserRequired(false);
+			}
+			if (req.getIsValidatedProfileRequired() == null) {
+				req.setIsValidatedProfileRequired(false);
+			}
+			return req;
 		}
-		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
-		if (actAR.getIsCertifiedUserRequired() == null) {
-			actAR.setIsCertifiedUserRequired(false);
-		}
-		if (actAR.getIsValidatedProfileRequired() == null) {
-			actAR.setIsValidatedProfileRequired(false);
-		}
-		if (actAR.getIsDUCRequired() == null) {
-			actAR.setIsDUCRequired(false);
-		}
-		if (actAR.getIsIRBApprovalRequired() == null) {
-			actAR.setIsIRBApprovalRequired(false);
-		}
-		if (actAR.getAreOtherAttachmentsRequired() == null) {
-			actAR.setAreOtherAttachmentsRequired(false);
-		}
-		if (actAR.getIsIDUPublic() == null) {
-			actAR.setIsIDUPublic(false);
-		}
-		if (actAR.getExpirationPeriod() == null) {
-			actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
-		}
-		return actAR;
+		return ar;
 	}
 
 	@Override
