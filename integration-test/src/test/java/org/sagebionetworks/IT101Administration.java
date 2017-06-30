@@ -142,16 +142,6 @@ public class IT101Administration {
 	}
 	
 	@Test
-	public void testPublishMessages() throws SynapseException, JSONObjectAdapterException{
-		StackConfiguration config = new StackConfiguration();
-		PublishResults results = adminSynapse.publishChangeMessages(config.getEntityAnnotationsUpdateQueueName(), 0L,  ObjectType.ENTITY, 1l);
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		System.out.println(results);
-	}
-	
-	@Test
 	public void testClearAllLocks() throws SynapseException{
 		adminSynapse.clearAllLocks();
 	}

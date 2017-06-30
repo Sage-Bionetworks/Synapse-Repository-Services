@@ -286,17 +286,29 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public long getS3objectReferenceCount(String bucketName, String key) {
-		return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+		try {
+			return jdbcTemplate.queryForObject(SQL_COUNT_REFERENCES, Long.class, bucketName, key);
+		} catch (NullPointerException e) {
+			return 0L;
+		}
 	}
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
+		try {
+			return jdbcTemplate.queryForObject(SQL_COUNT_ALL_FILES, Long.class);
+		} catch (NullPointerException e) {
+			return 0L;
+		}
 	}
 	
 	@Override
 	public long getMaxId() throws DatastoreException {
-		return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
+		try {
+			return jdbcTemplate.queryForObject(SQL_MAX_FILE_ID, Long.class);
+		} catch (NullPointerException e) {
+			return 0L;
+		}
 	}
 
 	@WriteTransactionReadCommitted
