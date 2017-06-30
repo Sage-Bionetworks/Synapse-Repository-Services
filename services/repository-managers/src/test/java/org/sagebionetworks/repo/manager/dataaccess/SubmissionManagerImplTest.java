@@ -9,8 +9,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -29,15 +31,12 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -76,10 +75,6 @@ public class SubmissionManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
 	private SubmissionDAO mockSubmissionDao;
-	@Mock
-	private GroupMembersDAO mockGroupMembersDao;
-	@Mock
-	private VerificationDAO mockVerificationDao;
 	@Mock
 	private AccessApprovalDAO mockAccessApprovalDao;
 	@Mock
@@ -124,8 +119,6 @@ public class SubmissionManagerImplTest {
 		ReflectionTestUtils.setField(manager, "researchProjectDao", mockResearchProjectDao);
 		ReflectionTestUtils.setField(manager, "accessRequirementDao", mockAccessRequirementDao);
 		ReflectionTestUtils.setField(manager, "submissionDao", mockSubmissionDao);
-		ReflectionTestUtils.setField(manager, "groupMembersDao", mockGroupMembersDao);
-		ReflectionTestUtils.setField(manager, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(manager, "accessApprovalDao", mockAccessApprovalDao);
 		ReflectionTestUtils.setField(manager, "subscriptionDao", mockSubscriptionDao);
 		ReflectionTestUtils.setField(manager, "transactionalMessenger", mockTransactionalMessenger);
@@ -177,12 +170,6 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirement.getIsCertifiedUserRequired()).thenReturn(true);
 		when(mockAccessRequirement.getIsValidatedProfileRequired()).thenReturn(true);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(accessRequirementVersion);
-		when(mockGroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				new HashSet<String>(accessorIds)))
-				.thenReturn(true);
-		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessorIds)))
-				.thenReturn(true);
 
 		when(mockSubmissionDao.createSubmission(any(Submission.class)))
 				.thenReturn(mockSubmissionStatus);
@@ -298,18 +285,8 @@ public class SubmissionManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNonCertifiedUser() {
-		when(mockGroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				new HashSet<String>(accessorIds)))
-				.thenReturn(false);
-		manager.create(mockUser, requestId, etag);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithNonValidatedProfile() {
-		when(mockVerificationDao.haveValidatedProfiles(new HashSet<String>(accessorIds)))
-				.thenReturn(false);
+	public void testCreateWithAccessorRequirementNotSatisfied() {
+		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
 		manager.create(mockUser, requestId, etag);
 	}
 
@@ -363,6 +340,7 @@ public class SubmissionManagerImplTest {
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(eq(submissionId),
 				eq(ObjectType.DATA_ACCESS_SUBMISSION), anyString(), eq(ChangeType.CREATE), eq(userIdLong));
+		verify(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
 	}
 
 	@Test

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.message.dataaccess.HasAccessorRequirementUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -13,7 +12,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -23,10 +21,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -51,10 +49,6 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired
 	private NodeDAO nodeDao;
-	@Autowired
-	private GroupMembersDAO groupMembersDao;
-	@Autowired
-	private VerificationDAO verificationDao;
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
@@ -79,20 +73,24 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException {
+			UnauthorizedException, NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessApproval, "accessApproval");
 		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
-		if (ar instanceof TermsOfUseAccessRequirement) {
+
+		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
+				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+		if (ar instanceof SelfSignAccessRequirementInterface) {
 			accessApproval.setAccessorId(userInfo.getId().toString());
 		} else if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("User is not an ACT Member.");
 		}
-		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
-				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
 		if (ar instanceof HasAccessorRequirement) {
-			HasAccessorRequirementUtil.validateHasAccessorRequirement((HasAccessorRequirement) ar,
-					Sets.newHashSet(accessApproval.getAccessorId()), groupMembersDao, verificationDao);
+			authorizationManager.validateHasAccessorRequirement((HasAccessorRequirement) ar,
+					Sets.newHashSet(accessApproval.getAccessorId()));
 		}
 		if (accessApproval.getRequirementVersion() == null) {
 			accessApproval.setRequirementVersion(ar.getVersionNumber());

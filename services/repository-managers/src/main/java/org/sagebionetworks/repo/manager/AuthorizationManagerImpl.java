@@ -19,11 +19,14 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -93,6 +96,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO dataAccessSubmissionDao;
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
+	@Autowired
+	private GroupMembersDAO groupMembersDao;
 
 	
 	@Override
@@ -586,7 +591,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return permittedActions;
 	}
 
-
-
-
+	@Override
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
+		if (req.getIsCertifiedUserRequired()) {
+			ValidateArgument.requirement(groupMembersDao.areMemberOf(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+					accessors),
+					"Accessors must be Synapse Certified Users.");
+		}
+		if (req.getIsValidatedProfileRequired()) {
+			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
+					"Accessors must have validated profiles.");
+		}
+	}
 }

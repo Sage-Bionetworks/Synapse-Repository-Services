@@ -41,16 +41,20 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -115,6 +119,10 @@ public class AuthorizationManagerImplUnitTest {
 	private org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO mockDataAccessSubmissionDao;
 	@Mock
 	private UserInfo mockACTUser;
+	@Mock
+	private GroupMembersDAO mockGroupMembersDao;
+	@Mock
+	private Set<String> accessors;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -147,6 +155,8 @@ public class AuthorizationManagerImplUnitTest {
 	private Forum forum;
 	private String submissionId;
 
+	HasAccessorRequirement req;
+
 
 	@Before
 	public void setUp() throws Exception {
@@ -170,6 +180,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "evaluationPermissionsManager", mockEvaluationPermissionsManager);
 		ReflectionTestUtils.setField(authorizationManager, "messageManager", mockMessageManager);
 		ReflectionTestUtils.setField(authorizationManager, "dataAccessSubmissionDao", mockDataAccessSubmissionDao);
+		ReflectionTestUtils.setField(authorizationManager, "groupMembersDao", mockGroupMembersDao);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
@@ -225,7 +236,8 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockEvaluationPermissionsManager.
 				isDockerRepoNameInEvaluationWithAccess(anyString(), (Set<Long>)any(), (ACCESS_TYPE)any())).
 				thenReturn(false);
-		
+
+		req = new SelfSignAccessRequirement();
 	}
 
 	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
@@ -1108,5 +1120,45 @@ public class AuthorizationManagerImplUnitTest {
 		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
 	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateWithCertifiedUserRequiredNotSatisfied() {
+		req.setIsCertifiedUserRequired(true);
+		req.setIsValidatedProfileRequired(false);
+		when(mockGroupMembersDao.areMemberOf(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+				accessors))
+				.thenReturn(false);
+		authorizationManager.validateHasAccessorRequirement(req, accessors);
+		verifyZeroInteractions(mockVerificationDao);
+	}
 
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateWithValidatedProfileRequiredNotSatisfied() {
+		req.setIsCertifiedUserRequired(false);
+		req.setIsValidatedProfileRequired(true);
+		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(false);
+		authorizationManager.validateHasAccessorRequirement(req, accessors);
+		verifyZeroInteractions(mockGroupMembersDao);
+	}
+
+	@Test
+	public void testValidateWithCertifiedUserRequiredAndValidatedProfileSatisfied() {
+		req.setIsCertifiedUserRequired(true);
+		req.setIsValidatedProfileRequired(true);
+		when(mockGroupMembersDao.areMemberOf(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+				accessors))
+				.thenReturn(true);
+		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(true);
+		authorizationManager.validateHasAccessorRequirement(req, accessors);
+	}
+
+	@Test
+	public void testValidateWithoutRequirements() {
+		req.setIsCertifiedUserRequired(false);
+		req.setIsValidatedProfileRequired(false);
+		authorizationManager.validateHasAccessorRequirement(req, accessors);
+		verifyZeroInteractions(mockGroupMembersDao);
+		verifyZeroInteractions(mockVerificationDao);
+	}
 }
