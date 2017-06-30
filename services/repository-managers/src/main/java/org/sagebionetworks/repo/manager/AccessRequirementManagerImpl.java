@@ -265,40 +265,56 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {
 		if (ar instanceof ManagedACTAccessRequirement) {
-			ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
-			if (actAR.getIsCertifiedUserRequired() == null) {
-				actAR.setIsCertifiedUserRequired(false);
-			}
-			if (actAR.getIsValidatedProfileRequired() == null) {
-				actAR.setIsValidatedProfileRequired(false);
-			}
-			if (actAR.getIsDUCRequired() == null) {
-				actAR.setIsDUCRequired(false);
-			}
-			if (actAR.getIsIRBApprovalRequired() == null) {
-				actAR.setIsIRBApprovalRequired(false);
-			}
-			if (actAR.getAreOtherAttachmentsRequired() == null) {
-				actAR.setAreOtherAttachmentsRequired(false);
-			}
-			if (actAR.getIsIDUPublic() == null) {
-				actAR.setIsIDUPublic(false);
-			}
-			if (actAR.getExpirationPeriod() == null) {
-				actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
-			}
-			return actAR;
+			return setDefaultValuesForManagedACTAccessRequirement(ar);
 		} else if (ar instanceof SelfSignAccessRequirement) {
-			SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
-			if (req.getIsCertifiedUserRequired() == null) {
-				req.setIsCertifiedUserRequired(false);
-			}
-			if (req.getIsValidatedProfileRequired() == null) {
-				req.setIsValidatedProfileRequired(false);
-			}
-			return req;
+			return setDefaultValuesForSelfSignAccessRequirement(ar);
 		}
 		return ar;
+	}
+
+	/**
+	 * @param ar
+	 * @return
+	 */
+	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(AccessRequirement ar) {
+		SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
+		if (req.getIsCertifiedUserRequired() == null) {
+			req.setIsCertifiedUserRequired(false);
+		}
+		if (req.getIsValidatedProfileRequired() == null) {
+			req.setIsValidatedProfileRequired(false);
+		}
+		return req;
+	}
+
+	/**
+	 * @param ar
+	 * @return
+	 */
+	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(AccessRequirement ar) {
+		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
+		if (actAR.getIsCertifiedUserRequired() == null) {
+			actAR.setIsCertifiedUserRequired(false);
+		}
+		if (actAR.getIsValidatedProfileRequired() == null) {
+			actAR.setIsValidatedProfileRequired(false);
+		}
+		if (actAR.getIsDUCRequired() == null) {
+			actAR.setIsDUCRequired(false);
+		}
+		if (actAR.getIsIRBApprovalRequired() == null) {
+			actAR.setIsIRBApprovalRequired(false);
+		}
+		if (actAR.getAreOtherAttachmentsRequired() == null) {
+			actAR.setAreOtherAttachmentsRequired(false);
+		}
+		if (actAR.getIsIDUPublic() == null) {
+			actAR.setIsIDUPublic(false);
+		}
+		if (actAR.getExpirationPeriod() == null) {
+			actAR.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
+		}
+		return actAR;
 	}
 
 	@Override
