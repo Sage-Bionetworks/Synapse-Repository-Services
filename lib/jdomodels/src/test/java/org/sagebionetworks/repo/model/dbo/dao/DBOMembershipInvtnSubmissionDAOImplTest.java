@@ -250,4 +250,23 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
 	}
 	
+	/*
+	 * PLFM-4479
+	 */
+	@Test
+	public void testCreatedOn() throws Exception {
+		Long teamId = Long.parseLong(team.getId());
+		Long pgLong = Long.parseLong(individUser.getId());
+
+		Date createdOn = new Date();
+		mis.setCreatedOn(createdOn);
+
+		mis = membershipInvtnSubmissionDAO.create(mis);
+
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(pgLong, (new Date()).getTime(), 1, 0);
+		assertEquals(createdOn, miList.get(0).getCreatedOn());
+		
+		miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
+		assertEquals(createdOn, miList.get(0).getCreatedOn());
+	}
 }
