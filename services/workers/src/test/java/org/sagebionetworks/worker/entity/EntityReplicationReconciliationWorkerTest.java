@@ -66,7 +66,7 @@ public class EntityReplicationReconciliationWorkerTest {
 	WorkerLogger mockWorkerLog;
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Mock
 	Clock mockClock;
@@ -177,7 +177,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		verify(mockNodeDao).getSumOfChildCRCsForEachParent(parentIds);
 		verify(mockIndexDao).getSumOfChildCRCsForEachParent(parentIds);
-		verify(mockProgressCallback, times(parentIds.size())).progressMade(null);
 	}
 	
 	@Test
@@ -216,7 +215,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		verify(mockIndexDao).getEntityChildren(firstParentId);
 		verify(mockNodeDao).getChildren(firstParentId);
-		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 	
 	@Test
@@ -246,7 +244,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		verify(mockIndexDao).getEntityChildren(parentId);
 		// since the parent is in the trash this call should not be made
 		verify(mockNodeDao, never()).getChildren(parentId);
-		verify(mockProgressCallback, times(1)).progressMade(null);
 	}
 	
 	@Test
@@ -264,7 +261,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		verify(mockNodeDao, times(3)).getChildren(anyLong());
 		// four batches should be set.
 		verify(mockReplicationMessageManager, times(4)).pushChangeMessagesToReplicationQueue(anyListOf(ChangeMessage.class));
-		verify(mockProgressCallback, times(13)).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -317,7 +313,6 @@ public class EntityReplicationReconciliationWorkerTest {
 		
 		// no exceptions should occur.
 		verifyZeroInteractions(mockWorkerLog);
-		verify(mockProgressCallback, atLeast(1)).progressMade(null);
 	}
 	
 	@Test

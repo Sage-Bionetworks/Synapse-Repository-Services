@@ -52,9 +52,9 @@ public class TableViewWorkerTest {
 	@Mock
 	TableIndexManager indexManager;
 	@Mock
-	ProgressCallback<Void> outerCallback;
+	ProgressCallback outerCallback;
 	@Mock
-	ProgressCallback<Void> innerCallback;
+	ProgressCallback innerCallback;
 
 	TableViewWorker worker;
 
@@ -107,7 +107,7 @@ public class TableViewWorkerTest {
 		doAnswer(new Answer<Void>() {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
-				ProgressingCallable<Void, Void> callable = (ProgressingCallable<Void, Void>) invocation
+				ProgressingCallable<Void> callable = (ProgressingCallable<Void>) invocation
 						.getArguments()[3];
 				// pass it along
 				if(callable != null){
@@ -234,7 +234,6 @@ public class TableViewWorkerTest {
 		verify(indexManager).deleteTableIndex(tableId);
 		verify(indexManager).setIndexSchema(tableId, innerCallback,expandedSchema);
 		verify(tableViewManager).getViewSchemaWithRequiredColumns(tableId);
-		verify(innerCallback, times(4)).progressMade(null);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		verify(indexManager, times(1)).populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema);
 		verify(indexManager).setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);

@@ -14,7 +14,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.manager.util.CollectionUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -524,7 +524,7 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	public void setTableSchema(final UserInfo userInfo, final List<String> columnIds,
 			final String id) {
 		try {
-			ThrottlingProgressCallback callback = new ThrottlingProgressCallback(EXCLUSIVE_LOCK_TIMEOUT_MS);
+			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
 			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<Void>() {
 
 				@Override
