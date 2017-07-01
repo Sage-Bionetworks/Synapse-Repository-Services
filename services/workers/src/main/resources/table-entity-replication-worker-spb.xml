@@ -44,6 +44,7 @@
 								<property name="deadLetterQueueName"
 									ref="stackConfiguration.workerQueueName[TableEntityReplicationWorkerDeadLetter]" />
 								<property name="deadLetterMaxFailureCount" value="100" />
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

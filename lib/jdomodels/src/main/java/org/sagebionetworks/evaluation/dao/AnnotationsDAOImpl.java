@@ -207,9 +207,8 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	}
 
 	@Override
-	public void replaceAnnotations(ProgressCallback<Void> progressCallback, List<Annotations> annotationsList)
+	public void replaceAnnotations(List<Annotations> annotationsList)
 			throws DatastoreException, JSONObjectAdapterException {
-		ValidateArgument.required(progressCallback, "progressCallback");
 		// Create DBOs
 		// Note that a copy of every Annotation is stored on the String table, regardless of type.
 		// This is necessary to support queries on Annotations of unknown type.
@@ -223,7 +222,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		for (Annotations annotations : annotationsList) {
 			if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
 			if(annotations.getObjectId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
-			progressCallback.progressMade(null);
 			Long ownerId = KeyFactory.stringToKey(annotations.getObjectId());
 			ownerIds.add(ownerId);
 			if (annotations.getScopeId() != null) {

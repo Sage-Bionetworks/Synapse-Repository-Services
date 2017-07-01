@@ -111,7 +111,7 @@ public class TableViewIntegrationTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	ProgressCallback<Void> mockProgressCallbackVoid;
+	ProgressCallback mockProgressCallbackVoid;
 	
 	List<String> entitiesToDelete;
 	UserInfo adminUserInfo;

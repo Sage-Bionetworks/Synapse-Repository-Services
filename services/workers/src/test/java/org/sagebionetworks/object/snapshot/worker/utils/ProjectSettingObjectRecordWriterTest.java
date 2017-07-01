@@ -34,7 +34,7 @@ public class ProjectSettingObjectRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private ProjectSettingObjectRecordWriter writer;
 	private ProjectSetting projectSetting;
 	private final Long projectSettingId = 123L;
@@ -62,7 +62,6 @@ public class ProjectSettingObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -81,6 +80,5 @@ public class ProjectSettingObjectRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage, changeMessage));
 		verify(mockProjectSettingsDao, times(2)).get(eq(projectSettingId.toString()));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected, expected)), eq(expected.getJsonClassName()));
-		verify(mockCallback, times(3)).progressMade(null);
 	}
 }

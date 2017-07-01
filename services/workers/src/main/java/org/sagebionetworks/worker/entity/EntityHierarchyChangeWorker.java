@@ -48,7 +48,7 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 	Clock clock;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback,
+	public void run(ProgressCallback progressCallback,
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		// how old is this message?
@@ -70,7 +70,7 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 	 * @throws InterruptedException 
 	 * 
 	 */
-	public void recursiveBroadcastMessages(ProgressCallback<Void> progressCallback, String parentId, ChangeType changeType) throws InterruptedException{
+	public void recursiveBroadcastMessages(ProgressCallback progressCallback, String parentId, ChangeType changeType) throws InterruptedException{
 		long limit = ChangeMessageUtils.MAX_NUMBER_OF_CHANGE_MESSAGES_PER_SQS_MESSAGE;
 		long offset = 0;
 		List<NodeIdAndType> children = null;
@@ -78,7 +78,6 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 		do{
 			// Get one page of children for this parentId
 			children = nodeDao.getChildren(parentId, limit, offset);
-			progressCallback.progressMade(null);
 			if(!children.isEmpty()){
 				Set<Long> childrenIds = new HashSet<Long>(children.size());
 				for(NodeIdAndType idAndType: children){
@@ -96,7 +95,6 @@ public class EntityHierarchyChangeWorker implements ChangeMessageDrivenRunner {
 				}
 				// Send this batch of messages
 				messagePublisher.publishBatchToTopic(ObjectType.ENTITY, changeMessages);
-				progressCallback.progressMade(null);
 				// Get the next page
 				offset += limit;
 				// sleep between pages to reduce the load.

@@ -48,7 +48,7 @@ public class TableEntityTransactionManagerTest {
 	@Mock
 	TableEntityManager tableEntityManager;
 	@Mock
-	ProgressCallback<Void> progressCallback;
+	ProgressCallback progressCallback;
 	@Mock
 	TableIndexConnectionFactory tableIndexConnectionFactory;
 	@Mock
@@ -186,8 +186,6 @@ public class TableEntityTransactionManagerTest {
 		//call under test
 		boolean needed = manager.isTemporaryTableNeeded(progressCallback, request);
 		assertTrue(needed);
-		// progress should be made
-		verify(progressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -196,8 +194,6 @@ public class TableEntityTransactionManagerTest {
 		//call under test
 		boolean needed = manager.isTemporaryTableNeeded(progressCallback, request);
 		assertFalse(needed);
-		// progress should be made
-		verify(progressCallback).progressMade(null);
 	}
 
 	@Test
@@ -210,7 +206,6 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
 		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
-		verify(progressCallback, times(2)).progressMade(null);
 	}
 	
 	@Test
@@ -230,7 +225,6 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexManager).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, tableIndexManager);
 		verify(tableIndexManager).deleteTemporaryTableCopy(tableId, progressCallback);
-		verify(progressCallback, times(2)).progressMade(null);
 	}
 	
 	@Test
@@ -243,14 +237,12 @@ public class TableEntityTransactionManagerTest {
 		verify(tableIndexManager, never()).createTemporaryTableCopy(tableId, progressCallback);
 		verify(tableEntityManager).validateUpdateRequest(progressCallback, userInfo, uploadRequest, null);
 		verify(tableIndexManager, never()).deleteTemporaryTableCopy(anyString(), any(ProgressCallback.class));
-		verify(progressCallback, times(2)).progressMade(null);
 	}
 	
 	@Test
 	public void testUpdateTableWithTransactionWithExclusiveLock(){
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
-		verify(progressCallback, times(3)).progressMade(null);
 		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest);
 		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
 	}

@@ -29,7 +29,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
 	WorkerLogger mockWorkerLogger;
 	EvaluationSubmissionAnnotationsWorker worker;
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Before
 	public void before(){
@@ -53,7 +53,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the DAO should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(ProgressCallback.class), any(String.class),any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 	}
 	
@@ -66,7 +66,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO).updateEvaluationSubmissionStatuses(any(ProgressCallback.class), eq(message.getObjectId()), anyString());
+		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 	}
 	
@@ -79,7 +79,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		// Make the call
 		worker.run(mockProgressCallback, message);
 		// the manager should not be called
-		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(ProgressCallback.class), eq(message.getObjectId()), anyString());
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 	}
 	
@@ -103,7 +103,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(any(ProgressCallback.class), eq(failId), anyString());
+		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -126,7 +126,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		String failId = "fail";
 		message2.setObjectId(failId);
 		// Simulate a runtime exception
-		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(any(ProgressCallback.class), eq(failId), anyString());
+		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
 		worker.run(mockProgressCallback, message2);
 	}
 	
@@ -139,7 +139,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		doThrow(new TransientDataAccessException("foo", null) {
 			private static final long serialVersionUID = 1L;
-		}).when(mockDAO).createEvaluationSubmissionStatuses(any(ProgressCallback.class), anyString(), anyString());
+		}).when(mockDAO).createEvaluationSubmissionStatuses(anyString(), anyString());
 		// Make the call
 		worker.run(mockProgressCallback, message);
 	}

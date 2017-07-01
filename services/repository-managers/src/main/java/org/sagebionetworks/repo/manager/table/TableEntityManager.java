@@ -42,7 +42,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback<Void> progressCallback)
+	public RowReferenceSet appendRows(UserInfo user, String tableId, RowSet delta, ProgressCallback progressCallback)
 			throws DatastoreException, NotFoundException, IOException;
 
 	/**
@@ -58,7 +58,7 @@ public interface TableEntityManager {
 	 * @throws DatastoreException
 	 */
 	public RowReferenceSet appendPartialRows(UserInfo user, String tableId,
-			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException;
+			PartialRowSet rowsToAppendOrUpdateOrDelete, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a set of rows from a table.
@@ -97,7 +97,7 @@ public interface TableEntityManager {
 	 * @throws IOException
 	 */
 	TableUpdateResponse appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> columns, Iterator<SparseRowDto> rowStream, String etag,
-			RowReferenceSet results, ProgressCallback<Void> progressCallback) throws DatastoreException, NotFoundException, IOException;
+			RowReferenceSet results, ProgressCallback progressCallback) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -208,7 +208,7 @@ public interface TableEntityManager {
 	 * @param indexManager The index manager is only provided if a temporary table was created 
 	 * for the purpose of validation.
 	 */
-	public void validateUpdateRequest(ProgressCallback<Void> callback,
+	public void validateUpdateRequest(ProgressCallback callback,
 			UserInfo userInfo, TableUpdateRequest change,
 			TableIndexManager indexManager);
 
@@ -219,7 +219,7 @@ public interface TableEntityManager {
 	 * @param change
 	 * @return
 	 */
-	public TableUpdateResponse updateTable(ProgressCallback<Void> callback,
+	public TableUpdateResponse updateTable(ProgressCallback callback,
 			UserInfo userInfo, TableUpdateRequest change);
 
 	/**

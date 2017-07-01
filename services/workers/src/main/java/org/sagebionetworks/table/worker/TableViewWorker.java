@@ -47,7 +47,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback,
+	public void run(ProgressCallback progressCallback,
 			ChangeMessage message) throws RecoverableMessageException,
 			Exception {
 		// This worker is only works on FileView messages
@@ -78,13 +78,13 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @throws RecoverableMessageException 
 	 */
-	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback<Void> outerCallback, final ChangeMessage message) throws RecoverableMessageException{
+	public void createOrUpdateIndex(final String tableId, final TableIndexManager indexManager, ProgressCallback outerCallback, final ChangeMessage message) throws RecoverableMessageException{
 		// get the exclusive lock to update the table
 		try {
-			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void, Void>() {
+			tableManagerSupport.tryRunWithTableExclusiveLock(outerCallback, tableId, TIMEOUT_MS, new ProgressingCallable<Void>() {
 
 				@Override
-				public Void call(ProgressCallback<Void> innerCallback)
+				public Void call(ProgressCallback innerCallback)
 						throws Exception {
 					// next level.
 					createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, message);
@@ -112,7 +112,7 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 	 * @param indexManager
 	 * @param callback
 	 */
-	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback<Void> callback, final ChangeMessage message){
+	public void createOrUpdateIndexHoldingLock(final String tableId, final TableIndexManager indexManager, final ProgressCallback callback, final ChangeMessage message){
 		// Is the index out-of-synch?
 		if(!tableManagerSupport.isIndexWorkRequired(tableId)){
 			// nothing to do
@@ -126,7 +126,6 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 			// Since this worker re-builds the index, start by deleting it.
 			indexManager.deleteTableIndex(tableId);
-			callback.progressMade(null);
 			// Need the MD5 for the original schema.
 			List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			String originalSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(originalSchema);
@@ -138,14 +137,11 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 
 			// create the table in the index.
 			indexManager.setIndexSchema(tableId, callback, expandedSchema);
-			callback.progressMade(null);
 			tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
 			Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewType, allContainersInScope, expandedSchema);
-			callback.progressMade(null);
 			// now that table is created and populated the indices on the table can be optimized.
 			indexManager.optimizeTableIndices(tableId);
-			callback.progressMade(null);
 			// both the CRC and schema MD5 are used to determine if the view is up-to-date.
 			indexManager.setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, originalSchemaMD5Hex);
 			// Attempt to set the table to complete.

@@ -29,7 +29,7 @@ public class BroadcastMessageWorker implements ChangeMessageDrivenRunner{
 	private UserManager userManager;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
+	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException {
 		switch (message.getObjectType()) {
 			case THREAD:

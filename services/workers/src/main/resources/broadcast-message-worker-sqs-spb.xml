@@ -46,6 +46,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[DATA_ACCESS_SUBMISSION_STATUS]" />
 									</list>
 								</property>
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

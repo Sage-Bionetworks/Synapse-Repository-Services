@@ -45,7 +45,7 @@ public class NodeQueryDaoV2ImplTest {
 	NodeQueryDaoFactory nodeQueryDaoFactory;
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	TableIndexDAO tableIndexDao;
 	NodeQueryDaoV2 nodeQueryDaoV2;

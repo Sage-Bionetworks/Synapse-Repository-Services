@@ -43,6 +43,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[ENTITY_CONTAINER]" />
 									</list>
 								</property>
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

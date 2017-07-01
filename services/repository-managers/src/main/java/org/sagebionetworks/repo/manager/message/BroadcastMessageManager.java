@@ -28,7 +28,7 @@ public interface BroadcastMessageManager {
 	 * @throws MarkdownClientException 
 	 */
 	public void broadcastMessage(UserInfo user,
-			ProgressCallback<Void> progressCallback,
+			ProgressCallback progressCallback,
 			ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException;
 
 }

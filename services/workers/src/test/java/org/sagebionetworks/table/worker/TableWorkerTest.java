@@ -59,7 +59,7 @@ import com.google.common.collect.Lists;
 public class TableWorkerTest {
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	TableEntityManager mockTableEntityManager;
 	@Mock
@@ -94,7 +94,7 @@ public class TableWorkerTest {
 		stub(mockTableManagerSupport.tryRunWithTableExclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<TableWorker.State>() {
 			@Override
 			public TableWorker.State answer(InvocationOnMock invocation) throws Throwable {
-				ProgressingCallable<TableWorker.State, Void> callable = (ProgressingCallable<State, Void>) invocation.getArguments()[3];
+				ProgressingCallable<TableWorker.State> callable = (ProgressingCallable<State>) invocation.getArguments()[3];
 				if(callable != null){
 					return callable.call(mockProgressCallback);
 				}else{
@@ -247,8 +247,6 @@ public class TableWorkerTest {
 		
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1, 0L);
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
-		// Progress should be made for each result
-		verify(mockProgressCallback, times(2)).progressMade(null);
 		verify(mockTableIndexManager).optimizeTableIndices(tableId);
 	}
 	
@@ -264,9 +262,6 @@ public class TableWorkerTest {
 		worker.run(mockProgressCallback, two);
 		
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset2, 1L);
-		
-		// Progress should be made for each change even if there is no work.
-		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 	
 	/**

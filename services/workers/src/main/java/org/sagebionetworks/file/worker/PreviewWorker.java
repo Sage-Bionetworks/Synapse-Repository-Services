@@ -37,7 +37,7 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage changeMessage)
+	public void run(ProgressCallback progressCallback, ChangeMessage changeMessage)
 			throws RecoverableMessageException, Exception {
 
 		try {

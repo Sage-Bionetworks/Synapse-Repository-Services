@@ -2,12 +2,12 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.common.util.progress.ProgressListener;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
@@ -18,18 +18,17 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import au.com.bytecode.opencsv.CSVReader;
+
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
-
-import au.com.bytecode.opencsv.CSVReader;
 /**
  * This worker reads CSV files from S3 and appends the data to a given TableEntity.
  * 
@@ -53,7 +52,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message)
+	public void run(ProgressCallback progressCallback, Message message)
 			throws RecoverableMessageException, Exception {
 		// We should only get one message
 		try{
@@ -69,7 +68,7 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(final ProgressCallback<Void> progressCallback, final Message message) throws Throwable {
+	public void processStatus(final ProgressCallback progressCallback, final Message message) throws Throwable {
 		final AsynchronousJobStatus status = asynchJobStatusManager.lookupJobStatus(message.getBody());
 		CSVReader reader = null;
 		try{
@@ -85,28 +84,34 @@ public class TableCSVAppenderPreviewWorker implements MessageDrivenRunner {
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
 			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
-			// This stream is used to keep track of the bytes read.
-			final CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			// Create a reader from the passed parameters
-			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
+			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
 			
-			// Report progress every 2 seconds.
-			long progressIntervalMs = 2000;
-			ThrottlingProgressCallback<Integer> throttledProgressCallback = new ThrottlingProgressCallback<Integer>(new ProgressCallback<Integer>() {
+			// Listen to progress events.
+			ProgressListener listener = new ProgressListener() {
+				 
+				AtomicLong counter = new AtomicLong();
+				
 				@Override
-				public void progressMade(Integer rowNumber) {
+				public void progressMade() {
+					long count = counter.incrementAndGet();
 					// update the job progress.
 					asynchJobStatusManager.updateJobProgress(status.getJobId(),
-							countingInputStream.getByteCount(), progressTotal,
-							"Processed: " + rowNumber + " rows");
-					// update the message.
-					progressCallback.progressMade(null);
+							count, Long.MAX_VALUE,
+							"Processed: " + (count));
+					
 				}
-			}, progressIntervalMs);
-			// This builder does the work of building an actual preview.
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, throttledProgressCallback, body);
-			UploadToTablePreviewResult result = builder.buildResult();
-			asynchJobStatusManager.setComplete(status.getJobId(), result);
+			};
+			progressCallback.addProgressListener(listener);
+			try {
+				// This builder does the work of building an actual preview.
+				UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressCallback, body);
+				UploadToTablePreviewResult result = builder.buildResult();
+				asynchJobStatusManager.setComplete(status.getJobId(), result);
+			} finally {
+				// unconditionally remove the listener
+				progressCallback.removeProgressListener(listener);
+			}
 		}catch(Throwable e){
 			// Record the error
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);

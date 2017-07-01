@@ -35,11 +35,10 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 	public static final long LIMIT = 10L;
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		for (ChangeMessage message : messages) {
-			progressCallback.progressMade(null);
 			if (message.getObjectType() != ObjectType.CERTIFIED_USER_PASSING_RECORD) {
 				throw new IllegalArgumentException();
 			}
@@ -52,7 +51,6 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 				long offset = 0L;
 				PaginatedResults<PassingRecord> records = null;
 				do {
-					progressCallback.progressMade(null);
 					records = certifiedUserManager.getPassingRecords(adminUser, userId, LIMIT , offset);
 					for (PassingRecord record : records.getResults()) {
 						toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
@@ -64,7 +62,6 @@ public class CertifiedUserPassingRecordWriter implements ObjectRecordWriter {
 			}
 		}
 		if (!toWrite.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 	}

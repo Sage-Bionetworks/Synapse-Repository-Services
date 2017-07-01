@@ -32,7 +32,7 @@ import au.com.bytecode.opencsv.CSVReader;
 public class UploadPreviewBuilderTest {
 	
 	@Mock
-	ProgressCallback<Integer> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Before
 	public void before(){
@@ -104,7 +104,6 @@ public class UploadPreviewBuilderTest {
 		assertEquals(new Long(4), result.getRowsScanned());
 		assertEquals(expectedSchema, result.getSuggestedColumns());
 		assertEquals(expectedRows, result.getSampleRows());
-		verify(mockProgressCallback, times(4)).progressMade(anyInt());;
 	}
 	
 	@Test
@@ -149,7 +148,6 @@ public class UploadPreviewBuilderTest {
 		assertEquals(new Long(2), result.getRowsScanned());
 		assertEquals(expectedSchema, result.getSuggestedColumns());
 		assertEquals(expectedRows, result.getSampleRows());
-		verify(mockProgressCallback, times(2)).progressMade(anyInt());;
 	}
 
 	

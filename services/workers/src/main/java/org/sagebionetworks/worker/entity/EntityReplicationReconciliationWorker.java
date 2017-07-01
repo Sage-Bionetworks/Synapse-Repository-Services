@@ -11,9 +11,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.IdList;
@@ -25,6 +23,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,11 +82,8 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, Message message) {
+	public void run(ProgressCallback progressCallback, Message message) {
 		try {
-			// wrap the callback to throttle
-			progressCallback = new ThrottlingProgressCallback<Void>(
-					progressCallback, PROGRESS_THROTTLE_FREQUENCY_MS);
 			// extract the containerIds to check from the message.
 			List<Long> containerIds = getContainerIdsFromMessage(message);
 			if (containerIds.isEmpty()) {
@@ -103,7 +99,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 				// nothing to do.
 				return;
 			}
-			progressCallback.progressMade(null);
 
 			// Determine which parents are in the trash
 			Set<Long> trashedParents = getTrashedContainers(expiredContainerIds);
@@ -171,7 +166,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	 * @param parentIds
 	 * @throws JSONObjectAdapterException
 	 */
-	public void findChildrenDeltas(ProgressCallback<Void> progressCallback,
+	public void findChildrenDeltas(ProgressCallback progressCallback,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) throws JSONObjectAdapterException {
 		// Find the parents out-of-synch.
@@ -210,18 +205,16 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	 * @return
 	 */
 	public List<ChangeMessage> findChangesForParentId(
-			ProgressCallback<Void> progressCallback, TableIndexDAO firstIndex,
+			ProgressCallback progressCallback, TableIndexDAO firstIndex,
 			Long outOfSynchParentId, boolean isParentInTrash) {
 		List<ChangeMessage> changes = new LinkedList<>();
 		Set<IdAndEtag> replicaChildren = new HashSet<>(
 				firstIndex.getEntityChildren(outOfSynchParentId));
-		progressCallback.progressMade(null);
 		if (!isParentInTrash) {
 			// The parent is not in the trash so find entities that are
 			// out-of-synch
 			List<IdAndEtag> truthChildren = nodeDao
 					.getChildren(outOfSynchParentId);
-			progressCallback.progressMade(null);
 			Set<Long> truthIds = new HashSet<Long>();
 			// find the create/updates
 			for (IdAndEtag test : truthChildren) {
@@ -275,7 +268,7 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 	 * @param trashedParents
 	 * @return
 	 */
-	public Set<Long> compareCheckSums(ProgressCallback<Void> progressCallback,
+	public Set<Long> compareCheckSums(ProgressCallback progressCallback,
 			TableIndexDAO indexDao, List<Long> parentIds,
 			Set<Long> trashedParents) {
 		Map<Long, Long> truthCRCs = nodeDao
@@ -285,7 +278,6 @@ public class EntityReplicationReconciliationWorker implements MessageDrivenRunne
 		HashSet<Long> parentsOutOfSynch = new HashSet<Long>();
 		// Find the mismatches
 		for (Long parentId : parentIds) {
-			progressCallback.progressMade(null);
 			Long truthCRC = truthCRCs.get(parentId);
 			Long indexCRC = indexCRCs.get(parentId);
 			/*

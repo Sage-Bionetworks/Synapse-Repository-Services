@@ -12,7 +12,7 @@ public interface Clock {
 
 	public abstract void sleepNoInterrupt(long millis);
 
-	public abstract void sleepWithFrequentCallback(long millis, long frequencyInMillis, ProgressCallback<Long> progressCallback);
+
 
 	public abstract Date now();
 }

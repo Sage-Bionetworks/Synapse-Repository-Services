@@ -103,6 +103,7 @@
 										<ref bean="stackConfiguration.repositoryChangeTopic[FILE]" />
 									</list>
 								</property>
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

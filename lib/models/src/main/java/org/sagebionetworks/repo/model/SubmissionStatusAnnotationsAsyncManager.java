@@ -21,7 +21,7 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	 * @throws DatastoreException
 	 * @throws JSONObjectAdapterException
 	 */
-	public void createEvaluationSubmissionStatuses(ProgressCallback<Void> progressCallback, String evalId, String submissionsEtag) 
+	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
@@ -34,7 +34,7 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	 * @throws JSONObjectAdapterException 
 	 * @throws DatastoreException 
 	 */
-	public void updateEvaluationSubmissionStatuses(ProgressCallback<Void> progressCallback, String evalId, String submissionsEtag) 
+	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**

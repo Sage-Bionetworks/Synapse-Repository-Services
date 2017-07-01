@@ -53,7 +53,7 @@ import com.amazonaws.util.StringInputStream;
 public class TableUploadManagerTest {
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	TableManagerSupport mockTableManagerSupport;
 	@Mock

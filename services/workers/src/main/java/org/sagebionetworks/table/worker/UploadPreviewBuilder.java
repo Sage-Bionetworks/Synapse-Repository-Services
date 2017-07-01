@@ -31,7 +31,7 @@ public class UploadPreviewBuilder {
 	public static final int MAX_ROWS_IN_PARTIAL_SCAN = 1000;
 	public static final int MAX_ROWS_IN_PREVIEW = 5;
 	CSVReader reader;
-	ProgressCallback<Integer> progressCallback;
+	ProgressCallback progressCallback;
 	boolean isFirstLineHeader;
 	List<String[]> startingRow;
 	ColumnModel[] testTypes;
@@ -43,7 +43,7 @@ public class UploadPreviewBuilder {
 	List<ColumnModel> suggestedColumns;
 
 	public UploadPreviewBuilder(CSVReader reader,
-			ProgressCallback<Integer> progressCallback, UploadToTablePreviewRequest request) {
+			ProgressCallback progressCallback, UploadToTablePreviewRequest request) {
 		this.reader = reader;
 		this.progressCallback = progressCallback;
 		this.isFirstLineHeader = CSVUtils.isFirstRowHeader(request
@@ -172,7 +172,6 @@ public class UploadPreviewBuilder {
 			// Check the schema from this row
 			CSVUtils.checkTypes(row, schema);
 			rowsScanned++;
-			progressCallback.progressMade(rowsScanned);
 			// Keep the first few rows
 			if (rowsScanned <= MAX_ROWS_IN_PREVIEW) {
 				startingRow.add(row);

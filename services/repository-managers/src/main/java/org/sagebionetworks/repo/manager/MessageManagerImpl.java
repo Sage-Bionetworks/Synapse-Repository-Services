@@ -363,7 +363,7 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@WriteTransaction
-	public List<String> processMessage(String messageId, ProgressCallback<Void> progressCallback) throws NotFoundException {
+	public List<String> processMessage(String messageId, ProgressCallback progressCallback) throws NotFoundException {
 		return processMessage(messageId, false, progressCallback);
 	}
 	
@@ -378,7 +378,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * General usage of this method sets this parameter to false.
 	 * @throws  
 	 */
-	private List<String> processMessage(String messageId, boolean singleTransaction, ProgressCallback<Void> progressCallback) throws NotFoundException {
+	private List<String> processMessage(String messageId, boolean singleTransaction, ProgressCallback progressCallback) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
 		ContentType contentType = ContentType.parse(fileHandle.getContentType());
@@ -402,7 +402,7 @@ public class MessageManagerImpl implements MessageManager {
 	private List<String> processMessage(
 			MessageToUser dto, boolean singleTransaction, 
 			String messageBody, String mimeType,
-			ProgressCallback<Void> progressCallback) throws NotFoundException {
+			ProgressCallback progressCallback) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		// Check to see if the message has already been sent
@@ -502,7 +502,6 @@ public class MessageManagerImpl implements MessageManager {
 						messageDAO.updateMessageStatus_NewTransaction(messageStatus);
 					}
 				}
-				if (progressCallback!=null) progressCallback.progressMade(null);
 			} catch (Exception e) {
 				log.info("Error caught while processing message", e);
 				errors.add("Failed while processing message for recipient (" + userId + "): " + e.getMessage());

@@ -71,7 +71,7 @@ public class TableIndexDAOImplTest {
 	// These are not a bean
 	TableIndexDAO tableIndexDAO;
 	
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 
 	String tableId;
 
@@ -352,7 +352,6 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId, results.getTableId());
 		assertEquals(2, results.getRows().size());
-		verify(mockProgressCallback, times(2)).progressMade(null);
 		// test the count
 		String countSql = SqlElementUntils.createCountSql(query.getTransformedModel());
 		Long count = tableIndexDAO.countQuery(countSql, query.getParameters());
@@ -376,8 +375,6 @@ public class TableIndexDAOImplTest {
 				"true", "404001", "505001", "syn606001", 
 				"link708001", "largeText804001", "903001");
 		assertEquals(expectedValues, row.getValues());
-		// progress should be made for each row.
-		verify(mockProgressCallback, times(2)).progressMade(null);
 		// must also be able to run the query with a null callback
 		mockProgressCallback = null;
 	}

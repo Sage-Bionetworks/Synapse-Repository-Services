@@ -118,7 +118,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final String tableId, ProgressCallback<Void> progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final String tableId, ProgressCallback progressCallback, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
@@ -151,7 +151,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	
 	@Override
-	public boolean updateTableSchema(final String tableId, ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
 		tableIndexDao.createTableIfDoesNotExist(tableId);
 		// Create all of the status tables unconditionally.
@@ -176,7 +176,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}	
 	
 	@Override
-	public boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
+	public boolean alterTempTableSchmea(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes){
 		boolean alterTemp = true;
 		return alterTableAsNeededWithProgress(progressCallback, tableId, changes, alterTemp);
 	}
@@ -189,14 +189,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback<Void> progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
-		 try {
-			return  tableManagerSupport.callWithAutoProgress(progressCallback, new Callable<Boolean>() {
-				@Override
-				public Boolean call() throws Exception {
-					return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
-				}
-			});
+	private boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+		try {
+			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -237,57 +232,34 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public void createTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
+	public void createTemporaryTableCopy(final String tableId, ProgressCallback callback) {
 		// creating a temp table can take a long time so auto-progress is used.
-		 try {
-			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					// create the table.
-					tableIndexDao.createTemporaryTable(tableId);
-					// copy all the data from the original to the temp.
-					tableIndexDao.copyAllDataToTemporaryTable(tableId);
-					return null;
-				}
-			});
+		try {
+			// create the table.
+			tableIndexDao.createTemporaryTable(tableId);
+			// copy all the data from the original to the temp.
+			tableIndexDao.copyAllDataToTemporaryTable(tableId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		
 	}
 	@Override
-	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback<Void> callback) {
-		// deleting a temp table can take a long time so auto-progress is used.
-		 try {
-			tableManagerSupport.callWithAutoProgress(callback, new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					// create the table.
-					tableIndexDao.deleteTemporaryTable(tableId);
-					return null;
-				}
-			});
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	public void deleteTemporaryTableCopy(final String tableId, ProgressCallback callback) {
+		// delete
+		tableIndexDao.deleteTemporaryTable(tableId);
 	}
 	@Override
-	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback<Void> callback, final ViewType viewType,
+	public Long populateViewFromEntityReplication(final String tableId, final ProgressCallback callback, final ViewType viewType,
 			final Set<Long> allContainersInScope, final List<ColumnModel> currentSchema) {
 		ValidateArgument.required(callback, "callback");
-		// this can take a long time with no chance to make progress.
-		 try {
-			return tableManagerSupport.callWithAutoProgress(callback, new Callable<Long>() {
-				@Override
-				public Long call() throws Exception {
-					// create the table.
-					return populateViewFromEntityReplicationWithProgress(tableId, viewType, allContainersInScope, currentSchema);
-				}
-			});
+		try {
+			return populateViewFromEntityReplicationWithProgress(tableId,
+					viewType, allContainersInScope, currentSchema);
 		} catch (Exception e) {
-			if(e instanceof RuntimeException){
-				throw ((RuntimeException)e);
-			}else{
+			if (e instanceof RuntimeException) {
+				throw ((RuntimeException) e);
+			} else {
 				throw new RuntimeException(e);
 			}
 		}

@@ -238,8 +238,8 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
-			String tableId, int timeoutMS, ProgressingCallable<R, Void> runner)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+			String tableId, int timeoutMS, ProgressingCallable<R> runner)
 			throws Exception;
 
 	/**
@@ -266,9 +266,9 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws Exception;
+	public <R> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback callback, String tableId, int timeoutMS,
+			ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
@@ -369,27 +369,6 @@ public interface TableManagerSupport {
 	 * @return
 	 */
 	ViewType getViewType(String tableId);
-
-	/**
-	 * Execute the given callback with automatic progress events generated for
-	 * the provided callback. This allows the callable to run for long periods
-	 * of time while maintaining progress events.
-	 * 
-	 * @param callback
-	 *            Progress events will be generated for the provided callback at
-	 *            a fix frequency regardless of the amount of time the callable
-	 *            takes to execute.
-	 * 
-	 * @param parameter
-	 *            The parameter to pass to the callback.
-	 * 
-	 * @param callable
-	 *            The callable to be executed.
-	 * @return
-	 * @throws Exception
-	 */
-	public <R> R callWithAutoProgress(ProgressCallback<Void> callback,
-			Callable<R> callable) throws Exception;
 
 	/**
 	 * Get the column models for the given columnIds.

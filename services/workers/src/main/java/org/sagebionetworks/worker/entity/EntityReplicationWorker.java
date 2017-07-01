@@ -8,7 +8,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -51,7 +50,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback,
+	public void run(ProgressCallback progressCallback,
 			List<ChangeMessage> messages) throws RecoverableMessageException,
 			Exception {
 		try{
@@ -87,7 +86,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	 * @param progressCallback
 	 * @param messages
 	 */
-	void replicate(ProgressCallback<Void> progressCallback,
+	void replicate(final ProgressCallback progressCallback,
 			List<ChangeMessage> messages) {
 		// batch the create/update events and delete events
 		List<String> createOrUpdateIds = new LinkedList<>();
@@ -97,8 +96,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		allIds.addAll(KeyFactory.stringToKey(createOrUpdateIds));
 		allIds.addAll(KeyFactory.stringToKey(deleteIds));
 		
-		progressCallback.progressMade(null);
-		final ThrottlingProgressCallback<Void> throttleCallback = new ThrottlingProgressCallback<Void>(progressCallback, THROTTLE_FREQUENCY_MS);
 		// Get a copy of the batch of data.
 		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
 				MAX_ANNOTATION_CHARS);
@@ -106,7 +103,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
-			throttleCallback.progressMade(null);
 			indexDao.createEntityReplicationTablesIfDoesNotExist();
 			final TableIndexDAO indexDaoFinal = indexDao;
 			indexDao.executeInWriteTransaction(new TransactionCallback<Void>() {
@@ -114,8 +110,8 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 				@Override
 				public Void doInTransaction(TransactionStatus status) {
 					// clear everything.
-					indexDaoFinal.deleteEntityData(throttleCallback, allIds);
-					indexDaoFinal.addEntityData(throttleCallback, entityDTOs);
+					indexDaoFinal.deleteEntityData(progressCallback, allIds);
+					indexDaoFinal.addEntityData(progressCallback, entityDTOs);
 					return null;
 				}
 			});

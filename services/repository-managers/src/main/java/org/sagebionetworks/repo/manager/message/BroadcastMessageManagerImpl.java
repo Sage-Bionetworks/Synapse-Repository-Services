@@ -74,7 +74,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	AuthorizationManager authManager;
 
 	@Override
-	public void broadcastMessage(UserInfo user,	ProgressCallback<Void> progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
+	public void broadcastMessage(UserInfo user,	ProgressCallback progressCallback, ChangeMessage changeMessage) throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(changeMessage, "changeMessage");
 		ValidateArgument.required(changeMessage.getUserId(), "ChangeMessage.userId");
@@ -123,8 +123,6 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			if (subscriber.getSubscriberId().equals(changeMessage.getUserId().toString())) {
 				continue;
 			}
-			// progress between each message
-			progressCallback.progressMade(null);
 			SendRawEmailRequest emailRequest = builder.buildEmailForSubscriber(subscriber);
 			log.debug("sending email to "+subscriber.getNotificationEmail());
 			sesClient.sendRawEmail(emailRequest);
@@ -139,7 +137,7 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	 * An email is only being sent to a user if he/she has permission to subscribe
 	 * to the topic.
 	 */
-	public void sendMessageToNonSubscribers(ProgressCallback<Void> progressCallback,
+	public void sendMessageToNonSubscribers(ProgressCallback progressCallback,
 			ChangeMessage changeMessage, BroadcastMessageBuilder builder, List<String> subscriberIds,
 			Topic topic)
 			throws ClientProtocolException, JSONException, IOException, MarkdownClientException {
@@ -159,8 +157,6 @@ public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 			}
 			UserInfo userInfo = userManager.getUserInfo(Long.parseLong(userNotificationInfo.getUserId()));
 			if (authManager.canSubscribe(userInfo, topic.getObjectId(), topic.getObjectType()).getAuthorized()) {
-				// progress between each message
-				progressCallback.progressMade(null);
 				SendRawEmailRequest emailRequest = builder.buildEmailForNonSubscriber(userNotificationInfo);
 				log.debug("sending email to "+userNotificationInfo.getNotificationEmail());
 				sesClient.sendRawEmail(emailRequest);

@@ -81,7 +81,7 @@ public class EntityQueryManagerImplAutowireTest {
 	ConnectionFactory connectionFactory;
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	private List<String> nodesToDelete;
 	private UserInfo adminUserInfo;

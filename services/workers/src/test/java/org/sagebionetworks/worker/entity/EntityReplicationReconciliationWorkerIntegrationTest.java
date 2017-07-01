@@ -51,7 +51,7 @@ public class EntityReplicationReconciliationWorkerIntegrationTest {
 	ReplicationMessageManager replicationMessageManager;
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	TableIndexDAO indexDao;
 	

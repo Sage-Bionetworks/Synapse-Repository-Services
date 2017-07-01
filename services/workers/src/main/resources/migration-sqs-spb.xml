@@ -32,6 +32,7 @@
 								<property name="semaphoreMaxLockCount" value="4" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="600" />
 								<property name="queueName" ref="stackConfiguration.asyncQueueName[MIGRATION]"/>
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

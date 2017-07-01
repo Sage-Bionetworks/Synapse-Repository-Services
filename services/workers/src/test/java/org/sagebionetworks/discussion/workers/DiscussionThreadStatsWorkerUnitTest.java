@@ -29,7 +29,7 @@ public class DiscussionThreadStatsWorkerUnitTest {
 	@Mock
 	private ChangeMessage mockMessage;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private DiscussionThreadStatsWorker worker;
 
 	@Before

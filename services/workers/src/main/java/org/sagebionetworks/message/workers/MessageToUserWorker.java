@@ -29,7 +29,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback, final ChangeMessage change)
+	public void run(final ProgressCallback progressCallback, final ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// We only care about MESSAGE messages here
 		if (ObjectType.MESSAGE == change.getObjectType()) {
@@ -37,14 +37,7 @@ public class MessageToUserWorker implements ChangeMessageDrivenRunner {
 				List<String> errors;
 				switch (change.getChangeType()) {
 				case CREATE:
-					errors = messageManager.processMessage(change.getObjectId(), 
-							new ProgressCallback<Void>() {
-						@Override
-						public void progressMade(Void foo) {
-							progressCallback.progressMade(null);
-						}
-
-					});
+					errors = messageManager.processMessage(change.getObjectId(), progressCallback);
 					break;
 				default:
 					throw new IllegalArgumentException("Unknown change type: "

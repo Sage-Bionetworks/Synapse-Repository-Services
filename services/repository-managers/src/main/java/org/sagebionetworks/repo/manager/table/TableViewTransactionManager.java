@@ -56,7 +56,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	@WriteTransactionReadCommitted
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
-			ProgressCallback<Void> progressCallback, UserInfo userInfo,
+			ProgressCallback progressCallback, UserInfo userInfo,
 			TableUpdateTransactionRequest request)
 			throws RecoverableMessageException, TableUnavailableException {
 		ValidateArgument.required(progressCallback, "callback");
@@ -71,8 +71,6 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 		response.setResults(results);
 		// process each type
 		for(TableUpdateRequest change: request.getChanges()){
-			// make progress for each request
-			progressCallback.progressMade(null);
 			TableUpdateResponse result = applyChange(progressCallback, userInfo, change);
 			results.add(result);
 		}
@@ -85,7 +83,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param change
 	 * @return
 	 */
-	TableUpdateResponse applyChange(ProgressCallback<Void> progressCallback,
+	TableUpdateResponse applyChange(ProgressCallback progressCallback,
 			UserInfo user, TableUpdateRequest change) {
 		if (change instanceof TableSchemaChangeRequest) {
 			return applySchemaChange(user, (TableSchemaChangeRequest) change);
@@ -105,7 +103,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param change
 	 * @return
 	 */
-	TableUpdateResponse applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
+	TableUpdateResponse applyRowChange(ProgressCallback progressCallback, UserInfo user,
 			UploadToTableRequest change) {
 		return tableUploadManager.uploadCSV(progressCallback, user, change, this);
 	}
@@ -118,7 +116,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @param change
 	 * @return
 	 */
-	TableUpdateResponse applyRowChange(ProgressCallback<Void> progressCallback, UserInfo user,
+	TableUpdateResponse applyRowChange(ProgressCallback progressCallback, UserInfo user,
 			AppendableRowSetRequest change) {
 		ValidateArgument.required(change, "AppendableRowSetRequest");
 		ValidateArgument.required(change.getToAppend(), "AppendableRowSetRequest.toAppend");
@@ -143,7 +141,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @return
 	 */
 	TableUpdateResponse applyRowSet(
-			ProgressCallback<Void> progressCallback, UserInfo user, List<ColumnModel> currentSchema,
+			ProgressCallback progressCallback, UserInfo user, List<ColumnModel> currentSchema,
 			RowSet rowSet) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -169,7 +167,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 * @return
 	 */
 	TableUpdateResponse applyPartialRowSet(
-			ProgressCallback<Void> progressCallback, UserInfo user, List<ColumnModel> currentSchema,
+			ProgressCallback progressCallback, UserInfo user, List<ColumnModel> currentSchema,
 			PartialRowSet partialRowSet) {
 		ValidateArgument.required("user", "UserInfo");
 		ValidateArgument.required(currentSchema, "currentSchema");
@@ -202,7 +200,7 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	@Override
 	public TableUpdateResponse processRows(UserInfo user, String tableId,
 			List<ColumnModel> tableSchema, Iterator<SparseRowDto> rowStream,
-			String updateEtag, ProgressCallback<Void> progressCallback) {
+			String updateEtag, ProgressCallback progressCallback) {
 		List<EntityUpdateResult> results = new LinkedList<EntityUpdateResult>();
 		// process all rows, each as a single transaction.
 		while(rowStream.hasNext()){
@@ -226,10 +224,9 @@ public class TableViewTransactionManager implements TableTransactionManager, Upl
 	 */
 	EntityUpdateResult processRow(UserInfo user,
 			List<ColumnModel> tableSchema, SparseRowDto row,
-			ProgressCallback<Void> progressCallback) {
+			ProgressCallback progressCallback) {
 		EntityUpdateResult result = new EntityUpdateResult();
 		try {
-			progressCallback.progressMade(null);
 			result.setEntityId(KeyFactory.keyToString(row.getRowId()));
 			tableViewManger.updateEntityInView(user, tableSchema, row);
 		} catch (NotFoundException e) {
