@@ -507,14 +507,14 @@ public class IT500SynapseJavaClient {
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
 				EntityBundle.UNMET_ACCESS_REQUIREMENTS |
-				EntityBundle.FILE_NAME;
+				EntityBundle.FILE_NAME |
+				EntityBundle.RESTRICTION_INFORMATION;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
-		
 		
 		assertEquals("Invalid fetched Entity in the EntityBundle", 
 				synapseOne.getEntityById(project.getId()), entityBundle.getEntity());
@@ -528,7 +528,8 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
-		assertNull(entityBundle.getFileName());		
+		assertNull(entityBundle.getFileName());
+		assertNotNull(entityBundle.getRestrictionInformation());
 	}
 	
 	@Test
