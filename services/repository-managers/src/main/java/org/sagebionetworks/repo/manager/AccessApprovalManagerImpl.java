@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +33,8 @@ import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Sets;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public static final Long DEFAULT_LIMIT = 50L;
@@ -69,17 +73,25 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@WriteTransactionReadCommitted
 	@Override
 	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException {
+			UnauthorizedException, NotFoundException {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessApproval, "accessApproval");
 		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
-		if (ar instanceof TermsOfUseAccessRequirement) {
+
+		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
+				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+		if (ar instanceof SelfSignAccessRequirementInterface) {
 			accessApproval.setAccessorId(userInfo.getId().toString());
 		} else if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("User is not an ACT Member.");
 		}
-		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
-				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		if (ar instanceof HasAccessorRequirement) {
+			authorizationManager.validateHasAccessorRequirement((HasAccessorRequirement) ar,
+					Sets.newHashSet(accessApproval.getAccessorId()));
+		}
 		if (accessApproval.getRequirementVersion() == null) {
 			accessApproval.setRequirementVersion(ar.getVersionNumber());
 		}

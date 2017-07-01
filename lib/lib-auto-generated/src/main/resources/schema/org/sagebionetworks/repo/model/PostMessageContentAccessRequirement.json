@@ -3,7 +3,7 @@
 	"description": "This class is deprecated and should not being used.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface"
 		}
 	],
 	"properties": {

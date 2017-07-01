@@ -1,0 +1,10 @@
+{
+	"title": "Self-Sign Access Requirement Interface",
+	"type": "interface",
+	"description": "JSON schema for the super-type of requirements which a user may approve themselves.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+		}
+	]
+}

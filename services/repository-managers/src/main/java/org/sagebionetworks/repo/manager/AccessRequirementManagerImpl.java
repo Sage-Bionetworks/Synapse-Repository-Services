@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -263,9 +264,34 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	static AccessRequirement setDefaultValues(AccessRequirement ar) {
-		if (!(ar instanceof ManagedACTAccessRequirement)) {
-			return ar;
+		if (ar instanceof ManagedACTAccessRequirement) {
+			return setDefaultValuesForManagedACTAccessRequirement(ar);
+		} else if (ar instanceof SelfSignAccessRequirement) {
+			return setDefaultValuesForSelfSignAccessRequirement(ar);
 		}
+		return ar;
+	}
+
+	/**
+	 * @param ar
+	 * @return
+	 */
+	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(AccessRequirement ar) {
+		SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
+		if (req.getIsCertifiedUserRequired() == null) {
+			req.setIsCertifiedUserRequired(false);
+		}
+		if (req.getIsValidatedProfileRequired() == null) {
+			req.setIsValidatedProfileRequired(false);
+		}
+		return req;
+	}
+
+	/**
+	 * @param ar
+	 * @return
+	 */
+	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(AccessRequirement ar) {
 		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
 		if (actAR.getIsCertifiedUserRequired() == null) {
 			actAR.setIsCertifiedUserRequired(false);

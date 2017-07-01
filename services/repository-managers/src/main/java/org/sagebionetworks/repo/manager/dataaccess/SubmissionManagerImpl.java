@@ -16,15 +16,12 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
@@ -61,10 +58,6 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private ResearchProjectDAO researchProjectDao;
 	@Autowired
 	private SubmissionDAO submissionDao;
-	@Autowired
-	private GroupMembersDAO groupMembersDao;
-	@Autowired
-	private VerificationDAO verificationDao;
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
 	@Autowired
@@ -157,16 +150,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 
-		if (actAR.getIsCertifiedUserRequired()) {
-			ValidateArgument.requirement(groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessorsWillHaveAccess),
-					"Accessors must be Synapse Certified Users.");
-		}
-		if (actAR.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessorsWillHaveAccess),
-					"Accessors must have validated profiles.");
-		}
+		authorizationManager.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess);
 
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(

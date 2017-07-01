@@ -15,13 +15,12 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
 	public static final String LOGIN_FAIL_ATTEMPT_METRIC_UNIT = "Count";
@@ -50,7 +49,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	private MemoryCountingSemaphore authenticationThrottleMemoryCountingSemaphore;
 	@Autowired
 	private Consumer consumer;
-	
+
 	public AuthenticationManagerImpl() { }
 
 	@Override

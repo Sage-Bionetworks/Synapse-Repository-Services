@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -282,7 +283,7 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
-	public void testSetDefaultValues() {
+	public void testSetDefaultValuesForManagedAR() {
 		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) createExpectedAR();
 		ar = (ManagedACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
 		assertFalse(ar.getIsCertifiedUserRequired());
@@ -291,6 +292,14 @@ public class AccessRequirementManagerImplUnitTest {
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
 		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testSetDefaultValuesForSelfSignAccessRequirement() {
+		SelfSignAccessRequirement ar = new SelfSignAccessRequirement();
+		ar = (SelfSignAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
 	}
 
 	@Test

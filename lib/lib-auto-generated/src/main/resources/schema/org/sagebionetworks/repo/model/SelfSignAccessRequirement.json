@@ -1,10 +1,12 @@
 {
-	"title": "Self-Sign Access Requirement",
-	"type": "interface",
-	"description": "JSON schema for the super-type of requirements which a user may approve themselves.",
+	"title": "Terms of Use Access Requirement",
+	"description": "JSON schema for Terms of Use Access Requirement, used for a 'tier 2' Access Requirement",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasAccessorRequirement"
 		}
 	]
 }

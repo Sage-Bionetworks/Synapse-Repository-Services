@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -217,4 +218,12 @@ public interface AuthorizationManager {
 	 * @return the permitted actions for the given user on the given repository
 	 */
 	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
+
+	/**
+	 * Validate and throw exception for HasAccessorRequirement
+	 * 
+	 * @param req
+	 * @param accessors
+	 */
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
 }
