@@ -41,6 +41,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
@@ -828,6 +829,14 @@ public class TableEntityManagerTest {
 		manager.setTableSchema(user, schema, tableId);
 		verify(mockColumModelManager).bindColumnToObject(user, schema, tableId);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
+		ArgumentCaptor<ProgressingCallable> callableCapture = ArgumentCaptor.forClass(ProgressingCallable.class);
+		verify(mockTableManagerSupport).tryRunWithTableExclusiveLock(
+				any(ProgressCallback.class),
+				anyString(),
+				anyInt(),
+				callableCapture.capture());
+		ProgressingCallable<Void> callable = callableCapture.getValue();
+		assertTrue("AutoProgressingCallable must be used",callable instanceof AutoProgressingCallable);
 	}
 	
 	@SuppressWarnings("unchecked")
