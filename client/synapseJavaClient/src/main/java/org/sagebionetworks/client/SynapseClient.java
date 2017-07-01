@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -1558,6 +1559,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void deleteMembershipInvitation(String invitationId) throws SynapseException;
+
+	/**
+	 * Retrieve the number of pending Membership Invitations
+	 * @return
+	 * @throws SynapseException
+	 */
+	Count getOpenMembershipInvitationCount() throws SynapseException;
 	
 	/**
 	 * 
