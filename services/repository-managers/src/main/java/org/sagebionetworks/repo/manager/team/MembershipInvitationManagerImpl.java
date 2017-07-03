@@ -76,6 +76,9 @@ public class MembershipInvitationManagerImpl implements
 		if (!authorizationManager.canAccess(
 				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot create membership invitation.");
+		if (teamDAO.get(mis.getTeamId()).getCanPublicJoin().booleanValue()) {
+			throw new IllegalArgumentException("Cannot invite to public team.");
+		}
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
 		MembershipInvtnSubmission created = membershipInvtnSubmissionDAO.create(mis);

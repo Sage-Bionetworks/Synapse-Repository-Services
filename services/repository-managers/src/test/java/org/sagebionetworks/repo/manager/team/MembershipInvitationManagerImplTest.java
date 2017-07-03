@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -313,4 +314,19 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(count, result.getCount());
 	}
 
+	@Test
+	public void testCreateInvitationPublicTeam() {
+		try {
+			MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
+			when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+			Team team = new Team();
+			team.setCanPublicJoin(true);
+			when(mockTeamDAO.get(mis.getTeamId())).thenReturn(team);
+			membershipInvitationManagerImpl.create(userInfo, mis);
+			Assert.fail("Expected IllegalArgumentException to be thrown");
+		} catch (Exception e) {
+			assertEquals(IllegalArgumentException.class, e.getClass());
+			assertEquals("Cannot invite to public team.", e.getMessage());
+		}
+	}
 }
