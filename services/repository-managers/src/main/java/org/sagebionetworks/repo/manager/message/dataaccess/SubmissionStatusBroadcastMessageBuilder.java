@@ -24,7 +24,8 @@ public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessage
 
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String APPROVED_TITLE = "Synapse Notification: Your request had been approved";
-	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request.\n"
+	public static final String APPROVED_TEMPLATE = "A member of the Synapse Access and Compliance Team has reviewed and approved your request."
+			+ " Please visit the resource of interest (Project, Folder, File, or Team) to complete any additional requirements.\n\n"
 			+"[View your request](%1$s)";
 
 	public static final String REJECTED_TITLE = "Synapse Notification: Action needed to complete your request";
