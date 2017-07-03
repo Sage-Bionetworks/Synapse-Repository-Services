@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -150,5 +151,18 @@ public class MembershipInvitationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getMembershipInvitationService().delete(userId, id);
+	}
+
+	/**
+	 * Retrieve the number of pending Membership Invitations
+	 * @param userId
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_COUNT, method = RequestMethod.GET)
+	public @ResponseBody Count getOpenInvitationCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) {
+		return serviceProvider.getMembershipInvitationService().getOpenInvitationCount(userId);
 	}
 }

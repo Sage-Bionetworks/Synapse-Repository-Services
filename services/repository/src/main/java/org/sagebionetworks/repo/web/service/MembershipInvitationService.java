@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -72,4 +73,11 @@ public interface MembershipInvitationService {
 	 * @throws NotFoundException 
 	 */
 	public void delete(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @param principalId
+	 * @return
+	 */
+	public Count getOpenInvitationCount(Long principalId);
 }

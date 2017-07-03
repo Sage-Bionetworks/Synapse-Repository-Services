@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -117,4 +118,8 @@ public class MembershipInvitationServiceImpl implements
 		membershipInvitationManager.delete(userInfo, dtoId);
 	}
 
+	@Override
+	public Count getOpenInvitationCount(Long principalId) {
+		return membershipInvitationManager.getOpenInvitationCountForUser(principalId.toString());
+	}
 }
