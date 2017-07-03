@@ -46,7 +46,8 @@ public class PermissionsManagerUtils {
 			if (isPublic && ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
 				throw new InvalidModelException("Public may not have DOWNLOAD access.");
 			}
-			if (isPublic && !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS)){
+			if (isPublic && !userInfo.isAdmin()
+					&& !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS)){
 				throw new UnauthorizedException("Only certified users can make ACL public.");
 			}
 		}
