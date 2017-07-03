@@ -488,17 +488,17 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testJavaClientGetEntityBundle() throws SynapseException {		
+	public void testJavaClientGetEntityBundle() throws SynapseException {
 		Annotations annos = synapseOne.getAnnotations(project.getId());
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
 		annos = synapseOne.updateAnnotations(project.getId(), annos);
-		
+
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
 		acl.setId(project.getId());
 		synapseOne.updateACL(acl);
-			
+
 		int allPartsMask = EntityBundle.ENTITY |
 				EntityBundle.ANNOTATIONS |
 				EntityBundle.PERMISSIONS |
@@ -515,7 +515,8 @@ public class IT500SynapseJavaClient {
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
-		
+
+		assertNotNull(entityBundle.getRestrictionInformation());
 		assertEquals("Invalid fetched Entity in the EntityBundle", 
 				synapseOne.getEntityById(project.getId()), entityBundle.getEntity());
 		assertEquals("Invalid fetched Annotations in the EntityBundle", 
@@ -529,7 +530,6 @@ public class IT500SynapseJavaClient {
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
 		assertNull(entityBundle.getFileName());
-		assertNotNull(entityBundle.getRestrictionInformation());
 	}
 	
 	@Test

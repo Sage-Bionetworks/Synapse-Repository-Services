@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -214,7 +215,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			RestrictionInformationRequest restrictionInfoRequest = new RestrictionInformationRequest();
 			restrictionInfoRequest.setObjectId(entityId);
 			restrictionInfoRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
-			eb.setRestrictionInformation(serviceProvider.getDataAccessService().getRestrictionInformation(userId, restrictionInfoRequest));
+			RestrictionInformationResponse restrictionInfo = serviceProvider.getDataAccessService().getRestrictionInformation(userId, restrictionInfoRequest);
+			eb.setRestrictionInformation(restrictionInfo);
 		}
 		return eb;
 	}
@@ -270,7 +272,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if (ebc.getEntity() != null) {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
-			partsMask += EntityBundle.ENTITY;			
+			partsMask += EntityBundle.ENTITY;
 			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 		}
 			
