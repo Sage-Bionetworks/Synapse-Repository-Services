@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -150,5 +151,19 @@ public class MembershipRequestController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getMembershipRequestService().delete(userId, id);
+	}
+
+	/**
+	 * Retrieve the number of pending Membership Requests for teams that user is admin
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_REQUEST_COUNT, method = RequestMethod.GET)
+	public @ResponseBody Count getOpenMembershipRequestCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) {
+		return serviceProvider.getMembershipRequestService().getOpenMembershipRequestCount(userId);
 	}
 }

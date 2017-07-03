@@ -155,12 +155,14 @@ public class MembershipInvitationController extends BaseController {
 
 	/**
 	 * Retrieve the number of pending Membership Invitations
-	 * @param id
+	 * @param userId
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_COUNT, method = RequestMethod.GET)
-	public @ResponseBody Count getOpenInvitationCount(@PathVariable String id) {
-		return serviceProvider.getMembershipInvitationService().getOpenInvitationCount(id);
+	public @ResponseBody Count getOpenInvitationCount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) {
+		return serviceProvider.getMembershipInvitationService().getOpenInvitationCount(userId);
 	}
 }

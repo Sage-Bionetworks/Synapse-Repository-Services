@@ -79,5 +79,5 @@ public interface MembershipInvitationService {
 	 * @param principalId
 	 * @return
 	 */
-	public Count getOpenInvitationCount(String principalId);
+	public Count getOpenInvitationCount(Long principalId);
 }

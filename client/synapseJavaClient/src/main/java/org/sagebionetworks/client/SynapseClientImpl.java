@@ -457,6 +457,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+	private static final String OPEN_MEMBERSHIP_REQUEST_COUNT = MEMBERSHIP_REQUEST + "/openRequestCount";
 	
 	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
@@ -4106,6 +4107,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void deleteMembershipRequest(String requestId) throws SynapseException {
 		deleteUri(getRepoEndpoint(), MEMBERSHIP_REQUEST + "/" + requestId);
+	}
+
+	@Override
+	public Count getOpenMembershipRequestCount() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), OPEN_MEMBERSHIP_REQUEST_COUNT, Count.class);
 	}
 
 	@Override

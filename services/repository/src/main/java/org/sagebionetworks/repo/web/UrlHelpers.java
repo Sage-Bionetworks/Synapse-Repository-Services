@@ -844,6 +844,7 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+	public static final String OPEN_MEMBERSHIP_REQUEST_COUNT = MEMBERSHIP_REQUEST + "/openRequestCount";
 	
 	public static final String TEAM_SUBMISSION_ELIGIBILITY = EVALUATION_WITH_ID +TEAM_ID+
 			"/submissionEligibility";

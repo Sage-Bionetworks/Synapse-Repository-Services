@@ -119,7 +119,7 @@ public class MembershipInvitationServiceImpl implements
 	}
 
 	@Override
-	public Count getOpenInvitationCount(String principalId) {
-		return membershipInvitationManager.getOpenInvitationCountForUser(principalId);
+	public Count getOpenInvitationCount(Long principalId) {
+		return membershipInvitationManager.getOpenInvitationCountForUser(principalId.toString());
 	}
 }

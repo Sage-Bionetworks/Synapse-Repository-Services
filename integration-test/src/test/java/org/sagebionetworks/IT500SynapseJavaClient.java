@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -1347,6 +1348,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		
+		// check that open invitation count is 1
+		Count openInvitationCount = synapseTwo.getOpenMembershipInvitationCount();
+		assertEquals(1L, openInvitationCount.getCount().longValue());
+
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
@@ -1436,6 +1441,11 @@ public class IT500SynapseJavaClient {
 		// get the request
 		MembershipRqstSubmission retrieved = synapseTwo.getMembershipRequest(created.getId());
 		assertEquals(created, retrieved);
+
+		// check that request count is 1
+		Count requestCount = synapseOne.getOpenMembershipRequestCount();
+		assertEquals(1L, requestCount.getCount().longValue());
+
 		// query for requests based on team
 		{
 			PaginatedResults<MembershipRequest> requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);

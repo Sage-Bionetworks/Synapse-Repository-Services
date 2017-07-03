@@ -1619,6 +1619,13 @@ public interface SynapseClient extends BaseClient {
 
 	
 
+	/**
+	 * Retrieve the number of pending Membership Requests for teams that user is admin
+	 * @return
+	 * @throws SynapseException
+	 */
+	Count getOpenMembershipRequestCount() throws SynapseException;
+
 	/** Get the List of ColumnModels for TableEntity given the TableEntity's ID.
 	 * 
 	 * @param tableEntityId
