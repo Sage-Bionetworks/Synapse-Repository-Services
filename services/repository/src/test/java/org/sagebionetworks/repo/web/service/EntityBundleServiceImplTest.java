@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
@@ -395,10 +396,13 @@ public class EntityBundleServiceImplTest {
 	public void testRestrictionInfo() throws Exception {
 		String entityId = "syn123";
 		int mask = EntityBundle.RESTRICTION_INFORMATION;
-		entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
 		RestrictionInformationRequest request = new RestrictionInformationRequest();
 		request.setObjectId(entityId);
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		RestrictionInformationResponse response = new RestrictionInformationResponse();
+		when(mockDataAccessService.getRestrictionInformation(TEST_USER1, request)).thenReturn(response );
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertEquals(response, bundle.getRestrictionInformation());
 		verify(mockDataAccessService).getRestrictionInformation(TEST_USER1, request);
 	}
 }
