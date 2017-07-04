@@ -165,6 +165,8 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testCreate() throws Exception {
+		Team mockTeam = Mockito.mock(Team.class);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);

@@ -156,6 +156,8 @@ public class MembershipInvitationManagerImplTest {
 	
 	@Test
 	public void testAdminCreate() throws Exception {
+		Team mockTeam = Mockito.mock(Team.class);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
 		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		membershipInvitationManagerImpl.create(userInfo, mis);
