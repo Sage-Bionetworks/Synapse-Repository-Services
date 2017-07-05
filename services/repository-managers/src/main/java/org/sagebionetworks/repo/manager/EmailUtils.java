@@ -92,6 +92,11 @@ public class EmailUtils {
 		return getDisplayNameWithUsername(userProfile.getFirstName(), userProfile.getLastName(), userProfile.getUserName());
 	}
 	
+	public static String getDisplayNameWithUsernameAndLink(UserProfile userProfile) {
+		String displayName = getDisplayNameWithUsername(userProfile);
+		return "<a href=\"https://www.synapse.org/#!Profile:" + userProfile.getOwnerId() + "\">" + displayName + "</a>";
+	}
+	
 	public static String getEmailAddressForPrincipalName(String principalAlias) {
 		String actEmailAddress = 
 				AliasUtils.getUniqueAliasName(principalAlias)+
