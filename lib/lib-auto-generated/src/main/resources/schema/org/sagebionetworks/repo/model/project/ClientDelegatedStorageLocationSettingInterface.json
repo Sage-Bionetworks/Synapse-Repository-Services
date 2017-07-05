@@ -1,9 +1,0 @@
-{
-	"description": "Defines Storage Locations for files that can not be controlled by Synapse. All file access authentication and download/upload/delete operations are delegated the client.",
-	"type": "interface",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"
-		}
-	]
-}

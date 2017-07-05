@@ -64,8 +64,8 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ClientDelegatedS3FileHandle;
-import org.sagebionetworks.repo.model.file.ClientDelegatedS3UploadDestination;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
@@ -92,7 +92,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
-import org.sagebionetworks.repo.model.project.ClientDelegatedS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -369,7 +369,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			request.setResponseHeaders(responseHeaderOverrides);
 			return s3Client.generatePresignedUrl(request).toExternalForm();
-		}else if (handle instanceof ClientDelegatedS3FileHandle){
+		}else if (handle instanceof ExternalObjectStoreFileHandle){
 			throw new IllegalArgumentException("URL Cannot be generated because the user client is responsible for accessing the FileHandle");
 		}else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
@@ -443,11 +443,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@WriteTransaction
 	@Override
-	public ClientDelegatedS3FileHandle createClientDelegatedS3FileHandle(UserInfo userInfo, ClientDelegatedS3FileHandle fileHandle){
+	public ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandle, "fileHandle");
-		ValidateArgument.required(fileHandle.getBucketName(),"FileHandle.bucketName");
-		ValidateArgument.required(fileHandle.getKey(),"FileHandle.key");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"FileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		if (fileHandle.getFileName() == null) {
@@ -456,20 +454,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (fileHandle.getContentType() == null) {
 			fileHandle.setContentType(NOT_SET);
 		}
-		//TODO:z refactor out common ValidateArgument calls and duplicate code with createExternalS3FileHandle that check storageLocation
+
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
-		if(!(sls instanceof ClientDelegatedS3StorageLocationSetting)){
-			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ClientDelegatedS3StorageLocationSetting.class.getName());
+		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ExternalObjectStorageLocationSetting.class.getName());
 		}
-		ClientDelegatedS3StorageLocationSetting clientS3StorageLocation = (ClientDelegatedS3StorageLocationSetting) sls;
-		if(!fileHandle.getBucketName().equals(clientS3StorageLocation.getBucket())){
-			throw new IllegalArgumentException("The bucket for ClientDelegatedS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided bucket: "+fileHandle.getBucketName());
-		}
-		if( StringUtils.isNotEmpty(fileHandle.getEndpointUrl()) && !fileHandle.getEndpointUrl().equals(clientS3StorageLocation.getEndpointUrl())){
-			throw new IllegalArgumentException(("The endpointUrl for ClientDelegatedS3StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" does not match the provided endpointUrl: "+fileHandle.getEndpointUrl()));
-		}
-		//TODO:z also check baseKey??? but first, verify realtionship between filehandle.key and storageLocation.Basekey
 
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
@@ -477,7 +467,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		// Save the file metadata to the DB.
-		return (ClientDelegatedS3FileHandle) fileHandleDao.createFile(fileHandle);
+		return (ExternalObjectStoreFileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	/**
@@ -771,13 +761,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 			uploadDestination = createExternalUploadDestination((ExternalStorageLocationSetting) storageLocationSetting,
 					nodePath, filename);
-		} else if (storageLocationSetting instanceof ClientDelegatedS3StorageLocationSetting){ //TODO:z use a converter instead of this giant if-else block
-			ClientDelegatedS3StorageLocationSetting clientDelegatedS3StorageLocationSetting = (ClientDelegatedS3StorageLocationSetting) storageLocationSetting;
-			ClientDelegatedS3UploadDestination clientDelegatedS3UploadDestination = new ClientDelegatedS3UploadDestination() ;
-			clientDelegatedS3UploadDestination.setBucket(clientDelegatedS3StorageLocationSetting.getBucket());
-			clientDelegatedS3UploadDestination.setBaseKey(clientDelegatedS3StorageLocationSetting.getBaseKey());
-			clientDelegatedS3UploadDestination.setEndpointUrl(clientDelegatedS3StorageLocationSetting.getEndpointUrl());
-			uploadDestination = clientDelegatedS3UploadDestination;
+		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){ //TODO:z use a converter instead of this giant if-else block
+			ExternalObjectStoreUploadDestination externalObjectStoreUploadDestination = new ExternalObjectStoreUploadDestination() ;
+			externalObjectStoreUploadDestination.setKeyPrefixUUID(UUID.randomUUID().toString());
+			uploadDestination = externalObjectStoreUploadDestination;
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());

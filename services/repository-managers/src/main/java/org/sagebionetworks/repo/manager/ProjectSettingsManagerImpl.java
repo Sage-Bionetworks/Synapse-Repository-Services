@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.project.ClientDelegatedS3StorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
@@ -203,9 +203,15 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
-		}else if (storageLocationSetting instanceof ClientDelegatedS3StorageLocationSetting){ //TODO:z refactor this into a StorageLocationSettingValidator instead of this giant if-else block??
-			ClientDelegatedS3StorageLocationSetting clientDelegatedS3StorageLocationSetting = (ClientDelegatedS3StorageLocationSetting) storageLocationSetting;
-			ValidateArgument.required(clientDelegatedS3StorageLocationSetting.getBucket(), "bucket");
+		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){ //TODO:z refactor this into a StorageLocationSettingValidator instead of this giant if-else block??
+			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+			ValidateArgument.required(externalObjectS3StorageLocationSetting.getBucket(), "bucket");
+
+			// validate the endpointURL if it exists
+			String endpointURL = externalObjectS3StorageLocationSetting.getEndpointUrl();
+			if (endpointURL != null){
+				ValidateArgument.validUrl(endpointURL);
+			}
 		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");
