@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -776,6 +777,32 @@ public class SubmissionManagerImplTest {
 				accessRequirementId, userId);
 	}
 
+	/*
+	 * PLFM-4501
+	 */
+	@Test
+	public void testGetAccessRequirementStatusSelfSignApproved() {
+		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
+			.thenReturn(SelfSignAccessRequirement.class.getName());
+		AccessApproval approval = new AccessApproval();
+		approval.setAccessorId(userId);
+		approval.setRequirementId(Long.parseLong(accessRequirementId));
+		approval.setExpiredOn(new Date());
+		when(mockAccessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userId))
+			.thenReturn(Arrays.asList(approval));
+		AccessRequirementStatus status = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+		assertNotNull(status);
+		assertTrue(status instanceof BasicAccessRequirementStatus);
+		BasicAccessRequirementStatus basicStatus = (BasicAccessRequirementStatus) status;
+		assertEquals(accessRequirementId, basicStatus.getAccessRequirementId());
+		assertTrue(basicStatus.getIsApproved());
+		assertEquals(basicStatus.getExpiredOn(), approval.getExpiredOn());
+		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
+		verify(mockAccessApprovalDao).getActiveApprovalsForUser(
+				accessRequirementId, userId);
+	}
+
 	@Test
 	public void testGetAccessRequirementStatusACTApproved() {
 		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
@@ -815,13 +842,6 @@ public class SubmissionManagerImplTest {
 		assertEquals(mockSubmissionStatus, actARStatus.getCurrentSubmissionStatus());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
 		verify(mockSubmissionDao).getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testGetAccessRequirementStatusNotSupportType() {
-		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
-			.thenReturn("not supported type");
-		manager.getAccessRequirementStatus(mockUser, accessRequirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
