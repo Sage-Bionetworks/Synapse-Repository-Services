@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import java.util.Arrays;
 import java.util.Date;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 
@@ -18,7 +20,16 @@ public class RequestTestUtils {
 		dto.setModifiedBy("5");
 		dto.setModifiedOn(new Date());
 		dto.setEtag("etag");
-		dto.setAccessors(Arrays.asList("6", "7", "8"));
+		AccessorChange add = new AccessorChange();
+		add.setUserId("6");
+		add.setType(AccessType.GAIN_ACCESS);
+		AccessorChange renew = new AccessorChange();
+		renew.setType(AccessType.RENEW_ACCESS);
+		renew.setUserId("7");
+		AccessorChange revoke = new AccessorChange();
+		revoke.setType(AccessType.REVOKE_ACCESS);
+		revoke.setUserId("8");
+		dto.setAccessorChanges(Arrays.asList(add, renew, revoke));
 		dto.setDucFileHandleId("9");
 		dto.setIrbFileHandleId("10");
 		dto.setAttachments(Arrays.asList("11", "12"));
@@ -35,7 +46,16 @@ public class RequestTestUtils {
 		dto.setModifiedBy("5");
 		dto.setModifiedOn(new Date());
 		dto.setEtag("etag");
-		dto.setAccessors(Arrays.asList("6", "7", "8"));
+		AccessorChange add = new AccessorChange();
+		add.setUserId("6");
+		add.setType(AccessType.GAIN_ACCESS);
+		AccessorChange renew = new AccessorChange();
+		renew.setType(AccessType.RENEW_ACCESS);
+		renew.setUserId("7");
+		AccessorChange revoke = new AccessorChange();
+		revoke.setType(AccessType.REVOKE_ACCESS);
+		revoke.setUserId("8");
+		dto.setAccessorChanges(Arrays.asList(add, renew, revoke));
 		dto.setDucFileHandleId("9");
 		dto.setIrbFileHandleId("10");
 		dto.setAttachments(Arrays.asList("11", "12"));

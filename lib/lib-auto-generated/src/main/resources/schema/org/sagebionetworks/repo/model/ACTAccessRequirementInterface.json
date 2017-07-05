@@ -1,0 +1,10 @@
+{
+	"title": "ACT Access Requirement Interface",
+	"type": "interface",
+	"description": "JSON schema for 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+		}
+	]
+}

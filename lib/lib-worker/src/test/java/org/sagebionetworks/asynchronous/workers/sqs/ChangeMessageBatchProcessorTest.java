@@ -5,7 +5,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +34,7 @@ import com.amazonaws.services.sqs.model.Message;
 public class ChangeMessageBatchProcessorTest {
 
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	AmazonSQSClient mockAwsSQSClient;
 	@Mock
@@ -91,11 +91,10 @@ public class ChangeMessageBatchProcessorTest {
 		// The runner should be called twice
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 
 	@Test
-	public void testRecoverableBatch() throws RecoverableMessageException,
+	public void testRecoverableBatchWithSingleProcessor() throws RecoverableMessageException,
 			Exception {
 		// setup RecoverableMessageException failures
 		doThrow(new RecoverableMessageException()).when(mockRunner).run(
@@ -104,7 +103,31 @@ public class ChangeMessageBatchProcessorTest {
 		processor.run(mockProgressCallback, awsMessage);
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(null);
+		verify(mockAwsSQSClient).sendMessage(queueUrl,
+				EntityFactory.createJSONStringForEntity(one));
+		verify(mockAwsSQSClient).sendMessage(queueUrl,
+				EntityFactory.createJSONStringForEntity(two));
+	}
+	
+	/**
+	 * When a batch processor fails with RecoverableMessageException, each
+	 * change message should be restored to the queue individually.  
+	 * 
+	 * @throws RecoverableMessageException
+	 * @throws Exception
+	 */
+	@Test
+	public void testRecoverableBatchWithBatchProcessor() throws RecoverableMessageException,
+			Exception {
+		processor = new ChangeMessageBatchProcessor(mockAwsSQSClient,
+				queueName, mockBatchRunner);
+		// setup RecoverableMessageException failures
+		doThrow(new RecoverableMessageException()).when(mockBatchRunner).run(
+				any(ProgressCallback.class), anyListOf(ChangeMessage.class));
+		// call under test
+		processor.run(mockProgressCallback, awsMessage);
+		verify(mockBatchRunner).run(any(ProgressCallback.class),
+				anyListOf(ChangeMessage.class));
 		verify(mockAwsSQSClient).sendMessage(queueUrl,
 				EntityFactory.createJSONStringForEntity(one));
 		verify(mockAwsSQSClient).sendMessage(queueUrl,
@@ -130,8 +153,7 @@ public class ChangeMessageBatchProcessorTest {
 		doAnswer(new Answer<Object>() {
 			public Object answer(InvocationOnMock invocation) {
 				Object[] args = invocation.getArguments();
-				ProgressCallback<Void> progress = (ProgressCallback<Void>) args[0];
-				progress.progressMade(null);
+				ProgressCallback progress = (ProgressCallback) args[0];
 				return null;
 			}
 		}).when(mockRunner).run(any(ProgressCallback.class),
@@ -140,7 +162,6 @@ public class ChangeMessageBatchProcessorTest {
 		processor.run(mockProgressCallback, awsMessage);
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(4)).progressMade(null);
 	}
 	
 	@Test
@@ -150,7 +171,6 @@ public class ChangeMessageBatchProcessorTest {
 		doAnswer(new Answer<Object>() {
 			public Object answer(InvocationOnMock invocation) {
 				Object[] args = invocation.getArguments();
-				ProgressCallback<ChangeMessage> progress = (ProgressCallback<ChangeMessage>) args[0];
 				ChangeMessage change = (ChangeMessage) args[1];
 				if(one.equals(change)){
 					throw new IllegalArgumentException("Something is not right");
@@ -164,7 +184,6 @@ public class ChangeMessageBatchProcessorTest {
 		// Even though the first message triggered an error the second was processed.
 		verify(mockRunner, times(2)).run(any(ProgressCallback.class),
 				any(ChangeMessage.class));
-		verify(mockProgressCallback, times(2)).progressMade(null);
 	}
 	
 	@Test

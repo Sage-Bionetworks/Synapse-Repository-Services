@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -43,19 +44,18 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeIdAndType;
-import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -2008,79 +2008,6 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
 	}
 
-	@Test
-	public void testGetParentRelations() throws DatastoreException, InvalidModelException, NotFoundException {
-
-		Node n1 = NodeTestUtils.createNew("testGetParentRelations.name1", creatorUserGroupId);
-		String id1 = this.nodeDao.createNew(n1);
-		this.toDelete.add(id1);
-		Node n2 = NodeTestUtils.createNew("testGetParentRelations.name2", creatorUserGroupId, id1);
-		String id2 = this.nodeDao.createNew(n2);
-		this.toDelete.add(id2);
-		Node n3 = NodeTestUtils.createNew("testGetParentRelations.name3", creatorUserGroupId, id1);
-		String id3 = this.nodeDao.createNew(n3);
-		this.toDelete.add(id3);
-		Node n4 = NodeTestUtils.createNew("testGetParentRelations.name4", creatorUserGroupId, id2);
-		String id4 = this.nodeDao.createNew(n4);
-		this.toDelete.add(id4);
-
-		Map<String, NodeParentRelation> map = new HashMap<String, NodeParentRelation>();
-		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(0, 1);
-		assertNotNull(results);
-		assertTrue(results.getTotalNumberOfResults() > 4);
-		List<NodeParentRelation> rList = results.getResults();
-		assertNotNull(rList);
-		assertEquals(1, rList.size());
-		for (NodeParentRelation npr : rList) {
-			map.put(npr.getId(), npr);
-		}
-
-		results = this.nodeDao.getParentRelations(1, 2);
-		assertNotNull(results);
-		assertTrue(results.getTotalNumberOfResults() > 4);
-		rList = results.getResults();
-		assertNotNull(rList);
-		assertEquals(2, rList.size());
-		for (NodeParentRelation npr : rList) {
-			map.put(npr.getId(), npr);
-		}
-
-		results = this.nodeDao.getParentRelations(3, 1000);
-		assertNotNull(results);
-		assertTrue(results.getTotalNumberOfResults() > 4);
-		rList = results.getResults();
-		assertNotNull(rList);
-		for (NodeParentRelation npr : rList) {
-			map.put(npr.getId(), npr);
-		}
-
-		NodeParentRelation r = map.get(id1);
-		assertEquals(id1, r.getId());
-		assertNull(r.getParentId()); // The root
-		assertNotNull(r.getETag());
-		assertNotNull(r.getTimestamp());
-
-		r = map.get(id2);
-		assertEquals(id2, r.getId());
-		assertNotNull(r.getParentId());
-		assertEquals(id1, r.getParentId());
-		assertNotNull(r.getETag());
-		assertNotNull(r.getTimestamp());
-
-		r = map.get(id3);
-		assertEquals(id3, r.getId());
-		assertNotNull(r.getParentId());
-		assertEquals(id1, r.getParentId());
-		assertNotNull(r.getETag());
-		assertNotNull(r.getTimestamp());
-
-		r = map.get(id4);
-		assertEquals(id4, r.getId());
-		assertNotNull(r.getParentId());
-		assertEquals(id2, r.getParentId());
-		assertNotNull(r.getETag());
-		assertNotNull(r.getTimestamp());
-	}
 	
 	@Test
 	public void testNodeWithFileHandle() throws Exception{
@@ -2439,35 +2366,97 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetAllContainerIds(){
+	public void testGetAllContainerIds() throws Exception {
 		// Generate some hierarchy
 		List<Node> hierarchy = createHierarchy();
 		assertEquals(7, hierarchy.size());
+		int maxIds = hierarchy.size()+1;
 		Long projectId = KeyFactory.stringToKey(hierarchy.get(0).getId());
 		Long folder0Id = KeyFactory.stringToKey(hierarchy.get(1).getId());
 		Long folder1Id = KeyFactory.stringToKey(hierarchy.get(2).getId());
 		Long folder2Id = KeyFactory.stringToKey(hierarchy.get(4).getId());
 
 		// Lookup all of the containers in this hierarchy
-		List<Long> containers = nodeDao.getAllContainerIds(projectId);
-		List<Long> expected = Lists.newArrayList(
+		Set<Long> containers = nodeDao.getAllContainerIds(Arrays.asList(projectId), maxIds);
+		Set<Long> expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				projectId, folder0Id, folder1Id, folder2Id
-		);
+		));
 		assertEquals(expected, containers);
 		
 		// Folder1 contains folder2
-		containers = nodeDao.getAllContainerIds(folder1Id);
-		expected = Lists.newArrayList(
+		containers = nodeDao.getAllContainerIds(Arrays.asList(folder1Id), maxIds);
+		expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				folder1Id, folder2Id
-		);
+		));
 		assertEquals(expected, containers);
 		
 		// Folder2 contains nothing
-		containers = nodeDao.getAllContainerIds(folder2Id);
-		expected = Lists.newArrayList(
+		containers = nodeDao.getAllContainerIds(Arrays.asList(folder2Id), maxIds);
+		expected = new LinkedHashSet<Long>(Lists.newArrayList(
 				folder2Id
-		);
+		));
 		assertEquals(expected, containers);
+	}
+	
+
+	/**
+	 * Exceed the limit with one page of children.
+	 * 
+	 * @throws LimitExceededException
+	 */
+	@Test (expected=LimitExceededException.class)
+	public void testGetAllContainerIdsLimitExceededFlat() throws LimitExceededException{
+		// Generate some hierarchy
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+		
+		// Add three folders to the project
+		for(int i=0; i<3; i++){
+			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
+			folder.setNodeType(EntityType.folder);
+			folder.setParentId(projectId);
+			String folderId = nodeDao.createNew(folder);
+			toDelete.add(folderId);
+		}
+		// loading more than two from a single page should fail.
+		int maxIds = 2;
+		// call under test
+		nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
+	}
+	
+	/**
+	 * Exceed the limit with multiple calls.
+	 * 
+	 * @throws LimitExceededException
+	 */
+	@Test (expected=LimitExceededException.class)
+	public void testGetAllContainerIdsLimitExceededExpanded() throws LimitExceededException{
+		// Generate some hierarchy
+		// Create a project
+		Node project = NodeTestUtils.createNew("hierarchy", creatorUserGroupId);
+		project.setNodeType(EntityType.project);
+		String projectId = nodeDao.createNew(project);
+		Long projectIdLong = KeyFactory.stringToKey(projectId);
+		toDelete.add(projectId);
+		// for this test create hierarchy
+		String parentId = projectId;
+		// Add three folders to the project
+		for(int i=0; i<3; i++){
+			Node folder = NodeTestUtils.createNew("folder"+i, creatorUserGroupId);
+			folder.setNodeType(EntityType.folder);
+			folder.setParentId(parentId);
+			String folderId = nodeDao.createNew(folder);
+			toDelete.add(folderId);
+			parentId = folderId;
+		}
+		// loading more than two from a single page should fail.
+		int maxIds = 2;
+		// call under test
+		nodeDao.getAllContainerIds(Arrays.asList(projectIdLong), maxIds);
 	}
 	
 	@Test
@@ -3235,5 +3224,127 @@ public class NodeDAOImplTest {
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(child.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(parent.getId()));
 		assertEquals(grandparent.getId(), nodeDao.getBenefactor(grandparent.getId()));
+	}
+	
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParentEmpty(){
+		// Setup some hierarchy.
+		List<Long> parentIds = new LinkedList<Long>();
+		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetSumOfChildCRCsForEachParent(){
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		Long parentId = KeyFactory.stringToKey(parent.getId());
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		Long childId = KeyFactory.stringToKey(child.getId());
+		toDelete.add(child.getId());
+		
+		Long doesNotExist = -1L;
+		List<Long> parentIds = Lists.newArrayList(grandId, parentId, childId, doesNotExist);
+		// call under test
+		Map<Long, Long> results = nodeDao.getSumOfChildCRCsForEachParent(parentIds);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		Long crc = results.get(grandId);
+		assertNotNull(results.get(grandId));
+		assertNotNull(results.get(parentId));
+		assertEquals(null, results.get(child));
+		assertEquals(null, results.get(doesNotExist));
+	}
+	
+	@Test
+	public void testGetChildrenIdAndEtag(){
+		// Setup some hierarchy.
+		// grandparent
+		Node grandparent = NodeTestUtils.createNew("grandparent", creatorUserGroupId);
+		grandparent = nodeDao.createNewNode(grandparent);
+		Long grandId = KeyFactory.stringToKey(grandparent.getId());
+		toDelete.add(grandparent.getId());
+		// parent
+		Node parent = NodeTestUtils.createNew("parent", creatorUserGroupId);
+		parent.setParentId(grandparent.getId());
+		parent = nodeDao.createNewNode(parent);
+		Long parentId = KeyFactory.stringToKey(parent.getId());
+		toDelete.add(parent.getId());
+		// child
+		Node child = NodeTestUtils.createNew("child", creatorUserGroupId);
+		child.setParentId(parent.getId());
+		child = nodeDao.createNewNode(child);
+		Long childId = KeyFactory.stringToKey(child.getId());
+		toDelete.add(child.getId());
+		// call under test
+		List<IdAndEtag> results = nodeDao.getChildren(grandId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(parentId, parent.getETag()), results.get(0));
+		// call under test
+		results = nodeDao.getChildren(parentId);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(new IdAndEtag(childId, child.getETag()), results.get(0));
+		// call under test
+		results = nodeDao.getChildren(childId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetChildrenIdAndEtagDoesNotExist(){
+		Long doesNotExist = -1L;
+		// call under test
+		List<IdAndEtag> results = nodeDao.getChildren(doesNotExist);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testGetAvailableNodesEmpty(){
+		List<Long> empty = new LinkedList<Long>();
+		Set<Long> availableIds = nodeDao.getAvailableNodes(empty);
+		assertNotNull(availableIds);
+		assertTrue(availableIds.isEmpty());
+	}
+	
+	@Test
+	public void testGetAvailableNodes(){
+		// one
+		Node one = NodeTestUtils.createNew("one", creatorUserGroupId);
+		one = nodeDao.createNewNode(one);
+		Long oneId = KeyFactory.stringToKey(one.getId());
+		toDelete.add(one.getId());
+		// two is in the trash.
+		Node two = NodeTestUtils.createNew("two", creatorUserGroupId);
+		two.setParentId(""+NodeDAOImpl.TRASH_FOLDER_ID);
+		two = nodeDao.createNewNode(two);
+		Long twoId = KeyFactory.stringToKey(two.getId());
+		toDelete.add(two.getId());
+		
+		Long doesNotExist = -1L;
+		
+		List<Long> ids = Lists.newArrayList(oneId, twoId, doesNotExist);
+		Set<Long> availableIds = nodeDao.getAvailableNodes(ids);
+		assertNotNull(availableIds);
+		assertEquals(1, availableIds.size());
+		assertTrue(availableIds.contains(oneId));
+		assertFalse(availableIds.contains(twoId));
+		assertFalse(availableIds.contains(doesNotExist));
 	}
 }

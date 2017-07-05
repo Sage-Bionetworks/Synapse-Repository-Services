@@ -183,7 +183,7 @@ public interface TableManagerSupport {
 	 * @param table
 	 * @return
 	 */
-	public Long calculateFileViewCRC32(String table);
+	public Long calculateViewCRC32(String table);
 
 	/**
 	 * Get the set of container ids (Projects and Folders) for a view's scope.
@@ -210,17 +210,6 @@ public interface TableManagerSupport {
 	 */
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType);
 
-	
-	/**
-	 * Get the count of the number of containers (projects, folder) 
-	 *  defined by the given scope IDs.
-	 *  For example, if the given scopeId is a project entity, then
-	 *  the count will be number of folders contained in the given project.
-	 *  
-	 * @param scopeIds
-	 * @return
-	 */
-	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type);
 
 	/**
 	 * <p>
@@ -249,8 +238,8 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
-			String tableId, int timeoutMS, ProgressingCallable<R, Void> runner)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+			String tableId, int timeoutMS, ProgressingCallable<R> runner)
 			throws Exception;
 
 	/**
@@ -277,9 +266,9 @@ public interface TableManagerSupport {
 	 * @param runner
 	 * @return
 	 */
-	public <R, T> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback<T> callback, String tableId, int timeoutMS,
-			ProgressingCallable<R, T> runner) throws Exception;
+	public <R> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback callback, String tableId, int timeoutMS,
+			ProgressingCallable<R> runner) throws Exception;
 
 	/**
 	 * Validate the user has read access to the given table.
@@ -382,27 +371,6 @@ public interface TableManagerSupport {
 	ViewType getViewType(String tableId);
 
 	/**
-	 * Execute the given callback with automatic progress events generated for
-	 * the provided callback. This allows the callable to run for long periods
-	 * of time while maintaining progress events.
-	 * 
-	 * @param callback
-	 *            Progress events will be generated for the provided callback at
-	 *            a fix frequency regardless of the amount of time the callable
-	 *            takes to execute.
-	 * 
-	 * @param parameter
-	 *            The parameter to pass to the callback.
-	 * 
-	 * @param callable
-	 *            The callable to be executed.
-	 * @return
-	 * @throws Exception
-	 */
-	public <R> R callWithAutoProgress(ProgressCallback<Void> callback,
-			Callable<R> callable) throws Exception;
-
-	/**
 	 * Get the column models for the given columnIds.
 	 * 
 	 * @param ids
@@ -419,4 +387,23 @@ public interface TableManagerSupport {
 	 * @param tableId
 	 */
 	public void rebuildTable(UserInfo userInfo, String tableId);
+
+	/**
+	 * Validate that the given scope is within the size limit.
+	 * 
+	 * @param scopeIds
+	 * @param type
+	 */
+	public void validateScopeSize(Set<Long> scopeIds, ViewType type);
+
+	/**
+	 * This will trigger a worker to detect and reconcile any entity replication
+	 * data that is out-of-synch with the truth for the given view's scope.
+	 * 
+	 * @param type
+	 * @param expandedScope
+	 *            The fully expanded scope of the view.
+	 */
+	void triggerScopeReconciliation(ViewType type, Set<Long> expandedScope);
+
 }

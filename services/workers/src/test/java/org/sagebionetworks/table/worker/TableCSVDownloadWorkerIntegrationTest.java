@@ -99,7 +99,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	private List<String> toDelete;
 	private File tempFile;
 	S3FileHandle fileHandle;
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Before
 	public void before() throws NotFoundException{

@@ -1,6 +1,5 @@
 {
 	"title": "Access Approval",
-	"type": "interface",
 	"description": "JSON schema for AccessApproval POJO",
 	"name": "AccessApproval",
 	"properties": {
@@ -45,15 +44,32 @@
 			"description": "The ID of the Access Requirement that this object approves.",
 			"transient": true
 		},
+		"requirementVersion": {
+			"type": "integer",
+			"description": "The version of the Access Requirement that this object approves.",
+			"transient": true
+		},
+		"submitterId": {
+			"type": "string",
+			"description": "The user who performed the necessary action(s) to gain this approval.",
+			"transient": true
+		},
 		"accessorId": {
 			"type": "string",
 			"description": "The ID of the principal (user or group) approved for access",
 			"title": "Accessor",
 			"transient": true
 		},
-        "concreteType":{
-            "type":"string",
-            "description":"Indicates which implementation of AccessApproval this object represents."
-        }
+		"expiredOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this object will be expired.",
+			"title": "Expired On",
+			"transient": true
+		},
+		"state": {
+			"description": "The state of this approval.",
+			"$ref": "org.sagebionetworks.repo.model.ApprovalState"
+		}
 	}
 }

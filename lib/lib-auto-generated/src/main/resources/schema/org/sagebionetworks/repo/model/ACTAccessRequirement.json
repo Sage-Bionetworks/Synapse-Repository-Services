@@ -1,9 +1,9 @@
 {
 	"title": "ACT Access Requirement",
-	"description": "JSON schema for 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement",
+	"description": "JSON schema for out of band 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement. This access requirement directs user to contact an ACT member to gain access to the data.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.AccessRequirement"
+			"$ref": "org.sagebionetworks.repo.model.ACTAccessRequirementInterface"
 		}
 	],
 	"properties": {
@@ -15,42 +15,6 @@
 		"openJiraIssue": {
 			"type":"boolean",
 			"description":  "If true, then in addition to following directions in the 'actContactInfo' the client should open a JIRA issue to notify the ACT.  If omitted, default is 'true'."
-		},
-		"isCertifiedUserRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to be a Synapse Certified User to gain access to the data."
-		},
-		"isValidatedProfileRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to have their Synapse Profile validated to gain access to the data."
-		},
-		"isDUCRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to fill, sign, and submit a Data Use Certificate (DUC) to gain access to the data."
-		},
-		"ducTemplateFileHandleId": {
-			"type":"string",
-			"description":  "If the Data Use Certificate (DUC) is required, creator of this requirement needs to upload a Data Use Certificate (DUC) template. Users have to download this template, fill out, sign and submit it."
-		},
-		"isIRBApprovalRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to submit an Institutional Review Board (IRB) Approval document to gain access to the data."
-		},
-		"areOtherAttachmentsRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to upload attachment(s) other than Data Use Certificate (DUC) and Institutional Review Board (IRB) Approval document to gain access to the data."
-		},
-		"isAnnualReviewRequired": {
-			"type":"boolean",
-			"description":  "If true, then accessor needs to provide information about how they used the data annually and if they have any publication related to the data."
-		},
-		"isIDUPublic": {
-			"type":"boolean",
-			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
-		},
-		"acceptRequest": {
-			"type":"boolean",
-			"description":  "If true, allow Request to be created for this requirement."
 		}
 	}
 }

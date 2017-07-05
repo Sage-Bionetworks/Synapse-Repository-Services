@@ -3,10 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
@@ -33,21 +29,17 @@ public class SubmissionUtilsTest {
 	}
 
 	@Test
-	public void testCreateDBOSubmissionAccessor() {
+	public void testCreateDBOSubmissionSubmitter() {
 		IdGenerator mockIdGenerator = Mockito.mock(IdGenerator.class);
-		when(mockIdGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ACCESSOR_ID)).thenReturn(1L, 2L, 3L, 4L, 5L);
+		when(mockIdGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_SUBMITTER_ID)).thenReturn(1L, 2L, 3L, 4L, 5L);
 		Submission dto = SubmissionTestUtils.createSubmission();
 
-		List<DBOSubmissionAccessor> accessors = SubmissionUtils.createDBOSubmissionAccessor(dto, mockIdGenerator);
-		Set<String> accessorsSet = new HashSet<String>();
-		for (DBOSubmissionAccessor accessor : accessors) {
-			assertNotNull(accessor.getId());
-			assertNotNull(accessor.getEtag());
-			assertEquals(dto.getId(), accessor.getCurrentSubmissionId().toString());
-			assertEquals(dto.getAccessRequirementId(), accessor.getAccessRequirementId().toString());
-			accessorsSet.add(accessor.getAccessorId().toString());
-		}
-		assertEquals(accessorsSet, new HashSet<String>(dto.getAccessors()));
+		DBOSubmissionSubmitter submitter = SubmissionUtils.createDBOSubmissionSubmitter(dto, mockIdGenerator);
+		assertNotNull(submitter.getId());
+		assertNotNull(submitter.getEtag());
+		assertEquals(dto.getId(), submitter.getCurrentSubmissionId().toString());
+		assertEquals(dto.getAccessRequirementId(), submitter.getAccessRequirementId().toString());
+		assertEquals(submitter.getSubmitterId().toString(), dto.getSubmittedBy());
 	}
 
 }

@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -34,18 +32,14 @@ public class SubmissionUtils {
 		}
 	}
 
-	public static List<DBOSubmissionAccessor> createDBOSubmissionAccessor(Submission dto, IdGenerator idGenerator) {
-		List<DBOSubmissionAccessor> accessors = new ArrayList<DBOSubmissionAccessor>();
-		for (String userId : dto.getAccessors()) {
-			DBOSubmissionAccessor dbo = new DBOSubmissionAccessor();
-			dbo.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
-			dbo.setAccessorId(Long.parseLong(userId));
-			dbo.setCurrentSubmissionId(Long.parseLong(dto.getId()));
-			dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
-			dbo.setEtag(UUID.randomUUID().toString());
-			accessors.add(dbo);
-		}
-		return accessors;
+	public static DBOSubmissionSubmitter createDBOSubmissionSubmitter(Submission dto, IdGenerator idGenerator) {
+		DBOSubmissionSubmitter dbo = new DBOSubmissionSubmitter();
+		dbo.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_SUBMITTER_ID));
+		dbo.setSubmitterId(Long.parseLong(dto.getSubmittedBy()));
+		dbo.setCurrentSubmissionId(Long.parseLong(dto.getId()));
+		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
+		dbo.setEtag(UUID.randomUUID().toString());
+		return dbo;
 	}
 
 	public static DBOSubmissionStatus getDBOStatus(Submission dto) {

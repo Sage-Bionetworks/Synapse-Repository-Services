@@ -109,6 +109,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		assertEquals(mrs.getTeamId(), mr.getTeamId());
 		assertEquals(mrs.getUserId(), mr.getUserId());
 		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamCount(teamId, expiresOn.getTime()-1000L));
+		assertEquals(1, membershipRqstSubmissionDAO.getOpenRequestByTeamsCount(Arrays.asList(teamId.toString()), expiresOn.getTime()-1000L));
 		// expired
 		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamInRange(teamId, expiresOn.getTime()+1000L, 1, 0).size());
 		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamCount(teamId, expiresOn.getTime()+1000L));

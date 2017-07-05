@@ -48,7 +48,7 @@ public class PrincipalObjectRecordWriterTest {
 	@Mock
 	private GroupMembersDAO mockGroupMembersDao;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	
 	private Long principalID = 123L;
 	private Date createdOn = new Date();
@@ -116,7 +116,6 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockUserProfileManager, never()).getUserProfile(anyString());
 		verify(mockTeamDAO).get(principalID.toString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 	
 	@Test
@@ -125,7 +124,6 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 
 	@Test
@@ -140,7 +138,6 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockUserProfileManager, never()).getUserProfile(anyString());
 		verify(mockTeamDAO).get(principalID.toString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -159,7 +156,6 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(ugr)), eq(ugr.getJsonClassName()));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(upr)), eq(upr.getJsonClassName()));
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -174,7 +170,6 @@ public class PrincipalObjectRecordWriterTest {
 		verify(mockUserProfileManager).getUserProfile(principalID.toString());
 		verify(mockTeamDAO, never()).get(anyString());
 		verify(mockTeamDAO, never()).getMember(anyString(), anyString());
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -183,7 +178,6 @@ public class PrincipalObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 
 	@Test

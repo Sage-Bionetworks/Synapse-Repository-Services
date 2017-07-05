@@ -1,0 +1,22 @@
+{
+	"description": "A request to retrieve a page of accessor groups. Accessors will be group by submitter and access requirement.",
+	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The condition to filter by AccessRequirement. Use NULL to ignore this filter."
+		},
+		"submitterId":{
+			"type": "string",
+			"description": "The condition to filter by submitter. Use NULL to ignore this filter."
+		},
+		"expireBefore":{
+			"type": "string",
+			"format": "date-time",
+			"description": "The condition to filter by expiration. Use NULL to ignore this filter."
+		},
+		"nextPageToken":{
+			"type": "string",
+			"description": "The token to get the next page result. Use NULL to get the first page."
+		}
+	}
+}

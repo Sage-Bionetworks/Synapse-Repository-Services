@@ -12,26 +12,26 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmissionAccessor, DBOSubmissionAccessor>{
+public class DBOSubmissionSubmitter implements MigratableDatabaseObject<DBOSubmissionSubmitter, DBOSubmissionSubmitter>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID).withIsBackupId(true),
-			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID, true),
-			new FieldColumn("accessorId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID, true),
-			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID),
-			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG).withIsEtag(true)
+			new FieldColumn("id", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID).withIsBackupId(true),
+			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID, true),
+			new FieldColumn("submitterId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID, true),
+			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID),
+			new FieldColumn("currentSubmissionId", COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG).withIsEtag(true)
 		};
 
 	private Long currentSubmissionId;
 	private Long accessRequirementId;
-	private Long accessorId;
+	private Long submitterId;
 	private Long id;
 	private String etag;
 
 	@Override
 	public String toString() {
-		return "DBOSubmissionAccessor [currentSubmissionId=" + currentSubmissionId + ", accessRequirementId="
-				+ accessRequirementId + ", accessorId=" + accessorId + ", id=" + id + ", etag=" + etag + "]";
+		return "DBOSubmissionSubmitter [currentSubmissionId=" + currentSubmissionId + ", accessRequirementId="
+				+ accessRequirementId + ", submitterId=" + submitterId + ", id=" + id + ", etag=" + etag + "]";
 	}
 
 	@Override
@@ -39,7 +39,7 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((accessorId == null) ? 0 : accessorId.hashCode());
+		result = prime * result + ((submitterId == null) ? 0 : submitterId.hashCode());
 		result = prime * result + ((currentSubmissionId == null) ? 0 : currentSubmissionId.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -54,16 +54,16 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOSubmissionAccessor other = (DBOSubmissionAccessor) obj;
+		DBOSubmissionSubmitter other = (DBOSubmissionSubmitter) obj;
 		if (accessRequirementId == null) {
 			if (other.accessRequirementId != null)
 				return false;
 		} else if (!accessRequirementId.equals(other.accessRequirementId))
 			return false;
-		if (accessorId == null) {
-			if (other.accessorId != null)
+		if (submitterId == null) {
+			if (other.submitterId != null)
 				return false;
-		} else if (!accessorId.equals(other.accessorId))
+		} else if (!submitterId.equals(other.submitterId))
 			return false;
 		if (currentSubmissionId == null) {
 			if (other.currentSubmissionId != null)
@@ -99,12 +99,12 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 		this.accessRequirementId = accessRequirementId;
 	}
 
-	public Long getAccessorId() {
-		return accessorId;
+	public Long getSubmitterId() {
+		return submitterId;
 	}
 
-	public void setAccessorId(Long accessorId) {
-		this.accessorId = accessorId;
+	public void setSubmitterId(Long accessorId) {
+		this.submitterId = accessorId;
 	}
 
 	public Long getId() {
@@ -124,28 +124,28 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 	}
 
 	@Override
-	public TableMapping<DBOSubmissionAccessor> getTableMapping() {
-		return new TableMapping<DBOSubmissionAccessor>(){
+	public TableMapping<DBOSubmissionSubmitter> getTableMapping() {
+		return new TableMapping<DBOSubmissionSubmitter>(){
 
 			@Override
-			public DBOSubmissionAccessor mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOSubmissionAccessor dbo = new DBOSubmissionAccessor();
-				dbo.setId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID));
-				dbo.setAccessorId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID));
-				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID));
-				dbo.setCurrentSubmissionId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID));
-				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG));
+			public DBOSubmissionSubmitter mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOSubmissionSubmitter dbo = new DBOSubmissionSubmitter();
+				dbo.setId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID));
+				dbo.setSubmitterId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID));
+				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID));
+				dbo.setCurrentSubmissionId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID));
+				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG));
 				return dbo;
 			}
 
 			@Override
 			public String getTableName() {
-				return TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR;
+				return TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER;
 			}
 
 			@Override
 			public String getDDLFileName() {
-				return DDL_DATA_ACCESS_SUBMISSION_ACCESSOR;
+				return DDL_DATA_ACCESS_SUBMISSION_SUBMITTER;
 			}
 
 			@Override
@@ -154,8 +154,8 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 			}
 
 			@Override
-			public Class<? extends DBOSubmissionAccessor> getDBOClass() {
-				return DBOSubmissionAccessor.class;
+			public Class<? extends DBOSubmissionSubmitter> getDBOClass() {
+				return DBOSubmissionSubmitter.class;
 			}
 			
 		};
@@ -163,21 +163,21 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.DATA_ACCESS_SUBMISSION_ACCESSOR;
+		return MigrationType.DATA_ACCESS_SUBMISSION_SUBMITTER;
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOSubmissionAccessor, DBOSubmissionAccessor> getTranslator() {
-		return new MigratableTableTranslation<DBOSubmissionAccessor, DBOSubmissionAccessor>(){
+	public MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter> getTranslator() {
+		return new MigratableTableTranslation<DBOSubmissionSubmitter, DBOSubmissionSubmitter>(){
 
 			@Override
-			public DBOSubmissionAccessor createDatabaseObjectFromBackup(
-					DBOSubmissionAccessor backup) {
+			public DBOSubmissionSubmitter createDatabaseObjectFromBackup(
+					DBOSubmissionSubmitter backup) {
 				return backup;
 			}
 
 			@Override
-			public DBOSubmissionAccessor createBackupFromDatabaseObject(DBOSubmissionAccessor dbo) {
+			public DBOSubmissionSubmitter createBackupFromDatabaseObject(DBOSubmissionSubmitter dbo) {
 				return dbo;
 			}
 			
@@ -185,13 +185,13 @@ public class DBOSubmissionAccessor implements MigratableDatabaseObject<DBOSubmis
 	}
 
 	@Override
-	public Class<? extends DBOSubmissionAccessor> getBackupClass() {
-		return DBOSubmissionAccessor.class;
+	public Class<? extends DBOSubmissionSubmitter> getBackupClass() {
+		return DBOSubmissionSubmitter.class;
 	}
 
 	@Override
-	public Class<? extends DBOSubmissionAccessor> getDatabaseObjectClass() {
-		return DBOSubmissionAccessor.class;
+	public Class<? extends DBOSubmissionSubmitter> getDatabaseObjectClass() {
+		return DBOSubmissionSubmitter.class;
 	}
 
 	@Override

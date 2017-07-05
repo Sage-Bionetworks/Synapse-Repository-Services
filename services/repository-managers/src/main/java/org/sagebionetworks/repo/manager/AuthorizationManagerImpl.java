@@ -16,27 +16,23 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.SelfSignAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VerificationDAO;
@@ -73,8 +69,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
-	private AccessApprovalDAO  accessApprovalDAO;
-	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
@@ -102,6 +96,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO dataAccessSubmissionDao;
 	@Autowired
 	private DockerNodeDao dockerNodeDao;
+	@Autowired
+	private GroupMembersDAO groupMembersDao;
 
 	
 	@Override
@@ -120,20 +116,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
-				if (userInfo.isAdmin()) {
+				if (isACTTeamMemberOrAdmin(userInfo)) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				if (accessType==ACCESS_TYPE.READ || accessType==ACCESS_TYPE.DOWNLOAD) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
-				return canAdminAccessRequirement(userInfo, accessRequirement);
+				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
 			case ACCESS_APPROVAL:
-				if (userInfo.isAdmin()) {
+				if (isACTTeamMemberOrAdmin(userInfo)) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
-				AccessApproval accessApproval = accessApprovalDAO.get(objectId);
-				return canAdminAccessApproval(userInfo, accessApproval);
+				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
 			case TEAM:
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
@@ -322,34 +316,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo,
-			AccessRequirement accessRequirement) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil.accessDenied("Access Requirements may only be created by a member of the Synapse Access and Compliance Team.");
-		}
-	}
-
-	@Override
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
 		if(userInfo.getGroups().contains(TeamConstants.ACT_TEAM_ID)) return true;
 		return false;
-	}
-
-	/**
-	 * Check that user is an administrator or ACT member. 
-	 * @param userInfo
-	 * @param accessRequirement
-	 * @throws NotFoundException
-	 */
-	private AuthorizationStatus canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			return AuthorizationManagerUtil.accessDenied("Only ACT member may create or modify Access Restrictions.");
-		}
 	}
 	
 	/**
@@ -372,40 +342,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
 
-		// TODO: replace the rest of the logic with one AccessRequirementDAO call.
-		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getAllAccessRequirementsForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
-		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getAllAccessRequirementsForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
-		Set<AccessRequirement> diff = new HashSet<AccessRequirement>(allRequirementsForSourceParent);
-		diff.removeAll(allRequirementsForDestParent);
-		if (diff.isEmpty()) { // only OK if destParent has all the requirements that source parent has
+		List<String> missingRequirements = accessRequirementDAO.getAccessRequirementDiff(sourceParentAncestorIds, destParentAncestorIds, RestrictableObjectType.ENTITY);
+		if (missingRequirements.isEmpty()) { // only OK if destParent has all the requirements that source parent has
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
 			return AuthorizationManagerUtil.accessDenied("Cannot move restricted entity to a location having fewer access restrictions.");
-		}
-	}
-	
-	private AuthorizationStatus canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
-		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
-		return canAdminAccessRequirement(userInfo, accessRequirement);
-	}
-
-	@Override
-	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo,
-			AccessApproval accessApproval) {
-		if (accessApproval instanceof ACTAccessApproval) {
-			if (isACTTeamMemberOrAdmin(userInfo)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
-			} else {
-				return new AuthorizationStatus(false, "User is not an ACT Member.");
-			}
-		} else if (accessApproval instanceof SelfSignAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else if (accessApproval instanceof TermsOfUseAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else if (accessApproval instanceof PostMessageContentAccessApproval) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		} else {
-			throw new IllegalArgumentException("Unrecognized type: "+accessApproval.getClass().getName());
 		}
 	}
 
@@ -605,7 +546,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
 			isInTrash = TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
 		}
-		
 		for (String requestedActionString : actionTypes.split(",")) {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
@@ -625,7 +565,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					if (!isInTrash) {
 						// check update permission on this entity
 						as = canAccess(userInfo, existingDockerRepoId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-					}				}
+					}
+				}
 				if (as!=null && as.getAuthorized()) {
 					permittedActions.add(requestedAction);
 					if (existingDockerRepoId==null) permittedActions.add(pull);
@@ -650,7 +591,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return permittedActions;
 	}
 
-
-
-
+	@Override
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
+		if (req.getIsCertifiedUserRequired()) {
+			ValidateArgument.requirement(groupMembersDao.areMemberOf(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+					accessors),
+					"Accessors must be Synapse Certified Users.");
+		}
+		if (req.getIsValidatedProfileRequired()) {
+			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
+					"Accessors must have validated profiles.");
+		}
+	}
 }

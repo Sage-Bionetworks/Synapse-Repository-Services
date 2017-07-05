@@ -8,19 +8,15 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +34,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -231,17 +228,27 @@ public class TrashManagerImplTest {
 	}
 	
 	@Test
-	public void testDeleteAllAclsInHierarchy(){
-		List<Long> parentIds = Lists.newArrayList(123L,456L);
-		when(mockNodeDAO.getAllContainerIds(nodeID)).thenReturn(parentIds);
+	public void testDeleteAllAclsInHierarchy() throws LimitExceededException{
+		List<Long> parentIdsList = Lists.newArrayList(123L,456L);
+		Set<Long> parentIds = new LinkedHashSet<Long>(parentIdsList);
+		when(mockNodeDAO.getAllContainerIds(nodeID, TrashManagerImpl.MAX_IDS_TO_LOAD)).thenReturn(parentIds);
 		List<Long> childernWithAcls = Lists.newArrayList(456L, 444L);
-		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIds)).thenReturn(childernWithAcls);
+		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIdsList)).thenReturn(childernWithAcls);
 		// call under test
 		trashManager.deleteAllAclsInHierarchy(nodeID);
 		// delete the acl of the node
 		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
 		// delete all acls for the hierarchy.
 		verify(mockAclDAO).delete(childernWithAcls, ObjectType.ENTITY);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteAllAclsInHierarchyOverLimit() throws LimitExceededException{
+		// setup limit exceeded.
+		LimitExceededException exception = new LimitExceededException("too many");
+		doThrow(exception).when(mockNodeDAO).getAllContainerIds(anyString(), anyInt());
+		// call under test
+		trashManager.deleteAllAclsInHierarchy(nodeID);
 	}
 	
 	

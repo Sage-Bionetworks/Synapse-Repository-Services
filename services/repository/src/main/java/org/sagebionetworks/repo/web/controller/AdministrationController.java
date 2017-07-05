@@ -5,14 +5,11 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -366,39 +363,4 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 
-	/**
-	 * Admin service to delete a batch of AccessApproval
-	 * 
-	 * @param userId
-	 * @param toDelete
-	 * @return
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_APPROVALS, method = RequestMethod.POST)
-	public @ResponseBody Count deleteAccessApprovals(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody IdList toDelete) 
-			throws UnauthorizedException, NotFoundException {
-		return serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, toDelete);
-	}
-
-	/**
-	 * Admin service to update AccessRequirement version
-	 * 
-	 * @param userId
-	 * @param requirementId
-	 * @return
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_VERSION, method = RequestMethod.PUT)
-	public @ResponseBody AccessRequirement updateVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String requirementId) 
-			throws UnauthorizedException, NotFoundException {
-		return serviceProvider.getAccessRequirementService().updateVersion(userId, requirementId);
-	}
 }

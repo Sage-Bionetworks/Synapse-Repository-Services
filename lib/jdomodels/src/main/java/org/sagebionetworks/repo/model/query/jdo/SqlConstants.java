@@ -95,11 +95,8 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER	= "CURRENT_REV_NUM";
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY				= "CREATED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON				= "CREATED_ON";
-	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY				= "MODIFIED_BY";
-	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON				= "MODIFIED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE				= "ACCESS_TYPE";
 	public static final String COL_ACCESS_REQUIREMENT_CONCRETE_TYPE				= "CONCRETE_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY			= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT						= "schema/AccessRequirement-ddl.sql";
 	
 	// The ACCESS_REQUIREMENT_REVISION table
@@ -129,17 +126,20 @@ public class SqlConstants {
 	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
 	
 	// The ACCESS_APPROVAL table
-	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
-	public static final String COL_ACCESS_APPROVAL_ID				= "ID";
-	public static final String COL_ACCESS_APPROVAL_ETAG				= "ETAG";
-	public static final String COL_ACCESS_APPROVAL_CREATED_BY		= "CREATED_BY";
-	public static final String COL_ACCESS_APPROVAL_CREATED_ON		= "CREATED_ON";
-	public static final String COL_ACCESS_APPROVAL_MODIFIED_BY		= "MODIFIED_BY";
-	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON		= "MODIFIED_ON";
-	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID	= "REQUIREMENT_ID";
-	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID		= "ACCESSOR_ID";
-	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
-	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
+	public static final String TABLE_ACCESS_APPROVAL						= "ACCESS_APPROVAL";
+	public static final String COL_ACCESS_APPROVAL_ID						= "ID";
+	public static final String COL_ACCESS_APPROVAL_ETAG						= "ETAG";
+	public static final String COL_ACCESS_APPROVAL_CREATED_BY				= "CREATED_BY";
+	public static final String COL_ACCESS_APPROVAL_CREATED_ON				= "CREATED_ON";
+	public static final String COL_ACCESS_APPROVAL_MODIFIED_BY				= "MODIFIED_BY";
+	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON				= "MODIFIED_ON";
+	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID			= "REQUIREMENT_ID";
+	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_VERSION		= "REQUIREMENT_VERSION";
+	public static final String COL_ACCESS_APPROVAL_SUBMITTER_ID				= "SUBMITTER_ID";
+	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID				= "ACCESSOR_ID";
+	public static final String COL_ACCESS_APPROVAL_EXPIRED_ON				= "EXPIRED_ON";
+	public static final String COL_ACCESS_APPROVAL_STATE					= "STATE";
+	public static final String DDL_FILE_ACCESS_APPROVAL						= "schema/AccessApproval-ddl.sql";
 	
 	// The CHANGES table
 	public static final String TABLE_CHANGES						= "CHANGES";
@@ -855,14 +855,14 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_STATE = 			"STATE";
 	public static final String COL_DATA_ACCESS_SUBMISSION_STATUS_REASON = 			"REASON";
 
-	// DataAccessSubmissionAccessors
-	public static final String DDL_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"schema/DataAccessSubmissionAccessor-ddl.sql";
-	public static final String TABLE_DATA_ACCESS_SUBMISSION_ACCESSOR = 						"DATA_ACCESS_SUBMISSION_ACCESSOR";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ID = 					"ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESSOR_ID = 			"ACCESSOR_ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
-	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESSOR_ETAG = 				"ETAG";
+	// DataAccessSubmissionSubmitter
+	public static final String DDL_DATA_ACCESS_SUBMISSION_SUBMITTER = 							"schema/DataAccessSubmissionSubmitter-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER = 						"DATA_ACCESS_SUBMISSION_SUBMITTER";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ID = 						"ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID = 				"SUBMITTER_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID = 	"CURRENT_SUBMISSION_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID = 	"ACCESS_REQUIREMENT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ETAG = 						"ETAG";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

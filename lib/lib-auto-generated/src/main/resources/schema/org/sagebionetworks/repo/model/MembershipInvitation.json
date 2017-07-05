@@ -20,6 +20,12 @@
 			"format": "date-time",
 			"description": "The date this MembershipInvitation expires.",
 			"title": "Expires On"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipInvitation was created.",
+			"title": "Created On"
 		}
 	}
 }

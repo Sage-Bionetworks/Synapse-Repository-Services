@@ -13,6 +13,11 @@
 		"isApproved":{
 			"type": "boolean",
 			"description":"True if there is an AccessApproval for the user for the given AccessRequirement."
+		},
+		"expiredOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date that the user no longer have access to the data."
 		}
 	}
 }

@@ -40,7 +40,7 @@ public class FileHandleSnapshotRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private FileHandleSnapshotRecordWriter writer;
 	private String id = "123";
 
@@ -58,7 +58,6 @@ public class FileHandleSnapshotRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -81,7 +80,6 @@ public class FileHandleSnapshotRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage, changeMessage));
 		verify(mockFileHandleDao, times(2)).get(id);
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected, expected)), eq(expected.getJsonClassName()));
-		verify(mockCallback, times(3)).progressMade(null);
 	}
 
 	@Test

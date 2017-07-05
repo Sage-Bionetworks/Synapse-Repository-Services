@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,7 +23,7 @@ public class AccessRequirementFileHandleAssociationProviderTest {
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
 	@Mock
-	private ACTAccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockAccessRequirement;
 	private AccessRequirementFileHandleAssociationProvider provider;
 	
 	@Before

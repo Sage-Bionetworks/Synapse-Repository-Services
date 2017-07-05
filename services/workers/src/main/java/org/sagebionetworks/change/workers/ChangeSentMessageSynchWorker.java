@@ -37,7 +37,7 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  * @author jmhill
  * 
  */
-public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
+public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 
 	private static final String AVG_PUBLISH = "avg publish time";
 
@@ -77,7 +77,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback) throws Exception {
+	public void run(final ProgressCallback progressCallback) throws Exception {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -119,8 +119,6 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 					// Send each sub-list as a batch
 					for(List<ChangeMessage> batch: subLists){
 						try {
-							// For each message make progress
-							progressCallback.progressMade(null);
 							// publish the message.
 							long pubStart = System.currentTimeMillis();
 							// publish the batch
@@ -137,8 +135,6 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner<Void> {
 				}
 
 			}
-			// Extend the timeout for this worker by calling the callback
-			progressCallback.progressMade(null);
 			// Create some metrics
 			long elapse = System.currentTimeMillis()-startTime;
 			workerLogger.logCustomMetric(createElapseProfileData(elapse, ELAPSE_TIME));

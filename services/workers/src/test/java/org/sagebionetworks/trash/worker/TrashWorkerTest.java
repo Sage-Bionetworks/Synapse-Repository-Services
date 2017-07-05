@@ -1,19 +1,14 @@
 package org.sagebionetworks.trash.worker;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.isNull;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-
-import static org.sagebionetworks.trash.worker.TrashWorker.TRASH_DELETE_LIMIT;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.trash.worker.TrashWorker.CUTOFF_TRASH_AGE_IN_DAYS;
+import static org.sagebionetworks.trash.worker.TrashWorker.TRASH_DELETE_LIMIT;
 
-import java.sql.Timestamp;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,7 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class TrashWorkerTest {
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Mock
 	TrashManager mockManager;

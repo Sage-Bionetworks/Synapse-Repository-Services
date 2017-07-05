@@ -25,7 +25,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 */
 	public static final long UPDATE_FEQUENCY_MS = 2000;
 	CSVWriter writer;
-	ProgressCallback<Void> progressCallback;
+	ProgressCallback progressCallback;
 	Message originatingMessage;
 	AsynchJobStatusManager asynchJobStatusManager;
 	long currentProgress;
@@ -49,7 +49,7 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 	 *            continues to be made.
 	 */
 	public ProgressingCSVWriterStream(CSVWriter writer,
-			ProgressCallback<Void> progressCallback, Message originatingMessage,
+			ProgressCallback progressCallback, Message originatingMessage,
 			AsynchJobStatusManager asynchJobStatusManager,
 			long currentProgress, long totalProgress, String jobId, Clock clock) {
 		super();
@@ -71,8 +71,6 @@ public class ProgressingCSVWriterStream implements CSVWriterStream {
 		// We do not want to spam the listeners, so we only update progress every few seconds.
 		if(clock.currentTimeMillis() - lastUpdateTimeMS > UPDATE_FEQUENCY_MS){
 			// It is time to update the progress
-			// notify that progress is still being made for this message
-			progressCallback.progressMade(null);
 			// Update the status
 			asynchJobStatusManager.updateJobProgress(jobId, currentProgress, totalProgress, BUILDING_THE_CSV);
 			// reset the clock

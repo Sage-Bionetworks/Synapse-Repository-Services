@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,7 +59,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -178,8 +178,8 @@ public class TableWorkerIntegrationTest {
 	List<String> headers;
 	private String tableId;
 	
-	ProgressCallback<Void> mockPprogressCallback;
-	ProgressCallback<Void> mockProgressCallbackVoid;
+	ProgressCallback mockPprogressCallback;
+	ProgressCallback mockProgressCallbackVoid;
 
 	private List<UserInfo> users;
 
@@ -274,8 +274,6 @@ public class TableWorkerIntegrationTest {
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
-		// Progress should have been made
-		verify(mockProgressCallbackVoid, atLeast(2)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -311,8 +309,6 @@ public class TableWorkerIntegrationTest {
 		// Wait for the table to become available
 		String sql = "select row_id from " + tableId;
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
-		// Progress should have been made
-		verify(mockProgressCallbackVoid, atLeast(1)).progressMade(null);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -1651,7 +1647,7 @@ public class TableWorkerIntegrationTest {
 		} catch (UnauthorizedException e) {
 		}
 
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(notOwner.getId().toString());
 		aa.setRequirementId(downloadAR.getId());
 		accessApprovalManager.createAccessApproval(notOwner, aa);

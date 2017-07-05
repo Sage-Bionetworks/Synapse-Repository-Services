@@ -67,7 +67,7 @@ public class BroadcastMessageManagerImplTest {
 	@Mock
 	UserInfo mockUser;
 	@Mock
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	@Mock
 	PrincipalAliasDAO mockPrincipalAliasDao;
 	@Mock
@@ -144,8 +144,6 @@ public class BroadcastMessageManagerImplTest {
 		manager.broadcastMessage(mockUser, mockCallback, change);
 		// The message state should be sent.
 		verify(mockBroadcastMessageDao).setBroadcast(change.getChangeNumber());
-		// progress should be made for each subscriber
-		verify(mockCallback, times(2)).progressMade(null);
 		// two messages should be sent
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
@@ -182,7 +180,6 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserManager, never()).getUserInfo(2L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
-		verify(mockCallback, times(3)).progressMade(null);
 		verify(mockSesClient, times(3)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
@@ -244,7 +241,6 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserManager).getUserInfo(222L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(accessDeniedUserInfo, topic.getObjectId(), topic.getObjectType());
-		verify(mockCallback, times(1)).progressMade(null);
 		verify(mockSesClient, times(1)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 
@@ -275,7 +271,6 @@ public class BroadcastMessageManagerImplTest {
 		verify(mockUserManager).getUserInfo(222L);
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo1, topic.getObjectId(), topic.getObjectType());
 		verify(mockAuthManager).canSubscribe(hasAccessUserInfo2, topic.getObjectId(), topic.getObjectType());
-		verify(mockCallback, times(2)).progressMade(null);
 		verify(mockSesClient, times(2)).sendRawEmail(any(SendRawEmailRequest.class));
 	}
 

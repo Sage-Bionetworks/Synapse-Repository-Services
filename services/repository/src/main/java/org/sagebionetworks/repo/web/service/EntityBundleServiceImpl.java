@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,6 +27,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
@@ -127,13 +130,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		// EntityBundle.ACCESS_REQUIREMENTS && EntityBundle.UNMET_ACCESS_REQUIREMENTS
-		// will be deprecated after ACT feature
-		// TODO: throw IllegalArgumentException
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			eb.setAccessRequirements(accessRequirementManager.getAllAccessRequirementsForSubject(
-					userManager.getUserInfo(userId), subjectId));
-		}		
+			// This is deprecated.
+			eb.setAccessRequirements(new LinkedList<AccessRequirement>());
+		}
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
 			eb.setUnmetAccessRequirements(accessRequirementManager.getAllUnmetAccessRequirements(
 					userManager.getUserInfo(userId), subjectId, ACCESS_TYPE.DOWNLOAD));
@@ -211,9 +211,16 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalStateException("Unexpected EntityThreadCount list size: "+result.getList().size());
 			}
 		}
+		if ((mask & EntityBundle.RESTRICTION_INFORMATION) > 0) {
+			RestrictionInformationRequest restrictionInfoRequest = new RestrictionInformationRequest();
+			restrictionInfoRequest.setObjectId(entityId);
+			restrictionInfoRequest.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+			RestrictionInformationResponse restrictionInfo = serviceProvider.getDataAccessService().getRestrictionInformation(userId, restrictionInfoRequest);
+			eb.setRestrictionInformation(restrictionInfo);
+		}
 		return eb;
-	}	
-	
+	}
+
 	@WriteTransaction
 	@Override
 	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
@@ -265,7 +272,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if (ebc.getEntity() != null) {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
-			partsMask += EntityBundle.ENTITY;			
+			partsMask += EntityBundle.ENTITY;
 			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 		}
 			

@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import javax.sql.DataSource;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
@@ -245,7 +247,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public RowSet query(ProgressCallback<Void> callback, final SqlQuery query) {
+	public RowSet query(ProgressCallback callback, final SqlQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
@@ -273,7 +275,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public boolean queryAsStream(final ProgressCallback<Void> callback, final SqlQuery query, final RowHandler handler) {
+	public boolean queryAsStream(final ProgressCallback callback, final SqlQuery query, final RowHandler handler) {
 		ValidateArgument.required(query, "Query");
 		final ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(query.getSelectColumns());
 		// We use spring to create create the prepared statement
@@ -281,10 +283,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				// refresh the lock.
-				if(callback != null){
-					callback.progressMade(null);
-				}
 				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
 				handler.nextRow(row);
 			}
@@ -530,10 +528,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void createEntityReplicationTablesIfDoesNotExist(){
 		template.update(TableConstants.ENTITY_REPLICATION_TABLE_CREATE);
 		template.update(TableConstants.ANNOTATION_REPLICATION_TABLE_CREATE);
+		template.update(TableConstants.REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 	}
 
 	@Override
-	public void deleteEntityData(final ProgressCallback<Void> progressCallback, List<Long> entityIds) {
+	public void deleteEntityData(final ProgressCallback progressCallback, List<Long> entityIds) {
 		final List<Long> sorted = new ArrayList<Long>(entityIds);
 		// sort to prevent deadlock.
 		Collections.sort(sorted);
@@ -543,7 +542,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				progressCallback.progressMade(null);
 				ps.setLong(1, sorted.get(i));
 			}
 
@@ -555,7 +553,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public void addEntityData(final ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs) {
+	public void addEntityData(final ProgressCallback progressCallback, List<EntityDTO> entityDTOs) {
 		final List<EntityDTO> sorted = new ArrayList<EntityDTO>(entityDTOs);
 		Collections.sort(sorted);
 		// batch update the entity table
@@ -564,8 +562,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				// progress for each row.
-				progressCallback.progressMade(null);
 				EntityDTO dto = sorted.get(i);
 				int parameterIndex = 1;
 				ps.setLong(parameterIndex++, dto.getId());
@@ -618,8 +614,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
-				// progress for each row.
-				progressCallback.progressMade(null);
 				AnnotationDTO dto = annotations.get(i);
 				int parameterIndex = 1;
 				ps.setLong(parameterIndex++, dto.getEntityId());
@@ -716,8 +710,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId, String etagColumnId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId);
+	public long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorColumnId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
 			return -1L;
@@ -777,6 +771,97 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return cm;
 			}
 		});
+	}
+
+	@Override
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds) {
+		ValidateArgument.required(parentIds, "parentIds");
+		final Map<Long, Long> results = new HashMap<>();
+		if(parentIds.isEmpty()){
+			return results;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARENT_ID_PARAMETER_NAME, parentIds);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		namedTemplate.query(SELECT_ENTITY_CHILD_CRC, param, new RowCallbackHandler() {
+			
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				Long parentId = rs.getLong(ENTITY_REPLICATION_COL_PARENT_ID);
+				Long crc = rs.getLong(CRC_ALIAS);
+				results.put(parentId, crc);
+			}
+		});
+		return results;
+	}
+
+	@Override
+	public List<IdAndEtag> getEntityChildren(Long parentId) {
+		ValidateArgument.required(parentId, "parentId");
+		return this.template.query(SELECT_ENTITY_CHILD_ID_ETAG, new RowMapper<IdAndEtag>(){
+
+			@Override
+			public IdAndEtag mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Long id = rs.getLong(TableConstants.ENTITY_REPLICATION_COL_ID);
+				String etag = rs.getString(ENTITY_REPLICATION_COL_ETAG);
+				return new IdAndEtag(id, etag);
+			}}, parentId);
+	}
+
+	@Override
+	public List<Long> getExpiredContainerIds(List<Long> entityContainerIds) {
+		ValidateArgument.required(entityContainerIds, "entityContainerIds");
+		if(entityContainerIds.isEmpty()){
+			return new LinkedList<Long>();
+		}
+		/*
+		 * An ID that does not exist, should be treated the same as an expired
+		 * ID. Therefore, start off with all of the IDs expired, so the
+		 * non-expired IDs can be removed.
+		 */
+		LinkedHashSet<Long> expiredId = new LinkedHashSet<Long>(entityContainerIds);
+		// Query for those that are not expired.
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAMETER_NAME, entityContainerIds);
+		param.addValue(EXPIRES_PARAM, System.currentTimeMillis());
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
+		List<Long> nonExpiredIds =  namedTemplate.queryForList(SELECT_NON_EXPIRED_IDS, param, Long.class);
+		// remove all that are not expired.
+		expiredId.removeAll(nonExpiredIds);
+		// return the remain.
+		return new LinkedList<Long>(expiredId);
+	}
+
+	@Override
+	public void setContainerSynchronizationExpiration(final List<Long> toSet,
+			final long newExpirationDateMS) {
+		ValidateArgument.required(toSet, "toSet");
+		if(toSet.isEmpty()){
+			return;
+		}
+		template.batchUpdate(BATCH_INSERT_REPLICATION_SYNC_EXP, new BatchPreparedStatementSetter() {
+			
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				Long idToSet = toSet.get(i);
+				int index = 1;
+				ps.setLong(index++, idToSet);
+				ps.setLong(index++, newExpirationDateMS);
+				ps.setLong(index++, newExpirationDateMS);
+			}
+			
+			@Override
+			public int getBatchSize() {
+				return toSet.size();
+			}
+		});
+		
+	}
+
+	@Override
+	public void truncateReplicationSyncExpiration() {
+		template.update(TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE);
 	}
 
 }

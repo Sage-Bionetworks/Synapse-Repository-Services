@@ -86,7 +86,7 @@ public class AnnotationsDAOImplTest {
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString(); 
-				
+						
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(SUBMISSION_NAME, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");

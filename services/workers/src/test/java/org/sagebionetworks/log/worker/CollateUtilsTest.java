@@ -27,7 +27,7 @@ import org.sagebionetworks.logging.s3.LogReader;
  */
 public class CollateUtilsTest {
 	
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	
 	@Before
 	public void before(){
@@ -44,8 +44,6 @@ public class CollateUtilsTest {
 		BufferedWriter buffered = new BufferedWriter(strWriter);
 		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
-		verify(mockCallback, times(7)).progressMade(null);
-//		System.out.println(strWriter.toString());
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);
@@ -68,8 +66,6 @@ public class CollateUtilsTest {
 		BufferedWriter buffered = new BufferedWriter(strWriter);
 		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
-		verify(mockCallback, times(7)).progressMade(null);
-//		System.out.println(strWriter.toString());
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);
@@ -93,8 +89,6 @@ public class CollateUtilsTest {
 		BufferedWriter buffered = new BufferedWriter(strWriter);
 		CollateUtils.collateLogs(toCollate, buffered, mockCallback);
 		buffered.flush();
-		System.out.println(strWriter.toString());
-		verify(mockCallback, times(18)).progressMade(null);
 		// Validate the results;
 		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);

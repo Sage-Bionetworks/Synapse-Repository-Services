@@ -5,16 +5,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
+import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
-import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.model.Grouping;
-import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 
@@ -64,7 +62,7 @@ public interface TableIndexDAO {
 	 * @param query
 	 * @return
 	 */
-	public RowSet query(ProgressCallback<Void> callback, SqlQuery query);
+	public RowSet query(ProgressCallback callback, SqlQuery query);
 	
 	/**
 	 * Run a simple count query.
@@ -81,7 +79,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	public boolean queryAsStream(ProgressCallback<Void> callback, SqlQuery query, RowHandler handler);
+	public boolean queryAsStream(ProgressCallback callback, SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.
@@ -281,14 +279,14 @@ public interface TableIndexDAO {
 	 * 
 	 * @param allIds
 	 */
-	public void deleteEntityData(ProgressCallback<Void> progressCallback, List<Long> allIds);
+	public void deleteEntityData(ProgressCallback progressCallback, List<Long> allIds);
 
 	/**
 	 * Add the given entity data to the index.
 	 * 
 	 * @param entityDTOs
 	 */
-	public void addEntityData(ProgressCallback<Void> progressCallback, List<EntityDTO> entityDTOs);
+	public void addEntityData(ProgressCallback progressCallback, List<EntityDTO> entityDTOs);
 	
 	/**
 	 * Get the entity DTO for a given entity ID.
@@ -325,10 +323,11 @@ public interface TableIndexDAO {
 	 * 
 	 * @param viewId
 	 * @param etagColumnId The ID of the view's ETAG column.
+	 * @param benefactorColumnId The ID of the view's benefactorId column.
 	 * 
 	 * @return
 	 */
-	long calculateCRC32ofTableView(String viewId, String etagColumnId);
+	long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId);
 
 	/**
 	 * Save both the current version and schema MD5 for current index.
@@ -349,5 +348,52 @@ public interface TableIndexDAO {
 	 */
 	public List<ColumnModel> getPossibleColumnModelsForContainers(
 			Set<Long> containerIds, ViewType type, Long limit, Long offset);
+	
+	/**
+	 * The process for synchronizing entity replication data with the truth is
+	 * expensive, so the frequency of the synchronization is limited. Since
+	 * synchronization occurs at the entity container level, each time a
+	 * container is synchronized, a new expiration date is set for that
+	 * container. The container should not be re-synchronized until the set
+	 * expiration date is past.
+	 * 
+	 * For a given set of entity container IDs, this method will return the sub-set
+	 * of containers which have expired.
+	 * 
+	 * If a given container ID does not have a set expiration, it will be returned.
+	 * 
+	 * @param entityContainerIds
+	 * @return
+	 */
+	List<Long> getExpiredContainerIds(List<Long> entityContainerIds);
+	
+
+	/**
+	 * @see {@link #getExpiredContainerIds(List)}.
+	 * 
+	 * Set the expiration for a set of containers.
+	 * 
+	 * @param expirations
+	 */
+	public void setContainerSynchronizationExpiration(List<Long> toSet, long newExpirationDateMS);
+	
+	/**
+	 * Clear all expirations.
+	 */
+	public void truncateReplicationSyncExpiration();
+
+	/**
+	 * For each parent, get the sum of CRCs of their children.
+	 *   
+	 * @return Map.key = parentId and map.value = sum of children CRCs.
+	 */
+	public Map<Long, Long> getSumOfChildCRCsForEachParent(List<Long> parentIds);
+
+	/**
+	 * Get the Id and Etag for each child of the given Entity parentId.
+	 * @param outOfSynchParentId
+	 * @return
+	 */
+	public List<IdAndEtag> getEntityChildren(Long parentId);
 
 }

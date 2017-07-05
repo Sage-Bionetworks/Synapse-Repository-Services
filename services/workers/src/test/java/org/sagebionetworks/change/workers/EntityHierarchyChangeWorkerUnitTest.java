@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.worker.entity.EntityHierarchyChangeWorker;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -41,7 +42,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 	@Mock
 	Clock mockClock;
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Captor 
 	private ArgumentCaptor<List<ChangeMessage>> publishCapture;
 	
@@ -110,7 +111,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		verify(mockNodeDao).getChildren(eq(message.getObjectId()), anyLong(), anyLong());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -122,7 +122,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		verify(mockNodeDao, times(2)).getChildren(anyString(), anyLong(), anyLong());
 		verify(mockChangeDao).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
 		verify(mockMessagePublisher).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
-		verify(mockProgressCallback, times(3)).progressMade(null);
 		verify(mockClock, times(1)).sleep(anyLong());
 	}
 	
@@ -138,7 +137,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		verify(mockNodeDao, times(2)).getChildren(eq(folderId), anyLong(), anyLong());
 		verify(mockChangeDao).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
 		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
-		verify(mockProgressCallback, times(6)).progressMade(null);
 		verify(mockClock, times(2)).sleep(anyLong());
 	}
 	
@@ -152,7 +150,6 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		verify(mockNodeDao, times(3)).getChildren(eq(parentId), anyLong(), anyLong());
 		verify(mockChangeDao, times(2)).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
 		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
-		verify(mockProgressCallback, times(5)).progressMade(null);
 		verify(mockClock, times(2)).sleep(anyLong());
 	}
 	

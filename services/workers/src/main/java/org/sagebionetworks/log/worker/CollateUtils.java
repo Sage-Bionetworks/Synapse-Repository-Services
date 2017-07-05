@@ -21,7 +21,7 @@ public class CollateUtils {
 	 * @param out
 	 * @throws IOException 
 	 */
-	public static void collateLogs(LogReader[] toCollate, BufferedWriter out, ProgressCallback<Void> progressCallback) throws IOException{
+	public static void collateLogs(LogReader[] toCollate, BufferedWriter out, ProgressCallback progressCallback) throws IOException{
 		// First find the
 		int minIndex;
 		// This array will contain the head entry from each input log.
@@ -55,11 +55,9 @@ public class CollateUtils {
 	 * @return The index of LogEntry that has the earliest time stamp.
 	 * If the passed array contains all null values then zero will be returned.
 	 */
-	private static int findMiniumnIndex(LogEntry[] heads, ProgressCallback<Void> progressCallback){
+	private static int findMiniumnIndex(LogEntry[] heads, ProgressCallback progressCallback){
 		int minIndex = 0;
 		for(int i=1; i<heads.length; i++){
-			// make progress (see PLFM-3479)
-			progressCallback.progressMade(null);
 			// If data is null at the current minIndex
 			// this this index becomes the minimum.
 			if(heads[minIndex] == null){

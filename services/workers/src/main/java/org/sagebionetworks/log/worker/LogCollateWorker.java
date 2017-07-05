@@ -32,7 +32,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * @author John
  *
  */
-public class LogCollateWorker implements ProgressingRunner<Void>{
+public class LogCollateWorker implements ProgressingRunner {
 		
 	static private Logger log = LogManager.getLogger(LogCollateWorker.class);
 
@@ -41,7 +41,7 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback) throws Exception {
+	public void run(ProgressCallback progressCallback) throws Exception {
 		try {
 			// Walk all of the logs looking for multiple logs with the same type/date/hour
 			String marker = null;
@@ -51,7 +51,6 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 				marker = listing.getNextMarker();
 				if(listing.getObjectSummaries() != null){
 					for(S3ObjectSummary summ: listing.getObjectSummaries()){
-						progressCallback.progressMade(null);
 						// Bucket by type/date/hour
 						String typeDateHour = LogKeyUtils.getTypeDateAndHourFromKey(summ.getKey());
 						// Do we have a batch?
@@ -93,7 +92,7 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 	 * @param data
 	 * @return True if the batch was merged.  False if there was nothing to merge or the batch was empty.
 	 */
-	private void collateBatch(BatchData data, ProgressCallback<Void> progressCallback) {
+	private void collateBatch(BatchData data, ProgressCallback progressCallback) {
 		if(data != null){
 			if(data.mergedKeys.size() > 0){
 				// If this batch only contains one file there is nothing to do.
@@ -120,7 +119,6 @@ public class LogCollateWorker implements ProgressingRunner<Void>{
 							ObjectMetadata meta = logDAO.downloadLogFile(key, tempFiles[index]);
 							toCollate[index] = new LogReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(tempFiles[index])))));
 							index++;
-							progressCallback.progressMade(null);
 						}
 						// Now collate all of the files
 						CollateUtils.collateLogs(toCollate, outWriter, progressCallback);

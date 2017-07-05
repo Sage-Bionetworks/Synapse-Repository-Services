@@ -4,12 +4,13 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalService {
@@ -31,8 +32,10 @@ public interface AccessApprovalService {
 	public void deleteAccessApproval(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void deleteAccessApprovals(Long userId, String accessRequirementId, String accessorId);
+	public void revokeAccessApprovals(Long userId, String accessRequirementId, String accessorId);
 
-	public Count deleteAccessApprovals(Long userId, IdList toDelete);
+	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
+
+	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
 
 }

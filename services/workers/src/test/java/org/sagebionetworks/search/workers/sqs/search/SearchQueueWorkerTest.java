@@ -32,7 +32,7 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class SearchQueueWorkerTest {
 	
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private SearchDao mockSearchDao;
 	private SearchDocumentDriver mockDocumentProvider;
 	private V2WikiPageDao mockWikiPageDao;

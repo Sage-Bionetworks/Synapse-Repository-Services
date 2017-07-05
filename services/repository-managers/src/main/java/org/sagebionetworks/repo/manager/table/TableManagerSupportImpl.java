@@ -2,23 +2,26 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 
-import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -48,11 +51,46 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Lists;
+
 public class TableManagerSupportImpl implements TableManagerSupport {
 	
 	public static final long TABLE_PROCESSING_TIMEOUT_MS = 1000*60*10; // 10 mins
 	
 	public static final long AUTO_PROGRESS_FREQUENCY_MS = 5*1000; // 5 seconds
+	
+	public static final int MAX_CONTAINERS_PER_VIEW = 1000*10; // 10K;
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW
+			+ " projects and/or folders. Note: The sub-folders of each project and folder in the scope count towards the limit.";
+	public static final String SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW = "The view's scope exceeds the maximum number of "
+			+ MAX_CONTAINERS_PER_VIEW + " projects.";
+	
+	private static final List<EntityField> FILE_VIEW_DEFAULT_COLUMNS= Lists.newArrayList(
+			EntityField.id,
+			EntityField.name,
+			EntityField.createdOn,
+			EntityField.createdBy,
+			EntityField.etag,
+			EntityField.type,
+			EntityField.currentVersion,
+			EntityField.parentId,
+			EntityField.benefactorId,
+			EntityField.projectId,
+			EntityField.modifiedOn,
+			EntityField.modifiedBy,
+			EntityField.dataFileHandleId
+			);
+	
+	private static final List<EntityField> PROEJCT_VIEW_DEAFULT_COLUMNS = Lists.newArrayList(
+			EntityField.id,
+			EntityField.name,
+			EntityField.createdOn,
+			EntityField.createdBy,
+			EntityField.etag,
+			EntityField.modifiedOn,
+			EntityField.modifiedBy
+			);
 
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -75,7 +113,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
-	ExecutorService tableSupportExecutorService;
+	ReplicationMessageManager replicationMessageManager;
+	
+	/*
+	 * Cache of default ColumnModels for views.  Once created, these columns will not change
+	 * and will be the same across the cluster.
+	 */
+	Map<EntityField, ColumnModel> defaultColumnCache = Collections.synchronizedMap(new HashMap<EntityField, ColumnModel>());
 	
 	/*
 	 * (non-Javadoc)
@@ -281,26 +325,31 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#calculateFileViewCRC32(java.lang.String)
 	 */
 	@Override
-	public Long calculateFileViewCRC32(String tableId) {
+	public Long calculateViewCRC32(String tableId) {
 		// Start with all container IDs that define the view's scope
 		ViewType type = getViewType(tableId);
 		Set<Long> viewContainers = getAllContainerIdsForViewScope(tableId, type);
+		// Trigger the reconciliation of this view's scope.
+		triggerScopeReconciliation(type, viewContainers);
 		TableIndexDAO indexDao = this.tableConnectionFactory.getConnection(tableId);
 		return indexDao.calculateCRC32ofEntityReplicationScope(type, viewContainers);
 	}
-	
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getScopeContainerCount(java.util.Set)
-	 */
+
 	@Override
-	public int getScopeContainerCount(Set<Long> scopeIds, ViewType type) {
-		if(scopeIds == null || scopeIds.isEmpty()){
-			return 0;
+	public void triggerScopeReconciliation(ViewType type, Set<Long> viewContainers) {
+		// Trigger the reconciliation of this view
+		List<Long> containersToReconcile = new LinkedList<Long>();
+		if(ViewType.project.equals(type)){
+			// project views reconcile with root.
+			Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+			containersToReconcile.add(rootId);
+		}else{
+			// all other views reconcile one the view's scope.
+			containersToReconcile.addAll(viewContainers);
 		}
-		Set<Long> scopeSet = getAllContainerIdsForScope(scopeIds, type);
-		return scopeSet.size();
+		this.replicationMessageManager.pushContainerIdsToReconciliationQueue(containersToReconcile);
 	}
+	
 
 	/*
 	 * (non-Javadoc)
@@ -323,17 +372,35 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public Set<Long> getAllContainerIdsForScope(Set<Long> scope, ViewType viewType) {
 		ValidateArgument.required(scope, "scope");
 		ValidateArgument.required(viewType, "viewType");
+		// Validate the given scope is under the limit.
+		if(scope.size() > MAX_CONTAINERS_PER_VIEW){
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
+		}
 		
 		if(ViewType.project == viewType){
 			return scope;
 		}
-		// Add all containers from the given scope
-		Set<Long> allContainersInScope = new HashSet<Long>(scope);
-		for(Long container: scope){
-			List<Long> containers = nodeDao.getAllContainerIds(container);
-			allContainersInScope.addAll(containers);
+		// Expand the scope to include all sub-folders
+		try {
+			return nodeDao.getAllContainerIds(scope, MAX_CONTAINERS_PER_VIEW);
+		} catch (LimitExceededException e) {
+			// Convert the generic exception to a specific exception.
+			throw new IllegalArgumentException(createViewOverLimitMessage(viewType));
 		}
-		return allContainersInScope;
+	}
+	
+	/**
+	 * Throw an IllegalArgumentException that indicates the view is over the limit.
+	 * 
+	 * @param viewType
+	 */
+	public String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
+		ValidateArgument.required(viewType, "ViewType");
+		if(ViewType.project.equals(viewType)){
+			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
+		}else{
+			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
+		}
 	}
 	
 	/*
@@ -350,15 +417,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			return getVersionOfLastTableEntityChange(tableId);
 		case ENTITY_VIEW:
 			// For FileViews the CRC of all files in the view is used.
-			return calculateFileViewCRC32(tableId);
+			return calculateViewCRC32(tableId);
 		default:
 			throw new IllegalArgumentException("unknown table type: " + type);
 		}
 	}
 	
 	@Override
-	public <R> R tryRunWithTableExclusiveLock(ProgressCallback<Void> callback,
-			String tableId, int timeoutSec, ProgressingCallable<R, Void> callable)
+	public <R> R tryRunWithTableExclusiveLock(ProgressCallback callback,
+			String tableId, int timeoutSec, ProgressingCallable<R> callable)
 			throws Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
@@ -366,9 +433,9 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public <R, T> R tryRunWithTableNonexclusiveLock(
-			ProgressCallback<T> callback, String tableId, int lockTimeoutSec,
-			ProgressingCallable<R, T> callable) throws Exception
+	public <R> R tryRunWithTableNonexclusiveLock(
+			ProgressCallback callback, String tableId, int lockTimeoutSec,
+			ProgressingCallable<R> callable) throws Exception
 			{
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
@@ -426,7 +493,14 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public ColumnModel getColumnModel(EntityField field){
 		ValidateArgument.required(field, "field");
-		return columnModelDao.createColumnModel(field.getColumnModel());
+		// check the cache.
+		ColumnModel model = defaultColumnCache.get(field);
+		if(model == null){
+			// not in the cache so create the column.
+			model = columnModelDao.createColumnModel(field.getColumnModel());
+			defaultColumnCache.put(field, model);
+		}
+		return model;
 	}
 	
 	@Override
@@ -457,20 +531,28 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 
 	@Override
 	public List<ColumnModel> getDefaultTableViewColumns(ViewType viewType) {
-		if(!ViewType.file.equals(viewType) && !ViewType.project.equals(viewType)){
+		ValidateArgument.required(viewType, "viewType");
+		switch(viewType){
+		case file:
+			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
+		case project:
+			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);
+		default:
 			throw new IllegalArgumentException("Unsupported type: "+viewType);
 		}
-		List<ColumnModel> list = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
-			if(EntityField.dataFileHandleId == field){
-				// project views do not include file handleIds.
-				if(ViewType.project.equals(viewType)){
-					continue;
-				}
-			}
-			list.add(getColumnModel(field));
+	}
+	
+	/**
+	 * Get the ColumnModels for the given entity fields.
+	 * @param fields
+	 * @return
+	 */
+	public List<ColumnModel> getColumnModels(List<EntityField> fields){
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(EntityField field: fields){
+			results.add(getColumnModel(field));
 		}
-		return list;
+		return results;
 	}
 
 	@Override
@@ -481,14 +563,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 			results.add(KeyFactory.stringToKey(header.getId()));
 		}
 		return results;
-	}
-
-
-	@Override
-	public <R> R callWithAutoProgress(ProgressCallback<Void> callback, Callable<R> callable) throws Exception {
-		AutoProgressingCallable<R> auto = new AutoProgressingCallable<R>(
-				tableSupportExecutorService, callable, AUTO_PROGRESS_FREQUENCY_MS);
-		return auto.call(callback);
 	}
 
 	@Override
@@ -514,5 +588,13 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
 		message.setObjectEtag(resetToken);
 		transactionalMessenger.sendMessageAfterCommit(message);
+	}
+
+	@Override
+	public void validateScopeSize(Set<Long> scopeIds, ViewType type) {
+		if(scopeIds != null){
+			// Validation is built into getAllContainerIdsForScope() call
+			getAllContainerIdsForScope(scopeIds, type);
+		}
 	}
 }

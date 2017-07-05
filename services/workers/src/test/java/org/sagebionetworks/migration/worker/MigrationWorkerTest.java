@@ -37,7 +37,6 @@ public class MigrationWorkerTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	
-	ExecutorService migrationExecutorService;
 	MigrationWorker migrationWorker;
 	UserInfo user;
 	
@@ -45,11 +44,9 @@ public class MigrationWorkerTest {
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		migrationExecutorService = Executors.newFixedThreadPool(2);
 		migrationWorker = new MigrationWorker();
 		ReflectionTestUtils.setField(migrationWorker, "asynchJobStatusManager", mockAsynchJobStatusManager);
 		ReflectionTestUtils.setField(migrationWorker, "userManager", mockUserManager);
-		ReflectionTestUtils.setField(migrationWorker, "migrationExecutorService", migrationExecutorService);
 		ReflectionTestUtils.setField(migrationWorker, "migrationManager", mockMigrationManager);
 		user = new UserInfo(true);
 	}

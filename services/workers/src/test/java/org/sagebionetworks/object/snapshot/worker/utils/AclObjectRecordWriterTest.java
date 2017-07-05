@@ -34,7 +34,7 @@ public class AclObjectRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private AclObjectRecordWriter writer;
 	private long id = 123L;
 
@@ -52,7 +52,6 @@ public class AclObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDao, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -77,7 +76,6 @@ public class AclObjectRecordWriterTest {
 		verify(mockAccessControlListDao, times(2)).get(id);
 		verify(mockAccessControlListDao, times(2)).getOwnerType(id);
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected, expected)), eq(expected.getJsonClassName()));
-		verify(mockCallback, times(3)).progressMade(null);
 	}
 
 	@Test

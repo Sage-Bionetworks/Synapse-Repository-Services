@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementManager {
@@ -31,11 +32,6 @@ public interface AccessRequirementManager {
 	 * @throws DatastoreException 
 	 */
 	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException;
-	
-	/**
-	 *  get all the access requirements for an entity
-	 */
-	public List<AccessRequirement> getAllAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 *  get a page of the access requirements for an entity
@@ -81,10 +77,16 @@ public interface AccessRequirementManager {
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo, RestrictionInformationRequest request);
 
 	/**
+	 * Convert an ACTAccessRequirement to a ManagedACTAccessRequirement
 	 * 
 	 * @param userInfo
-	 * @param accessRequirementId
+	 * @param request
 	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
 	 */
-	public AccessRequirement adminUpdateAccessRequirementVersion(UserInfo userInfo, String accessRequirementId);
+	public AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request)
+			throws NotFoundException, UnauthorizedException, ConflictingUpdateException;
+
 }

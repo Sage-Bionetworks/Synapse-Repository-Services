@@ -42,7 +42,7 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	}
 
 	@Override
-	public void run(final ProgressCallback<Void> progressCallback,
+	public void run(final ProgressCallback progressCallback,
 			final Message message) throws RecoverableMessageException,
 			Exception {
 		// read the batch.
@@ -50,12 +50,35 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 				.extractChangeMessageBatch(message);
 		if (runner instanceof BatchChangeMessageDrivenRunner) {
 			BatchChangeMessageDrivenRunner batchRunner = (BatchChangeMessageDrivenRunner) runner;
-			batchRunner.run(progressCallback, batch);
+			runAsBatch(progressCallback, batch, batchRunner);
 		} else if(runner instanceof ChangeMessageDrivenRunner) {
 			ChangeMessageDrivenRunner singleRunner = (ChangeMessageDrivenRunner) runner;
 			runAsSingleChangeMessages(progressCallback, batch, singleRunner);
 		}else{
 			throw new IllegalArgumentException("Unknown runner type: "+runner.getClass().getName());
+		}
+	}
+
+	private void runAsBatch(final ProgressCallback progressCallback,
+			List<ChangeMessage> batch,
+			BatchChangeMessageDrivenRunner batchRunner)
+			throws RecoverableMessageException, Exception {
+		try{
+			batchRunner.run(progressCallback, batch);
+		} catch (RecoverableMessageException e) {
+			if (batch.size() == 1) {
+				// Let the container handle retry for single messages.
+				throw e;
+			} else {
+				// Push each single message back onto the queue
+				for(ChangeMessage message: batch){
+					// Add the message back to the queue as a single message
+					awsSQSClient.sendMessage(queueUrl,
+							EntityFactory.createJSONStringForEntity(message));
+				}
+			}
+		} catch (Throwable e) {
+			log.error("Failed on Batch: " + batch.toString(), e);
 		}
 	}
 
@@ -68,20 +91,14 @@ public class ChangeMessageBatchProcessor implements MessageDrivenRunner {
 	 * @throws RecoverableMessageException
 	 */
 	void runAsSingleChangeMessages(
-			final ProgressCallback<Void> progressCallback,
+			final ProgressCallback progressCallback,
 			List<ChangeMessage> batch, ChangeMessageDrivenRunner runner)
 			throws JSONObjectAdapterException, RecoverableMessageException {
 		// Run each batch
 		for (ChangeMessage change : batch) {
 			try {
 				// Make progress before each message
-				progressCallback.progressMade(null);
-				runner.run(new ProgressCallback<Void>() {
-					@Override
-					public void progressMade(Void t) {
-						progressCallback.progressMade(null);
-					}
-				}, change);
+				runner.run(progressCallback, change);
 			} catch (RecoverableMessageException e) {
 				if (batch.size() == 1) {
 					// Let the container handle retry for single messages.

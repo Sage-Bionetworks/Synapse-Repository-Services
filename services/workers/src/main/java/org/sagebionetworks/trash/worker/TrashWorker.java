@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TrashWorker implements ProgressingRunner<Void>{
+public class TrashWorker implements ProgressingRunner {
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
 	public static final long TRASH_DELETE_LIMIT = 10000;
 	public static final long CUTOFF_TRASH_AGE_IN_DAYS = 30; //about 1 month
@@ -20,7 +20,7 @@ public class TrashWorker implements ProgressingRunner<Void>{
 	private TrashManager trashManager;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback) {
+	public void run(ProgressCallback progressCallback) {
 		long startTime = System.currentTimeMillis();
 		
 		try{

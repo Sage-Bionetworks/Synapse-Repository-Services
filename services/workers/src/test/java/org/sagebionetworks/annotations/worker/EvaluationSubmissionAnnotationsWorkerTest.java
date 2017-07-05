@@ -29,7 +29,7 @@ public class EvaluationSubmissionAnnotationsWorkerTest {
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
 	WorkerLogger mockWorkerLogger;
 	EvaluationSubmissionAnnotationsWorker worker;
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	@Before
 	public void before(){

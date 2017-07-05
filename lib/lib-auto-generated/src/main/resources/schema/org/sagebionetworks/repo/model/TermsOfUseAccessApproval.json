@@ -1,9 +1,0 @@
-{
-    "title":"Terms of Use Access Approval",
-    "description":"JSON schema for Terms of Use Access Approval, used for a 'tier 2' Access Approval",
-     "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.SelfSignAccessApproval"
-        }
-    ]
-}

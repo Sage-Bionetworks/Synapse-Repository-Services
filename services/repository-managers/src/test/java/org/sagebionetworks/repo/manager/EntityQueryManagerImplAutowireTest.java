@@ -81,7 +81,7 @@ public class EntityQueryManagerImplAutowireTest {
 	ConnectionFactory connectionFactory;
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	
 	private List<String> nodesToDelete;
 	private UserInfo adminUserInfo;
@@ -139,6 +139,7 @@ public class EntityQueryManagerImplAutowireTest {
 		int maxAnnotationChars = 500;
 		List<EntityDTO> dtos = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
 		indexDAO = connectionFactory.getFirstConnection();
+		indexDAO.createEntityReplicationTablesIfDoesNotExist();
 		indexDAO.addEntityData(mockProgressCallback, dtos);
 		
 		
@@ -182,7 +183,7 @@ public class EntityQueryManagerImplAutowireTest {
 		assertNotNull(results.getEntities());
 		assertEquals(1, results.getEntities().size());
 		// There should be more than the three entities added for this test.
-		assertTrue(results.getTotalEntityCount() > 3);
+		assertTrue(results.getTotalEntityCount() >= 3);
 	}
 	
 	@Test

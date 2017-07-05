@@ -34,7 +34,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 
 	@Override
 	public TableUpdateTransactionResponse updateTableWithTransaction(
-			final ProgressCallback<Void> progressCallback, final UserInfo userInfo,
+			final ProgressCallback progressCallback, final UserInfo userInfo,
 			final TableUpdateTransactionRequest request)
 			throws RecoverableMessageException, TableUnavailableException {
 		
@@ -45,10 +45,10 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 		// Validate the user has permission to edit the table before locking.
 		tableManagerSupport.validateTableWriteAccess(userInfo, tableId);
 		try {
-			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<TableUpdateTransactionResponse, Void>() {
+			return tableManagerSupport.tryRunWithTableExclusiveLock(progressCallback, tableId, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<TableUpdateTransactionResponse>() {
 
 				@Override
-				public TableUpdateTransactionResponse call(ProgressCallback<Void> callback) throws Exception {
+				public TableUpdateTransactionResponse call(ProgressCallback callback) throws Exception {
 					return updateTableWithTransactionWithExclusiveLock(callback, userInfo, request);
 				}
 			});
@@ -73,7 +73,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @return
 	 */
 	TableUpdateTransactionResponse updateTableWithTransactionWithExclusiveLock(
-			final ProgressCallback<Void> callback, final UserInfo userInfo,
+			final ProgressCallback callback, final UserInfo userInfo,
 			final TableUpdateTransactionRequest request) {
 		/*
 		 * Request validation can take a long time and may not involve the primary database.
@@ -99,7 +99,7 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @param userInfo
 	 * @param request
 	 */
-	void validateUpdateRequests(ProgressCallback<Void> callback,
+	void validateUpdateRequests(ProgressCallback callback,
 			UserInfo userInfo, TableUpdateTransactionRequest request) {
 
 		// Determine if a temporary table is needed to validate any of the requests.
@@ -130,12 +130,10 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @param request
 	 * @param indexManager
 	 */
-	void validateEachUpdateRequest(ProgressCallback<Void> callback,
+	void validateEachUpdateRequest(ProgressCallback callback,
 			UserInfo userInfo, TableUpdateTransactionRequest request,
 			TableIndexManager indexManager) {
 		for(TableUpdateRequest change: request.getChanges()){
-			// progress before each check.
-			callback.progressMade(null);
 			tableEntityManager.validateUpdateRequest(callback, userInfo, change, indexManager);
 		}
 	}
@@ -147,11 +145,9 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @param request
 	 * @return
 	 */
-	boolean isTemporaryTableNeeded(ProgressCallback<Void> callback,
+	boolean isTemporaryTableNeeded(ProgressCallback callback,
 			TableUpdateTransactionRequest request) {
 		for(TableUpdateRequest change: request.getChanges()){
-			// progress before each check.
-			callback.progressMade(null);
 			boolean tempNeeded = tableEntityManager.isTemporaryTableNeededToValidate(change);
 			if(tempNeeded){
 				return true;
@@ -170,14 +166,13 @@ public class TableEntityTransactionManager implements TableTransactionManager {
 	 * @return
 	 */
 	TableUpdateTransactionResponse doIntransactionUpdateTable(TransactionStatus status,
-			ProgressCallback<Void> callback, UserInfo userInfo,
+			ProgressCallback callback, UserInfo userInfo,
 			TableUpdateTransactionRequest request) {
 		// execute each request
 		List<TableUpdateResponse> results = new LinkedList<TableUpdateResponse>();
 		TableUpdateTransactionResponse response = new TableUpdateTransactionResponse();
 		response.setResults(results);
 		for(TableUpdateRequest change: request.getChanges()){
-			callback.progressMade(null);
 			TableUpdateResponse changeResponse = tableEntityManager.updateTable(callback, userInfo, change);
 			results.add(changeResponse);
 		}

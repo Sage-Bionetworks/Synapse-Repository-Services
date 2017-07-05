@@ -41,7 +41,7 @@ public class CertifiedUserPassingRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private CertifiedUserPassingRecordWriter writer;
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
@@ -62,7 +62,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -84,7 +83,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verifyZeroInteractions(mockObjectRecordDAO);
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 
 	@Test
@@ -105,7 +103,6 @@ public class CertifiedUserPassingRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(orList, record.getJsonClassName());
-		verify(mockCallback, times(3)).progressMade(null);
 	}
 
 	@Test
@@ -124,6 +121,5 @@ public class CertifiedUserPassingRecordWriterTest {
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 
 		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
-		verify(mockCallback, times(4)).progressMade(null);
 	}
 }

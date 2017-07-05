@@ -54,11 +54,10 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> groups = new LinkedList<ObjectRecord>();
 		List<ObjectRecord> individuals = new LinkedList<ObjectRecord>();
 		for (ChangeMessage message : messages) {
-			progressCallback.progressMade(null);
 			if (message.getObjectType() != ObjectType.PRINCIPAL) {
 				throw new IllegalArgumentException();
 			}
@@ -100,11 +99,9 @@ public class PrincipalObjectRecordWriter implements ObjectRecordWriter {
 			}
 		}
 		if (!groups.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(groups, groups.get(0).getJsonClassName());
 		}
 		if (!individuals.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(individuals, individuals.get(0).getJsonClassName());
 		}
 	}

@@ -1,0 +1,13 @@
+{
+	"description": "A request to revoke access of an accessor group. Accessors will be group by submitter and access requirement.",
+	"properties": {
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of an AccessRequirement."
+		},
+		"submitterId":{
+			"type": "string",
+			"description": "The ID of the submitter."
+		}
+	}
+}

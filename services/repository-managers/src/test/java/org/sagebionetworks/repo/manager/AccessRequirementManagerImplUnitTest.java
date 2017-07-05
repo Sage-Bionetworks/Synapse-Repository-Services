@@ -15,12 +15,13 @@ import static org.mockito.Mockito.never;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.AccessRequirementManagerImpl.DEFAULT_OFFSET;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -50,10 +52,12 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
@@ -162,9 +166,8 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 	
 	private AccessRequirement createExpectedAR() {
-		ACTAccessRequirement expectedAR = new ACTAccessRequirement();
+		ManagedACTAccessRequirement expectedAR = new ManagedACTAccessRequirement();
 		expectedAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		expectedAR.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
@@ -245,7 +248,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testCreateUploadAccessRequirement() throws Exception {
 		AccessRequirement ar = createExpectedAR();
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
-		when(authorizationManager.canCreateAccessRequirement(userInfo, ar)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, ar);
 	}
 	
@@ -268,12 +271,6 @@ public class AccessRequirementManagerImplUnitTest {
 				Collections.singleton(userInfo.getId()), 
 				Collections.singletonList(DOWNLOAD))).
 				thenReturn(Collections.singletonList(mockDownloadARId));
-		when(accessRequirementDAO.getAllUnmetAccessRequirements(
-				Collections.singletonList(TEST_ENTITY_ID), 
-				RestrictableObjectType.ENTITY, 
-				Collections.singleton(userInfo.getId()), 
-				Collections.singletonList(UPLOAD))).
-				thenReturn(Collections.singletonList(mockUploadARId));
 		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
 		downloadAR.setId(mockDownloadARId);
 		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
@@ -283,27 +280,32 @@ public class AccessRequirementManagerImplUnitTest {
 			thenReturn(arList);
 		List<AccessRequirement> result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, DOWNLOAD);
 		assertEquals(Collections.singletonList(downloadAR), result);
-		result = arm.getAllUnmetAccessRequirements(userInfo, subjectId, UPLOAD);
-		assertEquals(Collections.singletonList(uploadAR), result);
 	}
 
 	@Test
-	public void testSetDefaultValues() {
-		ACTAccessRequirement ar = (ACTAccessRequirement) createExpectedAR();
-		ar = (ACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+	public void testSetDefaultValuesForManagedAR() {
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) createExpectedAR();
+		ar = (ManagedACTAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+	}
+
+	@Test
+	public void testSetDefaultValuesForSelfSignAccessRequirement() {
+		SelfSignAccessRequirement ar = new SelfSignAccessRequirement();
+		ar = (SelfSignAccessRequirement) AccessRequirementManagerImpl.setDefaultValues(ar);
+		assertFalse(ar.getIsCertifiedUserRequired());
+		assertFalse(ar.getIsValidatedProfileRequired());
 	}
 
 	@Test
 	public void testCreateACTAccessRequirement() {
 		AccessRequirement toCreate = createExpectedAR();
-		when(authorizationManager.canCreateAccessRequirement(userInfo, toCreate)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		arm.createAccessRequirement(userInfo, toCreate);
 
 		// test that the right AR was created
@@ -311,14 +313,15 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).create(argument.capture());
 
 		// verify that all default fields are set
-		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -442,7 +445,7 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUpdateACTAccessRequirement() {
+	public void testUpdateManagedACTAccessRequirement() {
 		AccessRequirement toUpdate = createExpectedAR();
 		String accessRequirementId = "1";
 		toUpdate.setId(1L);
@@ -454,7 +457,7 @@ public class AccessRequirementManagerImplUnitTest {
 		info.setEtag("etag");
 		info.setCurrentVersion(1L);
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		info.setConcreteType(ACTAccessRequirement.class.getName());
+		info.setConcreteType(ManagedACTAccessRequirement.class.getName());
 		when(accessRequirementDAO.getForUpdate(accessRequirementId)).thenReturn(info );
 
 		arm.updateAccessRequirement(userInfo, "1", toUpdate);
@@ -464,15 +467,16 @@ public class AccessRequirementManagerImplUnitTest {
 		verify(accessRequirementDAO).update(argument.capture());
 
 		// verify that all default fields are set
-		ACTAccessRequirement ar = (ACTAccessRequirement) argument.getValue();
+		ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement) argument.getValue();
 		assertFalse(ar.getIsCertifiedUserRequired());
 		assertFalse(ar.getIsValidatedProfileRequired());
 		assertFalse(ar.getIsDUCRequired());
 		assertFalse(ar.getIsIRBApprovalRequired());
 		assertFalse(ar.getAreOtherAttachmentsRequired());
-		assertFalse(ar.getIsAnnualReviewRequired());
 		assertFalse(ar.getIsIDUPublic());
 		assertTrue(ar.getVersionNumber().equals(info.getCurrentVersion()+1));
+
+		assertEquals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD, ar.getExpirationPeriod());
 	}
 
 	@Test
@@ -722,26 +726,186 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(ar.getModifiedOn());
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testAdminUpdateAccessRequirementVersionWithNullUserInfo() {
-		arm.adminUpdateAccessRequirementVersion(null, "1");
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteAccessRequirementWithNullUserInfo() {
+		arm.deleteAccessRequirement(null, "1");
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void testAdminUpdateAccessRequirementVersionWithNullAccessRequirementId() {
-		arm.adminUpdateAccessRequirementVersion(userInfo, null);
+	@Test (expected=IllegalArgumentException.class)
+	public void testDeleteAccessRequirementWithNullUserRequirementId() {
+		arm.deleteAccessRequirement(userInfo, null);
 	}
 
-	@Test (expected = UnauthorizedException.class)
-	public void testAdminUpdateAccessRequirementVersionUnauthorized() {
-		arm.adminUpdateAccessRequirementVersion(userInfo, "1");
+	@Test (expected=UnauthorizedException.class)
+	public void testDeleteAccessRequirementUnauthorized() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		arm.deleteAccessRequirement(userInfo, "1");
 	}
 
 	@Test
-	public void testAdminUpdateAccessRequirementVersionAuthorized() {
-		UserInfo mockUser = Mockito.mock(UserInfo.class);
-		when(mockUser.isAdmin()).thenReturn(true);
-		arm.adminUpdateAccessRequirementVersion(mockUser, "1");
-		verify(accessRequirementDAO).updateVersion("1");
+	public void testDeleteAccessRequirementAuthorized() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		arm.deleteAccessRequirement(userInfo, "1");
+		verify(accessRequirementDAO).delete("1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertWillNullACTAccessRequirement() {
+		AccessRequirementManagerImpl.convert(null, "1");
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertWillNullModifiedBy() {
+		ACTAccessRequirement ar = createACTAccessRequirement();
+		AccessRequirementManagerImpl.convert(ar, null);
+	}
+
+	@Test
+	public void testConvert() {
+		ACTAccessRequirement ar = createACTAccessRequirement();
+		String modifiedBy = "111";
+		ManagedACTAccessRequirement managed = AccessRequirementManagerImpl.convert(ar, modifiedBy);
+		assertNotNull(managed);
+		assertEquals(ar.getId(), managed.getId());
+		assertEquals(ar.getAccessType(), managed.getAccessType());
+		assertEquals(ar.getCreatedBy(), managed.getCreatedBy());
+		assertEquals(ar.getCreatedOn(), managed.getCreatedOn());
+		assertEquals(ar.getSubjectIds(), managed.getSubjectIds());
+		assertTrue(managed.getVersionNumber().equals(ar.getVersionNumber()+1));
+		assertEquals(modifiedBy, managed.getModifiedBy());
+		assertFalse(managed.getEtag().equals(ar.getEtag()));
+	}
+
+	private ACTAccessRequirement createACTAccessRequirement() {
+		ACTAccessRequirement ar = new ACTAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setActContactInfo("actContactInfo");
+		ar.setCreatedBy("1");
+		ar.setCreatedOn(new Date());
+		ar.setEtag("etag");
+		ar.setId(2L);
+		ar.setModifiedBy("3");
+		ar.setModifiedOn(new Date());
+		ar.setOpenJiraIssue(true);
+		ar.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
+		ar.setVersionNumber(1L);
+		return ar;
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullUserInfo() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(null, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullRequest() {
+		arm.convertAccessRequirement(userInfo, null);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullRequirementId() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullEtag() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementWithNullVersion() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=UnauthorizedException.class)
+	public void testConvertAccessRequirementUnauthorized() {
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=NotFoundException.class)
+	public void testConvertAccessRequirementNotFound() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenThrow(new NotFoundException());
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=ConflictingUpdateException.class)
+	public void testConvertAccessRequirementEtagDoesNotMatch() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag does not match");
+		request.setCurrentVersion(current.getVersionNumber());
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=ConflictingUpdateException.class)
+	public void testConvertAccessRequirementVersionDoesNotMatch() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag(current.getEtag());
+		request.setCurrentVersion(current.getVersionNumber()-1);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test (expected=IllegalArgumentException.class)
+	public void testConvertAccessRequirementNotSupported() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(new TermsOfUseAccessRequirement());
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag("etag");
+		request.setCurrentVersion(2L);
+		arm.convertAccessRequirement(userInfo, request);
+	}
+
+	@Test
+	public void testConvertAccessRequirement() {
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		ACTAccessRequirement current = createACTAccessRequirement();
+		when(accessRequirementDAO.getAccessRequirementForUpdate("1")).thenReturn(current);
+		AccessRequirementConversionRequest request = new AccessRequirementConversionRequest();
+		request.setAccessRequirementId("1");
+		request.setEtag(current.getEtag());
+		request.setCurrentVersion(current.getVersionNumber());
+		arm.convertAccessRequirement(userInfo, request);
+		ArgumentCaptor<ManagedACTAccessRequirement> captor = ArgumentCaptor.forClass(ManagedACTAccessRequirement.class);
+		verify(accessRequirementDAO).update(captor.capture());
+		ManagedACTAccessRequirement updated = captor.getValue();
+		assertNotNull(updated);
+		assertEquals(current.getId(), updated.getId());
+		assertEquals(current.getAccessType(), updated.getAccessType());
+		assertEquals(current.getCreatedBy(), updated.getCreatedBy());
+		assertEquals(current.getCreatedOn(), updated.getCreatedOn());
+		assertEquals(current.getSubjectIds(), updated.getSubjectIds());
+		assertTrue(updated.getVersionNumber().equals(current.getVersionNumber()+1));
+		assertEquals(userInfo.getId().toString(), updated.getModifiedBy());
+		assertFalse(updated.getEtag().equals(current.getEtag()));
 	}
 }

@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalDAO {
@@ -15,7 +16,7 @@ public interface AccessApprovalDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public <T extends AccessApproval> T create(T dto) throws DatastoreException, InvalidModelException;
+	public AccessApproval create(AccessApproval dto);
 
 	/**
 	 * Retrieves the object given its id
@@ -25,36 +26,7 @@ public interface AccessApprovalDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessApproval get(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get all the access approvals related to the given access requirement.  This is used by the migrator.
-	 * @param accessRequirementId
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException;
-	
-	/**
-	 * 
-	 * @param accessRequirementIds
-	 * @param principalIds
-	 * @return the AccessApprovals for the given accessRequirements, for the given principals
-	 * @throws DatastoreException
-	 */
-	public List<AccessApproval> getForAccessRequirementsAndPrincipals(Collection<String> accessRequirementIds, Collection<String> principalIds) throws DatastoreException;
-
-	/**
-	 * Updates the 'shallow' properties of an object.
-	 *
-	 * @param dto
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public <T extends AccessApproval> T  update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException;
+	public AccessApproval get(String id) throws NotFoundException;
 
 	/**
 	 * delete the object given by the given ID
@@ -71,8 +43,9 @@ public interface AccessApprovalDAO {
 	 * 
 	 * @param accessRequirementId
 	 * @param accessorId
+	 * @param revokedBy
 	 */
-	public void delete(String accessRequirementId, String accessorId);
+	public void revokeAll(String accessRequirementId, String accessorId, String revokedBy);
 
 	/**
 	 * Return true if there is an unmet access requirement for the given user; false otherwise.
@@ -84,11 +57,11 @@ public interface AccessApprovalDAO {
 	public Boolean hasUnmetAccessRequirement(Set<String> requirementIdSet, String userId);
 
 	/**
-	 * Create a batch of access approval
+	 * Create or update a batch of access approval
 	 * 
 	 * @param approvalsToCreate - objects to be created
 	 */
-	public List<AccessApproval> createBatch(List<AccessApproval> approvalsToCreate);
+	public void createOrUpdateBatch(List<AccessApproval> approvalsToCreate);
 
 	/**
 	 * Retrieve a list of access approvals for a given subjectIdList
@@ -103,19 +76,60 @@ public interface AccessApprovalDAO {
 			long limit, long offset);
 
 	/**
-	 * Delete a batch of AccessApprovals
+	 * Retrieve all active approvals, approvals that have APPROVED state and haven't expired, for the given user.
 	 * 
-	 * @param list
+	 * @param accessRequirementId
+	 * @param userId
 	 * @return
 	 */
-	public int deleteBatch(List<Long> list);
+	public List<AccessApproval> getActiveApprovalsForUser(String accessRequirementId, String userId);
 
 	/**
-	 * Retrieve approved users
+	 * Retrieve an access approval given the primary fields
 	 * 
-	 * @param userIds
-	 * @param accessRequirementId
+	 * @param requirementId
+	 * @param requirementVersion
+	 * @param submitterId
+	 * @param accessorId
 	 * @return
 	 */
-	public Set<String> getApprovedUsers(List<String> userIds, String accessRequirementId);
+	public AccessApproval getByPrimaryKey(Long requirementId, Long requirementVersion, String submitterId, String accessorId);
+
+	/**
+	 * @param accessorsIds
+	 * @param string
+	 * @param accessRequirementId
+	 * @return true if all accessors have an approval for the given access requirement
+	 * submitted by submitterId; false otherise.
+	 */
+	public boolean hasApprovalsSubmittedBy(Set<String> accessorsIds, String submitterId, String accessRequirementId);
+
+	/**
+	 * Retrieve a page of AccessorGroup, group by accessRequirementId and submitterId.
+	 * 
+	 * @param accessRequirementId
+	 * @param submitterId
+	 * @param expireBefore
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<AccessorGroup> listAccessorGroup(String accessRequirementId, String submitterId, Date expireBefore,
+			long limit, long offset);
+
+	/**
+	 * Revoke a group of accessors
+	 * 
+	 * @param accessRequirementId
+	 * @param submitterId
+	 * @param revokedBy
+	 */
+	public void revokeGroup(String accessRequirementId, String submitterId, String revokedBy);
+
+	/**
+	 * Revoke a batch of accessors
+	 * 
+	 * @param approvalsToRenew
+	 */
+	public void revokeBySubmitter(String accessRequirementId, String submitterId, List<String> accessors, String revokedBy);
 }

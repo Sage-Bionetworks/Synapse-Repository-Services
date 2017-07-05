@@ -97,11 +97,10 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> nonDeleteRecords = new LinkedList<ObjectRecord>();
 		List<ObjectRecord> deleteRecords = new LinkedList<ObjectRecord>();
 		for (ChangeMessage message : messages) {
-			progressCallback.progressMade(null);
 			if (message.getObjectType() != ObjectType.ENTITY) {
 				throw new IllegalArgumentException();
 			}
@@ -124,11 +123,9 @@ public class NodeObjectRecordWriter implements ObjectRecordWriter {
 			}
 		}
 		if (!nonDeleteRecords.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(nonDeleteRecords, nonDeleteRecords.get(0).getJsonClassName());
 		}
 		if (!deleteRecords.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(deleteRecords, deleteRecords.get(0).getJsonClassName());
 		}
 	}

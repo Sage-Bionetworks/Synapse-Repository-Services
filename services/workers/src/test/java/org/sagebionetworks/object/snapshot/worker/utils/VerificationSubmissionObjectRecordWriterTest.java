@@ -40,7 +40,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDAO;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private VerificationSubmissionObjectRecordWriter writer;
 	private UserInfo admin = new UserInfo(true);
 	private Long userId = 123L;
@@ -61,7 +61,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		verify(mockObjectRecordDAO, never()).saveBatch(anyList(), anyString());
-		verify(mockCallback).progressMade(null);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -81,8 +80,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-
-		verify(mockCallback, times(2)).progressMade(null);
 		verifyZeroInteractions(mockObjectRecordDAO);
 	}
 
@@ -100,8 +97,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-
-		verify(mockCallback, times(3)).progressMade(null);
 		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record), record.getJsonClassName());
 	}
 
@@ -119,8 +114,6 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-
-		verify(mockCallback, times(4)).progressMade(null);
 		verify(mockObjectRecordDAO).saveBatch(Arrays.asList(record, record), record.getJsonClassName());
 	}
 }

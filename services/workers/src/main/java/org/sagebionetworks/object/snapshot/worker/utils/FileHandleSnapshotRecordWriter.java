@@ -74,10 +74,9 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 	}
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		for (ChangeMessage message : messages) {
-			progressCallback.progressMade(null);
 			if (message.getObjectType() != ObjectType.FILE) {
 				throw new IllegalArgumentException();
 			}
@@ -98,7 +97,6 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 			}
 		}
 		if (!toWrite.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 	}

@@ -1,0 +1,38 @@
+{
+	"title": "Managed ACT Access Requirement",
+	"description": "JSON schema for in-Synapse 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement. This access requirement allows the ACT managing the detail requirements, and submissions within Synapse.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.ACTAccessRequirementInterface"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasAccessorRequirement"
+		}
+	],
+	"properties": {
+		"isDUCRequired": {
+			"type":"boolean",
+			"description":  "If true, then accessor needs to fill, sign, and submit a Data Use Certificate (DUC) to gain access to the data."
+		},
+		"ducTemplateFileHandleId": {
+			"type":"string",
+			"description":  "If the Data Use Certificate (DUC) is required, creator of this requirement needs to upload a Data Use Certificate (DUC) template. Users have to download this template, fill out, sign and submit it."
+		},
+		"isIRBApprovalRequired": {
+			"type":"boolean",
+			"description":  "If true, then accessor needs to submit an Institutional Review Board (IRB) Approval document to gain access to the data."
+		},
+		"areOtherAttachmentsRequired": {
+			"type":"boolean",
+			"description":  "If true, then accessor needs to upload attachment(s) other than Data Use Certificate (DUC) and Institutional Review Board (IRB) Approval document to gain access to the data."
+		},
+		"expirationPeriod": {
+			"type":"integer",
+			"description":  "After an AccessApproval is granted for this AccessRequirement, it will be expired after expirationPeriod miliseconds. Set this value to 0 to indicate that AccessApproval will never be expired."
+		},
+		"isIDUPublic": {
+			"type":"boolean",
+			"description":  "If true, the Intended Data Use Statements submitted to gain access to the data will be presented to public."
+		}
+	}
+}

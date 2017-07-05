@@ -13,13 +13,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
@@ -66,7 +68,7 @@ public class DBOSubmissionDAOImplTest {
 	private UserGroup user1 = null;
 	private UserGroup user2 = null;
 	private Node node = null;
-	private ACTAccessRequirement accessRequirement = null;
+	private ManagedACTAccessRequirement accessRequirement = null;
 	private ResearchProject researchProject = null;
 	private Request request;
 
@@ -88,7 +90,7 @@ public class DBOSubmissionDAOImplTest {
 		node.setId(nodeDao.createNew(node));
 
 		// create an ACTAccessRequirement
-		accessRequirement = new ACTAccessRequirement();
+		accessRequirement = new ManagedACTAccessRequirement();
 		accessRequirement.setCreatedBy(user1.getId());
 		accessRequirement.setCreatedOn(new Date());
 		accessRequirement.setModifiedBy(user1.getId());
@@ -108,7 +110,10 @@ public class DBOSubmissionDAOImplTest {
 		request = RequestTestUtils.createNewRequest();
 		request.setAccessRequirementId(accessRequirement.getId().toString());
 		request.setResearchProjectId(researchProject.getId());
-		request.setAccessors(Arrays.asList(user1.getId()));
+		AccessorChange add = new AccessorChange();
+		add.setUserId(user1.getId());
+		add.setType(AccessType.GAIN_ACCESS);
+		request.setAccessorChanges(Arrays.asList(add));
 		request = requestDao.create(request);
 	}
 
@@ -139,7 +144,10 @@ public class DBOSubmissionDAOImplTest {
 		Submission dto = new Submission();
 		dto.setAccessRequirementId(accessRequirement.getId().toString());
 		dto.setRequestId(request.getId());
-		dto.setAccessors(Arrays.asList(user1.getId()));
+		AccessorChange change = new AccessorChange();
+		change.setType(AccessType.GAIN_ACCESS);
+		change.setUserId(user1.getId());
+		dto.setAccessorChanges(Arrays.asList(change));
 		dto.setAttachments(Arrays.asList("1"));
 		dto.setDucFileHandleId("2");
 		dto.setIrbFileHandleId("3");

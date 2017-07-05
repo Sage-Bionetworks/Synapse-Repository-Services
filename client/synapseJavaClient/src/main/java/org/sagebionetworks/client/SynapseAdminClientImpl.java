@@ -3,14 +3,11 @@ package org.sagebionetworks.client;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.util.List;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -363,20 +360,5 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		ValidateArgument.required(jobId, "jobId");
 		String url = ADMIN_ASYNCHRONOUS_JOB + "/" + jobId;
 		return getJSONEntity(getRepoEndpoint(), url, AsynchronousJobStatus.class);
-	}
-
-	@Override
-	public Long deleteAccessApprovals(List<Long> approvalIds) throws SynapseException {
-		ValidateArgument.required(approvalIds, "approvalIds");
-		IdList requestBody = new IdList();
-		requestBody.setList(approvalIds);
-		return postJSONEntity(getRepoEndpoint(), "/accessApprovals", requestBody, Count.class).getCount();
-	}
-
-	@Override
-	public AccessRequirement updateVersion(String accessRequirementId) throws SynapseException {
-		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		String url = "/accessRequirement/"+accessRequirementId+"/version";
-		return putJSONEntity(getRepoEndpoint(), url, null, AccessRequirement.class);
 	}
 }

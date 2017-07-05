@@ -10,9 +10,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
@@ -50,11 +47,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("currentRevNumber", COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER),
 		new FieldColumn("createdBy", COL_ACCESS_REQUIREMENT_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
-		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
-		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_MODIFIED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
 		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
-		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
 		};
 
 
@@ -70,14 +64,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				ar.setCurrentRevNumber(rs.getLong(COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER));
 				ar.setCreatedBy(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_BY));
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
-				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
-				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_ON));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
 				ar.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
-				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
-				if(blob != null){
-					ar.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
-				}
 				return ar;
 			}
 
@@ -295,18 +283,12 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
-				if (backup.getCurrentRevNumber() == null) {
-					backup.setCurrentRevNumber(0L);
-				}
 				return backup;
 			}
 			
 			@Override
 			public DBOAccessRequirement createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
-				if (dbo.getCurrentRevNumber() == null) {
-					dbo.setCurrentRevNumber(0L);
-				}
 				return dbo;
 			}};
 	}
@@ -315,7 +297,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public Class<? extends DBOAccessRequirement> getBackupClass() {
 		return DBOAccessRequirement.class;
 	}
-
 
 	@Override
 	public Class<? extends DBOAccessRequirement> getDatabaseObjectClass() {

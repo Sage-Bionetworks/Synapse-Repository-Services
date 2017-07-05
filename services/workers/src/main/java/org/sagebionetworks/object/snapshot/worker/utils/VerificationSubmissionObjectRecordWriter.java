@@ -35,11 +35,10 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 	public static final long LIMIT = 10L;
 
 	@Override
-	public void buildAndWriteRecords(ProgressCallback<Void> progressCallback, List<ChangeMessage> messages) throws IOException {
+	public void buildAndWriteRecords(ProgressCallback progressCallback, List<ChangeMessage> messages) throws IOException {
 		List<ObjectRecord> toWrite = new LinkedList<ObjectRecord>();
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		for (ChangeMessage message : messages) {
-			progressCallback.progressMade(null);
 			if (message.getObjectType() != ObjectType.VERIFICATION_SUBMISSION) {
 				throw new IllegalArgumentException();
 			}
@@ -52,7 +51,6 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 				long offset = 0L;
 				VerificationPagedResults records = null;
 				do {
-					progressCallback.progressMade(null);
 					records = verificationManager.listVerificationSubmissions(adminUser, null, userId, LIMIT , offset);
 					for (VerificationSubmission record : records.getResults()) {
 						toWrite.add(ObjectRecordBuilderUtils.buildObjectRecord(record, message.getTimestamp().getTime()));
@@ -64,7 +62,6 @@ public class VerificationSubmissionObjectRecordWriter implements ObjectRecordWri
 			}
 		}
 		if (!toWrite.isEmpty()) {
-			progressCallback.progressMade(null);
 			objectRecordDAO.saveBatch(toWrite, toWrite.get(0).getJsonClassName());
 		}
 	}

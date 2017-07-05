@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="tableEntityReplicationWorkerReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
+	<bean id="tableEntityReplicationWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
@@ -26,7 +26,7 @@
 							<bean
 								class="org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenWorkerStackConfig">
 								<property name="runner">
-									<bean class="org.sagebionetworks.table.worker.EntityReplicationWorker" />
+									<bean class="org.sagebionetworks.worker.entity.EntityReplicationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
 								<property name="semaphoreMaxLockCount" value="1" />
@@ -41,6 +41,10 @@
 								<property name="gate">
 									<bean class="org.sagebionetworks.worker.utils.StackStatusGate"/>
 								</property>
+								<property name="deadLetterQueueName"
+									ref="stackConfiguration.workerQueueName[TableEntityReplicationWorkerDeadLetter]" />
+								<property name="deadLetterMaxFailureCount" value="100" />
+								<property name="useProgressHeartbeat" value="true"/>
 							</bean>
 						</constructor-arg>
 					</bean>

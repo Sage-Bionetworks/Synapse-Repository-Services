@@ -34,7 +34,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 	RepositoryMessagePublisher mockRepositoryMessagePublisher;
 	StackStatusDao mockStatusDao;
 	ChangeSentMessageSynchWorker worker;
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	StackConfiguration mockConfiguration;
 	WorkerLogger mockLogger;
 	Random mockRandom;
@@ -96,8 +96,6 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		// run
 		long start = testClock.currentTimeMillis();
 		worker.run(mockCallback);
-		// Progress should be made for each page.
-		verify(mockCallback, times(5)).progressMade(null);
 		verify(mockRepositoryMessagePublisher).publishBatchToTopic(ObjectType.ENTITY, Arrays.asList(one));
 		verify(mockRepositoryMessagePublisher).publishBatchToTopic(ObjectType.FILE, Arrays.asList(two));
 		verify(mockLogger, times(10)).logCustomMetric(any(ProfileData.class));

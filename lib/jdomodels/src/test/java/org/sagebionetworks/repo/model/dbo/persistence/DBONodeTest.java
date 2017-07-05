@@ -79,7 +79,6 @@ public class DBONodeTest {
 		DBONode child = new DBONode();
 		child.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		child.setName("SomeChild");
-		child.setBenefactorId(node.getBenefactorId());
 		child.setCreatedBy(createdById);
 		child.setCreatedOn(System.currentTimeMillis());
 		child.setCurrentRevNumber(new Long(0));
@@ -153,60 +152,12 @@ public class DBONodeTest {
 		DBONode node = new DBONode();
 		node.setId(idGenerator.generateNewId(IdType.ENTITY_ID));
 		node.setName("SomeName" + UUID.randomUUID());
-		node.setBenefactorId(node.getId());
 		node.setCreatedBy(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.seteTag("1");
 		node.setType(EntityType.project.name());
 		return node;
-	}
-
-	@Test
-	public void testMigrateProject(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)2);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
-		assertEquals(EntityType.project.name(), backup.getType());
-	}
-	
-	@Test
-	public void testMigrateFolder(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)4);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
-		assertEquals(EntityType.folder.name(), backup.getType());
-	}
-	
-	@Test
-	public void testMigrateLink(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)8);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
-		assertEquals(EntityType.link.name(), backup.getType());
-	}
-	
-	@Test
-	public void testMigrateFile(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)16);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
-		assertEquals(EntityType.file.name(), backup.getType());
-	}
-	
-	@Test
-	public void testMigrateTable(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)17);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
-		assertEquals(EntityType.table.name(), backup.getType());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testMigrateUnknown(){
-		DBONode node = new DBONode();
-		node.setNodeType((short)0);
-		DBONode backup = node.getTranslator().createDatabaseObjectFromBackup(node);
 	}
 
 }

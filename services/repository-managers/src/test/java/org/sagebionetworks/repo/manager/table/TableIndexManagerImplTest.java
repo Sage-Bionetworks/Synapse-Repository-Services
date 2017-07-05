@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +68,7 @@ public class TableIndexManagerImplTest {
 	@Mock
 	TableManagerSupport mockManagerSupport;
 	@Mock
-	ProgressCallback<Void> mockCallback;
+	ProgressCallback mockCallback;
 	@Captor 
 	ArgumentCaptor<List<ColumnChangeDetails>> changeCaptor;
 	
@@ -140,17 +139,8 @@ public class TableIndexManagerImplTest {
 				return null;
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		
-		// setup callable.
-		when(mockManagerSupport.callWithAutoProgress(any(ProgressCallback.class), any(Callable.class))).then(new Answer<Object>() {
-
-			@Override
-			public Object answer(InvocationOnMock invocation) throws Throwable {
-				Callable<Object> callable = (Callable<Object>) invocation.getArguments()[1];
-				return callable.call();
-			}
-		});
 		crc32 = 5678L;
-		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString())).thenReturn(crc32);
+		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString(), anyString())).thenReturn(crc32);
 		
 		containerIds = Sets.newHashSet(1l,2L,3L);
 		limit = 10L;
@@ -381,8 +371,6 @@ public class TableIndexManagerImplTest {
 	public void testCreateTemporaryTableCopy() throws Exception{
 		// call under test
 		manager.createTemporaryTableCopy(tableId, mockCallback);
-		// auto progress should be used.
-		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).createTemporaryTable(tableId);
 		verify(mockIndexDao).copyAllDataToTemporaryTable(tableId);
 	}
@@ -392,8 +380,6 @@ public class TableIndexManagerImplTest {
 	public void testDeleteTemporaryTableCopy() throws Exception{
 		// call under test
 		manager.deleteTemporaryTableCopy(tableId, mockCallback);
-		// auto progress should be used.
-		verify(mockManagerSupport).callWithAutoProgress(any(ProgressCallback.class), any(Callable.class));
 		verify(mockIndexDao).deleteTemporaryTable(tableId);
 	}
 	
@@ -403,12 +389,13 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId, mockCallback, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -478,12 +465,13 @@ public class TableIndexManagerImplTest {
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
 		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
+		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
 	}
 	
 	@Test

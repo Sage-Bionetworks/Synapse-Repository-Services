@@ -27,7 +27,7 @@ public class EvaluationSubmissionAnnotationsWorker implements ChangeMessageDrive
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// We only care about Submission messages here
 		if (ObjectType.EVALUATION_SUBMISSIONS == change.getObjectType()) {

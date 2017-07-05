@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -233,6 +231,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testUpdateAccessRequirement() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		assertEquals(new Long(0), ar.getVersionNumber());
 
 		// ensure that the 'modifiedOn' date is later
 		Thread.sleep(100L);
@@ -241,6 +240,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		AccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar.getId().toString(), ar);
 		assertTrue(ar2.getModifiedOn().getTime()-arModifiedOn>0);
 		assertTrue(ar2.getSubjectIds().isEmpty());
+		assertEquals(new Long(1), ar.getVersionNumber());
+		assertFalse(ar.getEtag().equals(ar2.getEtag()));
+		
+		AccessRequirement ar3 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar2.getId().toString(), ar2);
+		assertEquals(new Long(2), ar3.getVersionNumber());
 	}
 	
 	@Test
@@ -252,24 +256,13 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testGetAccessRequirements() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(entityId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
-		assertEquals(1, ars.size());
-	}
-	
-	@Test
 	public void testGetInheritedAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
+		List<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, ars.size());
 	}
 	
@@ -321,19 +314,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<AccessRequirement> ars = accessRequirementManager.getAllUnmetAccessRequirements(adminUserInfo, rod, ACCESS_TYPE.DOWNLOAD);
-		assertEquals(0, ars.size());
-	}
-	
-	@Test
-	public void testDeleteAccessRequirements() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
-		ar=null;
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(entityId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<AccessRequirement> ars = accessRequirementManager.getAllAccessRequirementsForSubject(adminUserInfo, rod);
 		assertEquals(0, ars.size());
 	}
 

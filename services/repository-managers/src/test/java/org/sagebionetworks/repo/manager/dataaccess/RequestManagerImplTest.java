@@ -3,25 +3,32 @@ package org.sagebionetworks.repo.manager.dataaccess;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -42,7 +49,7 @@ public class RequestManagerImplTest {
 	@Mock
 	private UserInfo mockUser;
 	@Mock
-	private ACTAccessRequirement mockAccessRequirement;
+	private ManagedACTAccessRequirement mockAccessRequirement;
 
 	private RequestManagerImpl manager;
 	private String accessRequirementId;
@@ -72,7 +79,7 @@ public class RequestManagerImplTest {
 		modifiedOn = new Date();
 		etag = "etag";
 		request = createNewRequest();
-		renewal = manager.createRenewalFromRequest(request);
+		renewal = manager.createRenewalFromApprovedRequest(request);
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
@@ -80,7 +87,6 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(true);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
 	}
 
@@ -94,6 +100,7 @@ public class RequestManagerImplTest {
 		dto.setEtag(etag);
 		dto.setAccessRequirementId(accessRequirementId);
 		dto.setResearchProjectId(researchProjectId);
+		dto.setAccessorChanges(new LinkedList<AccessorChange>());
 		return dto;
 	}
 
@@ -128,15 +135,13 @@ public class RequestManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementNullAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(null);
-		manager.create(mockUser, createNewRequest());
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testCreateWithACTAccessRequirementDoesNotAcceptRequest() {
-		when(mockAccessRequirement.getAcceptRequest()).thenReturn(false);
-		manager.create(mockUser, createNewRequest());
+	public void testCreateWithMoreThanMaxAccessorChanges() {
+		request = createNewRequest();
+		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
+		when(mockAccessorChanges.isEmpty()).thenReturn(false);
+		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
+		request.setAccessorChanges(mockAccessorChanges );
+		manager.create(null, request);
 	}
 
 	@Test
@@ -167,24 +172,18 @@ public class RequestManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetWithNullUserInfo() {
-		manager.getUserOwnCurrentRequest(null, accessRequirementId);
+	public void testGetRequestForUpdateWithNullUserInfo() {
+		manager.getRequestForUpdate(null, accessRequirementId);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetWithNullAccessRequirementId() {
-		manager.getUserOwnCurrentRequest(mockUser, null);
-	}
-
-	@Test (expected = NotFoundException.class)
-	public void testGetNotFound() {
-		when(mockRequestDao.getUserOwnCurrentRequest(anyString(), anyString())).thenThrow(new NotFoundException());
-		manager.getUserOwnCurrentRequest(mockUser, accessRequirementId);
+	public void testGetRequestForUpdateWithNullAccessRequirementId() {
+		manager.getRequestForUpdate(mockUser, null);
 	}
 
 	@Test
-	public void testGet() {
-		assertEquals(request, manager.getUserOwnCurrentRequest(mockUser, accessRequirementId));
+	public void testGetRequestForUpdate() {
+		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
 		verify(mockRequestDao).getUserOwnCurrentRequest(accessRequirementId, userId);
 	}
 
@@ -197,28 +196,27 @@ public class RequestManagerImplTest {
 		assertEquals(Request.class.getName(), request.getConcreteType());
 	}
 
+	/**
+	 * For this case the current request is a request (not a renewal).
+	 */
 	@Test
-	public void testGetForUpdateNotRequireRenewal() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
-	}
-
-	@Test
-	public void testGetForUpdateRequireRenewalDoesNotHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(false);
-		assertEquals(request, manager.getRequestForUpdate(mockUser, accessRequirementId));
-	}
-
-	@Test
-	public void testGetForUpdateRequireRenewalHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		Renewal renewal = (Renewal) manager.getRequestForUpdate(mockUser, accessRequirementId);
+	public void testUpdateApprovedRequestCurrentRequest() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		// call under test
+		manager.updateApprovedRequest(requestId);
+		verify(mockRequestDao).getForUpdate(requestId);
+		ArgumentCaptor<RequestInterface> updateCapture = ArgumentCaptor.forClass(RequestInterface.class);
+		verify(mockRequestDao).update(updateCapture.capture());
+		
+		RequestInterface requesInt = updateCapture.getValue();
+		assertNotNull(requesInt);
+		assertTrue(requesInt instanceof Renewal);
+		Renewal renewal = (Renewal) requesInt;
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
 		assertEquals(createdOn, renewal.getCreatedOn());
 		assertEquals(userId, renewal.getModifiedBy());
+		// modified on should not be changed.
 		assertEquals(modifiedOn, renewal.getModifiedOn());
 		assertEquals(etag, renewal.getEtag());
 		assertEquals(accessRequirementId, renewal.getAccessRequirementId());
@@ -226,9 +224,25 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+	}
+	
+	/**
+	 * For this case the current request is a renewal.
+	 */
+	@Test
+	public void testUpdateApprovedRequestCurrentRenewal() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(renewal);
+		// call under test
+		manager.updateApprovedRequest(requestId);
+		verify(mockRequestDao).getForUpdate(requestId);
+		ArgumentCaptor<RequestInterface> updateCapture = ArgumentCaptor.forClass(RequestInterface.class);
+		verify(mockRequestDao).update(updateCapture.capture());
+		
+		RequestInterface requesInt = updateCapture.getValue();
+		assertNotNull(requesInt);
+		assertTrue(requesInt instanceof Renewal);
 	}
 
 	@Test
@@ -318,47 +332,22 @@ public class RequestManagerImplTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalNotRequired() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(false);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
-		manager.update(mockUser, toUpdate);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalRequiredAndHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
+	public void testUpdateWithMoreThanMaxAccessorChanges() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		manager.update(mockUser, request);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testUpdateRenewalRequiredAndDoesNotHasApprovedSubmission() {
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(false);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		List<AccessorChange> mockAccessorChanges = Mockito.mock(List.class);
+		when(mockAccessorChanges.isEmpty()).thenReturn(false);
+		when(mockAccessorChanges.size()).thenReturn(RequestManagerImpl.MAX_ACCESSORS+1);
+		toUpdate.setAccessorChanges(mockAccessorChanges );
 		manager.update(mockUser, toUpdate);
 	}
 
 	@Test
 	public void testUpdate() {
-		Request toUpdate = createNewRequest();
-		toUpdate.setDucFileHandleId("777");
-		assertEquals(request, manager.update(mockUser, toUpdate));
-		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
-		verify(mockRequestDao).update(captor.capture());
-		Request updated = captor.getValue();
-		assertEquals(requestId, updated.getId());
-		assertEquals(userId, updated.getCreatedBy());
-		assertEquals(userId, updated.getModifiedBy());
-		assertEquals("777", updated.getDucFileHandleId());
-	}
-
-	@Test
-	public void testUpdateRenewalRequired() {
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.APPROVED)).thenReturn(true);
-		when(mockAccessRequirement.getIsAnnualReviewRequired()).thenReturn(true);
-		Renewal toUpdate = manager.createRenewalFromRequest(request);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
+		// call under test.
 		assertEquals(request, manager.update(mockUser, toUpdate));
 		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
 		verify(mockRequestDao).update(captor.capture());
@@ -370,10 +359,20 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
-	public void testCreateRenewalFromRequest() {
+	public void testCreateRenewalFromApprovedRequest() {
 		Request request = createNewRequest();
+		AccessorChange change1 = new AccessorChange();
+		change1.setUserId("1");
+		change1.setType(AccessType.GAIN_ACCESS);
+		AccessorChange change2 = new AccessorChange();
+		change2.setUserId("2");
+		change2.setType(AccessType.RENEW_ACCESS);
+		AccessorChange change3 = new AccessorChange();
+		change3.setUserId("3");
+		change3.setType(AccessType.REVOKE_ACCESS);
+		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
-		Renewal renewal = manager.createRenewalFromRequest(request);
+		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
 		assertEquals(createdOn, renewal.getCreatedOn());
@@ -385,9 +384,10 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(request.getAccessors(), renewal.getAccessors());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+		change1.setType(AccessType.RENEW_ACCESS);
+		assertEquals(renewal.getAccessorChanges(), Arrays.asList(change1, change2));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

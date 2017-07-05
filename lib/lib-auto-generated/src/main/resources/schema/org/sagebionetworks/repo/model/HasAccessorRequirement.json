@@ -1,0 +1,15 @@
+{
+	"title": "Has Accessor Requirement",
+	"type": "interface",
+	"description": "Include requirements that may or may not require from an accessor.",
+	"properties": {
+		"isCertifiedUserRequired": {
+			"type":"boolean",
+			"description":  "If true, then accessor needs to be a Synapse Certified User to gain access."
+		},
+		"isValidatedProfileRequired": {
+			"type":"boolean",
+			"description":  "If true, then accessor needs to have their Synapse Profile validated to gain access."
+		}
+	}
+}

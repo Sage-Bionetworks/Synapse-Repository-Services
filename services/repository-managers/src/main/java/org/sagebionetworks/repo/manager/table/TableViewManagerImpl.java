@@ -29,8 +29,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '"+EntityField.etag.name()+"' column.";
 	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
-	public static final int MAX_CONTAINERS_PER_VIEW = 1000;
-	public static final String MAX_CONTAINER_MESSAGE = "The provided view scope includes: %1$S containers which exceeds the maximum number of "+MAX_CONTAINERS_PER_VIEW;
+
 	
 	@Autowired
 	ViewScopeDao viewScopeDao;
@@ -60,10 +59,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
 		}
 		// validate the scope size
-		int scopeContainerCount  = tableManagerSupport.getScopeContainerCount(scopeIds, type);
-		if(scopeContainerCount > MAX_CONTAINERS_PER_VIEW){
-			throw new IllegalArgumentException(String.format(MAX_CONTAINER_MESSAGE, scopeContainerCount));
-		}
+		tableManagerSupport.validateScopeSize(scopeIds, type);
 		
 		// Define the scope of this view.
 		viewScopeDao.setViewScopeAndType(viewId, scopeIds, type);

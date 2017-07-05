@@ -1347,10 +1347,11 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId){
+	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId, String benefactorColumnId){
 		String tableName = getTableNameForId(viewId, TableType.INDEX);
-		String columnId = getColumnNameForId(etagColumnId);
-		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, columnId, tableName);
+		String etagColumnName = getColumnNameForId(etagColumnId);
+		String benefactorColumnMame = getColumnNameForId(benefactorColumnId);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, etagColumnName, benefactorColumnMame, tableName);
 	}
 	
 	/**

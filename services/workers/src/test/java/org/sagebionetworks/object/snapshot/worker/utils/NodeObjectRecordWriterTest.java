@@ -59,7 +59,7 @@ public class NodeObjectRecordWriterTest {
 	@Mock
 	private ObjectRecordDAO mockObjectRecordDao;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 
 	private NodeObjectRecordWriter writer;
 	private NodeRecord node;
@@ -104,7 +104,6 @@ public class NodeObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, nodeId, ObjectType.ENTITY, "etag", timestamp);
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockCallback, times(2)).progressMade(null);
 		DeletedNode deletedNode = new DeletedNode();
 		deletedNode.setId(nodeId);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
@@ -130,7 +129,6 @@ public class NodeObjectRecordWriterTest {
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(node, timestamp);
 
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verify(mockCallback, times(2)).progressMade(null);
 		verify(mockNodeDAO).getNode(eq("123"));
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
 	}
@@ -178,6 +176,5 @@ public class NodeObjectRecordWriterTest {
 		deletedNode.setId(nodeId);
 		ObjectRecord expected = ObjectRecordBuilderUtils.buildObjectRecord(deletedNode, timestamp);;
 		verify(mockObjectRecordDao).saveBatch(eq(Arrays.asList(expected)), eq(expected.getJsonClassName()));
-		verify(mockCallback, times(2)).progressMade(null);
 	}
 }

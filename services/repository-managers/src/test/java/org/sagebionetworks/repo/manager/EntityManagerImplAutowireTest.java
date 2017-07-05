@@ -135,24 +135,24 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testMoveRestrictedEntity() throws Exception {
 		// create a project with a child
-		Project project = new Project();
-		project.setName("orig parent");
-		String pid = entityManager.createEntity(userInfo, project, null);
-		toDelete.add(pid);
+		Project source = new Project();
+		source.setName("orig parent");
+		String sourceId = entityManager.createEntity(userInfo, source, null);
+		toDelete.add(sourceId);
 		// add a restriction to the project
-		arToDelete = accessRequirementManager.createLockAccessRequirement(userInfo, pid);
+		arToDelete = accessRequirementManager.createLockAccessRequirement(userInfo, sourceId);
 		Folder child = new Folder();
 		child.setName("child");
-		child.setParentId(pid);
+		child.setParentId(sourceId);
 		String childId = entityManager.createEntity(userInfo, child, null);
 		toDelete.add(childId);
-		project = new Project();
-		project.setName("new parent");
-		pid = entityManager.createEntity(userInfo, project, null);
-		toDelete.add(pid);
+		Project dest = new Project();
+		dest.setName("new parent");
+		String destinationId = entityManager.createEntity(userInfo, dest, null);
+		toDelete.add(destinationId);
 		child = entityManager.getEntity(userInfo, childId, Folder.class);
-		// try to move the child (should fail)		
-		child.setParentId(pid);
+		// try to move the child (should fail)
+		child.setParentId(destinationId);
 		try {
 			entityManager.updateEntity(userInfo, child, false, null);
 			fail("Expected UnauthorizedException");
@@ -161,12 +161,12 @@ public class EntityManagerImplAutowireTest {
 		}
 		// however it *should* work if the new parent is under the same restriction
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(pid);
+		rod.setId(destinationId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		arToDelete.getSubjectIds().add(rod);
 		accessRequirementManager.updateAccessRequirement(adminUserInfo, arToDelete.getId().toString(), arToDelete);
 		// now this should work!
-		entityManager.updateEntity(userInfo, child, false, null);		
+		entityManager.updateEntity(userInfo, child, false, null);
 	}
 	
 	@Test

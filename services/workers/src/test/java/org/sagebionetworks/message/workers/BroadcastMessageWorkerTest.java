@@ -26,7 +26,7 @@ public class BroadcastMessageWorkerTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
-	private ProgressCallback<Void> mockCallback;
+	private ProgressCallback mockCallback;
 	private BroadcastMessageWorker worker;
 
 	@Before

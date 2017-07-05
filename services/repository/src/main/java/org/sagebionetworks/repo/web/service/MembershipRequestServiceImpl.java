@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -111,5 +112,11 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		membershipRequestManager.delete(userInfo, dtoId);
 	}
-
+	
+	@Override
+	public Count getOpenMembershipRequestCount(Long userId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return membershipRequestManager.getOpenSubmissionsCountForTeamAdmin(userInfo);
+	}
 }
+

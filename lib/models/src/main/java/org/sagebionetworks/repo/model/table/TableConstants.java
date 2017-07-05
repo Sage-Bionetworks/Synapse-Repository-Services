@@ -118,6 +118,11 @@ public class TableConstants {
 	public static final String ENTITY_REPLICATION_COL_MODIFIED_ON	= "MODIFIED_ON";
 	public static final String ENTITY_REPLICATION_COL_FILE_ID		= "FILE_ID";
 	
+	// REPLICATION_SYNC_EXPIRATION
+	public static final String REPLICATION_SYNC_EXPIRATION_TABLE	= "REPLICATION_SYNC_EXPIRATION";
+	public static final String REPLICATION_SYNC_EXP_COL_ID 			= "ID";
+	public static final String REPLICATION_SYNC_EXP_COL_EXPIRES		= "EXPIRES_MS";
+	
 	// Dynamic string of all of the entity types.
 	public static final String ENTITY_TYPES;
 	static{
@@ -134,6 +139,13 @@ public class TableConstants {
 		}
 		ENTITY_TYPES = builder.toString();
 	}
+	
+	public final static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = 
+			"CREATE TABLE IF NOT EXISTS "+REPLICATION_SYNC_EXPIRATION_TABLE+ "("
+			+ REPLICATION_SYNC_EXP_COL_ID +" bigint(20) NOT NULL,"
+			+ REPLICATION_SYNC_EXP_COL_EXPIRES +" bigint(20) NOT NULL,"
+			+ "PRIMARY KEY("+REPLICATION_SYNC_EXP_COL_ID+")"
+			+")";
 
 	public final static String ENTITY_REPLICATION_TABLE_CREATE = "CREATE TABLE IF NOT EXISTS "+ENTITY_REPLICATION_TABLE+"("
 			+ ENTITY_REPLICATION_COL_ID +" bigint(20) NOT NULL,"
@@ -184,23 +196,27 @@ public class TableConstants {
 	
 	public static final String TYPE_PARAMETER_NAME = "typeParam";
 	public static final String PARENT_ID_PARAMETER_NAME = "parentIds";
+	public static final String ID_PARAMETER_NAME = "ids";
+	public static final String EXPIRES_PARAM = "bExpires";
 	public static final String ENTITY_REPLICATION_ALIAS = "R";
 	public static final String ANNOTATION_REPLICATION_ALIAS = "A";
 	
 	//  Select the CRC32 from the entity replication for a given type and scope
-	public static final String SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("
-			+ ENTITY_REPLICATION_COL_ID
-			+ ", '-',"
-			+ ENTITY_REPLICATION_COL_ETAG
-			+ "))) FROM "
-			+ ENTITY_REPLICATION_TABLE
+	public static final String SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE = 
+			"SELECT"
+			+ " SUM(CRC32(CONCAT("
+					+ ENTITY_REPLICATION_COL_ID+ ", '-',"+ ENTITY_REPLICATION_COL_ETAG+", '-', "+ENTITY_REPLICATION_COL_BENEFACTOR_ID
+			+ ")))"
+			+ " FROM "+ ENTITY_REPLICATION_TABLE
 			+ " WHERE "
-			+ ENTITY_REPLICATION_COL_TYPE
-			+ " = :"+TYPE_PARAMETER_NAME+" AND "
-			+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
+			+ ENTITY_REPLICATION_COL_TYPE + " = :"+TYPE_PARAMETER_NAME+""
+					+ " AND "+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// template to calculate CRC32 of a table view.
-	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = "SELECT SUM(CRC32(CONCAT("+ROW_ID+", '-', %1$s))) FROM %2$s";
+	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 
+			"SELECT"
+			+ " SUM(CRC32(CONCAT("
+					+ROW_ID+", '-', %1$s, '-', %2$s))) FROM %3$s";
 	
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 		="ANNOTATION_REPLICATION";
@@ -266,4 +282,37 @@ public class TableConstants {
 			+ ANNOTATION_REPLICATION_COL_TYPE + " LIMIT :" + P_LIMIT
 			+ " OFFSET :" + P_OFFSET;
 	
+	public static final String CRC_ALIAS = "CRC";
+	
+	public static final String SELECT_ENTITY_CHILD_CRC =
+			"SELECT "
+					+ENTITY_REPLICATION_COL_PARENT_ID
+					+", SUM(CRC32(CONCAT("+ENTITY_REPLICATION_COL_ID+",'-',"+ENTITY_REPLICATION_COL_ETAG+"))) AS "+CRC_ALIAS
+					+" FROM "+ENTITY_REPLICATION_TABLE
+					+" WHERE "+ENTITY_REPLICATION_COL_PARENT_ID+" IN (:"+PARENT_ID_PARAMETER_NAME+")"
+					+" GROUP BY "+ENTITY_REPLICATION_COL_PARENT_ID;
+	
+	public static final String SELECT_ENTITY_CHILD_ID_ETAG = 
+			"SELECT "
+			+ ENTITY_REPLICATION_COL_ID+", "+ENTITY_REPLICATION_COL_ETAG
+			+ " FROM "+ENTITY_REPLICATION_TABLE
+			+ " WHERE "+ENTITY_REPLICATION_COL_PARENT_ID+" = ?";
+	
+	public static final String BATCH_INSERT_REPLICATION_SYNC_EXP =
+			"INSERT INTO "+REPLICATION_SYNC_EXPIRATION_TABLE
+			+" ("+REPLICATION_SYNC_EXP_COL_ID+", "+REPLICATION_SYNC_EXP_COL_EXPIRES+")"
+			+" VALUES (?,?) ON DUPLICATE KEY UPDATE"
+			+" "+REPLICATION_SYNC_EXP_COL_EXPIRES+" = ?";
+	
+	public static final String TRUNCATE_REPLICATION_SYNC_EXPIRATION_TABLE = 
+			"TRUNCATE TABLE "+REPLICATION_SYNC_EXPIRATION_TABLE;
+			
+	
+	public static final String SELECT_NON_EXPIRED_IDS =
+			"SELECT "
+					+REPLICATION_SYNC_EXP_COL_ID
+					+" FROM "+REPLICATION_SYNC_EXPIRATION_TABLE
+					+" WHERE "
+					+REPLICATION_SYNC_EXP_COL_EXPIRES+" > :"+EXPIRES_PARAM
+					+" AND "+REPLICATION_SYNC_EXP_COL_ID+" IN (:"+ID_PARAMETER_NAME+")";
 }

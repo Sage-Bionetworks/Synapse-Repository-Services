@@ -203,7 +203,6 @@ public class MessageManagerImplSESTest {
 	public void testPlainTextToDeveloper() throws Exception {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	/**
@@ -214,7 +213,6 @@ public class MessageManagerImplSESTest {
 	public void testHTMLToDeveloper() throws Exception {
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -224,7 +222,6 @@ public class MessageManagerImplSESTest {
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -234,7 +231,6 @@ public class MessageManagerImplSESTest {
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -244,7 +240,6 @@ public class MessageManagerImplSESTest {
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -254,7 +249,6 @@ public class MessageManagerImplSESTest {
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 	
 	@Test
@@ -264,6 +258,5 @@ public class MessageManagerImplSESTest {
 		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT, mockProgressCallback);
 		assertEquals(errors.toString(), 0, errors.size());
-		verify(mockProgressCallback).progressMade(null);
 	}
 }

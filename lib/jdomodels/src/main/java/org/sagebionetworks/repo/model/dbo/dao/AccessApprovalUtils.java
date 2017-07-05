@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,30 +8,35 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class AccessApprovalUtils {
-
-	// the convention is that the individual fields take precedence
-	// over the serialized objects.  When restoring the dto we first deserialize
-	// the 'blob' and then populate the individual fields
 
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
 		dbo.setId(dto.getId());
 		dbo.seteTag(dto.getEtag());
-		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedBy()!=null) {
+			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		}
+		if (dto.getCreatedOn()!=null) {
+			dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
+		if (dto.getExpiredOn() != null) {
+			dbo.setExpiredOn(dto.getExpiredOn().getTime());
+		}
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
-		copyToSerializedField(dto, dbo);
+		dbo.setRequirementVersion(dto.getRequirementVersion());
+		dbo.setSubmitterId(Long.parseLong(dto.getSubmitterId()));
+		dbo.setState(dto.getState().name());
 	}
 
 	public static AccessApproval copyDboToDto(DBOAccessApproval dbo) throws DatastoreException {
-		AccessApproval dto = copyFromSerializedField(dbo);
+		AccessApproval dto = new AccessApproval();
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
@@ -41,23 +45,13 @@ public class AccessApprovalUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
+		dto.setRequirementVersion(dbo.getRequirementVersion());
+		dto.setSubmitterId(dbo.getSubmitterId().toString());
+		if (dbo.getExpiredOn() != 0L) {
+			dto.setExpiredOn(new Date(dbo.getExpiredOn()));
+		}
+		dto.setState(ApprovalState.valueOf(dbo.getState()));
 		return dto;
-	}
-
-	public static void copyToSerializedField(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-
-	public static AccessApproval copyFromSerializedField(DBOAccessApproval dbo) throws DatastoreException {
-		try {
-			return (AccessApproval)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
 	}
 
 	public static List<DBOAccessApproval> copyDtosToDbos(List<AccessApproval> dtos, boolean forCreation, IdGenerator idGenerator) {

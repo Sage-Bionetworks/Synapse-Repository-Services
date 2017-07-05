@@ -4,11 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -25,19 +23,20 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -143,15 +142,17 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 	}
 	
-	public static TermsOfUseAccessApproval newAccessApproval(UserGroup principal, AccessRequirement ar) throws DatastoreException {
-		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
+	public static AccessApproval newAccessApproval(UserGroup principal, AccessRequirement ar) throws DatastoreException {
+		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setCreatedBy(principal.getId());
 		accessApproval.setCreatedOn(new Date());
 		accessApproval.setModifiedBy(principal.getId());
 		accessApproval.setModifiedOn(new Date());
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		accessApproval.setRequirementVersion(ar.getVersionNumber());
+		accessApproval.setSubmitterId(principal.getId());
+		accessApproval.setState(ApprovalState.APPROVED);
 		return accessApproval;
 	}
 	
@@ -201,7 +202,9 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(accessApproval.getEtag());
 
 		// test create again
-		assertEquals(accessApproval, accessApprovalDAO.create(accessApproval));
+		AccessApproval updated = accessApprovalDAO.create(accessApproval);
+		accessApproval.setEtag(updated.getEtag());
+		assertEquals(accessApproval, updated);
 
 		approvals = accessApprovalDAO.getAccessApprovalsForSubjects(
 				Arrays.asList(node.getId()), RestrictableObjectType.ENTITY, 10L, 0L);
@@ -234,93 +237,219 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(clone);
 		assertEquals(accessApproval, clone);
 		
-		// Get by Node Id
-		Collection<AccessApproval> ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
-				Arrays.asList(new String[]{individualGroup.getId().toString()}));
+		List<AccessApproval> ars = accessApprovalDAO.getActiveApprovalsForUser(
+				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
-		Set<String> approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
-		assertNotNull(approvedUsers);
-		assertEquals(1, approvedUsers.size());
-		assertTrue(approvedUsers.contains(individualGroup.getId().toString()));
+		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
+				Sets.newHashSet(individualGroup.getId().toString()),
+				individualGroup.getId(), accessRequirement.getId().toString()));
 
-		// update it
-		clone = ars.iterator().next();
-		AccessApproval updatedAA = accessApprovalDAO.update(clone);
-		assertEquals(((TermsOfUseAccessApproval)clone).getConcreteType(), ((TermsOfUseAccessApproval)updatedAA).getConcreteType());
-		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
-
-		try {
-			accessApprovalDAO.update(clone);
-			fail("conflicting update exception not thrown");
-		}
-		catch(ConflictingUpdateException e){
-			// We expected this exception
-		}
-		
 		// creating an approval is idempotent:
 		// make a second one...
 		accessApproval2 = accessApprovalDAO.create(newAccessApproval(individualGroup, accessRequirement));
-		assertEquals(updatedAA, accessApproval2);
-		// .. there is still only one:
-		ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
-				Arrays.asList(new String[]{individualGroup.getId().toString()}));
+		ars = accessApprovalDAO.getActiveApprovalsForUser(
+				accessRequirement.getId().toString(), individualGroup.getId().toString());
 		assertEquals(1, ars.size());
+		assertEquals(accessApproval2, ars.get(0));
 
 		// Delete it
 		accessApprovalDAO.delete(id);
-		approvedUsers = accessApprovalDAO.getApprovedUsers(Arrays.asList(individualGroup.getId().toString()), accessRequirement.getId().toString());
-		assertNotNull(approvedUsers);
-		assertTrue(approvedUsers.isEmpty());
+		assertFalse(accessApprovalDAO.hasApprovalsSubmittedBy(
+				Sets.newHashSet(individualGroup.getId().toString()),
+				individualGroup.getId(), accessRequirement.getId().toString()));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessRequirementId() {
-		accessApprovalDAO.delete(null, "1");
+	public void testRevokeAccessApprovalsWithNullAccessRequirementId() {
+		accessApprovalDAO.revokeAll(null, "1", "2");
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testDeleteAccessApprovalWithNullAccessorId() {
-		accessApprovalDAO.delete("1", null);
+	public void testRevokeAccessApprovalsWithNullAccessorId() {
+		accessApprovalDAO.revokeAll("1", null, "2");
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRevokeAccessApprovalsWithNullRevokedBy() {
+		accessApprovalDAO.revokeAll("1", "2", null);
 	}
 
 	@Test
-	public void testDeleteAccessApprovalWithNotExistingAccessApproval() {
-		accessApprovalDAO.delete("-1", "-1");
+	public void testRevokeAccessApprovalsWithNotExistingAccessApproval() {
+		accessApprovalDAO.revokeAll("-1", "-1", "2");
 	}
 
 	@Test
-	public void testDeleteAccessApprovalWithExistingAccessApproval() {
+	public void testRevokeAccessApprovalsWithExistingAccessApproval() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval = accessApprovalDAO.create(accessApproval);
-		accessApprovalDAO.delete(accessRequirement.getId().toString(), individualGroup.getId());
-		try {
-			accessApprovalDAO.get(accessApproval.getId().toString());
-			fail("Expecting a NotFoundException");
-		} catch (NotFoundException e) {
-			// make sure that the exception is thrown here and not before this call
-		}
+		accessApprovalDAO.revokeAll(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
+		AccessApproval approval = accessApprovalDAO.get(accessApproval.getId().toString());
+		assertNotNull(approval);
+		assertEquals(ApprovalState.REVOKED, approval.getState());
+		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
+		assertFalse(accessApproval.getModifiedOn().equals(approval.getModifiedOn()));
+		assertFalse(accessApproval.getEtag().equals(approval.getEtag()));
 	}
 
 	@Test
-	public void testCreateAndDeleteBatch() {
-		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
+	public void testCreateRevokeAndRenewBatch() {
 		accessApproval = newAccessApproval(individualGroup, accessRequirement);
 		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
-		List<AccessApproval> created = accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2));
-		assertEquals(2, accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).size());
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+
+		accessApproval = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		accessApproval2 = accessApprovalDAO.getByPrimaryKey(
+				accessApproval2.getRequirementId(),
+				accessApproval2.getRequirementVersion(),
+				accessApproval2.getSubmitterId(),
+				accessApproval2.getAccessorId());
 
 		// insert again
-		assertEquals(created, accessApprovalDAO.createBatch(Arrays.asList(accessApproval, accessApproval2)));
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+		AccessApproval updated = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		accessApproval.setEtag(updated.getEtag());
+		assertEquals(accessApproval, updated);
+		AccessApproval updated2 = accessApprovalDAO.getByPrimaryKey(
+				accessApproval2.getRequirementId(),
+				accessApproval2.getRequirementVersion(),
+				accessApproval2.getSubmitterId(),
+				accessApproval2.getAccessorId());
+		accessApproval2.setEtag(updated2.getEtag());
+		assertEquals(accessApproval2, updated2);
 
-		List<Long> toDelete = new LinkedList<Long>();
-		toDelete.add(created.get(0).getId());
-		toDelete.add(created.get(1).getId());
+		// revoke
+		accessApproval.setState(ApprovalState.REVOKED);
+		accessApprovalDAO.revokeBySubmitter(
+				accessApproval.getRequirementId().toString(),
+				accessApproval.getSubmitterId(),
+				Arrays.asList(accessApproval.getAccessorId()),
+				individualGroup2.getId());
+		updated = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				accessApproval.getRequirementVersion(),
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		assertEquals(ApprovalState.REVOKED, updated.getState());
 
-		assertEquals(2, accessApprovalDAO.deleteBatch(toDelete));
-		assertTrue(accessApprovalDAO.getForAccessRequirement(accessRequirement.getId().toString()).isEmpty());
+		// renew
+		Date newExpirationDate = new Date();
+		Long newVersion = 9L;
+		accessApproval.setExpiredOn(newExpirationDate);
+		accessApproval.setRequirementVersion(newVersion);
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval));
+		updated = accessApprovalDAO.getByPrimaryKey(
+				accessApproval.getRequirementId(),
+				newVersion,
+				accessApproval.getSubmitterId(),
+				accessApproval.getAccessorId());
+		assertEquals(newVersion, updated.getRequirementVersion());
+		assertEquals(newExpirationDate, updated.getExpiredOn());
+
+		// clean up
+		accessApprovalDAO.delete(accessApproval.getId().toString());
+		accessApprovalDAO.delete(accessApproval2.getId().toString());
+	}
+
+	@Test
+	public void testListAccessorListAndRevokeGroup() {
+		List<AccessorGroup> result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
+
+		// create some approvals
+		accessApproval = newAccessApproval(individualGroup, accessRequirement);
+		accessApproval2 = newAccessApproval(individualGroup2, accessRequirement);
+		accessApproval2.setSubmitterId(individualGroup.getId());
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(accessApproval, accessApproval2));
+		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		AccessorGroup group = result.get(0);
+		assertNotNull(group);
+		assertEquals(accessRequirement.getId().toString(), group.getAccessRequirementId());
+		assertEquals(individualGroup.getId(), group.getSubmitterId());
+		assertTrue(group.getAccessorIds().contains(individualGroup.getId()));
+		assertTrue(group.getAccessorIds().contains(individualGroup2.getId()));
+		assertEquals(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED), group.getExpiredOn());
+
+		// revoke the group
+		accessApprovalDAO.revokeGroup(accessRequirement.getId().toString(), individualGroup.getId(), individualGroup2.getId());
+		result = accessApprovalDAO.listAccessorGroup(accessRequirement.getId().toString(),
+				individualGroup.getId(), null, 10L, 0L);
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
+
+		// check each approval
+		AccessApproval approval = accessApprovalDAO.getByPrimaryKey(accessRequirement.getId(),
+				accessRequirement.getVersionNumber(), individualGroup.getId(), individualGroup.getId());
+		assertNotNull(approval);
+		assertEquals(ApprovalState.REVOKED, approval.getState());
+		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
+
+		AccessApproval approval2 = accessApprovalDAO.getByPrimaryKey(accessRequirement.getId(),
+				accessRequirement.getVersionNumber(), individualGroup.getId(), individualGroup2.getId());
+		assertNotNull(approval2);
+		assertEquals(ApprovalState.REVOKED, approval2.getState());
+		assertEquals(individualGroup2.getId(), approval2.getModifiedBy());
+	}
+
+	@Test
+	public void testConvertToList() {
+		assertEquals(new LinkedList<String>(), DBOAccessApprovalDAOImpl.convertToList(null));
+		assertEquals(Arrays.asList("1"), DBOAccessApprovalDAOImpl.convertToList("1"));
+		assertEquals(Arrays.asList("1","2"), DBOAccessApprovalDAOImpl.convertToList("1,2"));
+	}
+
+	@Test
+	public void testBuildQuery() {
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND REQUIREMENT_ID = :REQUIREMENT_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND SUBMITTER_ID = :SUBMITTER_ID"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null));
+		assertEquals("SELECT REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON, GROUP_CONCAT(DISTINCT ACCESSOR_ID SEPARATOR ',') AS ACCESSOR_LIST"
+				+ " FROM ACCESS_APPROVAL"
+				+ " WHERE STATE = 'APPROVED'"
+				+ " AND EXPIRED_ON <> 0"
+				+ " AND EXPIRED_ON <= :EXPIRED_ON"
+				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON"
+				+ " LIMIT :LIMIT"
+				+ " OFFSET :OFFSET",
+				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, new Date()));
 	}
 }

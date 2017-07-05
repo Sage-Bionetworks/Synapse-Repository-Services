@@ -5,23 +5,26 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Assume;
 import org.junit.Before;
@@ -36,9 +39,11 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationStatus;
+import org.sagebionetworks.repo.manager.entity.ReplicationMessageManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -90,11 +95,10 @@ public class TableManagerSupportTest {
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
 	@Mock
-	ExecutorService mockExecutor;
+	ProgressCallback mockCallback;
 	@Mock
-	Future<Integer> mockFuture;
-	@Mock
-	ProgressCallback<Void> mockCallback;
+	ReplicationMessageManager mockReplicationMessageManager;
+	
 	
 	String schemaMD5Hex;
 	
@@ -126,11 +130,9 @@ public class TableManagerSupportTest {
 		ReflectionTestUtils.setField(manager, "tableTruthDao", mockTableTruthDao);
 		ReflectionTestUtils.setField(manager, "viewScopeDao", mockViewScopeDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
-		ReflectionTestUtils.setField(manager, "tableSupportExecutorService", mockExecutor);
+		ReflectionTestUtils.setField(manager, "replicationMessageManager", mockReplicationMessageManager);
 		
-		when(mockExecutor.submit(any(Callable.class))).thenReturn(mockFuture);
 		callableReturn = 123;
-		when(mockFuture.get(anyLong(), any(TimeUnit.class))).thenReturn(callableReturn);
 		
 		userInfo = new UserInfo(false, 8L);
 		
@@ -163,10 +165,11 @@ public class TableManagerSupportTest {
 		// setup the view scope
 		scope = Sets.newHashSet(222L,333L);
 		when(mockViewScopeDao.getViewScope(tableIdLong)).thenReturn(scope);
-		when(mockNodeDao.getAllContainerIds(222L)).thenReturn(Lists.newArrayList(20L,21L));
-		when(mockNodeDao.getAllContainerIds(333L)).thenReturn(Lists.newArrayList(30L,31L));
 		
-		containersInScope = Sets.newHashSet(222L,333L,20L,21L,30L,31L);
+		containersInScope = new LinkedHashSet<Long>(Arrays.asList(222L,333L,20L,21L,30L,31L));
+		
+		when(mockNodeDao.getAllContainerIds(anyListOf(Long.class), anyInt())).thenReturn(containersInScope);
+		
 		
 		// mirror passed columns.
 		doAnswer(new Answer<ColumnModel>() {
@@ -477,19 +480,6 @@ public class TableManagerSupportTest {
 		assertEquals(currentVersion, manager.getVersionOfLastTableEntityChange(tableId));
 	}
 	
-	@Test
-	public void testGetScopeContainerCount(){
-		// call under test.
-		int count = manager.getScopeContainerCount(containersInScope, viewType);
-		assertEquals(containersInScope.size(), count);
-	}
-	
-	@Test
-	public void testGetScopeContainerCountEmpty(){
-		// call under test.
-		int count = manager.getScopeContainerCount(null, viewType);
-		assertEquals(0, count);
-	}
 	
 	@Test
 	public void testGetAllContainerIdsForViewScope(){
@@ -498,22 +488,91 @@ public class TableManagerSupportTest {
 		assertEquals(containersInScope, containers);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testgetAllContainerIdsForScopeOverLimit(){
+		Set<Long> overLimit = new HashSet<>();
+		int countOverLimit = TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1;
+		for(long i=0; i<countOverLimit; i++){
+			overLimit.add(i);
+		}
+		viewType = ViewType.file;
+		// call under test.
+		manager.getAllContainerIdsForScope(overLimit, viewType);
+	}
+	
 	@Test
-	public void testgetAllContainerIdsForScopeFiewView(){
+	public void testgetAllContainerIdsForScopeFiewView() throws LimitExceededException{
 		viewType = ViewType.file;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(containersInScope, containers);
-		verify(mockNodeDao, times(scope.size())).getAllContainerIds(anyLong());
+		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
 	}
 	
 	@Test
-	public void testgetAllContainerIdsForScopeProject(){
+	public void testGetAllContainerIdsForScopeProject() throws LimitExceededException{
 		viewType = ViewType.project;
 		// call under test.
 		Set<Long> containers = manager.getAllContainerIdsForScope(scope, viewType);
 		assertEquals(scope, containers);
-		verify(mockNodeDao, never()).getAllContainerIds(anyLong());
+		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
+	}
+	
+	/**
+	 * For this case the number of IDs in the scope is already over the limit.
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllContainerIdsForScopeOverLimit(){
+		Set<Long> tooMany = new HashSet<Long>();
+		for(long i=0; i<TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW+1; i++){
+			tooMany.add(i);
+		}
+		// call under test
+		manager.getAllContainerIdsForScope(tooMany, viewType);
+	}
+	
+	/**
+	 * For this case the scope is under the limit, but the expanded containers
+	 * would go over the limit.
+	 * @throws LimitExceededException 
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetAllContainerIdsForScopeExpandedOverLimit() throws LimitExceededException{
+		// setup limit exceeded.
+		LimitExceededException exception = new LimitExceededException("too many");
+		doThrow(exception).when(mockNodeDao).getAllContainerIds(anyListOf(Long.class), anyInt());
+		// call under test
+		manager.getAllContainerIdsForScope(scope, viewType);
+	}
+	
+	@Test
+	public void testValidateScopeSize() throws LimitExceededException{
+		// call under test
+		manager.validateScopeSize(scope, viewType);
+		verify(mockNodeDao).getAllContainerIds(scope, TableManagerSupportImpl.MAX_CONTAINERS_PER_VIEW);
+	}
+	
+	@Test
+	public void testValidateScopeSizeNullScope() throws LimitExceededException{
+		// The scope can be null.
+		scope = null;
+		// call under test
+		manager.validateScopeSize(scope, viewType);
+		verify(mockNodeDao, never()).getAllContainerIds(anySetOf(Long.class), anyInt());
+	}
+	
+	@Test
+	public void testcreateViewOverLimitMessageFileView(){
+		// call under test
+		String message = manager.createViewOverLimitMessage(ViewType.file);
+		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
+	}
+	
+	@Test
+	public void testcreateViewOverLimitMessageProjectView(){
+		// call under test
+		String message = manager.createViewOverLimitMessage(ViewType.project);
+		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW, message);
 	}
 	
 	@Test
@@ -522,9 +581,32 @@ public class TableManagerSupportTest {
 		ViewType type = ViewType.file;
 		when(mockViewScopeDao.getViewType(tableIdLong)).thenReturn(type);
 		when(mockTableIndexDAO.calculateCRC32ofEntityReplicationScope(type, containersInScope)).thenReturn(crc32);
-		
-		Long crcResult = manager.calculateFileViewCRC32(tableId);
+		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
+		Long crcResult = manager.calculateViewCRC32(tableId);
 		assertEquals(crc32, crcResult);
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+	}
+	
+	@Test
+	public void testTriggerScopeReconciliationFileView(){
+		ViewType type = ViewType.file;
+		List<Long> toReconcile = new LinkedList<Long>(containersInScope);
+		// call under test
+		manager.triggerScopeReconciliation(type, containersInScope);
+		// the scope should be sent
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
+	}
+	
+	@Test
+	public void testTriggerScopeReconciliationProjectView(){
+		ViewType type = ViewType.project;
+		Long rootId = KeyFactory.stringToKey(StackConfiguration.getRootFolderEntityIdStatic());
+		// project views reconcile on root.
+		List<Long> toReconcile = Lists.newArrayList(rootId);
+		// call under test
+		manager.triggerScopeReconciliation(type, containersInScope);
+		// the scope should be sent
+		verify(mockReplicationMessageManager).pushContainerIdsToReconciliationQueue(toReconcile);
 	}
 	
 	@Test
@@ -637,18 +719,23 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testGetColumModel(){
+	public void testGetColumModelCached(){
 		ColumnModel cm = new ColumnModel();
 		cm.setId("123");
 		when(mockColumnModelDao.createColumnModel(any(ColumnModel.class))).thenReturn(cm);
 		ColumnModel result = manager.getColumnModel(EntityField.id);
 		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		result = manager.getColumnModel(EntityField.id);
+		assertEquals(cm, result);
+		// The first call should cache the column so create should only be called once.
+		verify(mockColumnModelDao, times(1)).createColumnModel(any(ColumnModel.class));
 	}
 	
 	
 	@Test
 	public void testGetDefaultTableViewColumnsFileView(){
-		// View view defaults are from the FileEntityFields enumeration.
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
 		for(EntityField field: EntityField.values()){
 			expected.add(field.getColumnModel());
@@ -660,17 +747,25 @@ public class TableManagerSupportTest {
 	
 	@Test
 	public void testGetDefaultTableViewColumnsProjectView(){
-		// View view defaults are from the FileEntityFields enumeration.
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		for(EntityField field: EntityField.values()){
-			if(EntityField.dataFileHandleId == field){
-				continue;
-			}
-			expected.add(field.getColumnModel());
-		}
+		List<ColumnModel> expected = Lists.newArrayList(
+				EntityField.id.getColumnModel(),
+				EntityField.name.getColumnModel(),
+				EntityField.createdOn.getColumnModel(),
+				EntityField.createdBy.getColumnModel(),
+				EntityField.etag.getColumnModel(),
+				EntityField.modifiedOn.getColumnModel(),
+				EntityField.modifiedBy.getColumnModel()
+				);
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.project);
 		assertEquals(expected, results);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetDefaultTableViewColumnsNull(){
+		ViewType type = null;
+		// call under test
+		manager.getDefaultTableViewColumns(type);
 	}
 	
 	@Test
@@ -684,14 +779,6 @@ public class TableManagerSupportTest {
 		// call under test
 		Set<Long> results = manager.getEntityPath(tableId);
 		assertEquals(expected, results);
-	}
-	
-	@Test
-	public void testCallWithAutoProgress() throws Exception{
-		Callable<Integer> callable = Mockito.mock(Callable.class);
-		Integer result = manager.callWithAutoProgress(mockCallback, callable);
-		assertEquals(callableReturn, result);
-		verify(mockCallback, times(1)).progressMade(null);
 	}
 
 	@Test (expected = UnauthorizedException.class)

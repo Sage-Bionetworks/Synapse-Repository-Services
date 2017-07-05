@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -75,7 +76,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -410,7 +411,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(otherProfile.getOwnerId());
 		aa.setRequirementId(ar.getId());
 		
@@ -488,17 +489,17 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testJavaClientGetEntityBundle() throws SynapseException {		
+	public void testJavaClientGetEntityBundle() throws SynapseException {
 		Annotations annos = synapseOne.getAnnotations(project.getId());
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
 		annos = synapseOne.updateAnnotations(project.getId(), annos);
-		
+
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
 		acl.setId(project.getId());
 		synapseOne.updateACL(acl);
-			
+
 		int allPartsMask = EntityBundle.ENTITY |
 				EntityBundle.ANNOTATIONS |
 				EntityBundle.PERMISSIONS |
@@ -507,15 +508,16 @@ public class IT500SynapseJavaClient {
 				EntityBundle.ACL |
 				EntityBundle.ACCESS_REQUIREMENTS |
 				EntityBundle.UNMET_ACCESS_REQUIREMENTS |
-				EntityBundle.FILE_NAME;
+				EntityBundle.FILE_NAME |
+				EntityBundle.RESTRICTION_INFORMATION;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
-		
-		
+
+		assertNotNull(entityBundle.getRestrictionInformation());
 		assertEquals("Invalid fetched Entity in the EntityBundle", 
 				synapseOne.getEntityById(project.getId()), entityBundle.getEntity());
 		assertEquals("Invalid fetched Annotations in the EntityBundle", 
@@ -528,7 +530,7 @@ public class IT500SynapseJavaClient {
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
-		assertNull(entityBundle.getFileName());		
+		assertNull(entityBundle.getFileName());
 	}
 	
 	@Test
@@ -780,10 +782,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(ars, synapseTwo.getUnmetAccessRequirements(subjectId, ACCESS_TYPE.DOWNLOAD, 10L, 0L));
 		
 		// create approval for the requirement
-		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
+		AccessApproval approval = new AccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		TermsOfUseAccessApproval created = synapseTwo.createAccessApproval(approval);
+		AccessApproval created = synapseTwo.createAccessApproval(approval);
 		
 		// make sure we can retrieve by ID
 		assertEquals(created, synapseTwo.getAccessApproval(created.getId()));
@@ -799,14 +801,12 @@ public class IT500SynapseJavaClient {
 		adminSynapse.deleteAccessApproval(created.getId());
 
 		try {
-			adminSynapse.deleteAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
+			adminSynapse.revokeAccessApprovals(r.getId().toString(), otherProfile.getOwnerId());
 			fail("Expecting IllegalArgumentException");
 		} catch (SynapseBadRequestException e) {
 			// The service is wired up.
 			// Exception thrown for not supporting access approval deletion for TermOfUseAccessRequirement
 		}
-
-		assertEquals((Long)0L, adminSynapse.deleteAccessApprovals(Arrays.asList(created.getId())));
 	}
 
 	@Test
@@ -1297,7 +1297,7 @@ public class IT500SynapseJavaClient {
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		AccessApproval aa = new AccessApproval();
 		aa.setRequirementId(tou.getId());
 		synapseTwo.createAccessApproval(aa);
 		
@@ -1349,6 +1349,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		
+		// check that open invitation count is 1
+		Count openInvitationCount = synapseTwo.getOpenMembershipInvitationCount();
+		assertEquals(1L, openInvitationCount.getCount().longValue());
+
 		// get the invitation
 		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
@@ -1438,6 +1442,11 @@ public class IT500SynapseJavaClient {
 		// get the request
 		MembershipRqstSubmission retrieved = synapseTwo.getMembershipRequest(created.getId());
 		assertEquals(created, retrieved);
+
+		// check that request count is 1
+		Count requestCount = synapseOne.getOpenMembershipRequestCount();
+		assertEquals(1L, requestCount.getCount().longValue());
+
 		// query for requests based on team
 		{
 			PaginatedResults<MembershipRequest> requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);

@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.worker.entity;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
-import org.sagebionetworks.common.util.progress.ThrottlingProgressCallback;
+import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -19,13 +19,16 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 
+import com.amazonaws.AmazonServiceException;
+
 /**
  * This worker listens to entity change events and replicates the changes to the
- * index database. The replicated data is to build EntityView tables in the
- * index database.
+ * index database. The replicated data supports both entity views and entity queries.
  * 
  * @author John
  *
@@ -47,16 +50,34 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback,
+	public void run(ProgressCallback progressCallback,
 			List<ChangeMessage> messages) throws RecoverableMessageException,
 			Exception {
 		try{
 			replicate(progressCallback, messages);
+		}catch (LockReleaseFailedException e){
+			handleRecoverableException(e);
+		}catch (CannotAcquireLockException e){
+			handleRecoverableException(e);
+		}catch (DeadlockLoserDataAccessException e){
+			handleRecoverableException(e);
+		}catch (AmazonServiceException e){
+			handleRecoverableException(e);
 		}catch (Exception e){
 			boolean willRetry = false;
 			workerLogger.logWorkerFailure(EntityReplicationWorker.class.getName(), e, willRetry);
 			log.error("Failed while replicating:", e);
 		}
+	}
+	
+	/**
+	 * Handle a Recoverable exception.
+	 * @param exception
+	 * @throws RecoverableMessageException
+	 */
+	private void handleRecoverableException(Exception exception) throws RecoverableMessageException{
+		log.error("Failed while replicating. Will retry. Message: "+exception.getMessage());
+		throw new RecoverableMessageException(exception);
 	}
 
 	/**
@@ -65,7 +86,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	 * @param progressCallback
 	 * @param messages
 	 */
-	void replicate(ProgressCallback<Void> progressCallback,
+	void replicate(final ProgressCallback progressCallback,
 			List<ChangeMessage> messages) {
 		// batch the create/update events and delete events
 		List<String> createOrUpdateIds = new LinkedList<>();
@@ -75,8 +96,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		allIds.addAll(KeyFactory.stringToKey(createOrUpdateIds));
 		allIds.addAll(KeyFactory.stringToKey(deleteIds));
 		
-		progressCallback.progressMade(null);
-		final ThrottlingProgressCallback<Void> throttleCallback = new ThrottlingProgressCallback<Void>(progressCallback, THROTTLE_FREQUENCY_MS);
 		// Get a copy of the batch of data.
 		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
 				MAX_ANNOTATION_CHARS);
@@ -84,7 +103,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
-			throttleCallback.progressMade(null);
 			indexDao.createEntityReplicationTablesIfDoesNotExist();
 			final TableIndexDAO indexDaoFinal = indexDao;
 			indexDao.executeInWriteTransaction(new TransactionCallback<Void>() {
@@ -92,8 +110,8 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 				@Override
 				public Void doInTransaction(TransactionStatus status) {
 					// clear everything.
-					indexDaoFinal.deleteEntityData(throttleCallback, allIds);
-					indexDaoFinal.addEntityData(throttleCallback, entityDTOs);
+					indexDaoFinal.deleteEntityData(progressCallback, allIds);
+					indexDaoFinal.addEntityData(progressCallback, entityDTOs);
 					return null;
 				}
 			});
@@ -108,7 +126,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	 * @param createOrUpdateIds
 	 * @param deleteIds
 	 */
-	static void groupByChangeType(List<ChangeMessage> messages,
+	public static void groupByChangeType(List<ChangeMessage> messages,
 			List<String> createOrUpdateIds, List<String> deleteIds) {
 		for (ChangeMessage change : messages) {
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {

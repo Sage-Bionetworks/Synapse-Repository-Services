@@ -38,13 +38,15 @@ public class CertifiedUserController extends BaseController {
 	
 	/**
 	 * Get the test to become a Certified User.
+	 * @param userId
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST, method = RequestMethod.GET)
 	public @ResponseBody
-	Quiz getCertificationQuiz()  {
-		return serviceProvider.getCertifiedUserService().getCertificationQuiz();
+	Quiz getCertificationQuiz(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return serviceProvider.getCertifiedUserService().getCertificationQuiz(userId);
 	}
 
 	/**

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -8,38 +8,37 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
-import org.sagebionetworks.repo.model.dataaccess.ACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
-import org.sagebionetworks.repo.model.dataaccess.TermsOfUseAccessRequirementStatus;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -54,15 +53,11 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
 	@Autowired
-	private RequestDAO requestDao;
+	private RequestManager requestManager;
 	@Autowired
 	private ResearchProjectDAO researchProjectDao;
 	@Autowired
 	private SubmissionDAO submissionDao;
-	@Autowired
-	private GroupMembersDAO groupMembersDao;
-	@Autowired
-	private VerificationDAO verificationDao;
 	@Autowired
 	private AccessApprovalDAO accessApprovalDao;
 	@Autowired
@@ -76,7 +71,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
 		ValidateArgument.required(etag, "etag");
-		RequestInterface request = requestDao.get(requestId);
+		RequestInterface request = requestManager.getRequestForSubmission(requestId);
 		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
 
 		Submission submissionToCreate = new Submission();
@@ -110,14 +105,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				"A submission has been created. It has to be reviewed or cancelled before another submission can be created.");
 
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ACTAccessRequirement,
-				"A Submission can only be created for an ACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
+				"A Submission can only be created for an ManagedACTAccessRequirement.");
+		submissionToCreate.setAccessRequirementVersion(ar.getVersionNumber());
 
 		// validate based on the access requirement
-		ACTAccessRequirement actAR = (ACTAccessRequirement) ar;
-		ValidateArgument.requirement(actAR.getAcceptRequest() != null
-				&& actAR.getAcceptRequest(),
-				"This Access Requirement doesn't accept Data Access Request.");
+		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
 		if (actAR.getIsDUCRequired()) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
 					"You must provide a Data Use Certification document.");
@@ -133,28 +126,43 @@ public class SubmissionManagerImpl implements SubmissionManager{
 					"You must provide the required attachment(s).");
 			submissionToCreate.setAttachments(request.getAttachments());
 		}
-		ValidateArgument.requirement(request.getAccessors() != null && !request.getAccessors().isEmpty(),
+		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
-		Set<String> accessors = new HashSet<String>();
-		accessors.addAll(request.getAccessors());
-		if (actAR.getIsCertifiedUserRequired()) {
-			ValidateArgument.requirement(groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors),
-					"Accessors must be Synapse Certified Users.");
-		}
-		if (actAR.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
-					"Accessors must have validated profiles.");
-		}
-		ValidateArgument.requirement(accessors.contains(userInfo.getId().toString()),
-				"Submitter has to be an accessor.");
-		submissionToCreate.setAccessors(new LinkedList<String>(accessors));
 
-		if (!actAR.getIsAnnualReviewRequired() && request instanceof Renewal) {
-			throw new IllegalArgumentException("The associated AccessRequirement does not require renewal.");
+		Set<String> accessors = new HashSet<String>();
+		Set<String> accessorsWillHaveAccess = new HashSet<String>();
+		Set<String> accessorsAlreadyHaveAccess = new HashSet<String>();
+		for (AccessorChange ac : request.getAccessorChanges()) {
+			ValidateArgument.requirement(!accessors.contains(ac.getUserId()),
+					"Accessor "+ac.getUserId()+" is listed more than one.");
+			accessors.add(ac.getUserId());
+			switch (ac.getType()) {
+				case GAIN_ACCESS:
+					accessorsWillHaveAccess.add(ac.getUserId());
+					break;
+				case RENEW_ACCESS:
+					accessorsWillHaveAccess.add(ac.getUserId());
+					accessorsAlreadyHaveAccess.add(ac.getUserId());
+					break;
+				case REVOKE_ACCESS:
+					accessorsAlreadyHaveAccess.add(ac.getUserId());
+					break;
+			}
 		}
-		if (actAR.getIsAnnualReviewRequired() && request instanceof Renewal) {
+
+		authorizationManager.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess);
+
+		if (!accessorsAlreadyHaveAccess.isEmpty()) {
+			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
+					accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
+					"Cannot revoke / renew access for user who ");
+		}
+
+		ValidateArgument.requirement(accessorsWillHaveAccess.contains(userInfo.getId().toString()),
+				"Submitter has to be an accessor.");
+		submissionToCreate.setAccessorChanges(request.getAccessorChanges());
+
+		if (request instanceof Renewal) {
 			submissionToCreate.setIsRenewalSubmission(true);
 			Renewal renewalRequest = (Renewal) request;
 			submissionToCreate.setPublication(renewalRequest.getPublication());
@@ -208,8 +216,23 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.requirement(submission.getState().equals(SubmissionState.SUBMITTED),
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
-			List<AccessApproval> approvalsToCreate = createApprovalForSubmission(submission, userInfo.getId().toString());
-			accessApprovalDao.createBatch(approvalsToCreate);
+			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
+			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
+			List<AccessApproval> approvalsToCreateOrUpdate = new ArrayList<AccessApproval>();
+			List<String> accessorsToRevoke = new LinkedList<String>();
+			String modifiedBy =  userInfo.getId().toString();
+			createApprovalsForSubmission(submission, modifiedBy, expiredOn, approvalsToCreateOrUpdate, accessorsToRevoke);
+
+			if (!accessorsToRevoke.isEmpty()) {
+				accessApprovalDao.revokeBySubmitter(submission.getAccessRequirementId(), submission.getSubmittedBy(), accessorsToRevoke, modifiedBy);
+			}
+			if (!approvalsToCreateOrUpdate.isEmpty()) {
+				accessApprovalDao.createOrUpdateBatch(approvalsToCreateOrUpdate);
+			}
+			/*
+			 * See PLFM-4442.
+			 */
+			requestManager.updateApprovedRequest(submission.getRequestId());
 		}
 		submission = submissionDao.updateSubmissionStatus(request.getSubmissionId(),
 				request.getNewState(), request.getRejectedReason(), userInfo.getId().toString(),
@@ -218,21 +241,42 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		return submission;
 	}
 
-	public List<AccessApproval> createApprovalForSubmission(Submission submission, String createdBy) {
+	public static Date calculateExpiredOn(Long expirationPeriod) {
+		ValidateArgument.required(expirationPeriod, "expirationPeriod");
+		if (expirationPeriod.equals(AccessRequirementManagerImpl.DEFAULT_EXPIRATION_PERIOD)) {
+			return null;
+		}
+		return new Date(System.currentTimeMillis() + expirationPeriod);
+	}
+
+	public void createApprovalsForSubmission(Submission submission, String createdBy,
+			Date expiredOn, List<AccessApproval> approvalsToCreateOrUpdate,
+			List<String> accessorsToRevoke) {
 		Date createdOn = new Date();
 		Long requirementId = Long.parseLong(submission.getAccessRequirementId());
-		List<AccessApproval> approvals = new LinkedList<AccessApproval>();
-		for (String accessor : submission.getAccessors()) {
-			ACTAccessApproval approval = new ACTAccessApproval();
-			approval.setAccessorId(accessor);
-			approval.setCreatedBy(createdBy);
-			approval.setCreatedOn(createdOn);
-			approval.setModifiedBy(createdBy);
-			approval.setModifiedOn(createdOn);
-			approval.setRequirementId(requirementId);
-			approvals.add(approval);
+		for (AccessorChange ac : submission.getAccessorChanges()) {
+			switch (ac.getType()) {
+				case REVOKE_ACCESS:
+					accessorsToRevoke.add(ac.getUserId());
+					break;
+				case RENEW_ACCESS:
+					accessorsToRevoke.add(ac.getUserId());
+				case GAIN_ACCESS:
+					AccessApproval approval = new AccessApproval();
+					approval.setAccessorId(ac.getUserId());
+					approval.setCreatedBy(createdBy);
+					approval.setCreatedOn(createdOn);
+					approval.setModifiedBy(createdBy);
+					approval.setModifiedOn(createdOn);
+					approval.setRequirementId(requirementId);
+					approval.setRequirementVersion(submission.getAccessRequirementVersion());
+					approval.setSubmitterId(submission.getSubmittedBy());
+					approval.setExpiredOn(expiredOn);
+					approval.setState(ApprovalState.APPROVED);
+					approvalsToCreateOrUpdate.add(approval);
+					break;
+			}
 		}
-		return approvals;
 	}
 
 	@Override
@@ -258,24 +302,60 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
-		List<AccessApproval> approvals = accessApprovalDao.getForAccessRequirementsAndPrincipals(
-				Arrays.asList(accessRequirementId), Arrays.asList(userInfo.getId().toString()));
-		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())) {
-			TermsOfUseAccessRequirementStatus status = new TermsOfUseAccessRequirementStatus();
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+		List<AccessApproval> approvals = accessApprovalDao.getActiveApprovalsForUser(
+				accessRequirementId, userInfo.getId().toString());
+
+		boolean isApproved = !approvals.isEmpty();
+		Date expiredOn = null;
+		if (isApproved) {
+			expiredOn = getLatestExpirationDate(approvals);
+		}
+
+		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
+				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
+			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			return status;
-		} else if (concreteType.equals(ACTAccessRequirement.class.getName())) {
-			ACTAccessRequirementStatus status = new ACTAccessRequirementStatus();
+		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
+			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
-			status.setAccessRequirementId(accessRequirementId);
-			status.setIsApproved(!approvals.isEmpty());
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
 			status.setCurrentSubmissionStatus(currentSubmissionStatus);
 			return status;
 		} else {
 			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
 		}
+	}
+
+	/**
+	 * @param accessRequirementId
+	 * @param isApproved
+	 * @param expiredOn
+	 * @param status
+	 */
+	public void setApprovalStatus(String accessRequirementId, boolean isApproved, Date expiredOn,
+			AccessRequirementStatus status) {
+		status.setAccessRequirementId(accessRequirementId);
+		status.setIsApproved(isApproved);
+		status.setExpiredOn(expiredOn);
+	}
+
+	/**
+	 * @param approvals
+	 * @param expiredOn
+	 * @return
+	 */
+	public static Date getLatestExpirationDate(List<AccessApproval> approvals) {
+		ValidateArgument.required(approvals, "approvals");
+		Date expiredOn = null;
+		for (AccessApproval approval : approvals) {
+			if (approval.getExpiredOn() != null
+					&& (expiredOn == null || approval.getExpiredOn().after(expiredOn))) {
+					expiredOn = approval.getExpiredOn();
+			}
+		}
+		return expiredOn;
 	}
 
 	@Override

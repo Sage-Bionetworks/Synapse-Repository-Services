@@ -96,13 +96,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(String tableId, ProgressCallback<Void> progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(String tableId, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(String tableId, ProgressCallback<Void> progressCallback, List<ColumnChangeDetails> changes);
+	public boolean updateTableSchema(String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.
@@ -140,13 +140,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param callback
 	 */
-	public void createTemporaryTableCopy(String tableId, ProgressCallback<Void> callback);
+	public void createTemporaryTableCopy(String tableId, ProgressCallback callback);
 
 	/**
 	 * Delete the temporary copy of table's index.
 	 * @param callback
 	 */
-	public void deleteTemporaryTableCopy(String tableId, ProgressCallback<Void> callback);
+	public void deleteTemporaryTableCopy(String tableId, ProgressCallback callback);
 
 	/**
 	 * Attempt to alter the schema of a temporary copy of a table.
@@ -157,7 +157,7 @@ public interface TableIndexManager {
 	 * @param changes
 	 * @return
 	 */
-	boolean alterTempTableSchmea(ProgressCallback<Void> progressCallback,
+	boolean alterTempTableSchmea(ProgressCallback progressCallback,
 			String tableId, List<ColumnChangeDetails> changes);
 
 
@@ -171,7 +171,7 @@ public interface TableIndexManager {
 	 * @param currentSchema
 	 * @return The new CRC23 for the view.
 	 */
-	public Long populateViewFromEntityReplication(String tableId, ProgressCallback<Void> callback, ViewType viewType,
+	public Long populateViewFromEntityReplication(String tableId, ProgressCallback callback, ViewType viewType,
 			Set<Long> allContainersInScope, List<ColumnModel> currentSchema);
 	
 	/**

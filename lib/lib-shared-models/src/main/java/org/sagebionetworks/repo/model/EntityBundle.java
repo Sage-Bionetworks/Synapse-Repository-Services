@@ -42,6 +42,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static int DOI						= 0x8000;
 	public static int FILE_NAME					= 0x10000;
 	public static int THREAD_COUNT				= 0x20000;
+	public static int RESTRICTION_INFORMATION	= 0x40000;
 	
 	private static FileHandleInstanceFactory fileHandleInstanceFactory = new FileHandleInstanceFactory();
 	private static EntityInstanceFactory entityInstanceFactory = new EntityInstanceFactory();
@@ -64,6 +65,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	public static final String JSON_DOI = "doi";
 	public static final String JSON_FILE_NAME = "fileName";
 	public static final String JSON_THREAD_COUNT = "threadCount";
+	public static final String JSON_RESTRICTION_INFORMATION = "restrictionInformation";
 	
 	private Entity entity;
 	private String entityType;
@@ -82,6 +84,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 	private Doi doi;
 	private String fileName;
 	private Long threadCount;
+	private RestrictionInformationResponse restrictionInformation;
 
 	/**
 	 * Create a new EntityBundle
@@ -209,6 +212,12 @@ public class EntityBundle implements JSONEntity, Serializable {
 		if(toInitFrom.has(JSON_THREAD_COUNT)) {
 			threadCount = toInitFrom.getLong(JSON_THREAD_COUNT);
 		}
+		if(toInitFrom.has(JSON_RESTRICTION_INFORMATION)) {
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_RESTRICTION_INFORMATION);
+			if (restrictionInformation == null) 
+				restrictionInformation = new RestrictionInformationResponse();
+			restrictionInformation.initializeFromJSONObject(joa);
+		}
 		return toInitFrom;
 	}
 
@@ -306,6 +315,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 		}
 		if (threadCount != null) {
 			writeTo.put(JSON_THREAD_COUNT, threadCount);
+		}
+		if (restrictionInformation != null) {
+			JSONObjectAdapter joa = writeTo.createNew();
+			restrictionInformation.writeToJSONObject(joa);
+			writeTo.put(JSON_RESTRICTION_INFORMATION, joa);
 		}
 		return writeTo;
 	}
@@ -512,6 +526,14 @@ public class EntityBundle implements JSONEntity, Serializable {
 		this.threadCount = threadCount;
 	}
 
+	public RestrictionInformationResponse getRestrictionInformation() {
+		return restrictionInformation;
+	}
+
+	public void setRestrictionInformation(RestrictionInformationResponse restrictionInformation) {
+		this.restrictionInformation = restrictionInformation;
+	}
+
 	@Override
 	public String toString() {
 		return "EntityBundle [entity=" + entity + ", entityType=" + entityType + ", annotations=" + annotations
@@ -519,7 +541,8 @@ public class EntityBundle implements JSONEntity, Serializable {
 				+ ", hasChildren=" + hasChildren + ", acl=" + acl + ", accessRequirements=" + accessRequirements
 				+ ", unmetAccessRequirements=" + unmetAccessRequirements + ", fileHandles=" + fileHandles
 				+ ", tableBundle=" + tableBundle + ", rootWikiId=" + rootWikiId + ", benefactorAcl=" + benefactorAcl
-				+ ", doi=" + doi + ", fileName=" + fileName + ", threadCount=" + threadCount + "]";
+				+ ", doi=" + doi + ", fileName=" + fileName + ", threadCount=" + threadCount
+				+ ", restrictionInformation=" + restrictionInformation + "]";
 	}
 	
 	@Override
@@ -539,6 +562,7 @@ public class EntityBundle implements JSONEntity, Serializable {
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		result = prime * result + ((permissions == null) ? 0 : permissions.hashCode());
 		result = prime * result + ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime * result + ((restrictionInformation == null) ? 0 : restrictionInformation.hashCode());
 		result = prime * result + ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
 		result = prime * result + ((tableBundle == null) ? 0 : tableBundle.hashCode());
 		result = prime * result + ((threadCount == null) ? 0 : threadCount.hashCode());
@@ -619,6 +643,11 @@ public class EntityBundle implements JSONEntity, Serializable {
 			if (other.referencedBy != null)
 				return false;
 		} else if (!referencedBy.equals(other.referencedBy))
+			return false;
+		if (restrictionInformation == null) {
+			if (other.restrictionInformation != null)
+				return false;
+		} else if (!restrictionInformation.equals(other.restrictionInformation))
 			return false;
 		if (rootWikiId == null) {
 			if (other.rootWikiId != null)

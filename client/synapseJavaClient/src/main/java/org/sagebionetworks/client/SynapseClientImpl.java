@@ -107,9 +107,11 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -450,10 +452,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
 	private static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
 	private static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
+	private static final String OPEN_MEMBERSHIP_INVITATION_COUNT = MEMBERSHIP_INVITATION + "/openInvitationCount";
 	// membership request
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+	private static final String OPEN_MEMBERSHIP_REQUEST_COUNT = MEMBERSHIP_REQUEST + "/openRequestCount";
 	
 	public static final String ACCEPT_INVITATION_ENDPOINT_PARAM = "acceptInvitationEndpoint";
 	public static final String ACCEPT_REQUEST_ENDPOINT_PARAM = "acceptRequestEndpoint";
@@ -1212,7 +1216,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		ValidateArgument.required(aa, "AccessApproval");
-		aa.setConcreteType(aa.getClass().getName());
 		return (T) postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL, aa, aa.getClass());
 	}
 
@@ -1229,7 +1232,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void deleteAccessApprovals(String requirementId, String accessorId) throws SynapseException {
+	public void revokeAccessApprovals(String requirementId, String accessorId) throws SynapseException {
 		String url = ACCESS_APPROVAL + "?requirementId=" + requirementId + "&accessorId=" + accessorId;
 		deleteUri(getRepoEndpoint(), url);
 	}
@@ -4045,6 +4048,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public Count getOpenMembershipInvitationCount() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), OPEN_MEMBERSHIP_INVITATION_COUNT, Count.class);
+	}
+
+	@Override
 	public MembershipRqstSubmission createMembershipRequest(
 			MembershipRqstSubmission request,
 			String acceptRequestEndpoint,
@@ -4102,8 +4110,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void createUser(NewUser user) throws SynapseException {
-		voidPost(getAuthEndpoint(), "/user", user, null);
+	public Count getOpenMembershipRequestCount() throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), OPEN_MEMBERSHIP_REQUEST_COUNT, Count.class);
 	}
 
 	@Override
@@ -4996,13 +5004,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public BatchAccessApprovalResult getAccessApprovalInfo(BatchAccessApprovalRequest batchRequest)
-			throws SynapseException {
-		ValidateArgument.required(batchRequest, "batchRequest");
-		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/batch", batchRequest, BatchAccessApprovalResult.class);
-	}
-
-	@Override
 	public String lookupChild(String parentId, String entityName) throws SynapseException {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(entityName, "entityName");
@@ -5010,5 +5011,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setEntityName(entityName);
 		request.setParentId(parentId);
 		return postJSONEntity(getRepoEndpoint(), ENTITY+"/child", request, EntityId.class).getId();
+	}
+
+	@Override
+	public AccessorGroupResponse listAccessorGroup(AccessorGroupRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/group", request, AccessorGroupResponse.class);
+	}
+
+	@Override
+	public void revokeGroup(String accessRequirementId, String submitterId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(submitterId, "submitterId");
+		AccessorGroupRevokeRequest request = new AccessorGroupRevokeRequest();
+		request.setAccessRequirementId(accessRequirementId);
+		request.setSubmitterId(submitterId);
+		voidPut(getRepoEndpoint(), ACCESS_APPROVAL+"/group/revoke", request);
+	}
+
+	@Override
+	public AccessRequirement convertAccessRequirement(AccessRequirementConversionRequest request)
+			throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return putJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT+"/conversion", request, AccessRequirement.class);
 	}
 }

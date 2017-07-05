@@ -3,16 +3,14 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalRequest;
-import org.sagebionetworks.repo.model.dataaccess.BatchAccessApprovalResult;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalManager {
@@ -20,7 +18,7 @@ public interface AccessApprovalManager {
 	/**
 	 *  create access approval
 	 */
-	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public AccessApproval createAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -37,11 +35,6 @@ public interface AccessApprovalManager {
 	 */
 	public List<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, Long limit, Long offset) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
-	/**
-	 *  update an access approval
-	 */
-	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
-	
 	/*
 	 *  delete an access approval
 	 */
@@ -55,23 +48,22 @@ public interface AccessApprovalManager {
 	 * @param accessorId - the user whose access is being revoked
 	 * @throws UnauthorizedException - if the user is not an admin or an ACT member
 	 */
-	public void deleteAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
+	public void revokeAccessApprovals(UserInfo userInfo, String accessRequirementId, String accessorId) throws UnauthorizedException;
 
 	/**
-	 * Delete a batch of AccessApproval
-	 * 
-	 * @param userInfo
-	 * @param toDelete
-	 * @return
-	 */
-	public Count deleteBatch(UserInfo userInfo, IdList toDelete);
-
-	/**
-	 * Retrieve approval information for a list of user.
+	 * List a page of accessor groups.
 	 * 
 	 * @param userInfo
 	 * @param request
 	 * @return
 	 */
-	public BatchAccessApprovalResult getApprovalInfo(UserInfo userInfo, BatchAccessApprovalRequest request);
+	public AccessorGroupResponse listAccessorGroup(UserInfo userInfo, AccessorGroupRequest request);
+
+	/**
+	 * Revoke a group of accessors
+	 * 
+	 * @param userInfo
+	 * @param request
+	 */
+	public void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request);
 }

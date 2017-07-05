@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,7 +22,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.CancelControl;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
@@ -52,7 +55,9 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private Submission submission;
 	private SubmissionStatus subStatus;
 
+	@Mock
 	private AnnotationsDAO mockSubStatusAnnoDAO;
+	@Mock
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	private Annotations annosIn;
@@ -70,9 +75,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Before
 	public void before() throws Exception {
-
-		mockSubStatusAnnoDAO = mock(AnnotationsDAO.class);
-		mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 		
 		// Submission
 		submission = new Submission();

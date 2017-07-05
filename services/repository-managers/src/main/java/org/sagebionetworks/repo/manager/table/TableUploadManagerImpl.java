@@ -31,7 +31,7 @@ public class TableUploadManagerImpl implements TableUploadManager {
 	private AmazonS3Client s3Client;
 
 	@Override
-	public TableUpdateResponse uploadCSV(ProgressCallback<Void> progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor) {
+	public TableUpdateResponse uploadCSV(ProgressCallback progressCallback, UserInfo user, UploadToTableRequest request, UploadRowProcessor rowProcessor) {
 		CSVReader reader = null;
 		try{
 			// Get the filehandle

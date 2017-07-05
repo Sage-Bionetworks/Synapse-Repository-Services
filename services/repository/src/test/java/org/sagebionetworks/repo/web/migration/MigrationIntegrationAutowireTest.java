@@ -66,7 +66,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -85,6 +84,8 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -380,7 +381,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		submission.setSubmittedOn(new Date());
 		submission.setModifiedBy(adminUserIdString);
 		submission.setModifiedOn(new Date());
-		submission.setAccessors(Arrays.asList(adminUserIdString));
+		AccessorChange adminChange = new AccessorChange();
+		adminChange.setUserId(adminUserIdString);
+		adminChange.setType(AccessType.GAIN_ACCESS);
+		submission.setAccessorChanges(Arrays.asList(adminChange));
 		submission.setEtag(UUID.randomUUID().toString());
 		submission.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
 		submission.setState(SubmissionState.SUBMITTED);
@@ -397,7 +401,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		dataAccessRequest.setModifiedBy(adminUserIdString);
 		dataAccessRequest.setModifiedOn(new Date());
 		dataAccessRequest.setEtag("etag");
-		dataAccessRequest.setAccessors(Arrays.asList(adminUserIdString));
+		
+		AccessorChange adminChange = new AccessorChange();
+		adminChange.setUserId(adminUserIdString);
+		adminChange.setType(AccessType.GAIN_ACCESS);
+		dataAccessRequest.setAccessorChanges(Arrays.asList(adminChange));
 		dataAccessRequestDAO.create(dataAccessRequest);
 	}
 
@@ -620,7 +628,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	}
 
 	public void createAccessApproval() throws Exception {
-		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminUserIdString);
+		accessApproval = newAccessApproval(accessRequirement.getId(), adminUserIdString);
 		accessApproval = servletTestHelper.createAccessApproval(dispatchServlet, accessApproval, adminUserId,
 				new HashMap<String, String>());
 	}
@@ -638,10 +646,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 				new HashMap<String, String>());
 	}
 
-	private TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+	private AccessApproval newAccessApproval(Long requirementId, String accessorId) {
+		AccessApproval aa = new AccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
 	}

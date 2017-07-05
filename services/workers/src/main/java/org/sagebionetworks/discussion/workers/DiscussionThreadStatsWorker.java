@@ -21,7 +21,7 @@ public class DiscussionThreadStatsWorker implements ChangeMessageDrivenRunner{
 	private DiscussionReplyDAO replyDao;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage message)
+	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException {
 		if (message.getChangeType() != ChangeType.UPDATE) {
 			// only process update events
@@ -32,16 +32,12 @@ public class DiscussionThreadStatsWorker implements ChangeMessageDrivenRunner{
 		DiscussionThreadStat stat = new DiscussionThreadStat();
 		stat.setThreadId(threadId);
 		stat.setActiveAuthors(replyDao.getActiveAuthors(threadId));
-		progressCallback.progressMade(null);
 
 		DiscussionThreadReplyStat replyStat = replyDao.getThreadReplyStat(threadId);
 		stat.setLastActivity(replyStat.getLastActivity());
 		stat.setNumberOfReplies(replyStat.getNumberOfReplies());
-		progressCallback.progressMade(null);
 
 		stat.setNumberOfViews(threadDao.countThreadView(threadId));
-		progressCallback.progressMade(null);
-
 		try {
 			threadDao.updateThreadStats(Arrays.asList(stat));
 		} catch (DataIntegrityViolationException e) {

@@ -108,7 +108,7 @@ import com.google.common.collect.Sets;
 public class TableEntityManagerTest {
 	
 	@Mock
-	ProgressCallback<Void> mockProgressCallback;
+	ProgressCallback mockProgressCallback;
 	@Mock
 	StackStatusDao mockStackStatusDao;
 	@Mock
@@ -118,9 +118,9 @@ public class TableEntityManagerTest {
 	@Mock
 	TableIndexDAO mockTableIndexDAO;
 	@Mock
-	ProgressCallback<Object> mockProgressCallback2;
+	ProgressCallback mockProgressCallback2;
 	@Mock
-	ProgressCallback<Void> mockProgressCallbackVoid;
+	ProgressCallback mockProgressCallbackVoid;
 	@Mock
 	FileHandleDao mockFileDao;
 	@Mock
@@ -231,7 +231,7 @@ public class TableEntityManagerTest {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				ProgressingCallable<Object, Object> callable = (ProgressingCallable<Object, Object>) invocation.getArguments()[3];
+				ProgressingCallable<Object> callable = (ProgressingCallable<Object>) invocation.getArguments()[3];
 						if (callable != null) {
 							return callable.call(mockProgressCallback2);
 						} else {
@@ -447,7 +447,6 @@ public class TableEntityManagerTest {
 		assertEquals(new Long(10), uploadToTableResult.getRowsProcessed());
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockProgressCallback).progressMade(null);
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(tableId);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
@@ -526,7 +525,6 @@ public class TableEntityManagerTest {
 		assertEquals(new Long(5), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
 		verify(mockTableManagerSupport, times(1)).setTableToProcessingAndTriggerUpdate(tableId);
-		verify(mockProgressCallback, times(3)).progressMade(null);
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 
@@ -755,7 +753,6 @@ public class TableEntityManagerTest {
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(3)).progressMade(null);
 	}
 	
 	@Test (expected=ReadOnlyException.class)
@@ -768,7 +765,6 @@ public class TableEntityManagerTest {
 		manager.appendRowsAsStream(user, tableId, models, sparseChangeSet.writeToDto().getRows().iterator(),
 				"etag",
 				results, mockProgressCallback);
-		verify(mockProgressCallback, times(3)).progressMade(null);
 	}
 	
 	@Test

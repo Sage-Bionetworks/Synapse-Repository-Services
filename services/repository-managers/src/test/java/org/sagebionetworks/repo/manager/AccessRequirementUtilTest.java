@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -100,11 +99,5 @@ public class AccessRequirementUtilTest {
 		List<Long> unmetARs = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
 		assertEquals(unmetARsDownload, unmetARs);
 	}
-	
-	@Test
-	public void testUploadAccess() throws Exception {
-		List<Long> unmetARs = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(userInfo, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
-		assertEquals(unmetARsUpload, unmetARs);
-	}
-	
+
 }

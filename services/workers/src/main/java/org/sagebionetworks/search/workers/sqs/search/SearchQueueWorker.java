@@ -46,7 +46,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public void run(ProgressCallback<Void> progressCallback, ChangeMessage change)
+	public void run(ProgressCallback progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
 		if (!searchDao.isSearchEnabled()) {

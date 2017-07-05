@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -88,11 +87,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	private String eTag;
 	private Long createdBy;
 	private Long createdOn;
-	@Deprecated // will be removed after stack-87
-	private Short nodeType;	
 	private String type;
-	private Long benefactorId;
-	private Long projectId;
 	private String alias;
 
 	public Long getId() {
@@ -136,33 +131,14 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	}
 	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
-	}
-	public Short getNodeType() {
-		return nodeType;
-	}
-	public void setNodeType(Short nodeType) {
-		this.nodeType = nodeType;
-	}
-	
+	}	
 	public String getType() {
 		return type;
 	}
 	public void setType(String type) {
 		this.type = type;
 	}
-	public Long getBenefactorId() {
-		return benefactorId;
-	}
-	public void setBenefactorId(Long benefactorId) {
-		this.benefactorId = benefactorId;
-	}
-	public Long getProjectId() {
-		return projectId;
-	}
-	public void setProjectId(Long projectId) {
-		this.projectId = projectId;
-	}
-
+	
 	public String getAlias() {
 		return alias;
 	}
@@ -188,28 +164,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 
 			@Override
 			public DBONode createDatabaseObjectFromBackup(DBONode backup) {
-				// This switch will be removed after stack-87
-				if (backup.getNodeType() != null) {
-					switch (backup.getNodeType()) {
-					case 2:
-						backup.setType(EntityType.project.name());
-						break;
-					case 4:
-						backup.setType(EntityType.folder.name());
-						break;
-					case 8:
-						backup.setType(EntityType.link.name());
-						break;
-					case 16:
-						backup.setType(EntityType.file.name());
-						break;
-					case 17:
-						backup.setType(EntityType.table.name());
-						break;
-					default:
-						throw new IllegalArgumentException("Unknown old type: "+backup.getNodeType());
-					}
-				}
 				return backup;
 			}
 
@@ -233,23 +187,41 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		list.add(new DBORevision());
 		return list;
 	}
-
+	
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.ENTITY;
+	}
+	@Override
+	public String getIdString() {
+		return KeyFactory.keyToString(id);
+	}
+	@Override
+	public String getParentIdString() {
+		return KeyFactory.keyToString(parentId);
+	}
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((alias == null) ? 0 : alias.hashCode());
-		result = prime * result + ((benefactorId == null) ? 0 : benefactorId.hashCode());
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
+		result = prime * result
+				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime
+				* result
+				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
 		result = prime * result + Arrays.hashCode(description);
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((nodeType == null) ? 0 : nodeType.hashCode());
-		result = prime * result + ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
@@ -266,11 +238,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			if (other.alias != null)
 				return false;
 		} else if (!alias.equals(other.alias))
-			return false;
-		if (benefactorId == null) {
-			if (other.benefactorId != null)
-				return false;
-		} else if (!benefactorId.equals(other.benefactorId))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -304,20 +271,10 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (nodeType == null) {
-			if (other.nodeType != null)
-				return false;
-		} else if (!nodeType.equals(other.nodeType))
-			return false;
 		if (parentId == null) {
 			if (other.parentId != null)
 				return false;
 		} else if (!parentId.equals(other.parentId))
-			return false;
-		if (projectId == null) {
-			if (other.projectId != null)
-				return false;
-		} else if (!projectId.equals(other.projectId))
 			return false;
 		if (type == null) {
 			if (other.type != null)
@@ -326,30 +283,13 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			return false;
 		return true;
 	}
-	
 	@Override
 	public String toString() {
-		return "DBONode [id=" + id + ", parentId=" + parentId + ", name=" + name + ", currentRevNumber=" + currentRevNumber
-				+ ", description=" + Arrays.toString(description) + ", eTag=" + eTag + ", createdBy=" + createdBy + ", createdOn="
-				+ createdOn + ", nodeType=" + nodeType + ", type=" + type + ", benefactorId=" + benefactorId + ", projectId=" + projectId
-				+ ", alias=" + alias + "]";
-	}
-
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.ENTITY;
-	}
-	@Override
-	public String getIdString() {
-		return KeyFactory.keyToString(id);
-	}
-	@Override
-	public String getParentIdString() {
-		return KeyFactory.keyToString(parentId);
-	}
-	@Override
-	public String getEtag() {
-		return eTag;
+		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="
+				+ name + ", currentRevNumber=" + currentRevNumber
+				+ ", description=" + Arrays.toString(description) + ", eTag="
+				+ eTag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", type=" + type + ", alias=" + alias + "]";
 	}
 
 }

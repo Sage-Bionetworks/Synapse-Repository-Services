@@ -105,15 +105,6 @@ public interface AccessRequirementDAO {
 	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
 
 	/**
-	 * Update the version of an existing AccessRequirement.
-	 * This method is used to migrate AccessRequirement, and should be removed after the migration process is finished.
-	 * 
-	 * @param accessRequirementId
-	 * @return
-	 */
-	public AccessRequirement updateVersion(String accessRequirementId);
-
-	/**
 	 * Retrieve information to update an AccessRequirement.
 	 * 
 	 * @param accessRequirementId
@@ -121,4 +112,23 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	public AccessRequirementInfoForUpdate getForUpdate(String accessRequirementId) throws NotFoundException;
+
+	/**
+	 * Returns all access requirement IDs that applies to source subjects but does not apply to destination subjects.
+	 * 
+	 * @param sourceSubjects
+	 * @param destSubjects
+	 * @param type
+	 * @return
+	 */
+	public List<String> getAccessRequirementDiff(List<String> sourceSubjects, List<String> destSubjects,
+			RestrictableObjectType type);
+
+	/**
+	 * Retrieve an AccessRequirement for update
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	public AccessRequirement getAccessRequirementForUpdate(String accessRequirementId);
 }
