@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
@@ -419,7 +420,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
 				requirementIdSet.add(rs.getString(COL_ACCESS_REQUIREMENT_ID));
 				String type = rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE);
-				if (type.equals(TermsOfUseAccessRequirement.class.getName())) {
+				if (type.equals(TermsOfUseAccessRequirement.class.getName())
+						|| type.equals(SelfSignAccessRequirement.class.getName())) {
 					stats.setHasToU(true);
 				} else if (type.equals(ACTAccessRequirement.class.getName())
 						|| type.equals(ManagedACTAccessRequirement.class.getName())) {

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -331,7 +332,30 @@ public class DBOAccessRequirementDAOImplTest {
 		assertFalse(stats.getHasACT());
 		assertTrue(stats.getRequirementIdSet().isEmpty());
 
+		/*
+		 * PLFM-4501
+		 */
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		SelfSignAccessRequirement selfsignAR = new SelfSignAccessRequirement();
+		selfsignAR.setCreatedBy(individualGroup.getId());
+		selfsignAR.setCreatedOn(new Date());
+		selfsignAR.setModifiedBy(individualGroup.getId());
+		selfsignAR.setModifiedOn(new Date());
+		selfsignAR.setEtag("etag");
+		selfsignAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		selfsignAR.setSubjectIds(Arrays.asList(rod));
+		selfsignAR.setVersionNumber(1L);
+		selfsignAR = accessRequirementDAO.create(selfsignAR);
+
+		stats = accessRequirementDAO.getAccessRequirementStats(Arrays.asList(node.getId()), RestrictableObjectType.ENTITY);
+		assertNotNull(stats);
+		assertTrue(stats.getHasToU());
+		assertFalse(stats.getHasACT());
+		assertFalse(stats.getHasLock());
+		assertTrue(stats.getRequirementIdSet().contains(selfsignAR.getId().toString()));
+
+		accessRequirementDAO.delete(selfsignAR.getId().toString());
+
 		accessRequirement = new TermsOfUseAccessRequirement();
 		accessRequirement.setCreatedBy(individualGroup.getId());
 		accessRequirement.setCreatedOn(new Date());
