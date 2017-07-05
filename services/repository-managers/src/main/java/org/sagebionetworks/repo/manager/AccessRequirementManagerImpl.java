@@ -263,21 +263,19 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		accessRequirementDAO.delete(accessRequirementId);
 	}
 
-	static AccessRequirement setDefaultValues(AccessRequirement ar) {
-		if (ar instanceof ManagedACTAccessRequirement) {
-			return setDefaultValuesForManagedACTAccessRequirement(ar);
-		} else if (ar instanceof SelfSignAccessRequirement) {
-			return setDefaultValuesForSelfSignAccessRequirement(ar);
-		}
-		return ar;
+	/**
+	 * @param ar
+	 * @return
+	 */
+	public static AccessRequirement setDefaultValues(AccessRequirement req) {
+		return req;
 	}
 
 	/**
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForSelfSignAccessRequirement(AccessRequirement ar) {
-		SelfSignAccessRequirement req = (SelfSignAccessRequirement) ar;
+	public static AccessRequirement setDefaultValues(SelfSignAccessRequirement req) {
 		if (req.getIsCertifiedUserRequired() == null) {
 			req.setIsCertifiedUserRequired(false);
 		}
@@ -291,8 +289,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	 * @param ar
 	 * @return
 	 */
-	public static AccessRequirement setDefaultValuesForManagedACTAccessRequirement(AccessRequirement ar) {
-		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
+	public static AccessRequirement setDefaultValues(ManagedACTAccessRequirement actAR) {
 		if (actAR.getIsCertifiedUserRequired() == null) {
 			actAR.setIsCertifiedUserRequired(false);
 		}
