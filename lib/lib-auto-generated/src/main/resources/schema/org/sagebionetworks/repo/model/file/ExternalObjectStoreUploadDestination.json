@@ -8,7 +8,7 @@
 	"properties": {
 		"keyPrefixUUID": {
 			"type": "string",
-			"description": "A UUID used to identify the file to be uploaded. This field will have a new, unique value every time a new UploadDestination is retrieved."
+			"description": "A UUID prefix used to identify the file to be uploaded. This field will have a new, unique value every time a new UploadDestination is retrieved."
 		}
 	}
 }

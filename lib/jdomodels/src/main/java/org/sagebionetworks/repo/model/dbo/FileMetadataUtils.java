@@ -29,7 +29,7 @@ public class FileMetadataUtils {
 	 * Convert abstract DTO to the DBO.
 	 * @param dto
 	 * @return
-	 * @throws MalformedURLException 
+	 * @throws MalformedURLException
 	 */
 	public static DBOFileHandle createDBOFromDTO(FileHandle fileHandle) {
 		if (fileHandle == null)
@@ -47,7 +47,7 @@ public class FileMetadataUtils {
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
-			dbo.setMetadataType(MetadataType.CLIENT_S3);
+			dbo.setMetadataType(MetadataType.EXTERNAL_OBJ_STORE);
 		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
@@ -64,7 +64,6 @@ public class FileMetadataUtils {
 		}
 		if(fileHandle instanceof ExternalObjectStoreFileHandle){
 			updateDBOFromDTO(dbo, (ExternalObjectStoreFileHandle) fileHandle);
-
 		}
 
 		return dbo;
@@ -107,20 +106,20 @@ public class FileMetadataUtils {
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
-	
+
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ProxyFileHandle fileHandle) {
 		dbo.setKey(fileHandle.getFilePath());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 
-	private static void updateDBOFromDTo(DBOFileHandle dbo, ExternalObjectStoreFileHandle fileHandle){
+	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalObjectStoreFileHandle fileHandle){
 		dbo.setKey(fileHandle.getFileKey());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 
 	/**
 	 * Create a DTO from the DBO.
-	 * 
+	 *
 	 * @param dbo
 	 * @return
 	 */
@@ -144,10 +143,11 @@ public class FileMetadataUtils {
 			// proxy
 			fileHandle = new ProxyFileHandle();
 			break;
-		case CLIENT_S3:
+		case EXTERNAL_OBJ_STORE:
 			fileHandle = new ExternalObjectStoreFileHandle();
+			break;
 		default:
-			throw new IllegalArgumentException("Must be External, S3, Preview, Proxy, Client_S3 but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be External, S3, Preview, Proxy, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
@@ -202,7 +202,7 @@ public class FileMetadataUtils {
 		fileHandle.setKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
 	}
-	
+
 	private static void updateDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFilePath(dbo.getKey());
 	}
@@ -260,7 +260,7 @@ public class FileMetadataUtils {
 		}
 		return out;
 	}
-	
+
 	/**
 	 * Create a DTO from a backup object.
 	 * @param backup
