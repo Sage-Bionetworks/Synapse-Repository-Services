@@ -106,7 +106,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		}
 		Team team = teamDAO.get(mrs.getTeamId());
 		if (team.getCanPublicJoin() != null && team.getCanPublicJoin()) {
-			throw new IllegalArgumentException("Cannot invite to public team.");
+			throw new IllegalArgumentException("This team is already open for the public to join, membership requests are not needed.");
 		}
 
 		Date now = new Date();
