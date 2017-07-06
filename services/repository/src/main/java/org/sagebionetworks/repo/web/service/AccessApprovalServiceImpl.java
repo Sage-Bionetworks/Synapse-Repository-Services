@@ -7,6 +7,8 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -84,5 +86,12 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessApprovalManager.revokeGroup(userInfo, request);
+	}
+
+	@Override
+	public BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId,
+			BatchAccessApprovalInfoRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessApprovalManager.getAccessApprovalInfo(userInfo, request);
 	}
 }

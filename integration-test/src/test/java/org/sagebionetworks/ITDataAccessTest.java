@@ -21,6 +21,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -188,6 +189,11 @@ public class ITDataAccessTest {
 		AccessorGroupRequest accessorGroupRequest = new AccessorGroupRequest();
 		AccessorGroupResponse response = adminSynapse.listAccessorGroup(accessorGroupRequest);
 		assertNotNull(response);
+
+		BatchAccessApprovalInfoRequest approvalInfoRequest = new BatchAccessApprovalInfoRequest();
+		approvalInfoRequest.setUserId(userId);
+		approvalInfoRequest.setAccessRequirementIds(Arrays.asList(managedAR.getId().toString()));
+		assertNotNull(synapseOne.getBatchAccessApprovalInfo(approvalInfoRequest ));
 
 		adminSynapse.revokeGroup(managedAR.getId().toString(), userId);
 	}
