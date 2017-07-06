@@ -132,4 +132,13 @@ public interface AccessApprovalDAO {
 	 * @param approvalsToRenew
 	 */
 	public void revokeBySubmitter(String accessRequirementId, String submitterId, List<String> accessors, String revokedBy);
+
+	/**
+	 * Retrieve a set of AccessRequirement ID that userId has access approval for within the provided accessRequirementIds
+	 * 
+	 * @param userId
+	 * @param accessRequirementIds
+	 * @return
+	 */
+	public Set<String> getRequirementsUserHasApprovals(String userId, List<String> accessRequirementIds);
 }

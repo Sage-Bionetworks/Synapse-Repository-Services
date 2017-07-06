@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
@@ -2878,4 +2880,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	AccessRequirement convertAccessRequirement(AccessRequirementConversionRequest request) throws SynapseException;
+
+	/**
+	 * Retrieve a batch of AccessApprovalInfo
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(BatchAccessApprovalInfoRequest request) throws SynapseException;
 }

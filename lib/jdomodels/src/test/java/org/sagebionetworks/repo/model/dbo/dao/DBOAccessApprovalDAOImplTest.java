@@ -242,6 +242,12 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(1, ars.size());
 		assertEquals(accessApproval, ars.iterator().next());
 
+		Set<String> requirementIds = accessApprovalDAO.getRequirementsUserHasApprovals(
+				individualGroup.getId().toString(), Arrays.asList(accessRequirement.getId().toString(), "-1"));
+		assertNotNull(requirementIds);
+		assertEquals(1, requirementIds.size());
+		assertTrue(requirementIds.contains(accessRequirement.getId().toString()));
+
 		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
 				Sets.newHashSet(individualGroup.getId().toString()),
 				individualGroup.getId(), accessRequirement.getId().toString()));

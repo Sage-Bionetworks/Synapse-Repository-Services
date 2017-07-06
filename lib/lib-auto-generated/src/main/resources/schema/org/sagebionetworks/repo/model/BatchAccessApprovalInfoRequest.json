@@ -1,0 +1,16 @@
+{
+	"description":"Request for a batch of AccessApprovalInfo.",
+	"properties":{
+		"userId":{
+			"type": "string",
+			"description": "The ID of the user."
+		},
+		"accessRequirementIds":{
+			"type": "array",
+			"description": "The ID of the access requirements.",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

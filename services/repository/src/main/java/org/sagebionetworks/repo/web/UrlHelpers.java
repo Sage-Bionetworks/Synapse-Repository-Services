@@ -466,7 +466,9 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	public static final String ACCESS_APPROVAL_GROUP = ACCESS_APPROVAL+"/group";
 	public static final String ACCESS_APPROVAL_GROUP_REVOKE = ACCESS_APPROVAL_GROUP+"/revoke";
-	
+
+	public static final String ACCESS_APPROVAL_INFO = ACCESS_APPROVAL+"/information";
+
 	/**
 	 * URL prefix for Users in a UserGroup
 	 * 
