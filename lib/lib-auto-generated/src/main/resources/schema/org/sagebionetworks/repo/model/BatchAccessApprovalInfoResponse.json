@@ -1,0 +1,12 @@
+{
+	"description":"Response for an AccessApprovalInfoRequest.",
+	"properties":{
+		"results":{
+			"type": "array",
+			"description": "The list of resulting AccessApprovalInfo.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.AccessApprovalInfo"
+			}
+		}
+	}
+}

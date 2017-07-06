@@ -1,0 +1,17 @@
+{
+	"description":"Information about whether or not a user has an AccessApproval for an AccessRequirement.",
+	"properties":{
+		"userId":{
+			"type": "string",
+			"description": "The ID of the user."
+		},
+		"accessRequirementId":{
+			"type": "string",
+			"description": "The ID of the access requirement."
+		},
+		"hasAccessApproval":{
+			"type": "boolean",
+			"description": "True if userId has an AccessApproval for the specified accessRequirementId; false otherwise."
+		}
+	}
+}
