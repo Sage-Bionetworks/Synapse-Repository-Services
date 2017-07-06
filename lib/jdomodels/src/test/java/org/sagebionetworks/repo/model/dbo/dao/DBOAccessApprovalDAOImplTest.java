@@ -339,7 +339,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApprovalDAO.revokeBySubmitter(
 				accessApproval.getRequirementId().toString(),
 				accessApproval.getSubmitterId(),
-				Arrays.asList(accessApproval.getAccessorId()),
+				Arrays.asList(accessApproval.getAccessorId(), accessApproval2.getAccessorId()),
 				individualGroup2.getId());
 		updated = accessApprovalDAO.getByPrimaryKey(
 				accessApproval.getRequirementId(),

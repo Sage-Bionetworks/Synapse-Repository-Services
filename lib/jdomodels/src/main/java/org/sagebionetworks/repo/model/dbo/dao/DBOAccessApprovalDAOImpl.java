@@ -274,6 +274,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			params[i].addValue(COL_ACCESS_APPROVAL_ETAG, UUID.randomUUID().toString());
 			params[i].addValue(COL_ACCESS_APPROVAL_MODIFIED_BY, revokedBy);
 			params[i].addValue(COL_ACCESS_APPROVAL_MODIFIED_ON, System.currentTimeMillis());
+			i++;
 		}
 		namedJdbcTemplate.batchUpdate(SQL_REVOKE_BY_SUBMITTER, params);
 	}
