@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,12 +25,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -67,9 +63,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 
 	@Autowired
 	private AccessApprovalManager accessApprovalManager;
-
-	@Autowired
-	private AuthorizationManager authorizationManager;
 
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
@@ -202,90 +195,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		return ar;
 	}
 
-	@Test
-	public void testCreateAccessApproval() throws Exception {
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		assertNotNull(aa.getCreatedBy());
-		assertNotNull(aa.getCreatedOn());
-		assertNotNull(aa.getId());
-		assertNotNull(aa.getModifiedBy());
-		assertNotNull(aa.getModifiedOn());
-		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
-		assertEquals(ar.getId(), aa.getRequirementId());
-	}
-	
-	// since the user is not an admin they can't delete
-	@Test(expected=UnauthorizedException.class)
-	public void testCreateAccessApprovalForbidden() throws Exception {
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), null);
-		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
-		accessApprovalManager.deleteAccessApproval(testUserInfo, aa.getId().toString());
-	}
-	
-	// check that signing ToU actually gives download access
-	@Test
-	public void testHappyPath() throws Exception {
-		// can't download at first
-		assertFalse(authorizationManager.canAccess(testUserInfo, nodeAId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-		// then he signs the terms of use for the data
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), testUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
-		// now he *can* download the data
-		assertTrue(authorizationManager.canAccess(testUserInfo, nodeAId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-
-		// nodeB inherits both access requirements
-		// can't download at first
-		assertFalse(authorizationManager.canAccess(testUserInfo, nodeBId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-		// then he signs the terms of use for the data
-		AccessApproval aa2 = newAccessApproval(arB.getId(), arB.getVersionNumber(), testUserInfo.getId().toString());
-		aa2 = accessApprovalManager.createAccessApproval(testUserInfo, aa2);
-		// now he *can* download the data
-		assertTrue(authorizationManager.canAccess(testUserInfo, nodeBId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized());
-	
-	}
-		
-	public void testCreateAccessApprovalAndFillInUser() throws Exception {
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), null);
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testCreateAccessApprovalBadParam2() throws Exception {
-		AccessApproval aa = newAccessApproval(null, ar.getVersionNumber(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-	}
-
-	// not OK for someone to sign TermsOfUse for someone else
-	// the service fills in the accessor ID appropriately
-	@Test
-	public void testCreateAccessApprovalBadAccessorId() throws Exception {
-		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
-		assertEquals(testUserInfo.getId().toString(), aa.getAccessorId());
-	}
-	
-	// it's OK for an administrator of the resource to give ACT approval
-	@Test
-	public void testGiveACTApproval() throws Exception {
-		managedActAr = newManagedACTAccessRequirement(nodeAId);
-		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
-		AccessApproval actAa = newAccessApproval(managedActAr.getId(), managedActAr.getVersionNumber(), testUserInfo.getId().toString());
-		actAa = accessApprovalManager.createAccessApproval(adminUserInfo, actAa);
-		assertNotNull(actAa.getId());
-	}
-	
-	// it's not ok for a non-admin to give ACT approval (in this case for themselves)
-	@Test(expected=UnauthorizedException.class)
-	public void testGiveACTApprovalForbidden() throws Exception {
-		managedActAr = newManagedACTAccessRequirement(nodeAId);
-		managedActAr = accessRequirementManager.createAccessRequirement(adminUserInfo, managedActAr);
-		AccessApproval actAa = newAccessApproval(managedActAr.getId(), managedActAr.getVersionNumber(), testUserInfo.getId().toString());
-		actAa = accessApprovalManager.createAccessApproval(testUserInfo, actAa);
-		assertNotNull(actAa.getId());
-	}
-	
 	@Test
 	public void testApprovalRetrieval() throws Exception {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
