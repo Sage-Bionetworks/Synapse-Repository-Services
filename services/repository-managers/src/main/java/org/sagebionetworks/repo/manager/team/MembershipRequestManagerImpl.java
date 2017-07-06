@@ -4,6 +4,8 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
@@ -118,7 +120,9 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
+		fieldValues.put(TEMPLATE_KEY_USER_ID, userProfile.getOwnerId());
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mrs.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mrs.getTeamId());
 		if (mrs.getMessage()==null || mrs.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, "");
 		} else {
