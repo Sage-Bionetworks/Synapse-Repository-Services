@@ -153,7 +153,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
 					accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
-					"Cannot revoke / renew access for user who ");
+					"Cannot revoke / renew access for accessor who didn't gain access via your submission.");
 		}
 
 		ValidateArgument.requirement(accessorsWillHaveAccess.contains(userInfo.getId().toString()),
