@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -77,10 +76,6 @@ public class MembershipInvitationManagerImpl implements
 		if (!authorizationManager.canAccess(
 				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot create membership invitation.");
-		Team team = teamDAO.get(mis.getTeamId());
-		if (team.getCanPublicJoin() != null && team.getCanPublicJoin()) {
-			throw new IllegalArgumentException("This team is already open for the public to join, membership invitations are not needed.");
-		}
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
 		MembershipInvtnSubmission created = membershipInvtnSubmissionDAO.create(mis);
