@@ -156,7 +156,7 @@ public class TableConstants {
 			+ ENTITY_REPLICATION_COL_NAME +" varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,"
 			+ ENTITY_REPLICATION_COL_TYPE +" ENUM("+ENTITY_TYPES+") NOT NULL,"
 			+ ENTITY_REPLICATION_COL_PARENT_ID +" bigint(20) DEFAULT NULL,"
-			+ ENTITY_REPLICATION_COL_BENEFACTOR_ID +" bigint(20) DEFAULT NULL,"
+			+ ENTITY_REPLICATION_COL_BENEFACTOR_ID +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_PROJECT_ID +" bigint(20) DEFAULT NULL,"
 			+ ENTITY_REPLICATION_COL_MODIFIED_BY +" bigint(20) NOT NULL,"
 			+ ENTITY_REPLICATION_COL_MODIFIED_ON +" bigint(20) NOT NULL,"
@@ -315,4 +315,7 @@ public class TableConstants {
 					+" WHERE "
 					+REPLICATION_SYNC_EXP_COL_EXPIRES+" > :"+EXPIRES_PARAM
 					+" AND "+REPLICATION_SYNC_EXP_COL_ID+" IN (:"+ID_PARAMETER_NAME+")";
+	
+	public static final String POSITIVE_INFINITY_VALUES = "\"+inf\", \"+infinity\", \"inf\", \"infinity\"";
+	public static final String NEGATIVE_INFINITY_VALUES = "\"-inf\", \"-infinity\"";
 }

@@ -1,7 +1,19 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -24,7 +36,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.worker.entity.EntityReplicationWorker;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -103,7 +114,8 @@ public class EntityReplicationWorkerTest {
 	
 	@Test
 	public void testRun() throws RecoverableMessageException, Exception{
-		List<EntityDTO> entityData = new LinkedList<EntityDTO>();
+		int count = 5;
+		List<EntityDTO> entityData = createEntityDtos(count);
 		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
 		
 		// call under test
@@ -189,5 +201,67 @@ public class EntityReplicationWorkerTest {
 		}
 		// the exception should not be logged.
 		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
+	
+	/**
+	 * If a single entity is replicated with a null benefactor, then the worker should fail with no-retry.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_4497Single() throws Exception{
+		int count = 1;
+		List<EntityDTO> entityData = createEntityDtos(count);
+		// set a benefactor ID to be null;
+		entityData.get(0).setBenefactorId(null);
+		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		// Call under test.
+		worker.run(mockPogressCallback, changes);
+		// the exception should be logged as retry=false
+		boolean willRetry = false;
+		verify(mockWorkerLog).logWorkerFailure(anyString(), any(Exception.class), eq(willRetry));
+	}
+	
+	
+	/**
+	 * Given a batch of entities to replicate, if a single entity in the batch
+	 * has a null benefactor, then the entire batch should be retried. Batches
+	 * will be retried as individuals.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_4497Batch() throws Exception{
+		int count = 2;
+		List<EntityDTO> entityData = createEntityDtos(count);
+		// set a benefactor ID to be null;
+		entityData.get(0).setBenefactorId(null);
+		when(mockNodeDao.getEntityDTOs(anyListOf(String.class), anyInt())).thenReturn(entityData);
+		// Call under test.
+		try {
+			worker.run(mockPogressCallback, changes);
+			fail("Should have thrown RecoverableMessageException");
+		} catch (RecoverableMessageException e) {
+			// expected
+		}
+		// the exception should not be logged.
+		verify(mockWorkerLog, never()).logWorkerFailure(anyString(), any(Exception.class), anyBoolean());
+	}
+	
+	/**
+	 * Test helper
+	 * 
+	 * @param count
+	 * @return
+	 */
+	List<EntityDTO> createEntityDtos(int count){
+		List<EntityDTO> dtos = new LinkedList<>();
+		for(int i=0; i<count; i++){
+			EntityDTO dto = new EntityDTO();
+			dto.setId(new Long(i));
+			dto.setBenefactorId(new Long(i-1));
+			dtos.add(dto);
+		}
+		return dtos;
 	}
 }

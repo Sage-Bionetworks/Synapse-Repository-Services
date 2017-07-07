@@ -1250,6 +1250,7 @@ public class SQLUtils {
 		}
 	}
 
+	
 	/**
 	 * Build the select clause of the entity replication insert select.
 	 * @param builder
@@ -1276,12 +1277,16 @@ public class SQLUtils {
 				builder.append(meta.getTableAlias());
 				builder.append(".");
 				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN \"Infinity\"");
+				builder.append(") IN (");
+				builder.append(TableConstants.POSITIVE_INFINITY_VALUES);
+				builder.append(") THEN \"Infinity\"");
 				builder.append(" WHEN LOWER(");
 				builder.append(meta.getTableAlias());
 				builder.append(".");
 				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN \"-Infinity\"");
+				builder.append(") IN (");
+				builder.append(TableConstants.NEGATIVE_INFINITY_VALUES);
+				builder.append(") THEN \"-Infinity\"");
 				builder.append(" ELSE NULL END AS _DBL");
 				builder.append(meta.getColumnNameForId());
 				builder.append(", ");
@@ -1294,13 +1299,17 @@ public class SQLUtils {
 				builder.append(meta.getTableAlias());
 				builder.append(".");
 				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (\"+inf\", \"+infinity\", \"+\u221e\", \"inf\", \"infinity\", \"\u221e\") THEN ");
+				builder.append(") IN (");
+				builder.append(TableConstants.POSITIVE_INFINITY_VALUES);
+				builder.append(") THEN ");
 				builder.append(Double.MAX_VALUE);
 				builder.append(" WHEN LOWER(");
 				builder.append(meta.getTableAlias());
 				builder.append(".");
 				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (\"-inf\", \"-infinity\", \"-\u221e\") THEN ");
+				builder.append(") IN (");
+				builder.append(TableConstants.NEGATIVE_INFINITY_VALUES);
+				builder.append(") THEN ");
 				builder.append(Double.MIN_VALUE);
 				builder.append(" ELSE ");
 				builder.append(meta.getTableAlias());
