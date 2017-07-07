@@ -467,7 +467,7 @@ public class TeamManagerImpl implements TeamManager {
 			UserProfile memberUserProfile = userProfileManager.getUserProfile(memberInfo.getId().toString());
 			String memberDisplayName = EmailUtils.getDisplayNameWithUsername(memberUserProfile);
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, memberDisplayName);
-			fieldValues.put(TEMPLATE_KEY_USER_ID, memberUserProfile.getOwnerId());
+			fieldValues.put(TEMPLATE_KEY_USER_ID, memberInfo.getId().toString());
 			for (String recipient : getInviters(Long.parseLong(teamId), memberInfo.getId())) {
 				MessageToUser mtu = new MessageToUser();
 				mtu.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
@@ -479,8 +479,8 @@ public class TeamManagerImpl implements TeamManager {
 		} else {
 			UserProfile joinerUserProfile = userProfileManager.getUserProfile(joinerInfo.getId().toString());
 			String joinerDisplayName = EmailUtils.getDisplayNameWithUsername(joinerUserProfile);
-			fieldValues.put(TEMPLATE_KEY_USER_ID, joinerUserProfile.getOwnerId());
 			fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, joinerDisplayName);
+			fieldValues.put(TEMPLATE_KEY_USER_ID, joinerInfo.getId().toString());
 			String recipient = memberInfo.getId().toString();
 			String messageContent = EmailUtils.readMailTemplate(ADMIN_HAS_ADDED_USER_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();

@@ -7,9 +7,11 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -213,29 +215,36 @@ public class MembershipRequestManagerImplTest {
 			assertEquals("Someone Has Requested to Join Your Team", result.getMetadata().getSubject());
 			assertEquals(Collections.singleton(teamAdmins.get(i)), result.getMetadata().getRecipients());
 
-			// this will give us nine pieces...
+			// this will give us 13 pieces...
 			List<String> delims = Arrays.asList(new String[] {
 					TEMPLATE_KEY_DISPLAY_NAME,
+					TEMPLATE_KEY_USER_ID,
 					TEMPLATE_KEY_TEAM_NAME,
+					TEMPLATE_KEY_TEAM_ID,
 					TEMPLATE_KEY_REQUESTER_MESSAGE,
 					TEMPLATE_KEY_ONE_CLICK_JOIN
 			});
 			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipRequestManagerImpl.TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, delims);
-
 			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
 			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-			assertEquals("auser", displayName);
+			String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 1);
+			assertEquals(MEMBER_PRINCIPAL_ID, userId);
 			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-			assertEquals("test-team", teamName);
+			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 3);
+			assertEquals("auser", displayName);
 			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
-			String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+			String teamId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 5);
+			assertEquals(TEAM_ID, teamId);
+			assertTrue(result.getBody().indexOf(templatePieces.get(8))>0);
+			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 7);
+			assertEquals("test-team", teamName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(10))>0);
+			String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 9);
 			assertTrue(inviterMessage.indexOf("Please let me in your team.")>=0);
-			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
-			String acceptRequestToken = 
-					EmailParseUtil.getTokenFromString(result.getBody(), 
-					templatePieces.get(6)+acceptRequestEndpoint, templatePieces.get(8));
+			assertTrue(result.getBody().endsWith(templatePieces.get(12)));
+			String acceptRequestToken =
+					EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 11)
+					.replace(acceptRequestEndpoint,  "");
 			JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptRequestToken, JoinTeamSignedToken.class);
 			SignedTokenUtil.validateToken(jtst);
 			assertEquals(TEAM_ID, jtst.getTeamId());

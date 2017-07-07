@@ -13,6 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
@@ -987,20 +988,26 @@ public class TeamManagerImplTest {
 			// this will give us seven pieces...
 			List<String> delims = Arrays.asList(new String[] {
 					TEMPLATE_KEY_DISPLAY_NAME,
+					TEMPLATE_KEY_USER_ID,
 					TEMPLATE_KEY_TEAM_NAME,
 					TEMPLATE_KEY_TEAM_WEB_LINK
 			});
 			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.USER_HAS_JOINED_TEAM_TEMPLATE, delims);
-
 			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
 			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-			assertEquals("foo bar (userName)", displayName);
+			String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 1);
+			assertEquals(MEMBER_PRINCIPAL_ID, userId);
 			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 3);
+			assertEquals("foo bar (userName)", displayName);
+			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+			String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 5);
+			assertEquals(teamEndpoint+TEAM_ID, teamLink);
+			assertTrue(result.getBody().indexOf(templatePieces.get(8))>0);
+			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 7);
 			assertEquals("test-name", teamName);
-			assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-			String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+			assertTrue(result.getBody().endsWith(templatePieces.get(10)));
+			teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 9);
 			assertEquals(teamEndpoint+TEAM_ID, teamLink);
 		}
 	}
@@ -1027,20 +1034,26 @@ public class TeamManagerImplTest {
 		// this will give us seven pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID,
 				TEMPLATE_KEY_TEAM_NAME,
 				TEMPLATE_KEY_TEAM_WEB_LINK
 		});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.ADMIN_HAS_ADDED_USER_TEMPLATE, delims);
-
 		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
 		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-		assertEquals("foo bar (userName)", displayName);
+		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 1);
+		assertEquals(MEMBER_PRINCIPAL_ID, userId);
 		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 3);
+		assertEquals("foo bar (userName)", displayName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 5);
+		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+		assertTrue(result.getBody().indexOf(templatePieces.get(8))>0);
+		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 7);
 		assertEquals("test-name", teamName);
-		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
+		assertTrue(result.getBody().endsWith(templatePieces.get(10)));
+		teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 9);
 		assertEquals(teamEndpoint+TEAM_ID, teamLink);
 	}
 	

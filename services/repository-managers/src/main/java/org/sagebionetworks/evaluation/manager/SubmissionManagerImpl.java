@@ -296,7 +296,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		Team team = teamDAO.get(submission.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, team.getName());
-		fieldValues.put(TEMPLATE_KEY_TEAM_ID, team.getId());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, submission.getTeamId());
 		String evaluationId = submission.getEvaluationId();
 		Evaluation evaluation = evaluationDAO.get(evaluationId);
 		String challengeEntityId = evaluation.getContentSource();
@@ -320,7 +320,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserProfile userProfile = userProfileManager.getUserProfile(submitterId);
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
-		fieldValues.put(TEMPLATE_KEY_USER_ID, userProfile.getOwnerId());
+		fieldValues.put(TEMPLATE_KEY_USER_ID, submitterId);
 		// notify all but the one who submitted.  If there is no one else on the team
 		// then this list will be empty and no notification will be sent.
 		for (SubmissionContributor contributor : submission.getContributors()) {

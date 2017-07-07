@@ -19,7 +19,9 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_WEB_LINK;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -883,26 +885,36 @@ public class SubmissionManagerTest {
 		// this will give us nine pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
+				TEMPLATE_KEY_USER_ID,
 				TEMPLATE_KEY_CHALLENGE_NAME,
 				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_TEAM_ID,
 				TEMPLATE_KEY_CHALLENGE_WEB_LINK
 		});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(SubmissionManagerImpl.TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, delims);
 
 		assertTrue(body.startsWith(templatePieces.get(0)));
 		assertTrue(body.indexOf(templatePieces.get(2))>0);
-		String displayName = EmailParseUtil.getTokenFromString(body, templatePieces.get(0), templatePieces.get(2));
-		assertEquals("auser", displayName);
+		String userId = EmailParseUtil.getTokenFromString(body, templatePieces, 1);
+		assertEquals(USER_ID, userId);
 		assertTrue(body.indexOf(templatePieces.get(4))>0);
-		String challengeName = EmailParseUtil.getTokenFromString(body, templatePieces.get(2), templatePieces.get(4));
-		assertEquals("syn101", challengeName);
+		String displayName = EmailParseUtil.getTokenFromString(body, templatePieces, 3);
+		assertEquals("auser", displayName);
 		assertTrue(body.indexOf(templatePieces.get(6))>0);
-		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces.get(4), templatePieces.get(6));
+		String challengeName = EmailParseUtil.getTokenFromString(body, templatePieces, 5);
+		assertEquals("syn101", challengeName);
+		assertTrue(body.indexOf(templatePieces.get(8))>0);
+		String teamId = EmailParseUtil.getTokenFromString(body, templatePieces, 7);
+		assertEquals(TEAM_ID, teamId);
+		assertTrue(body.indexOf(templatePieces.get(10))>0);
+		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces, 9);
 		assertEquals("test team", teamName);
-		assertTrue(body.endsWith(templatePieces.get(8)));
-		String challengeEntityId = EmailParseUtil.
-				getTokenFromString(body, templatePieces.get(6)+CHALLENGE_END_POINT, templatePieces.get(8));
+		assertTrue(body.indexOf(templatePieces.get(12))>0);
+		String challengeEntityId =
+				EmailParseUtil.getTokenFromString(body, templatePieces, 11)
+				.replace(CHALLENGE_END_POINT, "");
 		assertEquals("syn101", challengeEntityId);		
+		assertTrue(body.endsWith(templatePieces.get(12)));
 	}
 	
 	@Test

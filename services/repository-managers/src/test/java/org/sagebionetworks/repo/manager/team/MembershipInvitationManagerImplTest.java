@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -276,22 +277,25 @@ public class MembershipInvitationManagerImplTest {
 		// this will give us seven pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_TEAM_NAME,
+				TEMPLATE_KEY_TEAM_ID,
 				TEMPLATE_KEY_INVITER_MESSAGE,
 				TEMPLATE_KEY_ONE_CLICK_JOIN
 		});
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipInvitationManagerImpl.TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, delims);
-
 		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
 		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-		assertEquals("test team", teamName);
+		String teamId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 1);
+		assertEquals(TEAM_ID, teamId);
 		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-		String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
+		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 3);
+		assertEquals("test team", teamName);
+		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
+		String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 5);
 		assertTrue(inviterMessage.indexOf("Please join our team.")>=0);
-		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-		String acceptInvitationToken = 
-				EmailParseUtil.getTokenFromString(result.getBody(), 
-				templatePieces.get(4)+acceptInvitationEndpoint, templatePieces.get(6));
+		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
+		String acceptInvitationToken =
+				EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 7)
+				.replace(acceptInvitationEndpoint, "");
 		JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptInvitationToken, JoinTeamSignedToken.class);
 		SignedTokenUtil.validateToken(jtst);
 		assertEquals(TEAM_ID, jtst.getTeamId());
