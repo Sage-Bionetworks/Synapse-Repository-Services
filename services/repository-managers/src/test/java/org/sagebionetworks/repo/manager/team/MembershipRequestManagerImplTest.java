@@ -428,7 +428,7 @@ public class MembershipRequestManagerImplTest {
 			Assert.fail("Expected IllegalArgumentException to be thrown");
 		} catch (Exception e) {
 			assertEquals(IllegalArgumentException.class, e.getClass());
-			assertEquals("Cannot invite to public team.", e.getMessage());
+			assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
 		}
 	}
 }
