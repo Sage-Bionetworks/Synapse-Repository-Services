@@ -274,7 +274,7 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
 		
-		// this will give us seven pieces...
+		// this will give us 9 pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_TEAM_NAME,
 				TEMPLATE_KEY_TEAM_ID,

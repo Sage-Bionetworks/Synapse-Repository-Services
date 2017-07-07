@@ -985,7 +985,7 @@ public class TeamManagerImplTest {
 		
 			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
 		
-			// this will give us seven pieces...
+			// this will give us 11 pieces...
 			List<String> delims = Arrays.asList(new String[] {
 					TEMPLATE_KEY_DISPLAY_NAME,
 					TEMPLATE_KEY_USER_ID,
@@ -1031,7 +1031,7 @@ public class TeamManagerImplTest {
 		assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
 
-		// this will give us seven pieces...
+		// this will give us 11 pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
 				TEMPLATE_KEY_USER_ID,

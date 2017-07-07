@@ -882,7 +882,7 @@ public class SubmissionManagerTest {
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		String body = result.get(0).getBody();
 		
-		// this will give us nine pieces...
+		// this will give us 13 pieces...
 		List<String> delims = Arrays.asList(new String[] {
 				TEMPLATE_KEY_DISPLAY_NAME,
 				TEMPLATE_KEY_USER_ID,
