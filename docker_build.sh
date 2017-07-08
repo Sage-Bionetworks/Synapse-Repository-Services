@@ -34,7 +34,7 @@ fi
 }
 
 clean_up_volumes() {
-  docker volume prune
+  docker volume prune -f
 }
 
 # remove build container, if any
