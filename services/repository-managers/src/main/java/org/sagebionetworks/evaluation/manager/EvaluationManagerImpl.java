@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,9 +40,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
@@ -192,7 +188,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 	}
 
-	
 	@Override
 	public TeamSubmissionEligibility getTeamSubmissionEligibility(UserInfo userInfo, String evalId, String teamId) throws NumberFormatException, DatastoreException, NotFoundException
 	{
@@ -200,7 +195,5 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				evaluationPermissionsManager.canCheckTeamSubmissionEligibility(userInfo,  evalId,  teamId));
 		return submissionEligibilityManager.getTeamSubmissionEligibility(evaluationDAO.get(evalId), teamId);
 	}
-	
-
 
 }
