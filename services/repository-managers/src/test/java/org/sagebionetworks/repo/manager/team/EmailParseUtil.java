@@ -45,33 +45,4 @@ public class EmailParseUtil {
 		String token = s.substring(tokenStart, tokenEnd);
 		return token;
 	}
-
-	/*
-	 * Returns the substring token in s that is representing the position tokenIndex in templatePieces
-	 * if s matches the template represented by templatePieces. Otherwise returns null.
-	 */
-	public static String getTokenFromString(String s, List<String> templatePieces, int tokenIndex) {
-		String regex = "";
-		for (int i = 0; i < templatePieces.size(); i++) {
-			if (i == tokenIndex) {
-				// Current piece is the matching target
-				regex += "(.*?)";
-			} else {
-				String piece = templatePieces.get(i);
-				if (piece.charAt(0) == '#' && piece.charAt(piece.length() - 1) == '#') {
-					// Current piece is a variable
-					regex += ".*";
-				} else {
-					// Current piece is a literal string
-					regex += Pattern.quote(piece);
-				}
-			}
-		}
-		Pattern pattern = Pattern.compile(regex);
-		Matcher matcher = pattern.matcher(s);
-		if (matcher.matches()) {
-			return matcher.group(1);
-		}
-		return null;
-	}
 }

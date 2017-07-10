@@ -23,6 +23,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Count;
@@ -262,6 +263,17 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testCreateInvitationNotification() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		testCreateInvitationNotificationHelper(mis);
+	}
+	
+	@Test
+	public void testCreateInvitationNotificationWithNullCreatedOn() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		mis.setCreatedOn(null);
+		testCreateInvitationNotificationHelper(mis);
+	}
+	
+	private void testCreateInvitationNotificationHelper(MembershipInvtnSubmission mis) {
 		Team team = new Team();
 		team.setName("test team");
 		team.setId(TEAM_ID);
@@ -273,34 +285,31 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
-		
-		// this will give us 9 pieces...
-		List<String> delims = Arrays.asList(new String[] {
-				TEMPLATE_KEY_TEAM_NAME,
-				TEMPLATE_KEY_TEAM_ID,
-				TEMPLATE_KEY_INVITER_MESSAGE,
-				TEMPLATE_KEY_ONE_CLICK_JOIN
-		});
-		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipInvitationManagerImpl.TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, delims);
-		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
-		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-		String teamId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 1);
-		assertEquals(TEAM_ID, teamId);
-		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 3);
-		assertEquals("test team", teamName);
-		assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
-		String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 5);
-		assertTrue(inviterMessage.indexOf("Please join our team.")>=0);
-		assertTrue(result.getBody().endsWith(templatePieces.get(8)));
-		String acceptInvitationToken =
-				EmailParseUtil.getTokenFromString(result.getBody(), templatePieces, 7)
-				.replace(acceptInvitationEndpoint, "");
-		JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptInvitationToken, JoinTeamSignedToken.class);
-		SignedTokenUtil.validateToken(jtst);
-		assertEquals(TEAM_ID, jtst.getTeamId());
-		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
-		assertEquals(MEMBER_PRINCIPAL_ID, jtst.getUserId());
+		String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn());
+		String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
+				"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
+				"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;margin-bottom: 20px;font-size: 16px;font-weight: 300;line-height: 1.4;\">Hello,</p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        You have been invited to join the team\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Team:" + TEAM_ID + "\">test team</a></strong>.\r\n" + 
+				"      </p>\r\n" + 
+				"      <blockquote style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;padding: 10px 20px;margin: 0 0 20px;font-size: 17.5px;border-left: 5px solid #eeeeee;\">\r\n" + 
+				"        " + "The inviter sends the following message: <Blockquote> "+ mis.getMessage() + " </Blockquote>" + " \r\n" + 
+				"      </blockquote>\r\n" + 
+				"      <a href=\"" + oneClickJoin + "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: #337ab7;color: #ffffff;text-decoration: none;display: inline-block;margin-bottom: 0;font-weight: normal;text-align: center;vertical-align: middle;-ms-touch-action: manipulation;touch-action: manipulation;cursor: pointer;background-image: none;border: 1px solid transparent;white-space: nowrap;padding: 10px 16px;font-size: 18px;line-height: 1.3333333;border-radius: 6px;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;border-color: #2e6da4;\">Join the Team!</a>\r\n" + 
+				"      <p style=\"margin-top: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">If you are not interested in joining the team, please disregard this message.</p>\r\n" + 
+				"      <br style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        Sincerely,\r\n" + 
+				"      </p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse Administration\r\n" + 
+				"      </p>\r\n" + 
+				"    </div>\r\n" + 
+				"  </body>\r\n" + 
+				"</html>\r\n";
+		assertEquals(expected, result.getBody());
 	}
 
 	@Test (expected = IllegalArgumentException.class)

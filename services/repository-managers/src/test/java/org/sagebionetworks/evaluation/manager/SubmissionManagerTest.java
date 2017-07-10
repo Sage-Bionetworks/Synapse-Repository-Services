@@ -881,40 +881,35 @@ public class SubmissionManagerTest {
 		assertEquals("test team <testteam@synapse.org>", result.get(0).getMetadata().getTo());
 		assertEquals(Collections.singleton("99"), result.get(0).getMetadata().getRecipients());
 		String body = result.get(0).getBody();
-		
-		// this will give us 13 pieces...
-		List<String> delims = Arrays.asList(new String[] {
-				TEMPLATE_KEY_DISPLAY_NAME,
-				TEMPLATE_KEY_USER_ID,
-				TEMPLATE_KEY_CHALLENGE_NAME,
-				TEMPLATE_KEY_TEAM_NAME,
-				TEMPLATE_KEY_TEAM_ID,
-				TEMPLATE_KEY_CHALLENGE_WEB_LINK
-		});
-		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(SubmissionManagerImpl.TEAM_SUBMISSION_NOTIFICATION_TEMPLATE, delims);
-
-		assertTrue(body.startsWith(templatePieces.get(0)));
-		assertTrue(body.indexOf(templatePieces.get(2))>0);
-		String userId = EmailParseUtil.getTokenFromString(body, templatePieces, 1);
-		assertEquals(USER_ID, userId);
-		assertTrue(body.indexOf(templatePieces.get(4))>0);
-		String displayName = EmailParseUtil.getTokenFromString(body, templatePieces, 3);
-		assertEquals("auser", displayName);
-		assertTrue(body.indexOf(templatePieces.get(6))>0);
-		String challengeName = EmailParseUtil.getTokenFromString(body, templatePieces, 5);
-		assertEquals("syn101", challengeName);
-		assertTrue(body.indexOf(templatePieces.get(8))>0);
-		String teamId = EmailParseUtil.getTokenFromString(body, templatePieces, 7);
-		assertEquals(TEAM_ID, teamId);
-		assertTrue(body.indexOf(templatePieces.get(10))>0);
-		String teamName = EmailParseUtil.getTokenFromString(body, templatePieces, 9);
-		assertEquals("test team", teamName);
-		assertTrue(body.indexOf(templatePieces.get(12))>0);
-		String challengeEntityId =
-				EmailParseUtil.getTokenFromString(body, templatePieces, 11)
-				.replace(CHALLENGE_END_POINT, "");
-		assertEquals("syn101", challengeEntityId);		
-		assertTrue(body.endsWith(templatePieces.get(12)));
+		String userId = USER_ID;
+		String displayName = "auser";
+		String challengeName = "syn101";
+		String challengeWebLink = CHALLENGE_END_POINT + "syn101";
+		String teamId = TEAM_ID;
+		String teamName = "test team";
+		String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
+				"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
+				"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;margin-bottom: 20px;font-size: 16px;font-weight: 300;line-height: 1.4;\">Hello,</p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Profile:" + userId + "\">" + displayName + "</a></strong>\r\n" + 
+				"        has created a submission to\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\">" + challengeName + "</strong>\r\n" + 
+				"        on behalf of\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Team:" + teamId + "\">" + teamName + "</a></strong>.\r\n" + 
+				"      </p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">For further information please <a href=\"" + challengeWebLink + "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: transparent;color: #337ab7;text-decoration: none;\">visit the challenge page</a>.</p>\r\n" + 
+				"      <br style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        Sincerely,\r\n" + 
+				"      </p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse Administration\r\n" + 
+				"      </p>\r\n" + 
+				"    </div>\r\n" + 
+				"  </body>\r\n" + 
+				"</html>\r\n";
+		assertEquals(expected, body);
 	}
 	
 	@Test

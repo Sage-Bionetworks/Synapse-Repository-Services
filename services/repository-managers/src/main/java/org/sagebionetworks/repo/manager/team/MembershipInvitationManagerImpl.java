@@ -87,6 +87,7 @@ public class MembershipInvitationManagerImpl implements
 	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
+		if (mis.getCreatedOn() == null) mis.setCreatedOn(new Date());
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
@@ -95,7 +96,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
 		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
+				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn()));
 		if (mis.getMessage()==null || mis.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {

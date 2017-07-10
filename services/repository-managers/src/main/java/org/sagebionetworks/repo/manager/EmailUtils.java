@@ -202,9 +202,9 @@ public class EmailUtils {
 	
 
 	
-	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId) {
+	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn) {
 		JoinTeamSignedToken token = new JoinTeamSignedToken();
-		token.setCreatedOn(new Date());
+		token.setCreatedOn(createdOn);
 		token.setUserId(userId);
 		token.setMemberId(memberId);
 		token.setTeamId(teamId);

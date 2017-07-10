@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +28,19 @@ public class EmailUtilsTest {
 		fieldValues.put("#displayName#", "Foo Bar");
 		fieldValues.put("#domain#", "Synapse");
 		fieldValues.put("#username#", "foobar");
-		String message = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
-		assertTrue(message.indexOf("#")<0); // all fields have been replaced
-		assertTrue(message.indexOf("Foo Bar")>=0);
-		assertTrue(message.indexOf("Synapse") >= 0);
-		assertTrue(message.indexOf("foobar")>=0);
+		String actual = EmailUtils.readMailTemplate("message/WelcomeTemplate.txt", fieldValues);
+		String expected = "Hello Foo Bar,\r\n" + 
+				"\r\n" + 
+				"Welcome to Synapse!\r\n" + 
+				"\r\n" + 
+				"Here are the details of your account:\r\n" + 
+				"User Name: foobar\r\n" + 
+				"Full Name: Foo Bar\r\n" + 
+				"\r\n" + 
+				"If you did not mean to create this account, please contact us at synapseInfo@synapse.org.\r\n" + 
+				"\r\n" + 
+				"Synapse Administrator\r\n";
+		assertEquals(expected, actual);
 	}
 	
 	@Test
@@ -80,7 +89,8 @@ public class EmailUtilsTest {
 		String userId = "111";
 		String memberId = "222";
 		String teamId = "333";
-		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId);
+		Date createdOn = new Date();
+		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId, createdOn);
 		assertTrue(link.startsWith(endpoint));
 		
 		JoinTeamSignedToken token = SerializationUtils.hexDecodeAndDeserialize(
@@ -89,7 +99,7 @@ public class EmailUtilsTest {
 		assertEquals(userId, token.getUserId());
 		assertEquals(memberId, token.getMemberId());
 		assertEquals(teamId, token.getTeamId());
-		assertNotNull(token.getCreatedOn());
+		assertEquals(createdOn, token.getCreatedOn());
 		assertNotNull(token.getHmac());
 	}
 
