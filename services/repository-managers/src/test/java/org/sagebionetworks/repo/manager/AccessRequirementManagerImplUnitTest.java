@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -43,11 +44,13 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -907,5 +910,25 @@ public class AccessRequirementManagerImplUnitTest {
 		assertTrue(updated.getVersionNumber().equals(current.getVersionNumber()+1));
 		assertEquals(userInfo.getId().toString(), updated.getModifiedBy());
 		assertFalse(updated.getEtag().equals(current.getEtag()));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubjectsWithNullUserInfo() {
+		arm.getSubjects(null, "1", null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetSubjectsWithNullAccessRequirementID() {
+		arm.getSubjects(userInfo, null, null);
+	}
+
+	@Test
+	public void testGetSubjects() {
+		List<RestrictableObjectDescriptor> subjects = new LinkedList<RestrictableObjectDescriptor>();
+		when(accessRequirementDAO.getSubjects(1L, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(subjects );
+		RestrictableObjectDescriptorResponse response = arm.getSubjects(userInfo, "1", null);
+		assertNotNull(response);
+		assertEquals(subjects, response.getSubjects());
+		assertNull(response.getNextPageToken());
 	}
 }

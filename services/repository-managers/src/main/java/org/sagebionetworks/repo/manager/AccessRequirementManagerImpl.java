@@ -19,10 +19,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -387,5 +389,17 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		toUpdate.setSubjectIds(current.getSubjectIds());
 		toUpdate.setVersionNumber(current.getVersionNumber()+1);
 		return toUpdate;
+	}
+
+	@Override
+	public RestrictableObjectDescriptorResponse getSubjects(UserInfo userInfo, String accessRequirementId, String nextPageToken){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		NextPageToken token = new NextPageToken(nextPageToken);
+		RestrictableObjectDescriptorResponse response = new RestrictableObjectDescriptorResponse();
+		List<RestrictableObjectDescriptor> subjects = accessRequirementDAO.getSubjects(Long.parseLong(accessRequirementId), token.getLimitForQuery(), token.getOffset());
+		response.setSubjects(subjects);
+		response.setNextPageToken(token.getNextPageTokenForCurrentResults(subjects));
+		return response;
 	}
 }
