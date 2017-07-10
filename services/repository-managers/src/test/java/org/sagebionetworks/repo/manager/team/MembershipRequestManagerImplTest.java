@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -164,6 +165,8 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testCreate() throws Exception {
+		Team mockTeam = Mockito.mock(Team.class);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
@@ -410,5 +413,22 @@ public class MembershipRequestManagerImplTest {
 		Count result = membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(userInfo);
 		assertNotNull(result);
 		assertEquals(count, result.getCount());
+	}
+
+	@Test
+	public void testCreateRequestPublicTeam() {
+		try {
+			MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+			mrs.setTeamId(TEAM_ID);
+			mrs.setUserId(MEMBER_PRINCIPAL_ID);
+			Team team = new Team();
+			team.setCanPublicJoin(true);
+			when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+			membershipRequestManagerImpl.create(userInfo, mrs);
+			Assert.fail("Expected IllegalArgumentException to be thrown");
+		} catch (Exception e) {
+			assertEquals(IllegalArgumentException.class, e.getClass());
+			assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
+		}
 	}
 }

@@ -312,5 +312,4 @@ public class MembershipInvitationManagerImplTest {
 		assertNotNull(result);
 		assertEquals(count, result.getCount());
 	}
-
 }
