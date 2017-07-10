@@ -13,9 +13,11 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -190,12 +192,18 @@ public class DBOAccessRequirementRevision implements MigratableDatabaseObject<DB
 			@Override
 			public DBOAccessRequirementRevision createDatabaseObjectFromBackup(
 					DBOAccessRequirementRevision backup) {
+				AccessRequirement dto = AccessRequirementUtils.copyFromSerializedField(backup);
+				dto.setSubjectIds(null);
+				AccessRequirementUtils.copyToSerializedField(dto, backup);
 				return backup;
 			}
 
 			@Override
 			public DBOAccessRequirementRevision createBackupFromDatabaseObject(
 					DBOAccessRequirementRevision dbo) {
+				AccessRequirement dto = AccessRequirementUtils.copyFromSerializedField(dbo);
+				dto.setSubjectIds(null);
+				AccessRequirementUtils.copyToSerializedField(dto, dbo);
 				return dbo;
 			}};
 	}
