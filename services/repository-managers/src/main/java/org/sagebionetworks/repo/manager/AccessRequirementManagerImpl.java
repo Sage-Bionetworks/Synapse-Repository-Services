@@ -152,7 +152,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	@Override
-	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException {
+	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException {
 		return accessRequirementDAO.get(requirementId);
 	}
 
@@ -392,8 +392,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	@Override
-	public RestrictableObjectDescriptorResponse getSubjects(UserInfo userInfo, String accessRequirementId, String nextPageToken){
-		ValidateArgument.required(userInfo, "userInfo");
+	public RestrictableObjectDescriptorResponse getSubjects(String accessRequirementId, String nextPageToken){
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
 		NextPageToken token = new NextPageToken(nextPageToken);
 		RestrictableObjectDescriptorResponse response = new RestrictableObjectDescriptorResponse();
