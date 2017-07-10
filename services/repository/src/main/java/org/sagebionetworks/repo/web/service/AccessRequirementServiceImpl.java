@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
@@ -106,6 +107,13 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	public AccessRequirement convertAccessRequirements(Long userId, AccessRequirementConversionRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return accessRequirementManager.convertAccessRequirement(userInfo, request);
+	}
+
+
+	@Override
+	public RestrictableObjectDescriptorResponse getSubjects(Long userId, String requirementId, String nextPageToken) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.getSubjects(userInfo, requirementId, nextPageToken);
 	}
 
 }
