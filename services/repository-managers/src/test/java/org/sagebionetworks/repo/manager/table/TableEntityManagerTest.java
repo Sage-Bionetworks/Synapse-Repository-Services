@@ -765,6 +765,15 @@ public class TableEntityManagerTest {
 		assertEquals("string1", result.getValues().get(0));
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetCellValueNotFound() throws Exception {
+		final int columnIndex = 1;
+		RowReference rowRef = new RowReference();
+		rowRef.setRowId(-1L);
+		// call under test.
+		manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
+	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetColumnValuesFailReadAccess() throws Exception {

@@ -400,6 +400,9 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	public Row getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
 		RowSet set = getCellValues(userInfo, tableId, Lists.newArrayList(rowRef), Lists.newArrayList(column));
+		if(set.getRows() == null || set.getRows().isEmpty()){
+			throw new NotFoundException("Row ID: "+rowRef.getRowId());
+		}
 		return set.getRows().get(0);
 	}
 
