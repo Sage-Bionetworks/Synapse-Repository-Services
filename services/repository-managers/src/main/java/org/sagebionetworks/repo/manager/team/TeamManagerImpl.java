@@ -454,7 +454,7 @@ public class TeamManagerImpl implements TeamManager {
 			UserInfo memberInfo, String teamId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (notificationUnsubscribeEndpoint==null) return result;
+		if (teamEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		boolean userJoiningTeamIsSelf = joinerInfo.getId().equals(memberInfo.getId());
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(teamId).getName());
