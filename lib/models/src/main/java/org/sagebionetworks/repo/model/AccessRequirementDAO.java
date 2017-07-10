@@ -75,8 +75,8 @@ public interface AccessRequirementDAO {
 	 * @throws DatastoreException 
 	 */
 	public List<AccessRequirement> getAccessRequirementsForSubject(
-			List<String> subjectIds, RestrictableObjectType type, Long limit,
-			Long offset) throws DatastoreException;
+			List<String> subjectIds, RestrictableObjectType type, long limit,
+			long offset) throws DatastoreException;
 
 	/**
 	 * Retrieve the concreteType of an access requirement.
@@ -102,7 +102,7 @@ public interface AccessRequirementDAO {
 	 * @param accessRequirementId
 	 * @return
 	 */
-	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId);
+	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId);
 
 	/**
 	 * Retrieve information to update an AccessRequirement.
@@ -131,4 +131,14 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public AccessRequirement getAccessRequirementForUpdate(String accessRequirementId);
+
+	/**
+	 * Retrieve a page of subjects that the given accessRequirementId applies to
+	 * 
+	 * @param accessRequirementId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset);
 }

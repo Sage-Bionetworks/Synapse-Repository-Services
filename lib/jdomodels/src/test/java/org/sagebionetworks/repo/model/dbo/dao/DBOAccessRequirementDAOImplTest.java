@@ -183,7 +183,8 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		assertNotNull(accessRequirement.getId());
 		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId()));
-		
+		assertEquals(accessRequirement.getSubjectIds(), accessRequirementDAO.getSubjects(accessRequirement.getId(), 10L, 0L));
+
 		// Fetch it
 		// PLFM-1477, we have to check that retrieval works when there is another access requirement
 		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
