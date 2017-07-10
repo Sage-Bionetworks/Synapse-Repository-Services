@@ -913,20 +913,15 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testGetSubjectsWithNullUserInfo() {
-		arm.getSubjects(null, "1", null);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testGetSubjectsWithNullAccessRequirementID() {
-		arm.getSubjects(userInfo, null, null);
+		arm.getSubjects(null, null);
 	}
 
 	@Test
 	public void testGetSubjects() {
 		List<RestrictableObjectDescriptor> subjects = new LinkedList<RestrictableObjectDescriptor>();
 		when(accessRequirementDAO.getSubjects(1L, NextPageToken.DEFAULT_LIMIT+1, NextPageToken.DEFAULT_OFFSET)).thenReturn(subjects );
-		RestrictableObjectDescriptorResponse response = arm.getSubjects(userInfo, "1", null);
+		RestrictableObjectDescriptorResponse response = arm.getSubjects("1", null);
 		assertNotNull(response);
 		assertEquals(subjects, response.getSubjects());
 		assertNull(response.getNextPageToken());

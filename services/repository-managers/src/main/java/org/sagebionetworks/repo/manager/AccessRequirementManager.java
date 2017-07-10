@@ -26,13 +26,12 @@ public interface AccessRequirementManager {
 	
 	/**
 	 * 
-	 * @param userInfo
 	 * @param requirementId
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AccessRequirement getAccessRequirement(UserInfo userInfo, String requirementId) throws DatastoreException, NotFoundException;
+	public AccessRequirement getAccessRequirement(String requirementId) throws DatastoreException, NotFoundException;
 
 	/**
 	 *  get a page of the access requirements for an entity
@@ -93,12 +92,11 @@ public interface AccessRequirementManager {
 	/**
 	 * Retrieve a page of subjects for a given accessRequirementId
 	 * 
-	 * @param userInfo
 	 * @param accessRequirementId
 	 * @param nextPageToken
 	 * @return
 	 */
-	public RestrictableObjectDescriptorResponse getSubjects(UserInfo userInfo, String accessRequirementId,
+	public RestrictableObjectDescriptorResponse getSubjects(String accessRequirementId,
 			String nextPageToken);
 
 }
