@@ -455,6 +455,7 @@ public class UrlHelpers {
 	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 
 	public static final String ACCESS_REQUIREMENT_CONVERSION = ACCESS_REQUIREMENT+"/conversion";
+	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";
 
 	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 

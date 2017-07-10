@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -5043,5 +5044,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), ACCESS_APPROVAL+"/information", request, BatchAccessApprovalInfoResponse.class);
+	}
+
+	@Override
+	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken)
+			throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		String uri = ACCESS_REQUIREMENT+"/"+requirementId+"/subjects";
+		if (nextPageToken != null) {
+			uri += "?nextPageToken="+nextPageToken;
+		}
+		return getJSONEntity(getRepoEndpoint(), uri, RestrictableObjectDescriptorResponse.class);
 	}
 }

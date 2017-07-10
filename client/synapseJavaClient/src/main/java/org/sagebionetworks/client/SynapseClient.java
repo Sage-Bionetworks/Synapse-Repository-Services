@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
@@ -2889,4 +2890,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(BatchAccessApprovalInfoRequest request) throws SynapseException;
+
+	/**
+	 * Retrieve a page of subjects for a given access requirement ID.
+	 * 
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @return
+	 * @throws SynapseException
+	 */
+	RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) throws SynapseException;
 }
