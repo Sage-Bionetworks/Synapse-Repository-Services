@@ -460,8 +460,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		//TODO:z test
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandle, "fileHandle");
-		ValidateArgument.required(fileHandle.getStorageLocationId(),"FileHandle.storageLocationId");
+		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
+		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
+		ValidateArgument.required(fileHandle.getContentType(), "ExternalObjectStoreFileHandle.contentType");
 		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}

@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -78,6 +79,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
@@ -136,6 +138,9 @@ public class FileHandleManagerImplTest {
 
 	ProxyStorageLocationSettings proxyStorageLocationSettings;
 	ProxyFileHandle externalProxyFileHandle;
+
+	ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting;
+	ExternalObjectStoreFileHandle externalObjectStoreFileHandle;
 
 	List<FileHandleAssociation> associations;
 	FileHandleAssociation fha1;
@@ -218,7 +223,9 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setStorageLocationId(proxyStorageLocationSettings.getStorageLocationId());
 		externalProxyFileHandle.setId("444444");
 		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
-		
+
+		//TODO:z set up external object store stuff
+
 		// one
 		fha1 = new FileHandleAssociation();
 		fha1.setAssociateObjectId("syn123");
@@ -756,7 +763,17 @@ public class FileHandleManagerImplTest {
 		// call under test
 		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
 	}
-	
+
+	////////////////////////////////////////////////
+	// createExternalObjectStoreFileHandle() tests
+	////////////////////////////////////////////////
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullUserId(){
+
+	}
+
+
 	@Test
 	public void testCreateS3FileHandleCopy() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
