@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
@@ -103,7 +104,6 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
-import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
@@ -369,9 +369,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			request.setResponseHeaders(responseHeaderOverrides);
 			return s3Client.generatePresignedUrl(request).toExternalForm();
-		}else if (handle instanceof ExternalObjectStoreFileHandle){
-			throw new IllegalArgumentException("URL Cannot be generated because the user client is responsible for accessing the FileHandle");
-		}else {
+		} else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
 					+ handle.getClass().getName());
 		}
@@ -415,6 +413,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
+	@Override
+	public ExternalFileHandleInterface createExternalFileHandle(UserInfo userInfo, ExternalFileHandleInterface fileHandle){
+		//TODO:z unit test for the methods handling specific interface implementation and test that this correctly resolves to the right method
+		//TODO:z rename the other methods so they we are overloading createExternalFileHandle?
+		if (fileHandle instanceof  ExternalFileHandle){
+			return createExternalFileHandle(userInfo, (ExternalFileHandle) fileHandle);
+		}else if (fileHandle instanceof  ProxyFileHandle){
+			return createExternalProxyFileHandle(userInfo, (ProxyFileHandle) fileHandle);
+		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
+			return createExternalObjectStoreFileHandle(userInfo, (ExternalObjectStoreFileHandle) fileHandle);
+		}else{
+			throw new IllegalArgumentException("Unexpected type of ExternalFileHandleInterface: " + fileHandle.getClass().getCanonicalName());
+		}
+	}
+
 	@WriteTransaction
 	@Override
 	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,
@@ -444,6 +457,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@WriteTransaction
 	@Override
 	public ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
+		//TODO:z test
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"FileHandle.storageLocationId");
@@ -1008,7 +1022,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Save the file metadata to the DB.
 		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
-	
+
 	@Override
 	public ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
 			ProxyFileHandle proxyFileHandle) {

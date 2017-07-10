@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
@@ -122,6 +123,14 @@ public interface FileHandleManager {
 	Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Creates any implementation of ExternalFileHandleInterface
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
+	ExternalFileHandleInterface createExternalFileHandle(UserInfo userInfo, ExternalFileHandleInterface fileHandle);
+
+	/**
 	 * Create an external file handle.
 	 * 
 	 * @param userInfo
@@ -130,7 +139,13 @@ public interface FileHandleManager {
 	 */
 	ExternalFileHandle createExternalFileHandle(UserInfo userInfo,	ExternalFileHandle fileHandle);
 
-	@WriteTransaction
+	/**
+	 * Create an ExternalObjectStoreFileHandle.
+	 *
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
 	ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle);
 
 	/**

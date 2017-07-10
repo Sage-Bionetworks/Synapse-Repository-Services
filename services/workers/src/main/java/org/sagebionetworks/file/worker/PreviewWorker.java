@@ -58,17 +58,12 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 						// Generate a preview.
 						previewManager.generatePreview(s3fileMeta);
 					}
-
-					//TODO:z undo changes to this class
 				} else if (metadata instanceof ExternalFileHandle) {
 					// we need to add support for this
 					log.warn("Currently do not support previews for ExternalFileHandles");
 				} else if (metadata instanceof ProxyFileHandle) {
 					// we need to add support for this
 					log.warn("Currently do not support previews for ProxyFileHandles");
-				} else if (metadata instanceof ExternalObjectStoreFileHandle) {
-					// we can't add support for this
-					log.warn("ExternalObjectStoreFileHandle is not supported because Synapse does not have access to this file (user client is responsible)");
 				} else {
 					// We will never be able to process such a message.
 					throw new IllegalArgumentException("Unknown file type: "

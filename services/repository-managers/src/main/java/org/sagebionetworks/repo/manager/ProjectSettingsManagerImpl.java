@@ -205,7 +205,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
 		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){ //TODO:z refactor this into a StorageLocationSettingValidator instead of this giant if-else block??
 			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
-			ValidateArgument.required(externalObjectS3StorageLocationSetting.getBucket(), "bucket");
+			ValidateArgument.requirement(StringUtils.isNotBlank(externalObjectS3StorageLocationSetting.getBucket()), "bucket can not be blank");
 
 			// validate the endpointURL if it exists
 			String endpointURL = externalObjectS3StorageLocationSetting.getEndpointUrl();

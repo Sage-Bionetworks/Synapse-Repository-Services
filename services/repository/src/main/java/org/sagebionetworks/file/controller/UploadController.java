@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -346,9 +347,9 @@ public class UploadController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/externalFileHandle", method = RequestMethod.POST)
-	public @ResponseBody ExternalFileHandle createExternalFileHandle(
+	public @ResponseBody ExternalFileHandleInterface createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody ExternalFileHandle fileHandle)
+			@RequestBody ExternalFileHandleInterface fileHandle)
 			throws DatastoreException, NotFoundException {
 		// Pass it along
 		return fileService.createExternalFileHandle(userId, fileHandle);
@@ -401,12 +402,13 @@ public class UploadController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/externalFileHandle/proxy", method = RequestMethod.POST)
+	@Deprecated
 	public @ResponseBody ProxyFileHandle createExternalFileHandle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ProxyFileHandle fileHandle) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
-		return fileService.createExternalProxyFileHandle(userId, fileHandle);
+		return (ProxyFileHandle) fileService.createExternalFileHandle(userId, fileHandle);
 	}
 
 	/**

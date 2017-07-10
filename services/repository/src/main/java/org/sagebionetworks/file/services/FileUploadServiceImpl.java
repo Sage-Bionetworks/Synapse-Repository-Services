@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -81,8 +83,8 @@ public class FileUploadServiceImpl implements FileUploadService {
 	}
 
 	@Override
-	public ExternalFileHandle createExternalFileHandle(Long userId,
-			ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException {
+	public ExternalFileHandleInterface createExternalFileHandle(Long userId,
+			ExternalFileHandleInterface fileHandle) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
 		if(fileHandle == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// resolve the user
@@ -180,13 +182,6 @@ public class FileUploadServiceImpl implements FileUploadService {
 			S3FileHandle fileHandle) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileHandleManager.createExternalS3FileHandle(userInfo, fileHandle);
-	}
-	
-	@Override
-	public ProxyFileHandle createExternalProxyFileHandle(Long userId,
-			ProxyFileHandle fileHandle) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return fileHandleManager.createExternalProxyFileHandle(userInfo, fileHandle);
 	}
 
 	@Override
