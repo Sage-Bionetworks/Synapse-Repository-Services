@@ -46,10 +46,10 @@
 		},
 		"subjectIds": {
 			"type": "array",
-			"description": "The IDs of the items controlled by this Access Requirement.  Required when creating or updating.",
+			"description": "This field is deprecated.",
 			"transient": true,
 			"items": {
-        		"type":"object",
+			"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.RestrictableObjectDescriptor"
 			}
 		},
