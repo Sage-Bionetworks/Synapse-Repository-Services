@@ -8,10 +8,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.common.util.progress.AutoProgressingCallable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.common.util.progress.SynchronizedProgressCallback;
@@ -97,6 +101,16 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 	TransactionTemplate readCommitedTransactionTemplate;
 	@Autowired
 	TableUploadManager tableUploadManager;
+	
+	/**
+	 * Setting a table's schema was changed to be an asynchronous job since it
+	 * can take a long time to run.  However, for backwards compatibility, we
+	 * must still support setting a table's schema from a synchronous update
+	 * entity web-service request. This thread pool is used to execute schema
+	 * change requests while utilize a heartbeat to refresh all locks. Note: This
+	 * is an awkward solution to and awkward issue and should not be duplicated.
+	 */
+	ExecutorService setTableSchemaExecutor = Executors.newCachedThreadPool();
 	
 	/**
 	 * Injected via spring
@@ -525,15 +539,25 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			final String id) {
 		try {
 			SynchronizedProgressCallback callback = new SynchronizedProgressCallback();
-			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id, EXCLUSIVE_LOCK_TIMEOUT_MS, new ProgressingCallable<Void>() {
+			/*
+			 * execute while holding the table's exclusive lock and keep the
+			 * lock refreshed with a heartbeat from AutoProgressingCallable.
+			 */
+			tableManagerSupport.tryRunWithTableExclusiveLock(callback, id,
+					EXCLUSIVE_LOCK_TIMEOUT_MS,
+					new AutoProgressingCallable<Void>(setTableSchemaExecutor,
+							new ProgressingCallable<Void>() {
 
-				@Override
-				public Void call(ProgressCallback callback) throws Exception {
-					columModelManager.bindColumnToObject(userInfo, columnIds, id);
-					tableManagerSupport.setTableToProcessingAndTriggerUpdate(id);
-					return null;
-				}
-			});
+								@Override
+								public Void call(ProgressCallback callback)
+										throws Exception {
+									columModelManager.bindColumnToObject(
+											userInfo, columnIds, id);
+									tableManagerSupport
+											.setTableToProcessingAndTriggerUpdate(id);
+									return null;
+								}
+							}, EXCLUSIVE_LOCK_TIMEOUT_MS / 3));
 		}catch (LockUnavilableException e) {
 			throw new TemporarilyUnavailableException("Cannot update an unavailable table");
 		}catch (RuntimeException e) {
