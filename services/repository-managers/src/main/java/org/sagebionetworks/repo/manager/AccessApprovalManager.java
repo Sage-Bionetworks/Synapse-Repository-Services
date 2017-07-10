@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -66,4 +68,13 @@ public interface AccessApprovalManager {
 	 * @param request
 	 */
 	public void revokeGroup(UserInfo userInfo, AccessorGroupRevokeRequest request);
+
+	/**
+	 * Retrieve a batch of AccessApprovalInfo.
+	 * 
+	 * @param userInfo
+	 * @param request
+	 * @return
+	 */
+	public BatchAccessApprovalInfoResponse getAccessApprovalInfo(UserInfo userInfo, BatchAccessApprovalInfoRequest request);
 }

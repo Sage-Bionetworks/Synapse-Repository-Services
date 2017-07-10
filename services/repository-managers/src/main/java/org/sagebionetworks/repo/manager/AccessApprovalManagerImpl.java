@@ -2,18 +2,22 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -22,7 +26,6 @@ import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
@@ -187,5 +190,27 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("Only ACT member can perform this action.");
 		}
 		accessApprovalDAO.revokeGroup(request.getAccessRequirementId(), request.getSubmitterId(), userInfo.getId().toString());
+	}
+
+	@Override
+	public BatchAccessApprovalInfoResponse getAccessApprovalInfo(UserInfo userInfo, BatchAccessApprovalInfoRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getUserId(), "BatchAccessApprovalInfoRequest.userId");
+		ValidateArgument.required(request.getAccessRequirementIds(), "BatchAccessApprovalInfoRequest.accessRequirementIds");
+		BatchAccessApprovalInfoResponse response = new BatchAccessApprovalInfoResponse();
+		List<AccessApprovalInfo> results = new LinkedList<AccessApprovalInfo>();
+		response.setResults(results);
+		if (!request.getAccessRequirementIds().isEmpty()) {
+			Set<String> requirementsUserHasApproval = accessApprovalDAO.getRequirementsUserHasApprovals(request.getUserId(), request.getAccessRequirementIds());
+			for (String requirementId : request.getAccessRequirementIds()) {
+				AccessApprovalInfo info = new AccessApprovalInfo();
+				info.setUserId(request.getUserId());
+				info.setAccessRequirementId(requirementId);
+				info.setHasAccessApproval(requirementsUserHasApproval.contains(requirementId));
+				results.add(info);
+			}
+		}
+		return response;
 	}
 }

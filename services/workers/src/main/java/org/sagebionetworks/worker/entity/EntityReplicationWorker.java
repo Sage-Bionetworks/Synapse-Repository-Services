@@ -53,19 +53,18 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	public void run(ProgressCallback progressCallback,
 			List<ChangeMessage> messages) throws RecoverableMessageException,
 			Exception {
-		try{
+		try {
 			replicate(progressCallback, messages);
-		}catch (LockReleaseFailedException e){
+		} catch (RecoverableMessageException
+				| LockReleaseFailedException
+				| CannotAcquireLockException
+				| DeadlockLoserDataAccessException
+				| AmazonServiceException e) {
 			handleRecoverableException(e);
-		}catch (CannotAcquireLockException e){
-			handleRecoverableException(e);
-		}catch (DeadlockLoserDataAccessException e){
-			handleRecoverableException(e);
-		}catch (AmazonServiceException e){
-			handleRecoverableException(e);
-		}catch (Exception e){
+		} catch (Exception e) {
 			boolean willRetry = false;
-			workerLogger.logWorkerFailure(EntityReplicationWorker.class.getName(), e, willRetry);
+			workerLogger.logWorkerFailure(
+					EntityReplicationWorker.class.getName(), e, willRetry);
 			log.error("Failed while replicating:", e);
 		}
 	}
@@ -87,7 +86,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 	 * @param messages
 	 */
 	void replicate(final ProgressCallback progressCallback,
-			List<ChangeMessage> messages) {
+			List<ChangeMessage> messages) throws RecoverableMessageException {
 		// batch the create/update events and delete events
 		List<String> createOrUpdateIds = new LinkedList<>();
 		List<String> deleteIds = new LinkedList<String>();
@@ -99,6 +98,7 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		// Get a copy of the batch of data.
 		final List<EntityDTO> entityDTOs = nodeDao.getEntityDTOs(createOrUpdateIds,
 				MAX_ANNOTATION_CHARS);
+		validateEntityDtos(entityDTOs);
 		// Get the connections
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
@@ -136,6 +136,24 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 				} else {
 					// entity create or update.
 					createOrUpdateIds.add(change.getObjectId());
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Validate the given list of DTOs
+	 * @param indexDaos
+	 * @throws RecoverableMessageException 
+	 */
+	public static void validateEntityDtos(List<EntityDTO> dtos) throws RecoverableMessageException{
+		for(EntityDTO dto: dtos){
+			// See PLFM-4497.
+			if(dto.getBenefactorId() == null){
+				if(dtos.size() > 1){
+					throw new RecoverableMessageException("Null benefactor found for batch.  Will retry each entry in the batch.");
+				}else{
+					throw new IllegalArgumentException("Single null benefactor found for: "+dto.getId()+".  Will not retry.");
 				}
 			}
 		}

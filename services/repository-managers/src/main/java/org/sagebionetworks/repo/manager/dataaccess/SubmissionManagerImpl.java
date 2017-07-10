@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.AccessRequirementManagerImpl;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -19,7 +18,6 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
@@ -155,7 +153,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
 					accessorsAlreadyHaveAccess, userInfo.getId().toString(), request.getAccessRequirementId()),
-					"Cannot revoke / renew access for user who ");
+					"Cannot revoke / renew access for accessor who didn't gain access via your submission.");
 		}
 
 		ValidateArgument.requirement(accessorsWillHaveAccess.contains(userInfo.getId().toString()),
@@ -311,12 +309,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			expiredOn = getLatestExpirationDate(approvals);
 		}
 
-		if (concreteType.equals(TermsOfUseAccessRequirement.class.getName())
-				|| concreteType.equals(ACTAccessRequirement.class.getName())) {
-			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
-			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
-			return status;
-		} else if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
+		if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
 			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());
@@ -324,7 +317,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			status.setCurrentSubmissionStatus(currentSubmissionStatus);
 			return status;
 		} else {
-			throw new IllegalArgumentException("Not support AccessRequirement with type: "+concreteType);
+			BasicAccessRequirementStatus status = new BasicAccessRequirementStatus();
+			setApprovalStatus(accessRequirementId, isApproved, expiredOn, status);
+			return status;
 		}
 	}
 

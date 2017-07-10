@@ -1,9 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1190,7 +1187,6 @@ public class TableIndexDAOImplTest {
 		
 		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
 		project.setParentId(null);
-		project.setBenefactorId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
 		tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
@@ -1198,6 +1194,21 @@ public class TableIndexDAOImplTest {
 		// lookup each
 		EntityDTO fetched = tableIndexDAO.getEntityData(1L);
 		assertEquals(project, fetched);
+	}
+	
+	@Test
+	public void testEntityReplicationWithNullBenefactor(){
+		// delete all data
+		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L));
+		
+		EntityDTO project = createEntityDTO(1L, EntityType.project, 0);
+		project.setBenefactorId(null);
+		try {
+			tableIndexDAO.addEntityData(mockProgressCallback, Lists.newArrayList(project));
+			fail();
+		} catch (Exception e) {
+			// expected
+		}
 	}
 	
 	@Test

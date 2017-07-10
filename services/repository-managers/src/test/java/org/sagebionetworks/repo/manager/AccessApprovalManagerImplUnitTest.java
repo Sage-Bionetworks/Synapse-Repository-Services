@@ -3,20 +3,23 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -263,5 +266,69 @@ public class AccessApprovalManagerImplUnitTest {
 		assertNotNull(created.getCreatedOn());
 		assertEquals(userInfo.getId().toString(), created.getAccessorId());
 		assertEquals((Long)1L, created.getRequirementId());
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalInfoWithNullUserInfo() {
+		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
+		String requirementId = "1";
+		request.setUserId(userInfo.getId().toString());
+		request.setAccessRequirementIds(Arrays.asList(requirementId));
+		manager.getAccessApprovalInfo(null, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalInfoWithNullRequest() {
+		manager.getAccessApprovalInfo(userInfo, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalInfoWithNullUserId() {
+		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
+		String requirementId = "1";
+		request.setAccessRequirementIds(Arrays.asList(requirementId));
+		manager.getAccessApprovalInfo(userInfo, request);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetAccessApprovalInfoWithNullRequirementIds() {
+		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
+		request.setUserId(userInfo.getId().toString());
+		manager.getAccessApprovalInfo(userInfo, request);
+	}
+
+	@Test
+	public void testGetAccessApprovalInfoWithEmptyRequirementIds() {
+		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
+		request.setUserId(userInfo.getId().toString());
+		request.setAccessRequirementIds(new LinkedList<String>());
+		BatchAccessApprovalInfoResponse response = manager.getAccessApprovalInfo(userInfo, request);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertTrue(response.getResults().isEmpty());
+		verifyZeroInteractions(mockAccessApprovalDAO);
+	}
+
+	@Test
+	public void testGetAccessApprovalInfo() {
+		BatchAccessApprovalInfoRequest request = new BatchAccessApprovalInfoRequest();
+		request.setUserId(userInfo.getId().toString());
+		request.setAccessRequirementIds(Arrays.asList("1", "2"));
+		when(mockAccessApprovalDAO.getRequirementsUserHasApprovals(userInfo.getId().toString(), Arrays.asList("1", "2")))
+				.thenReturn(Sets.newHashSet(Arrays.asList("1")));
+		BatchAccessApprovalInfoResponse response = manager.getAccessApprovalInfo(userInfo, request);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(2, response.getResults().size());
+		AccessApprovalInfo info1 = new AccessApprovalInfo();
+		info1.setAccessRequirementId("1");
+		info1.setUserId(userInfo.getId().toString());
+		info1.setHasAccessApproval(true);
+		AccessApprovalInfo info2 = new AccessApprovalInfo();
+		info2.setAccessRequirementId("2");
+		info2.setUserId(userInfo.getId().toString());
+		info2.setHasAccessApproval(false);
+		assertTrue(response.getResults().contains(info1));
+		assertTrue(response.getResults().contains(info2));
 	}
 }

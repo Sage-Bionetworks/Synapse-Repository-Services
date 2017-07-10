@@ -8,6 +8,8 @@ import java.io.IOException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -130,6 +132,24 @@ public class AccessApprovalController extends BaseController {
 			@RequestBody AccessorGroupRevokeRequest request
 			) throws UnauthorizedException, NotFoundException {	
 		serviceProvider.getAccessApprovalService().revokeGroup(userId, request);
+	}
+
+	/**
+	 * Retrieve a batch of AccessApprovalInfo for a single user.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_INFO, method = RequestMethod.POST)
+	public @ResponseBody BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody BatchAccessApprovalInfoRequest request
+			) throws UnauthorizedException, NotFoundException {	
+		return serviceProvider.getAccessApprovalService().getBatchAccessApprovalInfo(userId, request);
 	}
 
 	/**

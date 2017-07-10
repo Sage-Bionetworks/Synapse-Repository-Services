@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -37,5 +39,8 @@ public interface AccessApprovalService {
 	public AccessorGroupResponse listAccessorGroup(Long userId, AccessorGroupRequest request);
 
 	public void revokeGroup(Long userId, AccessorGroupRevokeRequest request);
+
+	public BatchAccessApprovalInfoResponse getBatchAccessApprovalInfo(Long userId,
+			BatchAccessApprovalInfoRequest request);
 
 }

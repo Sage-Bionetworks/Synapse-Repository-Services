@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.google.common.collect.Sets;
 
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	public static final String LIMIT_PARAM = "LIMIT";
@@ -141,9 +144,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
 	private static final String SELECT_ACTIVE_APPROVALS = 
-			"SELECT * "
-			+ "FROM "+TABLE_ACCESS_APPROVAL
+			"SELECT *"
+			+ " FROM "+TABLE_ACCESS_APPROVAL
 			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
+			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
+
+	private static final String SELECT_REQUIREMENTS_WITH_APPROVAL = 
+			"SELECT DISTINCT "+COL_ACCESS_APPROVAL_REQUIREMENT_ID
+			+ " FROM "+TABLE_ACCESS_APPROVAL
+			+ " WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+")"
 			+ " AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" = :"+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+ " AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
 
@@ -264,6 +274,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			params[i].addValue(COL_ACCESS_APPROVAL_ETAG, UUID.randomUUID().toString());
 			params[i].addValue(COL_ACCESS_APPROVAL_MODIFIED_BY, revokedBy);
 			params[i].addValue(COL_ACCESS_APPROVAL_MODIFIED_ON, System.currentTimeMillis());
+			i++;
 		}
 		namedJdbcTemplate.batchUpdate(SQL_REVOKE_BY_SUBMITTER, params);
 	}
@@ -406,5 +417,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			query+= EXPIRED_ON_COND;
 		}
 		return query+=SELECT_ACCESSOR_GROUP_POSTFIX;
+	}
+
+	@Override
+	public Set<String> getRequirementsUserHasApprovals(String userId, List<String> accessRequirementIds) {
+		if (accessRequirementIds.isEmpty()) {
+			return new HashSet<String>();
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
+		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, userId);
+		return Sets.newHashSet(namedJdbcTemplate.queryForList(SELECT_REQUIREMENTS_WITH_APPROVAL, params, String.class));
 	}
 }
