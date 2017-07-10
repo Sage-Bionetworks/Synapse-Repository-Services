@@ -690,6 +690,7 @@ public class TableEntityManagerTest {
 		rows.setEtag("444");
 		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
 
+		// call under test
 		RowSet result = manager.getCellValues(user, tableId, rows.getRows(), models);
 		assertNotNull(result);
 		assertEquals(tableId, tableId);
@@ -701,6 +702,35 @@ public class TableEntityManagerTest {
 		row = result.getRows().get(1);
 		assertEquals(new Long(3), row.getRowId());
 		
+		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
+		verify(mockTableManagerSupport).getTableEntityType(tableId);
+	}
+	
+	/**
+	 * Test for PLFM-4494, case where user requests file handles that are not on the table.
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@Test
+	public void testGetCellValuesMissing() throws DatastoreException, NotFoundException, IOException {
+		RowReferenceSet rows = new RowReferenceSet();
+		rows.setTableId(tableId);
+		rows.setHeaders(TableModelUtils.getSelectColumns(models));
+		rows.setEtag("444");
+		// the second reference does not exist
+		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(-1L, -1L)));
+
+		// call under test
+		RowSet result = manager.getCellValues(user, tableId, rows.getRows(), models);
+		assertNotNull(result);
+		assertEquals(tableId, tableId);
+		assertEquals(rows.getHeaders(), result.getHeaders());
+		assertNotNull(result.getRows());
+		assertEquals(1, result.getRows().size());
+		Row row = result.getRows().get(0);
+		assertEquals(new Long(1), row.getRowId());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, tableId);
 		verify(mockTableManagerSupport).getTableEntityType(tableId);
 	}

@@ -429,7 +429,9 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 			results.setRows(resultRows);
 			for(RowReference ref:rows){
 				Row row = rowMap.get(ref.getRowId());
-				resultRows.add(row);
+				if(row != null){
+					resultRows.add(row);
+				}
 			}
 			return results;
 		} catch (ParseException e) {
