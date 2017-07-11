@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -288,5 +289,22 @@ public class AccessRequirementController extends BaseController {
 			@RequestBody AccessRequirementConversionRequest request
 			) throws ConflictingUpdateException, UnauthorizedException, NotFoundException {	
 		return serviceProvider.getAccessRequirementService().convertAccessRequirements(userId, request);
+	}
+
+	/**
+	 * Retrieve a page of subjects for a given Access Requirement ID.
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @param nextPageToken
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS, method = RequestMethod.GET)
+	public @ResponseBody RestrictableObjectDescriptorResponse getSubjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
+		return serviceProvider.getAccessRequirementService().getSubjects(userId, requirementId, nextPageToken);
 	}
 }

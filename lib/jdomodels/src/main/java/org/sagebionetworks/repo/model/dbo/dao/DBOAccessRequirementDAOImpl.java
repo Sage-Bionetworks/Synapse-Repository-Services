@@ -102,6 +102,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
 			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
+	private static final String GET_SUBJECT_ACCESS_REQUIREMENT_WITH_LIMIT_AND_OFFSET =
+			GET_SUBJECT_ACCESS_REQUIREMENT_SQL+" "
+			+LIMIT_PARAM+" :"+LIMIT_PARAM+" "
+			+OFFSET_PARAM+" :"+OFFSET_PARAM;
+
 	private static final String SELECT_INFO_FOR_UPDATE_SQL = "SELECT "
 			+ COL_ACCESS_REQUIREMENT_ID+", "
 			+ COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER+", "
@@ -317,10 +322,20 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 
 	@Override
-	public List<RestrictableObjectDescriptor> getSubjects(Long accessRequirementId) {
+	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
 		List<DBOSubjectAccessRequirement> nars = namedJdbcTemplate.query(GET_SUBJECT_ACCESS_REQUIREMENT_SQL, param, subjectAccessRequirementRowMapper);
+		return AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(nars);
+	}
+
+	@Override
+	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
+		param.addValue(LIMIT_PARAM, limit);
+		param.addValue(OFFSET_PARAM, offset);
+		List<DBOSubjectAccessRequirement> nars = namedJdbcTemplate.query(GET_SUBJECT_ACCESS_REQUIREMENT_WITH_LIMIT_AND_OFFSET, param, subjectAccessRequirementRowMapper);
 		return AccessRequirementUtils.copyDBOSubjectsToDTOSubjects(nars);
 	}
 
@@ -377,7 +392,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Override
 	public List<AccessRequirement> getAccessRequirementsForSubject(
 			List<String> subjectIds, RestrictableObjectType type,
-			Long limit, Long offset) throws DatastoreException {
+			long limit, long offset) throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		if (subjectIds.isEmpty()) {
 			return dtos;

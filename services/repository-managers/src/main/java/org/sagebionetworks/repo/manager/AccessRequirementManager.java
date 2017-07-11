@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -88,5 +89,16 @@ public interface AccessRequirementManager {
 	 */
 	public AccessRequirement convertAccessRequirement(UserInfo userInfo, AccessRequirementConversionRequest request)
 			throws NotFoundException, UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Retrieve a page of subjects for a given accessRequirementId
+	 * 
+	 * @param userInfo
+	 * @param accessRequirementId
+	 * @param nextPageToken
+	 * @return
+	 */
+	public RestrictableObjectDescriptorResponse getSubjects(UserInfo userInfo, String accessRequirementId,
+			String nextPageToken);
 
 }

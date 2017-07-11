@@ -568,7 +568,7 @@ public class TableViewIntegrationTest {
 		waitForEntityReplication(viewId, lastProjectId);
 		// query the view as a user that does not permission
 		String sql = "select * from "+viewId;
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, scope.size());
 		List<Row> rows  = extractRows(results);
 		assertEquals("Should have one row for each scope.",scope.size(), rows.size());
 	}

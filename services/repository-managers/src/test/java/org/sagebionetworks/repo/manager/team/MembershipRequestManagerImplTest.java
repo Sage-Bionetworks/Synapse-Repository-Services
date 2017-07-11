@@ -7,9 +7,11 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,12 +19,14 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -164,6 +168,8 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testCreate() throws Exception {
+		Team mockTeam = Mockito.mock(Team.class);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(mockTeam);
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(TEAM_ID);
 		when(mockMembershipRqstSubmissionDAO.create((MembershipRqstSubmission)any())).thenReturn(mrs);
@@ -212,37 +218,39 @@ public class MembershipRequestManagerImplTest {
 			MessageToUserAndBody result = resultList.get(i);
 			assertEquals("Someone Has Requested to Join Your Team", result.getMetadata().getSubject());
 			assertEquals(Collections.singleton(teamAdmins.get(i)), result.getMetadata().getRecipients());
-
-			// this will give us nine pieces...
-			List<String> delims = Arrays.asList(new String[] {
-					TEMPLATE_KEY_DISPLAY_NAME,
-					TEMPLATE_KEY_TEAM_NAME,
-					TEMPLATE_KEY_REQUESTER_MESSAGE,
-					TEMPLATE_KEY_ONE_CLICK_JOIN
-			});
-			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(MembershipRequestManagerImpl.TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, delims);
-
-			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
-			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-			assertEquals("auser", displayName);
-			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-			assertEquals("test-team", teamName);
-			assertTrue(result.getBody().indexOf(templatePieces.get(6))>0);
-			String inviterMessage = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
-			assertTrue(inviterMessage.indexOf("Please let me in your team.")>=0);
-			assertTrue(result.getBody().endsWith(templatePieces.get(8)));
-			String acceptRequestToken = 
-					EmailParseUtil.getTokenFromString(result.getBody(), 
-					templatePieces.get(6)+acceptRequestEndpoint, templatePieces.get(8));
-			JoinTeamSignedToken jtst = SerializationUtils.hexDecodeAndDeserialize(acceptRequestToken, JoinTeamSignedToken.class);
-			SignedTokenUtil.validateToken(jtst);
-			assertEquals(TEAM_ID, jtst.getTeamId());
-			assertEquals(MEMBER_PRINCIPAL_ID, jtst.getMemberId());
-			assertEquals(teamAdmins.get(i), jtst.getUserId());
+			String userId = MEMBER_PRINCIPAL_ID;
+			String displayName = "auser";
+			String teamId = TEAM_ID;
+			String teamName = "test-team";
+			String requesterMessage = "The requester sends the following message: <Blockquote> Please let me in your team. </Blockquote> ";
+			String adminId = teamAdmins.get(i);
+			String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
+			String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
+					"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
+					"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;margin-bottom: 20px;font-size: 16px;font-weight: 300;line-height: 1.4;\">Hello,</p>\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Profile:" + userId + "\">" + displayName + "</a></strong>\r\n" + 
+					"        has requested to join team\r\n" + 
+					"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Team:" + teamId + "\">" + teamName + "</a></strong>.\r\n" + 
+					"      </p>\r\n" + 
+					"      <blockquote style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;padding: 10px 20px;margin: 0 0 20px;font-size: 17.5px;border-left: 5px solid #eeeeee;\">\r\n" + 
+					"        " + requesterMessage + "\r\n" + 
+					"      </blockquote>\r\n" + 
+					"      <a href=\"" + oneClickJoin + "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: #337ab7;color: #ffffff;text-decoration: none;display: inline-block;margin-bottom: 0;font-weight: normal;text-align: center;vertical-align: middle;-ms-touch-action: manipulation;touch-action: manipulation;cursor: pointer;background-image: none;border: 1px solid transparent;white-space: nowrap;padding: 10px 16px;font-size: 18px;line-height: 1.3333333;border-radius: 6px;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;border-color: #2e6da4;\">Accept this Request!</a>\r\n" + 
+					"      <p style=\"margin-top: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">If you do not wish to accept this request, please disregard this message.</p>\r\n" + 
+					"      <br style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        Sincerely,\r\n" + 
+					"      </p>\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse Administration\r\n" + 
+					"      </p>\r\n" + 
+					"    </div>\r\n" + 
+					"  </body>\r\n" + 
+					"</html>\r\n";
+			assertEquals(expected, result.getBody());
 		}
-
 	}
 	
 	@Test
@@ -410,5 +418,22 @@ public class MembershipRequestManagerImplTest {
 		Count result = membershipRequestManagerImpl.getOpenSubmissionsCountForTeamAdmin(userInfo);
 		assertNotNull(result);
 		assertEquals(count, result.getCount());
+	}
+
+	@Test
+	public void testCreateRequestPublicTeam() {
+		try {
+			MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+			mrs.setTeamId(TEAM_ID);
+			mrs.setUserId(MEMBER_PRINCIPAL_ID);
+			Team team = new Team();
+			team.setCanPublicJoin(true);
+			when(mockTeamDAO.get(mrs.getTeamId())).thenReturn(team);
+			membershipRequestManagerImpl.create(userInfo, mrs);
+			Assert.fail("Expected IllegalArgumentException to be thrown");
+		} catch (Exception e) {
+			assertEquals(IllegalArgumentException.class, e.getClass());
+			assertEquals("This team is already open for the public to join, membership requests are not needed.", e.getMessage());
+		}
 	}
 }

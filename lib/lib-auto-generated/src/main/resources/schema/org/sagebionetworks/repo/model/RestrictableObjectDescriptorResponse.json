@@ -1,0 +1,15 @@
+{
+	"properties":{
+		"subjects":{
+			"description":"a page of subjects",
+			"type":"array",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.RestrictableObjectDescriptor"
+			}
+		},
+		"nextPageToken":{
+			"description": "Token that can be used to get the next page. Null if there are no more results.",
+			"type":"string"
+		}
+	}
+}

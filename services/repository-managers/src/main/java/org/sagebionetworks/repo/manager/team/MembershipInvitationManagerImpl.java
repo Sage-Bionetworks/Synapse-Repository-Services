@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.manager.team;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.util.Collections;
 import java.util.Date;
@@ -86,14 +87,16 @@ public class MembershipInvitationManagerImpl implements
 	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
+		if (mis.getCreatedOn() == null) mis.setCreatedOn(new Date());
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
 		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
 		mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId()));
+				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn()));
 		if (mis.getMessage()==null || mis.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {

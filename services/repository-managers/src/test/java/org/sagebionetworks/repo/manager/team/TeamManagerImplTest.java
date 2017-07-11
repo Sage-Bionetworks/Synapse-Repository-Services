@@ -13,6 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
 
@@ -33,6 +34,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.ProjectStatsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -981,27 +983,33 @@ public class TeamManagerImplTest {
 		for (int i=0; i<inviterPrincipalIds.size(); i++) {
 			MessageToUserAndBody result = resultList.get(i);
 			assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
-		
 			assertEquals(Collections.singleton(inviterPrincipalIds.get(i)), result.getMetadata().getRecipients());
-		
-			// this will give us seven pieces...
-			List<String> delims = Arrays.asList(new String[] {
-					TEMPLATE_KEY_DISPLAY_NAME,
-					TEMPLATE_KEY_TEAM_NAME,
-					TEMPLATE_KEY_TEAM_WEB_LINK
-			});
-			List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.USER_HAS_JOINED_TEAM_TEMPLATE, delims);
-
-			assertTrue(result.getBody().startsWith(templatePieces.get(0)));
-			assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-			String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-			assertEquals("foo bar (userName)", displayName);
-			assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-			String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-			assertEquals("test-name", teamName);
-			assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-			String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
-			assertEquals(teamEndpoint+TEAM_ID, teamLink);
+			UserProfile userProfile = mockUserProfileManager.getUserProfile(userInfo.getId().toString());
+			String userId = MEMBER_PRINCIPAL_ID;
+			String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
+			String teamWebLink = teamEndpoint + TEAM_ID;
+			String teamName = "test-name";
+			String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
+					"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
+					"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;margin-bottom: 20px;font-size: 16px;font-weight: 300;line-height: 1.4;\">Hello,</p>\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Profile:" + userId + "\">" + displayName + "</a></strong>\r\n" + 
+					"        has joined team\r\n" + 
+					"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"" + teamWebLink + "\">" + teamName + "</a></strong>.\r\n" + 
+					"        </p>\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">For further information, visit the <a href=\"" + teamWebLink + "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: transparent;color: #337ab7;text-decoration: none;\">team page</a>.</p>\r\n" + 
+					"      <br style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        Sincerely,\r\n" + 
+					"      </p>\r\n" + 
+					"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+					"        <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse Administration\r\n" + 
+					"      </p>\r\n" + 
+					"    </div>\r\n" + 
+					"  </body>\r\n" + 
+					"</html>\r\n";
+			assertEquals(expected, result.getBody());
 		}
 	}
 	
@@ -1023,25 +1031,47 @@ public class TeamManagerImplTest {
 		MessageToUserAndBody result = resultList.get(0);
 		assertEquals("New Member Has Joined the Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(otherPrincipalId), result.getMetadata().getRecipients());
-
-		// this will give us seven pieces...
-		List<String> delims = Arrays.asList(new String[] {
-				TEMPLATE_KEY_DISPLAY_NAME,
-				TEMPLATE_KEY_TEAM_NAME,
-				TEMPLATE_KEY_TEAM_WEB_LINK
-		});
-		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(TeamManagerImpl.ADMIN_HAS_ADDED_USER_TEMPLATE, delims);
-
-		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
-		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
-		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-		assertEquals("foo bar (userName)", displayName);
-		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
-		String teamName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-		assertEquals("test-name", teamName);
-		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-		String teamLink = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
-		assertEquals(teamEndpoint+TEAM_ID, teamLink);
+		UserProfile userProfile = mockUserProfileManager.getUserProfile(userInfo.getId().toString());
+		String userId = MEMBER_PRINCIPAL_ID;
+		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
+		String teamWebLink = teamEndpoint + TEAM_ID;
+		String teamName = "test-name";
+		String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
+				"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
+				"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;margin-bottom: 20px;font-size: 16px;font-weight: 300;line-height: 1.4;\">Hello,</p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"https://www.synapse.org/#!Profile:" + userId + "\">" + displayName + "</a></strong>\r\n" + 
+				"        has accepted you into team\r\n" + 
+				"        <strong style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-weight: bold;\"><a href=\"" + teamWebLink + "\">" + teamName + "</a></strong>.\r\n" + 
+				"      </p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">For further information, visit the <a href=\"" + teamWebLink + "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: transparent;color: #337ab7;text-decoration: none;\">team page</a>.</p>\r\n" + 
+				"      <br style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        Sincerely,\r\n" + 
+				"      </p>\r\n" + 
+				"      <p style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;margin: 0 0 10px;\">\r\n" + 
+				"        <img src=\"https://s3.amazonaws.com/static.synapse.org/images/SynapseLogo2.png\" style=\"display: inline;width: 40px;height: 40px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;border: 0;vertical-align: middle;\"> Synapse Administration\r\n" + 
+				"      </p>\r\n" + 
+				"    </div>\r\n" + 
+				"  </body>\r\n" + 
+				"</html>\r\n";
+		assertEquals(expected, result.getBody());
+	}
+	
+	@Test
+	public void testCreateJoinedTeamNotificationWithNullOptionalParameters() {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		String teamEndpoint = "https://synapse.org/#Team:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		List<MessageToUserAndBody> resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, null, null);
+		assertTrue(resultList.size() == 0);
+		resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, teamEndpoint, null);
+		assertTrue(resultList.size() == 0);
+		resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, null, notificationUnsubscribeEndpoint);
+		assertTrue(resultList.size() == 0);
 	}
 	
 	@Test

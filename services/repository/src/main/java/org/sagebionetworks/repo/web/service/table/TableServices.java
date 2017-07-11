@@ -91,18 +91,6 @@ public interface TableServices {
 	public RowReferenceSet deleteRows(Long userId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException;
 
 	/**
-	 * Get specific versions of rows in a table.
-	 * 
-	 * @param userId
-	 * @param rowsToGet
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws IOException
-	 */
-	public RowSet getReferenceSet(Long userId, RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException;
-
-	/**
 	 * Get the file handles
 	 * 
 	 * @param userId
