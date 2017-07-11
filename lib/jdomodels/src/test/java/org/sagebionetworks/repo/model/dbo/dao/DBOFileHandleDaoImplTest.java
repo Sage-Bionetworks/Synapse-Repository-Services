@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -363,7 +364,7 @@ public class DBOFileHandleDaoImplTest {
 	}
 	
 	@Test
-	public void testExteranlFileWithPreview() throws DatastoreException, NotFoundException{
+	public void testExternalFileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
@@ -639,6 +640,25 @@ public class DBOFileHandleDaoImplTest {
 		toDelete.add(pfh.getId());
 		ProxyFileHandle clone = (ProxyFileHandle) fileHandleDao.get(pfh.getId());
 		assertEquals(pfh, clone);
+	}
+
+	@Test
+	public void testExternalObjectStoreFileHandle(){
+		ExternalObjectStoreFileHandle externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
+		externalObjectStoreFileHandle.setContentType("text/plain");
+		externalObjectStoreFileHandle.setContentMd5("md5");
+		externalObjectStoreFileHandle.setContentSize(123L);
+		externalObjectStoreFileHandle.setFileKey("/foo/bar/text.txt");
+		externalObjectStoreFileHandle.setFileName("text.txt");
+		externalObjectStoreFileHandle.setCreatedBy(creatorUserGroupId);
+		externalObjectStoreFileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		externalObjectStoreFileHandle.setEtag(UUID.randomUUID().toString());
+
+		externalObjectStoreFileHandle = (ExternalObjectStoreFileHandle) fileHandleDao.createFile(externalObjectStoreFileHandle);
+		assertNotNull(externalObjectStoreFileHandle);
+		toDelete.add(externalObjectStoreFileHandle.getId());
+		ExternalObjectStoreFileHandle clone = (ExternalObjectStoreFileHandle) fileHandleDao.get(externalObjectStoreFileHandle.getId());
+		assertEquals(externalObjectStoreFileHandle, clone);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
