@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorList;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -400,5 +403,80 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		response.setSubjects(subjects);
 		response.setNextPageToken(token.getNextPageTokenForCurrentResults(subjects));
 		return response;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void addSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(requirementId, "requirementId");
+		ValidateArgument.required(rodList, "RestrictableObjectDescriptorList");
+		ValidateArgument.required(rodList.getSubjects(), "RestrictableObjectDescriptorList.subjects");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can apply an AccessRequirement to a subject.");
+		}
+		// lock the AccessRequirement
+		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(requirementId);
+		if (rodList.getSubjects().isEmpty()) {
+			return;
+		}
+		validateSubjects(current, rodList.getSubjects());
+		accessRequirementDAO.addSubjects(Long.parseLong(requirementId), rodList.getSubjects());
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void removeSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(requirementId, "requirementId");
+		ValidateArgument.required(rodList, "RestrictableObjectDescriptorList");
+		ValidateArgument.required(rodList.getSubjects(), "RestrictableObjectDescriptorList.subjects");
+		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only ACT member can remove an AccessRequirement from a subject.");
+		}
+		// lock the AccessRequirement
+		accessRequirementDAO.getForUpdate(requirementId);
+		if (rodList.getSubjects().isEmpty()) {
+			return;
+		}
+		Map<RestrictableObjectType, List<String>> typeMap = new HashMap<RestrictableObjectType, List<String>>();
+		for (RestrictableObjectDescriptor rod : rodList.getSubjects()) {
+			RestrictableObjectType type = rod.getType();
+			List<String> subjectIds = null;
+			if (typeMap.containsKey(type)) {
+				subjectIds = typeMap.get(type);
+			} else {
+				subjectIds = new ArrayList<String>();
+			}
+			subjectIds.add(rod.getId());
+			typeMap.put(type, subjectIds);
+		}
+		for (RestrictableObjectType type : typeMap.keySet()) {
+			accessRequirementDAO.removeSubjects(Long.parseLong(requirementId), typeMap.get(type), type);
+		}
+	}
+
+	public static void validateSubjects(AccessRequirementInfoForUpdate current, List<RestrictableObjectDescriptor> subjects) {
+		RestrictableObjectType type = determineObjectType(current.getAccessType());
+		for (RestrictableObjectDescriptor rod : subjects) {
+			ValidateArgument.requirement(type.equals(rod.getType()),
+					"Cannot apply access requirement with access type "+current.getAccessType()
+					+" to a subject with type "+rod.getType().name());
+		}
+	}
+
+	public static RestrictableObjectType determineObjectType(ACCESS_TYPE accessType) {
+		RestrictableObjectType type = null;
+		switch(accessType) {
+			case DOWNLOAD:
+				type = RestrictableObjectType.ENTITY;
+				break;
+			case PARTICIPATE:
+				type = RestrictableObjectType.TEAM;
+				break;
+			default:
+				throw new IllegalArgumentException("Do not support AccessType "+accessType.name());
+		}
+		return type;
 	}
 }

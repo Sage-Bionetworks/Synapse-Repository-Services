@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorList;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -925,5 +926,195 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(response);
 		assertEquals(subjects, response.getSubjects());
 		assertNull(response.getNextPageToken());
+	}
+
+	@Test
+	public void testDetermineObjectType() {
+		assertEquals(RestrictableObjectType.ENTITY, arm.determineObjectType(ACCESS_TYPE.DOWNLOAD));
+		assertEquals(RestrictableObjectType.TEAM, arm.determineObjectType(ACCESS_TYPE.PARTICIPATE));
+		try {
+			arm.determineObjectType(ACCESS_TYPE.DOWNLOAD);
+		} catch (IllegalArgumentException e) {
+			// expected
+		}
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateSubjectsTypeMismatch() {
+		AccessRequirementInfoForUpdate ar = new AccessRequirementInfoForUpdate();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		arm.validateSubjects(ar, Arrays.asList(rod));
+	}
+
+	@Test
+	public void testValidateSubjectsTypeMatch() {
+		AccessRequirementInfoForUpdate ar = new AccessRequirementInfoForUpdate();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.ENTITY);
+		arm.validateSubjects(ar, Arrays.asList(rod, rod));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAddSubjectsWithNullUserInfo() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.addSubjects(null, requirementId, rodList);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAddSubjectsWithNullRequirementId() {
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.addSubjects(userInfo, null, rodList);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAddSubjectsWithNullRequestBody() {
+		String requirementId = "1";
+		arm.addSubjects(userInfo, requirementId, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAddSubjectsWithNullList() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.addSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testAddSubjectsUnauthorized() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		arm.addSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testAddSubjectsNotFound() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenThrow(new NotFoundException());
+		arm.addSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test
+	public void testAddSubjectsEmptyList() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenReturn(new AccessRequirementInfoForUpdate());
+		arm.addSubjects(userInfo, requirementId, rodList);
+		verify(accessRequirementDAO, never()).addSubjects(anyLong(), any(List.class));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testAddSubjectsValidationFail() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("2");
+		rod.setType(RestrictableObjectType.TEAM);
+		rodList.setSubjects(Arrays.asList(rod));
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenReturn(info);
+		arm.addSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test
+	public void testAddSubjectsValidationPass() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("2");
+		rod.setType(RestrictableObjectType.ENTITY);
+		rodList.setSubjects(Arrays.asList(rod));
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
+		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenReturn(info);
+		arm.addSubjects(userInfo, requirementId, rodList);
+		verify(accessRequirementDAO).addSubjects(1L, Arrays.asList(rod));
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRemoveSubjectsWithNullUserInfo() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.removeSubjects(null, requirementId, rodList);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRemoveSubjectsWithNullRequirementId() {
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.removeSubjects(userInfo, null, rodList);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRemoveSubjectsWithNullRequestBody() {
+		String requirementId = "1";
+		arm.removeSubjects(userInfo, requirementId, null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testRemoveSubjectsWithNullList() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		arm.removeSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test (expected = UnauthorizedException.class)
+	public void testRemoveSubjectsUnauthorized() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		arm.removeSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test (expected = NotFoundException.class)
+	public void testRemoveSubjectsNotFound() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenThrow(new NotFoundException());
+		arm.removeSubjects(userInfo, requirementId, rodList);
+	}
+
+	@Test
+	public void testRemoveSubjectsEmptyList() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		rodList.setSubjects(new LinkedList<RestrictableObjectDescriptor>());
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenReturn(new AccessRequirementInfoForUpdate());
+		arm.removeSubjects(userInfo, requirementId, rodList);
+		verify(accessRequirementDAO, never()).removeSubjects(anyLong(), any(List.class), any(RestrictableObjectType.class));
+	}
+
+	@Test
+	public void testRemoveSubjects() {
+		String requirementId = "1";
+		RestrictableObjectDescriptorList rodList = new RestrictableObjectDescriptorList();
+		RestrictableObjectDescriptor rod1 = new RestrictableObjectDescriptor();
+		rod1.setId("2");
+		rod1.setType(RestrictableObjectType.ENTITY);
+		RestrictableObjectDescriptor rod2 = new RestrictableObjectDescriptor();
+		rod2.setId("3");
+		rod2.setType(RestrictableObjectType.TEAM);
+		rodList.setSubjects(Arrays.asList(rod1, rod2));
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.getForUpdate(requirementId)).thenReturn(new AccessRequirementInfoForUpdate());
+		arm.removeSubjects(userInfo, requirementId, rodList);
+		verify(accessRequirementDAO).removeSubjects(1L, Arrays.asList("2"), RestrictableObjectType.ENTITY);
+		verify(accessRequirementDAO).removeSubjects(1L, Arrays.asList("3"), RestrictableObjectType.TEAM);
 	}
 }

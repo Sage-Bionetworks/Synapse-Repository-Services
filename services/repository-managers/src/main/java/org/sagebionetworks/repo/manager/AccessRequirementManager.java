@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorList;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
@@ -98,5 +99,23 @@ public interface AccessRequirementManager {
 	 */
 	public RestrictableObjectDescriptorResponse getSubjects(String accessRequirementId,
 			String nextPageToken);
+
+	/**
+	 * Apply an AccessRequirement to a list of subjects
+	 * 
+	 * @param userInfo
+	 * @param requirementId
+	 * @param rodList
+	 */
+	public void addSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList);
+
+	/**
+	 * Remove an AccessRequirement from a list of subjects
+	 * 
+	 * @param userInfo
+	 * @param requirementId
+	 * @param rodList
+	 */
+	public void removeSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList);
 
 }
