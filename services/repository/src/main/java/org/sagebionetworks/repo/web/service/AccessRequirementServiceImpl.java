@@ -9,7 +9,9 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorList;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
@@ -21,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Autowired
-	AccessRequirementManager accessRequirementManager;	
+	AccessRequirementManager accessRequirementManager;
 	@Autowired
 	UserManager userManager;
 	@Autowired
@@ -110,6 +112,19 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Override
 	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) {
 		return accessRequirementManager.getSubjects(requirementId, nextPageToken);
+	}
+
+	@Override
+	public void addSubject(Long userId, String requirementId, String subjectId, RestrictableObjectType subjectType) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		accessRequirementManager.addSubject(userInfo, requirementId, subjectId, subjectType);
+	}
+
+
+	@Override
+	public void removeSubject(Long userId, String requirementId, String subjectId, RestrictableObjectType subjectType) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		accessRequirementManager.removeSubject(userInfo, requirementId, subjectId, subjectType);
 	}
 
 }

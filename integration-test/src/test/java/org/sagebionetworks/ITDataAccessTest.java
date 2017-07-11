@@ -113,6 +113,8 @@ public class ITDataAccessTest {
 		conversionRequest.setEtag(actAR.getEtag());
 		managedAR = (ManagedACTAccessRequirement) adminSynapse.convertAccessRequirement(conversionRequest);
 
+		adminSynapse.removeSubject(managedAR.getId().toString(), project.getId(), RestrictableObjectType.ENTITY);
+		adminSynapse.addSubject(managedAR.getId().toString(), project.getId(), RestrictableObjectType.ENTITY);
 		assertNotNull(synapseOne.getSubjects(managedAR.getId().toString(), null));
 
 		ResearchProject rp = synapseOne.getResearchProjectForUpdate(managedAR.getId().toString());

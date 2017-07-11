@@ -260,7 +260,7 @@ public class AccessRequirementController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -302,5 +302,41 @@ public class AccessRequirementController extends BaseController {
 			@PathVariable String requirementId,
 			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
 		return serviceProvider.getAccessRequirementService().getSubjects(requirementId, nextPageToken);
+	}
+
+	/**
+	 * Apply an AccessRequirement to a list of subjects
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @param subjectId
+	 * @param subjectType
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECT, method = RequestMethod.PUT)
+	public void addSubject(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestParam(value = "subjectId") String subjectId,
+			@RequestParam(value = "subjectType") RestrictableObjectType subjectType) {
+		serviceProvider.getAccessRequirementService().addSubject(userId, requirementId, subjectId, subjectType);
+	}
+
+	/**
+	 * Remove an AccessRequirement from a list of subjects
+	 * 
+	 * @param userId
+	 * @param requirementId
+	 * @param subjectId
+	 * @param subjectType
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECT, method = RequestMethod.DELETE)
+	public void removeSubject(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestParam(value = "subjectId") String subjectId,
+			@RequestParam(value = "subjectType") RestrictableObjectType subjectType) {
+		serviceProvider.getAccessRequirementService().removeSubject(userId, requirementId, subjectId, subjectType);
 	}
 }

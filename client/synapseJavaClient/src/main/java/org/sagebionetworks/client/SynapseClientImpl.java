@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -5055,5 +5056,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri += "?nextPageToken="+nextPageToken;
 		}
 		return getJSONEntity(getRepoEndpoint(), uri, RestrictableObjectDescriptorResponse.class);
+	}
+
+	@Override
+	public void addSubject(String requirementId, String subjectId, RestrictableObjectType subjectType)
+			throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		ValidateArgument.required(subjectId, "subjectId");
+		ValidateArgument.required(subjectType, "subjectType");
+		String uri = ACCESS_REQUIREMENT+"/"+requirementId+"/subject?subjectId="+subjectId+"&subjectType="+subjectType.name();
+		voidPut(getRepoEndpoint(), uri, null);
+	}
+
+	@Override
+	public void removeSubject(String requirementId, String subjectId, RestrictableObjectType subjectType)
+			throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		ValidateArgument.required(subjectId, "subjectId");
+		ValidateArgument.required(subjectType, "subjectType");
+		String uri = ACCESS_REQUIREMENT+"/"+requirementId+"/subject?subjectId="+subjectId+"&subjectType="+subjectType.name();
+		deleteUri(getRepoEndpoint(), uri);
 	}
 }
