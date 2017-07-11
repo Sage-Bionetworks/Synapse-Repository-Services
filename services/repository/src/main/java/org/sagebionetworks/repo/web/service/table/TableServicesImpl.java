@@ -106,16 +106,6 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowSet getReferenceSet(Long userId, RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException {
-		Validate.required(rowsToGet, "rowsToGet");
-		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
-		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> columns = columnModelManager.getCurrentColumns(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
-
-		return tableEntityManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet.getRows(), columns);
-	}
-
-	@Override
 	public TableFileHandleResults getFileHandles(Long userId, RowReferenceSet fileHandlesToFind) throws IOException, NotFoundException {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
@@ -173,14 +163,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
 
-		// Get the file handles
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		ColumnModel model = getColumnForTable(userInfo, tableId, columnId);
-		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
-			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
-		}
-		Row row = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
-		String fileHandleId = row.getValues().get(0);
+		String fileHandleId = getFileHandleId(userId, tableId, rowRef, columnId);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -190,23 +173,38 @@ public class TableServicesImpl implements TableServices {
 			NotFoundException {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
-
-		// Get the file handles
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		ColumnModel model = getColumnForTable(userInfo, tableId, columnId);
-		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
-			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
-		}
-		Row row = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
-		String fileHandleId = row.getValues().get(0);
+		
+		String fileHandleId = getFileHandleId(userId, tableId, rowRef, columnId);
 		// Use the FileHandle ID to get the URL
 		String previewFileHandleId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		return fileHandleManager.getRedirectURLForFileHandle(previewFileHandleId);
 	}
-
-	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {
-		return columnModelManager.getColumnModel(user, columnId);
+	
+	/**
+	 * Get the file handle ID for a given table cell.
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @param rowRef
+	 * @param columnId
+	 * @return
+	 * @throws IOException
+	 */
+	public String getFileHandleId(Long userId, String tableId,
+			RowReference rowRef, String columnId) throws IOException {
+		// Get the file handles
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ColumnModel model = columnModelManager.getColumnModel(userInfo, columnId);
+		if (model.getColumnType() != ColumnType.FILEHANDLEID) {
+			throw new IllegalArgumentException("Column " + columnId + " is not of type FILEHANDLEID");
+		}
+		Row row = tableEntityManager.getCellValue(userInfo, tableId, rowRef, model);
+		if(row == null || row.getValues() == null || row.getValues().size() != 1){
+			throw new NotFoundException("Row: "+rowRef.getRowId());
+		}
+		return row.getValues().get(0);
 	}
+
 
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
