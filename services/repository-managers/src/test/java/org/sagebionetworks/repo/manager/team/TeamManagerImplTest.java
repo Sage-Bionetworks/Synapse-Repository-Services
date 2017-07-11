@@ -1060,6 +1060,21 @@ public class TeamManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateJoinedTeamNotificationWithNullOptionalParameters() {
+		Team team = new Team();
+		team.setName("test-name");
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		String teamEndpoint = "https://synapse.org/#Team:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+		List<MessageToUserAndBody> resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, null, null);
+		assertTrue(resultList.size() == 0);
+		resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, teamEndpoint, null);
+		assertTrue(resultList.size() == 0);
+		resultList = teamManagerImpl.createJoinedTeamNotifications(userInfo, userInfo, TEAM_ID, null, notificationUnsubscribeEndpoint);
+		assertTrue(resultList.size() == 0);
+	}
+	
+	@Test
 	public void testCountMembers() throws Exception {
 		Count expected = new Count();
 		expected.setCount(42L);
