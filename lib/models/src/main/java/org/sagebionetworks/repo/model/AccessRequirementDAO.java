@@ -149,4 +149,13 @@ public interface AccessRequirementDAO {
 	 * @param subjects
 	 */
 	public void addSubjects(Long requirementId, List<RestrictableObjectDescriptor> subjects);
+
+	/**
+	 * Remove a list of subjects from an AccessRequirement
+	 * 
+	 * @param requirementId
+	 * @param subjectIDs
+	 * @param type
+	 */
+	public void removeSubjects(Long requirementId, List<String> subjectIDs, RestrictableObjectType type);
 }

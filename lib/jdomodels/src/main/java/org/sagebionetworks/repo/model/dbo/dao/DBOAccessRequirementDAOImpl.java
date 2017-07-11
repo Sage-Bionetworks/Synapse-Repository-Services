@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -160,6 +162,16 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+DEST_SUBJECTS+")"
 					+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+")";
 
+	private static final String ADD_SUBJECTS = "INSERT IGNORE INTO "+TABLE_SUBJECT_ACCESS_REQUIREMENT+"("
+			+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+", "
+			+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+", "
+			+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+") VALUES (?,?,?)";
+
+	private static final String REMOVE_SUBJECTS = "DELETE"
+			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
+			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
+			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
@@ -475,13 +487,37 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void addSubjects(Long requirementId, List<RestrictableObjectDescriptor> subjects) {
+	public void addSubjects(final Long requirementId, final List<RestrictableObjectDescriptor> subjects) {
 		if (subjects == null || subjects.isEmpty()) {
 			return;
 		}
-		List<DBOSubjectAccessRequirement> batch = AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(requirementId, subjects);
-		if (batch.size()>0) {
-			basicDao.createBatch(batch);
+		
+		jdbcTemplate.batchUpdate(ADD_SUBJECTS, new BatchPreparedStatementSetter(){
+
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, KeyFactory.stringToKey(subjects.get(i).getId()));
+				ps.setString(2, subjects.get(i).getType().name());
+				ps.setLong(3, requirementId);
+			}
+
+			@Override
+			public int getBatchSize() {
+				return subjects.size();
+			}
+		});
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void removeSubjects(Long requirementId, List<String> subjectIDs, RestrictableObjectType type) {
+		if (subjectIDs == null || subjectIDs.isEmpty()) {
+			return;
 		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, requirementId);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIDs));
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
+		namedJdbcTemplate.update(REMOVE_SUBJECTS, param);
 	}
 }
