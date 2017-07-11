@@ -141,4 +141,12 @@ public interface AccessRequirementDAO {
 	 * @return
 	 */
 	public List<RestrictableObjectDescriptor> getSubjects(long accessRequirementId, long limit, long offset);
+
+	/**
+	 * Apply an AccessRequirement to a list of subjects
+	 * 
+	 * @param requirementId
+	 * @param subjects
+	 */
+	public void addSubjects(Long requirementId, List<RestrictableObjectDescriptor> subjects);
 }

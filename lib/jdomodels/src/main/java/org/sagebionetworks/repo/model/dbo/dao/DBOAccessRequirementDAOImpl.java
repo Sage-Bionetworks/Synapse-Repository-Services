@@ -275,7 +275,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo, dboRevision);
 		dbo = basicDao.createNew(dbo);
 		basicDao.createNew(dboRevision);
-		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
+		// TODO: remove this
+		addSubjects(dbo.getId(), dto.getSubjectIds());
 		return (T) get(dbo.getId().toString());
 	}
 
@@ -294,16 +295,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return namedJdbcTemplate.query(SELECT_CURRENT_REQUIREMENTS_BY_ID, param, requirementMapper);
 	}
 
-	private void populateSubjectAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> rodList) {
-		if (rodList == null || rodList.isEmpty()) {
-			return;
-		}
-		List<DBOSubjectAccessRequirement> batch = AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(accessRequirementId, rodList);
-		if (batch.size()>0) {
-			basicDao.createBatch(batch);
-		}
-	}
-
+	// TODO: remove this
 	private void clearSubjectAccessRequirement(Long accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
@@ -383,8 +375,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		// Create the new revision.
 		basicDao.createNew(revision);
 
+		// TODO: remove this
 		clearSubjectAccessRequirement(dto.getId());
-		populateSubjectAccessRequirement(dto.getId(), dto.getSubjectIds());
+		addSubjects(dto.getId(), dto.getSubjectIds());
 
 		return (T) get(dto.getId().toString());
 	}
@@ -477,6 +470,18 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			return namedJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, param, requirementMapper);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		}
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void addSubjects(Long requirementId, List<RestrictableObjectDescriptor> subjects) {
+		if (subjects == null || subjects.isEmpty()) {
+			return;
+		}
+		List<DBOSubjectAccessRequirement> batch = AccessRequirementUtils.createBatchDBOSubjectAccessRequirement(requirementId, subjects);
+		if (batch.size()>0) {
+			basicDao.createBatch(batch);
 		}
 	}
 }
