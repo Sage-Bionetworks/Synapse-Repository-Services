@@ -415,7 +415,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public ExternalFileHandleInterface createExternalFileHandle(UserInfo userInfo, ExternalFileHandleInterface fileHandle){
-		//TODO:z unit test for the methods handling specific interface implementation and test that this correctly resolves to the right method
+		//TODO:z test that this correctly resolves to the right method
 		//TODO:z rename the other methods so they we are overloading createExternalFileHandle?
 		if (fileHandle instanceof  ExternalFileHandle){
 			return createExternalFileHandle(userInfo, (ExternalFileHandle) fileHandle);
@@ -457,12 +457,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@WriteTransaction
 	@Override
 	public ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
-		//TODO:z test
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
-		ValidateArgument.required(fileHandle.getContentType(), "ExternalObjectStoreFileHandle.contentType");
 		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
 		if (fileHandle.getFileName() == null) {
@@ -475,7 +473,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Lookup the storage location
 		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
 		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
-			throw new IllegalArgumentException("StorageLocationSetting.id="+fileHandle.getStorageLocationId()+" was not of the expected type: "+ExternalObjectStorageLocationSetting.class.getName());
+			throw new IllegalArgumentException("StorageLocationSetting.id="+sls.getStorageLocationId()+" was type:" + sls.getClass().getName() +  "not of the expected type: "+ExternalObjectStorageLocationSetting.class.getName());
 		}
 
 		// set this user as the creator of the file
@@ -778,7 +776,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 			uploadDestination = createExternalUploadDestination((ExternalStorageLocationSetting) storageLocationSetting,
 					nodePath, filename);
-		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){ //TODO:z use a converter instead of this giant if-else block
+		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
 			ExternalObjectStoreUploadDestination externalObjectStoreUploadDestination = new ExternalObjectStoreUploadDestination() ;
 			externalObjectStoreUploadDestination.setKeyPrefixUUID(UUID.randomUUID().toString());
 			uploadDestination = externalObjectStoreUploadDestination;
