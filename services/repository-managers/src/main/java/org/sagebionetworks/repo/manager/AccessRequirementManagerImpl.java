@@ -407,62 +407,36 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void addSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList){
+	public void addSubject(UserInfo userInfo, String requirementId, String subjectId, RestrictableObjectType subjectType){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requirementId, "requirementId");
-		ValidateArgument.required(rodList, "RestrictableObjectDescriptorList");
-		ValidateArgument.required(rodList.getSubjects(), "RestrictableObjectDescriptorList.subjects");
+		ValidateArgument.required(subjectId, "subjectId");
+		ValidateArgument.required(subjectType, "subjectType");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can apply an AccessRequirement to a subject.");
 		}
 		// lock the AccessRequirement
 		AccessRequirementInfoForUpdate current = accessRequirementDAO.getForUpdate(requirementId);
-		if (rodList.getSubjects().isEmpty()) {
-			return;
-		}
-		validateSubjects(current, rodList.getSubjects());
-		accessRequirementDAO.addSubjects(Long.parseLong(requirementId), rodList.getSubjects());
+		RestrictableObjectType type = determineObjectType(current.getAccessType());
+		ValidateArgument.requirement(type.equals(subjectType),
+				"Cannot apply access requirement with access type "+current.getAccessType()
+				+" to a subject with type "+subjectType.name());
+		accessRequirementDAO.addSubject(Long.parseLong(requirementId), subjectId, subjectType);
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void removeSubjects(UserInfo userInfo, String requirementId, RestrictableObjectDescriptorList rodList){
+	public void removeSubject(UserInfo userInfo, String requirementId, String subjectId, RestrictableObjectType subjectType){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requirementId, "requirementId");
-		ValidateArgument.required(rodList, "RestrictableObjectDescriptorList");
-		ValidateArgument.required(rodList.getSubjects(), "RestrictableObjectDescriptorList.subjects");
+		ValidateArgument.required(subjectId, "subjectId");
+		ValidateArgument.required(subjectType, "subjectType");
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can remove an AccessRequirement from a subject.");
 		}
 		// lock the AccessRequirement
 		accessRequirementDAO.getForUpdate(requirementId);
-		if (rodList.getSubjects().isEmpty()) {
-			return;
-		}
-		Map<RestrictableObjectType, List<String>> typeMap = new HashMap<RestrictableObjectType, List<String>>();
-		for (RestrictableObjectDescriptor rod : rodList.getSubjects()) {
-			RestrictableObjectType type = rod.getType();
-			List<String> subjectIds = null;
-			if (typeMap.containsKey(type)) {
-				subjectIds = typeMap.get(type);
-			} else {
-				subjectIds = new ArrayList<String>();
-			}
-			subjectIds.add(rod.getId());
-			typeMap.put(type, subjectIds);
-		}
-		for (RestrictableObjectType type : typeMap.keySet()) {
-			accessRequirementDAO.removeSubjects(Long.parseLong(requirementId), typeMap.get(type), type);
-		}
-	}
-
-	public static void validateSubjects(AccessRequirementInfoForUpdate current, List<RestrictableObjectDescriptor> subjects) {
-		RestrictableObjectType type = determineObjectType(current.getAccessType());
-		for (RestrictableObjectDescriptor rod : subjects) {
-			ValidateArgument.requirement(type.equals(rod.getType()),
-					"Cannot apply access requirement with access type "+current.getAccessType()
-					+" to a subject with type "+rod.getType().name());
-		}
+		accessRequirementDAO.removeSubject(Long.parseLong(requirementId), subjectId, subjectType);
 	}
 
 	public static RestrictableObjectType determineObjectType(ACCESS_TYPE accessType) {

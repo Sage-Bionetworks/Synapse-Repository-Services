@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -162,14 +163,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+DEST_SUBJECTS+")"
 					+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+")";
 
-	private static final String ADD_SUBJECTS = "INSERT IGNORE INTO "+TABLE_SUBJECT_ACCESS_REQUIREMENT+"("
+	private static final String ADD_SUBJECT = "INSERT IGNORE INTO "+TABLE_SUBJECT_ACCESS_REQUIREMENT+"("
 			+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+", "
 			+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+", "
 			+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+") VALUES (?,?,?)";
 
-	private static final String REMOVE_SUBJECTS = "DELETE"
+	private static final String REMOVE_SUBJECT = "DELETE"
 			+" FROM "+TABLE_SUBJECT_ACCESS_REQUIREMENT
-			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+")"
+			+" WHERE "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE
 			+" AND "+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+" = :"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
@@ -305,6 +306,28 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), requirementIds);
 		return namedJdbcTemplate.query(SELECT_CURRENT_REQUIREMENTS_BY_ID, param, requirementMapper);
+	}
+
+	// TODO: remove this method
+	private void addSubjects(final Long requirementId, final List<RestrictableObjectDescriptor> subjects) {
+		if (subjects == null || subjects.isEmpty()) {
+			return;
+		}
+		
+		jdbcTemplate.batchUpdate(ADD_SUBJECT, new BatchPreparedStatementSetter(){
+	
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				ps.setLong(1, KeyFactory.stringToKey(subjects.get(i).getId()));
+				ps.setString(2, subjects.get(i).getType().name());
+				ps.setLong(3, requirementId);
+			}
+	
+			@Override
+			public int getBatchSize() {
+				return subjects.size();
+			}
+		});
 	}
 
 	// TODO: remove this
@@ -487,37 +510,17 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void addSubjects(final Long requirementId, final List<RestrictableObjectDescriptor> subjects) {
-		if (subjects == null || subjects.isEmpty()) {
-			return;
-		}
-		
-		jdbcTemplate.batchUpdate(ADD_SUBJECTS, new BatchPreparedStatementSetter(){
-
-			@Override
-			public void setValues(PreparedStatement ps, int i) throws SQLException {
-				ps.setLong(1, KeyFactory.stringToKey(subjects.get(i).getId()));
-				ps.setString(2, subjects.get(i).getType().name());
-				ps.setLong(3, requirementId);
-			}
-
-			@Override
-			public int getBatchSize() {
-				return subjects.size();
-			}
-		});
+	public void addSubject(long requirementId, String subjectId, RestrictableObjectType subjectType) {
+		jdbcTemplate.update(ADD_SUBJECT, KeyFactory.stringToKey(subjectId), subjectType.name(), requirementId);
 	}
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void removeSubjects(Long requirementId, List<String> subjectIDs, RestrictableObjectType type) {
-		if (subjectIDs == null || subjectIDs.isEmpty()) {
-			return;
-		}
+	public void removeSubject(Long requirementId, String subjectId, RestrictableObjectType subjectType) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, requirementId);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectIDs));
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
-		namedJdbcTemplate.update(REMOVE_SUBJECTS, param);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subjectId));
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
+		namedJdbcTemplate.update(REMOVE_SUBJECT, param);
 	}
 }

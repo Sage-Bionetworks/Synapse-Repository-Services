@@ -187,10 +187,10 @@ public class DBOAccessRequirementDAOImplTest {
 		// add other subjects
 		RestrictableObjectDescriptor subject2 = 
 				AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId(), RestrictableObjectType.ENTITY);
-		accessRequirementDAO.addSubjects(accessRequirement.getId(), Arrays.asList(subject, subject2));
+		accessRequirementDAO.addSubject(accessRequirement.getId(), node2.getId(), RestrictableObjectType.ENTITY);
 		assertEquals(Arrays.asList(subject, subject2), accessRequirementDAO.getSubjects(accessRequirement.getId()));
 
-		accessRequirementDAO.removeSubjects(accessRequirement.getId(), Arrays.asList(node2.getId()), RestrictableObjectType.ENTITY);
+		accessRequirementDAO.removeSubject(accessRequirement.getId(), node2.getId(), RestrictableObjectType.ENTITY);
 		assertEquals(Arrays.asList(subject), accessRequirementDAO.getSubjects(accessRequirement.getId()));
 
 		// Fetch it
