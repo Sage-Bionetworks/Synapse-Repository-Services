@@ -1,0 +1,11 @@
+{
+	"properties":{
+		"subjects":{
+			"description":"a page of subjects",
+			"type":"array",
+			"items":{
+				"$ref":"org.sagebionetworks.repo.model.RestrictableObjectDescriptor"
+			}
+		}
+	}
+}
