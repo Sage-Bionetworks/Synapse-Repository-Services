@@ -65,7 +65,6 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 			ProxyFileHandle proxyFH = (ProxyFileHandle) fileHandle;
 			snapshot.setKey(proxyFH.getFilePath());
 		} else if (fileHandle instanceof ExternalObjectStoreFileHandle) {
-			//TODO:z test
 			ExternalObjectStoreFileHandle externalObjectStoreFH = (ExternalObjectStoreFileHandle) fileHandle;
 			snapshot.setKey(externalObjectStoreFH.getFileKey());
 		}else{

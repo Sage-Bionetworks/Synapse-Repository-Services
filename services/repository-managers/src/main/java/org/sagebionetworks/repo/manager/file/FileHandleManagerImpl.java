@@ -415,14 +415,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Override
 	public ExternalFileHandleInterface createExternalFileHandle(UserInfo userInfo, ExternalFileHandleInterface fileHandle){
-		//TODO:z test that this correctly resolves to the right method
-		//TODO:z rename the other methods so they we are overloading createExternalFileHandle?
 		if (fileHandle instanceof  ExternalFileHandle){
 			return createExternalFileHandle(userInfo, (ExternalFileHandle) fileHandle);
 		}else if (fileHandle instanceof  ProxyFileHandle){
-			return createExternalProxyFileHandle(userInfo, (ProxyFileHandle) fileHandle);
+			return createExternalFileHandle(userInfo, (ProxyFileHandle) fileHandle);
 		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
-			return createExternalObjectStoreFileHandle(userInfo, (ExternalObjectStoreFileHandle) fileHandle);
+			return createExternalFileHandle(userInfo, (ExternalObjectStoreFileHandle) fileHandle);
 		}else{
 			throw new IllegalArgumentException("Unexpected type of ExternalFileHandleInterface: " + fileHandle.getClass().getCanonicalName());
 		}
@@ -456,7 +454,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@WriteTransaction
 	@Override
-	public ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
+	public ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(fileHandle, "fileHandle");
 		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
@@ -1025,8 +1023,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
-			ProxyFileHandle proxyFileHandle) {
+	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
 		ValidateArgument.required(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");

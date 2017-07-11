@@ -203,7 +203,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
-		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){ //TODO:z refactor this into a StorageLocationSettingValidator instead of this giant if-else block??
+		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
 			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.requirement(StringUtils.isNotBlank(externalObjectS3StorageLocationSetting.getBucket()), "bucket can not be blank");
 

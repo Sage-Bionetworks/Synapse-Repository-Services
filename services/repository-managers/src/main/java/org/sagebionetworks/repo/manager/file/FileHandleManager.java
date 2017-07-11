@@ -146,7 +146,7 @@ public interface FileHandleManager {
 	 * @param fileHandle
 	 * @return
 	 */
-	ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle);
+	ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle);
 
 	/**
 	 * Ge the bucket CORS settings
@@ -372,8 +372,7 @@ public interface FileHandleManager {
 	 * @param fileHandle
 	 * @return
 	 */
-	ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
-			ProxyFileHandle fileHandle);
+	ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle fileHandle);
 
 	/**
 	 * Get a batch of FileHandles and URL
