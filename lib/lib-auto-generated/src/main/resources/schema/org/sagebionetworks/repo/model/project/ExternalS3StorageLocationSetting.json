@@ -1,5 +1,5 @@
 {
-	"description": "The external upload destination setting contains information to generate an external S3 upload destination.",
+	"description": "The external upload destination setting contains information to generate an external S3 upload destination managed by Synapse.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.project.StorageLocationSetting"

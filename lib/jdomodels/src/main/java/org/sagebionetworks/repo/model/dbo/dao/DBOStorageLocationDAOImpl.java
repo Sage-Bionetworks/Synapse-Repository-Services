@@ -151,35 +151,6 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 		return dbo.getId();
 	}
 
-	@SuppressWarnings("unchecked")
-	@WriteTransaction
-	@Override
-	public <T extends StorageLocationSetting> T update(T dto) throws DatastoreException, InvalidModelException, NotFoundException,
-			ConflictingUpdateException {
-		DBOStorageLocation dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
-				new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
-
-		// Check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		if (!dbo.getEtag().equals(dto.getEtag())) {
-			throw new ConflictingUpdateException(
-					"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
-		}
-		dbo.setDescription(dto.getDescription());
-		dbo.setData(dto);
-		// Update with a new e-tag
-		dbo.setEtag(UUID.randomUUID().toString());
-
-		boolean success = basicDao.update(dbo);
-		if (!success)
-			throw new DatastoreException("Unsuccessful updating project setting in database.");
-
-		// re-get, so we don't clobber the object we put in the dbo directly with setData
-		dbo = basicDao.getObjectByPrimaryKey(DBOStorageLocation.class,
-				new SinglePrimaryKeySqlParameterSource(dto.getStorageLocationId()));
-		return (T) CONVERT_DBO_TO_STORAGE_LOCATION.apply(dbo);
-	}
-
 	@Override
 	public StorageLocationSetting get(Long storageLocationId) throws DatastoreException, NotFoundException {
 		if (storageLocationId == null || DEFAULT_STORAGE_LOCATION_ID.equals(storageLocationId)) {

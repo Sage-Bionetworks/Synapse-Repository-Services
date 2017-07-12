@@ -2,7 +2,7 @@
 	"description": "An ExternalFileHandle represents a file that is not stored in Synapse.  Instead, ExternalFileHandles reside somewhere accessible via a URL. Synapse will attempt to generate a preview for any external URL that can be publicly read.",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+			"$ref": "org.sagebionetworks.repo.model.file.ExternalFileHandleInterface"
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.HasPreviewId"

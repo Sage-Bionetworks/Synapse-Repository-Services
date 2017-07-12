@@ -10,6 +10,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -67,6 +68,8 @@ import org.sagebionetworks.repo.model.file.BatchFileHandleCopyResult;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -78,6 +81,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
@@ -136,6 +140,10 @@ public class FileHandleManagerImplTest {
 
 	ProxyStorageLocationSettings proxyStorageLocationSettings;
 	ProxyFileHandle externalProxyFileHandle;
+
+	Long externalObjectStorageLocationId;
+	ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting;
+	ExternalObjectStoreFileHandle externalObjectStoreFileHandle;
 
 	List<FileHandleAssociation> associations;
 	FileHandleAssociation fha1;
@@ -218,7 +226,21 @@ public class FileHandleManagerImplTest {
 		externalProxyFileHandle.setStorageLocationId(proxyStorageLocationSettings.getStorageLocationId());
 		externalProxyFileHandle.setId("444444");
 		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
-		
+
+		//set up external object store
+		externalObjectStorageLocationId = 96024L;
+		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageLocationSetting.setStorageLocationId(externalObjectStorageLocationId);
+		externalObjectStorageLocationSetting.setBucket(bucket);
+		externalObjectStorageLocationSetting.setEndpointUrl("https://www.url.com");
+		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalObjectStorageLocationSetting);
+
+		externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
+		externalObjectStoreFileHandle.setStorageLocationId(externalObjectStorageLocationId);
+		externalObjectStoreFileHandle.setContentMd5(md5);
+		externalObjectStoreFileHandle.setContentSize(fileSize);
+		externalObjectStoreFileHandle.setFileKey(key);
+
 		// one
 		fha1 = new FileHandleAssociation();
 		fha1.setAssociateObjectId("syn123");
@@ -448,6 +470,10 @@ public class FileHandleManagerImplTest {
 		// call under test
 		manager.getURLForFileHandle(proxyHandle);
 	}
+
+	//////////////////////////////////////////////////////
+	// createExternalFileHandle(ExternalFileHandle) tests
+	//////////////////////////////////////////////////////
 		
 	@Test
 	public void testCreateExternalFileHappyCase() throws Exception{
@@ -467,7 +493,7 @@ public class FileHandleManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalFileHandleNullHandle(){
-		manager.createExternalFileHandle(mockUser, null);
+		manager.createExternalFileHandle(mockUser, (ExternalFileHandle) null);
 	}
 	
 	public void testCreateExternalFileHandleNullFileName(){
@@ -644,11 +670,15 @@ public class FileHandleManagerImplTest {
 		// should fail
 		S3FileHandle result = manager.createExternalS3FileHandle(mockUser, externals3FileHandle);
 	}
-	
+
+	///////////////////////////////////////////////////
+	// createExternalFileHandle(ProxyFileHandle) tests
+	///////////////////////////////////////////////////
+
 	@Test
 	public void testCreateExternalProxyFileHandleHappy() {
 		// call under test
-		ProxyFileHandle pfh = manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		ProxyFileHandle pfh = manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 		assertNotNull(pfh);
 		assertEquals(""+mockUser.getId(), pfh.getCreatedBy());
 		assertNotNull(pfh.getCreatedOn());
@@ -661,7 +691,7 @@ public class FileHandleManagerImplTest {
 		proxyStorageLocationSettings.setCreatedBy(mockUser.getId()+1);
 		proxyStorageLocationSettings.setBenefactorId(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -673,7 +703,7 @@ public class FileHandleManagerImplTest {
 		// user lacks create on the benefactor
 		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(false, "No"));
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test
@@ -685,7 +715,7 @@ public class FileHandleManagerImplTest {
 		// user has create on benefactor.
 		when(mockAuthorizationManager.canAccess(mockUser, benefactorId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(new AuthorizationStatus(true, null));
 		// call under test
-		ProxyFileHandle pfh = manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		ProxyFileHandle pfh = manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 		assertNotNull(pfh);
 		assertEquals(""+mockUser.getId(), pfh.getCreatedBy());
 		assertNotNull(pfh.getCreatedOn());
@@ -698,65 +728,140 @@ public class FileHandleManagerImplTest {
 		// setup wrong settings type.
 		when(mockStorageLocationDao.get(proxyStorageLocationSettings.getStorageLocationId())).thenReturn(externalS3StorageLocationSetting);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	} 
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullUserInfo() {
 		mockUser = null;
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	} 
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullUserProxyHandle() {
 		externalProxyFileHandle = null;
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullFileName() {
 		externalProxyFileHandle.setFileName(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullMD5() {
 		externalProxyFileHandle.setContentMd5(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullContentType() {
 		externalProxyFileHandle.setContentType(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullContentSize() {
 		externalProxyFileHandle.setContentSize(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullFilePath() {
 		externalProxyFileHandle.setFilePath(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalProxyFileHandleNullStorageLocationId() {
 		externalProxyFileHandle.setStorageLocationId(null);
 		// call under test
-		manager.createExternalProxyFileHandle(mockUser, externalProxyFileHandle);
+		manager.createExternalFileHandle(mockUser, externalProxyFileHandle);
 	}
-	
+
+	/////////////////////////////////////////////////////////////////
+	// createExternalFileHandle(ExternalObjectStoreFileHandle) tests
+	/////////////////////////////////////////////////////////////////
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullUserId(){
+		manager.createExternalFileHandle(null, externalObjectStoreFileHandle);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullFileHandle(){
+		manager.createExternalFileHandle(mockUser, (ExternalObjectStoreFileHandle) null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullStorageLocationId(){
+		externalObjectStoreFileHandle.setStorageLocationId(null);
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullContentSize(){
+		externalObjectStoreFileHandle.setContentSize(null);
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullContentMd5(){
+		externalObjectStoreFileHandle.setContentMd5(null);
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleNullFileKey(){
+		externalObjectStoreFileHandle.setFileKey(null);
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateExternalObjectStoreFileHandleWrongStorageLocationType(){
+		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalS3StorageLocationSetting);
+		manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+	}
+
+	@Test
+	public void testCreateExternalObjectStoreFileHandle(){
+		when(mockFileHandleDao.createFile(externalObjectStoreFileHandle)).thenReturn(externalObjectStoreFileHandle);
+
+		//method under test
+		ExternalObjectStoreFileHandle result = manager.createExternalFileHandle(mockUser, externalObjectStoreFileHandle);
+
+		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
+		verify(mockFileHandleDao, times(1)).createFile(externalObjectStoreFileHandle);
+
+		//check the metadata is set correctly
+		assertNotNull(result);
+
+		//since the externalObjectStoreFileHandle did not have fileName and contentType set, check that they have value of NOT_SET
+		assertEquals(FileHandleManagerImpl.NOT_SET, result.getFileName());
+		assertEquals(FileHandleManagerImpl.NOT_SET, result.getContentType());
+
+		//check that new metadata was added
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
+		assertNotNull(result.getCreatedOn());
+		assertNotNull(result.getEtag());
+		assertNotNull(result.getId());
+
+		//check that the provided metadata (in setup()) was not modified
+		assertEquals(md5, result.getContentMd5());
+		assertEquals(fileSize, result.getContentSize());
+		assertEquals(key, result.getFileKey());
+		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+	}
+
+
 	@Test
 	public void testCreateS3FileHandleCopy() {
 		when(mockFileHandleDao.get("123")).thenReturn(createS3FileHandle());
@@ -1350,5 +1455,16 @@ public class FileHandleManagerImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetUploadDestinationWithNullStorageLocationId() {
 		manager.getUploadDestination(mockUser, "syn1", null);
+	}
+
+	@Test
+	public void testGetUploadDestinationExternalObjectStore(){
+		ExternalObjectStoreUploadDestination result = (ExternalObjectStoreUploadDestination) manager.getUploadDestination(mockUser, "syn123", externalObjectStorageLocationId);
+		assertNotNull(result);
+		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
+		assertNotNull(result.getKeyPrefixUUID());
+		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+		assertEquals(externalObjectStorageLocationSetting.getUploadType(), result.getUploadType());
+		assertEquals(externalObjectStorageLocationSetting.getBanner(), result.getBanner());
 	}
 }

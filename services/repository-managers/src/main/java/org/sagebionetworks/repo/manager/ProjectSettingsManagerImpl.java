@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalSyncSetting;
@@ -202,6 +203,10 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 			ExternalStorageLocationSetting externalStorageLocationSetting = (ExternalStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.required(externalStorageLocationSetting.getUrl(), "url");
 			ValidateArgument.validUrl(externalStorageLocationSetting.getUrl());
+		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
+			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+			ValidateArgument.requirement(StringUtils.isNotBlank(externalObjectS3StorageLocationSetting.getBucket()), "bucket can not be blank");
+			ValidateArgument.validUrl(externalObjectS3StorageLocationSetting.getEndpointUrl());
 		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");
@@ -224,15 +229,6 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		storageLocationSetting.setCreatedOn(new Date());
 		Long uploadId = storageLocationDAO.create(storageLocationSetting);
 		return (T) storageLocationDAO.get(uploadId);
-	}
-
-	@Override
-	public <T extends StorageLocationSetting> T updateStorageLocationSetting(UserInfo userInfo, T storageLocationSetting)
-			throws DatastoreException, NotFoundException {
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Cannot update settings on this project");
-		}
-		return storageLocationDAO.update(storageLocationSetting);
 	}
 
 	@Override

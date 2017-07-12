@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -182,5 +183,30 @@ public class FileHandleSnapshotRecordWriterTest {
 		assertEquals(proxyFH.getId(), snapshot.getId());
 		assertEquals(proxyFH.getFilePath(), snapshot.getKey());
 		assertEquals(proxyFH.getStorageLocationId(), snapshot.getStorageLocationId());
+	}
+
+	@Test
+	public void testBuildFileHandleSnapshotWithExternalObjectStoreFileHandle() {
+		ExternalObjectStoreFileHandle externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
+		externalObjectStoreFileHandle.setConcreteType(ExternalObjectStoreFileHandle.class.getName());
+		externalObjectStoreFileHandle.setContentMd5("md5");
+		externalObjectStoreFileHandle.setContentSize(1L);
+		externalObjectStoreFileHandle.setCreatedBy("998");
+		externalObjectStoreFileHandle.setCreatedOn(new Date());
+		externalObjectStoreFileHandle.setFileName("fileName");
+		externalObjectStoreFileHandle.setId("555");
+		externalObjectStoreFileHandle.setFileKey("key");
+		externalObjectStoreFileHandle.setStorageLocationId(900L);
+		FileHandleSnapshot snapshot = FileHandleSnapshotRecordWriter.buildFileHandleSnapshot(externalObjectStoreFileHandle);
+		assertNull(snapshot.getBucket());
+		assertEquals(externalObjectStoreFileHandle.getConcreteType(), snapshot.getConcreteType());
+		assertEquals(externalObjectStoreFileHandle.getContentMd5(), snapshot.getContentMd5());
+		assertEquals(externalObjectStoreFileHandle.getContentSize(), snapshot.getContentSize());
+		assertEquals(externalObjectStoreFileHandle.getCreatedBy(), snapshot.getCreatedBy());
+		assertEquals(externalObjectStoreFileHandle.getCreatedOn(), snapshot.getCreatedOn());
+		assertEquals(externalObjectStoreFileHandle.getFileName(), snapshot.getFileName());
+		assertEquals(externalObjectStoreFileHandle.getId(), snapshot.getId());
+		assertEquals(externalObjectStoreFileHandle.getFileKey(), snapshot.getKey());
+		assertEquals(externalObjectStoreFileHandle.getStorageLocationId(), snapshot.getStorageLocationId());
 	}
 }

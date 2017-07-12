@@ -121,6 +121,7 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -563,7 +564,17 @@ public interface SynapseClient extends BaseClient {
 	 */
 	ProxyFileHandle createExternalProxyFileHandle(ProxyFileHandle handle)
 			throws SynapseException;
-	
+
+	/**
+	 * Create a new ExternalObjectStoreFileHandle. Note: ExternalObjectStoreFileHandle.storageLocationId
+	 * must be set to reference a valid ExternalObjectStorageLocationSetting.
+	 * @param handle
+	 * @return
+	 * @throws SynapseException
+	 */
+	ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(ExternalObjectStoreFileHandle handle)
+			throws SynapseException;
+
 	/**
 	 * Create an S3FileHandle using a pre-configured ExternalS3StorageLocationSetting ID.
 	 * @param handle

@@ -149,6 +149,7 @@ import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -390,7 +391,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
-	private static final String EXTERNAL_FILE_HANDLE_PROXY = "/externalFileHandle/proxy";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 	private static final String FILE_HANDLES_COPY = FILE_HANDLES+"/copy";
@@ -1520,7 +1520,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public ProxyFileHandle createExternalProxyFileHandle(ProxyFileHandle handle) throws SynapseException{
-		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE_PROXY, handle, ProxyFileHandle.class);
+		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE, handle, ProxyFileHandle.class);
+	}
+
+	@Override
+	public ExternalObjectStoreFileHandle createExternalObjectStoreFileHandle(ExternalObjectStoreFileHandle handle) throws SynapseException{
+		return postJSONEntity(getFileEndpoint(), EXTERNAL_FILE_HANDLE, handle, ExternalObjectStoreFileHandle.class);
 	}
 
 	@Override
