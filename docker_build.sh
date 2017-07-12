@@ -33,6 +33,10 @@ if [ $(docker network ls | grep -q $1 && echo $?) ]; then
 fi
 }
 
+clean_up_volumes() {
+  docker volume prune -f
+}
+
 # remove build container, if any
 build_container_name=${JOB_NAME}-build
 clean_up_container ${build_container_name}
@@ -42,6 +46,8 @@ clean_up_container ${rds_container_name}
 # remove the network if it's still there from last time
 network_name=${JOB_NAME}
 clean_up_network ${network_name}
+
+clean_up_volumes
 
 mkdir -p ${m2_cache_parent_folder}/.m2/
 
@@ -95,3 +101,6 @@ clean_up_container ${build_container_name}
 clean_up_container ${rds_container_name}
 
 clean_up_network ${network_name}
+
+clean_up_volumes
+
