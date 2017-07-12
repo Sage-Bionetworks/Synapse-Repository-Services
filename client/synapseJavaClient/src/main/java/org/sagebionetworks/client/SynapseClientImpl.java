@@ -391,7 +391,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String EXTERNAL_FILE_HANDLE_S3 = "/externalFileHandle/s3";
-	private static final String EXTERNAL_FILE_HANDLE_PROXY = "/externalFileHandle/proxy";
 	private static final String FILE_HANDLES = "/filehandles";
 	protected static final String S3_FILE_COPY = FILE + "/s3FileCopy";
 	private static final String FILE_HANDLES_COPY = FILE_HANDLES+"/copy";

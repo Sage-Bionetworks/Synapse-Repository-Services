@@ -147,7 +147,7 @@ public class FileMetadataUtils {
 			fileHandle = new ExternalObjectStoreFileHandle();
 			break;
 		default:
-			throw new IllegalArgumentException("Must be External, S3, Preview, Proxy, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be EXTERNAL, S3, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
