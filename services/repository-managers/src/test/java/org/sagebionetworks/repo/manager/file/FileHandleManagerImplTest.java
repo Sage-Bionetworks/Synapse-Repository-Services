@@ -232,6 +232,7 @@ public class FileHandleManagerImplTest {
 		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setStorageLocationId(externalObjectStorageLocationId);
 		externalObjectStorageLocationSetting.setBucket(bucket);
+		externalObjectStorageLocationSetting.setEndpointUrl("https://www.url.com");
 		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalObjectStorageLocationSetting);
 
 		externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();

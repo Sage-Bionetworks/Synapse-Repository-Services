@@ -206,12 +206,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		}else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
 			ExternalObjectStorageLocationSetting externalObjectS3StorageLocationSetting = (ExternalObjectStorageLocationSetting) storageLocationSetting;
 			ValidateArgument.requirement(StringUtils.isNotBlank(externalObjectS3StorageLocationSetting.getBucket()), "bucket can not be blank");
-
-			// validate the endpointURL if it exists
-			String endpointURL = externalObjectS3StorageLocationSetting.getEndpointUrl();
-			if (endpointURL != null){
-				ValidateArgument.validUrl(endpointURL);
-			}
+			ValidateArgument.validUrl(externalObjectS3StorageLocationSetting.getEndpointUrl());
 		}else if (storageLocationSetting instanceof ProxyStorageLocationSettings){
 			ProxyStorageLocationSettings proxySettings = (ProxyStorageLocationSettings)storageLocationSetting;
 			ValidateArgument.required(proxySettings.getProxyUrl(), "proxyUrl");

@@ -1,5 +1,5 @@
 {
-	"description": "Represents a file stored in a S3 Bucket to which Synapse cannot access. Contains the necessary information to be accessed via user's S3 client implementation. S3 endpoint and bucketUrl Can be obtained via the storageLocationId",
+	"description": "Represents a file stored in a S3 Bucket to which Synapse cannot access. Together with ExternalObjectStorageLocationSetting, this object provides the information the client requires to access the S3 file.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.ExternalFileHandleInterface"

@@ -566,7 +566,7 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	/**
-	 * Create a new ExternalObjectStoreFileHandle. Note: ExternalObjectStoreFileHandle.storageLocationsId
+	 * Create a new ExternalObjectStoreFileHandle. Note: ExternalObjectStoreFileHandle.storageLocationId
 	 * must be set to reference a valid ExternalObjectStorageLocationSetting.
 	 * @param handle
 	 * @return

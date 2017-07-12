@@ -1,5 +1,5 @@
 {
-	"description": "The upload destination contains information necessary to start an upload to an S3 bucket not managed by synapse",
+	"description": "The upload destination contains information necessary to start an upload to an S3 bucket not managed by Synapse",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
