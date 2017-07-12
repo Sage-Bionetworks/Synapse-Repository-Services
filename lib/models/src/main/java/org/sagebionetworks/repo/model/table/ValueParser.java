@@ -25,4 +25,12 @@ public interface ValueParser {
 	 * @throws IllegalArgumentException
 	 */
 	String parseValueForDatabaseRead(String value) throws IllegalArgumentException;
+	
+	/**
+	 * Is the given value of this type?
+	 * 
+	 * @param value
+	 * @return
+	 */
+	public boolean isOfType(String value);
 }

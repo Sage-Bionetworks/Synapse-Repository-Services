@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.query.entity;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
+import static org.sagebionetworks.repo.model.table.TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 
 /**
  * Represents a reference to a column
@@ -43,7 +43,7 @@ public class ColumnReference extends SqlElement {
 		}else{
 			builder.append(annotationAlias);
 			builder.append(".");
-			builder.append(ANNOTATION_REPLICATION_COL_VALUE);
+			builder.append(ANNOTATION_REPLICATION_COL_STRING_VALUE);
 		}
 	}
 	

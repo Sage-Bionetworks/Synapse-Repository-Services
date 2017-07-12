@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.ValueParser;
 
-public class BooleanParser implements ValueParser {
+public class BooleanParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
@@ -20,4 +19,5 @@ public class BooleanParser implements ValueParser {
 			return value;
 		}
 	}
+
 }

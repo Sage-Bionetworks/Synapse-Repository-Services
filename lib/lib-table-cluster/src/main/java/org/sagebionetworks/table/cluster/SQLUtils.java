@@ -1149,8 +1149,8 @@ public class SQLUtils {
 			selectColumnName = entityField.getDatabaseColumnName();
 		}else{
 			tableAlias = TableConstants.ANNOTATION_REPLICATION_ALIAS+index;
-			selectColumnName = TableConstants.ANNOTATION_REPLICATION_COL_VALUE;
-			annotationType = translateColumnType(model.getColumnType());
+			selectColumnName = translateColumnTypeToAnnotationValueName(model.getColumnType());
+			annotationType = translateColumnTypeToAnnotationType(model.getColumnType());
 		}
 		return new ColumnMetadata(model, entityField, tableAlias, selectColumnName, columnNameForId, index, annotationType);
 	}
@@ -1160,7 +1160,7 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static AnnotationType translateColumnType(ColumnType type){
+	public static AnnotationType translateColumnTypeToAnnotationType(ColumnType type){
 		switch(type){
 		case STRING:
 			return AnnotationType.STRING;
@@ -1172,6 +1172,29 @@ public class SQLUtils {
 			return AnnotationType.LONG;
 		default:
 			return AnnotationType.STRING;
+		}
+	}
+	
+	/**
+	 * Translate from a ColumnType to name of annotation value column.
+	 * @param type
+	 * @return
+	 */
+	public static String translateColumnTypeToAnnotationValueName(ColumnType type){
+		switch(type){
+		case DATE:
+		case INTEGER:
+		case ENTITYID:
+		case FILEHANDLEID:
+		case USERID:
+			return TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE;
+		case DOUBLE:
+			return TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE;
+		case BOOLEAN:
+			return TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_VALUE;
+		default:
+			// Everything else is a string
+			return TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE;
 		}
 	}
 
@@ -1267,64 +1290,20 @@ public class SQLUtils {
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
-				builder.append(", ");
-				builder.append("CASE WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") = \"nan\" THEN \"NaN\"");
-				builder.append(" WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (");
-				builder.append(TableConstants.POSITIVE_INFINITY_VALUES);
-				builder.append(") THEN \"Infinity\"");
-				builder.append(" WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (");
-				builder.append(TableConstants.NEGATIVE_INFINITY_VALUES);
-				builder.append(") THEN \"-Infinity\"");
-				builder.append(" ELSE NULL END AS _DBL");
-				builder.append(meta.getColumnNameForId());
-				builder.append(", ");
-				builder.append("CASE WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") = \"nan\" THEN NULL");
-				builder.append(" WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (");
-				builder.append(TableConstants.POSITIVE_INFINITY_VALUES);
-				builder.append(") THEN ");
-				builder.append(Double.MAX_VALUE);
-				builder.append(" WHEN LOWER(");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(") IN (");
-				builder.append(TableConstants.NEGATIVE_INFINITY_VALUES);
-				builder.append(") THEN ");
-				builder.append(Double.MIN_VALUE);
-				builder.append(" ELSE ");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(" END AS ");
-				builder.append(meta.getColumnNameForId());
-			} else {
+				// For doubles, the double-meta columns is also selected.
 				builder.append(", ");
 				builder.append(meta.getTableAlias());
 				builder.append(".");
-				builder.append(meta.getSelectColumnName());
-				builder.append(" AS ");
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE_META);
+				builder.append(" AS _DBL");
 				builder.append(meta.getColumnNameForId());
-			}
+			} 
+			builder.append(", ");
+			builder.append(meta.getTableAlias());
+			builder.append(".");
+			builder.append(meta.getSelectColumnName());
+			builder.append(" AS ");
+			builder.append(meta.getColumnNameForId());
 		}
 	}
 
@@ -1481,8 +1460,8 @@ public class SQLUtils {
 			return;
 		}
 		// lookup the annotation type that matches the column type.
-		AnnotationType columnModelAnnotationType = translateColumnType(columnModel.getColumnType());
-		AnnotationType annotationType = translateColumnType(annotationModel.getColumnType());
+		AnnotationType columnModelAnnotationType = translateColumnTypeToAnnotationType(columnModel.getColumnType());
+		AnnotationType annotationType = translateColumnTypeToAnnotationType(annotationModel.getColumnType());
 		// do the names match?
 		if (columnModel.getName().equals(annotationModel.getName())) {
 			// Do they map to the same annotation type?

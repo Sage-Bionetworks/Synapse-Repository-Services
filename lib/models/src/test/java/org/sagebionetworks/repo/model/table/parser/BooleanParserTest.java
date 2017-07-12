@@ -36,4 +36,12 @@ public class BooleanParserTest {
 		assertEquals("true", parser.parseValueForDatabaseRead("true"));
 	}
 	
+	@Test
+	public void testIsOfType(){
+		assertTrue(parser.isOfType("0"));
+		assertTrue(parser.isOfType("false"));
+		assertTrue(parser.isOfType("1"));
+		assertTrue(parser.isOfType("true"));
+	}
+	
 }

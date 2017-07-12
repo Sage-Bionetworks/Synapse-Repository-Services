@@ -1128,22 +1128,36 @@ public class SQLUtilsTest {
 		assertEquals("_C123_", meta.getColumnNameForId());
 		assertEquals(null, meta.getEntityField());
 		assertEquals("A4", meta.getTableAlias());
-		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_VALUE, meta.getSelectColumnName());
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, meta.getSelectColumnName());
 		assertEquals(AnnotationType.STRING, meta.getAnnotationType());
 	}
 	
 	@Test
-	public void testTranslateColumnType(){
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.STRING));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.BOOLEAN));
-		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnType(ColumnType.DATE));
-		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnType(ColumnType.DOUBLE));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.ENTITYID));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.FILEHANDLEID));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.USERID));
-		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnType(ColumnType.INTEGER));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LARGETEXT));
-		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnType(ColumnType.LINK));
+	public void testTranslateColumnTypeToAnnotationType(){
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.STRING));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.BOOLEAN));
+		assertEquals(AnnotationType.DATE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DATE));
+		assertEquals(AnnotationType.DOUBLE, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.DOUBLE));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.ENTITYID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.FILEHANDLEID));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.USERID));
+		assertEquals(AnnotationType.LONG, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.INTEGER));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.LARGETEXT));
+		assertEquals(AnnotationType.STRING, SQLUtils.translateColumnTypeToAnnotationType(ColumnType.LINK));
+	}
+	
+	@Test
+	public void testTranslateColumnTypeToAnnotationValueName(){
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.STRING));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_BOOLEAN_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.BOOLEAN));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DATE));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.DOUBLE));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.ENTITYID));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.FILEHANDLEID));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.USERID));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_LONG_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.INTEGER));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LARGETEXT));
+		assertEquals(TableConstants.ANNOTATION_REPLICATION_COL_STRING_VALUE, SQLUtils.translateColumnTypeToAnnotationValueName(ColumnType.LINK));
 	}
 	
 	@Test
@@ -1164,30 +1178,70 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
-	public void testBuildSelect(){
-		ColumnModel one = EntityField.benefactorId.getColumnModel();
-		one.setId("1");
-		ColumnModel two = TableModelTestUtils.createColumn(2L);
-		ColumnModel three = new ColumnModel();
-		three.setColumnType(ColumnType.DOUBLE);
-		three.setId("3");
-		three.setName("three");
-		List<ColumnModel> schema = Lists.newArrayList(one, two, three);
-		List<ColumnMetadata> metaList = SQLUtils.translateColumns(schema);
+	public void testBuildSelectEachColumnType(){
+		// Build a select for each type.
+		List<ColumnModel> allTypes = new LinkedList<>();
+		int i = 0;
+		for(ColumnType type: ColumnType.values()){
+			ColumnModel cm = new ColumnModel();
+			cm.setName(type.name().toLowerCase());
+			cm.setColumnType(type);
+			cm.setId(""+i);
+			allTypes.add(cm);
+			i++;
+		}
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
-		assertEquals("R.ID, R.CURRENT_VERSION, R.BENEFACTOR_ID AS _C1_, A1.ANNO_VALUE AS _C2_,"
-				+ " CASE"
-				+ " WHEN LOWER(A2.ANNO_VALUE) = \"nan\" THEN \"NaN\""
-				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"inf\", \"infinity\") THEN \"Infinity\""
-				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"-inf\", \"-infinity\") THEN \"-Infinity\""
-				+ " ELSE NULL END AS _DBL_C3_,"
-				+ " CASE"
-				+ " WHEN LOWER(A2.ANNO_VALUE) = \"nan\" THEN NULL"
-				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"inf\", \"infinity\") THEN 1.7976931348623157E308"
-				+ " WHEN LOWER(A2.ANNO_VALUE) IN (\"-inf\", \"-infinity\") THEN 4.9E-324"
-				+ " ELSE A2.ANNO_VALUE END AS _C3_", builder.toString());
+		assertEquals(
+				"R.ID, R.CURRENT_VERSION"
+				+ ", A0.STRING_VALUE AS _C0_"
+				+ ", A1.DOUBLE_VALUE_META AS _DBL_C1_"
+				+ ", A1.DOUBLE_VALUE AS _C1_"
+				+ ", A2.LONG_VALUE AS _C2_"
+				+ ", A3.BOOLEAN_VALUE AS _C3_"
+				+ ", A4.LONG_VALUE AS _C4_"
+				+ ", A5.LONG_VALUE AS _C5_"
+				+ ", A6.LONG_VALUE AS _C6_"
+				+ ", A7.STRING_VALUE AS _C7_"
+				+ ", A8.STRING_VALUE AS _C8_"
+				+ ", A9.LONG_VALUE AS _C9_"
+				, builder.toString());
+	}
+	
+	@Test
+	public void testBuildSelectEachEntityType(){
+		// Build a select for each type.
+		List<ColumnModel> allTypes = new LinkedList<>();
+		int i = 0;
+		for(EntityField field: EntityField.values()){
+			ColumnModel cm = field.getColumnModel();
+			cm.setId(""+i);
+			allTypes.add(cm);
+			i++;
+		}
+		List<ColumnMetadata> metaList = SQLUtils.translateColumns(allTypes);
+		StringBuilder builder = new StringBuilder();
+		// call under test
+		SQLUtils.buildSelect(builder, metaList);
+		assertEquals(
+				"R.ID"
+				+ ", R.CURRENT_VERSION"
+				+ ", R.ID AS _C0_"
+				+ ", R.NAME AS _C1_"
+				+ ", R.CREATED_ON AS _C2_"
+				+ ", R.CREATED_BY AS _C3_"
+				+ ", R.ETAG AS _C4_"
+				+ ", R.TYPE AS _C5_"
+				+ ", R.CURRENT_VERSION AS _C6_"
+				+ ", R.PARENT_ID AS _C7_"
+				+ ", R.BENEFACTOR_ID AS _C8_"
+				+ ", R.PROJECT_ID AS _C9_"
+				+ ", R.MODIFIED_ON AS _C10_"
+				+ ", R.MODIFIED_BY AS _C11_"
+				+ ", R.FILE_ID AS _C12_"
+				, builder.toString());
 	}
 	
 	@Test
@@ -1244,7 +1298,7 @@ public class SQLUtilsTest {
 		ViewType type = ViewType.file;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
+				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
@@ -1261,7 +1315,7 @@ public class SQLUtilsTest {
 		ViewType type = ViewType.project;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, A0.ANNO_VALUE AS _C1_, R.ID AS _C2_"
+				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
@@ -1280,16 +1334,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _DBL_C3_, _C3_)"
 				+ " SELECT R.ID, R.CURRENT_VERSION,"
-					+ " CASE"
-					+ " WHEN LOWER(A0.ANNO_VALUE) = \"nan\" THEN \"NaN\""
-					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"inf\", \"infinity\") THEN \"Infinity\""
-					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"-inf\", \"-infinity\") THEN \"-Infinity\""
-					+ " ELSE NULL END AS _DBL_C3_,"
-					+ " CASE"
-					+ " WHEN LOWER(A0.ANNO_VALUE) = \"nan\" THEN NULL"
-					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"+inf\", \"+infinity\", \"inf\", \"infinity\") THEN 1.7976931348623157E308"
-					+ " WHEN LOWER(A0.ANNO_VALUE) IN (\"-inf\", \"-infinity\") THEN 4.9E-324"
-					+ " ELSE A0.ANNO_VALUE END AS _C3_"
+				+ " A0.DOUBLE_VALUE_META AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation' AND A0.ANNO_TYPE = 'DOUBLE')"

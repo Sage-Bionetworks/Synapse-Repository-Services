@@ -75,7 +75,6 @@ public class EntityReplicationWorkerIntegrationTest {
 	
 	public EntityDTO waitForEntityDto(String entityId) throws InterruptedException{
 		TableIndexDAO indexDao = tableConnectionFactory.getAllConnections().get(0);
-		indexDao.createEntityReplicationTablesIfDoesNotExist();
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
 			EntityDTO entityDto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));

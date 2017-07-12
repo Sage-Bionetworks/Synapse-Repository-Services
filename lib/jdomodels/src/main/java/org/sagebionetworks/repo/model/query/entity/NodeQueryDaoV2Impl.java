@@ -25,7 +25,7 @@ public class NodeQueryDaoV2Impl implements NodeQueryDaoV2 {
 			"SELECT "
 			+ANNOTATION_REPLICATION_COL_ENTITY_ID
 			+", "+ANNOTATION_REPLICATION_COL_KEY
-			+", "+ANNOTATION_REPLICATION_COL_VALUE
+			+", "+ANNOTATION_REPLICATION_COL_STRING_VALUE
 			+" FROM "+ANNOTATION_REPLICATION_TABLE
 			+" WHERE "
 			+ANNOTATION_REPLICATION_COL_ENTITY_ID+" IN (:"+BIND_ENTITY_IDS+")";
@@ -103,7 +103,7 @@ public class NodeQueryDaoV2Impl implements NodeQueryDaoV2 {
 			public void processRow(ResultSet rs) throws SQLException {
 				Long entityId = rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID);
 				String key = rs.getString(ANNOTATION_REPLICATION_COL_KEY);
-				String value = rs.getString(ANNOTATION_REPLICATION_COL_VALUE);
+				String value = rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE);
 				// add it to this row
 				Map<String, Object> row = idToRowMap.get(entityId);
 				row.put(key, value);

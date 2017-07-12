@@ -620,6 +620,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				ps.setString(parameterIndex++, dto.getKey());
 				ps.setString(parameterIndex++, dto.getType().name());
 				ps.setString(parameterIndex++, dto.getValue());
+				ps.setn
 			}
 
 			@Override
@@ -627,6 +628,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				return annotations.size();
 			}});
 		
+	}
+	
+	public static void writeAnnotationDtoToPreparedStatement(PreparedStatement ps, AnnotationDTO dto){
+		int parameterIndex = 1;
+		ps.setLong(parameterIndex++, dto.getEntityId());
+		ps.setString(parameterIndex++, dto.getKey());
+		ps.setString(parameterIndex++, dto.getType().name());
+		ps.setString(parameterIndex++, dto.getValue());
+		ps.setn
 	}
 
 	@Override
@@ -680,7 +690,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_VALUE));
+				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE));
 				return dto;
 			}}, entityId);
 		if(!annotations.isEmpty()){

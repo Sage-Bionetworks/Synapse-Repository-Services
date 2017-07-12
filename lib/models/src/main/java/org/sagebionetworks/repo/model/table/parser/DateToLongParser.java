@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.ValueParser;
 import org.sagebionetworks.util.TimeUtils;
 
-public class DateToLongParser implements ValueParser {
+public class DateToLongParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {

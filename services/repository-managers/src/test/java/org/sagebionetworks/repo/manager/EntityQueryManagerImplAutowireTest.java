@@ -139,7 +139,6 @@ public class EntityQueryManagerImplAutowireTest {
 		int maxAnnotationChars = 500;
 		List<EntityDTO> dtos = nodeDao.getEntityDTOs(ids, maxAnnotationChars);
 		indexDAO = connectionFactory.getFirstConnection();
-		indexDAO.createEntityReplicationTablesIfDoesNotExist();
 		indexDAO.addEntityData(mockProgressCallback, dtos);
 		
 		

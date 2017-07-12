@@ -20,4 +20,9 @@ public class DateParser implements ValueParser {
 		return value;
 	}
 
+	@Override
+	public boolean isOfType(String value) {
+		return dateToLongParser.isOfType(value);
+	}
+
 }

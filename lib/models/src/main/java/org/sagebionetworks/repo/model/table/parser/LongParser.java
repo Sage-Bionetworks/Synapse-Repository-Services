@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.ValueParser;
 
-public class LongParser implements ValueParser {
+public class LongParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {

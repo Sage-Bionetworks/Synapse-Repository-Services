@@ -1,15 +1,19 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.ValueParser;
 
-public class DoubleParser implements ValueParser {
+public class DoubleParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
+		if(value == null){
+			return null;
+		}
 		try {
 			return Double.parseDouble(value);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(e);
+			// Try to match it to double metadata
+			DoubleMeta meta = DoubleMeta.lookupValue(value);
+			return meta.getDoubleValue();
 		}
 	}
 	
