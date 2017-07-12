@@ -992,7 +992,7 @@ public class AccessRequirementManagerImplUnitTest {
 	public void testaddSubjectValidationFail() {
 		String requirementId = "1";
 		String subjectId = "2";
-		RestrictableObjectType type = RestrictableObjectType.ENTITY;
+		RestrictableObjectType type = RestrictableObjectType.TEAM;
 		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		AccessRequirementInfoForUpdate info = new AccessRequirementInfoForUpdate();
 		info.setAccessType(ACCESS_TYPE.DOWNLOAD);
