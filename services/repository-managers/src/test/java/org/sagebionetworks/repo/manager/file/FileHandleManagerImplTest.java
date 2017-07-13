@@ -859,6 +859,9 @@ public class FileHandleManagerImplTest {
 		assertEquals(fileSize, result.getContentSize());
 		assertEquals(key, result.getFileKey());
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+		assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
+		assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
+
 	}
 
 

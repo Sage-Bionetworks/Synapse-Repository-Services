@@ -345,6 +345,8 @@ public class IT049FileHandleTest {
 		//retrieve a upload destination for that project
 		ExternalObjectStoreUploadDestination uploadDestination = (ExternalObjectStoreUploadDestination) synapse.getDefaultUploadDestination(project.getId());
 		assertNotNull(uploadDestination.getKeyPrefixUUID());
+		assertEquals(storageLocationSetting.getEndpointUrl(), uploadDestination.getEndpointUrl());
+		assertEquals(storageLocationSetting.getBucket(), uploadDestination.getBucket());
 
 		//create the filehandle based off of the upload destination information
 		ExternalObjectStoreFileHandle fileHandle = new ExternalObjectStoreFileHandle();
@@ -354,6 +356,10 @@ public class IT049FileHandleTest {
 		fileHandle.setContentSize(1234L);
 		fileHandle.setContentType("text/plain");
 		ExternalObjectStoreFileHandle createdFileHandle = synapse.createExternalObjectStoreFileHandle(fileHandle);
+
+		//Assert file handle has mirrored information about the bucket and endpointUrl from the storageLocationSetting
+		assertEquals(storageLocationSetting.getEndpointUrl(), createdFileHandle.getEndpointUrl());
+		assertEquals(storageLocationSetting.getBucket(), createdFileHandle.getBucket());
 
 		//Assert created file handle has same metadata as the file handle given as argument
 		assertEquals(fileHandle.getFileKey(), createdFileHandle.getFileKey());

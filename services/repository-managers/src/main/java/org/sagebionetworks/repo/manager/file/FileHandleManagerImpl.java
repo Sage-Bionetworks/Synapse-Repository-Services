@@ -466,8 +466,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
 		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
-		ValidateArgument.required(fileHandle.getBucket(), "ExternalObjectStoreFileHandle.fileKey");
-		ValidateArgument.required(fileHandle.getEndpointUrl(), "ExternalObjectStoreFileHandle.fileKey");
 
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
