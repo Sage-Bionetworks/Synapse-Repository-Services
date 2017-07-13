@@ -6,6 +6,9 @@ public class EntityIdParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
+		if(value == null){
+			throw new IllegalArgumentException("Value cannot be null");
+		}
 		return KeyFactory.stringToKey(value);
 	}
 	

@@ -328,6 +328,4 @@ public class TableConstants {
 					+REPLICATION_SYNC_EXP_COL_EXPIRES+" > :"+EXPIRES_PARAM
 					+" AND "+REPLICATION_SYNC_EXP_COL_ID+" IN (:"+ID_PARAMETER_NAME+")";
 	
-	public static final String POSITIVE_INFINITY_VALUES = "\"+inf\", \"+infinity\", \"inf\", \"infinity\"";
-	public static final String NEGATIVE_INFINITY_VALUES = "\"-inf\", \"-infinity\"";
 }

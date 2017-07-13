@@ -13,6 +13,11 @@ public class LongParserTest {
 	public void before(){
 		parser = new LongParser();
 	}
+	
+	@Test (expected=NumberFormatException.class)
+	public void testParseValueForDatabaseWriteString(){
+		parser.parseValueForDatabaseWrite("a string");
+	}
 
 	@Test
 	public void testParseValueForDatabaseWrite(){

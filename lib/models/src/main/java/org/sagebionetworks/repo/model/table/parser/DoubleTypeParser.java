@@ -1,18 +1,14 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-public class DoubleMetaParser extends AbstractValueParser {
-	
-	enum Types {
-		Infintiy,
-		-Infinity,
-		
-	}
+import org.sagebionetworks.repo.model.table.AbstractDoubles;
 
+public class DoubleTypeParser extends AbstractValueParser {
+	
 	@Override
 	public Object parseValueForDatabaseWrite(String value)
 			throws IllegalArgumentException {
-		// TODO Auto-generated method stub
-		return null;
+		AbstractDoubles type = AbstractDoubles.lookupValue(value);
+		return type.getEnumerationValue();
 	}
 
 	@Override

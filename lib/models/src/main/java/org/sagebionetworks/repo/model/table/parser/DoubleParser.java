@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.table.parser;
 
+import org.sagebionetworks.repo.model.table.AbstractDoubles;
+
 
 public class DoubleParser extends AbstractValueParser {
 
@@ -11,8 +13,8 @@ public class DoubleParser extends AbstractValueParser {
 		try {
 			return Double.parseDouble(value);
 		} catch (NumberFormatException e) {
-			// Try to match it to double metadata
-			DoubleMeta meta = DoubleMeta.lookupValue(value);
+			// Try to match it to NaN or infinity.
+			AbstractDoubles meta = AbstractDoubles.lookupValue(value);
 			return meta.getDoubleValue();
 		}
 	}

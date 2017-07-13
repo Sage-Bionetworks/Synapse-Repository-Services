@@ -6,6 +6,9 @@ public class DateToLongParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
+		if(value == null){
+			throw new IllegalArgumentException("Value cannot be null");
+		}
 		/*
 		 * Dates can be a long or string. Long is tried first, then the
 		 * string.

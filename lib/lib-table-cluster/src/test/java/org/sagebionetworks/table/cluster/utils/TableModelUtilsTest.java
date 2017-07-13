@@ -1,6 +1,12 @@
 package org.sagebionetworks.table.cluster.utils;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -23,7 +29,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -38,9 +43,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SparseChangeSetDto;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -377,13 +380,12 @@ public class TableModelUtilsTest {
 	public void testValidateEntityId() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.ENTITYID);
-		assertEquals("syn123.33", TableModelUtils.validateRowValue("syn123.33", cm, 0, 0));
-		assertEquals("syn123", TableModelUtils.validateRowValue("syn123", cm, 0, 0));
+		assertEquals("123", TableModelUtils.validateRowValue("syn123", cm, 0, 0));
 		try {
 			TableModelUtils.validateRowValue("true", cm, 1, 3);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,3] was not a valid ENTITYID. Malformed entity ID (should be syn123 or syn 123.4): true", e.getMessage());
+			assertEquals("Value at [1,3] was not a valid ENTITYID. true is not a valid Synapse ID.", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean

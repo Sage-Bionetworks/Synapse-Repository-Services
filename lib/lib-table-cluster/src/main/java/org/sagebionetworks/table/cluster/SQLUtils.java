@@ -20,16 +20,19 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.AbstractDoubles;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.parser.DoubleTypeParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import com.amazonaws.services.cloudtrail.model.LookupAttributeKey;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -486,22 +489,20 @@ public class SQLUtils {
 					String columnName = getColumnNameForId(cm.getId());
 					switch (cm.getColumnType()) {
 					case DOUBLE:
+						String doubleEnumerationName = TableConstants.DOUBLE_PREFIX + columnName;
 						Double doubleValue = (Double) value;
-						String extraColumnName = TableConstants.DOUBLE_PREFIX + columnName;
-						if (doubleValue != null && doubleValue.isNaN()) {
-							rowMap.put(columnName, null);
-							rowMap.put(extraColumnName, DOUBLE_NAN);
-						} else if (doubleValue != null && doubleValue.isInfinite()) {
-							if (doubleValue < 0) {
-								rowMap.put(columnName, "-1.7976931348623157E+308");
-								rowMap.put(extraColumnName, DOUBLE_NEGATIVE_INFINITY);
-							} else {
-								rowMap.put(columnName, "1.7976931348623157E+308");
-								rowMap.put(extraColumnName, DOUBLE_POSITIVE_INFINITY);
-							}
-						} else {
+						if(AbstractDoubles.isAbstractValue(doubleValue)){
+							// Abstract double include NaN and +/- Infinity.
+							AbstractDoubles type = AbstractDoubles.lookupType(doubleValue);
+							// an approximation is used for the double column.
+							rowMap.put(columnName, type.getApproximateValue());
+							// Each abstract value has its own enumeration value.
+							rowMap.put(doubleEnumerationName, type.getEnumerationValue());
+						}else{
+							// Non-abstract doubles are used as-is.
 							rowMap.put(columnName, value);
-							rowMap.put(extraColumnName, null);
+							// Non-abstract doubles have a null value for the double enumeration column.
+							rowMap.put(doubleEnumerationName, null);
 						}
 						break;
 					default:
