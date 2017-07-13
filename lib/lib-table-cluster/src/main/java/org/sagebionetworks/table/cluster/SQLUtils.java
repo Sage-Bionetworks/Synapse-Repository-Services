@@ -6,6 +6,9 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,15 +19,19 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.AbstractDoubles;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
+import org.sagebionetworks.repo.model.table.parser.BooleanParser;
+import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.repo.model.table.parser.DoubleTypeParser;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.model.SparseRow;
@@ -491,9 +498,9 @@ public class SQLUtils {
 					case DOUBLE:
 						String doubleEnumerationName = TableConstants.DOUBLE_PREFIX + columnName;
 						Double doubleValue = (Double) value;
-						if(AbstractDoubles.isAbstractValue(doubleValue)){
+						if(AbstractDouble.isAbstractValue(doubleValue)){
 							// Abstract double include NaN and +/- Infinity.
-							AbstractDoubles type = AbstractDoubles.lookupType(doubleValue);
+							AbstractDouble type = AbstractDouble.lookupType(doubleValue);
 							// an approximation is used for the double column.
 							rowMap.put(columnName, type.getApproximateValue());
 							// Each abstract value has its own enumeration value.
@@ -1295,7 +1302,7 @@ public class SQLUtils {
 				builder.append(", ");
 				builder.append(meta.getTableAlias());
 				builder.append(".");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_VALUE_META);
+				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_DOUBLE_ABSTRACT);
 				builder.append(" AS _DBL");
 				builder.append(meta.getColumnNameForId());
 			} 
@@ -1532,6 +1539,67 @@ public class SQLUtils {
 	public static String getCalculateCRC32Sql(ViewType type){
 		String filterColumln = getViewScopeFilterColumnForType(type);
 		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, filterColumln);
+	}
+	
+	/**
+	 * Write the given annotations DTO to the given prepared statement for insert into the database.
+	 * 
+	 * @param ps
+	 * @param dto
+	 * @throws SQLException
+	 */
+	public static void writeAnnotationDtoToPreparedStatement(PreparedStatement ps, AnnotationDTO dto) throws SQLException{
+		int parameterIndex = 1;
+		ps.setLong(parameterIndex++, dto.getEntityId());
+		ps.setString(parameterIndex++, dto.getKey());
+		ps.setString(parameterIndex++, dto.getType().name());
+		ps.setString(parameterIndex++, dto.getValue());
+		String stringValue = dto.getValue();
+		// Handle longs
+		AllLongTypeParser longParser = new AllLongTypeParser();
+		Long longValue = null;
+		if(longParser.isOfType(stringValue)){
+			longValue = (Long) longParser.parseValueForDatabaseWrite(stringValue);
+		}
+		if(longValue == null){
+			ps.setNull(parameterIndex++, Types.BIGINT);
+		}else{
+			ps.setLong(parameterIndex++, longValue);
+		}
+		// Handle doubles
+		Double doubleValue = null;
+		AbstractDouble abstractDoubleType = null;
+		DoubleParser doubleParser = new DoubleParser();
+		if(doubleParser.isOfType(stringValue)){
+			doubleValue = (Double) doubleParser.parseValueForDatabaseWrite(stringValue);
+			// Is this an abstract double?
+			if(AbstractDouble.isAbstractValue(doubleValue)){
+				abstractDoubleType = AbstractDouble.lookupType(doubleValue);
+				doubleValue = abstractDoubleType.getApproximateValue();
+			}
+		}
+		if(doubleValue == null){
+			ps.setNull(parameterIndex++, Types.DOUBLE);
+		}else{
+			ps.setDouble(parameterIndex++, doubleValue);
+		}
+		// Handle abstract doubles
+		if(abstractDoubleType == null){
+			ps.setNull(parameterIndex++, Types.VARCHAR);
+		}else{
+			ps.setString(parameterIndex++, abstractDoubleType.getEnumerationValue());
+		}
+		// Handle booleans
+		Boolean booleanValue = null;
+		BooleanParser booleanParser = new BooleanParser();
+		if(booleanParser.isOfType(stringValue)){
+			booleanValue = (Boolean) booleanParser.parseValueForDatabaseWrite(stringValue);
+		}
+		if(booleanValue == null){
+			ps.setNull(parameterIndex, Types.BOOLEAN);
+		}else{
+			ps.setBoolean(parameterIndex, booleanValue);
+		}
 	}
 
 }

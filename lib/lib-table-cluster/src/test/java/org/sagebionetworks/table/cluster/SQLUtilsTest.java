@@ -2,13 +2,23 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.Assert.*;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+
+import static org.mockito.Mockito.*;
+
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
+import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -31,10 +41,16 @@ import com.google.common.collect.Lists;
 
 public class SQLUtilsTest {
 	
+	@Mock
+	PreparedStatement mockPreparedStatement;
+	
 	List<ColumnModel> simpleSchema;
+	
+	AnnotationDTO annotationDto;
 	
 	@Before
 	public void before(){
+		MockitoAnnotations.initMocks(this);
 		simpleSchema = new LinkedList<ColumnModel>();
 		ColumnModel col = new ColumnModel();
 		col.setColumnType(ColumnType.INTEGER);
@@ -53,6 +69,12 @@ public class SQLUtilsTest {
 		col.setId("123");
 		col.setMaximumSize(150L);
 		simpleSchema.add(col);
+		
+		annotationDto = new AnnotationDTO();
+		annotationDto.setEntityId(123L);
+		annotationDto.setType(AnnotationType.STRING);
+		annotationDto.setKey("someKey");
+		annotationDto.setValue("someString");
 	}
 
 	
@@ -1197,7 +1219,7 @@ public class SQLUtilsTest {
 		assertEquals(
 				"R.ID, R.CURRENT_VERSION"
 				+ ", A0.STRING_VALUE AS _C0_"
-				+ ", A1.DOUBLE_VALUE_META AS _DBL_C1_"
+				+ ", A1.DOUBLE_ABSTRACT AS _DBL_C1_"
 				+ ", A1.DOUBLE_VALUE AS _C1_"
 				+ ", A2.LONG_VALUE AS _C2_"
 				+ ", A3.BOOLEAN_VALUE AS _C3_"
@@ -1334,7 +1356,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
 		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _DBL_C3_, _C3_)"
 				+ " SELECT R.ID, R.CURRENT_VERSION,"
-				+ " A0.DOUBLE_VALUE_META AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
+				+ " A0.DOUBLE_ABSTRACT AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation' AND A0.ANNO_TYPE = 'DOUBLE')"
@@ -1683,5 +1705,139 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.getDistinctAnnotationColumnsSql(ViewType.project);
 		String expected = TableConstants.ENTITY_REPLICATION_COL_ID+" IN (:parentIds)";
 		assertTrue(sql.contains(expected));
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementString() throws SQLException{
+		// string value
+		annotationDto.setValue("someString");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setLong(1, annotationDto.getEntityId());
+		verify(mockPreparedStatement).setString(2, annotationDto.getKey());
+		verify(mockPreparedStatement).setString(3, annotationDto.getType().name());
+		verify(mockPreparedStatement).setString(4, annotationDto.getValue());
+		// all others should be set to null since the string cannot be converted to any other type.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementBooleanTrue() throws SQLException{
+		// string value
+		annotationDto.setValue("True");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// type can be set as a boolean.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setBoolean(8, Boolean.TRUE);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementBooleanFalse() throws SQLException{
+		// string value
+		annotationDto.setValue("false");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// type can be set as a boolean.
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setBoolean(8, Boolean.FALSE);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementSynapseId() throws SQLException{
+		// string value
+		annotationDto.setValue("syn123456");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// the synapse ID can be set as a long.
+		verify(mockPreparedStatement).setLong(5, 123456L);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementDateString() throws SQLException{
+		// string value
+		annotationDto.setValue("1970-1-1 00:00:00.123");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// the date string can be treated as a long.
+		verify(mockPreparedStatement).setLong(5, 123L);
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementLong() throws SQLException{
+		// string value
+		annotationDto.setValue("123");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// can be a long or a double
+		verify(mockPreparedStatement).setLong(5, 123L);
+		verify(mockPreparedStatement).setDouble(6, 123);
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementFiniteDouble() throws SQLException{
+		// string value
+		annotationDto.setValue("123.456");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		// value can be a double
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setDouble(6, 123.456);
+		// 7 is the abstract enum for doubles.  Null since this is a finite value
+		verify(mockPreparedStatement).setNull(7, Types.VARCHAR);
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementDoubleNaN() throws SQLException{
+		// string value
+		annotationDto.setValue("NAN");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		// the approximation of NaN is null.
+		verify(mockPreparedStatement).setNull(6, Types.DOUBLE);
+		// 7 is the abstract enum for doubles.  Null since this is a finite value
+		verify(mockPreparedStatement).setString(7, AbstractDouble.NAN.getEnumerationValue());
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementInfinity() throws SQLException{
+		// string value
+		annotationDto.setValue("+Infinity");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setDouble(6, AbstractDouble.POSITIVE_INFINITY.getApproximateValue());
+		verify(mockPreparedStatement).setString(7, AbstractDouble.POSITIVE_INFINITY.getEnumerationValue());
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testWriteAnnotationDtoToPreparedStatementNegativeInfinity() throws SQLException{
+		// string value
+		annotationDto.setValue("-Infinity");
+		// Call under test
+		SQLUtils.writeAnnotationDtoToPreparedStatement(mockPreparedStatement, annotationDto);
+		verify(mockPreparedStatement).setNull(5, Types.BIGINT);
+		verify(mockPreparedStatement).setDouble(6, AbstractDouble.NEGATIVE_INFINITY.getApproximateValue());
+		verify(mockPreparedStatement).setString(7, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
+		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
 	}
 }

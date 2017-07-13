@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.AbstractDoubles;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
 
 
 public class DoubleParser extends AbstractValueParser {
@@ -14,7 +14,7 @@ public class DoubleParser extends AbstractValueParser {
 			return Double.parseDouble(value);
 		} catch (NumberFormatException e) {
 			// Try to match it to NaN or infinity.
-			AbstractDoubles meta = AbstractDoubles.lookupValue(value);
+			AbstractDouble meta = AbstractDouble.lookupType(value);
 			return meta.getDoubleValue();
 		}
 	}
