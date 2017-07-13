@@ -1245,6 +1245,41 @@ public class FileHandleManagerImplTest {
 		// no records pushed
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
+
+
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreSignedURLForExternalObjectStore() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(false);
+		ExternalObjectStoreFileHandle fh = new ExternalObjectStoreFileHandle();
+		fh.setEndpointUrl("https://s3.amazonaws.com");
+		fh.setBucket("some.bucket.name");
+		fh.setFileKey("somepath/file.txt");
+
+		fh.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh.getId(), fh);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+
+		//check the results
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertEquals("https://s3.amazonaws.com/some.bucket.name/somepath/file.txt", result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
+
+		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
+	}
 	
 
 	/**

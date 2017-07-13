@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -369,6 +371,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			request.setResponseHeaders(responseHeaderOverrides);
 			return s3Client.generatePresignedUrl(request).toExternalForm();
+		} else if (handle instanceof ExternalObjectStoreFileHandle){
+			ExternalObjectStoreFileHandle fileHandle = (ExternalObjectStoreFileHandle) handle;
+			return StringUtils.join(new String[]{fileHandle.getEndpointUrl(), fileHandle.getBucket(), fileHandle.getFileKey()} , '/');
 		} else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
 					+ handle.getClass().getName());
@@ -461,6 +466,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
 		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
 		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
+		ValidateArgument.required(fileHandle.getBucket(), "ExternalObjectStoreFileHandle.fileKey");
+		ValidateArgument.required(fileHandle.getEndpointUrl(), "ExternalObjectStoreFileHandle.fileKey");
+
 		if (fileHandle.getFileName() == null) {
 			fileHandle.setFileName(NOT_SET);
 		}
@@ -473,6 +481,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
 			throw new IllegalArgumentException("StorageLocationSetting.id="+sls.getStorageLocationId()+" was type:" + sls.getClass().getName() +  "not of the expected type: "+ExternalObjectStorageLocationSetting.class.getName());
 		}
+
+		//mirror information from the storage location into the file handle
+		ExternalObjectStorageLocationSetting storageLocationSetting = (ExternalObjectStorageLocationSetting) sls;
+		fileHandle.setEndpointUrl(storageLocationSetting.getEndpointUrl());
+		fileHandle.setBucket(storageLocationSetting.getBucket());
 
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
