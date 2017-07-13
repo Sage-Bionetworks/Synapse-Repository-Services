@@ -8,7 +8,7 @@
 	"properties": {
 		"endpointUrl": {
 			"type": "string",
-			"description": "endpoint URL of the S3 service (for example: 'https://s3.amazonaws.com')",
+			"description": "endpoint URL of the S3 service (for example: 'https://s3.amazonaws.com')"
 		},
 		"bucket": {
 			"type": "string",
