@@ -115,6 +115,8 @@ public class FileMetadataUtils {
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalObjectStoreFileHandle fileHandle){
 		dbo.setKey(fileHandle.getFileKey());
 		dbo.setContentSize(fileHandle.getContentSize());
+		dbo.setEndpoint(fileHandle.getEndpointUrl());
+		dbo.setBucketName(fileHandle.getBucket());
 	}
 
 	/**
@@ -210,6 +212,8 @@ public class FileMetadataUtils {
 	private static void updateDTOFromDBO(ExternalObjectStoreFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFileKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
+		fileHandle.setEndpointUrl(dbo.getEndpoint());
+		fileHandle.setBucket(dbo.getBucketName());
 	}
 
 	/**
@@ -257,6 +261,9 @@ public class FileMetadataUtils {
 		}
 		if (in.getStorageLocationId() != null) {
 			out.setStorageLocationId(in.getStorageLocationId());
+		}
+		if (in.getEndpoint() != null){
+			out.setEndpoint(in.getEndpoint());
 		}
 		return out;
 	}
@@ -306,6 +313,9 @@ public class FileMetadataUtils {
 		}
 		if (in.getStorageLocationId() != null) {
 			out.setStorageLocationId(in.getStorageLocationId());
+		}
+		if (in.getEndpoint() != null) {
+			out.setEndpoint(in.getEndpoint());
 		}
 		return out;
 	}

@@ -134,6 +134,7 @@ public class FileHandleManagerImplTest {
 	String md5;
 	Long fileSize;
 	Long storageLocationId;
+	String endpointUrl;
 	// setup a storage location
 	ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	S3FileHandle externals3FileHandle;
@@ -228,11 +229,12 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
 
 		//set up external object store
+		endpointUrl = "https://www.url.com";
 		externalObjectStorageLocationId = 96024L;
 		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setStorageLocationId(externalObjectStorageLocationId);
 		externalObjectStorageLocationSetting.setBucket(bucket);
-		externalObjectStorageLocationSetting.setEndpointUrl("https://www.url.com");
+		externalObjectStorageLocationSetting.setEndpointUrl(endpointUrl);
 		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalObjectStorageLocationSetting);
 
 		externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
@@ -859,6 +861,9 @@ public class FileHandleManagerImplTest {
 		assertEquals(fileSize, result.getContentSize());
 		assertEquals(key, result.getFileKey());
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+		assertEquals(bucket, result.getBucket());
+		assertEquals(endpointUrl, result.getEndpointUrl());
+
 	}
 
 
@@ -1245,6 +1250,41 @@ public class FileHandleManagerImplTest {
 		// no records pushed
 		verify(mockObjectRecordQueue, never()).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 	}
+
+
+
+	@Test
+	public void testGetFileHandleAndUrlBatchPreSignedURLForExternalObjectStore() throws Exception {
+		batchRequest.setIncludeFileHandles(false);
+		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(false);
+		ExternalObjectStoreFileHandle fh = new ExternalObjectStoreFileHandle();
+		fh.setEndpointUrl("https://s3.amazonaws.com");
+		fh.setBucket("some.bucket.name");
+		fh.setFileKey("somepath/file.txt");
+
+		fh.setId(fha2.getFileHandleId());
+		Map<String, FileHandle> handleMap = new HashMap<String, FileHandle>();
+		handleMap.put(fh.getId(), fh);
+		when(mockFileHandleDao.getAllFileHandlesBatch(any(Iterable.class))).thenReturn(handleMap);
+		// call under test
+		BatchFileResult results = manager.getFileHandleAndUrlBatch(mockUser, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(3, results.getRequestedFiles().size());
+
+		//check the results
+		FileResult result = results.getRequestedFiles().get(1);
+		assertNotNull(result);
+		assertEquals(fha2.getFileHandleId(), result.getFileHandleId());
+		assertNull(result.getFailureCode());
+		assertNull(result.getFileHandle());
+		assertEquals("https://s3.amazonaws.com/some.bucket.name/somepath/file.txt", result.getPreSignedURL());
+		assertNull(result.getPreviewPreSignedURL());
+
+		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
+		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
+	}
 	
 
 	/**
@@ -1464,6 +1504,8 @@ public class FileHandleManagerImplTest {
 		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
 		assertNotNull(result.getKeyPrefixUUID());
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+		assertEquals(bucket, result.getBucket());
+		assertEquals(endpointUrl, result.getEndpointUrl());
 		assertEquals(externalObjectStorageLocationSetting.getUploadType(), result.getUploadType());
 		assertEquals(externalObjectStorageLocationSetting.getBanner(), result.getBanner());
 	}

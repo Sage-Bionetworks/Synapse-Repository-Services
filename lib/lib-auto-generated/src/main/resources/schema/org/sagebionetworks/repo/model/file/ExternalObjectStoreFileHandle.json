@@ -6,6 +6,14 @@
 		}
 	],
 	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "endpoint URL of the S3 service. Do NOT set this value when creating a ExternalObjectStoreFileHandle since it will be overwritten with the value defined in the ExternalObjectStorageLocationSetting it references."
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use. Do NOT set this value when creating a ExternalObjectStoreFileHandle since it will be  it will be overwritten with the value defined in the ExternalObjectStorageLocationSetting it references."
+		},
 		"fileKey": {
 			"type": "string",
 			"description": "The unique S3 key for this object",

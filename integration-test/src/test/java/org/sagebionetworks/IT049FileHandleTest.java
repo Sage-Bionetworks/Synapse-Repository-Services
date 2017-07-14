@@ -323,8 +323,10 @@ public class IT049FileHandleTest {
 	public void testExternalObjectStoreFileHandleRoundTrip() throws SynapseException {
 		//create a new StorageLocationSetting
 		ExternalObjectStorageLocationSetting storageLocationSetting = new ExternalObjectStorageLocationSetting();
-		storageLocationSetting.setBucket("some bucket");
-		storageLocationSetting.setEndpointUrl("https://someurl.com");
+		String bucket = "some bucket";
+		String endpoint = "https://someurl.com";
+		storageLocationSetting.setBucket(bucket);
+		storageLocationSetting.setEndpointUrl(endpoint);
 		storageLocationSetting.setUploadType(UploadType.S3);
 		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
 
@@ -345,6 +347,8 @@ public class IT049FileHandleTest {
 		//retrieve a upload destination for that project
 		ExternalObjectStoreUploadDestination uploadDestination = (ExternalObjectStoreUploadDestination) synapse.getDefaultUploadDestination(project.getId());
 		assertNotNull(uploadDestination.getKeyPrefixUUID());
+		assertEquals(endpoint, uploadDestination.getEndpointUrl());
+		assertEquals(bucket, uploadDestination.getBucket());
 
 		//create the filehandle based off of the upload destination information
 		ExternalObjectStoreFileHandle fileHandle = new ExternalObjectStoreFileHandle();
@@ -354,6 +358,10 @@ public class IT049FileHandleTest {
 		fileHandle.setContentSize(1234L);
 		fileHandle.setContentType("text/plain");
 		ExternalObjectStoreFileHandle createdFileHandle = synapse.createExternalObjectStoreFileHandle(fileHandle);
+
+		//Assert file handle has mirrored information about the bucket and endpointUrl from the storageLocationSetting
+		assertEquals(endpoint, createdFileHandle.getEndpointUrl());
+		assertEquals(bucket, createdFileHandle.getBucket());
 
 		//Assert created file handle has same metadata as the file handle given as argument
 		assertEquals(fileHandle.getFileKey(), createdFileHandle.getFileKey());
