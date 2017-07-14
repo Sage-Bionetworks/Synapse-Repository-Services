@@ -2,7 +2,7 @@
 	"description": "",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+			"$ref": "org.sagebionetworks.repo.model.file.ExternalFileHandleInterface"
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.HasPreviewId"

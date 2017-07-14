@@ -1,0 +1,23 @@
+{
+	"description": "Represents a file stored in an S3 Bucket to which Synapse cannot access. Together with ExternalObjectStorageLocationSetting, this object provides the information the client requires to access the S3 file.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.ExternalFileHandleInterface"
+		}
+	],
+	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "endpoint URL of the S3 service. Do NOT set this value when creating a ExternalObjectStoreFileHandle since it will be overwritten with the value defined in the ExternalObjectStorageLocationSetting it references."
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use. Do NOT set this value when creating a ExternalObjectStoreFileHandle since it will be  it will be overwritten with the value defined in the ExternalObjectStorageLocationSetting it references."
+		},
+		"fileKey": {
+			"type": "string",
+			"description": "The unique S3 key for this object",
+			"required": true
+		}
+	}
+}

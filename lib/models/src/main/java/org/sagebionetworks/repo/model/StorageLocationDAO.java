@@ -10,9 +10,6 @@ public interface StorageLocationDAO {
 
 	public Long create(StorageLocationSetting setting);
 
-	public <T extends StorageLocationSetting> T update(T settings) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException;
-
 	public StorageLocationSetting get(Long id) throws DatastoreException, NotFoundException;
 
 	public List<UploadDestinationLocation> getUploadDestinationLocations(List<Long> locations) throws DatastoreException, NotFoundException;

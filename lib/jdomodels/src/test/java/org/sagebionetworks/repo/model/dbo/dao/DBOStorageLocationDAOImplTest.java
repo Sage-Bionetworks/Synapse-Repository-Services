@@ -53,10 +53,5 @@ public class DBOStorageLocationDAOImplTest {
 
 		List<StorageLocationSetting> byOwner = storageLocationDAO.getByOwner(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertTrue(byOwner.contains(clone));
-
-		clone.setDescription("new description");
-		StorageLocationSetting updated = storageLocationDAO.update(clone);
-		assertEquals(clone.getDescription(), updated.getDescription());
-		assertEquals(updated, storageLocationDAO.get(id));
 	}
 }

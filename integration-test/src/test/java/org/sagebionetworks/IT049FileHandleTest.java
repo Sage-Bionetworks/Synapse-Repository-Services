@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadResponse;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileDownloadStatus;
 import org.sagebionetworks.repo.model.file.FileDownloadSummary;
@@ -48,6 +50,7 @@ import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -314,6 +317,62 @@ public class IT049FileHandleTest {
 		assertEquals("host.org", preSigned.getHost());
 		String expectedPath = "/proxylocal/"+handle.getFilePath();
 		assertEquals(expectedPath, preSigned.getPath());
+	}
+
+	@Test
+	public void testExternalObjectStoreFileHandleRoundTrip() throws SynapseException {
+		//create a new StorageLocationSetting
+		ExternalObjectStorageLocationSetting storageLocationSetting = new ExternalObjectStorageLocationSetting();
+		String bucket = "some bucket";
+		String endpoint = "https://someurl.com";
+		storageLocationSetting.setBucket(bucket);
+		storageLocationSetting.setEndpointUrl(endpoint);
+		storageLocationSetting.setUploadType(UploadType.S3);
+		storageLocationSetting = synapse.createStorageLocationSetting(storageLocationSetting);
+
+		//make sure the StorageLocationSetting exists
+		List<StorageLocationSetting> settings = synapse.getMyStorageLocationSettings();
+		assertTrue(settings.contains(storageLocationSetting));
+
+		//change the project setting to use the newly created storage location
+		UploadDestinationListSetting projectUploadSetting = new UploadDestinationListSetting();
+		projectUploadSetting.setProjectId(project.getId());
+		projectUploadSetting.setSettingsType(ProjectSettingsType.upload);
+		projectUploadSetting.setLocations(Lists.newArrayList(storageLocationSetting.getStorageLocationId()));
+		UploadDestinationListSetting createdUploadSetting = (UploadDestinationListSetting) synapse.createProjectSetting(projectUploadSetting);
+		assertEquals(project.getId(), createdUploadSetting.getProjectId());
+		assertEquals(ProjectSettingsType.upload, createdUploadSetting.getSettingsType());
+		assertEquals(projectUploadSetting.getLocations(), createdUploadSetting.getLocations());
+
+		//retrieve a upload destination for that project
+		ExternalObjectStoreUploadDestination uploadDestination = (ExternalObjectStoreUploadDestination) synapse.getDefaultUploadDestination(project.getId());
+		assertNotNull(uploadDestination.getKeyPrefixUUID());
+		assertEquals(endpoint, uploadDestination.getEndpointUrl());
+		assertEquals(bucket, uploadDestination.getBucket());
+
+		//create the filehandle based off of the upload destination information
+		ExternalObjectStoreFileHandle fileHandle = new ExternalObjectStoreFileHandle();
+		fileHandle.setFileKey(uploadDestination.getKeyPrefixUUID() + "/asdf.txt");
+		fileHandle.setStorageLocationId(storageLocationSetting.getStorageLocationId());
+		fileHandle.setContentMd5("md5");
+		fileHandle.setContentSize(1234L);
+		fileHandle.setContentType("text/plain");
+		ExternalObjectStoreFileHandle createdFileHandle = synapse.createExternalObjectStoreFileHandle(fileHandle);
+
+		//Assert file handle has mirrored information about the bucket and endpointUrl from the storageLocationSetting
+		assertEquals(endpoint, createdFileHandle.getEndpointUrl());
+		assertEquals(bucket, createdFileHandle.getBucket());
+
+		//Assert created file handle has same metadata as the file handle given as argument
+		assertEquals(fileHandle.getFileKey(), createdFileHandle.getFileKey());
+		assertEquals(fileHandle.getStorageLocationId(), createdFileHandle.getStorageLocationId());
+		assertEquals(fileHandle.getContentMd5(), createdFileHandle.getContentMd5());
+		assertEquals(fileHandle.getContentSize(), createdFileHandle.getContentSize());
+		assertEquals(fileHandle.getContentType(), createdFileHandle.getContentType());
+
+		//make sure created file handle is same as the ones retrieved by id
+		ExternalObjectStoreFileHandle retrievedByIdFileHandle = (ExternalObjectStoreFileHandle) synapse.getRawFileHandle(createdFileHandle.getId());
+		assertEquals(createdFileHandle, retrievedByIdFileHandle);
 	}
 
 	@Test

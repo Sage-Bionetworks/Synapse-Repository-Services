@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
@@ -214,4 +218,62 @@ public class ProjectSettingsImplAutowiredTest {
 				UploadDestinationListSetting.class);
 		assertEquals(1, setting.getLocations().size());
 	}
+
+	@Test
+	public void testValidExternalObjectStorageSetting() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageLocationSetting.setEndpointUrl("https://www.someurl.com");
+		externalObjectStorageLocationSetting.setBucket("IAmABucketYay");
+		//call under test
+		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+		assertNotNull(result);
+		Assert.assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
+		Assert.assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
+		assertNotNull(result.getStorageLocationId());
+	}
+
+	@Test
+	public void testValidExternalObjectStorageSettingWithSlashes() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		String endpoint = "https://www.someurl.com";
+		String bucket = "BucketMcBucketFace";
+		externalObjectStorageLocationSetting.setEndpointUrl("////" + endpoint + "//////");
+		externalObjectStorageLocationSetting.setBucket(bucket);
+
+		//call under test
+		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+
+		assertNotNull(result);
+		Assert.assertEquals(endpoint, result.getEndpointUrl());
+		Assert.assertEquals(bucket, result.getBucket());
+		assertNotNull(result.getStorageLocationId());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExternalObjectStorageSettingInvalidBucket() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageSetting.setBucket(" ");
+		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
+		//call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExternalObjectStorageSettingInvalidBucketWithSlashes() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageSetting.setBucket(" / / / / / ");
+		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
+		//call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExternalObjectStorageSettingInvalidURL() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageSetting.setBucket("someBucket");
+		externalObjectStorageSetting.setEndpointUrl("not a url");
+		//call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+	}
+
 }

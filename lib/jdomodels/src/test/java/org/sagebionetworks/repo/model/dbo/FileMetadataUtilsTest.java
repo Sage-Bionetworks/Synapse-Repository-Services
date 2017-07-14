@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.ProxyFileHandle;
@@ -179,6 +180,27 @@ public class FileMetadataUtilsTest {
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(proxy, clone);
+	}
+
+	@Test
+	public void testExternalObjectStoreFileHandleRoundTrip(){
+		ExternalObjectStoreFileHandle externalObjFH = new ExternalObjectStoreFileHandle();
+		externalObjFH.setCreatedBy("456");
+		externalObjFH.setCreatedOn(new Date());
+		externalObjFH.setId("987");
+		externalObjFH.setContentMd5("md5");
+		externalObjFH.setContentSize(123l);
+		externalObjFH.setContentType("contentType");
+		externalObjFH.setEtag("etag");
+		externalObjFH.setFileName("cat.txt");
+		externalObjFH.setFileKey("filekey");
+		externalObjFH.setEndpointUrl("https//s3.amazonaws.com");
+		externalObjFH.setBucket("bucketName");
+
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(externalObjFH);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(externalObjFH, clone);
 	}
 
 	@Test (expected=IllegalArgumentException.class)

@@ -1,0 +1,22 @@
+{
+	"description": "The upload destination contains information necessary to start an upload to an S3 bucket not managed by Synapse",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.UploadDestination"
+		}
+	],
+	"properties": {
+		"endpointUrl": {
+			"type": "string",
+			"description": "endpoint URL of the S3 service (for example: 'https://s3.amazonaws.com')"
+		},
+		"bucket": {
+			"type": "string",
+			"description": "the bucket to use"
+		},
+		"keyPrefixUUID": {
+			"type": "string",
+			"description": "A UUID prefix used to identify the file to be uploaded. This field will have a new, unique value every time a new UploadDestination is retrieved."
+		}
+	}
+}

@@ -8,6 +8,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
@@ -28,7 +29,7 @@ public class FileMetadataUtils {
 	 * Convert abstract DTO to the DBO.
 	 * @param dto
 	 * @return
-	 * @throws MalformedURLException 
+	 * @throws MalformedURLException
 	 */
 	public static DBOFileHandle createDBOFromDTO(FileHandle fileHandle) {
 		if (fileHandle == null)
@@ -45,6 +46,8 @@ public class FileMetadataUtils {
 			dbo.setMetadataType(MetadataType.PREVIEW);
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			dbo.setMetadataType(MetadataType.PROXY);
+		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
+			dbo.setMetadataType(MetadataType.EXTERNAL_OBJ_STORE);
 		}else {
 			throw new IllegalArgumentException("Unhandled file handle type: " + fileHandle.getClass().getName());
 		}
@@ -58,6 +61,9 @@ public class FileMetadataUtils {
 		}
 		if(fileHandle instanceof ProxyFileHandle){
 			updateDBOFromDTO(dbo, (ProxyFileHandle) fileHandle);
+		}
+		if(fileHandle instanceof ExternalObjectStoreFileHandle){
+			updateDBOFromDTO(dbo, (ExternalObjectStoreFileHandle) fileHandle);
 		}
 
 		return dbo;
@@ -100,15 +106,22 @@ public class FileMetadataUtils {
 		dbo.setKey(fileHandle.getKey());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
-	
+
 	private static void updateDBOFromDTO(DBOFileHandle dbo, ProxyFileHandle fileHandle) {
 		dbo.setKey(fileHandle.getFilePath());
 		dbo.setContentSize(fileHandle.getContentSize());
 	}
 
+	private static void updateDBOFromDTO(DBOFileHandle dbo, ExternalObjectStoreFileHandle fileHandle){
+		dbo.setKey(fileHandle.getFileKey());
+		dbo.setContentSize(fileHandle.getContentSize());
+		dbo.setEndpoint(fileHandle.getEndpointUrl());
+		dbo.setBucketName(fileHandle.getBucket());
+	}
+
 	/**
 	 * Create a DTO from the DBO.
-	 * 
+	 *
 	 * @param dbo
 	 * @return
 	 */
@@ -129,11 +142,14 @@ public class FileMetadataUtils {
 			fileHandle = new PreviewFileHandle();
 			break;
 		case PROXY:
-			// preview
+			// proxy
 			fileHandle = new ProxyFileHandle();
 			break;
+		case EXTERNAL_OBJ_STORE:
+			fileHandle = new ExternalObjectStoreFileHandle();
+			break;
 		default:
-			throw new IllegalArgumentException("Must be External, S3 or Preview but was: " + dbo.getMetadataTypeEnum());
+			throw new IllegalArgumentException("Must be EXTERNAL, S3, PREVIEW, PROXY, EXTERNAL_OBJ_STORE but was: " + dbo.getMetadataTypeEnum());
 		}
 
 		// now fill in the information
@@ -149,6 +165,9 @@ public class FileMetadataUtils {
 		}
 		if (fileHandle instanceof ProxyFileHandle) {
 			updateDTOFromDBO((ProxyFileHandle) fileHandle, dbo);
+		}
+		if (fileHandle instanceof ExternalObjectStoreFileHandle) {
+			updateDTOFromDBO((ExternalObjectStoreFileHandle) fileHandle, dbo);
 		}
 		return fileHandle;
 	}
@@ -185,9 +204,16 @@ public class FileMetadataUtils {
 		fileHandle.setKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
 	}
-	
+
 	private static void updateDTOFromDBO(ProxyFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFilePath(dbo.getKey());
+	}
+
+	private static void updateDTOFromDBO(ExternalObjectStoreFileHandle fileHandle, DBOFileHandle dbo) {
+		fileHandle.setFileKey(dbo.getKey());
+		fileHandle.setContentSize(dbo.getContentSize());
+		fileHandle.setEndpointUrl(dbo.getEndpoint());
+		fileHandle.setBucket(dbo.getBucketName());
 	}
 
 	/**
@@ -236,9 +262,12 @@ public class FileMetadataUtils {
 		if (in.getStorageLocationId() != null) {
 			out.setStorageLocationId(in.getStorageLocationId());
 		}
+		if (in.getEndpoint() != null){
+			out.setEndpoint(in.getEndpoint());
+		}
 		return out;
 	}
-	
+
 	/**
 	 * Create a DTO from a backup object.
 	 * @param backup
@@ -284,6 +313,9 @@ public class FileMetadataUtils {
 		}
 		if (in.getStorageLocationId() != null) {
 			out.setStorageLocationId(in.getStorageLocationId());
+		}
+		if (in.getEndpoint() != null) {
+			out.setEndpoint(in.getEndpoint());
 		}
 		return out;
 	}

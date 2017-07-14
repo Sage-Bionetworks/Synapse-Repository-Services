@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ENDPOINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
@@ -48,7 +49,8 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		S3,
 		EXTERNAL,
 		PREVIEW,
-		PROXY
+		PROXY,
+		EXTERNAL_OBJ_STORE
 	}
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -65,6 +67,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		new FieldColumn("key", COL_FILES_KEY),
 		new FieldColumn("name", COL_FILES_NAME),
 		new FieldColumn("storageLocationId", COL_FILES_STORAGE_LOCATION_ID),
+		new FieldColumn("endpoint", COL_FILES_ENDPOINT)
 	};
 
 	private Long id;
@@ -80,6 +83,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	private String key;
 	private String name;
 	private Long storageLocationId;
+	private String endpoint;
 
 	@Override
 	public TableMapping<DBOFileHandle> getTableMapping() {
@@ -108,9 +112,12 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				results.setKey(rs.getString(COL_FILES_KEY));
 				results.setName(rs.getString(COL_FILES_NAME));
 				results.setStorageLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
+
 				if (rs.wasNull()) {
 					results.setStorageLocationId(null);
 				}
+				results.setEndpoint(rs.getString(COL_FILES_ENDPOINT));
+
 				return results;
 			}
 			
@@ -294,6 +301,14 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		this.storageLocationId = storageLocationId;
 	}
 
+	public String getEndpoint() {
+		return this.endpoint;
+	}
+
+	public void setEndpoint(String endpoint) {
+		this.endpoint = endpoint;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -311,6 +326,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((previewId == null) ? 0 : previewId.hashCode());
 		result = prime * result + ((storageLocationId == null) ? 0 : storageLocationId.hashCode());
+		result = prime * result + ((endpoint == null) ? 0 : endpoint.hashCode());
 		return result;
 	}
 
@@ -385,6 +401,11 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				return false;
 		} else if (!storageLocationId.equals(other.storageLocationId))
 			return false;
+		if (endpoint == null) {
+			if (other.endpoint != null)
+				return false;
+		} else if (!endpoint.equals(other.endpoint))
+			return false;
 		return true;
 	}
 
@@ -393,7 +414,7 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return "DBOFileHandle [id=" + id + ", etag=" + etag + ", previewId=" + previewId + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", metadataType=" + metadataType + ", contentType=" + contentType + ", contentSize=" + contentSize
 				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName + ", key=" + key + ", name=" + name + ", storageLocationId="
-				+ storageLocationId + "]";
+				+ storageLocationId+ ", endpoint=" + endpoint  + "]";
 	}
 
 }

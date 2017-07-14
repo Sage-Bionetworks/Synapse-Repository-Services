@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.MultipartUploadRequest;
@@ -68,14 +69,14 @@ public interface FileUploadService {
 	void clearPreview(String handleId, Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Create an external file Handle.
+	 * Create an implementation of ExternalFileHandleInterFace.
 	 * @param userId
 	 * @param fileHandle
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ExternalFileHandle createExternalFileHandle(Long userId,	ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException;
+	ExternalFileHandleInterface createExternalFileHandle(Long userId, ExternalFileHandleInterface fileHandle) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create a chunked file upload token that can be used to upload large files to S3.
@@ -211,14 +212,6 @@ public interface FileUploadService {
 	 * @return
 	 */
 	S3FileHandle createExternalS3FileHandle(Long userId, S3FileHandle fileHandle);
-	
-	/**
-	 * Create an external ProxyFileHandle.
-	 * @param userId
-	 * @param fileHandle
-	 * @return
-	 */
-	ProxyFileHandle createExternalProxyFileHandle(Long userId, ProxyFileHandle fileHandle);
 
 	/**
 	 * Create a new file handle pointing to an existing s3 file

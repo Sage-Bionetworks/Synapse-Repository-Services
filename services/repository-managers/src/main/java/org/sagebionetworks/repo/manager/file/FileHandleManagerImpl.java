@@ -64,6 +64,9 @@ import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ExternalFileHandleInterface;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreUploadDestination;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
@@ -90,6 +93,7 @@ import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalObjectStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
@@ -338,11 +342,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if (handle instanceof ExternalFileHandle) {
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			return efh.getExternalURL();
-		} else if(handle instanceof ProxyFileHandle){
+		} else if (handle instanceof ProxyFileHandle) {
 			ProxyFileHandle proxyHandle = (ProxyFileHandle) handle;
 			StorageLocationSetting storage = this.storageLocationDAO.get(proxyHandle.getStorageLocationId());
-			if(!(storage instanceof ProxyStorageLocationSettings)){
-				throw new IllegalArgumentException("ProxyFileHandle.storageLocation is not of type"+ProxyStorageLocationSettings.class.getName());
+			if (!(storage instanceof ProxyStorageLocationSettings)) {
+				throw new IllegalArgumentException("ProxyFileHandle.storageLocation is not of type" + ProxyStorageLocationSettings.class.getName());
 			}
 			ProxyStorageLocationSettings proxyStorage = (ProxyStorageLocationSettings) storage;
 			return ProxyUrlSignerUtils.generatePresignedUrl(proxyHandle, proxyStorage, new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
@@ -365,6 +369,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 			request.setResponseHeaders(responseHeaderOverrides);
 			return s3Client.generatePresignedUrl(request).toExternalForm();
+		} else if (handle instanceof ExternalObjectStoreFileHandle){
+			ExternalObjectStoreFileHandle fileHandle = (ExternalObjectStoreFileHandle) handle;
+			return StringUtils.join(new String[]{fileHandle.getEndpointUrl(), fileHandle.getBucket(), fileHandle.getFileKey()} , '/');
 		} else {
 			throw new IllegalArgumentException("Unknown FileHandle class: "
 					+ handle.getClass().getName());
@@ -409,6 +416,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
+	@Override
+	public ExternalFileHandleInterface createExternalFileHandle(UserInfo userInfo, ExternalFileHandleInterface fileHandle){
+		if (fileHandle instanceof  ExternalFileHandle){
+			return createExternalFileHandle(userInfo, (ExternalFileHandle) fileHandle);
+		}else if (fileHandle instanceof  ProxyFileHandle){
+			return createExternalFileHandle(userInfo, (ProxyFileHandle) fileHandle);
+		}else if (fileHandle instanceof ExternalObjectStoreFileHandle){
+			return createExternalFileHandle(userInfo, (ExternalObjectStoreFileHandle) fileHandle);
+		}else{
+			throw new IllegalArgumentException("Unexpected type of ExternalFileHandleInterface: " + fileHandle.getClass().getCanonicalName());
+		}
+	}
+
 	@WriteTransaction
 	@Override
 	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,
@@ -433,6 +453,43 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		fileHandle.setEtag(UUID.randomUUID().toString());
 		// Save the file metadata to the DB.
 		return (ExternalFileHandle) fileHandleDao.createFile(fileHandle);
+	}
+
+	@WriteTransaction
+	@Override
+	public ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(fileHandle, "fileHandle");
+		ValidateArgument.required(fileHandle.getStorageLocationId(),"ExternalObjectStoreFileHandle.storageLocationId");
+		ValidateArgument.required(fileHandle.getContentSize(), "ExternalObjectStoreFileHandle.contentSize");
+		ValidateArgument.required(fileHandle.getContentMd5(),"FileHandle.contentMd5");
+		ValidateArgument.required(fileHandle.getFileKey(), "ExternalObjectStoreFileHandle.fileKey");
+
+		if (fileHandle.getFileName() == null) {
+			fileHandle.setFileName(NOT_SET);
+		}
+		if (fileHandle.getContentType() == null) {
+			fileHandle.setContentType(NOT_SET);
+		}
+
+		// Lookup the storage location
+		StorageLocationSetting sls = storageLocationDAO.get(fileHandle.getStorageLocationId());
+		if(!(sls instanceof ExternalObjectStorageLocationSetting)){
+			throw new IllegalArgumentException("StorageLocationSetting.id="+sls.getStorageLocationId()+" was type:" + sls.getClass().getName() +  "not of the expected type: "+ExternalObjectStorageLocationSetting.class.getName());
+		}
+
+		//mirror information from the storage location into the file handle
+		ExternalObjectStorageLocationSetting storageLocationSetting = (ExternalObjectStorageLocationSetting) sls;
+		fileHandle.setEndpointUrl(storageLocationSetting.getEndpointUrl());
+		fileHandle.setBucket(storageLocationSetting.getBucket());
+
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		fileHandle.setCreatedOn(new Date());
+		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		// Save the file metadata to the DB.
+		return (ExternalObjectStoreFileHandle) fileHandleDao.createFile(fileHandle);
 	}
 
 	/**
@@ -726,6 +783,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
 			uploadDestination = createExternalUploadDestination((ExternalStorageLocationSetting) storageLocationSetting,
 					nodePath, filename);
+		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
+			ExternalObjectStorageLocationSetting extObjStorageLocation = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+			ExternalObjectStoreUploadDestination extObjUploadDestination = new ExternalObjectStoreUploadDestination();
+			extObjUploadDestination.setKeyPrefixUUID(UUID.randomUUID().toString());
+			extObjUploadDestination.setEndpointUrl(extObjStorageLocation.getEndpointUrl());
+			extObjUploadDestination.setBucket(extObjStorageLocation.getBucket());
+			uploadDestination = extObjUploadDestination;
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());
@@ -969,10 +1033,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Save the file metadata to the DB.
 		return (S3FileHandle) fileHandleDao.createFile(fileHandle);
 	}
-	
+
 	@Override
-	public ProxyFileHandle createExternalProxyFileHandle(UserInfo userInfo,
-			ProxyFileHandle proxyFileHandle) {
+	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
 		ValidateArgument.required(proxyFileHandle.getContentMd5(), "ProxyFileHandle.contentMd5");

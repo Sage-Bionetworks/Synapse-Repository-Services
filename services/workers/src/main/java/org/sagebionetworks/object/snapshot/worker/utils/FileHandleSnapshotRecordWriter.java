@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.audit.FileHandleSnapshot;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.ExternalObjectStoreFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -63,6 +64,11 @@ public class FileHandleSnapshotRecordWriter implements ObjectRecordWriter {
 		} else if (fileHandle instanceof ProxyFileHandle) {
 			ProxyFileHandle proxyFH = (ProxyFileHandle) fileHandle;
 			snapshot.setKey(proxyFH.getFilePath());
+		} else if (fileHandle instanceof ExternalObjectStoreFileHandle) {
+			ExternalObjectStoreFileHandle externalObjectStoreFH = (ExternalObjectStoreFileHandle) fileHandle;
+			snapshot.setKey(externalObjectStoreFH.getFileKey());
+		}else{
+			throw new IllegalArgumentException("Unexpected FileHandle Type:" + fileHandle.getClass().getName());
 		}
 		return snapshot;
 	}
