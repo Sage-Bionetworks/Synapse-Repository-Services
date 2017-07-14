@@ -4,17 +4,17 @@ package org.sagebionetworks.repo.model.table;
  * Representation of doubles that are either not-a-number (NaN) or non-finite quantities like +/- infinity.
  *
  */
-public enum AbstractDoubles {
+public enum AbstractDouble {
 	
 	POSITIVE_INFINITY (
 			Double.POSITIVE_INFINITY,
 			new String[]{"inf", "+inf", Double.toString(Double.POSITIVE_INFINITY).toLowerCase(), "+infinity", "\u221E", "+\u221E"},
-			"1.7976931348623157E+308"
+			Double.parseDouble("1.7976931348623157E+308")
 	),
 	NEGATIVE_INFINITY (
 			Double.NEGATIVE_INFINITY,
 			new String[]{"-inf", Double.toString(Double.NEGATIVE_INFINITY).toLowerCase(), "-\u221E"},
-			"-1.7976931348623157E+308"
+			Double.parseDouble("-1.7976931348623157E+308")
 	),
 	NAN (
 			Double.NaN,
@@ -24,7 +24,7 @@ public enum AbstractDoubles {
 
 	Double value;
 	String[] possibleValues;
-	String approximateValue;
+	Double approximateValue;
 	long longBits;
 	
 	/**
@@ -34,8 +34,8 @@ public enum AbstractDoubles {
 	 * @param possibleValues The possible string values that represent this value.
 	 * @param approximateValue An approximate string representation of this type.
 	 */
-	private AbstractDoubles(double value,
-			String[] possibleValues, String approximateValue) {
+	private AbstractDouble(double value,
+			String[] possibleValues, Double approximateValue) {
 		this.value = value;
 		this.possibleValues = possibleValues;
 		this.approximateValue = approximateValue;
@@ -49,11 +49,11 @@ public enum AbstractDoubles {
 	 * @return
 	 * @throws IllegalArgumentException if no match is found.
 	 */
-	public static AbstractDoubles lookupValue(String value){
+	public static AbstractDouble lookupType(String value){
 		if(value == null){
-			throw new NumberFormatException("For input string: \""+value+"\"");
+			throw new IllegalArgumentException("For input string: \""+value+"\"");
 		}
-		for(AbstractDoubles meta: values()){
+		for(AbstractDouble meta: values()){
 			for(String possible: meta.possibleValues){
 				if(possible.equalsIgnoreCase(value)){
 					return meta;
@@ -69,11 +69,11 @@ public enum AbstractDoubles {
 	 * @param value
 	 * @return
 	 */
-	public static AbstractDoubles lookupType(Double value){
+	public static AbstractDouble lookupType(Double value){
 		if(value == null){
-			throw new NumberFormatException("For input string: \""+value+"\"");
+			throw new IllegalArgumentException("For input string: \""+value+"\"");
 		}
-		for(AbstractDoubles meta: values()){
+		for(AbstractDouble meta: values()){
 			if(meta.longBits == Double.doubleToLongBits(value)){
 				return meta;
 			}
@@ -114,10 +114,10 @@ public enum AbstractDoubles {
 	}
 	
 	/**
-	 * An approximate string representation for this type.
+	 * An approximate representation for this type.
 	 * @return
 	 */
-	public String getApproximateValue(){
+	public Double getApproximateValue(){
 		return approximateValue;
 	}
 	

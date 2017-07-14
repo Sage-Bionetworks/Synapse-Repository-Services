@@ -6,81 +6,86 @@ import org.junit.Test;
 
 public class AbstractDoublesTest {
 	
-	@Test (expected=NumberFormatException.class)
-	public void testLookupValueNull(){
-		AbstractDoubles.lookupValue(null);
+	@Test (expected=IllegalArgumentException.class)
+	public void testLookupValueStringNull(){
+		AbstractDouble.lookupType((String)null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testLookupValueDoubleNull(){
+		AbstractDouble.lookupType((Double)null);
 	}
 	
 	@Test (expected=NumberFormatException.class)
 	public void testLookupValueFinite(){
-		AbstractDoubles.lookupValue("1.1");
+		AbstractDouble.lookupType("1.1");
 	}
 	
 	@Test (expected=NumberFormatException.class)
 	public void testLookupValueString(){
-		AbstractDoubles.lookupValue("some string");
+		AbstractDouble.lookupType("some string");
 	}
 
 	@Test
 	public void testLookupValueNaN(){
-		assertEquals(AbstractDoubles.NAN, AbstractDoubles.lookupValue("NaN"));
-		assertEquals(AbstractDoubles.NAN, AbstractDoubles.lookupValue("NAN"));
-		assertEquals(AbstractDoubles.NAN, AbstractDoubles.lookupValue("nan"));
+		assertEquals(AbstractDouble.NAN, AbstractDouble.lookupType("NaN"));
+		assertEquals(AbstractDouble.NAN, AbstractDouble.lookupType("NAN"));
+		assertEquals(AbstractDouble.NAN, AbstractDouble.lookupType("nan"));
 	}
 	
 	@Test
 	public void testLookupValuePositiveInfintiy(){
 		//inf
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("inf"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+inf"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+INF"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+inf"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("inf"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+inf"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+INF"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+inf"));
 		// infinity
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("infinity"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+infinity"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+INFINITY"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupValue("+Infinity"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("infinity"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+infinity"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+INFINITY"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType("+Infinity"));
 	}
 	
 	@Test
 	public void testLookupValueNegativeInfintiy(){
 		//inf
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupValue("-inf"));
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupValue("-INF"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType("-inf"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType("-INF"));
 		// infinity
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupValue("-infinity"));
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupValue("-INFINITY"));
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupValue("-Infinity"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType("-infinity"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType("-INFINITY"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType("-Infinity"));
 	}
 	
 	@Test
 	public void testLookupTypeDouble(){
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY, AbstractDoubles.lookupType(Double.POSITIVE_INFINITY));
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY, AbstractDoubles.lookupType(Double.NEGATIVE_INFINITY));
-		assertEquals(AbstractDoubles.NAN, AbstractDoubles.lookupType(Double.NaN));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY, AbstractDouble.lookupType(Double.POSITIVE_INFINITY));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY, AbstractDouble.lookupType(Double.NEGATIVE_INFINITY));
+		assertEquals(AbstractDouble.NAN, AbstractDouble.lookupType(Double.NaN));
 	}
 	
 	@Test
 	public void testGetValue(){
-		assertEquals(new Double(Double.POSITIVE_INFINITY), new Double(AbstractDoubles.POSITIVE_INFINITY.getDoubleValue()));
-		assertEquals(new Double(Double.NEGATIVE_INFINITY), new Double(AbstractDoubles.NEGATIVE_INFINITY.getDoubleValue()));
-		assertEquals(new Double(Double.NaN), new Double(AbstractDoubles.NAN.getDoubleValue()));
+		assertEquals(new Double(Double.POSITIVE_INFINITY), new Double(AbstractDouble.POSITIVE_INFINITY.getDoubleValue()));
+		assertEquals(new Double(Double.NEGATIVE_INFINITY), new Double(AbstractDouble.NEGATIVE_INFINITY.getDoubleValue()));
+		assertEquals(new Double(Double.NaN), new Double(AbstractDouble.NAN.getDoubleValue()));
 	}
 	
 	@Test
 	public void testGetStringValue(){
-		assertEquals("Infinity", AbstractDoubles.POSITIVE_INFINITY.getEnumerationValue());
-		assertEquals("-Infinity", AbstractDoubles.NEGATIVE_INFINITY.getEnumerationValue());
-		assertEquals("NaN", AbstractDoubles.NAN.getEnumerationValue());
+		assertEquals("Infinity", AbstractDouble.POSITIVE_INFINITY.getEnumerationValue());
+		assertEquals("-Infinity", AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
+		assertEquals("NaN", AbstractDouble.NAN.getEnumerationValue());
 	}
 	
 	@Test
 	public void testIsAbstractValue(){
-		assertFalse(AbstractDoubles.isAbstractValue(null));
-		assertFalse(AbstractDoubles.isAbstractValue(1.2));
-		assertTrue(AbstractDoubles.isAbstractValue(Double.NaN));
-		assertTrue(AbstractDoubles.isAbstractValue(Double.NEGATIVE_INFINITY));
-		assertTrue(AbstractDoubles.isAbstractValue(Double.POSITIVE_INFINITY));
+		assertFalse(AbstractDouble.isAbstractValue(null));
+		assertFalse(AbstractDouble.isAbstractValue(1.2));
+		assertTrue(AbstractDouble.isAbstractValue(Double.NaN));
+		assertTrue(AbstractDouble.isAbstractValue(Double.NEGATIVE_INFINITY));
+		assertTrue(AbstractDouble.isAbstractValue(Double.POSITIVE_INFINITY));
 	}
 
 }

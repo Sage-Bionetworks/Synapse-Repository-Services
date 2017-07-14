@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.table.AbstractDoubles;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
 
 public class DoubleTypeParserTest {
 
@@ -30,9 +30,9 @@ public class DoubleTypeParserTest {
 	
 	@Test
 	public void testParseValueForDatabaseWrite(){
-		assertEquals(AbstractDoubles.NAN.getEnumerationValue(), parser.parseValueForDatabaseWrite("NaN"));
-		assertEquals(AbstractDoubles.POSITIVE_INFINITY.getEnumerationValue(), parser.parseValueForDatabaseWrite("inf"));
-		assertEquals(AbstractDoubles.NEGATIVE_INFINITY.getEnumerationValue(), parser.parseValueForDatabaseWrite("-inf"));
+		assertEquals(AbstractDouble.NAN.getEnumerationValue(), parser.parseValueForDatabaseWrite("NaN"));
+		assertEquals(AbstractDouble.POSITIVE_INFINITY.getEnumerationValue(), parser.parseValueForDatabaseWrite("inf"));
+		assertEquals(AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue(), parser.parseValueForDatabaseWrite("-inf"));
 	}
 	
 	@Test

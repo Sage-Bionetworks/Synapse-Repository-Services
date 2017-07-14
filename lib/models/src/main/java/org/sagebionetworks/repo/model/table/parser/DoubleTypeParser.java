@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.AbstractDoubles;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
 
 public class DoubleTypeParser extends AbstractValueParser {
 	
 	@Override
 	public Object parseValueForDatabaseWrite(String value)
 			throws IllegalArgumentException {
-		AbstractDoubles type = AbstractDoubles.lookupValue(value);
+		AbstractDouble type = AbstractDouble.lookupType(value);
 		return type.getEnumerationValue();
 	}
 
