@@ -232,10 +232,36 @@ public class ProjectSettingsImplAutowiredTest {
 		assertNotNull(result.getStorageLocationId());
 	}
 
+	@Test
+	public void testValidExternalObjectStorageSettingWithSlashes() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
+		String endpoint = "https://www.someurl.com";
+		String bucket = "BucketMcBucketFace";
+		externalObjectStorageLocationSetting.setEndpointUrl("////" + endpoint + "//////");
+		externalObjectStorageLocationSetting.setBucket(bucket);
+
+		//call under test
+		ExternalObjectStorageLocationSetting result = projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageLocationSetting);
+
+		assertNotNull(result);
+		Assert.assertEquals(endpoint, result.getEndpointUrl());
+		Assert.assertEquals(bucket, result.getBucket());
+		assertNotNull(result.getStorageLocationId());
+	}
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testExternalObjectStorageSettingInvalidBucket() throws IOException {
 		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageSetting.setBucket(" ");
+		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
+		//call under test
+		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testExternalObjectStorageSettingInvalidBucketWithSlashes() throws IOException {
+		ExternalObjectStorageLocationSetting externalObjectStorageSetting = new ExternalObjectStorageLocationSetting();
+		externalObjectStorageSetting.setBucket(" / / / / / ");
 		externalObjectStorageSetting.setEndpointUrl("https://www.someurl.com");
 		//call under test
 		projectSettingsManager.createStorageLocationSetting(userInfo, externalObjectStorageSetting);
