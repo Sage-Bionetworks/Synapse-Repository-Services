@@ -194,6 +194,8 @@ public class FileMetadataUtilsTest {
 		externalObjFH.setEtag("etag");
 		externalObjFH.setFileName("cat.txt");
 		externalObjFH.setFileKey("filekey");
+		externalObjFH.setEndpointUrl("https//s3.amazonaws.com");
+		externalObjFH.setBucket("bucketName");
 
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(externalObjFH);
 		assertNotNull(dbo);

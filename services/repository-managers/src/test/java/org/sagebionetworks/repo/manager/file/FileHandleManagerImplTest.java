@@ -134,6 +134,7 @@ public class FileHandleManagerImplTest {
 	String md5;
 	Long fileSize;
 	Long storageLocationId;
+	String endpointUrl;
 	// setup a storage location
 	ExternalS3StorageLocationSetting externalS3StorageLocationSetting;
 	S3FileHandle externals3FileHandle;
@@ -228,11 +229,12 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.createFile(externalProxyFileHandle)).thenReturn(externalProxyFileHandle);
 
 		//set up external object store
+		endpointUrl = "https://www.url.com";
 		externalObjectStorageLocationId = 96024L;
 		externalObjectStorageLocationSetting = new ExternalObjectStorageLocationSetting();
 		externalObjectStorageLocationSetting.setStorageLocationId(externalObjectStorageLocationId);
 		externalObjectStorageLocationSetting.setBucket(bucket);
-		externalObjectStorageLocationSetting.setEndpointUrl("https://www.url.com");
+		externalObjectStorageLocationSetting.setEndpointUrl(endpointUrl);
 		when(mockStorageLocationDao.get(externalObjectStorageLocationId)).thenReturn(externalObjectStorageLocationSetting);
 
 		externalObjectStoreFileHandle = new ExternalObjectStoreFileHandle();
@@ -1502,8 +1504,8 @@ public class FileHandleManagerImplTest {
 		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
 		assertNotNull(result.getKeyPrefixUUID());
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
-		assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
-		assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
+		assertEquals(bucket, result.getBucket());
+		assertEquals(endpointUrl, result.getEndpointUrl());
 		assertEquals(externalObjectStorageLocationSetting.getUploadType(), result.getUploadType());
 		assertEquals(externalObjectStorageLocationSetting.getBanner(), result.getBanner());
 	}

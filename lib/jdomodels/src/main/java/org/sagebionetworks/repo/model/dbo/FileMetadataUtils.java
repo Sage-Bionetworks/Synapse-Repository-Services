@@ -116,6 +116,7 @@ public class FileMetadataUtils {
 		dbo.setKey(fileHandle.getFileKey());
 		dbo.setContentSize(fileHandle.getContentSize());
 		dbo.setEndpoint(fileHandle.getEndpointUrl());
+		dbo.setBucketName(fileHandle.getBucket());
 	}
 
 	/**
@@ -211,6 +212,8 @@ public class FileMetadataUtils {
 	private static void updateDTOFromDBO(ExternalObjectStoreFileHandle fileHandle, DBOFileHandle dbo) {
 		fileHandle.setFileKey(dbo.getKey());
 		fileHandle.setContentSize(dbo.getContentSize());
+		fileHandle.setEndpointUrl(dbo.getEndpoint());
+		fileHandle.setBucket(dbo.getBucketName());
 	}
 
 	/**
