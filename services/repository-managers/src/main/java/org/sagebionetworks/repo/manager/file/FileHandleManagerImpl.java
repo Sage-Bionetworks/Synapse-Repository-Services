@@ -786,9 +786,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			uploadDestination = createExternalUploadDestination((ExternalStorageLocationSetting) storageLocationSetting,
 					nodePath, filename);
 		} else if (storageLocationSetting instanceof ExternalObjectStorageLocationSetting){
-			ExternalObjectStoreUploadDestination externalObjectStoreUploadDestination = new ExternalObjectStoreUploadDestination() ;
-			externalObjectStoreUploadDestination.setKeyPrefixUUID(UUID.randomUUID().toString());
-			uploadDestination = externalObjectStoreUploadDestination;
+			ExternalObjectStorageLocationSetting extObjStorageLocation = (ExternalObjectStorageLocationSetting) storageLocationSetting;
+			ExternalObjectStoreUploadDestination extObjUploadDestination = new ExternalObjectStoreUploadDestination();
+			extObjUploadDestination.setKeyPrefixUUID(UUID.randomUUID().toString());
+			extObjUploadDestination.setEndpointUrl(extObjStorageLocation.getEndpointUrl());
+			extObjUploadDestination.setBucket(extObjStorageLocation.getBucket());
+			uploadDestination = extObjUploadDestination;
 		} else {
 			throw new IllegalArgumentException("Cannot handle upload destination location setting of type: "
 					+ storageLocationSetting.getClass().getName());

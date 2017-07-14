@@ -1502,6 +1502,8 @@ public class FileHandleManagerImplTest {
 		verify(mockStorageLocationDao, times(1)).get(externalObjectStorageLocationId);
 		assertNotNull(result.getKeyPrefixUUID());
 		assertEquals(externalObjectStorageLocationId, result.getStorageLocationId());
+		assertEquals(externalObjectStorageLocationSetting.getBucket(), result.getBucket());
+		assertEquals(externalObjectStorageLocationSetting.getEndpointUrl(), result.getEndpointUrl());
 		assertEquals(externalObjectStorageLocationSetting.getUploadType(), result.getUploadType());
 		assertEquals(externalObjectStorageLocationSetting.getBanner(), result.getBanner());
 	}
