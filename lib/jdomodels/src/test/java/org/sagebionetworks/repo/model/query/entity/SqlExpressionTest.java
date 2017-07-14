@@ -45,7 +45,7 @@ public class SqlExpressionTest {
 		Comparator comparator = Comparator.GREATER_THAN_OR_EQUALS;
 		Integer rhs = 123;
 		SqlExpression expression = new SqlExpression(annotationRefrence, comparator, rhs);
-		assertEquals("A5.ANNO_VALUE >= :"+bindKey, expression.toSql());
+		assertEquals("A5.STRING_VALUE >= :"+bindKey, expression.toSql());
 	}
 	
 	@Test

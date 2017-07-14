@@ -28,7 +28,7 @@ public class SelectColumnTest {
 		int index = 1;
 		ColumnReference ref = new ColumnReference("annotationName", index);
 		SelectColumn select = new SelectColumn(ref);
-		assertEquals("A1.ANNO_VALUE AS 'annotationName'", select.toSql());
+		assertEquals("A1.STRING_VALUE AS 'annotationName'", select.toSql());
 	}
 
 }

@@ -381,12 +381,18 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(set.getRows().size(), fetched.getRows().size());
 		long expectedId = 0;
 		Long version = new Long(0);
-		for(int i=0; i<fetched.getRows().size(); i++){
-			Row row = fetched.getRows().get(i);
+		for(int rowIndex=0; rowIndex<fetched.getRows().size(); rowIndex++){
+			Row row = fetched.getRows().get(rowIndex);
 			assertEquals(new Long(expectedId), row.getRowId());
 			assertEquals(version, row.getVersionNumber());
-			List<String> expectedValues = set.getRows().get(i).getValues();
-			assertEquals(expectedValues, row.getValues());
+			List<String> expectedValues = set.getRows().get(rowIndex).getValues();
+			for(int columnIndex=0; columnIndex< expectedValues.size(); columnIndex++){
+				ColumnModel cm = columns.get(columnIndex);
+				String expectedValue = expectedValues.get(columnIndex);
+				expectedValue = TableModelUtils.validateValue(expectedValue, cm);
+				String value = row.getValues().get(columnIndex);
+				assertEquals(expectedValue, value);
+			}
 			expectedId++;
 		}
 		// Version two does not exists so a not found should be thrown
