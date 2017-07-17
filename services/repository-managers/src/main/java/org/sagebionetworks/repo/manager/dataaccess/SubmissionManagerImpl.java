@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dao.subscription.SubscriptionDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -65,16 +66,21 @@ public class SubmissionManagerImpl implements SubmissionManager{
 
 	@WriteTransactionReadCommitted
 	@Override
-	public SubmissionStatus create(UserInfo userInfo, String requestId, String etag) {
+	public SubmissionStatus create(UserInfo userInfo, CreateSubmissionRequest createSubmissionRequest) {
 		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(requestId, "requestId");
-		ValidateArgument.required(etag, "etag");
-		RequestInterface request = requestManager.getRequestForSubmission(requestId);
-		ValidateArgument.requirement(etag.equals(request.getEtag()), "Etag does not match.");
+		ValidateArgument.required(createSubmissionRequest, "createSubmissionRequest");
+		ValidateArgument.required(createSubmissionRequest.getRequestId(), "requestId");
+		ValidateArgument.required(createSubmissionRequest.getRequestEtag(), "etag");
+		ValidateArgument.required(createSubmissionRequest.getSubjectId(), "subjectId");
+		ValidateArgument.required(createSubmissionRequest.getSubjectType(), "subjectType");
+		RequestInterface request = requestManager.getRequestForSubmission(createSubmissionRequest.getRequestId());
+		ValidateArgument.requirement(createSubmissionRequest.getRequestEtag().equals(request.getEtag()), "Etag does not match.");
 
 		Submission submissionToCreate = new Submission();
 		submissionToCreate.setRequestId(request.getId());
 		submissionToCreate.setResearchProjectSnapshot(researchProjectDao.get(request.getResearchProjectId()));
+		submissionToCreate.setSubjectId(createSubmissionRequest.getSubjectId());
+		submissionToCreate.setSubjectType(createSubmissionRequest.getSubjectType());
 
 		validateRequestBasedOnRequirements(userInfo, request, submissionToCreate);
 		prepareCreationFields(userInfo, submissionToCreate);

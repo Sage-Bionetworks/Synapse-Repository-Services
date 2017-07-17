@@ -115,6 +115,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
@@ -4948,11 +4949,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public org.sagebionetworks.repo.model.dataaccess.SubmissionStatus submitRequest(String requestId, String etag) throws SynapseException {
-		ValidateArgument.required(requestId, "requestId");
-		ValidateArgument.required(etag, "etag");
-		String url = DATA_ACCESS_REQUEST+"/"+requestId+"/submission?etag="+etag;
-		return postJSONEntity(getRepoEndpoint(), url, null, org.sagebionetworks.repo.model.dataaccess.SubmissionStatus.class);
+	public org.sagebionetworks.repo.model.dataaccess.SubmissionStatus submitRequest(CreateSubmissionRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getRequestId(), "requestId");
+		String url = DATA_ACCESS_REQUEST+"/"+request.getRequestId()+"/submission";
+		return postJSONEntity(getRepoEndpoint(), url, request, org.sagebionetworks.repo.model.dataaccess.SubmissionStatus.class);
 	}
 
 	@Override
