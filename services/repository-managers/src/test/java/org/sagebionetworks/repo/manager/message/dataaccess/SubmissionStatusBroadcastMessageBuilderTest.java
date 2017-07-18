@@ -9,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -25,7 +24,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 	private String objectId;
 	private String requirementId;
 	private String rejectedReason;
-	private RestrictableObjectDescriptor rod;
+	private String resourceId;
 	
 	SubmissionStatusBroadcastMessageBuilder builder;
 
@@ -34,7 +33,7 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		MockitoAnnotations.initMocks(this);
 
 		requirementId = "1";
-	
+
 		subscriber = new Subscriber();
 		subscriber.setFirstName("subscriberFirstName");
 		subscriber.setLastName("subscriberLastName");
@@ -43,12 +42,11 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		subscriber.setUsername("subscriberUsername");
 		subscriber.setSubscriptionId("999");
 
-		rod = new RestrictableObjectDescriptor();
-		rod.setId("2");
-		rod.setType(RestrictableObjectType.ENTITY);
+		resourceId = "2";
 	
 		builder = new SubmissionStatusBroadcastMessageBuilder(
-				objectId, null, requirementId, rod, mockMarkdownDao, false);
+				objectId, null, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, false);
 	}
 
 	@Test
@@ -57,44 +55,43 @@ public class SubmissionStatusBroadcastMessageBuilderTest {
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed and approved your request."));
-		assertTrue(body.contains("View your request"));
-		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&AR_ID=1"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
+		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
 	}
 
 	@Test
 	public void testBuildRawBodyForTeam(){
-		rod.setType(RestrictableObjectType.TEAM);
-		
 		builder = new SubmissionStatusBroadcastMessageBuilder(
-				objectId, null, requirementId, rod, mockMarkdownDao, false);
+				objectId, null, requirementId, resourceId,
+				RestrictableObjectType.TEAM, mockMarkdownDao, false);
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed and approved your request."));
-		assertTrue(body.contains("View your request"));
-		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:teamID=2&AR_ID=1"));
+		assertTrue(body.contains("https://www.synapse.org/#!Team:2"));
+		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=TEAM"));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testBuildRawBodyForEvaluation(){
-		rod.setType(RestrictableObjectType.EVALUATION);
-		
 		builder = new SubmissionStatusBroadcastMessageBuilder(
-				objectId, null, requirementId, rod, mockMarkdownDao, false);
+				objectId, null, requirementId, resourceId,
+				RestrictableObjectType.EVALUATION, mockMarkdownDao, false);
 	}
 
 	@Test
 	public void testBuildRawBodyForRejectedMessage(){
 		rejectedReason = "some reason";
 		builder = new SubmissionStatusBroadcastMessageBuilder(
-				objectId, rejectedReason, requirementId, rod, mockMarkdownDao, true);
+				objectId, rejectedReason, requirementId, resourceId,
+				RestrictableObjectType.ENTITY, mockMarkdownDao, true);
 		String body = builder.buildRawBody(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
 		assertTrue(body.contains("A member of the Synapse Access and Compliance Team has reviewed your request and left a comment:"));
 		assertTrue(body.contains(rejectedReason));
-		assertTrue(body.contains("your request"));
-		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&AR_ID=1"));
+		assertTrue(body.contains("https://www.synapse.org/#!Synapse:2"));
+		assertTrue(body.contains("https://www.synapse.org/#!AccessRequirements:ID=2&TYPE=ENTITY"));
 	}
 	
 	@Test (expected = MarkdownClientException.class)
