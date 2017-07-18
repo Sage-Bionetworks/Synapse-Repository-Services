@@ -5,16 +5,12 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.message.BroadcastMessageBuilder;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
@@ -30,14 +26,11 @@ public class SubmissionStatusMessageBuilderFactoryTest {
 	private MarkdownDao mockMarkdownDao;
 	@Mock
 	private Submission mockSubmission;
-	@Mock
-	private AccessRequirementDAO mockAccessRequirementDao;
 	
 	SubmissionStatusMessageBuilderFactory factory;
 	private String objectId;
 	private Long actorUserId;
 	private Long requirementId;
-	private RestrictableObjectDescriptor rod;
 	
 	@Before
 	public void before(){
@@ -46,20 +39,16 @@ public class SubmissionStatusMessageBuilderFactoryTest {
 		factory = new SubmissionStatusMessageBuilderFactory();
 		ReflectionTestUtils.setField(factory, "submissionDao", mockSubmissionDao);
 		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
-		ReflectionTestUtils.setField(factory, "accessRequirementDao", mockAccessRequirementDao);
 
 		objectId = "1";
 		actorUserId = 2L;
 		requirementId = 3L;
 
-		rod = new RestrictableObjectDescriptor();
-		rod.setId("4");
-		rod.setType(RestrictableObjectType.ENTITY);
-
 		when(mockSubmissionDao.getSubmission(objectId)).thenReturn(mockSubmission);
 		when(mockSubmission.getState()).thenReturn(SubmissionState.APPROVED);
 		when(mockSubmission.getAccessRequirementId()).thenReturn(requirementId.toString());
-		when(mockAccessRequirementDao.getSubjects(requirementId)).thenReturn(Arrays.asList(rod));
+		when(mockSubmission.getSubjectId()).thenReturn("4");
+		when(mockSubmission.getSubjectType()).thenReturn(RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
