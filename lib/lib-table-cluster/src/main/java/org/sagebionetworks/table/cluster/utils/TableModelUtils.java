@@ -14,9 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -24,10 +22,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AppendableRowSet;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -51,17 +47,14 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -92,8 +85,6 @@ public class TableModelUtils {
 	 * Delimiter used to list column model IDs as a string.
 	 */
 	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
-	
-	public static final Pattern ENTITYID_PATTERN = Pattern.compile("syn(\\d+)(\\.(\\d+))?");
 
 	public static final Function<ColumnModel, Long> COLUMN_MODEL_TO_ID = new Function<ColumnModel, Long>() {
 		@Override
@@ -348,55 +339,6 @@ public class TableModelUtils {
 	 */
 	public static String validateValue(String value, ColumnModel cm) {
 		switch (cm.getColumnType()) {
-		case BOOLEAN:
-			boolean boolValue;
-			if (value.equalsIgnoreCase("true")) {
-				boolValue = true;
-			} else if (value.equalsIgnoreCase("false")) {
-				boolValue = false;
-			} else {
-				throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
-						+ "'");
-			}
-			return Boolean.toString(boolValue);
-		case USERID:
-		case INTEGER:
-		case FILEHANDLEID:
-			long lv = Long.parseLong(value);
-			return Long.toString(lv);
-		case ENTITYID:
-			if (!ENTITYID_PATTERN.matcher(value).matches()) {
-				throw new IllegalArgumentException("Malformed entity ID (should be syn123 or syn 123.4): " + value);
-			}
-			return value;
-		case DATE:
-			// value can be either a number (in which case it is milliseconds since blah) or not a number (in
-			// which case it is date string)
-			long time;
-			try {
-				time = Long.parseLong(value);
-			} catch (NumberFormatException e) {
-				time = TimeUtils.parseSqlDate(value);
-			}
-			return Long.toString(time);
-		case DOUBLE:
-			double dv;
-			try {
-				dv = Double.parseDouble(value);
-			} catch (NumberFormatException e) {
-				value = value.toLowerCase();
-				if (value.equals("nan")) {
-					dv = Double.NaN;
-				} else if (value.equals("-inf") || value.equals("-infinity") || value.equals("-\u221E")) {
-					dv = Double.NEGATIVE_INFINITY;
-				} else if (value.equals("+inf") || value.equals("+infinity") || value.equals("+\u221E") || value.equals("inf")
-						|| value.equals("infinity") || value.equals("\u221E")) {
-					dv = Double.POSITIVE_INFINITY;
-				} else {
-					throw e;
-				}
-			}
-			return Double.toString(dv);
 		case STRING:
 			if (cm.getMaximumSize() == null)
 				throw new IllegalArgumentException("String columns must have a maximum size");
@@ -423,10 +365,13 @@ public class TableModelUtils {
 				throw new IllegalArgumentException("Exceeds the maximum number of characters: "+ColumnConstants.MAX_LARGE_TEXT_CHARACTERS);
 			}
 			checkStringEnum(value, cm);
-			return value;	
+			return value;
+		default:
+			// All other types are handled by the type specific parser.
+			ColumnTypeInfo info = ColumnTypeInfo.getInfoForType(cm.getColumnType());
+			Object objectValue = info.parseValueForDatabaseWrite(value);
+			return objectValue.toString();
 		}
-		
-		throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
 	}
 
 

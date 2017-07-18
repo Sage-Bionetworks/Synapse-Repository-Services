@@ -38,4 +38,12 @@ public class EntityIdParserTest {
 	public void testParseValueForDatabaseRead(){
 		assertEquals("syn123", parser.parseValueForDatabaseRead("123"));
 	}
+	
+	@Test
+	public void testIsOfType(){
+		assertTrue(parser.isOfType("123"));
+		assertTrue(parser.isOfType("syn123"));
+		assertFalse(parser.isOfType("foo-bar"));
+		assertFalse(parser.isOfType(null));
+	}
 }

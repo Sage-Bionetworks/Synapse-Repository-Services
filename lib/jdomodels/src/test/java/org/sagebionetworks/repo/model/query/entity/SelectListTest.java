@@ -70,7 +70,7 @@ public class SelectListTest {
 				, "bar"
 				);
 		SelectList list = new SelectList(input, indexProvider);
-		assertEquals("SELECT A0.ANNO_VALUE AS 'foo', A1.ANNO_VALUE AS 'bar'", list.toSql());
+		assertEquals("SELECT A0.STRING_VALUE AS 'foo', A1.STRING_VALUE AS 'bar'", list.toSql());
 		assertFalse(list.isSelectStar());
 	}
 	
@@ -82,7 +82,7 @@ public class SelectListTest {
 				, "foo"
 				);
 		SelectList list = new SelectList(input, indexProvider);
-		assertEquals("SELECT E.ID AS 'id', A1.ANNO_VALUE AS 'foo'", list.toSql());
+		assertEquals("SELECT E.ID AS 'id', A1.STRING_VALUE AS 'foo'", list.toSql());
 		assertFalse(list.isSelectStar());
 	}
 	

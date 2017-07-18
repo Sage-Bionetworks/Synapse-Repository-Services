@@ -64,6 +64,9 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			InstanceInfo instance = instances.get(0);
 			// Use the one instance to create a single connection pool
 			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
+			// ensure the index has the correct tables
+			TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
+			dao.createEntityReplicationTablesIfDoesNotExist();
 		}else{
 			log.debug("The table feature is disabled and cannot be used");
 		}
@@ -101,6 +104,9 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			template.update(CREATE_DATABASE+schema);
 			template.update(USE_DATABASE+schema);
 		}
+		// ensure the index has the correct tables
+		TableIndexDAOImpl dao = new TableIndexDAOImpl(singleConnectionPool);
+		dao.createEntityReplicationTablesIfDoesNotExist();
 	}
 
 	@Override

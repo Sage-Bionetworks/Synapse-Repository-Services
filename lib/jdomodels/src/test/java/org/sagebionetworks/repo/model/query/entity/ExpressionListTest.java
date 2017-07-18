@@ -44,7 +44,7 @@ public class ExpressionListTest {
 	@Test
 	public void testNodeFieldAndAnnotation(){
 		ExpressionList list = new ExpressionList(Lists.newArrayList(nodeExpression, annotationExpression), indexProvider);
-		assertEquals(" WHERE E.CREATED_BY = :"+bindKey0+" AND A1.ANNO_VALUE > :"+bindKey1,list.toSql());
+		assertEquals(" WHERE E.CREATED_BY = :"+bindKey0+" AND A1.STRING_VALUE > :"+bindKey1,list.toSql());
 	}
 	
 	@Test

@@ -27,7 +27,7 @@ public class SortListTest {
 	public void testSortAnnotation(){
 		boolean isAscending = true;
 		SortList sort = new SortList("foo", isAscending, indexProvider);
-		assertEquals(" ORDER BY A0.ANNO_VALUE ASC", sort.toSql());
+		assertEquals(" ORDER BY A0.STRING_VALUE ASC", sort.toSql());
 	}
 
 	@Test

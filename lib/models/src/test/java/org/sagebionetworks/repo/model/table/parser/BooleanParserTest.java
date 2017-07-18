@@ -15,25 +15,37 @@ public class BooleanParserTest {
 	}
 
 	@Test
-	public void testParseValueForDatabaseWriteTrue(){
-		Boolean expected = new Boolean(true);
-		Object objectValue = parser.parseValueForDatabaseWrite("true");
-		assertEquals(expected, objectValue);
+	public void testParseValueForDatabaseWrite(){
+		assertEquals(Boolean.TRUE, parser.parseValueForDatabaseWrite("True"));
+		assertEquals(Boolean.TRUE, parser.parseValueForDatabaseWrite("true"));
+		assertEquals(Boolean.FALSE, parser.parseValueForDatabaseWrite("FALSE"));
+		assertEquals(Boolean.FALSE, parser.parseValueForDatabaseWrite("false"));
 	}
 	
-	@Test
-	public void testParseValueForDatabaseWriteFalse(){
-		Boolean expected = new Boolean(false);
-		Object objectValue = parser.parseValueForDatabaseWrite("false");
-		assertEquals(expected, objectValue);
+	@Test (expected=IllegalArgumentException.class)
+	public void testParseValueForDatabaseWriteNonBoolean(){
+		parser.parseValueForDatabaseWrite("not a boolean");
 	}
 	
 	@Test
 	public void testParseValueForDatabaseReadTrue(){
 		assertEquals("false", parser.parseValueForDatabaseRead("0"));
-		assertEquals("false", parser.parseValueForDatabaseRead("false"));
 		assertEquals("true", parser.parseValueForDatabaseRead("1"));
-		assertEquals("true", parser.parseValueForDatabaseRead("true"));
+		assertEquals("false", parser.parseValueForDatabaseRead("False"));
+		assertEquals("true", parser.parseValueForDatabaseRead("True"));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testParseValueForDatabaseReadNonBoolean(){
+		parser.parseValueForDatabaseRead("not a boolean");
+	}
+	
+	@Test
+	public void testIsOfType(){
+		assertFalse(parser.isOfType("0"));
+		assertTrue(parser.isOfType("False"));
+		assertFalse(parser.isOfType("1"));
+		assertTrue(parser.isOfType("True"));
 	}
 	
 }

@@ -63,7 +63,6 @@ public class NodeQueryDaoV2ImplTest {
 		// create the dao from the connection.
 		nodeQueryDaoV2 = nodeQueryDaoFactory.createConnection();
 		tableIndexDao = connectionFactory.getFirstConnection();
-		tableIndexDao.createEntityReplicationTablesIfDoesNotExist();
 		// delete all data
 		tableIndexDao.deleteEntityData(mockProgressCallback, Lists.newArrayList(1L,2L,3L,4L,5L));
 		

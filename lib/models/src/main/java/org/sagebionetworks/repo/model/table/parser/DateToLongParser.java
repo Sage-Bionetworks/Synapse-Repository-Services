@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import org.sagebionetworks.repo.model.table.ValueParser;
 import org.sagebionetworks.util.TimeUtils;
 
-public class DateToLongParser implements ValueParser {
+public class DateToLongParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
+		if(value == null){
+			throw new IllegalArgumentException("Value cannot be null");
+		}
 		/*
 		 * Dates can be a long or string. Long is tried first, then the
 		 * string.

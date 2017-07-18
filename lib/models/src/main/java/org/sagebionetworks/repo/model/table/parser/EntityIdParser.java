@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.model.table.parser;
 
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ValueParser;
 
-public class EntityIdParser implements ValueParser {
+public class EntityIdParser extends AbstractValueParser {
 
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
+		if(value == null){
+			throw new IllegalArgumentException("Value cannot be null");
+		}
 		return KeyFactory.stringToKey(value);
 	}
 	

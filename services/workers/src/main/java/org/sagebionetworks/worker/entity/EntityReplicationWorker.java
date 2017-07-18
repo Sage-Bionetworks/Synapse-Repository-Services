@@ -103,7 +103,6 @@ public class EntityReplicationWorker implements BatchChangeMessageDrivenRunner {
 		List<TableIndexDAO> indexDaos = connectionFactory.getAllConnections();
 		// make all changes in an index as a transaction
 		for(TableIndexDAO indexDao: indexDaos){
-			indexDao.createEntityReplicationTablesIfDoesNotExist();
 			final TableIndexDAO indexDaoFinal = indexDao;
 			indexDao.executeInWriteTransaction(new TransactionCallback<Void>() {
 

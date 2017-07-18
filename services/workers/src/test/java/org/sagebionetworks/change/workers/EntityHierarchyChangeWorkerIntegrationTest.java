@@ -113,7 +113,6 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	public EntityDTO waitForEntityDto(String entityId) throws InterruptedException{
-		indexDao.createEntityReplicationTablesIfDoesNotExist();
 		long startTimeMS = System.currentTimeMillis();
 		while(true){
 			EntityDTO entityDto = indexDao.getEntityData(KeyFactory.stringToKey(entityId));

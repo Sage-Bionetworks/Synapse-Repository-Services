@@ -19,7 +19,7 @@ public class ColumnReferenceTest {
 		String annotationName = "foo";
 		int annotationIndex = 3;
 		ColumnReference lhs = new ColumnReference(annotationName, annotationIndex);
-		assertEquals("A3.ANNO_VALUE", lhs.toSql());
+		assertEquals("A3.STRING_VALUE", lhs.toSql());
 		assertEquals("A3", lhs.getAnnotationAlias());
 		assertEquals(new Integer(annotationIndex), lhs.getColumnIndex());
 	}

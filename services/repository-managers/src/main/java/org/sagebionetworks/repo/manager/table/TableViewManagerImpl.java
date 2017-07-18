@@ -186,7 +186,7 @@ public class TableViewManagerImpl implements TableViewManager {
 				if(values.containsKey(column.getId())){
 					updated = true;
 					// Match the column type to an annotation type.
-					AnnotationType type = SQLUtils.translateColumnType(column.getColumnType());
+					AnnotationType type = SQLUtils.translateColumnTypeToAnnotationType(column.getColumnType());
 					String value = values.get(column.getId());
 					if(value == null){
 						additional.deleteAnnotation(column.getName());

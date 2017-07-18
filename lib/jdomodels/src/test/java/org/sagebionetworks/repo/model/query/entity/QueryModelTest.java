@@ -48,7 +48,7 @@ public class QueryModelTest {
 		assertTrue(sql.contains("FROM ENTITY_REPLICATION"));
 		assertTrue(sql.contains("JOIN ANNOTATION_REPLICATION A2"));
 		assertTrue(sql.contains("WHERE E.CREATED_BY = :"));
-		assertTrue(sql.contains(" ORDER BY A3.ANNO_VALUE ASC"));
+		assertTrue(sql.contains(" ORDER BY A3.STRING_VALUE ASC"));
 		assertTrue(sql.contains("LIMIT :bLimit OFFSET :bOffset"));
 	}
 	
@@ -80,7 +80,7 @@ public class QueryModelTest {
 				+ " ON (E.ID = A2.ENTITY_ID AND A2.ANNO_KEY = :bJoinName2)"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A3"
 				+ " ON (E.ID = A3.ENTITY_ID AND A3.ANNO_KEY = :bJoinName3)"
-				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.ANNO_VALUE > :bExpressionValue2", count);
+				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.STRING_VALUE > :bExpressionValue2", count);
 	}
 	
 	@Test
@@ -94,7 +94,7 @@ public class QueryModelTest {
 				+ " ON (E.ID = A2.ENTITY_ID AND A2.ANNO_KEY = :bJoinName2)"
 				+ " LEFT JOIN ANNOTATION_REPLICATION A3"
 				+ " ON (E.ID = A3.ENTITY_ID AND A3.ANNO_KEY = :bJoinName3)"
-				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.ANNO_VALUE > :bExpressionValue2 LIMIT 101", count);
+				+ " WHERE E.CREATED_BY = :bExpressionValue1 AND A2.STRING_VALUE > :bExpressionValue2 LIMIT 101", count);
 	}
 
 }

@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -24,6 +25,7 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
@@ -34,6 +36,9 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.parser.AllLongTypeParser;
+import org.sagebionetworks.repo.model.table.parser.BooleanParser;
+import org.sagebionetworks.repo.model.table.parser.DoubleParser;
 import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -615,11 +620,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			public void setValues(PreparedStatement ps, int i)
 					throws SQLException {
 				AnnotationDTO dto = annotations.get(i);
-				int parameterIndex = 1;
-				ps.setLong(parameterIndex++, dto.getEntityId());
-				ps.setString(parameterIndex++, dto.getKey());
-				ps.setString(parameterIndex++, dto.getType().name());
-				ps.setString(parameterIndex++, dto.getValue());
+				SQLUtils.writeAnnotationDtoToPreparedStatement(ps, dto);
 			}
 
 			@Override
@@ -680,7 +681,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				dto.setEntityId(rs.getLong(ANNOTATION_REPLICATION_COL_ENTITY_ID));
 				dto.setKey(rs.getString(ANNOTATION_REPLICATION_COL_KEY));
 				dto.setType(AnnotationType.valueOf(rs.getString(ANNOTATION_REPLICATION_COL_TYPE)));
-				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_VALUE));
+				dto.setValue(rs.getString(ANNOTATION_REPLICATION_COL_STRING_VALUE));
 				return dto;
 			}}, entityId);
 		if(!annotations.isEmpty()){

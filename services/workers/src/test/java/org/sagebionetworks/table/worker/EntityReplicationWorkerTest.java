@@ -121,7 +121,6 @@ public class EntityReplicationWorkerTest {
 		// call under test
 		worker.run(mockPogressCallback, changes);
 		verify(mockNodeDao).getEntityDTOs(Lists.newArrayList("111", "222"), EntityReplicationWorker.MAX_ANNOTATION_CHARS);
-		verify(mockIndexDao).createEntityReplicationTablesIfDoesNotExist();
 		verify(mockIndexDao).deleteEntityData(any(ProgressCallback.class) ,eq(Lists.newArrayList(111L,222L,333L)));
 		verify(mockIndexDao).addEntityData(any(ProgressCallback.class) ,eq(entityData));
 		verifyZeroInteractions(mockWorkerLog);

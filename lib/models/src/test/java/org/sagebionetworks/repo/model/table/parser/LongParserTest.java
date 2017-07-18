@@ -13,6 +13,11 @@ public class LongParserTest {
 	public void before(){
 		parser = new LongParser();
 	}
+	
+	@Test (expected=NumberFormatException.class)
+	public void testParseValueForDatabaseWriteString(){
+		parser.parseValueForDatabaseWrite("a string");
+	}
 
 	@Test
 	public void testParseValueForDatabaseWrite(){
@@ -24,5 +29,13 @@ public class LongParserTest {
 	@Test
 	public void test(){
 		assertEquals("123", parser.parseValueForDatabaseRead("123"));
+	}
+	
+	@Test
+	public void testIsOfType(){
+		assertTrue(parser.isOfType("123"));
+		assertFalse(parser.isOfType("1.1"));
+		assertFalse(parser.isOfType("foo-bar"));
+		assertFalse(parser.isOfType(null));
 	}
 }
