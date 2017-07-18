@@ -1291,7 +1291,7 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.buildJoins(metaList, builder);
 		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON"
-				+ " (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'STRING')", builder.toString());
+				+ " (R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2')", builder.toString());
 	}
 	
 	@Test
@@ -1305,9 +1305,9 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.buildJoins(metaList, builder);
 		assertEquals(" LEFT OUTER JOIN ANNOTATION_REPLICATION A0 ON"
-				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A1 ON "
-				+ "(R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2' AND A1.ANNO_TYPE = 'LONG')", builder.toString());
+				+ "(R.ID = A1.ENTITY_ID AND A1.ANNO_KEY = 'col_2')", builder.toString());
 	}
 	
 	@Test
@@ -1323,7 +1323,7 @@ public class SQLUtilsTest {
 				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
 				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 	
@@ -1340,7 +1340,7 @@ public class SQLUtilsTest {
 				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1' AND A0.ANNO_TYPE = 'STRING')"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
 				+ " WHERE R.ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 
@@ -1359,7 +1359,7 @@ public class SQLUtilsTest {
 				+ " A0.DOUBLE_ABSTRACT AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
-				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation' AND A0.ANNO_TYPE = 'DOUBLE')"
+				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation')"
 				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
 	}
 	

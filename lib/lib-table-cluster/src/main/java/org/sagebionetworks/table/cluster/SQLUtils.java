@@ -1267,13 +1267,6 @@ public class SQLUtils {
 				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_KEY);
 				builder.append(" = '");
 				builder.append(meta.getColumnModel().getName());
-				builder.append("'");
-				builder.append(" AND ");
-				builder.append(meta.getTableAlias());
-				builder.append(".");
-				builder.append(TableConstants.ANNOTATION_REPLICATION_COL_TYPE);
-				builder.append(" = '");
-				builder.append(meta.getAnnotationType().name());
 				builder.append("')");
 			}
 		}
