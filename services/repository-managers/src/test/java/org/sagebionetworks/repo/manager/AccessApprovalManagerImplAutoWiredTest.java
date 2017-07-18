@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -271,8 +272,14 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		request.setAccessorChanges(accessorChanges);
 		request.setResearchProjectId(rp.getId());
 		request = requestManager.create(testUserInfo, (Request) request);
+
 		// submit
-		SubmissionStatus status = submissionManager.create(testUserInfo, request.getId(), request.getEtag());
+		CreateSubmissionRequest csRequest = new CreateSubmissionRequest();
+		csRequest.setRequestId(request.getId());
+		csRequest.setRequestEtag(request.getEtag());
+		csRequest.setSubjectId(nodeAId);
+		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
+		SubmissionStatus status = submissionManager.create(testUserInfo, csRequest);
 
 		// approve
 		SubmissionStateChangeRequest sscr = new SubmissionStateChangeRequest();
@@ -303,7 +310,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(AccessType.RENEW_ACCESS, ac.getType());
 		request = requestManager.update(testUserInfo, request);
 		// submit
-		status = submissionManager.create(testUserInfo, request.getId(), request.getEtag());
+		csRequest.setRequestEtag(request.getEtag());
+		status = submissionManager.create(testUserInfo, csRequest);
 
 		// approve
 		sscr = new SubmissionStateChangeRequest();

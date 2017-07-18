@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequ
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -2799,12 +2800,11 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Submit a submission
 	 * 
-	 * @param requestId
-	 * @param etag
+	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
-	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus submitRequest(String requestId, String etag) throws SynapseException;
+	org.sagebionetworks.repo.model.dataaccess.SubmissionStatus submitRequest(CreateSubmissionRequest request) throws SynapseException;
 
 	/**
 	 * Cancel a submission.

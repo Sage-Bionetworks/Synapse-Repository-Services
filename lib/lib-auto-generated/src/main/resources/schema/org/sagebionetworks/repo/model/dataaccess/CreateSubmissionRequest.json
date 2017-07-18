@@ -1,0 +1,21 @@
+{
+	"description": "A request to create a Submission.",
+	"properties": {
+		"requestId":{
+			"type": "string",
+			"description": "The ID of a Request to create the Submission from."
+		},
+		"requestEtag":{
+			"type": "string",
+			"description": "The current etag of the request."
+		},
+		"subjectId":{
+			"type": "string",
+			"description": "The ID of the subject user interested in. This information will be used to help user navigate back to where they were to continue their work."
+		},
+		"subjectType":{
+			"$ref":"org.sagebionetworks.repo.model.RestrictableObjectType",
+			"description": "The type of the subject user interested in. This information will be used to help user navigate back to where they were to continue their work."
+		}
+	}
+}

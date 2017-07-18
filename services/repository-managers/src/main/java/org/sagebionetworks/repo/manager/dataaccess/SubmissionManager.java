@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 
 public interface SubmissionManager {
@@ -15,11 +16,10 @@ public interface SubmissionManager {
 	 * Create a submission
 	 * 
 	 * @param userInfo
-	 * @param requestId
-	 * @param etag 
+	 * @param request
 	 * @return
 	 */
-	public SubmissionStatus create(UserInfo userInfo, String requestId, String etag);
+	public SubmissionStatus create(UserInfo userInfo, CreateSubmissionRequest request);
 
 	/**
 	 * Cancel a submission.

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.BasicAccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -111,6 +113,8 @@ public class SubmissionManagerImplTest {
 	private String submissionId;
 	private String etag;
 	private Submission submission;
+	private CreateSubmissionRequest csRequest;
+	private String subjectId;
 
 	@Before
 	public void before() {
@@ -176,7 +180,7 @@ public class SubmissionManagerImplTest {
 				.thenReturn(mockSubmissionStatus);
 		when(mockSubmissionStatus.getSubmissionId()).thenReturn(submissionId);
 		when(mockAccessApprovalDao.hasApprovalsSubmittedBy(accessorIds, userId, accessRequirementId)).thenReturn(true);
-		
+
 		submission = new Submission();
 		submission.setRequestId(requestId);
 		submission.setSubmittedBy(userId);
@@ -188,45 +192,72 @@ public class SubmissionManagerImplTest {
 		submission.setAccessRequirementVersion(accessRequirementVersion);
 		submission.setResearchProjectSnapshot(mockResearchProject);
 		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+
+		subjectId = "syn987";
+		csRequest = new CreateSubmissionRequest();
+		csRequest.setRequestId(requestId);
+		csRequest.setRequestEtag(etag);
+		csRequest.setSubjectId(subjectId);
+		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullUserInfo() {
-		manager.create(null, requestId, etag);
+		manager.create(null, csRequest);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithNullRequesto() {
+		manager.create(mockUser, null);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullRequestID() {
-		manager.create(mockUser, null, etag);
+		csRequest.setRequestId(null);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullEtag() {
-		manager.create(mockUser, requestId, null);
+		csRequest.setRequestEtag(null);
+		manager.create(mockUser, csRequest);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithNullSubjectId() {
+		csRequest.setSubjectId(null);
+		manager.create(mockUser, csRequest);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateWithNullSubjectType() {
+		csRequest.setSubjectType(null);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithOutdatedEtag() {
+		csRequest.setRequestEtag("outdated etag");
 		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId, "outdated etag");
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNonExistRequest() {
 		when(mockRequestManager.getRequestForSubmission(requestId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNotExistResearchProject() {
 		when(mockResearchProjectDao.get(researchProjectId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullAccessRequirementID() {
 		request.setAccessRequirementId(null);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -234,73 +265,73 @@ public class SubmissionManagerImplTest {
 		when(mockSubmissionDao.hasSubmissionWithState(
 				userId, accessRequirementId, SubmissionState.SUBMITTED))
 				.thenReturn(true);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = NotFoundException.class)
 	public void testCreateWithNotExistAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNonACTAccessRequirement() {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithDUCRequired() {
 		request.setDucFileHandleId(null);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithIRBRequired() {
 		request.setIrbFileHandleId(null);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithAttachmentsRequiredAndNullList() {
 		request.setAttachments(null);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithAttachmentsRequiredAndEmptyList() {
 		request.setAttachments(new LinkedList<String>());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithNullAccessors() {
 		request.setAccessorChanges(null);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithEmptyAccessorList() {
 		request.setAccessorChanges(new LinkedList<AccessorChange>());
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithAccessorRequirementNotSatisfied() {
 		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager).validateHasAccessorRequirement(mockAccessRequirement, accessorIds);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithSubmitterIsNotAccessor() {
 		when(mockUser.getId()).thenReturn(2L);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateWithRenewAccessorUserDidNotSubmit() {
 		when(mockAccessApprovalDao.hasApprovalsSubmittedBy(accessorIds, userId, accessRequirementId)).thenReturn(false);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -313,12 +344,12 @@ public class SubmissionManagerImplTest {
 		accesorChange2.setType(AccessType.RENEW_ACCESS);
 		accessors = Arrays.asList(accesorChange, accesorChange2);
 		request.setAccessorChanges(accessors);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 	}
 
 	@Test
 	public void testCreate() {
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 		ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 		verify(mockSubmissionDao).createSubmission(submissionCaptor.capture());
 		Submission captured = submissionCaptor.getValue();
@@ -356,7 +387,7 @@ public class SubmissionManagerImplTest {
 		request.setAccessorChanges(accessors);
 		request.setEtag(etag);
 		when(mockRequestManager.getRequestForSubmission(requestId)).thenReturn(request);
-		manager.create(mockUser, requestId, etag);
+		manager.create(mockUser, csRequest);
 		ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 		verify(mockSubmissionDao).createSubmission(submissionCaptor.capture());
 		Submission captured = submissionCaptor.getValue();

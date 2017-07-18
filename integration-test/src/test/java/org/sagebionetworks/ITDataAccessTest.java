@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -154,7 +155,12 @@ public class ITDataAccessTest {
 		createdRequest.setAccessorChanges(Arrays.asList(adminChange, userChange));
 		Request updatedRequest = (Request) synapseOne.createOrUpdateRequest(createdRequest);
 
-		SubmissionStatus status = synapseOne.submitRequest(updatedRequest.getId(), updatedRequest.getEtag());
+		CreateSubmissionRequest csRequest = new CreateSubmissionRequest();
+		csRequest.setRequestId(updatedRequest.getId());
+		csRequest.setRequestEtag(updatedRequest.getEtag());
+		csRequest.setSubjectId(project.getId());
+		csRequest.setSubjectType(RestrictableObjectType.ENTITY);
+		SubmissionStatus status = synapseOne.submitRequest(csRequest);
 		assertNotNull(status);
 
 		AccessRequirementStatus arStatus = synapseOne.getAccessRequirementStatus(managedAR.getId().toString());

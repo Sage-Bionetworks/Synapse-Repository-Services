@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -57,9 +58,9 @@ public class DataAccessServiceImpl implements DataAccessService{
 	}
 
 	@Override
-	public SubmissionStatus submit(Long userId, String requestId, String etag) {
+	public SubmissionStatus submit(Long userId, CreateSubmissionRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
-		return dataAccessSubmissionManager.create(user, requestId, etag);
+		return dataAccessSubmissionManager.create(user, request);
 	}
 
 	@Override
