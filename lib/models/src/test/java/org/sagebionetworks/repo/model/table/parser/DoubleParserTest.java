@@ -15,6 +15,11 @@ public class DoubleParserTest {
 	public void before(){
 		parser = new DoubleParser();
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testParserValueForDatabaseWriteNull(){
+		parser.parseValueForDatabaseWrite(null);
+	}
 
 	@Test
 	public void testParseValueForDatabaseWrite(){
