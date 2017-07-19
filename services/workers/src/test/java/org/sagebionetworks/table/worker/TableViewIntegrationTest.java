@@ -131,6 +131,9 @@ public class TableViewIntegrationTest {
 	
 	ColumnModel etagColumn;
 	ColumnModel anno1Column;
+	ColumnModel booleanColumn;
+	ColumnModel stringColumn;
+	ColumnModel entityIdColumn;
 	
 	@Before
 	public void before(){
@@ -194,6 +197,22 @@ public class TableViewIntegrationTest {
 			}
 			defaultColumnIds.add(cm.getId());
 		}
+		
+		booleanColumn = new ColumnModel();
+		booleanColumn.setName("aBoolean");
+		booleanColumn.setColumnType(ColumnType.BOOLEAN);
+		booleanColumn = columnModelManager.createColumnModel(adminUserInfo, booleanColumn);
+		
+		stringColumn = new ColumnModel();
+		stringColumn.setName("aString");
+		stringColumn.setColumnType(ColumnType.STRING);
+		stringColumn.setMaximumSize(50L);
+		stringColumn = columnModelManager.createColumnModel(adminUserInfo, stringColumn);
+		
+		entityIdColumn = new ColumnModel();
+		entityIdColumn.setName("anEntityId");
+		entityIdColumn.setColumnType(ColumnType.ENTITYID);
+		entityIdColumn = columnModelManager.createColumnModel(adminUserInfo, entityIdColumn);
 	}
 
 	/**
@@ -685,6 +704,133 @@ public class TableViewIntegrationTest {
 		// If the query returns a single row, then the deleted data was restored.
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 	}
+	
+	/**
+	 * For PLFM-4446, users want to add boolean annotation with 'true' and 'false'
+	 * and view the annotations with a column of type boolean.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_4446() throws Exception{
+		// Add 'boolean' annotations to each file
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(booleanColumn.getName(), "true");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(booleanColumn.getName(), "false");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		// two
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(booleanColumn.getName(),"");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(booleanColumn.getId());
+		createFileView();
+		
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		String sql = "select "+booleanColumn.getName()+" from "+fileViewId;
+		int rowCount = 3;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows  = extractRows(results);
+		assertEquals(3, rows.size());
+		assertEquals("true", rows.get(0).getValues().get(0));
+		assertEquals("false", rows.get(1).getValues().get(0));
+		assertEquals(null, rows.get(2).getValues().get(0));
+	}
+	
+	/**
+	 * Part of PLFM-4521 states that viewing a 'Float point' annotation with a string column
+	 * shows a null even when the value is not null.  This is unexpected, as any annotation
+	 * type should be visible as a string.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_4521FloatToString() throws Exception{
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		// save a double with the string name
+		annos.addAnnotation(stringColumn.getName(), 1.3);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), "not a double");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		// two
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), "");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
+		createFileView();
+		
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		String sql = "select "+stringColumn.getName()+" from "+fileViewId;
+		int rowCount = 3;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows  = extractRows(results);
+		assertEquals(3, rows.size());
+		assertEquals("1.3", rows.get(0).getValues().get(0));
+		assertEquals("not a double", rows.get(1).getValues().get(0));
+		assertEquals("", rows.get(2).getValues().get(0));
+	}
+	
+	/**
+	 * Part of PLFM-4521 states that a non-entity ID string annotation breaks a view that includes 
+	 * a column of type entity ID.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_4521StringToEntityId() throws Exception{
+		// Add 'boolean' annotations to each file
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		// save a double with the string name
+		annos.addAnnotation(entityIdColumn.getName(), "syn123");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		// a long can be used as an entity ID.
+		annos.addAnnotation(entityIdColumn.getName(), 456L);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		// two
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(entityIdColumn.getName(), "");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(entityIdColumn.getId());
+		createFileView();
+		
+		// This query should trigger the reconciliation to repair the lost data.
+		// If the query returns a single row, then the deleted data was restored.
+		String sql = "select "+entityIdColumn.getName()+" from "+fileViewId;
+		int rowCount = 3;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+		List<Row> rows  = extractRows(results);
+		assertEquals(3, rows.size());
+		assertEquals("syn123", rows.get(0).getValues().get(0));
+		assertEquals("syn456", rows.get(1).getValues().get(0));
+		assertEquals(null, rows.get(2).getValues().get(0));
+	}
+	
 	/**
 	 * Helper to get the rows from a query.
 	 * 

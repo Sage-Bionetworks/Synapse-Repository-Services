@@ -8,7 +8,7 @@ public class DoubleParser extends AbstractValueParser {
 	@Override
 	public Object parseValueForDatabaseWrite(String value) throws IllegalArgumentException {
 		if(value == null){
-			return null;
+			throw new IllegalArgumentException("For input string: \""+value+"\"");
 		}
 		try {
 			return Double.parseDouble(value);
