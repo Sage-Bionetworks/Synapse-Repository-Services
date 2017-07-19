@@ -2,7 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.*;
 
-import java.sql.Date;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
@@ -829,6 +830,84 @@ public class TableViewIntegrationTest {
 		assertEquals("syn123", rows.get(0).getValues().get(0));
 		assertEquals("syn456", rows.get(1).getValues().get(0));
 		assertEquals(null, rows.get(2).getValues().get(0));
+	}
+	
+	/**
+	 * For PLFM-4517 updating file entity annotations using a view update 
+	 * would add duplicate annotations with the same name but different type.
+	 * Duplicate annotation names are no longer supported.  Therefore, updates
+	 * to annotations using a view should replace annotations, not add duplicates.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testPLFM_4517() throws Exception{
+		// Add various types of annotations with the same name to the files in the view.
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), 1.23);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// two
+		fileId = fileIds.get(1);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), 456L);
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		// three
+		fileId = fileIds.get(2);
+		annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), new Date(789));
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// Create the view
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId(), etagColumn.getId());
+		createFileView();
+		
+		// Query for the values as strings.
+		String sql = "select "+stringColumn.getName()+", "+etagColumn.getName()+" from "+fileViewId;
+		int rowCount = 3;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, rowCount);
+
+		List<Row> rows  = extractRows(results);
+		assertEquals(3, rows.size());
+		assertEquals("1.23", rows.get(0).getValues().get(0));
+		assertEquals("456", rows.get(1).getValues().get(0));
+		assertEquals("789", rows.get(2).getValues().get(0));
+		
+		// use the results to update the annotations.
+		RowSet rowSet = results.getQueryResult().getQueryResults();
+		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+		assertEquals(3, updates.size());
+		// all of the update should have succeeded.
+		for(EntityUpdateResult eur: updates){
+			assertEquals(null, eur.getFailureMessage());
+			assertEquals(null, eur.getFailureCode());
+		}
+
+	}
+	
+	/**
+	 * Helper to update a view using a result set.
+	 * @param rowSet
+	 * @param viewId
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public List<EntityUpdateResult> updateView(RowSet rowSet, String viewId) throws InterruptedException{
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(viewId);
+		appendRequest.setToAppend(rowSet);
+		List<TableUpdateRequest> updates = new LinkedList<TableUpdateRequest>();
+		updates.add(appendRequest);
+		TableUpdateTransactionRequest tutr = new TableUpdateTransactionRequest();
+		tutr.setEntityId(viewId);
+		tutr.setChanges(updates);
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, tutr, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		EntityUpdateResults updateResults = (EntityUpdateResults)response.getResults().get(0);
+		assertNotNull(updateResults.getUpdateResults());
+		return updateResults.getUpdateResults();
 	}
 	
 	/**
