@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -308,6 +309,27 @@ public class TableViewManagerImplTest {
 		values.put(anno2.getId(), "123");
 		// call under test
 		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		assertTrue(updated);
+		assertEquals("aString",annos.getSingleValue(anno1.getName()));
+		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
+		// etag should not be included.
+		assertNull(annos.getSingleValue(EntityField.etag.name()));
+	}
+	
+	@Test
+	public void testUpdateAnnotationsFromValuesSameNameDifferntType(){
+		Annotations annos = new Annotations();
+		annos.addAnnotation(anno1.getName(), 456L);
+		annos.addAnnotation(anno2.getName(), "not a long");
+		// update the values.
+		Map<String, String> values = new HashMap<>();
+		values.put(EntityField.etag.name(), "anEtag");
+		values.put(anno1.getId(), "aString");
+		values.put(anno2.getId(), "123");
+		// call under test
+		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		// the resulting annotations must be valid.
+		AnnotationUtils.validateAnnotations(annos);
 		assertTrue(updated);
 		assertEquals("aString",annos.getSingleValue(anno1.getName()));
 		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));

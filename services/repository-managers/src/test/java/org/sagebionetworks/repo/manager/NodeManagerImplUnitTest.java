@@ -88,6 +88,7 @@ public class NodeManagerImplUnitTest {
 	EntityType type;
 	Set<EntityType> entityTypesWithCountLimits;
 	String newEtag;
+	Annotations annos;
 	
 	@Before
 	public void before() throws Exception {
@@ -129,6 +130,10 @@ public class NodeManagerImplUnitTest {
 		when(mockActivityManager.doesActivityExist(anyString())).thenReturn(true);
 		
 		when(mockNodeDao.lockNodeAndIncrementEtag(anyString(), anyString(), any(ChangeType.class))).thenReturn(newEtag);
+		
+		annos = new Annotations();
+		annos.setEtag("etag");
+		annos.addAnnotation("key", "value");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -913,5 +918,18 @@ public class NodeManagerImplUnitTest {
 		nodeManager.validateChildCount(parentId, type);
 		// no check should occur for a create in root
 		verify(mockNodeDao, never()).getChildCount(anyString());
+	}
+	
+	@Test
+	public void testUpdateValidateAnnotations(){
+		nodeManager.validateAnnotations(annos);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testUpdateValidateAnnotationsDuplicateName(){
+		// two annotations with the same name but different type.
+		annos.addAnnotation("one", "value");
+		annos.addAnnotation("one", 1.2);
+		nodeManager.validateAnnotations(annos);
 	}
 }

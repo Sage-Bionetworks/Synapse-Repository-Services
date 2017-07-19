@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.SortBy;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
-import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
+import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -487,7 +487,7 @@ public class NodeManagerImpl implements NodeManager {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 		// Validate the annotation names
-		FieldTypeCache.validateAnnotations(updated);
+		AnnotationUtils.validateAnnotations(updated);
 	}
 
 	@Override
