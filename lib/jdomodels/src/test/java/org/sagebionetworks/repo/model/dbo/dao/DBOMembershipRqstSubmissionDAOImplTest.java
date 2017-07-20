@@ -200,6 +200,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		// OK
 		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
 		assertEquals(1, mrList.size());
+		assertNotNull(mrList.get(0).getCreatedOn());
 		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, (new Date()).getTime()));
 	}
 

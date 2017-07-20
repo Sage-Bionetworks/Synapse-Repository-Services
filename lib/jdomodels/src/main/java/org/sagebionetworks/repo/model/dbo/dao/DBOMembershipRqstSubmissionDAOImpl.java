@@ -158,6 +158,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 			mr.setUserId(""+rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID));
 			mr.setTeamId(""+rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID));
 			mr.setExpiresOn(new Date(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON)));
+			mr.setCreatedOn(new Date(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_CREATED_ON)));
 
 			Blob mrsProperties = rs.getBlob(COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES);
 			MembershipRqstSubmission mrs = MembershipRqstSubmissionUtils.deserialize(mrsProperties.getBytes(1, (int) mrsProperties.length()));
