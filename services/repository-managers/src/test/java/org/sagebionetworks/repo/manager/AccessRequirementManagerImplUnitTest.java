@@ -137,19 +137,6 @@ public class AccessRequirementManagerImplUnitTest {
 	}
 
 	@Test (expected = IllegalArgumentException.class)
-	public void testCreateARForEvaluation() {
-		ACTAccessRequirement toCreate = new ACTAccessRequirement();
-		toCreate.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		toCreate.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(TEST_ENTITY_ID);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		toCreate.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		AccessRequirementManagerImpl.populateCreationFields(userInfo, toCreate);
-		arm.createAccessRequirement(userInfo, toCreate);
-	}
-
-	@Test (expected = IllegalArgumentException.class)
 	public void testCreatePostMessageContentAccessRequirement() {
 		arm.createAccessRequirement(userInfo, new PostMessageContentAccessRequirement());
 	}
@@ -925,5 +912,64 @@ public class AccessRequirementManagerImplUnitTest {
 		assertNotNull(response);
 		assertEquals(subjects, response.getSubjects());
 		assertNull(response.getNextPageToken());
+	}
+
+	@Test
+	public void testDetermineObjectType() {
+		assertEquals(RestrictableObjectType.ENTITY, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.DOWNLOAD));
+		assertEquals(RestrictableObjectType.TEAM, AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.PARTICIPATE));
+		try {
+			AccessRequirementManagerImpl.determineObjectType(ACCESS_TYPE.UPLOAD);
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateAccessRequirementWillNullAccessType() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setAccessType(null);
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateAccessRequirementWillNullSubjectIds() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setSubjectIds(null);
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateAccessRequirementForPostMessageContentAccessRequirement() {
+		AccessRequirement ar = new PostMessageContentAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateAccessRequirementDownloadOnTeam() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		ar.setSubjectIds(Arrays.asList(rod));
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testValidateAccessRequirementParticipateOnEntity() {
+		AccessRequirement ar = createExpectedAR();
+		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(rod));
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test 
+	public void testValidateAccessRequirement() {
+		AccessRequirement ar = createExpectedAR();
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
 	}
 }

@@ -71,12 +71,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.required(ar.getSubjectIds(), "AccessRequirement.subjectIds");
 		ValidateArgument.requirement(!ar.getConcreteType().equals(PostMessageContentAccessRequirement.class.getName()),
 				"No longer support PostMessageContentAccessRequirement.");
-		ValidateArgument.requirement(ar.getAccessType() == ACCESS_TYPE.DOWNLOAD
-				|| ar.getAccessType() == ACCESS_TYPE.PARTICIPATE,
-				"Not support creating AccessRequirement with AccessType: "+ar.getAccessType());
+		RestrictableObjectType expecitingObjectType = determineObjectType(ar.getAccessType());
 		for (RestrictableObjectDescriptor rod : ar.getSubjectIds()) {
-			ValidateArgument.requirement(!rod.getType().equals(RestrictableObjectType.EVALUATION),
-					"No longer support RestrictableObjectType.EVALUATION");
+			ValidateArgument.requirement(rod.getType().equals(expecitingObjectType),
+					"Cannot apply AccessRequirement with AccessType "+ar.getAccessType().name()+" to an object of type "+rod.getType().name());
+		}
+	}
+
+	public static RestrictableObjectType determineObjectType(ACCESS_TYPE accessType) {
+		switch(accessType) {
+			case DOWNLOAD:
+				return RestrictableObjectType.ENTITY;
+			case PARTICIPATE:
+				return RestrictableObjectType.TEAM;
+			default:
+				throw new IllegalArgumentException("Not support creating AccessRequirement with AccessType: "+accessType.name());
 		}
 	}
 
