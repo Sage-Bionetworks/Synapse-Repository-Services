@@ -69,12 +69,9 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	@Override
-	public AccessRequirement getAccessRequirement(
-			Long userId, String requirementId)
-			throws DatastoreException, UnauthorizedException,
-			NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return accessRequirementManager.getAccessRequirement(userInfo, requirementId);
+	public AccessRequirement getAccessRequirement(String requirementId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		return accessRequirementManager.getAccessRequirement(requirementId);
 	}
 
 
@@ -111,9 +108,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 
 	@Override
-	public RestrictableObjectDescriptorResponse getSubjects(Long userId, String requirementId, String nextPageToken) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return accessRequirementManager.getSubjects(userInfo, requirementId, nextPageToken);
+	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken) {
+		return accessRequirementManager.getSubjects(requirementId, nextPageToken);
 	}
 
 }

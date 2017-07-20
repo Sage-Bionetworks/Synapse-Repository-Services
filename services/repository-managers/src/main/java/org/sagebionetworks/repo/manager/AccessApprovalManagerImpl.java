@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirementInterface;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -91,6 +92,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		ValidateArgument.requirement(
+				!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(accessApproval.getAccessorId()),
+				"Cannot create an AccessApproval for anonymous user.");
 		if (ar instanceof HasAccessorRequirement) {
 			authorizationManager.validateHasAccessorRequirement((HasAccessorRequirement) ar,
 					Sets.newHashSet(accessApproval.getAccessorId()));

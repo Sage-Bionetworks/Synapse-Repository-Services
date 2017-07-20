@@ -23,10 +23,8 @@ public interface AccessRequirementService {
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
 	
-	public AccessRequirement getAccessRequirement(
-			Long userId, String requirementId)
-			throws DatastoreException, UnauthorizedException,
-			NotFoundException;
+	public AccessRequirement getAccessRequirement(String requirementId)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
 			Long userId, RestrictableObjectDescriptor subjectId, Long limit, Long offset)
@@ -43,6 +41,6 @@ public interface AccessRequirementService {
 
 	public AccessRequirement convertAccessRequirements(Long userId, AccessRequirementConversionRequest request);
 
-	public RestrictableObjectDescriptorResponse getSubjects(Long userId, String requirementId, String nextPageToken);
+	public RestrictableObjectDescriptorResponse getSubjects(String requirementId, String nextPageToken);
 
 }

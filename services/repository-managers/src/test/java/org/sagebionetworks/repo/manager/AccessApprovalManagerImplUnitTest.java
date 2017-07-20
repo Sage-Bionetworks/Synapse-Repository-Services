@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
@@ -248,6 +249,16 @@ public class AccessApprovalManagerImplUnitTest {
 		when(mockAccessRequirementDAO.get("1")).thenReturn(req);
 		doThrow(new IllegalArgumentException()).when(mockAuthorizationManager)
 				.validateHasAccessorRequirement(any(HasAccessorRequirement.class), anySet());
+		manager.createAccessApproval(userInfo, accessApproval);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testCreateAccessApprovalForAnonymous() {
+		AccessApproval accessApproval = new AccessApproval();
+		accessApproval.setRequirementId(1L);
+		accessApproval.setAccessorId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		manager.createAccessApproval(userInfo, accessApproval);
 	}
 

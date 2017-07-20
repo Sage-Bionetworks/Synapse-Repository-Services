@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * These services manage the Access Requirements/Restrictions (ARs) which may be placed on Entities,
- * Evaluation queues, or Teams.  An Access Requirement specifies the type of access being restricted as well
+ * or Teams.  An Access Requirement specifies the type of access being restricted as well
  * as how the requirement is fulfilled. 
  * <p>
  * ARs complement Access Control Lists (ACLs) for managing access to Synapse objects.
@@ -70,7 +70,7 @@ public class AccessRequirementController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Add an Access Requirement to an Entity, Evaluation queue, or Team.  
+	 * Add an Access Requirement to an Entity, or Team.  
 	 * This service may only be used by the Synapse Access and Compliance Team.
 	 * @param userId
 	 * @param accessRequirement the Access Requirement to create
@@ -86,9 +86,8 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}	
 	/**
-	 * Get an Access Requirement to an Entity, Evaluation queue, or Team based on its ID.  
+	 * Get an Access Requirement to an Entity, or Team based on its ID.  
 	 * 
-	 * @param userId
 	 * @param requirementId
 	 * @return
 	 * @throws DatastoreException
@@ -100,10 +99,9 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	AccessRequirement 
 	getAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {	
-		return serviceProvider.getAccessRequirementService().getAccessRequirement(userId, requirementId);
+		return serviceProvider.getAccessRequirementService().getAccessRequirement(requirementId);
 	}
 
 	/**
@@ -294,7 +292,6 @@ public class AccessRequirementController extends BaseController {
 	/**
 	 * Retrieve a page of subjects for a given Access Requirement ID.
 	 * 
-	 * @param userId
 	 * @param requirementId
 	 * @param nextPageToken
 	 * @return
@@ -302,9 +299,8 @@ public class AccessRequirementController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS, method = RequestMethod.GET)
 	public @ResponseBody RestrictableObjectDescriptorResponse getSubjects(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId,
 			@RequestParam(value = "nextPageToken", required = false) String nextPageToken) {
-		return serviceProvider.getAccessRequirementService().getSubjects(userId, requirementId, nextPageToken);
+		return serviceProvider.getAccessRequirementService().getSubjects(requirementId, nextPageToken);
 	}
 }
