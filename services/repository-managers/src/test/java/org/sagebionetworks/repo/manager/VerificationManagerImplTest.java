@@ -16,14 +16,14 @@ import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUBMITTED;
 import static org.sagebionetworks.repo.model.verification.VerificationStateEnum.SUSPENDED;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.lang.IllegalArgumentException;
+
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
@@ -162,6 +162,17 @@ public class VerificationManagerImplTest {
 		assertEquals(FILE_HANDLE_ID, verificationSubmission.getAttachments().get(0).getId());
 		assertEquals(FILE_NAME, verificationSubmission.getAttachments().get(0).getFileName());
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(USER_ID.toString(), ObjectType.VERIFICATION_SUBMISSION, "etag", ChangeType.CREATE);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateVerificationSubmissionDuplicateAttachment() throws Exception {
+		// Duplicate attachment
+		AttachmentMetadata attachment = verificationSubmission.getAttachments().get(0);
+		List<AttachmentMetadata> attachments = Arrays.asList(attachment, attachment);
+		verificationSubmission.setAttachments(attachments);
+		// Call under test
+		verificationSubmission = verificationManager.
+				createVerificationSubmission(userInfo, verificationSubmission);
 	}
 	
 	@Test
