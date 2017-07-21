@@ -146,27 +146,6 @@ public class DBOVerificationDAOImplTest {
 		assertEquals(dto, created);
 	}
 
-//	PLFM-4520: Verify root cause
-	@Test(expected=org.sagebionetworks.repo.model.DatastoreException.class)
-	public void testCreateWithDuplicateHandles() throws Exception {
-		FileHandle fh1 = createFileHandle(USER_1_ID);
-		FileHandle fh2 = fh1;
-		List<String> fileHandleIds =Arrays.asList(fh1.getId(), fh2.getId());
-		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, fileHandleIds);
-		VerificationSubmission created = verificationDao.createVerificationSubmission(dto);
-		assertNotNull(created.getId());
-		vsToDelete.add(created.getId());
-		List<VerificationState> states = created.getStateHistory();
-		assertEquals(1, states.size());
-		VerificationState state = states.get(0);
-		assertEquals(USER_1_ID, state.getCreatedBy());
-		assertNotNull(state.getCreatedOn());
-		assertEquals(VerificationStateEnum.SUBMITTED, state.getState());
-		// now 'null out' the history.  it should match the submitted object
-		created.setStateHistory(null);
-		assertEquals(dto, created);
-	}
-
 	@Test
 	public void testCreateNoFiles() throws Exception {
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);
