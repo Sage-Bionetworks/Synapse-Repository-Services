@@ -19,6 +19,12 @@
 			"format": "date-time",
 			"description": "The date this MembershipRequest expires.",
 			"title": "Expires On"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipRequest was created.",
+			"title": "Created On"
 		}
 	}
 }
