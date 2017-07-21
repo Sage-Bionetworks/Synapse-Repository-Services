@@ -145,7 +145,7 @@ public class DBOVerificationDAOImplTest {
 		created.setStateHistory(null);
 		assertEquals(dto, created);
 	}
-	
+
 	@Test
 	public void testCreateNoFiles() throws Exception {
 		VerificationSubmission dto = newVerificationSubmission(USER_1_ID, null);

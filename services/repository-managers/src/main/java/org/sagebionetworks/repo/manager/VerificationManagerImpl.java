@@ -109,8 +109,12 @@ public class VerificationManagerImpl implements VerificationManager {
 				getOrcid(userInfo.getId()));
 		// 		User must be owner of file handle Ids
 		if (verificationSubmission.getAttachments()!=null) {
+			Set<String> fileHandleIds = new HashSet<>();
 			for (AttachmentMetadata attachmentMetadata : verificationSubmission.getAttachments()) {
 				String fileHandleId = attachmentMetadata.getId();
+				if (! fileHandleIds.add(fileHandleId)) {
+					throw new IllegalArgumentException("Duplicate file handle: " + fileHandleId);
+				}
 				// this will throw an UnauthorizedException if the user is not the owner
 				FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileHandleId);
 				// now fill in the file metadata
