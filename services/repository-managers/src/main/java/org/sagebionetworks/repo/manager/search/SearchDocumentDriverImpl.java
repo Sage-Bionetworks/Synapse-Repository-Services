@@ -333,18 +333,19 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	static void addAnnotationToSearchDocument(DocumentFields fields,
 			String key, Object value) {
+		String stringValue = value == null ? null : value.toString();
 		if (DISEASE_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
-			fields.getDisease().add((String) value);
+			fields.getDisease().add(stringValue);
 		} else if (TISSUE_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getTissue().size()) {
-			fields.getTissue().add((String) value);
+			fields.getTissue().add(stringValue);
 		} else if (SPECIES_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getSpecies().size()) {
-			fields.getSpecies().add((String) value);
+			fields.getSpecies().add(stringValue);
 		} else if (PLATFORM_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getPlatform().size()) {
-			fields.getPlatform().add((String) value);
+			fields.getPlatform().add(stringValue);
 		} else if (NUM_SAMPLES_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getNum_samples().size()) {
 			if (value instanceof Long) {
@@ -352,7 +353,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			} else if (value instanceof String) {
 				try {
 					fields.getNum_samples().add(
-							Long.valueOf(((String) value).trim()));
+							Long.valueOf((stringValue).trim()));
 				} catch (NumberFormatException e) {
 					// swallow this exception, this is just a best-effort
 					// attempt to push more annotations into search
