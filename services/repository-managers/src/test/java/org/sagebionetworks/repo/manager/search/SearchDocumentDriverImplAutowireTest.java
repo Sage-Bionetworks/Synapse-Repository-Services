@@ -200,6 +200,8 @@ public class SearchDocumentDriverImplAutowireTest {
 		additionalAnnos.addAnnotation("number_of_samples", "42");
 		additionalAnnos.addAnnotation("Tissue_Tumor", "ear lobe");
 		additionalAnnos.addAnnotation("platform", "synapse");
+		// PLFM-4438
+		additionalAnnos.addAnnotation("disease", 1L);
 		Date dateValue = new Date();
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos
