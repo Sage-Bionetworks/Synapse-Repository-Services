@@ -109,6 +109,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * permission from its containing Project and it will become its own benefactor.
  * </p>
  * <p>
+ * While creating or updating an ACL, only Certified Users can add DOWNLOAD permission
+ * for Authenticated Users group.
+ * </p>
+ * <p>
  * For the case where a Folder or FileEntity no longer needs its own ACL, the
  * ACL can deleted using the <a href="${DELETE.entity.id.acl}">DELETE
  * /entity/{id}/acl</a> method. When the ACL of an File or Folder is deleted, it
