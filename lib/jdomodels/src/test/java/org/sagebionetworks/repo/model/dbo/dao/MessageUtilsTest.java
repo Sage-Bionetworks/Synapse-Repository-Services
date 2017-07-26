@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -225,5 +226,97 @@ public class MessageUtilsTest {
 		MessageStatus dto2 = MessageUtils.convertDBO(dbo);
 		
 		assertEquals(dto, dto2);
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidMessageId() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setRootMessageId(1L);
+		dbo.setSent(false);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("ID"));
+		}
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidRootMessageId() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setMessageId(1L);
+		dbo.setSent(false);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("root message"));
+		}
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidSent() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setMessageId(1L);
+		dbo.setRootMessageId(1L);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("status"));
+		}
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidTo() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setMessageId(1L);
+		dbo.setRootMessageId(1L);
+		dbo.setSent(false);
+		String to = "user@synapse.org";
+		while (to.length() < MessageUtils.MAX_LENGTH) {
+			to += ", user@synapse.org";
+		}
+		dbo.setTo(to);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("To"));
+		}
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidCC() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setMessageId(1L);
+		dbo.setRootMessageId(1L);
+		dbo.setSent(false);
+		dbo.setTo("user@synapse.org");
+		String cc = "user@synapse.org";
+		while (cc.length() < MessageUtils.MAX_LENGTH) {
+			cc += ", user@synapse.org";
+		}
+		dbo.setCc(cc);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("CC"));
+		}
+	}
+
+	@Test
+	public void testValidateDBOMessageToUserWithInvalidBCC() {
+		DBOMessageToUser dbo = new DBOMessageToUser();
+		dbo.setMessageId(1L);
+		dbo.setRootMessageId(1L);
+		dbo.setSent(false);
+		dbo.setTo("user@synapse.org");
+		String bcc = "user@synapse.org";
+		while (bcc.length() < MessageUtils.MAX_LENGTH) {
+			bcc += ", user@synapse.org";
+		}
+		dbo.setBcc(bcc);
+		try {
+			MessageUtils.validateDBO(dbo);
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("BCC"));
+		}
 	}
 }

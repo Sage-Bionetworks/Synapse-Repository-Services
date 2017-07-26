@@ -38,6 +38,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Sets;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMessageDAOImplTest {
@@ -125,6 +127,40 @@ public class DBOMessageDAOImplTest {
 		messageDAO.updateMessageTransmissionAsComplete(userToGroup.getId());
 		messageDAO.updateMessageTransmissionAsComplete(groupReplyToUser.getId());
 		messageDAO.updateMessageTransmissionAsComplete(userReplyToGroup.getId());
+	}
+
+	/**
+	 * PLFM-4513
+	 */
+	@Test
+	public void testCreateMessageWithInvalidFieldLength(){
+		MessageToUser dto = new MessageToUser();
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		dto.setSubject("subject");
+		dto.setRecipients(Sets.newHashSet(maliciousUser.getId()));
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
+		String to = "Foo<foo@sb.com>";
+		dto.setTo(to);
+		String cc = "Bar<bar@sb.com>";
+		while (cc.length() < MessageUtils.MAX_LENGTH) {
+			cc+= ", Bar<bar@sb.com>";
+		}
+		dto.setCc(cc);
+		String bcc = "Baz<baz@sb.com>";
+		dto.setBcc(bcc);
+		try {
+			dto = messageDAO.createMessage(dto);
+			fail("Expecting expection");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("CC"));
+		}
 	}
 	
 	/**
