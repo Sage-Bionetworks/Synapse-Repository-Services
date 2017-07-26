@@ -274,7 +274,24 @@ public class EntityPermissionsManagerImplTest {
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 	}
 
-
+	/*
+	 * PLFM-3632s
+	 */
+	@Test(expected = UnauthorizedException.class)
+	public void testValidateACLContentNonCertifiedUserMakeACLPublic() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.DOWNLOAD);
+		userRA.setAccessType(ats);
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	}
 
 	@Test
 	public void testUpdateACL() throws Exception {
