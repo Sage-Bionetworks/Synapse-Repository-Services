@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +44,9 @@ import com.google.common.collect.Sets;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMessageDAOImplTest {
-	
+	private static final String EMAIL_POST_FIX = "@synapse.org";
+	private static final int EMAIL_POST_FIX_LENGTH = 12;
+
 	@Autowired
 	private MessageDAO messageDAO;
 	
@@ -133,7 +136,7 @@ public class DBOMessageDAOImplTest {
 	 * PLFM-4513
 	 */
 	@Test
-	public void testCreateMessageWithInvalidFieldLength(){
+	public void testCreateMessageWithInvalidCCLength(){
 		MessageToUser dto = new MessageToUser();
 		dto.setCreatedBy(maliciousUser.getId());
 		dto.setFileHandleId(fileHandleId);
@@ -148,10 +151,7 @@ public class DBOMessageDAOImplTest {
 		dto.setIsNotificationMessage(true);
 		String to = "Foo<foo@sb.com>";
 		dto.setTo(to);
-		String cc = "Bar<bar@sb.com>";
-		while (cc.length() < MessageUtils.MAX_LENGTH) {
-			cc+= ", Bar<bar@sb.com>";
-		}
+		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
@@ -161,6 +161,86 @@ public class DBOMessageDAOImplTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("CC"));
 		}
+	}
+
+	@Test
+	public void testCreateMessageWithInvalidTOLength(){
+		MessageToUser dto = new MessageToUser();
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		dto.setSubject("subject");
+		dto.setRecipients(Sets.newHashSet(maliciousUser.getId()));
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
+		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		dto.setTo(to);
+		String cc = "Foo<foo@sb.com>";
+		dto.setCc(cc);
+		String bcc = "Baz<baz@sb.com>";
+		dto.setBcc(bcc);
+		try {
+			dto = messageDAO.createMessage(dto);
+			fail("Expecting expection");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("To"));
+		}
+	}
+
+	@Test
+	public void testCreateMessageWithInvalidBCCLength(){
+		MessageToUser dto = new MessageToUser();
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		dto.setSubject("subject");
+		dto.setRecipients(Sets.newHashSet(maliciousUser.getId()));
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
+		String to = "Foo<foo@sb.com>";
+		dto.setTo(to);
+		String cc = "Baz<baz@sb.com>";
+		dto.setCc(cc);
+		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		dto.setBcc(bcc);
+		try {
+			dto = messageDAO.createMessage(dto);
+			fail("Expecting expection");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("BCC"));
+		}
+	}
+
+	@Test
+	public void testCreateMessageWithValidFieldLength(){
+		MessageToUser dto = new MessageToUser();
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		dto.setSubject("subject");
+		dto.setRecipients(Sets.newHashSet(maliciousUser.getId()));
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
+		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		dto.setTo(to);
+		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		dto.setCc(cc);
+		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		dto.setBcc(bcc);
+		dto = messageDAO.createMessage(dto);
+		cleanup.add(dto.getId());
 	}
 	
 	/**

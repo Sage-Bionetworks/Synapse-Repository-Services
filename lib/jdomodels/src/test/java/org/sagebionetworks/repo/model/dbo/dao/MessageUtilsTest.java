@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
@@ -22,6 +23,8 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public class MessageUtilsTest {
+	private static final String EMAIL_POST_FIX = "@synapse.org";
+	private static final int EMAIL_POST_FIX_LENGTH = 12;
 	
 	@Test
 	public void testMessageRecipientBucketing() throws Exception {
@@ -270,10 +273,7 @@ public class MessageUtilsTest {
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		String to = "user@synapse.org";
-		while (to.length() < MessageUtils.MAX_LENGTH) {
-			to += ", user@synapse.org";
-		}
+		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dbo.setTo(to);
 		try {
 			MessageUtils.validateDBO(dbo);
@@ -289,10 +289,7 @@ public class MessageUtilsTest {
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
 		dbo.setTo("user@synapse.org");
-		String cc = "user@synapse.org";
-		while (cc.length() < MessageUtils.MAX_LENGTH) {
-			cc += ", user@synapse.org";
-		}
+		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dbo.setCc(cc);
 		try {
 			MessageUtils.validateDBO(dbo);
@@ -308,10 +305,7 @@ public class MessageUtilsTest {
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
 		dbo.setTo("user@synapse.org");
-		String bcc = "user@synapse.org";
-		while (bcc.length() < MessageUtils.MAX_LENGTH) {
-			bcc += ", user@synapse.org";
-		}
+		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dbo.setBcc(bcc);
 		try {
 			MessageUtils.validateDBO(dbo);
