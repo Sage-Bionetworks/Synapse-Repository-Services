@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class PermissionsManagerUtils {
@@ -41,9 +42,15 @@ public class PermissionsManagerUtils {
 					foundCallerInAcl = true;
 				}
 			}
-			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()) &&
-					ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
+			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())
+					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)) {
 				throw new InvalidModelException("Public may not have DOWNLOAD access.");
+			}
+			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
+					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)
+					&& !userInfo.isAdmin()
+					&& !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS)) {
+				throw new UnauthorizedException("Only certified users can allow authenticated users to download.");
 			}
 		}
 		
