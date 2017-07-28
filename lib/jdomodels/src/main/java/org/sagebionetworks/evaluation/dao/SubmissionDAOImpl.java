@@ -395,11 +395,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Override
 	public SubmissionBundle getBundle(String id) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID, id);
-		SubmissionBundle dto = namedJdbcTemplate.queryForObject(SELECT_BUNDLE_SQL, param, BUNDLE_ROW_MAPPER);
-		insertContributorsInBundles(Collections.singletonList(dto));
-		return dto;
+		try {
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(ID, id);
+			SubmissionBundle dto = namedJdbcTemplate.queryForObject(SELECT_BUNDLE_SQL, param, BUNDLE_ROW_MAPPER);
+			insertContributorsInBundles(Collections.singletonList(dto));
+			return dto;
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Cannot find submission or status for id " + id);
+		}
 	}
 
 

@@ -326,6 +326,11 @@ public class SubmissionDAOImplTest {
      	assertEquals(submission.getEntityId(), status.getEntityId());
      	assertEquals(submission.getVersionNumber(), status.getVersionNumber());
     }
+
+    @Test(expected = NotFoundException.class)
+	public void testGetBundleNotFound() throws Exception {
+		SubmissionBundle bundle = submissionDAO.getBundle("notfound");
+	}
     
     @Test
     public void testCRDWithContributors() throws Exception{
