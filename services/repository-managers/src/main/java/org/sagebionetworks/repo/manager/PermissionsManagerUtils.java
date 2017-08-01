@@ -49,7 +49,7 @@ public class PermissionsManagerUtils {
 			if (ra.getPrincipalId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
 					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)
 					&& !userInfo.isAdmin()
-					&& !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS)) {
+					&& !userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId())) {
 				throw new UnauthorizedException("Only certified users can allow authenticated users to download.");
 			}
 		}
