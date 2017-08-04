@@ -289,7 +289,24 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId("resource id");
 		acl.setResourceAccess(ras);	
-		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS);
+		// userInfo is not certified
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+	}
+
+	@Test
+	public void testValidateACLContentCertifiedUserMakeACLPublic() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.DOWNLOAD);
+		userRA.setAccessType(ats);
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);
+		// certify userInfo
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 	}
 
