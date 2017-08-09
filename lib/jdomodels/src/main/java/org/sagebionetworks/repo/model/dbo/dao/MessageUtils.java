@@ -18,8 +18,10 @@ import org.sagebionetworks.repo.model.message.MessageContent;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class MessageUtils {
+	public static final int MAX_LENGTH = 1024;
 
 	/**
 	 * Copies message information from three DBOs into one DTO
@@ -326,15 +328,15 @@ public class MessageUtils {
 	 * Checks for all required fields
 	 */
 	public static void validateDBO(DBOMessageToUser dbo) {
-		if (dbo.getMessageId() == null) {
-			throw new IllegalArgumentException("Message info must have an ID.");
-		}
-		if (dbo.getRootMessageId() == null) {
-			throw new IllegalArgumentException("Message info must point to a root message.");
-		}
-		if (dbo.getSent() == null) {
-			throw new IllegalArgumentException("Message info must have a status value.");
-		}
+		ValidateArgument.required(dbo.getMessageId(), "Message info must have an ID.");
+		ValidateArgument.required(dbo.getRootMessageId(), "Message info must point to a root message.");
+		ValidateArgument.required(dbo.getSent(), "Message info must have a status value.");
+		ValidateArgument.requirement(dbo.getTo() == null || dbo.getTo().length() <= MAX_LENGTH,
+				"To field must have "+MAX_LENGTH+" characters or less.");
+		ValidateArgument.requirement(dbo.getCc() == null || dbo.getCc().length() <= MAX_LENGTH,
+				"CC field must have "+MAX_LENGTH+" characters or less.");
+		ValidateArgument.requirement(dbo.getBcc() == null || dbo.getBcc().length() <= MAX_LENGTH,
+				"BCC field must have "+MAX_LENGTH+" characters or less.");
 	}
 	
 	/**
