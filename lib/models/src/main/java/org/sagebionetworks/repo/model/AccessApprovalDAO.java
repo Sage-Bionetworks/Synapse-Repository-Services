@@ -100,7 +100,7 @@ public interface AccessApprovalDAO {
 	 * @param string
 	 * @param accessRequirementId
 	 * @return true if all accessors have an approval for the given access requirement
-	 * submitted by submitterId; false otherise.
+	 * (regardless of its state) submitted by submitterId; false otherise.
 	 */
 	public boolean hasApprovalsSubmittedBy(Set<String> accessorsIds, String submitterId, String accessRequirementId);
 

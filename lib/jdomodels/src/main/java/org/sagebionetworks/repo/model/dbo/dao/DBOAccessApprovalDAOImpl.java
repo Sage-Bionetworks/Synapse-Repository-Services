@@ -135,13 +135,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			+COL_ACCESS_APPROVAL_EXPIRED_ON+" = ?, "
 			+COL_ACCESS_APPROVAL_STATE+" = ? ";
 
-	private static final String SELECT_APPROVED_USERS = 
+	private static final String SELECT_ACCESSORS = 
 				"SELECT DISTINCT "+COL_ACCESS_APPROVAL_ACCESSOR_ID
 			+" FROM "+TABLE_ACCESS_APPROVAL
 			+" WHERE "+COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = :"+COL_ACCESS_APPROVAL_REQUIREMENT_ID
 			+" AND "+COL_ACCESS_APPROVAL_SUBMITTER_ID+" = :"+COL_ACCESS_APPROVAL_SUBMITTER_ID
-			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")"
-			+" AND "+COL_ACCESS_APPROVAL_STATE+" = '"+ApprovalState.APPROVED.name()+"'";
+			+" AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
 
 	private static final String SELECT_ACTIVE_APPROVALS = 
 			"SELECT *"
@@ -367,7 +366,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, accessorIds);
 		params.addValue(COL_ACCESS_APPROVAL_SUBMITTER_ID, submitterId);
-		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_APPROVED_USERS, params, String.class);
+		List<String> approvedUsers = namedJdbcTemplate.queryForList(SELECT_ACCESSORS, params, String.class);
 		return approvedUsers.containsAll(accessorIds);
 	}
 

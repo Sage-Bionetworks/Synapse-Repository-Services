@@ -298,6 +298,10 @@ public class DBOAccessApprovalDAOImplTest {
 		assertEquals(individualGroup2.getId(), approval.getModifiedBy());
 		assertFalse(accessApproval.getModifiedOn().equals(approval.getModifiedOn()));
 		assertFalse(accessApproval.getEtag().equals(approval.getEtag()));
+		// After revoke, we can still find the accessor
+		assertTrue(accessApprovalDAO.hasApprovalsSubmittedBy(
+				Sets.newHashSet(individualGroup.getId().toString()),
+				individualGroup.getId(), accessRequirement.getId().toString()));
 	}
 
 	@Test
