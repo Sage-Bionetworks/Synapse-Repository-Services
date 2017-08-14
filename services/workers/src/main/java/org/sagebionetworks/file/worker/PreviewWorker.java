@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.imageio.IIOException;
+
 /**
  * This worker process file create messages. When a file is created without a
  * preview, this worker will create on for it.
@@ -91,10 +93,13 @@ public class PreviewWorker implements ChangeMessageDrivenRunner {
 					true);
 			throw new RecoverableMessageException();
 		} catch (Throwable e) {
-			// If we do not know what went wrong then we do no re-try
-			log.error("Failed to process message: " + changeMessage.toString(), e);
-			workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,
-					false);
+			if (e.getCause() instanceof IIOException) {
+				log.info("Failed to process message: " + changeMessage.getChangeNumber() + ". Unable to read file (IIOException).");
+			} else {
+				// If we do not know what went wrong then we do no re-try
+				log.error("Failed to process message: " + changeMessage.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e,false);
+			}
 		}
 	}
 
