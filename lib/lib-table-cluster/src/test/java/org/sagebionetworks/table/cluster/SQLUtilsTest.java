@@ -48,6 +48,8 @@ public class SQLUtilsTest {
 	
 	AnnotationDTO annotationDto;
 	
+	boolean isFirst;
+	
 	@Before
 	public void before(){
 		MockitoAnnotations.initMocks(this);
@@ -75,6 +77,8 @@ public class SQLUtilsTest {
 		annotationDto.setType(AnnotationType.STRING);
 		annotationDto.setKey("someKey");
 		annotationDto.setValue("someString");
+		
+		isFirst = true;
 	}
 
 	
@@ -355,8 +359,20 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm);
+		SQLUtils.appendAddColumn(builder, cm, isFirst);
 		assertEquals("ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAddColumnNotFirst(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		isFirst = false;
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		assertEquals(", ADD COLUMN _C123_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
 	@Test
@@ -366,8 +382,21 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
 		// call under test
-		SQLUtils.appendAddColumn(builder, cm);
+		SQLUtils.appendAddColumn(builder, cm, isFirst);
 		assertEquals("ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
+				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
+	}
+	
+	@Test
+	public void testAppendAddColumnDoubleNotFirst(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.DOUBLE);
+		isFirst = false;
+		// call under test
+		SQLUtils.appendAddColumn(builder, cm, isFirst);
+		assertEquals(", ADD COLUMN _C123_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C123_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
@@ -378,8 +407,20 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.INTEGER);
 		// call under test
-		SQLUtils.appendDeleteColumn(builder, cm);
+		SQLUtils.appendDeleteColumn(builder, cm, isFirst);
 		assertEquals("DROP COLUMN _C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumnNotFirst(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.INTEGER);
+		isFirst = false;
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, cm, isFirst);
+		assertEquals(", DROP COLUMN _C123_", builder.toString());
 	}
 	
 	@Test
@@ -389,8 +430,20 @@ public class SQLUtilsTest {
 		cm.setId("123");
 		cm.setColumnType(ColumnType.DOUBLE);
 		// call under test
-		SQLUtils.appendDeleteColumn(builder, cm);
+		SQLUtils.appendDeleteColumn(builder, cm, isFirst);
 		assertEquals("DROP COLUMN _C123_, DROP COLUMN _DBL_C123_", builder.toString());
+	}
+	
+	@Test
+	public void testAppendDropColumnDoubleNotFirst(){
+		StringBuilder builder = new StringBuilder();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("123");
+		cm.setColumnType(ColumnType.DOUBLE);
+		isFirst = false;
+		// call under test
+		SQLUtils.appendDeleteColumn(builder, cm, isFirst);
+		assertEquals(", DROP COLUMN _C123_, DROP COLUMN _DBL_C123_", builder.toString());
 	}
 	
 	@Test
@@ -431,7 +484,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
 	
@@ -449,7 +502,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
@@ -467,8 +520,26 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+	}
+	
+	@Test
+	public void testAppendUpdateColumnNotFirst(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.STRING);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		isFirst = false;
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
 	@Test
@@ -485,7 +556,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
 				+ ", DROP COLUMN _DBL_C123_", builder.toString());
 	}
@@ -504,7 +575,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", ADD COLUMN _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -523,7 +594,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		SQLUtils.appendUpdateColumn(builder, change);
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
 				+ ", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
@@ -542,7 +613,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertTrue(hasChange);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
@@ -561,7 +632,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertFalse(hasChange);
 		assertEquals("", builder.toString());
 	}
@@ -578,7 +649,7 @@ public class SQLUtilsTest {
 		
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertTrue(hasChange);
 		assertEquals("ADD COLUMN _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
@@ -594,7 +665,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = null;
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertTrue(hasChange);
 		assertEquals("DROP COLUMN _C123_", builder.toString());
 	}
@@ -608,7 +679,7 @@ public class SQLUtilsTest {
 		ColumnModel newColumn = null;
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// call under test
-		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change);
+		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertFalse(hasChange);
 		assertEquals("", builder.toString());
 	}
@@ -691,6 +762,72 @@ public class SQLUtilsTest {
 		// call under test
 		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(change), tableId, alterTemp);
 		assertEquals("when there are no changes the sql should be null",null, results);
+	}
+	
+	/**
+	 * The error from PLFM-4560 was the result of a trailing comma in the SQL
+	 * when the second change did not require anything to actually be changed.
+	 */
+	@Test
+	public void testPLFM_4560(){
+		// The first is a real change.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, newColumn);
+		 
+		// the second should not be a change.
+		oldColumn = new ColumnModel();
+		oldColumn.setId("444");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		// new column
+		newColumn = new ColumnModel();
+		newColumn.setId("444");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		boolean alterTemp = false;
+		String tableId = "syn999";
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C123_ _C123_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
+	}
+	
+	/**
+	 * The error from PLFM-4560 was the result of a trailing comma in the SQL
+	 * when the second change did not require anything to actually be changed.
+	 */
+	@Test
+	public void testPLFM_4560NotFirst(){
+		// The first is a real change.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("123");
+		newColumn.setColumnType(ColumnType.INTEGER);
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, newColumn);
+		 
+		// the second should not be a change.
+		oldColumn = new ColumnModel();
+		oldColumn.setId("444");
+		oldColumn.setColumnType(ColumnType.INTEGER);
+		// new column
+		newColumn = new ColumnModel();
+		newColumn.setId("444");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, newColumn);
+		
+		boolean alterTemp = false;
+		String tableId = "syn999";
+		// call under test
+		String results = SQLUtils.createAlterTableSql(Lists.newArrayList(changeOne, changeTwo), tableId, alterTemp);
+		assertEquals("ALTER TABLE T999 CHANGE COLUMN _C444_ _C444_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", results);
 	}
 	
 	@Test
