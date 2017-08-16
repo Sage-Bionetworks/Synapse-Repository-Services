@@ -638,14 +638,11 @@ public class SQLUtils {
 		boolean isFirst = true;
 		boolean hasChanges = false;
 		for(ColumnChangeDetails change: changes){
-			if(!isFirst){
-				builder.append(", ");
-			}
-			boolean hasChange = appendAlterTableSql(builder, change);
+			boolean hasChange = appendAlterTableSql(builder, change, isFirst);
 			if(hasChange){
 				hasChanges = true;
+				isFirst = false;
 			}
-			isFirst = false;
 		}
 		// return null if there is nothing to do.
 		if(!hasChanges){
@@ -660,21 +657,21 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChangeDetails change) {
+			ColumnChangeDetails change, boolean isFirst) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn());
+			appendAddColumn(builder, change.getNewColumn(), isFirst);
 			// change was added.
 			return true;
 		}
 
 		if(change.getNewColumn() == null){
 			// delete
-			appendDeleteColumn(builder, change.getOldColumn());
+			appendDeleteColumn(builder, change.getOldColumn(), isFirst);
 			// change was added.
 			return true;
 		}
@@ -684,7 +681,7 @@ public class SQLUtils {
 			return false;
 		}
 		// update
-		appendUpdateColumn(builder, change);
+		appendUpdateColumn(builder, change, isFirst);
 		// change was added.
 		return true;
 
@@ -696,8 +693,11 @@ public class SQLUtils {
 	 * @param newColumn
 	 */
 	public static void appendAddColumn(StringBuilder builder,
-			ColumnModel newColumn) {
+			ColumnModel newColumn, boolean isFirst) {
 		ValidateArgument.required(newColumn, "newColumn");
+		if(!isFirst){
+			builder.append(", ");
+		}
 		builder.append("ADD COLUMN ");
 		appendColumnDefinition(builder, newColumn);
 		// doubles use two columns.
@@ -712,7 +712,10 @@ public class SQLUtils {
 	 * @param oldColumn
 	 */
 	public static void appendDeleteColumn(StringBuilder builder,
-			ColumnModel oldColumn) {
+			ColumnModel oldColumn, boolean isFirst) {
+		if(!isFirst){
+			builder.append(", ");
+		}
 		ValidateArgument.required(oldColumn, "oldColumn");
 		builder.append("DROP COLUMN ");
 		builder.append(getColumnNameForId(oldColumn.getId()));
@@ -728,10 +731,13 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static void appendUpdateColumn(StringBuilder builder,
-			ColumnChangeDetails change) {
+			ColumnChangeDetails change, boolean isFirst) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
+		if(!isFirst){
+			builder.append(", ");
+		}
 		builder.append("CHANGE COLUMN ");
 		builder.append(getColumnNameForId(change.getOldColumn().getId()));
 		builder.append(" ");
