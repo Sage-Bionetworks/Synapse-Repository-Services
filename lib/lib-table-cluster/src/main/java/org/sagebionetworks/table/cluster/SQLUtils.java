@@ -657,21 +657,21 @@ public class SQLUtils {
 	 * @param change
 	 */
 	public static boolean appendAlterTableSql(StringBuilder builder,
-			ColumnChangeDetails change, boolean isFrist) {
+			ColumnChangeDetails change, boolean isFirst) {
 		if(change.getOldColumn() == null && change.getNewColumn() == null){
 			// nothing to do
 			return false;
 		}
 		if(change.getOldColumn() == null){
 			// add
-			appendAddColumn(builder, change.getNewColumn(), isFrist);
+			appendAddColumn(builder, change.getNewColumn(), isFirst);
 			// change was added.
 			return true;
 		}
 
 		if(change.getNewColumn() == null){
 			// delete
-			appendDeleteColumn(builder, change.getOldColumn(), isFrist);
+			appendDeleteColumn(builder, change.getOldColumn(), isFirst);
 			// change was added.
 			return true;
 		}
@@ -681,7 +681,7 @@ public class SQLUtils {
 			return false;
 		}
 		// update
-		appendUpdateColumn(builder, change, isFrist);
+		appendUpdateColumn(builder, change, isFirst);
 		// change was added.
 		return true;
 
