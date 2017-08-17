@@ -1,21 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_PREFIX;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
@@ -83,6 +74,15 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " WHERE "
 			+ COL_PRINCIPAL_PREFIX_TOKEN
 			+ " LIKE ? LIMIT ? OFFSET ?";
+	
+	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX_BY_TYPE =
+			"SELECT P."+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ " FROM "
+			+ TABLE_PRINCIPAL_PREFIX+" P JOIN "+TABLE_USER_GROUP+" U "
+			+ "ON (P."+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID+" = U."+COL_USER_GROUP_ID
+					+" AND U."+COL_USER_GROUP_IS_INDIVIDUAL+" = ?)"
+			+ " WHERE"
+			+ " P.TOKEN LIKE ? LIMIT ? OFFSET ?";
 
 	private static final String SQL_CLEAR_PRINCIPAL = "DELETE FROM "
 			+ TABLE_PRINCIPAL_PREFIX + " WHERE "
@@ -208,6 +208,18 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX,
 				Long.class, processed + WILDCARD, limit, offset);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#listPrincipalsForPrefix(java.lang.String, boolean, java.lang.Long, java.lang.Long)
+	 */
+	@Override
+	public List<Long> listPrincipalsForPrefix(String prefix,
+			boolean isIndividual, Long limit, Long offset) {
+		String processed = preProcessToken(prefix);
+		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX_BY_TYPE,
+				Long.class, isIndividual, processed + WILDCARD, limit, offset);
 	}
 
 	/*

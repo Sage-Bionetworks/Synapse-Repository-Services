@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -189,9 +190,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
-			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, TypeFilter filter,
+			Integer offset, Integer limit) 
 					throws DatastoreException, NotFoundException {
+		if(filter == null){
+			filter = TypeFilter.ALL;
+		}
 		long limitLong = 10;
 		if(limit != null){
 			limitLong = limit.longValue();
@@ -200,11 +204,31 @@ public class UserProfileServiceImpl implements UserProfileService {
 		if(offset != null){
 			offsetLong = offset.longValue();
 		}
-		List<Long> ids = principalPrefixDAO.listPrincipalsForPrefix(prefix, limitLong, offsetLong);
+		List<Long> ids = listPrincipalsForPrefix(prefix, filter, limitLong, offsetLong);
 		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(null, ids);
 		response.setPrefixFilter(prefix);
 		response.setTotalNumberOfResults(principalPrefixDAO.countPrincipalsForPrefix(prefix));
 		return response;
+	}
+	
+	private List<Long> listPrincipalsForPrefix(String prefix, TypeFilter filter,
+			long offset, long limit){
+		boolean isIndividual = false;
+		switch(filter){
+		case ALL:
+			// not filtered by type.
+			return principalPrefixDAO.listPrincipalsForPrefix(prefix, limit, offset);
+		case USER:
+			isIndividual = true;
+			break;
+		case TEAM:
+			isIndividual = false;
+			break;
+		default: 
+			throw new IllegalArgumentException("Unknown type: "+filter);
+		}
+		// filter by type
+		return principalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset);
 	}
 	
 	@Override

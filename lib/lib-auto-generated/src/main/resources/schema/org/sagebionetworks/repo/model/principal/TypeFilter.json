@@ -1,0 +1,10 @@
+{
+    "description":"Filter results based on principal type.",
+    "name": "TypeFilter",
+    "type":"string",
+    "enum":[
+    	"USER",
+    	"TEAM",
+    	"ALL"
+    ]
+}

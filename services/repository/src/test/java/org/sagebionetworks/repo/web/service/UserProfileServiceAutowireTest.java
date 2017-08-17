@@ -136,7 +136,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	
 	@Test
 	public void testHeaders() throws DatastoreException, NotFoundException{
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("j", 0, Integer.MAX_VALUE, null, null);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("j", null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		assertNotNull(ughrp.getChildren());
 		assertTrue(ughrp.getChildren().size() >= 2);
@@ -160,7 +160,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 
 	@Test
 	public void testGetUserGroupHeadersNoFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("", 0, Integer.MAX_VALUE, null, null);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("", null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		assertNotNull(children);
@@ -183,7 +183,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 
 	@Test
 	public void testGetUserGroupHeadersWithFilterUsername() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("cate001", 0, Integer.MAX_VALUE, null, null);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("cate001",null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		assertNotNull(ughrp.getChildren());		
 		assertTrue(ughrp.getChildren().size() == 1);
@@ -193,7 +193,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	
 	@Test
 	public void testGetUserGroupHeadersWithFilterByLastName() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("B", 0, Integer.MAX_VALUE, null, null);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("B",null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		assertNotNull(children);

@@ -209,6 +209,28 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(new Long(1), principalPrefixDao.countPrincipalsForPrefix("aab"));
 	}
 	
+	/**
+	 * Filter by type.
+	 */
+	@Test
+	public void testListPrincipalsForPrefixFilterType() {
+		principalPrefixDao.addPrincipalAlias("aabb", principalOne);
+		principalPrefixDao.addPrincipalAlias("aabc", teamAllId);
+		boolean isIndividual = true;
+		List<Long> results = principalPrefixDao.listPrincipalsForPrefix("aab", isIndividual,
+				1000L, 0L);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(principalOne, results.get(0));
+		
+		isIndividual = false;
+		results = principalPrefixDao.listPrincipalsForPrefix("aab", isIndividual,
+				1000L, 0L);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(teamAllId, results.get(0));
+	}
+	
 	@Test
 	public void testListPrincipalsForPrefixEmptyPrefix() {
 		addDefaultAlias();
