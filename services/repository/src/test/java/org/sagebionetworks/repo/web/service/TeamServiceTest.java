@@ -88,13 +88,10 @@ public class TeamServiceTest {
 	
 	@Test
 	public void testGetTeamsByFragment() throws Exception {
-		
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("foo", 1L, 0L)).thenReturn(Arrays.asList(99L));
-		when(mockPrincipalPrefixDAO.countTeamsForPrefix("foo")).thenReturn(1L);
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("ba", 1L, 0L)).thenReturn(Arrays.asList(99L));
-		when(mockPrincipalPrefixDAO.countTeamsForPrefix("ba")).thenReturn(1L);
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("bas", 1L, 0L)).thenReturn(new LinkedList<Long>());
-		when(mockPrincipalPrefixDAO.countTeamsForPrefix("bas")).thenReturn(0L);
+		boolean isIndividual = false;
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("foo", isIndividual, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("ba", isIndividual, 1L, 0L)).thenReturn(Arrays.asList(99L));
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix("bas", isIndividual, 1L, 0L)).thenReturn(new LinkedList<Long>());
 		
 		List<Team> expected = new ArrayList<Team>(); expected.add(team);
 		ListWrapper<Team> wrapped = new ListWrapper<Team>();

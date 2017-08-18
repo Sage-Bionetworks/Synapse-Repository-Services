@@ -10,9 +10,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +25,8 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -38,7 +39,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -46,11 +46,13 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
+import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -59,11 +61,12 @@ import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
+
 /**
  * Most of the tests in this suite only worked when using illegal principal IDs, so @Ignore were added when it was refactored.
  *
  */
-
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
@@ -71,23 +74,26 @@ public class UserProfileServiceTest {
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
 	
-	private UserProfileService userProfileService = new UserProfileServiceImpl();
+	private UserProfileServiceImpl userProfileService = new UserProfileServiceImpl();
 	
+	@Mock
 	private EntityPermissionsManager mockPermissionsManager;
+	@Mock
 	private UserProfileManager mockUserProfileManager;
+	@Mock
 	private UserManager mockUserManager;
+	@Mock
 	private EntityManager mockEntityManager;
+	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
 	private VerificationDAO mockVerificationDao;
+	@Mock
+	private PrincipalPrefixDAO mockPrincipalPrefixDAO;
 	
 	@Before
 	public void before() throws Exception {
-		mockPermissionsManager = mock(EntityPermissionsManager.class);
-		mockUserProfileManager = mock(UserProfileManager.class);
-		mockUserManager = mock(UserManager.class);
-		mockEntityManager = mock(EntityManager.class);
-		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
-		mockVerificationDao = mock(VerificationDAO.class);
+		MockitoAnnotations.initMocks(this);
 		
 		// Create UserGroups
 		List<PrincipalAlias> groups = new LinkedList<PrincipalAlias>();
@@ -129,6 +135,7 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "entityManager", mockEntityManager);
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
+		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
 	}
 
 	
@@ -139,7 +146,7 @@ public class UserProfileServiceTest {
 		ids.add(2L);
 		ids.add(NONEXISTENT_USER_ID); // should not exist
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -436,6 +443,114 @@ public class UserProfileServiceTest {
 		}
 		
 	}
+	
+	@Test
+	public void testListPrincipalsForPrefixFilterAll(){
+		String prefix = "aab";
+		TypeFilter filter = TypeFilter.ALL;
+		long offset = 1L;
+		long limit = 10L;
+		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, limit, offset)).thenReturn(expectedResutls);
+		// call under test
+		List<Long> results = userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		assertEquals(expectedResutls, results);
+		// the filtered call should not be made.
+		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyBoolean(), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testListPrincipalsForPrefixFilterUsersOnly(){
+		String prefix = "aab";
+		TypeFilter filter = TypeFilter.USERS_ONLY;
+		long offset = 1L;
+		long limit = 10L;
+		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
+		boolean isIndividual = true;
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
+		// call under test
+		List<Long> results = userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		assertEquals(expectedResutls, results);
+		// the non-filtered should not be called
+		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong(), anyLong());
+	}
 
+	@Test
+	public void testListPrincipalsForPrefixFilterTeamsOnly(){
+		String prefix = "aab";
+		TypeFilter filter = TypeFilter.TEAMS_ONLY;
+		long offset = 1L;
+		long limit = 10L;
+		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
+		boolean isIndividual = false;
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
+		// call under test
+		List<Long> results = userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+		assertEquals(expectedResutls, results);
+		// the non-filtered should not be called
+		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong(), anyLong());
+	}
 
+	@Test (expected=IllegalArgumentException.class)
+	public void testListPrincipalsForPrefixFilterNull(){
+		String prefix = "aab";
+		TypeFilter filter = null;
+		long offset = 1L;
+		long limit = 10L;
+		List<Long> expectedResutls = Lists.newArrayList(111L,222L);
+		boolean isIndividual = false;
+		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
+		// call under test
+		userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByPrefixNullFilter(){
+		String prefix = "aab";
+		TypeFilter filter = null;
+		int offset = 1;
+		int limit = 10;
+		UserGroupHeader one = new UserGroupHeader();
+		one.setOwnerId("1");
+		UserGroupHeader two = new UserGroupHeader();
+		two.setOwnerId("2");
+		List<UserGroupHeader> headers = Lists.newArrayList(one, two);
+		when(mockPrincipalAliasDAO.listPrincipalHeaders(anyListOf(Long.class))).thenReturn(headers);
+		
+		// call under test
+		UserGroupHeaderResponsePage page = userProfileService.getUserGroupHeadersByPrefix(prefix, filter, offset, limit);
+		assertNotNull(page);
+		assertEquals(headers, page.getChildren());
+		assertEquals(new Long(3), page.getTotalNumberOfResults());
+
+		// null filter should run the non-filtered query.
+		verify(mockPrincipalPrefixDAO).listPrincipalsForPrefix(prefix, new Long(limit), new Long(offset));
+		// filtered version should not be called
+		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyBoolean(), anyLong(), anyLong());
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByPrefixTeamFilter(){
+		String prefix = "aab";
+		TypeFilter filter = TypeFilter.TEAMS_ONLY;
+		int offset = 0;
+		int limit = 2;
+		UserGroupHeader one = new UserGroupHeader();
+		one.setOwnerId("1");
+		UserGroupHeader two = new UserGroupHeader();
+		two.setOwnerId("2");
+		List<UserGroupHeader> headers = Lists.newArrayList(one, two);
+		when(mockPrincipalAliasDAO.listPrincipalHeaders(anyListOf(Long.class))).thenReturn(headers);
+		
+		// call under test
+		UserGroupHeaderResponsePage page = userProfileService.getUserGroupHeadersByPrefix(prefix, filter, offset, limit);
+		assertNotNull(page);
+		assertEquals(headers, page.getChildren());
+		assertEquals(new Long(3), page.getTotalNumberOfResults());
+
+		// filter should be applied
+		verify(mockPrincipalPrefixDAO, never()).listPrincipalsForPrefix(anyString(), anyLong() , anyLong());
+		boolean isIndividual = false;
+		verify(mockPrincipalPrefixDAO).listPrincipalsForPrefix(prefix, isIndividual, new Long(limit), new Long(offset));
+	}
 }

@@ -3,8 +3,8 @@
     "name": "TypeFilter",
     "type":"string",
     "enum":[
-    	"USER",
-    	"TEAM",
+    	"USERS_ONLY",
+    	"TEAMS_ONLY",
     	"ALL"
     ]
 }

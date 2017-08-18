@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.principal;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -61,6 +62,14 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds);
+	
+	/**
+	 * Get the UserGroupHeaders for the given list of principalIds.
+	 * 
+	 * @param principalIds
+	 * @return
+	 */
+	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds);
 	
 	/**
 	 * Get all aliases for a principal and type.

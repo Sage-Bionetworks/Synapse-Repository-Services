@@ -112,7 +112,8 @@ public class PrincipalPrefixWorkerIntegrationTest {
 	private void waitForPrefix(String prefix, long expectedCount) throws InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
-			long count = principalPrefixDao.countPrincipalsForPrefix(prefix);
+			List<Long> results = principalPrefixDao.listPrincipalsForPrefix(prefix, Long.MAX_VALUE, 0L);
+			long count = results.size();
 			if(count == expectedCount){
 				return;
 			}else{

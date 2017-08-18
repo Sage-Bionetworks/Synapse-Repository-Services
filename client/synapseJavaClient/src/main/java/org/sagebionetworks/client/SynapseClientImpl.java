@@ -179,6 +179,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -984,20 +985,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
 			throws SynapseException, UnsupportedEncodingException {
-		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
-		String url = USER_GROUP_HEADER_PREFIX_PATH + encodedPrefix;
-		return getJSONEntity(getRepoEndpoint(), url, UserGroupHeaderResponsePage.class);
+		return getUserGroupHeadersByPrefix(prefix, null, null, null);
 	}
 
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
-			String prefix, long limit, long offset) throws SynapseException,
+			String prefix, TypeFilter type, Long limit, Long offset) throws SynapseException,
 			UnsupportedEncodingException {
 		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
-		String url = USER_GROUP_HEADER_PREFIX_PATH + encodedPrefix 
-				+ "&" + LIMIT_PARAMETER + limit 
-				+ "&" + OFFSET_PARAMETER + offset;
-		return getJSONEntity(getRepoEndpoint(), url, UserGroupHeaderResponsePage.class);
+		StringBuilder builder = new StringBuilder();
+		builder.append(USER_GROUP_HEADER_PREFIX_PATH);
+		builder.append(encodedPrefix);
+		if(limit != null){
+			builder.append("&" + LIMIT_PARAMETER + limit);
+		}
+		if(offset != null){
+			builder.append( "&" + OFFSET_PARAMETER + offset);
+		}
+		if(type != null){
+			builder.append("&typeFilter="+type.name());
+		}
+		return getJSONEntity(getRepoEndpoint(), builder.toString(), UserGroupHeaderResponsePage.class);
 	}
 
 	/**

@@ -234,7 +234,7 @@ public class UserProfileController extends BaseController {
 			longList.add(Long.parseLong(stringId));
 		}
 		// convert to a list of longs
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, longList);
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(longList);
 	}
 
 	/**
@@ -277,10 +277,10 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			@RequestParam(value = UrlHelpers.PREFIX_FILTER, required = false) String prefixFilter,
-			@RequestParam(required = false) TypeFilter filter,
+			@RequestParam(required = false) TypeFilter typeFilter,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) throws DatastoreException, NotFoundException, IOException {
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, filter, offset, limit);
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, typeFilter, offset, limit);
 	}
 	
 	/**

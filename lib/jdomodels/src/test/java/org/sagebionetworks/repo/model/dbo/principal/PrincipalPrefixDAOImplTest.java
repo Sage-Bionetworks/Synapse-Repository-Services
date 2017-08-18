@@ -150,17 +150,27 @@ public class PrincipalPrefixDAOImplTest {
 		principalPrefixDao
 				.addPrincipalName("FirstTwo", "LastTwo", principalTwo);
 		assertEquals(new Long(2),
-				principalPrefixDao.countPrincipalsForPrefix("First"));
+				countPrincipalsForPrefix("First"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("FirstO"));
+				countPrincipalsForPrefix("FirstO"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("FirstT"));
+				countPrincipalsForPrefix("FirstT"));
 		assertEquals(new Long(2),
-				principalPrefixDao.countPrincipalsForPrefix("Last"));
+				countPrincipalsForPrefix("Last"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("LastT"));
+				countPrincipalsForPrefix("LastT"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("LastO"));
+				countPrincipalsForPrefix("LastO"));
+	}
+	
+	/**
+	 * Helper to get the count for the number of results.
+	 * @param prefix
+	 * @return
+	 */
+	private Long countPrincipalsForPrefix(String prefix){
+		List<Long> results = principalPrefixDao.listPrincipalsForPrefix(prefix, Long.MAX_VALUE, 0L);
+		return new Long(results.size());
 	}
 
 	@Test
@@ -170,11 +180,11 @@ public class PrincipalPrefixDAOImplTest {
 		principalPrefixDao.addPrincipalAlias("batman", principalOne);
 		principalPrefixDao.addPrincipalAlias("batwoman", principalTwo);
 		assertEquals(new Long(2),
-				principalPrefixDao.countPrincipalsForPrefix("bat"));
+				countPrincipalsForPrefix("bat"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("batM"));
+				countPrincipalsForPrefix("batM"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("batW"));
+				countPrincipalsForPrefix("batW"));
 	}
 
 	@Test
@@ -183,14 +193,14 @@ public class PrincipalPrefixDAOImplTest {
 				.addPrincipalName("FirstOne", "LastOne", principalOne);
 		principalPrefixDao.addPrincipalAlias("batman", principalOne);
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("bat"));
+				countPrincipalsForPrefix("bat"));
 		assertEquals(new Long(1),
-				principalPrefixDao.countPrincipalsForPrefix("FirstOne L"));
+				countPrincipalsForPrefix("FirstOne L"));
 		principalPrefixDao.clearPrincipal(principalOne);
 		assertEquals(new Long(0),
-				principalPrefixDao.countPrincipalsForPrefix("bat"));
+				countPrincipalsForPrefix("bat"));
 		assertEquals(new Long(0),
-				principalPrefixDao.countPrincipalsForPrefix("FirstOne L"));
+				countPrincipalsForPrefix("FirstOne L"));
 	}
 
 	/**
@@ -206,7 +216,7 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(1, results.size());
 		assertEquals(principalOne, results.get(0));
 		// the count should give the same results
-		assertEquals(new Long(1), principalPrefixDao.countPrincipalsForPrefix("aab"));
+		assertEquals(new Long(1), countPrincipalsForPrefix("aab"));
 	}
 	
 	/**
@@ -241,7 +251,7 @@ public class PrincipalPrefixDAOImplTest {
 		assertNotNull(results);
 		assertEquals(10, results.size());
 		// the count should give the same results
-		assertEquals(new Long(10), principalPrefixDao.countPrincipalsForPrefix(prefixWithNoAlphaNumerics));
+		assertEquals(new Long(10), countPrincipalsForPrefix(prefixWithNoAlphaNumerics));
 	}
 
 	@Test
@@ -287,7 +297,7 @@ public class PrincipalPrefixDAOImplTest {
 		assertNotNull(results);
 		assertEquals(10, results.size());
 		// Counts should match
-		assertEquals(new Long(10), principalPrefixDao.countPrincipalsForPrefix("r"));
+		assertEquals(new Long(10), countPrincipalsForPrefix("r"));
 		assertEquals(romaneId, results.get(0));
 		assertEquals(romanusId, results.get(1));
 		assertEquals(romulusId, results.get(2));
@@ -305,7 +315,7 @@ public class PrincipalPrefixDAOImplTest {
 		assertNotNull(results);
 		assertEquals(4, results.size());
 		// Counts should match
-		assertEquals(new Long(4), principalPrefixDao.countPrincipalsForPrefix("Ru"));
+		assertEquals(new Long(4), countPrincipalsForPrefix("Ru"));
 		assertEquals(rubensId, results.get(0));
 		assertEquals(ruberId, results.get(1));
 		assertEquals(rubiconId, results.get(2));
@@ -317,7 +327,7 @@ public class PrincipalPrefixDAOImplTest {
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		// Counts should match
-		assertEquals(new Long(3), principalPrefixDao.countPrincipalsForPrefix("Rom"));
+		assertEquals(new Long(3), countPrincipalsForPrefix("Rom"));
 		assertEquals(romaneId, results.get(0));
 		assertEquals(romanusId, results.get(1));
 		assertEquals(romulusId, results.get(2));
@@ -445,43 +455,37 @@ public class PrincipalPrefixDAOImplTest {
 	@Test
 	public void testListTeamsForPrefix(){
 		addDefaultAlias();
-		List<Long> results = principalPrefixDao.listTeamsForPrefix("r",	1000L, 0L);
+		boolean isIndividual = false;
+		List<Long> results = principalPrefixDao.listPrincipalsForPrefix("r", isIndividual, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
-		// Counts should match
-		assertEquals(new Long(3), principalPrefixDao.countTeamsForPrefix("r"));
 		assertEquals(teamAllId, results.get(0));
 		assertEquals(teamEvenId, results.get(1));
 		assertEquals(teamOddId, results.get(2));
 		
 		// Full paging
-		results = principalPrefixDao.listTeamsForPrefix("rteam",2L, 1L);
+		results = principalPrefixDao.listPrincipalsForPrefix("rteam",isIndividual, 2L, 1L);
 		assertNotNull(results);
 		assertEquals(2, results.size());
-		// Counts should match
-		assertEquals(new Long(3), principalPrefixDao.countTeamsForPrefix("rteam"));
 		assertEquals(teamEvenId, results.get(0));
 		assertEquals(teamOddId, results.get(1));
 		
 		// single
-		results = principalPrefixDao.listTeamsForPrefix("rteama",100L, 0L);
+		results = principalPrefixDao.listPrincipalsForPrefix("rteama", isIndividual, 100L, 0L);
 		assertNotNull(results);
 		assertEquals(1, results.size());
-		// Counts should match
-		assertEquals(new Long(1), principalPrefixDao.countTeamsForPrefix("rteama"));
 		assertEquals(teamAllId, results.get(0));
 	}
 	
 	@Test
 	public void testListTeamsForPrefixEmptyPrefix() {
 		addDefaultAlias();
+		boolean isIndividual = false;
 		// Prefix with no alpha-numerics
 		String prefixWithNoAlphaNumerics = "#$%";
-		List<Long> results = principalPrefixDao.listTeamsForPrefix(prefixWithNoAlphaNumerics,1000L, 0L);
+		List<Long> results = principalPrefixDao.listPrincipalsForPrefix(prefixWithNoAlphaNumerics, isIndividual, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
-		// the count should give the same results
-		assertEquals(new Long(3), principalPrefixDao.countTeamsForPrefix(prefixWithNoAlphaNumerics));
 	}
 	
 	/**

@@ -94,6 +94,7 @@ import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -671,7 +672,8 @@ public class IT500SynapseJavaClient {
 		// here we are just trying to check that the URI and request parameters are 'wired up' right
 		UserGroupHeaderResponsePage page = waitForUserGroupHeadersByPrefix(adminProfile.getUserName());
 		assertTrue(page.getTotalNumberOfResults()>0);
-		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), 5, 0);
+		TypeFilter type = TypeFilter.USERS_ONLY;
+		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), type, 5L, 0L);
 		assertTrue(page.getTotalNumberOfResults()>0);
 		
 	}

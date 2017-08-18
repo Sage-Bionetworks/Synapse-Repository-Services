@@ -220,7 +220,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		request.add(ANONYMOUS_USER.getPrincipalId());
 		request.add(principalThree);
 		// request
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByIds(null, request);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByIds(request);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		System.out.println(children.toString());

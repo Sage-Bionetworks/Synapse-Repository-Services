@@ -6,8 +6,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +29,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapAlias;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
@@ -38,6 +45,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -73,6 +81,20 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+" FROM "+TABLE_PRINCIPAL_ALIAS
 			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:uniqueAliasList) "
 			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";
+	
+	private static final String SQL_SELECT_USER_GROUP_HEADERS =
+			"SELECT "
+			+ "A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
+			+", A."+COL_PRINCIPAL_ALIAS_TYPE
+			+", A."+COL_BOUND_ALIAS_DISPLAY
+			+", P."+COL_USER_PROFILE_FIRST_NAME
+			+", P."+COL_USER_PROFILE_LAST_NAME
+			+ " FROM "
+			+ TABLE_PRINCIPAL_ALIAS+" A LEFT OUTER JOIN "+TABLE_USER_PROFILE+" P"
+			+ " ON (A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = P."+COL_USER_PROFILE_ID+")"
+			+ " WHERE "
+			+ "A."+COL_PRINCIPAL_ALIAS_TYPE+" IN ('"+AliasEnum.USER_NAME+"', '"+AliasEnum.TEAM_NAME+"') "
+			+ "AND A.PRINCIPAL_ID IN (:principalIds)";
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -348,5 +370,42 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		});
 		principalIds.addAll(queryResult);
 		return principalIds;
+	}
+
+	@Override
+	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds) {
+		ValidateArgument.required(principalIds, "principalIds");
+		if (principalIds.isEmpty()) {
+			return new LinkedList<>();
+		}
+		final Map<Long, UserGroupHeader> headerMap = new HashMap<>(principalIds.size());
+		MapSqlParameterSource parameters = new MapSqlParameterSource("principalIds", principalIds);
+		namedTemplate.query(SQL_SELECT_USER_GROUP_HEADERS, parameters, new RowCallbackHandler() {
+
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				UserGroupHeader header = new UserGroupHeader();
+				Long principalId = rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
+				header.setOwnerId(""+principalId);
+				header.setUserName(rs.getString(COL_BOUND_ALIAS_DISPLAY));
+				AliasEnum type = AliasEnum.valueOf(rs.getString(COL_PRINCIPAL_ALIAS_TYPE));
+				if(AliasEnum.USER_NAME == type){
+					// user
+					header.setIsIndividual(true);
+					header.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
+					header.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
+				}else{
+					// team
+					header.setIsIndividual(false);
+				}
+				headerMap.put(principalId, header);
+			}
+		});
+		// return the results in the order called
+		List<UserGroupHeader> headers = new LinkedList<>();
+		for(Long principalId: principalIds){
+			headers.add(headerMap.get(principalId));
+		}
+		return headers;
 	}
 }

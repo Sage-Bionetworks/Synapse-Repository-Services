@@ -22,6 +22,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
@@ -33,12 +36,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class PrincipalAliasDaoImplTest {
 
 	@Autowired
 	private PrincipalAliasDAO principalAliasDao;
+	
+	@Autowired
+	private UserProfileDAO userProfileDao;
 	
 	@Autowired
 	private UserGroupDAO userGroupDao;
@@ -504,5 +512,95 @@ public class PrincipalAliasDaoImplTest {
 		alias.setPrincipalId(principalId);
 		principalAliasDao.bindAliasToPrincipal(alias);
 		assertEquals(teamName, principalAliasDao.getTeamName(principalId));
+	}
+	
+	@Test
+	public void testListPrincipalHeaders(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName("James");
+		profile.setLastName("Bond");
+		userProfileDao.create(profile);
+		
+		// setup a team
+		alias = new PrincipalAlias();
+		alias.setAlias("Team One");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setPrincipalId(principalId2);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(two);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId2, principalId));
+		assertNotNull(headers);
+		assertEquals(2, headers.size());
+		// the first header is for a team
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId2, header.getOwnerId());
+		assertFalse(header.getIsIndividual());
+		assertEquals("Team One", header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+		// the second header is for a user
+		header = headers.get(1);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals("James", header.getFirstName());
+		assertEquals("Bond", header.getLastName());
+	}
+	
+	@Test
+	public void testListPrincipalHeadersNullNames(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName(null);
+		profile.setLastName(null);
+		userProfileDao.create(profile);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		// the first header is for a team
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+	}
+	
+	@Test
+	public void testListPrincipalHeadersEmpty(){
+		// empty list should not fail.
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(new LinkedList<Long>());
+		assertNotNull(headers);
+		assertEquals(0, headers.size());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testListPrincipalHeadersNull(){
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(null);
+		assertNotNull(headers);
+		assertEquals(0, headers.size());
 	}
 }
