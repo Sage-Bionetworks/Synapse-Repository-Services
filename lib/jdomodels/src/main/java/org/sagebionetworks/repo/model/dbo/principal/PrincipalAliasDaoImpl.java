@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -392,8 +393,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 				if(AliasEnum.USER_NAME == type){
 					// user
 					header.setIsIndividual(true);
-					header.setFirstName(rs.getString(COL_USER_PROFILE_FIRST_NAME));
-					header.setLastName(rs.getString(COL_USER_PROFILE_LAST_NAME));
+					header.setFirstName(getStringUTF8(rs, COL_USER_PROFILE_FIRST_NAME));
+					header.setLastName(getStringUTF8(rs, COL_USER_PROFILE_LAST_NAME));
 				}else{
 					// team
 					header.setIsIndividual(false);
@@ -404,8 +405,31 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		// return the results in the order called
 		List<UserGroupHeader> headers = new LinkedList<>();
 		for(Long principalId: principalIds){
-			headers.add(headerMap.get(principalId));
+			UserGroupHeader header = headerMap.get(principalId);
+			if(header != null){
+				headers.add(headerMap.get(principalId));
+			}
 		}
 		return headers;
+	}
+	
+	/**
+	 * Read a field from the given ResultSet as bytes converted
+	 * to a UTF-8 String.
+	 * 
+	 * @param rs
+	 * @param name
+	 * @return
+	 */
+	static String getStringUTF8(ResultSet rs, String name){
+		try {
+			byte[] bytes = rs.getBytes(name);
+			if(bytes == null){
+				return null;
+			}
+			return new String(bytes, "UTF-8");
+		} catch (SQLException | UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

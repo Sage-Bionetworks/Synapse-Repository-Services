@@ -241,6 +241,22 @@ public class PrincipalPrefixDAOImplTest {
 		assertEquals(teamAllId, results.get(0));
 	}
 	
+	/**
+	 * Two aliases for the same user
+	 */
+	@Test
+	public void testListPrincipalsForPrefixFilterTypeDistinct() {
+		// to alias for the same users.
+		principalPrefixDao.addPrincipalAlias("aabb", principalOne);
+		principalPrefixDao.addPrincipalAlias("aabc", principalOne);
+		boolean isIndividual = true;
+		List<Long> results = principalPrefixDao.listPrincipalsForPrefix("aab", isIndividual,
+				1000L, 0L);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(principalOne, results.get(0));
+	}
+	
 	@Test
 	public void testListPrincipalsForPrefixEmptyPrefix() {
 		addDefaultAlias();

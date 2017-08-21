@@ -587,6 +587,62 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(null, header.getLastName());
 	}
 	
+	/**
+	 * First and Last names are stored as tiny blobs of UTF-8 bytes,
+	 * so they must be read correctly in the headers.
+	 */
+	@Test
+	public void testListPrincipalHeadersUTF8Names(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		String firstName = "Älp√";
+		String lastName = "£♥◙";
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName(firstName);
+		profile.setLastName(lastName);
+		userProfileDao.create(profile);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals(firstName, header.getFirstName());
+		assertEquals(lastName, header.getLastName());
+	}
+	
+	/**
+	 * If the ID does not exist it should not be in the results.
+	 */
+	@Test
+	public void testListPrincipalHeadersDoesNotExist(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		long idDoesNotExist = -1L;
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId, idDoesNotExist));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+	}
+	
 	@Test
 	public void testListPrincipalHeadersEmpty(){
 		// empty list should not fail.
