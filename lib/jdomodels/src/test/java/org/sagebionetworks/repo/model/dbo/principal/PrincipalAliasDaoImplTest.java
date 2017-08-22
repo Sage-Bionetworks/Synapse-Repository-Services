@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -18,6 +20,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+
+import static org.mockito.Mockito.*;
+
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -50,12 +57,17 @@ public class PrincipalAliasDaoImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDao;
+	
+	@Mock
+	ResultSet mockResultSet;
+	
 	Long principalId;
 	Long principalId2;
 	List<Long> toDelete;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
+		MockitoAnnotations.initMocks(this);
 		toDelete = new LinkedList<Long>();
 		// Create a test user
 		UserGroup ug = new UserGroup();
@@ -658,5 +670,24 @@ public class PrincipalAliasDaoImplTest {
 		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(null);
 		assertNotNull(headers);
 		assertEquals(0, headers.size());
+	}
+	
+	@Test
+	public void testGetStringUTF8Null() throws SQLException{
+		String name = "aName";
+		when(mockResultSet.getBytes(name)).thenReturn(null);
+		// call under test
+		String result = PrincipalAliasDaoImpl.getStringUTF8(mockResultSet, name);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testGetStringUTF8() throws Exception {
+		String name = "aName";
+		String value = "someValue";
+		when(mockResultSet.getBytes(name)).thenReturn(value.getBytes("UTF-8"));
+		// call under test
+		String result = PrincipalAliasDaoImpl.getStringUTF8(mockResultSet, name);
+		assertEquals(value, result);
 	}
 }
