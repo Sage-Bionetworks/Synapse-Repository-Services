@@ -120,8 +120,8 @@ public class TeamServiceImpl implements TeamService {
 		if (fragment==null || fragment.trim().length()==0) {
 			return teamManager.list(limit, offset);
 		}
-		
-		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
+		boolean isIndividual = false;
+		List<Long> teamIds = principalPrefixDAO.listPrincipalsForPrefix(fragment, isIndividual, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}

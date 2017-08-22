@@ -1,21 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_PREFIX_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_PREFIX;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
@@ -49,32 +40,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ COL_GROUP_MEMBERS_GROUP_ID
 			+ " = ? AND P."
 			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ?";
-	
-	private static final String SQL_LIST_TEAMS_FOR_PREFIX = "SELECT DISTINCT P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " FROM "
-			+ TABLE_PRINCIPAL_PREFIX
-			+ " P, "
-			+ TABLE_TEAM
-			+ " T WHERE P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = T."
-			+ COL_TEAM_ID
-			+ " AND P."
-			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ? LIMIT ? OFFSET ?";
-	
-	private static final String SQL_COUNT_TEAMS_FOR_PREFIX = "SELECT COUNT(DISTINCT P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ ") FROM "
-			+ TABLE_PRINCIPAL_PREFIX
-			+ " P, "
-			+ TABLE_TEAM
-			+ " T WHERE P."
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ " = T."
-			+ COL_TEAM_ID
-			+ " AND P."
-			+ COL_PRINCIPAL_PREFIX_TOKEN + " LIKE ?";
 
 	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX = "SELECT DISTINCT "
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
@@ -83,20 +48,21 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 			+ " WHERE "
 			+ COL_PRINCIPAL_PREFIX_TOKEN
 			+ " LIKE ? LIMIT ? OFFSET ?";
+	
+	private static final String SQL_LIST_PRINCIPALS_FOR_PREFIX_BY_TYPE =
+			"SELECT DISTINCT P."+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
+			+ " FROM "
+			+ TABLE_PRINCIPAL_PREFIX+" P JOIN "+TABLE_USER_GROUP+" U "
+			+ "ON (P."+COL_PRINCIPAL_PREFIX_PRINCIPAL_ID+" = U."+COL_USER_GROUP_ID
+					+" AND U."+COL_USER_GROUP_IS_INDIVIDUAL+" = ?)"
+			+ " WHERE"
+			+ " P.TOKEN LIKE ? LIMIT ? OFFSET ?";
 
 	private static final String SQL_CLEAR_PRINCIPAL = "DELETE FROM "
 			+ TABLE_PRINCIPAL_PREFIX + " WHERE "
 			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID + " = ?";
 
 	private static final String WILDCARD = "%";
-
-	private static final String SQL_COUNT_DISTINCT_PREFIX = "SELECT COUNT(DISTINCT "
-			+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID
-			+ ") FROM "
-			+ TABLE_PRINCIPAL_PREFIX
-			+ " WHERE "
-			+ COL_PRINCIPAL_PREFIX_TOKEN
-			+ " LIKE ?";
 
 	private static final String SQL_TRUNCATE_TABLE = "TRUNCATE TABLE "
 			+ TABLE_PRINCIPAL_PREFIX;
@@ -209,18 +175,17 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX,
 				Long.class, processed + WILDCARD, limit, offset);
 	}
-
+	
 	/*
 	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#
-	 * countPrincipalsForPrefix(java.lang.String)
+	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#listPrincipalsForPrefix(java.lang.String, boolean, java.lang.Long, java.lang.Long)
 	 */
 	@Override
-	public Long countPrincipalsForPrefix(String prefix) {
+	public List<Long> listPrincipalsForPrefix(String prefix,
+			boolean isIndividual, Long limit, Long offset) {
 		String processed = preProcessToken(prefix);
-		return jdbcTemplate.queryForObject(SQL_COUNT_DISTINCT_PREFIX,
-				Long.class, processed + WILDCARD);
+		return jdbcTemplate.queryForList(SQL_LIST_PRINCIPALS_FOR_PREFIX_BY_TYPE,
+				Long.class, isIndividual, processed + WILDCARD, limit, offset);
 	}
 
 	/*
@@ -260,19 +225,6 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	@Override
 	public void truncateTable() {
 		jdbcTemplate.update(SQL_TRUNCATE_TABLE);
-	}
-
-	@Override
-	public List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset) {
-		String processed = preProcessToken(prefix);
-		return jdbcTemplate.queryForList(SQL_LIST_TEAMS_FOR_PREFIX,
-				Long.class, processed + WILDCARD, limit, offset);
-	}
-
-	@Override
-	public Long countTeamsForPrefix(String prefix) {
-		String processed = preProcessToken(prefix);
-		return jdbcTemplate.queryForObject(SQL_COUNT_TEAMS_FOR_PREFIX, Long.class, processed + WILDCARD);
 	}
 
 }

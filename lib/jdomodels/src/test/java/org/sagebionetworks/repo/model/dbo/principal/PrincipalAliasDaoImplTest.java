@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -18,10 +20,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+
+import static org.mockito.Mockito.*;
+
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
@@ -33,6 +43,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class PrincipalAliasDaoImplTest {
@@ -41,13 +53,21 @@ public class PrincipalAliasDaoImplTest {
 	private PrincipalAliasDAO principalAliasDao;
 	
 	@Autowired
+	private UserProfileDAO userProfileDao;
+	
+	@Autowired
 	private UserGroupDAO userGroupDao;
+	
+	@Mock
+	ResultSet mockResultSet;
+	
 	Long principalId;
 	Long principalId2;
 	List<Long> toDelete;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
+		MockitoAnnotations.initMocks(this);
 		toDelete = new LinkedList<Long>();
 		// Create a test user
 		UserGroup ug = new UserGroup();
@@ -504,5 +524,170 @@ public class PrincipalAliasDaoImplTest {
 		alias.setPrincipalId(principalId);
 		principalAliasDao.bindAliasToPrincipal(alias);
 		assertEquals(teamName, principalAliasDao.getTeamName(principalId));
+	}
+	
+	@Test
+	public void testListPrincipalHeaders(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName("James");
+		profile.setLastName("Bond");
+		userProfileDao.create(profile);
+		
+		// setup a team
+		alias = new PrincipalAlias();
+		alias.setAlias("Team One");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setPrincipalId(principalId2);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(two);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId2, principalId));
+		assertNotNull(headers);
+		assertEquals(2, headers.size());
+		// the first header is for a team
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId2, header.getOwnerId());
+		assertFalse(header.getIsIndividual());
+		assertEquals("Team One", header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+		// the second header is for a user
+		header = headers.get(1);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals("James", header.getFirstName());
+		assertEquals("Bond", header.getLastName());
+	}
+	
+	@Test
+	public void testListPrincipalHeadersNullNames(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName(null);
+		profile.setLastName(null);
+		userProfileDao.create(profile);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		// the first header is for a team
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals(null, header.getFirstName());
+		assertEquals(null, header.getLastName());
+	}
+	
+	/**
+	 * First and Last names are stored as tiny blobs of UTF-8 bytes,
+	 * so they must be read correctly in the headers.
+	 */
+	@Test
+	public void testListPrincipalHeadersUTF8Names(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		String firstName = "Älp√";
+		String lastName = "£♥◙";
+		// Give the user a first and last name
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(""+principalId);
+		profile.setFirstName(firstName);
+		profile.setLastName(lastName);
+		userProfileDao.create(profile);
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+		assertTrue(header.getIsIndividual());
+		assertEquals("User_One", header.getUserName());
+		assertEquals(firstName, header.getFirstName());
+		assertEquals(lastName, header.getLastName());
+	}
+	
+	/**
+	 * If the ID does not exist it should not be in the results.
+	 */
+	@Test
+	public void testListPrincipalHeadersDoesNotExist(){
+		// setup a user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("User_One");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		long idDoesNotExist = -1L;
+		
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId, idDoesNotExist));
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		UserGroupHeader header = headers.get(0);
+		assertEquals(""+principalId, header.getOwnerId());
+	}
+	
+	@Test
+	public void testListPrincipalHeadersEmpty(){
+		// empty list should not fail.
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(new LinkedList<Long>());
+		assertNotNull(headers);
+		assertEquals(0, headers.size());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testListPrincipalHeadersNull(){
+		// call under test
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(null);
+		assertNotNull(headers);
+		assertEquals(0, headers.size());
+	}
+	
+	@Test
+	public void testGetStringUTF8Null() throws SQLException{
+		String name = "aName";
+		when(mockResultSet.getBytes(name)).thenReturn(null);
+		// call under test
+		String result = PrincipalAliasDaoImpl.getStringUTF8(mockResultSet, name);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testGetStringUTF8() throws Exception {
+		String name = "aName";
+		String value = "someValue";
+		when(mockResultSet.getBytes(name)).thenReturn(value.getBytes("UTF-8"));
+		// call under test
+		String result = PrincipalAliasDaoImpl.getStringUTF8(mockResultSet, name);
+		assertEquals(value, result);
 	}
 }

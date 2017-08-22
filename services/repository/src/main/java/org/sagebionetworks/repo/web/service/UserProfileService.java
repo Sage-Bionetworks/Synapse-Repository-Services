@@ -22,8 +22,8 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.http.HttpHeaders;
 
 /**
  * Generic service class to support controllers accessing UserProfiles.
@@ -116,7 +116,7 @@ public interface UserProfileService {
 	 * @param ids
 	 * @return
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<Long> ids)
 			throws DatastoreException, NotFoundException ;
 
 	/**
@@ -134,8 +134,7 @@ public interface UserProfileService {
 	 * @throws IOException
 	 */
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
-			String prefixFilter, Integer offset, Integer limit,
-			HttpHeaders header, HttpServletRequest request)
+			String prefixFilter, TypeFilter filter, Integer offset, Integer limit)
 			throws DatastoreException, NotFoundException;
 
 	/**

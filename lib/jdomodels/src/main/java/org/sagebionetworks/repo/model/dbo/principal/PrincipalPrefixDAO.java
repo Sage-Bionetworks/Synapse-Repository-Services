@@ -40,20 +40,23 @@ public interface PrincipalPrefixDAO {
 	/**
 	 * List a single page of users or teams that match a given prefix.
 	 * 
-	 * @param prefix Prefix to filter principals by.
 	 * @param limit Pagination parameter.
 	 * @param offset Pagination parameter.
 	 * @return List of principal IDs that match the query ordered alphabetically.
 	 */
 	List<Long> listPrincipalsForPrefix(String prefix, Long limit, Long offset);
-
+	
 	/**
-	 * Count the number of users and teams that match the given prefix.
+	 * List a single page of users or teams that match the given prefix;
 	 * 
 	 * @param prefix
+	 * @param isIndividual True for users, false for teams.
+	 * @param limit
+	 * @param offset
 	 * @return
 	 */
-	Long countPrincipalsForPrefix(String prefix);
+	List<Long> listPrincipalsForPrefix(String prefix, boolean isIndividual, Long limit, Long offset);
+
 
 	/**
 	 * For a given team, list all members that share the given prefix.
@@ -75,24 +78,6 @@ public interface PrincipalPrefixDAO {
 	 * @return
 	 */
 	Long countTeamMembersForPrefix(String prefix, Long teamId);
-	
-	/**
-	 * List a single page of teams that match a given prefix.
-	 * 
-	 * @param prefix Prefix to filter teams by.
-	 * @param limit Pagination parameter.
-	 * @param offset Pagination parameter.
-	 * @return List of principal IDs that match the query ordered alphabetically.
-	 */
-	List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset);
-
-	/**
-	 * Count the number of teams that match the given prefix.
-	 * 
-	 * @param prefix
-	 * @return
-	 */
-	Long countTeamsForPrefix(String prefix);
 
 	/**
 	 * Delete all data in the table.

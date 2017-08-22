@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -146,52 +147,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<Long> ids) 
 			throws DatastoreException, NotFoundException {
-		// split users and groups using the alias.
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(new HashSet<Long>(ids));
-		Map<Long, UserGroupHeader> map = new HashMap<Long, UserGroupHeader>(ids.size());
-		// Track all users
-		Set<Long> userIdSet = new HashSet<Long>(ids.size());
-		for(PrincipalAlias alias: aliases){
-			if(AliasType.TEAM_NAME.equals(alias.getType())){
-				// Team
-				UserGroupHeader teamHeader = new UserGroupHeader();
-				teamHeader.setIsIndividual(false);
-				teamHeader.setUserName(alias.getAlias());
-				teamHeader.setOwnerId(alias.getPrincipalId().toString());
-				map.put(alias.getPrincipalId(), teamHeader);
-			}else if(AliasType.USER_EMAIL.equals(alias.getType())){
-				// This is a user
-				userIdSet.add(alias.getPrincipalId());
-			}
-		}
-		// Fetch all users
-		IdList idList = new IdList();
-		idList.setList(new LinkedList<Long>(userIdSet));
-		ListWrapper<UserProfile> profiles = userProfileManager.list(idList);
-		for(UserProfile profile: profiles.getList()){
-			// Convert the profiles to headers
-			UserGroupHeader userHeader = convertUserProfileToHeader(profile);
-			map.put(Long.parseLong(profile.getOwnerId()), userHeader);
-		}
-		// final results will be in this list.
-		List<UserGroupHeader> finalList = new LinkedList<UserGroupHeader>();
-		// Now put all of the parts back together in the requested order
-		for(Long principalId: ids){
-			finalList.add(map.get(principalId));
-		}
+		List<UserGroupHeader> headers = principalAliasDAO.listPrincipalHeaders(ids);
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
-		response.setChildren(finalList);
-		response.setTotalNumberOfResults((long) finalList.size());
+		response.setChildren(headers);
+		response.setTotalNumberOfResults((long) headers.size());
 		response.setPrefixFilter(null);
 		return response;
 	}
 
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
-			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, TypeFilter filter,
+			Integer offset, Integer limit) 
 					throws DatastoreException, NotFoundException {
+		if(filter == null){
+			filter = TypeFilter.ALL;
+		}
 		long limitLong = 10;
 		if(limit != null){
 			limitLong = limit.longValue();
@@ -200,11 +172,42 @@ public class UserProfileServiceImpl implements UserProfileService {
 		if(offset != null){
 			offsetLong = offset.longValue();
 		}
-		List<Long> ids = principalPrefixDAO.listPrincipalsForPrefix(prefix, limitLong, offsetLong);
-		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(null, ids);
+		List<Long> ids = listPrincipalsForPrefix(prefix, filter,  offsetLong, limitLong);
+		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(ids);
 		response.setPrefixFilter(prefix);
-		response.setTotalNumberOfResults(principalPrefixDAO.countPrincipalsForPrefix(prefix));
+		// The total is estimated.
+		response.setTotalNumberOfResults(PaginatedResults.calculateTotalWithLimitAndOffset(response.getChildren().size(), limit, offset));
 		return response;
+	}
+	
+	/**
+	 * The type filter determines which query is run.
+	 * 
+	 * @param prefix
+	 * @param filter
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
+	List<Long> listPrincipalsForPrefix(String prefix, TypeFilter filter,
+			long offset, long limit){
+		ValidateArgument.required(filter, "filter");
+		boolean isIndividual = false;
+		switch(filter){
+		case ALL:
+			// not filtered by type.
+			return principalPrefixDAO.listPrincipalsForPrefix(prefix, limit, offset);
+		case USERS_ONLY:
+			isIndividual = true;
+			break;
+		case TEAMS_ONLY:
+			isIndividual = false;
+			break;
+		default: 
+			throw new IllegalArgumentException("Unknown type: "+filter);
+		}
+		// filter by type
+		return principalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset);
 	}
 	
 	@Override
@@ -269,20 +272,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 
 		return userProfileManager.getProjects(userInfo, userToGetInfoFor, teamToFetch, type, sortColumn, sortDirection, limit, offset);
-	}
-
-	/*
-	 * Private Methods
-	 */
-
-	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
-		UserGroupHeader header = new UserGroupHeader();
-		header.setFirstName(profile.getFirstName());
-		header.setLastName(profile.getLastName());
-		header.setOwnerId(profile.getOwnerId());
-		header.setIsIndividual(true);
-		header.setUserName(profile.getUserName());
-		return header;
 	}
 	
 	/*

@@ -115,5 +115,29 @@ public class PaginatedResultsTest {
 		assertEquals(mockPage, result.getResults());
 		assertEquals(offset+pageSize+1, result.getTotalNumberOfResults());
 	}
-
+	
+	@Test
+	public void testCalculateTotalWithLimitAndOffsetUnderLimt(){
+		int pageSize = limit.intValue()-1;
+		when(mockPage.size()).thenReturn(pageSize);
+		long total = PaginatedResults.calculateTotalWithLimitAndOffset(pageSize, limit, offset);
+		assertEquals(offset+pageSize, total);
+	}
+	
+	@Test
+	public void testcalculateTotalWithLimitAndOffsetAtLimit(){
+		int pageSize = limit.intValue();
+		when(mockPage.size()).thenReturn(pageSize);
+		long total = PaginatedResults.calculateTotalWithLimitAndOffset(pageSize, limit, offset);
+		assertEquals(offset+pageSize+1, total);
+	}
+	
+	@Test
+	public void testCalculateTotalWithLimitAndOffsetOverLimit(){
+		int pageSize = limit.intValue()+1;
+		when(mockPage.size()).thenReturn(pageSize);
+		long total = PaginatedResults.calculateTotalWithLimitAndOffset(pageSize, limit, offset);
+		assertEquals(offset+pageSize+1, total);
+	}
+	
 }

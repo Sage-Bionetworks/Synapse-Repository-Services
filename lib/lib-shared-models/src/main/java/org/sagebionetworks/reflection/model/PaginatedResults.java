@@ -71,17 +71,32 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 			throw new IllegalArgumentException("Offset cannot be null");
 		}
 		PaginatedResults<T> results = new PaginatedResults<T>(page);
-		if(page.size() >= limit){
-			results.setTotalNumberOfResults(offset+page.size()+1);
-		}else{
-			results.setTotalNumberOfResults(offset+page.size());
-		}
+		results.setTotalNumberOfResults(calculateTotalWithLimitAndOffset(page.size(), limit, offset));
 		return results;
 	}
 	
 	/**
+	 * Since we no longer support calculating the actual totalNumberOfResults
+	 * for each page, we estimate totalNumberOfResults using the current page,
+	 * limit, and offset. When the page size equals the limit, the
+	 * totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the
+	 * totalNumberOfResults will be offset+pageSize.
+	 * @param pageSize
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static long calculateTotalWithLimitAndOffset(int pageSize, long limit, long offset){
+		if(pageSize >= limit){
+			return offset+pageSize+1;
+		}else{
+			return offset+pageSize;
+		}
+	}
+	
+	/**
 	 * PaginatedResult has been misused for services that are not actually
-	 * paginated. If a service does no include the parameters: limit and offset,
+	 * paginated. If a service does not include the parameters: limit and offset,
 	 * then the service is not paginated and should not return PaginatedResults.
 	 * This method is only provided as a 'hack' for cases where PaginatedResults
 	 * has already been misused. This method should be used not to support new

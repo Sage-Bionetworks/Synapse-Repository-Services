@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -233,7 +234,7 @@ public class UserProfileController extends BaseController {
 			longList.add(Long.parseLong(stringId));
 		}
 		// convert to a list of longs
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, longList);
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(longList);
 	}
 
 	/**
@@ -252,24 +253,34 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get Users and Groups by name.
+	 * Get Users and Groups that match the given prefix.
 	 * 
-	 * @param prefixFilter The name to search for.
+	 * @param prefixFilter
+	 *            The name to search for.
+	 * @param filter
+	 *            Restrict the results to a type of principal. 
+	 *            Available options: <a href="${org.sagebionetworks.repo.model.principal.TypeFilter}">TypeFilter</a>.
 	 * @param offset
-	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
+	 *            The offset index determines where this page will start from.
+	 *            An index of 0 is the first item.
+	 *            <p>
+	 *            <i>Default is 0</i>
+	 *            </p>
 	 * @param limit
-	 * 			Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
+	 *            Limits the number of items that will be fetched for this page.
+	 *            <p>
+	 *            <i>Default is 10</i>
+	 *            </p>
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS, method = RequestMethod.GET)
 	public @ResponseBody
 	UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			@RequestParam(value = UrlHelpers.PREFIX_FILTER, required = false) String prefixFilter,
+			@RequestParam(required = false) TypeFilter typeFilter,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, offset, limit, header, request);
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) throws DatastoreException, NotFoundException, IOException {
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, typeFilter, offset, limit);
 	}
 	
 	/**

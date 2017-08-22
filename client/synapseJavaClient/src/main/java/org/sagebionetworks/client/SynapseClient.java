@@ -150,6 +150,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -448,13 +449,14 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param prefix
+	 * @param filter Optional filter to limit the results to a given type.
 	 * @param limit page size
 	 * @param offset page start
 	 * @return the users whose first, last or user name matches the given prefix
 	 * @throws SynapseException
 	 * @throws UnsupportedEncodingException
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, long limit, long offset)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, TypeFilter filter, Long limit, Long offset)
 			throws SynapseException, UnsupportedEncodingException;
 
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
