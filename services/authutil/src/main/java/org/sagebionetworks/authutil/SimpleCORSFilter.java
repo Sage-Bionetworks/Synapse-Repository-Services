@@ -30,7 +30,7 @@ public class SimpleCORSFilter implements Filter {
 	public static final String ACCESS_CONTROL_REQUEST_METHOD = "Access-Control-Request-Method";
 	public static final String ALL_ORIGINS = "*";
 	public static final String METHODS = "POST, GET, PUT";
-	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept";
+	public static final String HEADERS = "Origin, X-Requested-With, Content-Type, Accept, sessionToken";
 	public static final String MAX_AGE = "300";
 	public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
 	public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
