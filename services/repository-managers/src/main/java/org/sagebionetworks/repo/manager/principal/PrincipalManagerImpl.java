@@ -309,15 +309,15 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-	private String createEmailValidationInfo(Long userId, String email, Date now) {
-		AddEmailInfo addEmailInfoSignedToken = new AddEmailInfo();
+	private String createAddEmailInfo(Long userId, String email, Date now) {
+		AddEmailInfo addEmailInfo = new AddEmailInfo();
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setUserId(userId + "");
 		emailValidationSignedToken.setEmail(email);
 		emailValidationSignedToken.setCreatedOn(now);
 		SignedTokenUtil.signToken(emailValidationSignedToken);
-		addEmailInfoSignedToken.setEmailValidationSignedToken(emailValidationSignedToken);
-		return SerializationUtils.serializeAndHexEncode(addEmailInfoSignedToken);
+		addEmailInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+		return SerializationUtils.serializeAndHexEncode(addEmailInfo);
 	}
 
 	private static class ValidatedEmailInfo {
@@ -325,7 +325,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		public String newEmail;
 	}
 
-	public static ValidatedEmailInfo validateAddEmailInfo(AddEmailInfo addEmailInfo, Date now) {
+	public static ValidatedEmailInfo validateAddEmailInfo(AddEmailInfo addEmailInfo, String userId, Date now) {
 	    ValidatedEmailInfo result = new ValidatedEmailInfo();
 		// Find out which kind of token is being used
 		String token = addEmailInfo.getEmailValidationToken();
@@ -341,6 +341,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		} else {
 			throw new IllegalArgumentException("One and only one type of email validation token must be provided.");
 		}
+		if (result.userId != userId)
+			throw new IllegalArgumentException("Invalid token for userId " + userId);
 		return result;
 	}
 
@@ -421,7 +423,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		String token = createEmailValidationInfo(userInfo.getId(), email.getEmail(), new Date());
+		String token = createAddEmailInfo(userInfo.getId(), email.getEmail(), new Date());
 		String url = portalEndpoint+token;
 		EmailUtils.validateSynapsePortalHost(url);
 
@@ -463,7 +465,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo,
 			Boolean setAsNotificationEmail) throws NotFoundException {
-		ValidatedEmailInfo info = validateAddEmailInfo(addEmailInfo, new Date());
+		ValidatedEmailInfo info = validateAddEmailInfo(addEmailInfo, Long.toString(userInfo.getId()), new Date());
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(info.newEmail);
 		alias.setPrincipalId(userInfo.getId());
