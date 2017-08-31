@@ -31,14 +31,10 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -62,6 +58,7 @@ public class PrincipalManagerImplUnitTest {
 	private static final String LAST_NAME = "bar";
 	private static final String USER_NAME = "awesome123";
 	private static final String PASSWORD = "shhhhh";
+	private static final String PORTAL_ENDPOINT = "https://www.synapse.org?";
 	
 	private static NewUser createNewUser() {
 		NewUser user = new NewUser();
@@ -196,11 +193,11 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(token3.length()>0);
 		assertFalse(token1.equals(token3));
 	}
-	
+
 	@Test
 	public void testValidateNewAccountToken() {
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
+		String extractedEmail = PrincipalManagerImpl.validateEmailToken(token, now);
 		assertEquals(EMAIL, extractedEmail);
 	}
 	
@@ -209,7 +206,7 @@ public class PrincipalManagerImplUnitTest {
 		user.setFirstName("");
 		user.setLastName("");
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
+		String extractedEmail = PrincipalManagerImpl.validateEmailToken(token, now);
 		assertEquals(EMAIL, extractedEmail);
 	}
 	
@@ -231,7 +228,7 @@ public class PrincipalManagerImplUnitTest {
 			if (params[i].indexOf(paramName)>=0) params[i]=null;
 		}
 		token = paste(params, "&");
-		PrincipalManagerImpl.validateNewAccountToken(token, now);
+		PrincipalManagerImpl.validateEmailToken(token, now);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -272,7 +269,7 @@ public class PrincipalManagerImplUnitTest {
 			if (params[i].startsWith(paramName)) params[i]=paramName+"="+paramValue;
 		}
 		token = paste(params, "&");
-		PrincipalManagerImpl.validateNewAccountToken(token, now);
+		PrincipalManagerImpl.validateEmailToken(token, now);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -285,7 +282,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateNOTtooOLDTimestamp() {
 		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		PrincipalManagerImpl.validateNewAccountToken(token, notOutOfDate);
+		PrincipalManagerImpl.validateEmailToken(token, notOutOfDate);
 	}
 	
 	// token is not OK 25 hours from now
@@ -293,17 +290,18 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateOLDTimestamp() {
 		Date outOfDate = new Date(System.currentTimeMillis()+25*3600*1000L);
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		PrincipalManagerImpl.validateNewAccountToken(token, outOfDate);
+		PrincipalManagerImpl.validateEmailToken(token, outOfDate);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateNewAccountTokenInvalidToken() {
 		testReplacedParamValidateNewAccountToken("mac", "invalid-mac");
 	}
+
 	@Test
 	public void testNewAccountEmailValidationHappyPath() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
-		manager.newAccountEmailValidation(user, "https://www.synapse.org?");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
@@ -311,52 +309,47 @@ public class PrincipalManagerImplUnitTest {
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
-		assertEquals("Welcome to SYNAPSE!", mimeMessage.getSubject());
+		assertNotNull(mimeMessage.getSubject());
 		// check that all template fields have been replaced
 		assertTrue(body.indexOf("#")<0);
-		assertTrue(body.indexOf(FIRST_NAME)>=0); 
-		// check that user's name appears
-		assertTrue(body.indexOf(LAST_NAME)>=0); 
 		// check that token appears
-		assertTrue(body.indexOf("https://www.synapse.org?")>=0); 
-		assertTrue(body.indexOf("firstname=foo&lastname=bar&email=foo%40bar.com")>=0);
+		assertTrue(body.indexOf(PORTAL_ENDPOINT)>=0);
+		assertTrue(body.lastIndexOf(PORTAL_ENDPOINT) < body.length() - 1);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testNewAccountEmailValidationMissingFName() throws Exception {
 		user.setFirstName(null);
-		manager.newAccountEmailValidation(user, "https://www.synapse.org?");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testNewAccountEmailValidationMissingLName() throws Exception {
 		user.setLastName(null);
-		manager.newAccountEmailValidation(user, "https://www.synapse.org?");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testNewAccountEmailValidationBogusEmail() throws Exception {
 		user.setEmail("invalid-email");
-		manager.newAccountEmailValidation(user, "https://www.synapse.org?");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testNewAccountEmailValidationInvalidEndpoint() throws Exception {
-		manager.newAccountEmailValidation(user, "www.synapse.org");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testNewAccountEmailValidationEmailTaken() throws Exception {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(false);
-		manager.newAccountEmailValidation(user, "https://www.synapse.org?");
+		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT);
 	}
 	
 	@Test
-	public void testCreateNewAccount() throws Exception {
+	public void testCreateNewAccountOld() throws Exception {
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken(
-				PrincipalManagerImpl.
-				createTokenForNewAccount(user, now));
+		accountSetupInfo.setEmailValidationToken(PrincipalManagerImpl.createTokenForNewAccount(user, now));
 		accountSetupInfo.setFirstName(FIRST_NAME);
 		accountSetupInfo.setLastName(LAST_NAME);
 		accountSetupInfo.setPassword(PASSWORD);
@@ -374,7 +367,33 @@ public class PrincipalManagerImplUnitTest {
 		verify(mockAuthManager).changePassword(principalId, PASSWORD);
 		verify(mockAuthManager).authenticate(principalId, PASSWORD);
 	}
-	
+
+	@Test
+	public void testCreateNewAccount() throws Exception {
+		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setEmail(user.getEmail());
+		emailValidationSignedToken.setCreatedOn(now);
+		SignedTokenUtil.signToken(emailValidationSignedToken);
+		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+		accountSetupInfo.setFirstName(FIRST_NAME);
+		accountSetupInfo.setLastName(LAST_NAME);
+		accountSetupInfo.setPassword(PASSWORD);
+		accountSetupInfo.setUsername(USER_NAME);
+		long principalId = 111L;
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(principalId);
+		manager.createNewAccount(accountSetupInfo);
+		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
+		verify(mockUserManager).createUser(newUserCaptor.capture());
+		NewUser user = newUserCaptor.getValue();
+		assertEquals(FIRST_NAME, user.getFirstName());
+		assertEquals(LAST_NAME, user.getLastName());
+		assertEquals(USER_NAME, user.getUserName());
+		assertEquals(EMAIL, user.getEmail());
+		verify(mockAuthManager).changePassword(principalId, PASSWORD);
+		verify(mockAuthManager).authenticate(principalId, PASSWORD);
+	}
+
 	@Test
 	public void testCreateTokenForAdditionalEmail() {
 		String token1 = PrincipalManagerImpl.
@@ -429,7 +448,7 @@ public class PrincipalManagerImplUnitTest {
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void testValidatAdditionalEmailTokenMissingDomain() {
+	public void testValidateAdditionalEmailTokenMissingDomain() {
 		testMissingParamValidateAdditionalEmailToken("domain");
 	}
 	
@@ -479,7 +498,6 @@ public class PrincipalManagerImplUnitTest {
 	public void testAdditionalEmailValidation() throws Exception {
 		Long principalId = 111L;
 		UserInfo userInfo = new UserInfo(false, principalId);
-		String portalEndpoint = "https://www.synapse.org?";
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
@@ -488,8 +506,8 @@ public class PrincipalManagerImplUnitTest {
 		profile.setLastName(LAST_NAME);
 		when(mockUserProfileDAO.get(principalId.toString())).thenReturn(profile);
 		when(mockPrincipalAliasDAO.getUserName(principalId)).thenReturn(USER_NAME);
-		
-		manager.additionalEmailValidation(userInfo, email, portalEndpoint);
+
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
@@ -506,20 +524,19 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(body.indexOf(USER_NAME)>=0); 
 		assertTrue(body.indexOf(EMAIL)>=0);
 		// check that token appears
-		assertTrue(body.indexOf("https://www.synapse.org?")>=0); 
-		assertTrue(body.indexOf("userid=111&email=foo%40bar.com&timestamp=")>=0);
+		assertTrue(body.indexOf(PORTAL_ENDPOINT)>=0); 
+		assertTrue(body.lastIndexOf(PORTAL_ENDPOINT) < body.length() - 1);
 	}
 
 	@Test(expected=NameConflictException.class)
 	public void testAdditionalEmailEmailAlreadyUsed() throws Exception {
 		Long principalId = 111L;
 		UserInfo userInfo = new UserInfo(false, principalId);
-		String portalEndpoint = "https://www.synapse.org?";
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		// the following line simulates that the email is already used
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(false);
-		manager.additionalEmailValidation(userInfo, email, portalEndpoint);
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -528,8 +545,7 @@ public class PrincipalManagerImplUnitTest {
 		UserInfo userInfo = new UserInfo(false, principalId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
-		String portalEndpoint = "https://www.synapse.org?";
-		manager.additionalEmailValidation(userInfo, email, portalEndpoint);
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT);
 	}	
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -538,8 +554,7 @@ public class PrincipalManagerImplUnitTest {
 		UserInfo userInfo = new UserInfo(false, principalId);
 		Username email = new Username();
 		email.setEmail("not-an-email-address");
-		String portalEndpoint = "https://www.synapse.org?";
-		manager.additionalEmailValidation(userInfo, email, portalEndpoint);
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT);
 	}	
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -548,13 +563,12 @@ public class PrincipalManagerImplUnitTest {
 		UserInfo userInfo = new UserInfo(false, principalId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
-		String portalEndpoint = "www.synapse.org"; // not a valid endpoint!
 
-		manager.additionalEmailValidation(userInfo, email, portalEndpoint);
+		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT);
 	}	
 	
 	@Test
-	public void testAddEmail() throws Exception {
+	public void testAddEmailOld() throws Exception {
 		Long principalId = 111L;
 		UserInfo userInfo = new UserInfo(false, principalId);
 		
@@ -565,6 +579,31 @@ public class PrincipalManagerImplUnitTest {
 		Boolean setAsNotificationEmail = true;
 		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
 		
+		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
+		PrincipalAlias alias = aliasCaptor.getValue();
+		assertEquals(principalId, alias.getPrincipalId());
+		assertEquals(AliasType.USER_EMAIL, alias.getType());
+		assertEquals(EMAIL, alias.getAlias());
+		verify(mockNotificationEmailDao).update((PrincipalAlias)any());
+	}
+
+	@Test
+	public void testAddEmail() throws Exception {
+		Long principalId = 111L;
+		UserInfo userInfo = new UserInfo(false, principalId);
+
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setUserId(principalId + "");
+		emailValidationSignedToken.setEmail(EMAIL);
+		emailValidationSignedToken.setCreatedOn(now);
+		SignedTokenUtil.signToken(emailValidationSignedToken);
+		AddEmailInfo addEmailInfo = new AddEmailInfo();
+		addEmailInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+
+		Boolean setAsNotificationEmail = true;
+		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
+
 		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
 		PrincipalAlias alias = aliasCaptor.getValue();
