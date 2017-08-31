@@ -1,0 +1,16 @@
+{
+  "title": "AccountCreationToken",
+  "description": "Information needed to start the process of creating a new account.",
+  "properties": {
+    "emailValidationSignedToken": {
+      "type": "object",
+      "description": "Signed token containing the email address of the new account.",
+      "$ref": "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"
+    },
+    "membershipInvtnSignedToken": {
+      "type": "object",
+      "description": "Signed token containing the information needed to retrieve a membership invitation.",
+      "$ref": "org.sagebionetworks.repo.model.MembershipInvtnSignedToken"
+    }
+  }
+}
