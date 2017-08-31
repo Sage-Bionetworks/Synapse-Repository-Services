@@ -29,17 +29,12 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasEnum;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -82,7 +77,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	public static final String AMPERSAND = "&";
 	public static final String EQUALS = "=";
 	public static final long EMAIL_VALIDATION_TIME_LIMIT_MILLIS = 24*3600*1000L; // 24 hours as milliseconds
-	
+
 	@Override
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
@@ -101,7 +96,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			return false;
 		}
 	}
-	
+
+	@Deprecated
 	public static String generateSignature(String payload) {
 		try {
 			byte[] secretKey = StackConfiguration.getEncryptionKey().getBytes(PARAMETER_CHARSET);
@@ -111,12 +107,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public static String generateSignatureForNewAccount(String firstName, String lastName, 
+
+	@Deprecated
+	public static String generateSignatureForNewAccount(String firstName, String lastName,
 			String email, String timestamp, String domain) {
 		return generateSignature(firstName+lastName+email+timestamp+domain);
 	}
-	
+
+	@Deprecated
 	// note, this assumes that first name, last name and email are valid in 'user'
 	public static String createTokenForNewAccount(NewUser user, Date now) {
 		try {
@@ -134,7 +132,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String urlEncodedDomain = URLEncoder.encode("Synapse", PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
 			String mac = generateSignatureForNewAccount(
-					urlEncodedFirstName, urlEncodedLastName, urlEncodedEmail, 
+					urlEncodedFirstName, urlEncodedLastName, urlEncodedEmail,
 					urlEncodedTimeStampString, urlEncodedDomain);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS+URLEncoder.encode(mac, PARAMETER_CHARSET));
 			return sb.toString();
@@ -142,10 +140,35 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
+	private String createAccountCreationToken(NewUser user, Date now) {
+		AccountCreationToken accountCreationToken = new AccountCreationToken();
+		accountCreationToken.setMembershipInvtnSignedToken(user.getMembershipInvtnSignedToken());
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setEmail(user.getEmail());
+		emailValidationSignedToken.setCreatedOn(now);
+		SignedTokenUtil.signToken(emailValidationSignedToken);
+		accountCreationToken.setEmailValidationSignedToken(emailValidationSignedToken);
+		return SerializationUtils.serializeAndHexEncode(accountCreationToken);
+	}
+
+	public static String validateAccountSetupInfo(AccountSetupInfo accountSetupInfo, Date now) {
+		// Find out which kind of token is being used
+		String token = accountSetupInfo.getEmailValidationToken();
+		EmailValidationSignedToken signedToken = accountSetupInfo.getEmailValidationSignedToken();
+		if (signedToken != null && token == null) {
+			return validateEmailSignedToken(signedToken, new Date());
+		} else if (token != null && signedToken == null) {
+			return validateEmailToken(token, new Date());
+		} else {
+			throw new IllegalArgumentException("One and only one type of email validation token must be provided.");
+		}
+	}
+
+	@Deprecated
 	// returns the validated email address
 	// note, we pass the current time as a parameter to facilitate testing
-	public static String validateNewAccountToken(String token, Date now) {
+	public static String validateEmailToken(String token, Date now) {
 		String urlEncodedFirstName = null;
 		String urlEncodedLastName = null;
 		String urlEncodedEmail = null;
@@ -204,31 +227,35 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			throw new IllegalArgumentException("Invalid digital signature.");
 		return email;
 	}
-	
+
+	public static String validateEmailSignedToken(EmailValidationSignedToken token, Date now) {
+		if (token.getUserId() != null)
+			throw new IllegalArgumentException("EmailValidationSignedToken.token must be null");
+		String email = token.getEmail();
+		ValidateArgument.required(email, "EmailValidationSignedToken.email");
+		Date createdOn = token.getCreatedOn();
+		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
+		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
+			throw new IllegalArgumentException("Email validation link is out of date.");
+		SignedTokenUtil.validateToken(token);
+		return email;
+	}
+
 	// will throw exception for invalid email, invalid endpoint, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint) {
-		if (user.getFirstName()==null) user.setFirstName("");
-		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
-		
-		String token = createTokenForNewAccount(user, new Date());
-		String url = portalEndpoint+token;
-		EmailUtils.validateSynapsePortalHost(url);
 		// is the email taken?
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		String subject = "Welcome to SYNAPSE!";
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		if (user.getFirstName().length()>0 || user.getLastName().length()>0) {
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
-		} else {
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
-		}
+		String token = createAccountCreationToken(user, new Date());
+		String url = portalEndpoint+token;
+		EmailUtils.validateSynapsePortalHost(url);
+		String subject = "Welcome to Synapse!";
+		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 		String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(user.getEmail())
@@ -242,8 +269,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@WriteTransaction
 	@Override
 	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		String validatedEmail = validateNewAccountToken(accountSetupInfo.getEmailValidationToken(), new Date());
-
+		String validatedEmail = validateAccountSetupInfo(accountSetupInfo, new Date());
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
 		newUser.setFirstName(accountSetupInfo.getFirstName());
@@ -255,10 +281,12 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword());
 	}
 
+	@Deprecated
 	public static String generateSignatureForAdditionalEmail(String userId, String email, String timestamp, String domain) {
 		return generateSignature(userId+email+timestamp+domain);
 	}
-	
+
+	@Deprecated
 	public static String createTokenForAdditionalEmail(Long userId, String email, Date now) {
 		try {
 			StringBuilder sb = new StringBuilder();
@@ -272,7 +300,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
 			String urlEncodedDomain = URLEncoder.encode("Synapse", PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
-			String mac = generateSignatureForAdditionalEmail(urlEncodedUserId, urlEncodedEmail, 
+			String mac = generateSignatureForAdditionalEmail(urlEncodedUserId, urlEncodedEmail,
 					urlEncodedTimeStampString, urlEncodedDomain);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS+URLEncoder.encode(mac, PARAMETER_CHARSET));
 			return sb.toString();
@@ -280,7 +308,55 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
+	private String createEmailValidationInfo(Long userId, String email, Date now) {
+		AddEmailInfo addEmailInfoSignedToken = new AddEmailInfo();
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setUserId(userId + "");
+		emailValidationSignedToken.setEmail(email);
+		emailValidationSignedToken.setCreatedOn(now);
+		SignedTokenUtil.signToken(emailValidationSignedToken);
+		addEmailInfoSignedToken.setEmailValidationSignedToken(emailValidationSignedToken);
+		return SerializationUtils.serializeAndHexEncode(addEmailInfoSignedToken);
+	}
+
+	private static class ValidatedEmailInfo {
+		public String userId;
+		public String newEmail;
+	}
+
+	public static ValidatedEmailInfo validateAddEmailInfo(AddEmailInfo addEmailInfo, Date now) {
+	    ValidatedEmailInfo result = new ValidatedEmailInfo();
+		// Find out which kind of token is being used
+		String token = addEmailInfo.getEmailValidationToken();
+		EmailValidationSignedToken signedToken = addEmailInfo.getEmailValidationSignedToken();
+		if (signedToken != null && token == null) {
+			validateAdditionalEmailSignedToken(signedToken, new Date());
+			result.newEmail = signedToken.getEmail();
+			result.userId = signedToken.getUserId();
+		} else if (token != null && signedToken == null) {
+			validateAdditionalEmailToken(token, new Date());
+			result.newEmail = getParameterValueFromToken(token, EMAIL_VALIDATION_EMAIL_PARAM);
+			result.userId = getParameterValueFromToken(token, EMAIL_VALIDATION_USER_ID_PARAM);
+		} else {
+			throw new IllegalArgumentException("One and only one type of email validation token must be provided.");
+		}
+		return result;
+	}
+
+	public static String validateAdditionalEmailSignedToken(EmailValidationSignedToken token, Date now) {
+	    ValidateArgument.required(token.getUserId(), "EmailValidationSignedToken.userId");
+		String email = token.getEmail();
+		ValidateArgument.required(email, "EmailValidationSignedToken.email");
+		Date createdOn = token.getCreatedOn();
+		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
+		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
+			throw new IllegalArgumentException("Email validation link is out of date.");
+		SignedTokenUtil.validateToken(token);
+		return email;
+	}
+
+	@Deprecated
 	// returns the validated email address
 	// note, we pass the current time as a parameter to facilitate testing
 	public static void validateAdditionalEmailToken(String token, Date now) {
@@ -334,30 +410,27 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!urlEncodedMac.equals(newUrlEncodedMac))
 			throw new IllegalArgumentException("Invalid digital signature.");
 	}
-	
+
 	@Override
 	public void additionalEmailValidation(UserInfo userInfo, Username email,
 			String portalEndpoint) throws NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
-		
-		String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), new Date());
-		String url = portalEndpoint+token;
-		EmailUtils.validateSynapsePortalHost(url);
 		// is the email taken?
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		
+		String token = createEmailValidationInfo(userInfo.getId(), email.getEmail(), new Date());
+		String url = portalEndpoint+token;
+		EmailUtils.validateSynapsePortalHost(url);
+
 		// all requirements are met, so send the email
 		String subject = "Request to add or change new email";
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
-		userProfile.getFirstName()+" "+userProfile.getLastName());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, userProfile.getFirstName()+" "+userProfile.getLastName());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_HTML_SAFE_WEB_LINK, url.replaceAll("&", "&amp;"));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, principalAliasDAO.getUserName(userInfo.getId()));
@@ -390,14 +463,9 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo,
 			Boolean setAsNotificationEmail) throws NotFoundException {
-		String token = addEmailInfo.getEmailValidationToken();
-		validateAdditionalEmailToken(token, new Date());
-		String validatedEmail = getParameterValueFromToken(token, EMAIL_VALIDATION_EMAIL_PARAM);
-		String originalUserId = getParameterValueFromToken(token, EMAIL_VALIDATION_USER_ID_PARAM);
-		if (!originalUserId.equals(userInfo.getId().toString()))
-			throw new IllegalArgumentException("Invalid token for userId "+userInfo.getId());
+		ValidatedEmailInfo info = validateAddEmailInfo(addEmailInfo, new Date());
 		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(validatedEmail);
+		alias.setAlias(info.newEmail);
 		alias.setPrincipalId(userInfo.getId());
 		alias.setType(AliasType.USER_EMAIL);
 		alias = principalAliasDAO.bindAliasToPrincipal(alias);
@@ -427,7 +495,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	/**
 	 * Set the email which is used for notification.
 	 * 
-	 * @param principalId
+	 * @param userInfo
 	 * @param email
 	 * @throws NotFoundException 
 	 */
