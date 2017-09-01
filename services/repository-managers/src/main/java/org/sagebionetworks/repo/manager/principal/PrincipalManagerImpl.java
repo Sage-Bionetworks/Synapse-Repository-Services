@@ -341,7 +341,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		} else {
 			throw new IllegalArgumentException("One and only one type of email validation token must be provided.");
 		}
-		if (result.userId != userId)
+		if (!result.userId.equals(userId))
 			throw new IllegalArgumentException("Invalid token for userId " + userId);
 		return result;
 	}
