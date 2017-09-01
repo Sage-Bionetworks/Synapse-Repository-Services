@@ -28,7 +28,9 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -281,6 +283,26 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, typeFilter, offset, limit);
+	}
+	
+	/**
+	 * Get Users and Groups that match the given list of aliases.
+	 * 
+	 * @param request
+	 *            The list of principal aliases to lookup. Each alias must be
+	 *            either a user name or team name. The maximum number of aliases per request is 100.
+	 * @return The list UserGroupHeaders that match the requested Aliases. The order
+	 *         of the request is preserved in the response. If a requested alias
+	 *         does not match an existing user name or team name then no header
+	 *         will be returned.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BY_ALIASES, method = RequestMethod.POST)
+	public @ResponseBody
+	UserGroupHeaderResponse getUserGroupHeadersByAliases(
+			@RequestBody AliasList request) {
+		return serviceProvider.getUserProfileService()
+				.getUserGroupHeadersByAlias(request);
 	}
 	
 	/**

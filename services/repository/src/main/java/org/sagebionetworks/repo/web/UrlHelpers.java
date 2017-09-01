@@ -545,6 +545,11 @@ public class UrlHelpers {
 	public static final String USER_GROUP_HEADERS_BATCH = USER_GROUP_HEADERS + BATCH;
 	
 	/**
+	 * Get a batch of headers given aliases.
+	 */
+	public static final String USER_GROUP_HEADERS_BY_ALIASES = USER_GROUP_HEADERS + "/aliases";
+	
+	/**
 	 * The name of the query parameter for a prefix filter.
 	 */
 	public static final String PREFIX_FILTER = "prefix";

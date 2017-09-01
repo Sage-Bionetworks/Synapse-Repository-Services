@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
@@ -12,6 +14,7 @@ import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import com.google.common.collect.Lists;
 
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	public static final String GREETING = "Hello %1$s,\n\n";
@@ -153,6 +157,11 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	@Override
 	public Set<String> getRelatedUsers() {
 		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
-		return principalAliasDao.lookupPrincipalIds(usernameList);
+		List<Long> principalIds = principalAliasDao.findPrincipalsWithAliases(usernameList, Lists.newArrayList(AliasType.USER_NAME));
+		Set<String> results = new HashSet<String>(principalIds.size());
+		for(Long id: principalIds){
+			results.add(""+id);
+		}
+		return results;
 	}
 }

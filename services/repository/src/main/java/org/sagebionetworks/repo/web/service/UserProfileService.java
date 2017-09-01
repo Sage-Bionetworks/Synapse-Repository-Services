@@ -22,7 +22,9 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -210,5 +212,13 @@ public interface UserProfileService {
 	 * @param notificationSettingsSignedToken
 	 */
 	public ResponseMessage updateNotificationSettings(NotificationSettingsSignedToken notificationSettingsSignedToken);
+
+	/**
+	 * Get
+	 * @param request
+	 * @return
+	 */
+	public UserGroupHeaderResponse getUserGroupHeadersByAlias(
+			AliasList request);
 
 }

@@ -1,12 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -19,6 +14,7 @@ import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -29,7 +25,6 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -40,15 +35,16 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VerificationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
@@ -57,9 +53,15 @@ import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+
+import com.google.common.collect.Lists;
 
 public class UserProfileServiceImpl implements UserProfileService {
+	
+	/**
+	 * The maximum number of headers per request.
+	 */
+	public static int MAX_HEADERS_PER_REQUEST = 100;
 
 	@Autowired
 	private UserProfileManager userProfileManager;
@@ -383,6 +385,33 @@ public class UserProfileServiceImpl implements UserProfileService {
 			}
 		}
 		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserGroupHeadersByAlias(org.sagebionetworks.repo.model.principal.AliasList)
+	 */
+	@Override
+	public UserGroupHeaderResponse getUserGroupHeadersByAlias(AliasList request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getList(), "request.list");
+		ValidateArgument.requirement(!request.getList().isEmpty(),
+				"Request must include at least one alias.");
+		ValidateArgument.requirement(
+				request.getList().size() < MAX_HEADERS_PER_REQUEST + 1 ,
+				"Request exceeds the maximum number of "
+						+ MAX_HEADERS_PER_REQUEST + " aliases.");
+		/*
+		 * Note: Callers can only lookup team names and user names. They
+		 * cannot lookup email addresses or other alias types.
+		 */
+		List<AliasType> types = Lists.newArrayList(AliasType.TEAM_NAME, AliasType.USER_NAME);
+		List<Long> principalIds = principalAliasDAO.findPrincipalsWithAliases(request.getList(), types);
+		// Convert the Ids to headers
+		List<UserGroupHeader> resultList = principalAliasDAO.listPrincipalHeaders(principalIds);
+		UserGroupHeaderResponse response = new UserGroupHeaderResponse();
+		response.setList(resultList);
+		return response;
 	}
 
 }

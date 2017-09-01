@@ -5,6 +5,8 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
@@ -14,12 +16,14 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import com.google.common.collect.Lists;
 
 public class DiscussionBroadcastMessageBuilderTest {
 	@Mock
@@ -196,7 +200,8 @@ public class DiscussionBroadcastMessageBuilderTest {
 		usernameSet.add("user");
 		Set<String> userIdSet = new HashSet<String>();
 		userIdSet.add("101");
-		when(mockPrincipalAliasDAO.lookupPrincipalIds(usernameSet)).thenReturn(userIdSet);
+		List<Long> longIdList = Lists.newArrayList(101L);
+		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(anyCollectionOf(String.class), anyListOf(AliasType.class))).thenReturn(longIdList);
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, "@user",
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
