@@ -309,15 +309,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-	private String createAddEmailInfo(Long userId, String email, Date now) {
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
+	private String createEmailValidationSignedToken(Long userId, String email, Date now) {
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setUserId(userId + "");
 		emailValidationSignedToken.setEmail(email);
 		emailValidationSignedToken.setCreatedOn(now);
 		SignedTokenUtil.signToken(emailValidationSignedToken);
-		addEmailInfo.setEmailValidationSignedToken(emailValidationSignedToken);
-		return SerializationUtils.serializeAndHexEncode(addEmailInfo);
+		return SerializationUtils.serializeAndHexEncode(emailValidationSignedToken);
 	}
 
 	private static class ValidatedEmailInfo {
@@ -423,7 +421,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		String token = createAddEmailInfo(userInfo.getId(), email.getEmail(), new Date());
+		String token = createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), new Date());
 		String url = portalEndpoint+token;
 		EmailUtils.validateSynapsePortalHost(url);
 
