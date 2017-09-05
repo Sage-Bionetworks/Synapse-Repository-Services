@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -12,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.Before;
@@ -30,6 +30,9 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class UserManagerImplUnitTest {
 	
@@ -143,4 +146,22 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(principalId, 999L);
 	}
 	
+	
+	@Test
+	public void testGetDistinctUserIdsForAliases(){
+		List<String> aliases = Lists.newArrayList("one","two");
+		List<AliasType> typeFilter = Lists.newArrayList(AliasType.USER_NAME, AliasType.TEAM_NAME);
+		Long limit = 100L;
+		Long offset = 0L;
+		List<Long> princpalIds = Lists.newArrayList(101L,102L);
+		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(aliases, typeFilter)).thenReturn(princpalIds);
+		Set<String> principalSet = Sets.newHashSet("101", "102");
+		Set<String> finalResults = Sets.newHashSet("101","103","104");
+		when(mockGroupMembersDAO.getIndividuals(principalSet, limit, offset)).thenReturn(finalResults);
+		
+		// call under test
+		Set<String> results = userManager.getDistinctUserIdsForAliases(aliases, limit, offset);
+		assertNotNull(results);
+		assertEquals(finalResults, results);
+	}
 }

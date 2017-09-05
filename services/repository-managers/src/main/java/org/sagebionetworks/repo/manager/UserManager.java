@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -70,6 +71,19 @@ public interface UserManager {
 	public PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId);
 	
 	public void unbindAlias(String aliasName, AliasType type, Long principalId);
+	
+	/**
+	 * Get the distinct principal IDs of users for a given list of principal
+	 * aliases. If a given alias is a team name then the results will include
+	 * the principal ID of each user in the team. If a given alias is a user
+	 * name then the results will include the principal ID of that user.
+	 * 
+	 * @param aliases
+	 *            List of aliases that can include both user names and team
+	 *            names.
+	 * @param limit Limit the number of results.
+	 */
+	public Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset);
 	
 	
 }

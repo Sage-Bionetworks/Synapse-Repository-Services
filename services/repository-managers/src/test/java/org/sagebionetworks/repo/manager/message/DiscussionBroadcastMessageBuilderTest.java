@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -24,12 +25,13 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class DiscussionBroadcastMessageBuilderTest {
 	@Mock
 	MarkdownDao mockMarkdownDao;
 	@Mock
-	PrincipalAliasDAO mockPrincipalAliasDAO;
+	UserManager mockUserManager;
 
 	String actorUsername;
 	String actorUserId;
@@ -78,7 +80,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockUserManager);
 	}
 
 	@Test
@@ -103,7 +105,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ReplyMessageBuilderFactory.REPLY_TEMPLATE, ReplyMessageBuilderFactory.REPLY_CREATED_TITLE,
-				ReplyMessageBuilderFactory.UNSUBSCRIBE_THREAD, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+				ReplyMessageBuilderFactory.UNSUBSCRIBE_THREAD, mockMarkdownDao, topic, mockUserManager);
 	
 		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
@@ -142,7 +144,7 @@ public class DiscussionBroadcastMessageBuilderTest {
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, markdown,
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockUserManager);
 		String body = builder.buildRawBodyForSubscriber(subscriber);
 		assertNotNull(body);
 		assertTrue(body.contains("subscriberFirstName subscriberLastName (subscriberUsername)"));
@@ -200,12 +202,12 @@ public class DiscussionBroadcastMessageBuilderTest {
 		usernameSet.add("user");
 		Set<String> userIdSet = new HashSet<String>();
 		userIdSet.add("101");
-		List<Long> longIdList = Lists.newArrayList(101L);
-		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(anyCollectionOf(String.class), anyListOf(AliasType.class))).thenReturn(longIdList);
+		Set<String> idSet = Sets.newHashSet("101");
+		when(mockUserManager.getDistinctUserIdsForAliases(anyCollectionOf(String.class), anyLong(), anyLong())).thenReturn(idSet);
 		builder = new DiscussionBroadcastMessageBuilder(actorUsername, actorUserId,
 				threadTitle, threadId, projectId, projectName, "@user",
 				ThreadMessageBuilderFactory.THREAD_TEMPLATE, ThreadMessageBuilderFactory.THREAD_CREATED_TITLE,
-				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockPrincipalAliasDAO);
+				ThreadMessageBuilderFactory.UNSUBSCRIBE_FORUM, mockMarkdownDao, topic, mockUserManager);
 		assertEquals(userIdSet, builder.getRelatedUsers());
 	}
 
