@@ -1019,8 +1019,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(aliases, "aliases");
 		AliasList list = new AliasList();
 		list.setList(aliases);
-		UserGroupHeaderResponse response = getJSONEntity(getRepoEndpoint(),
-				USER_GROUP_HEADER_BY_ALIAS, UserGroupHeaderResponse.class);
+		UserGroupHeaderResponse response = postJSONEntity(getRepoEndpoint(),
+				USER_GROUP_HEADER_BY_ALIAS, list, UserGroupHeaderResponse.class);
 		return response.getList();
 	}
 
