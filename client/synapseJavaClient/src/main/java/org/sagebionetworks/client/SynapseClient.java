@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -151,6 +152,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -458,6 +460,14 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, TypeFilter filter, Long limit, Long offset)
 			throws SynapseException, UnsupportedEncodingException;
+	
+	/**
+	 * Lookup the UserGroupHeaders for the given aliases.
+	 * @param aliases List of user or team names.  
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public List<UserGroupHeader> getUserGroupHeadersByAliases(List<String> aliases) throws SynapseException;
 
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
 

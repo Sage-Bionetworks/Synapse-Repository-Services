@@ -10,7 +10,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -49,10 +48,12 @@ import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.verification.AttachmentMetadata;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -63,16 +64,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-/**
- * Most of the tests in this suite only worked when using illegal principal IDs, so @Ignore were added when it was refactored.
- *
- */
 public class UserProfileServiceTest {
 	
 	private static final Long EXTRA_USER_ID = 2398475L;
 	private static final Long NONEXISTENT_USER_ID = 827634L;
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
+	private AliasList aliasList;
+	List<AliasType> typeList;
+	List<UserGroupHeader> headers;
 	
 	private UserProfileServiceImpl userProfileService = new UserProfileServiceImpl();
 	
@@ -136,6 +136,20 @@ public class UserProfileServiceTest {
 		ReflectionTestUtils.setField(userProfileService, "principalAliasDAO", mockPrincipalAliasDAO);
 		ReflectionTestUtils.setField(userProfileService, "verificationDao", mockVerificationDao);
 		ReflectionTestUtils.setField(userProfileService, "principalPrefixDAO", mockPrincipalPrefixDAO);
+		
+		aliasList = new AliasList();
+		aliasList.setList(Lists.newArrayList("aliasOne", "aliasTwo"));
+		
+		typeList = Lists.newArrayList(AliasType.TEAM_NAME, AliasType.USER_NAME);
+		
+		List<Long> principalIds = Lists.newArrayList(101L);
+		when(mockPrincipalAliasDAO.findPrincipalsWithAliases(aliasList.getList(), typeList)).thenReturn(principalIds);
+		
+		headers = new LinkedList<UserGroupHeader>();
+		UserGroupHeader header = new UserGroupHeader();
+		header.setOwnerId("101");
+		headers.add(header);
+		when(mockPrincipalAliasDAO.listPrincipalHeaders(principalIds)).thenReturn(headers);
 	}
 
 	
@@ -502,6 +516,59 @@ public class UserProfileServiceTest {
 		when(mockPrincipalPrefixDAO.listPrincipalsForPrefix(prefix, isIndividual, limit, offset)).thenReturn(expectedResutls);
 		// call under test
 		userProfileService.listPrincipalsForPrefix(prefix, filter, offset, limit);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByAlias(){
+		UserGroupHeaderResponse response = userProfileService.getUserGroupHeadersByAlias(aliasList);
+		assertNotNull(response);
+		assertNotNull(response.getList());
+		assertEquals(headers, response.getList());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetUserGroupHeadersByAliasNullRequest(){
+		aliasList = null;
+		// call under test
+		userProfileService.getUserGroupHeadersByAlias(aliasList);
+	}
+	
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetUserGroupHeadersByAliasEmptyList(){
+		aliasList.setList(new LinkedList<String>());
+		// call under test
+		userProfileService.getUserGroupHeadersByAlias(aliasList);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByAliasAtLimit(){
+		List<String> list = new LinkedList<String>();
+		aliasList.setList(list);
+		for(int i=0; i < UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST; i++){
+			list.add("a"+i);
+		}
+		assertEquals(list.size(), UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST);
+		// call under test
+		userProfileService.getUserGroupHeadersByAlias(aliasList);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByAliasOverLimit(){
+		List<String> list = new LinkedList<String>();
+		aliasList.setList(list);
+		for(int i=0; i < UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST+1; i++){
+			list.add("a"+i);
+		}
+		assertEquals(list.size(), UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST+1);
+		// call under test
+		try {
+			userProfileService.getUserGroupHeadersByAlias(aliasList);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(""+UserProfileServiceImpl.MAX_HEADERS_PER_REQUEST));
+		}
 	}
 	
 	@Test

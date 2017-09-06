@@ -16,7 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,7 +50,8 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.Lists;
 
 /**
  * Basic database implementation of of PrincipalAliasDAO
@@ -69,19 +70,9 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
-	private static final String ALIAS_PARAM = "alias";
-	private static final String SQL_FIND_PRINCIPALS_WITH_ALIASES = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:"+ALIAS_PARAM+")";
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SET_BIND_VAR = "principalIdSet";
 	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IN (:"+SET_BIND_VAR+") ORDER BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
-	private static final String SQL_GET_PRINCIPAL_ID = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
-			+" FROM "+TABLE_PRINCIPAL_ALIAS
-			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ? "
-			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ?";
-	private static final String SQL_GET_PRINCIPAL_ID_LIST = "SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
-			+" FROM "+TABLE_PRINCIPAL_ALIAS
-			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:uniqueAliasList) "
-			+" AND "+COL_PRINCIPAL_ALIAS_TYPE+" = :type";
 	
 	private static final String SQL_SELECT_USER_GROUP_HEADERS =
 			"SELECT "
@@ -96,6 +87,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+ " WHERE "
 			+ "A."+COL_PRINCIPAL_ALIAS_TYPE+" IN ('"+AliasEnum.USER_NAME+"', '"+AliasEnum.TEAM_NAME+"') "
 			+ "AND A.PRINCIPAL_ID IN (:principalIds)";
+	
+	private static final String TYPE_LIST = "typeList";
+	private static final String UNIQUE_ALIAS_LIST = "uniqueAliasList";
+	
+	private static final String SQL_SELECT_BY_ALIASES_AND_TYPE = 
+			"SELECT "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
+			+" FROM "+TABLE_PRINCIPAL_ALIAS
+			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:"+UNIQUE_ALIAS_LIST+")"
+					+ " AND "+COL_PRINCIPAL_ALIAS_TYPE+" IN (:"+TYPE_LIST+")";
+
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -193,20 +194,6 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	}
 
 	@Override
-	public Set<PrincipalAlias> findPrincipalsWithAliases(Set<String> aliases) {
-		if(aliases == null) throw new IllegalArgumentException("aliases cannot be null");
-		Set<PrincipalAlias> result = new HashSet<PrincipalAlias>();
-		if (aliases.isEmpty()) return result;
-		List<String> unique = new ArrayList<String>();
-		for (String alias : aliases) unique.add(AliasUtils.getUniqueAliasName(alias));
-		SqlParameterSource param = new MapSqlParameterSource(ALIAS_PARAM, unique);
-		for (DBOPrincipalAlias dbo : namedTemplate.query(SQL_FIND_PRINCIPALS_WITH_ALIASES, param, principalAliasMapper)) {
-			result.add(AliasUtils.createDTOFromDBO(dbo));
-		}
-		return result;
-	}
-
-	@Override
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		String unique = AliasUtils.getUniqueAliasName(alias);
@@ -262,7 +249,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	}
 
 	@Override
-	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds) {
+	public List<PrincipalAlias> listPrincipalAliases(Collection<Long> principalIds) {
 		if(principalIds == null) throw new IllegalArgumentException("PrincipalIds cannot be null");
 		if(principalIds.isEmpty()) return Collections.emptyList();
 		Map<String,Object> parameters = new HashMap<String,Object>();
@@ -338,39 +325,11 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	public long lookupPrincipalID(String alias, AliasType type) {
 		ValidateArgument.required(alias, "alias");
 		ValidateArgument.required(type, "type");
-		ValidateArgument.requirement(alias != "", "alias must not be empty");
-		List<Long> queryResult = jdbcTemplate.query(SQL_GET_PRINCIPAL_ID, new RowMapper<Long>(){
-
-			@Override
-			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
-			}
-		}, AliasUtils.getUniqueAliasName(alias), type.name());
+		List<Long> queryResult = findPrincipalsWithAliases(Lists.newArrayList(alias), Lists.newArrayList(type));
 		if (queryResult.size() != 1) {
 			throw new NotFoundException();
 		}
 		return queryResult.get(0);
-	}
-
-	@Override
-	public Set<String> lookupPrincipalIds(Set<String> usernameList) {
-		ValidateArgument.required(usernameList, "usernameList");
-		Set<String> principalIds = new HashSet<String>();
-		if (usernameList.isEmpty()) {
-			return principalIds;
-		}
-		Set<String> uniqueAliasList = AliasUtils.getUniqueAliasName(usernameList);
-		MapSqlParameterSource parameters = new MapSqlParameterSource("uniqueAliasList", uniqueAliasList);
-		parameters.addValue("type", AliasType.USER_NAME.name());
-		List<String> queryResult = namedTemplate.query(SQL_GET_PRINCIPAL_ID_LIST, parameters, new RowMapper<String>(){
-
-			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
-			}
-		});
-		principalIds.addAll(queryResult);
-		return principalIds;
 	}
 
 	@Override
@@ -431,5 +390,28 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		} catch (SQLException | UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public List<Long> findPrincipalsWithAliases(Collection<String> aliases,
+			List<AliasType> types) {
+		ValidateArgument.required(aliases, "aliases");
+		ValidateArgument.required(types, "types");
+		if(aliases.isEmpty() || types.isEmpty()){
+			return new LinkedList<>();
+		}
+		// Process any alias to remove non-alpha numerics.
+		List<String> processAliases = new LinkedList<String>();
+		for (String alias : aliases){
+			processAliases.add(AliasUtils.getUniqueAliasName(alias));
+		}
+		List<String> typeStrings = new LinkedList<String>();
+		for(AliasType type: types){
+			typeStrings.add(type.name());
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue(UNIQUE_ALIAS_LIST, processAliases);
+		parameters.addValue(TYPE_LIST, typeStrings);
+		return this.namedTemplate.queryForList(SQL_SELECT_BY_ALIASES_AND_TYPE, parameters, Long.class);
 	}
 }

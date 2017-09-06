@@ -32,12 +32,15 @@ import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Lists;
 
 public class CloudMailInManagerImpl implements CloudMailInManager {
 	private static final String FROM_HEADER = "From";
@@ -221,8 +224,12 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			}
 			aliasToEmailMap.put(uniqueAliasName, email);
 		}
-		Set<PrincipalAlias> aliases = principalAliasDAO.
-			findPrincipalsWithAliases(new HashSet<String>(aliasToEmailMap.keySet()));
+		// the aliases to user names and team names.
+		List<Long> principalIds = principalAliasDAO.findPrincipalsWithAliases(
+				aliasToEmailMap.keySet(),
+				Lists.newArrayList(AliasType.USER_NAME, AliasType.TEAM_NAME));
+		List<PrincipalAlias> aliases = principalAliasDAO
+				.listPrincipalAliases(principalIds);
 		Map<String,String> aliasToPrincipalIdMap = new HashMap<String,String>();
 		for (PrincipalAlias alias : aliases) {
 			aliasToPrincipalIdMap.put(AliasUtils.getUniqueAliasName(alias.getAlias()), alias.getPrincipalId().toString());

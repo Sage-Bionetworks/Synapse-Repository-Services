@@ -87,6 +87,7 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserBundle;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -176,10 +177,12 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.AliasList;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -379,6 +382,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 
 	private static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
+	
+	private static final String USER_GROUP_HEADER_BY_ALIAS = "/userGroupHeaders/aliases";
 
 	private static final String ACCESS_REQUIREMENT = "/accessRequirement";
 
@@ -1006,6 +1011,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			builder.append("&typeFilter="+type.name());
 		}
 		return getJSONEntity(getRepoEndpoint(), builder.toString(), UserGroupHeaderResponsePage.class);
+	}
+	
+	@Override
+	public List<UserGroupHeader> getUserGroupHeadersByAliases(
+			List<String> aliases) throws SynapseException {
+		ValidateArgument.required(aliases, "aliases");
+		AliasList list = new AliasList();
+		list.setList(aliases);
+		UserGroupHeaderResponse response = postJSONEntity(getRepoEndpoint(),
+				USER_GROUP_HEADER_BY_ALIAS, list, UserGroupHeaderResponse.class);
+		return response.getList();
 	}
 
 	/**

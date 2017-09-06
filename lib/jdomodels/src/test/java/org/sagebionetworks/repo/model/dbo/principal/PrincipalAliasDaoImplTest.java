@@ -137,24 +137,6 @@ public class PrincipalAliasDaoImplTest {
 		assertNull(principalAliasDao.findPrincipalWithAlias(UUID.randomUUID().toString()));
 	}
 	
-	
-	@Test
-	public void testFindPrincipalsForAliases() throws NotFoundException{
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
-		alias.setType(AliasType.USER_EMAIL);
-		alias.setPrincipalId(principalId);
-		
-		PrincipalAlias created = principalAliasDao.bindAliasToPrincipal(alias);
-		
-		Set<String> aliases = new HashSet<String>();
-		aliases.add(alias.getAlias());
-		aliases.add(UUID.randomUUID().toString()); // does not exist
-		Set<PrincipalAlias> actual = principalAliasDao.findPrincipalsWithAliases(aliases);
-		Set<PrincipalAlias> expected = Collections.singleton(created);
-		assertEquals(expected, actual);	
-	}
-	
 	@Test (expected=NotFoundException.class)
 	public void testPrincipalNotFound() throws NotFoundException{
 		PrincipalAlias alias = new PrincipalAlias();
@@ -447,7 +429,7 @@ public class PrincipalAliasDaoImplTest {
 		principalAliasDao.lookupPrincipalID(null, AliasType.USER_NAME);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = NotFoundException.class)
 	public void testGetPrincipalIdWithEmptyAlias() {
 		principalAliasDao.lookupPrincipalID("", AliasType.USER_NAME);
 	}
@@ -466,32 +448,6 @@ public class PrincipalAliasDaoImplTest {
 		alias.setPrincipalId(principalId);
 		String toLookup = principalAliasDao.bindAliasToPrincipal(alias).getAlias()+" ";
 		assertEquals(principalId, (Long)principalAliasDao.lookupPrincipalID(toLookup, AliasType.USER_NAME));
-	}
-
-	@Test (expected = IllegalArgumentException.class)
-	public void testLookupPrincipalIdsWithNullUsernameList() {
-		principalAliasDao.lookupPrincipalIds(null);
-	}
-
-	@Test
-	public void testLookupPrincipalIdsWithEmptyUsernameList() {
-		assertEquals(new HashSet<String>(), principalAliasDao.lookupPrincipalIds(new HashSet<String>()));
-	}
-
-	@Test
-	public void testLookupPrincipalIds() {
-		String username = UUID.randomUUID().toString();
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(username);
-		alias.setType(AliasType.USER_NAME);
-		alias.setPrincipalId(principalId);
-		principalAliasDao.bindAliasToPrincipal(alias);
-		Set<String> expected = new HashSet<String>();
-		expected.add(principalId.toString());
-		Set<String> toLookup = new HashSet<String>();
-		toLookup.add(username);
-		toLookup.add("notExist");
-		assertEquals(expected, principalAliasDao.lookupPrincipalIds(toLookup));
 	}
 
 	@Test (expected = NotFoundException.class)
@@ -689,5 +645,81 @@ public class PrincipalAliasDaoImplTest {
 		// call under test
 		String result = PrincipalAliasDaoImpl.getStringUTF8(mockResultSet, name);
 		assertEquals(value, result);
+	}
+	
+	@Test	
+	public void testFindPrincipalsWithAliases(){
+		// Test that we can get the aliases for two separate users in one call.
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("fooUser");
+		alias.setType(AliasType.USER_NAME);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias userName = principalAliasDao.bindAliasToPrincipal(alias);
+		// Now do a second binding for another user
+		alias = new PrincipalAlias();
+		alias.setAlias("foo Team");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setPrincipalId(principalId2);
+		PrincipalAlias teamName = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		List<String> aliasList = Lists.newArrayList("fooUser", "foo Team");
+		List<AliasType> types = Lists.newArrayList(AliasType.USER_EMAIL);
+		// type filter does not match aliases
+		List<Long> results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertEquals(0,  results.size());
+		// type by user_name;
+		types = Lists.newArrayList(AliasType.USER_NAME);
+		results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertEquals(1,  results.size());
+		assertEquals(Lists.newArrayList(userName.getPrincipalId()), results);
+		// type by team
+		types = Lists.newArrayList(AliasType.TEAM_NAME);
+		results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertEquals(1,  results.size());
+		assertEquals(Lists.newArrayList(teamName.getPrincipalId()), results);
+		// both
+		types = Lists.newArrayList(AliasType.TEAM_NAME, AliasType.USER_NAME);
+		results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertEquals(2,  results.size());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFindPrincipalsWithAliasesNullAliases(){
+		List<String> aliasList = null;
+		List<AliasType> types = Lists.newArrayList(AliasType.USER_EMAIL);
+		// call under test
+		principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFindPrincipalsWithAliasesNullTypes(){
+		List<String> aliasList = Lists.newArrayList("fooUser", "foo Team");
+		List<AliasType> types = null;
+		// call under test
+		principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+	}
+	
+	@Test
+	public void testFindPrincipalsWithAliasesEmptyAlliases(){
+		List<String> aliasList = new LinkedList<>();
+		List<AliasType> types = Lists.newArrayList(AliasType.USER_EMAIL);
+		// call under test
+		List<Long> results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testFindPrincipalsWithAliasesEmptyTypes(){
+		List<String> aliasList = Lists.newArrayList("fooUser", "foo Team");
+		List<AliasType> types = new LinkedList<>();
+		// call under test
+		List<Long> results = principalAliasDao.findPrincipalsWithAliases(aliasList, types);
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
 	}
 }

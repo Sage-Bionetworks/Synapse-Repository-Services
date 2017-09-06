@@ -676,6 +676,27 @@ public class IT500SynapseJavaClient {
 		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), type, 5L, 0L);
 		assertTrue(page.getTotalNumberOfResults()>0);
 		
+		// Get the user group header using the user's name
+		List<String> aliases = Lists.newArrayList(adminProfile.getUserName());
+		List<UserGroupHeader> headers = synapseOne.getUserGroupHeadersByAliases(aliases);
+		assertNotNull(headers);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByAliases() throws Exception {
+		UserProfile adminProfile = adminSynapse.getMyProfile();
+		adminSynapse.updateMyProfile(adminProfile);
+		assertNotNull(adminProfile);
+
+		// Get the user group header using the user's name
+		List<String> aliases = Lists.newArrayList(adminProfile.getUserName());
+		List<UserGroupHeader> headers = synapseOne.getUserGroupHeadersByAliases(aliases);
+		assertNotNull(headers);
+		assertEquals(1, headers.size());
+		UserGroupHeader header = headers.get(0);
+		assertEquals(adminProfile.getOwnerId(), header.getOwnerId());
+		assertEquals(adminProfile.getUserName(), header.getUserName());
+		assertTrue(header.getIsIndividual());
 	}
 	
 	private UserGroupHeaderResponsePage waitForUserGroupHeadersByPrefix(String prefix) throws SynapseException, InterruptedException, UnsupportedEncodingException{

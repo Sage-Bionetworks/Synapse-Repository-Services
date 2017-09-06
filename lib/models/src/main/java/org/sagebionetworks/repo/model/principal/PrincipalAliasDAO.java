@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.principal;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -39,17 +40,6 @@ public interface PrincipalAliasDAO {
 	public PrincipalAlias findPrincipalWithAlias(String alias);
 	
 	/**
-	 * Return the principals having the given aliases.
-	 * The size of the result is less than or equal to the
-	 * size of the passed in set.  Any unknown aliases
-	 * are simply omitted from the results
-	 * 
-	 * @param aliases
-	 * @return List of principals matching the given aliases
-	 */
-	public Set<PrincipalAlias> findPrincipalsWithAliases(Set<String> aliases);
-	
-	/**
 	 * List all aliases for a given principal.
 	 * @param principalId
 	 * @return
@@ -61,7 +51,7 @@ public interface PrincipalAliasDAO {
 	 * @param principalIds
 	 * @return
 	 */
-	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds);
+	public List<PrincipalAlias> listPrincipalAliases(Collection<Long> principalIds);
 	
 	/**
 	 * Get the UserGroupHeaders for the given list of principalIds.
@@ -134,14 +124,6 @@ public interface PrincipalAliasDAO {
 	public long lookupPrincipalID(String alias, AliasType type);
 
 	/**
-	 * Get a set of principal ID for the given set of username
-	 * 
-	 * @param usernameList
-	 * @return
-	 */
-	public Set<String> lookupPrincipalIds(Set<String> usernameList);
-
-	/**
 	 * Get team name for the given principalId
 	 * 
 	 * @param principalId
@@ -149,4 +131,12 @@ public interface PrincipalAliasDAO {
 	 * @throws NotFoundException
 	 */
 	public String getTeamName(Long principalId) throws NotFoundException;
+	
+	/**
+	 * Find all principal IDs for the given list of aliases and types. 
+	 * @param aliases
+	 * @param types
+	 * @return
+	 */
+	List<Long> findPrincipalsWithAliases(Collection<String> aliases, List<AliasType> types);
 }
