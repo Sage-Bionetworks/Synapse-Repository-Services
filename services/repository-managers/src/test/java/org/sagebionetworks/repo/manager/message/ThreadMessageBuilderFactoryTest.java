@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.markdown.MarkdownDao;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -30,6 +31,8 @@ public class ThreadMessageBuilderFactoryTest {
 	private NodeDAO mockNodeDao;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	@Mock
+	private UserManager mockUserManager;
 	@Mock
 	private UploadContentToS3DAO mockUploadDao;
 	@Mock
@@ -52,6 +55,7 @@ public class ThreadMessageBuilderFactoryTest {
 		ReflectionTestUtils.setField(factory, "threadDao", mockThreadDao);
 		ReflectionTestUtils.setField(factory, "nodeDao", mockNodeDao);
 		ReflectionTestUtils.setField(factory, "principalAliasDAO", mockPrincipalAliasDAO);
+		ReflectionTestUtils.setField(factory, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(factory, "uploadDao", mockUploadDao);
 		ReflectionTestUtils.setField(factory, "markdownDao", mockMarkdownDao);
 
