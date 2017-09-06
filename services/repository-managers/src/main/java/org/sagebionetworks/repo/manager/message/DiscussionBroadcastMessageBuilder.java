@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
@@ -12,19 +10,20 @@ import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionUtils;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.google.common.collect.Lists;
 
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
+	
+	// The maximum number of user IDs that will receive notification when mentioned in a message. 
+	private static final long MAX_USER_IDS_PER_MESSAGE = 1000L;
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String SUBSCRIBE_THREAD = "[Subscribe to the thread](https://www.synapse.org/#!Subscription:objectID=%1$s&objectType=THREAD)\n";
 	MarkdownDao markdownDao;
@@ -39,12 +38,12 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 	String emailTemplate;
 	String unsubscribe;
 	Topic broadcastTopic;
-	PrincipalAliasDAO principalAliasDao;
+	UserManager userManager;
 
 	public DiscussionBroadcastMessageBuilder(String actorUsername, String actorUserId,
 			String threadTitle, String threadId, String projectId, String projectName,
 			String markdown, String emailTemplate, String emailTitle, String unsubscribe,
-			MarkdownDao markdownDao, Topic broadcastTopic, PrincipalAliasDAO principalAliasDao) {
+			MarkdownDao markdownDao, Topic broadcastTopic, UserManager userManager) {
 		ValidateArgument.required(actorUsername, "actorUsername");
 		ValidateArgument.required(actorUserId, "actorUserId");
 		ValidateArgument.required(threadTitle, "threadTitle");
@@ -57,7 +56,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		ValidateArgument.required(markdownDao, "markdownDao");
 		ValidateArgument.required(unsubscribe, "unsubscribe");
 		ValidateArgument.required(broadcastTopic, "broadcastTopic");
-		ValidateArgument.required(principalAliasDao, "principalAliasDao");
+		ValidateArgument.required(userManager, "userManager");
 		this.actorUsername = actorUsername;
 		this.actorUserId = actorUserId;
 		this.threadId = threadId;
@@ -70,7 +69,7 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		this.markdownDao = markdownDao;
 		this.unsubscribe = unsubscribe;
 		this.broadcastTopic = broadcastTopic;
-		this.principalAliasDao = principalAliasDao;
+		this.userManager = userManager;
 	}
 
 	@Override
@@ -156,12 +155,9 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 
 	@Override
 	public Set<String> getRelatedUsers() {
-		Set<String> usernameList = DiscussionUtils.getMentionedUsername(markdown);
-		List<Long> principalIds = principalAliasDao.findPrincipalsWithAliases(usernameList, Lists.newArrayList(AliasType.USER_NAME));
-		Set<String> results = new HashSet<String>(principalIds.size());
-		for(Long id: principalIds){
-			results.add(""+id);
-		}
-		return results;
+		// Get all aliases from the mark down
+		Set<String> aliases = DiscussionUtils.getMentionedUsername(markdown);
+		// get the user IDs for each user name and the user ids for all members of each team name.
+		return userManager.getDistinctUserIdsForAliases(aliases, MAX_USER_IDS_PER_MESSAGE, 0L);
 	}
 }

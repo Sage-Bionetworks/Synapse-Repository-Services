@@ -33,6 +33,8 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 
+import com.google.common.collect.Lists;
+
 public class UserManagerImpl implements UserManager {
 	
 	@Autowired
@@ -262,6 +264,19 @@ public class UserManagerImpl implements UserManager {
 		if (aliases.size()>1) throw new IllegalStateException(
 				"Expected one alias with name "+aliasName+" but found "+aliases.size());
 		principalAliasDAO.removeAliasFromPrincipal(principalId, aliases.get(0).getAliasId());
+	}
+	
+	@Override
+	public Set<String> getDistinctUserIdsForAliases(Collection<String> aliases, Long limit, Long offset) {
+		// Resolve all user names and team names to principal IDs.
+		List<Long> principalIds = principalAliasDAO.findPrincipalsWithAliases(aliases, Lists.newArrayList(AliasType.USER_NAME, AliasType.TEAM_NAME));
+		// create a set of string principal IDs.
+		Set<String> principalIdsSet = new HashSet<>(principalIds.size());
+		for(Long id: principalIds){
+			principalIdsSet.add(id.toString());
+		}
+		// Expand teams to include members and include all users.
+		return groupMembersDAO.getIndividuals(principalIdsSet, limit, offset);
 	}
 
 }
