@@ -675,11 +675,6 @@ public class IT500SynapseJavaClient {
 		TypeFilter type = TypeFilter.USERS_ONLY;
 		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), type, 5L, 0L);
 		assertTrue(page.getTotalNumberOfResults()>0);
-		
-		// Get the user group header using the user's name
-		List<String> aliases = Lists.newArrayList(adminProfile.getUserName());
-		List<UserGroupHeader> headers = synapseOne.getUserGroupHeadersByAliases(aliases);
-		assertNotNull(headers);
 	}
 	
 	@Test
