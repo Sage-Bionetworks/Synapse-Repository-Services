@@ -23,7 +23,7 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilder {
 	
 	// The maximum number of user IDs that will receive notification when mentioned in a message. 
-	private static final long MAX_USER_IDS_PER_MESSAGE = 1000L;
+	public static final long MAX_USER_IDS_PER_MESSAGE = 1000L;
 	public static final String GREETING = "Hello %1$s,\n\n";
 	public static final String SUBSCRIBE_THREAD = "[Subscribe to the thread](https://www.synapse.org/#!Subscription:objectID=%1$s&objectType=THREAD)\n";
 	MarkdownDao markdownDao;
@@ -158,6 +158,13 @@ public class DiscussionBroadcastMessageBuilder implements BroadcastMessageBuilde
 		// Get all aliases from the mark down
 		Set<String> aliases = DiscussionUtils.getMentionedUsername(markdown);
 		// get the user IDs for each user name and the user ids for all members of each team name.
-		return userManager.getDistinctUserIdsForAliases(aliases, MAX_USER_IDS_PER_MESSAGE, 0L);
+		Set<String> results = userManager.getDistinctUserIdsForAliases(aliases, MAX_USER_IDS_PER_MESSAGE+1, 0L);
+		if (results.size() > MAX_USER_IDS_PER_MESSAGE) {
+			throw new IllegalArgumentException(
+					"The total number of distict users mentioned exceeds maximum of "
+							+ MAX_USER_IDS_PER_MESSAGE
+							+ ".  No messages will be sent.");
+		}
+		return results;
 	}
 }

@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyCollectionOf;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
@@ -17,14 +21,11 @@ import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.markdown.MarkdownDao;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.dao.subscription.Subscriber;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class DiscussionBroadcastMessageBuilderTest {
@@ -194,6 +195,39 @@ public class DiscussionBroadcastMessageBuilderTest {
 	@Test
 	public void testGetRelatedUsersWithoutMentionedUsers() {
 		assertEquals(new HashSet<String>(), builder.getRelatedUsers());
+	}
+	
+	@Test 
+	public void testGetRelatedUsersOverAtLimit(){
+		long count = DiscussionBroadcastMessageBuilder.MAX_USER_IDS_PER_MESSAGE;
+		Set<String> set = new HashSet<String>((int)count);
+		for(int i=0; i<count; i++){
+			set.add(""+i);
+		}
+		when(mockUserManager.getDistinctUserIdsForAliases(anyCollectionOf(String.class), anyLong(), anyLong())).thenReturn(set);
+		// call under test
+		Set<String> results = builder.getRelatedUsers();
+		assertEquals(set, results);
+	}
+	
+	@Test 
+	public void testGetRelatedUsersOverLimit(){
+		long count = DiscussionBroadcastMessageBuilder.MAX_USER_IDS_PER_MESSAGE+1;
+		Set<String> set = new HashSet<String>((int)count);
+		for(int i=0; i<count; i++){
+			set.add(""+i);
+		}
+		when(mockUserManager.getDistinctUserIdsForAliases(anyCollectionOf(String.class), anyLong(), anyLong())).thenReturn(set);
+		// call under test
+		try {
+			builder.getRelatedUsers();
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(""+DiscussionBroadcastMessageBuilder.MAX_USER_IDS_PER_MESSAGE));
+		}
+		// validate paging
+		verify(mockUserManager).getDistinctUserIdsForAliases(anyCollectionOf(String.class), eq(DiscussionBroadcastMessageBuilder.MAX_USER_IDS_PER_MESSAGE+1), eq(0L));
 	}
 
 	@Test
