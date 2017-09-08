@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
- * This matches &ltgrouping column reference&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
+ * This matches &ltgrouping column reference&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class GroupingColumnReference extends SQLElement {
 
