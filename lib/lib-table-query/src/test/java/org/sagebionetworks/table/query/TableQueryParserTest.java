@@ -625,4 +625,12 @@ public class TableQueryParserTest {
 		assertEquals("", sql);
 	}
 	
+	/**
+	 * Test for PLFM-4566
+	 * @throws ParseException 
+	 */
+	@Test
+	public void testArithmetic() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select foo/100 from syn123");
+	}
 }

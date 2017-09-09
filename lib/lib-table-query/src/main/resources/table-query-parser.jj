@@ -723,19 +723,55 @@ ValueExpression valueExpression():
 	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
 	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
 }
+/**
+* The reference BNF definition for numericValueExpression() is "left recursive"
+* so it was re-written using a list of optional primes.
+*/
 NumericValueExpression numericValueExpression():
+{
+	NumericValueExpression numericValueExpression = null;
+	Term term = null;
+	TermPrime termPrime = null;
+}
+{
+	term = term() { numericValueExpression = new NumericValueExpression(term); }
+	(
+		termPrime = termPrime() { numericValueExpression.addTermPrime(termPrime); }
+	)*
+	{ return numericValueExpression; } 
+}
+TermPrime termPrime():
 {
 	Term term = null;
 }
 {
-	term = term() { return new NumericValueExpression(term); }
+	<plus_sign> term = term() { return new TermPrime(ArithmeticOperator.PLUS_SIGN, term); }
+	| <minus_sign> term = term() { return new TermPrime(ArithmeticOperator.MINUS_SIGN, term); }
 }
+/**
+* The reference BNF definition for term() is "left recursive"
+* so it was re-written using a list of optional primes.
+*/
 Term term():
+{
+	Term term = null;
+	Factor factor = null;
+	FactorPrime factorPrime = null;
+}
+{
+	factor = factor() { term = new Term(factor); }
+	(
+		factorPrime = factorPrime() { term.addFactorPrime(factorPrime); }
+	)*
+	{ return term; } 
+}
+FactorPrime factorPrime():
 {
 	Factor factor = null;
 }
 {
-	factor = factor() { return new Term(factor); }
+	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
+	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
 }
 Factor factor():
 {
