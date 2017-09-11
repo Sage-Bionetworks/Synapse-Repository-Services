@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -625,4 +626,13 @@ public class TableQueryParserTest {
 		assertEquals("", sql);
 	}
 	
+	/**
+	 * Test for PLFM-4566
+	 * @throws ParseException 
+	 */
+	@Ignore
+	@Test
+	public void testArithmetic() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select foo/100 from syn123");
+	}
 }

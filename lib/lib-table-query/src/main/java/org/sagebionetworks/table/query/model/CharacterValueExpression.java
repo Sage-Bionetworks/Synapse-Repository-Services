@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
- * This matches &ltcharacter value expression&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
+ * This matches &ltcharacter value expression&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class CharacterValueExpression extends SQLElement {
 

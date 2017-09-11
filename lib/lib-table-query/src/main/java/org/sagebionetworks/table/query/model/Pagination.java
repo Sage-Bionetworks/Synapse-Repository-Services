@@ -5,7 +5,7 @@ import java.util.List;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
- * Unlike most SQLElements, pagination is not defined in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a> *
+ * Unlike most SQLElements, pagination is not defined in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a> *
  */
 public class Pagination extends SQLElement {
 
