@@ -262,18 +262,22 @@ SignedNumericLiteral signedNumericLiteral():
 	[ sign = sign() ] unsignedNumericLiteral = unsignedNumericLiteral()
 	{ return new SignedNumericLiteral(sign, unsignedNumericLiteral) }
 }
-String literal():
+Literal literal():
+{
+	SignedNumericLiteral signedNumericLiteral = null;
+	GeneralLiteral generalLiteral = null;
+}
+{
+	signedNumericLiteral = signedLiteral() { return new Literal(signedNumericLiteral)); }
+	| generalLiteral = generalLiteral() { return new Literal(generalLiteral) }
+}
+GeneralLiteral generalLiteral():
 {
 	StringBuilder builder = new StringBuilder();
 }
 {
-	signedNumericLiteral(builder) { return builder.toString(); }
-	| generalLiteral(builder) { return builder.toString(); }
-}
-void generalLiteral(StringBuilder builder):
-{}
-{
 	characterStringLiteral(builder)
+	{ return new GeneralLiteral(builder.toString()); }
 }
 void characterStringLiteral(StringBuilder builder):
 {
@@ -289,27 +293,21 @@ void characterStringLiteral(StringBuilder builder):
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
-	SignedValueSpecification signedValueSpecification = null;
+	ValueSpecification valueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
-	| signedValueSpecification = signedValueSpecification() { return new ValueExpressionPrimary(signedValueSpecification); }
+	| valueSpecification = valueSpecification() { return new ValueExpressionPrimary(valueSpecification); }
 }
-SignedValueSpecification signedValueSpecification():
+ValueSpecification signedValueSpecification():
 {
-	SignedLiteral signedLiteral;
+	Literal literal;
 }
 {
-	signedLiteral = signedLiteral() { return new SignedValueSpecification(signedLiteral); }
-}
-SignedLiteral signedLiteral():
-{ StringBuilder builder = new StringBuilder(); }
-{
-	signedNumericLiteral(builder) { return new SignedLiteral(builder.toString(), null); }
-	| generalLiteral(builder) { return new SignedLiteral(null, builder.toString()); }
+	literal = literal() { return new ValueSpecification(literal); }
 }
 Identifier identifier():
 {
