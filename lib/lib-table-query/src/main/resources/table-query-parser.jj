@@ -198,7 +198,7 @@ void regularIdentifier(StringBuilder builder):
 }
 /** Literal Numbers, Strings, Dates and Times */
 
-void unsignedInteger(StringBuilder builder):
+UnsignedInteger unsignedInteger():
 {
 	Token token = null;
 }
@@ -207,63 +207,60 @@ void unsignedInteger(StringBuilder builder):
 	(
 		token = <digit> { builder.append(token.image); } 
 	)*
+	{ return new UnsignedInteger(builder.toString()); }
 }
-String unsignedInteger2():
-{
-	StringBuilder builder = new StringBuilder();
-}
-{
-	unsignedInteger(builder)
-	{ return builder.toString(); }
-}
-void sign(StringBuilder builder):
+Sign sign():
 {}
 {
-	<plus_sign> { builder.append("+"); }
-	| <minus_sign> { builder.append("-"); }
+	<plus_sign> { return Sign.PLUS; }
+	| <minus_sign> { return Sign.MINUS; }
 }
-void signedInteger(StringBuilder builder):
-{}
+SignedInteger signedInteger():
 {
-	[ sign(builder) ] unsignedInteger(builder) 
-}
-void period(StringBuilder builder):
-{}
-{
-	<period> { builder.append("."); }
-}
-void exactNumericLiteral(StringBuilder builder):
-{}
-{
-	[ sign(builder) ]
-		( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
-		| ( period(builder) unsignedInteger(builder) )
-}
-void exponent(StringBuilder builder):
-{
-	Token token = null;
+	Sign sign = null;
+	UnsignedInteger unsingedInteger = null;
 }
 {
-	token = <exponent> { builder.append(token.image); }
+	[ sign = sign() ] unsingedInteger = unsingedInteger()
+	{ return new SignedInteger(sign, unsignedInteger); } 
 }
-void approximateNumericLiteral(StringBuilder builder):
-{}
+ExactNumericLiteral exactNumericLiteral():
 {
-  	[ sign(builder) ]
-		(  period(builder) exponent(builder) )
-		| ( unsignedInteger(builder) period(builder) exponent(builder) )
-}
-void unsignedNumericLiteral(StringBuilder builder):
-{}
-{
-	( unsignedInteger(builder) [ period(builder) ( unsignedInteger(builder) | exponent(builder) ) ] )
-	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
-}
-void signedNumericLiteral(StringBuilder builder):
-{
+	UnsignedIntger leftUnsignedInteger = null;
+	boolean hasPeriod = false;
+	UnsignedIntger rightUnsignedInteger = null;
 }
 {
-	[ sign(builder) ] unsignedNumericLiteral(builder)
+	leftUnsignedInteger = unsignedInteger() [ <period> { hasPeriod = true; } [ rightUnsignedInteger = unsignedInteger() ] ]
+	| <period> { hasPeriod = true; } rightUnsignedInteger = unsignedInteger()
+	{ return new ExactNumericLiteral(leftUnsignedInteger, hasPeriod, rightUnsignedInteger)}
+}
+ApproximateNumericLiteral approximateNumericLiteral():
+{
+	ExactNumericLiteral mantissa = null;
+	SignedInteger exponent = null;
+}
+{
+  	mantissa = exactNumericLiteral() <exponent> exponent = signedInteger()
+  	{ return new ApproximateNumericLiteral(mantissa, exponent); }
+}
+UnsignedNumericLiteral unsignedNumericLiteral():
+{
+	ExactNumericLiteral exactNumericLiteral = null;
+	ApproximateNumericLiteral approximateNumericLiteral = null;
+}
+{
+	exactNumericLiteral = exactNumericLiteral() { return new UnsignedNumericLiteral(exactNumericLiteral); }
+	| approximateNumericLiteral = approximateNumericLiteral(); { return new UnsignedNumericLiteral(approximateNumericLiteral); }
+}
+SignedNumericLiteral signedNumericLiteral():
+{
+	Sign sign = null;
+	UnsignedNumericLiteral unsignedNumericLiteral = null;
+}
+{
+	[ sign = sign() ] unsignedNumericLiteral = unsignedNumericLiteral()
+	{ return new SignedNumericLiteral(sign, unsignedNumericLiteral) }
 }
 String literal():
 {

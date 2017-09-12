@@ -7,12 +7,12 @@ import java.util.List;
  */
 public class ValueExpressionPrimary extends SQLElement implements HasReferencedColumn {
 
-	SignedValueSpecification signedValueSpecification;
+	ValueSpecifictation valueSpecifictation;
 	ColumnReference columnReference;
 	SetFunctionSpecification setFunctionSpecification;
 	
-	public ValueExpressionPrimary(SignedValueSpecification signedValueSpecification) {
-		this.signedValueSpecification = signedValueSpecification;
+	public ValueExpressionPrimary(ValueSpecifictation valueSpecifictation) {
+		this.valueSpecifictation = valueSpecifictation;
 	}
 	
 	public ValueExpressionPrimary(ColumnReference columnReference) {
@@ -23,9 +23,6 @@ public class ValueExpressionPrimary extends SQLElement implements HasReferencedC
 		this.setFunctionSpecification = setFunctionSpecification;
 	}
 
-	public SignedValueSpecification getSignedValueSpecification() {
-		return signedValueSpecification;
-	}
 	public ColumnReference getColumnReference() {
 		return columnReference;
 	}
@@ -36,8 +33,8 @@ public class ValueExpressionPrimary extends SQLElement implements HasReferencedC
 	@Override
 	public void toSql(StringBuilder builder) {
 		// only one element at a time will be no null
-		if (signedValueSpecification != null) {
-			signedValueSpecification.toSql(builder);
+		if (valueSpecifictation != null) {
+			valueSpecifictation.toSql(builder);
 		} else if (columnReference != null) {
 			columnReference.toSql(builder);
 		} else {
@@ -47,7 +44,7 @@ public class ValueExpressionPrimary extends SQLElement implements HasReferencedC
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, signedValueSpecification);
+		checkElement(elements, type, valueSpecifictation);
 		checkElement(elements, type, columnReference);
 		checkElement(elements, type, setFunctionSpecification);
 	}
