@@ -3,7 +3,12 @@
 	"properties": {
 		"emailValidationToken": {
 			"type": "string",
-			"description": "The validation token sent via email"
+			"description": "Deprecated. The validation token sent via email"
+		},
+		"emailValidationSignedToken": {
+			"type": "object",
+			"description": "Signed token containing the email address to be added.",
+			"$ref": "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"
 		}
 	}
 }

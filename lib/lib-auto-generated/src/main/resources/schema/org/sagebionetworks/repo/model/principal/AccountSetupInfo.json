@@ -19,7 +19,12 @@
 		},
 		"emailValidationToken": {
 			"type": "string",
-			"description": "The validation token sent via email"
+			"description": "Deprecated. The validation token sent via email"
+		},
+		"emailValidationSignedToken": {
+			"type": "object",
+			"description": "Signed token containing the email address of the new account.",
+			"$ref": "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"
 		}
 	}
 }

@@ -1,0 +1,19 @@
+{
+  "title": "EmailValidationSignedToken",
+  "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+    }
+  ],
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "The email address."
+    },
+    "userId": {
+      "type": "string",
+      "description": "The ID of the user account to which the email address will be added. Null if creating a new account."
+    }
+  }
+}

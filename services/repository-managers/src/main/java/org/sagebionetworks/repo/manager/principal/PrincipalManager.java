@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import java.util.Date;
+
 public interface PrincipalManager {
 
 	/**
@@ -36,8 +38,9 @@ public interface PrincipalManager {
 	 * 
 	 * @param user the info for the new user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+     * @param now the current date
 	 */
-	void newAccountEmailValidation(NewUser user, String portalEndpoint);
+	void newAccountEmailValidation(NewUser user, String portalEndpoint, Date now);
 	
 	/**
 	 * Create a new account, following email validation
@@ -53,9 +56,10 @@ public interface PrincipalManager {
 	 * @param userInfo the authenticated user making the request
 	 * @param email the email which is claimed by the user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+	 * @param now the current date
 	 * @throws NotFoundException
 	 */
-	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint) throws NotFoundException;
+	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint, Date now) throws NotFoundException;
 	
 	/**
 	 * Add a new email address to an existing account.

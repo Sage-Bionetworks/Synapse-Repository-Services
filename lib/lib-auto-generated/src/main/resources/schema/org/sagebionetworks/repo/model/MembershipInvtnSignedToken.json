@@ -1,0 +1,15 @@
+{
+  "title": "MembershipInvtnSignedToken",
+  "description": "Signed token containing the information needed to retrieve a membership invitation.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+    }
+  ],
+  "properties": {
+    "membershipInvitationId": {
+      "type": "string",
+      "description": "The ID of the membership invitation."
+    }
+  }
+}

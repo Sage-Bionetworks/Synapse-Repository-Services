@@ -21,13 +21,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.util.SerializationUtils;
 
 public class IT502SynapseJavaClientAccountTest {
 	private static SynapseAdminClient adminSynapse;
@@ -91,9 +86,10 @@ public class IT502SynapseJavaClientAccountTest {
 		user.setLastName("lastName");
 		String endpoint = "https://www.synapse.org?";
 		synapseAnonymous.newAccountEmailValidation(user, endpoint);
-		String token = getTokenFromFile(s3KeyToDelete, endpoint);
+		String encodedToken = getTokenFromFile(s3KeyToDelete, endpoint);
+		AccountCreationToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, AccountCreationToken.class);
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken(token);
+		accountSetupInfo.setEmailValidationSignedToken(token.getEmailValidationSignedToken());
 		accountSetupInfo.setFirstName("firstName");
 		accountSetupInfo.setLastName("lastName");
 		accountSetupInfo.setPassword(UUID.randomUUID().toString());
@@ -123,9 +119,10 @@ public class IT502SynapseJavaClientAccountTest {
 				email, endpoint);
 		
 		// complete the email addition
-		String token = getTokenFromFile(s3KeyToDelete, endpoint);
+		String encodedToken = getTokenFromFile(s3KeyToDelete, endpoint);
+		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
 		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken(token);
+		addEmailInfo.setEmailValidationSignedToken(token);
 		// we are _not_ setting it to be the notification email
 		synapseOne.addEmail(addEmailInfo, false);
 		
