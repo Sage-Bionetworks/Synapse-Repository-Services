@@ -4,28 +4,21 @@ import java.util.List;
 
 public class ApproximateNumericLiteral extends SQLElement {
 	
-	ExactNumericLiteral mantissa;
-	SignedInteger exponent;
+	Double approximateNumericLiteral;
 
-	public ApproximateNumericLiteral(ExactNumericLiteral mantissa,
-			SignedInteger exponent) {
+	public ApproximateNumericLiteral(String approximateNumericLiteral) {
 		super();
-		this.mantissa = mantissa;
-		this.exponent = exponent;
+		this.approximateNumericLiteral = new Double(approximateNumericLiteral);
 	}
 
 	@Override
 	public void toSql(StringBuilder builder) {
-		mantissa.toSql(builder);
-		builder.append("E");
-		exponent.toSql(builder);
-
+		builder.append(approximateNumericLiteral);
 	}
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, mantissa);
-		checkElement(elements, type, exponent);
+		// no sub-elements
 	}
 
 }

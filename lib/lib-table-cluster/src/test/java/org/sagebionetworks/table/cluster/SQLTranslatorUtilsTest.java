@@ -31,6 +31,7 @@ import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
+import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
@@ -865,7 +866,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideInteger() throws ParseException{
-		SignedLiteral element = new TableQueryParser("123456").signedLiteral();
+		GeneralLiteral element = new TableQueryParser("123456").generalLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
 		assertEquals(":b0", element.getValueWithoutQuotes());

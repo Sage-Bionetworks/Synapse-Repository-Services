@@ -26,6 +26,7 @@ import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
+import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
@@ -34,7 +35,6 @@ import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.WhereClause;
@@ -153,7 +153,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.requirement(model != null
 				|| functionType != null
 				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
-				|| (referencedColumn != null && referencedColumn instanceof SignedLiteral),
+				|| (referencedColumn != null && referencedColumn instanceof GeneralLiteral),
 				"Unknown column "+selectColumn.getName());
 	}
 

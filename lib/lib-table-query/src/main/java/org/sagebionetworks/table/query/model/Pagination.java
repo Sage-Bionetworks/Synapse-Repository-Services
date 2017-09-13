@@ -11,6 +11,14 @@ public class Pagination extends SQLElement {
 
 	String limit;
 	String offset;
+	
+	public Pagination(UnsignedInteger limit, UnsignedInteger offset){
+		ValidateArgument.required(limit, "limit");
+		this.limit = limit.toSql();
+		if(offset != null){
+			this.offset = offset.toSql();
+		}
+	}
 
 	public Pagination(String limit, String offset) {
 		ValidateArgument.required(limit, "limit");

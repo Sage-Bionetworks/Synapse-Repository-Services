@@ -17,8 +17,7 @@ import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.SignedLiteral;
-import org.sagebionetworks.table.query.model.SignedValueSpecification;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 public class TableQueryParserTest {
@@ -94,10 +93,8 @@ public class TableQueryParserTest {
 	
 	@Test
 	public void testSignedInteger() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(" 1234567890 ");
-		parser.signedInteger(builder);
-		assertEquals("1234567890", builder.toString());
+		UnsignedNumericLiteral element =  new TableQueryParser(" 1234567890 ").unsignedNumericLiteral();
+		assertEquals("1234567890", element.toSql());
 	}
 	
 	@Test

@@ -112,10 +112,19 @@ SKIP : /* WHITE SPACE */
 | < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
 }
 
+/* Numeric tokens */
 TOKEN:{
- <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
-| < count_asterisk: ("count"|"COUNT")"(*)" >
+ < unsigned_integer: ["0"-"9"](["0"-"9"])*>
+| < exact_numeric_literal: (<unsigned_integer> ( <period> ( <unsigned_integer> )? )?) | (<period> <unsigned_integer>) >
+| < signed_integer: (["+","-"])? <unsigned_integer> > 
+| < approximate_numeric_literal:  <exact_numeric_literal> ["e","E"] <signed_integer> >
 }
+
+/* Function tokens */
+TOKEN:{
+ < count_asterisk: ("count"|"COUNT")"(*)" >
+}
+
 
 /* Reserved words */
 TOKEN [IGNORE_CASE]: {
@@ -203,73 +212,31 @@ UnsignedInteger unsignedInteger():
 	Token token = null;
 }
 {
-	token = <digit> { builder.append(token.image); }
-	(
-		token = <digit> { builder.append(token.image); } 
-	)*
-	{ return new UnsignedInteger(builder.toString()); }
-}
-Sign sign():
-{}
-{
-	<plus_sign> { return Sign.PLUS; }
-	| <minus_sign> { return Sign.MINUS; }
-}
-SignedInteger signedInteger():
-{
-	Sign sign = null;
-	UnsignedInteger unsingedInteger = null;
-}
-{
-	[ sign = sign() ] unsingedInteger = unsingedInteger()
-	{ return new SignedInteger(sign, unsignedInteger); } 
+	token = <unsigned_integer> { return new UnsignedInteger(token.image); }
 }
 ExactNumericLiteral exactNumericLiteral():
 {
-	UnsignedIntger leftUnsignedInteger = null;
-	boolean hasPeriod = false;
-	UnsignedIntger rightUnsignedInteger = null;
+	Token token = null;
 }
 {
-	leftUnsignedInteger = unsignedInteger() [ <period> { hasPeriod = true; } [ rightUnsignedInteger = unsignedInteger() ] ]
-	| <period> { hasPeriod = true; } rightUnsignedInteger = unsignedInteger()
-	{ return new ExactNumericLiteral(leftUnsignedInteger, hasPeriod, rightUnsignedInteger)}
+	token = <unsigned_integer> { return new ExactNumericLiteral(new Long(token.image)); }
+	| token = <exact_numeric_literal> { return new ExactNumericLiteral(new Double(token.image)); }
 }
 ApproximateNumericLiteral approximateNumericLiteral():
 {
-	ExactNumericLiteral mantissa = null;
-	SignedInteger exponent = null;
+	Token token = null;
 }
 {
-  	mantissa = exactNumericLiteral() <exponent> exponent = signedInteger()
-  	{ return new ApproximateNumericLiteral(mantissa, exponent); }
+	token = <approximate_numeric_literal> { return new ApproximateNumericLiteral(token.image); }
 }
 UnsignedNumericLiteral unsignedNumericLiteral():
 {
 	ExactNumericLiteral exactNumericLiteral = null;
-	ApproximateNumericLiteral approximateNumericLiteral = null;
+	ApproximateNumericLiteral approximateNumericLiteral = null; 
 }
 {
 	exactNumericLiteral = exactNumericLiteral() { return new UnsignedNumericLiteral(exactNumericLiteral); }
-	| approximateNumericLiteral = approximateNumericLiteral(); { return new UnsignedNumericLiteral(approximateNumericLiteral); }
-}
-SignedNumericLiteral signedNumericLiteral():
-{
-	Sign sign = null;
-	UnsignedNumericLiteral unsignedNumericLiteral = null;
-}
-{
-	[ sign = sign() ] unsignedNumericLiteral = unsignedNumericLiteral()
-	{ return new SignedNumericLiteral(sign, unsignedNumericLiteral) }
-}
-Literal literal():
-{
-	SignedNumericLiteral signedNumericLiteral = null;
-	GeneralLiteral generalLiteral = null;
-}
-{
-	signedNumericLiteral = signedLiteral() { return new Literal(signedNumericLiteral)); }
-	| generalLiteral = generalLiteral() { return new Literal(generalLiteral) }
+	| approximateNumericLiteral = approximateNumericLiteral() { return new UnsignedNumericLiteral(approximateNumericLiteral); }
 }
 GeneralLiteral generalLiteral():
 {
@@ -293,21 +260,30 @@ void characterStringLiteral(StringBuilder builder):
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
-	ValueSpecification valueSpecification = null;
+	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
-	| valueSpecification = valueSpecification() { return new ValueExpressionPrimary(valueSpecification); }
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 }
-ValueSpecification signedValueSpecification():
+UnsignedValueSpecification unsignedValueSpecification():
 {
-	Literal literal;
+	UnsignedLiteral unsignedLiteral;
 }
 {
-	literal = literal() { return new ValueSpecification(literal); }
+	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+}
+UnsignedLiteral unsignedLiteral():
+{
+	UnsignedNumericLiteral unsignedNumericLiteral;
+	GeneralLiteral generalLiteral;
+}
+{
+	unsignedNumericLiteral = unsignedNumericLiteral() { return new UnsignedLiteral(unsignedNumericLiteral); }
+	| generalLiteral = generalLiteral() { return new UnsignedLiteral(generalLiteral); }
 }
 Identifier identifier():
 {
@@ -768,12 +744,19 @@ FactorPrime factorPrime():
 	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
 	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
 }
+Sign sign():
+{}
+{
+	<plus_sign> { return Sign.PLUS; }
+	| <minus_sign> { return Sign.MINUS; }
+}
 Factor factor():
 {
+	Sign sign = null;
 	NumericPrimary numericPrimary = null;
 }
 {
-	numericPrimary = numericPrimary() { return new Factor(numericPrimary); }
+	[ sign = sign() ] numericPrimary = numericPrimary() { return new Factor(sign, numericPrimary); }
 }
 NumericPrimary numericPrimary():
 {
@@ -902,10 +885,10 @@ OrderingSpecification orderingSpecification():
 }
 Pagination pagination():
 {
-	String _limit = null;
-	String _offset = null;
+	UnsignedInteger _limit = null;
+	UnsignedInteger _offset = null;
 }
 {
-	<limit> _limit = unsignedInteger2() [ <offset> _offset = unsignedInteger2() ]
+	<limit> _limit = unsignedInteger() [ <offset> _offset = unsignedInteger() ]
 	{ return new Pagination(_limit, _offset); }
 }

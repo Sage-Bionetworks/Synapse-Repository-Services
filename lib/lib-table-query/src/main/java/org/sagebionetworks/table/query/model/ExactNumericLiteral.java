@@ -2,39 +2,39 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
+/**
+ * ExactNumericLiteral can be a Java Long or Double
+ *
+ */
 public class ExactNumericLiteral extends SQLElement {
-
-	private UnsignedInteger leftUnsignedInteger;
-	private boolean period;
-	private UnsignedInteger rightUnsignedInteger;
 	
-
-	public ExactNumericLiteral(UnsignedInteger leftUnsignedInteger,
-			boolean period, UnsignedInteger rightUnsignedInteger) {
+	Long longValue;
+	Double doubleValue;
+	
+	public ExactNumericLiteral(Long longValue) {
 		super();
-		this.leftUnsignedInteger = leftUnsignedInteger;
-		this.period = period;
-		this.rightUnsignedInteger = rightUnsignedInteger;
+		this.longValue = longValue;
 	}
+	
+	public ExactNumericLiteral(Double doubleValue) {
+		super();
+		this.doubleValue = doubleValue;
+	}
+
+
 
 	@Override
 	public void toSql(StringBuilder builder) {
-		if(leftUnsignedInteger != null){
-			leftUnsignedInteger.toSql(builder);
+		if(longValue != null){
+			builder.append(longValue);
+		}else{
+			builder.append(doubleValue);
 		}
-		if(period){
-			builder.append(".");
-		}
-		if(rightUnsignedInteger != null){
-			rightUnsignedInteger.toSql(builder);
-		}
-
 	}
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, leftUnsignedInteger);
-		checkElement(elements, type, rightUnsignedInteger);
+		// no sub-elements.
 	}
 
 }

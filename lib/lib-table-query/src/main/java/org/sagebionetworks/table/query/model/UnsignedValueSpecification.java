@@ -4,8 +4,9 @@ import java.util.List;
 
 public class UnsignedValueSpecification extends SQLElement {
 	
-	private UnsignedLiteral unsignedLiteral;
+	UnsignedLiteral unsignedLiteral;
 
+	
 	public UnsignedValueSpecification(UnsignedLiteral unsignedLiteral) {
 		super();
 		this.unsignedLiteral = unsignedLiteral;

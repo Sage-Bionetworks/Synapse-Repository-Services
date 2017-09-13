@@ -6,13 +6,14 @@ public class UnsignedNumericLiteral extends SQLElement {
 
 	private ExactNumericLiteral exactNumericLiteral;
 	private ApproximateNumericLiteral approximateNumericLiteral;
-	
+
 	public UnsignedNumericLiteral(ExactNumericLiteral exactNumericLiteral) {
 		super();
 		this.exactNumericLiteral = exactNumericLiteral;
 	}
-
-	public UnsignedNumericLiteral(ApproximateNumericLiteral approximateNumericLiteral) {
+	
+	public UnsignedNumericLiteral(
+			ApproximateNumericLiteral approximateNumericLiteral) {
 		super();
 		this.approximateNumericLiteral = approximateNumericLiteral;
 	}

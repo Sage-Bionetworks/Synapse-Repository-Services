@@ -4,10 +4,10 @@ import java.util.List;
 
 public class UnsignedInteger extends SQLElement {
 	
-	Integer integer;
+	Long integer;
 	
 	public UnsignedInteger(String stringValues){
-		integer = new Integer(stringValues);
+		integer = new Long(stringValues);
 	}
 
 	@Override
