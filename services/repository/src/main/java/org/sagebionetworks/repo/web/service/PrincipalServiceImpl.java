@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Date;
+
 /**
  * Basic implementation of the PrincipalService.
  * 
@@ -51,10 +53,9 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * 
 	 * @param user the info for the new user
 	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
-	 * @param domain Synapse
 	 */
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint) {
-		principalManager.newAccountEmailValidation(user, portalEndpoint);
+		principalManager.newAccountEmailValidation(user, portalEndpoint, new Date());
 	}
 	
 	/**
@@ -77,7 +78,7 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 */
 	public void additionalEmailValidation(Long userId, Username email, String portalEndpoint) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		principalManager.additionalEmailValidation(userInfo, email, portalEndpoint);
+		principalManager.additionalEmailValidation(userInfo, email, portalEndpoint, new Date());
 	}
 	
 	/**
