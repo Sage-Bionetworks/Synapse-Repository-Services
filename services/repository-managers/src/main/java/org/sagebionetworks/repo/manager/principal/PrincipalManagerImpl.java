@@ -141,7 +141,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-	private String createAccountCreationToken(NewUser user, Date now) {
+	protected String createAccountCreationToken(NewUser user, Date now) {
 		AccountCreationToken accountCreationToken = new AccountCreationToken();
 		accountCreationToken.setMembershipInvtnSignedToken(user.getMembershipInvtnSignedToken());
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
@@ -243,13 +243,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	// will throw exception for invalid email, invalid endpoint, or an email which is already taken
 	@Override
-	public void newAccountEmailValidation(NewUser user, String portalEndpoint) {
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint, Date now) {
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		// is the email taken?
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		String token = createAccountCreationToken(user, new Date());
+		String token = createAccountCreationToken(user, now);
 		String url = portalEndpoint+token;
 		EmailUtils.validateSynapsePortalHost(url);
 		String subject = "Welcome to Synapse!";
@@ -309,7 +309,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-	private String createEmailValidationSignedToken(Long userId, String email, Date now) {
+	protected String createEmailValidationSignedToken(Long userId, String email, Date now) {
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setUserId(userId + "");
 		emailValidationSignedToken.setEmail(email);
@@ -412,8 +412,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	}
 
 	@Override
-	public void additionalEmailValidation(UserInfo userInfo, Username email,
-			String portalEndpoint) throws NotFoundException {
+	public void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint, Date now)
+			throws NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
@@ -421,7 +421,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		String token = createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), new Date());
+		String token = createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now);
 		String url = portalEndpoint+token;
 		EmailUtils.validateSynapsePortalHost(url);
 
