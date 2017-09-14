@@ -37,6 +37,7 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -153,7 +154,7 @@ public class SQLTranslatorUtils {
 		ValidateArgument.requirement(model != null
 				|| functionType != null
 				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
-				|| (referencedColumn != null && referencedColumn instanceof GeneralLiteral),
+				|| (referencedColumn != null && referencedColumn instanceof UnsignedLiteral),
 				"Unknown column "+selectColumn.getName());
 	}
 
@@ -415,7 +416,7 @@ public class SQLTranslatorUtils {
 				ColumnModel model = columnNameToModelMap.get(hasQuoteValue.getValueWithoutQuotes());
 				if(model != null){
 					String newName = SQLUtils.getColumnNameForId(model.getId());
-					hasQuoteValue.replaceUnquoted(newName);
+					hasQuoteValue.overrideSql(newName);
 				}
 			}
 		}
@@ -444,7 +445,7 @@ public class SQLTranslatorUtils {
 		ColumnModel model = columnNameToModelMap.get(actualIdentifier.getValueWithoutQuotes());
 		if(model != null){
 			String newName = SQLUtils.getColumnNameForId(model.getId());
-			actualIdentifier.replaceUnquoted(newName);
+			actualIdentifier.overrideSql(newName);
 			// handle the right-hand-side
 			Iterable<HasQuoteValue> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
@@ -482,7 +483,7 @@ public class SQLTranslatorUtils {
 		}
 
 		parameters.put(key, valueObject);
-		hasQuoteValue.replaceUnquoted(COLON+key);
+		hasQuoteValue.overrideSql(COLON+key);
 	}
 
 	/**
@@ -549,7 +550,7 @@ public class SQLTranslatorUtils {
 				}
 			}
 			if(newName != null){
-				hasQuoteValue.replaceUnquoted(newName);
+				hasQuoteValue.overrideSql(newName);
 			}
 		}
 	}
@@ -572,7 +573,7 @@ public class SQLTranslatorUtils {
 			String newName = null;
 			if(model != null){
 				newName = SQLUtils.getColumnNameForId(model.getId());
-				hasQuoteValue.replaceUnquoted(newName);
+				hasQuoteValue.overrideSql(newName);
 			}
 		}
 	}

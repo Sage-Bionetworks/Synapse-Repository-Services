@@ -14,8 +14,7 @@ public abstract class SQLElement implements Element {
 
 	private static final String EMPTY = "";
 	private static final String REGEX_QUOTES = "[',\"]";
-
-	
+		
 	/**
 	 * Each element should override to build the SQL string.
 	 * 
@@ -27,7 +26,7 @@ public abstract class SQLElement implements Element {
 	 * Write this element to SQL.
 	 * @return
 	 */
-	public String toSql(){
+	final public String toSql(){
 		StringBuilder builder = new StringBuilder();
 		toSql(builder);
 		return builder.toString();

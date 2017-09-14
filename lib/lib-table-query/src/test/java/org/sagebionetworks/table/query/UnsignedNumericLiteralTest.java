@@ -25,4 +25,15 @@ public class UnsignedNumericLiteralTest {
 		assertEquals("2.564456E-32", element.toSql());
 	}
 	
+	@Test (expected=ParseException.class)
+	public void testSignedExponent() throws ParseException{
+		// cannot start with a sign
+		new TableQueryParser("+256.4456e-34").unsignedNumericLiteral();
+	}
+	
+	@Test (expected=ParseException.class)
+	public void testSignedInteger() throws ParseException{
+		// cannot start with a sign
+		new TableQueryParser("-123").unsignedNumericLiteral();
+	}
 }

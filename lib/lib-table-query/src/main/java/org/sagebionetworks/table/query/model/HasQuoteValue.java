@@ -18,10 +18,11 @@ public interface HasQuoteValue extends Element {
 	 * @return
 	 */
 	public boolean isSurrounedeWithQuotes();
-	
+
 	/**
-	 * Replace the unquoted value.
-	 * @param newValue
+	 * Completely override the SQL of this element with the given value.
+	 * 
+	 * @param overrideSql
 	 */
-	public void replaceUnquoted(String newValue);
+	public void overrideSql(String overrideSql);
 }

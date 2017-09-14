@@ -30,6 +30,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.ExactNumericLiteral;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
@@ -38,9 +39,11 @@ import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SignedLiteral;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
@@ -875,7 +878,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideIntegerLikeValue() throws ParseException{
-		SignedLiteral element = new TableQueryParser("'12345%'").signedLiteral();
+		UnsignedLiteral element = new TableQueryParser("'12345%'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
 		assertEquals(":b0", element.getValueWithoutQuotes());
@@ -884,7 +887,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideDouble() throws ParseException{
-		SignedLiteral element = new TableQueryParser("1.45").signedLiteral();
+		UnsignedLiteral element = new TableQueryParser("1.45").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDouble, parameters);
 		assertEquals(":b0", element.getValueWithoutQuotes());
@@ -902,7 +905,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
-		SignedLiteral element = new TableQueryParser("1454075733999").signedLiteral();
+		UnsignedLiteral element = new TableQueryParser("1454075733999").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
 		assertEquals(":b0", element.getValueWithoutQuotes());
@@ -1207,14 +1210,14 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithRealColumnModel() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("model");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, new ColumnModel(), new ActualIdentifier("someColumn", null));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, new ColumnModel(), new ActualIdentifier(new RegularIdentifier("someColumn")));
 	}
 
 	@Test
 	public void testValidateSelectColumnWithFunction() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("function");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionType.AVG, null, new ActualIdentifier("someColumn", null));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, FunctionType.AVG, null, new ActualIdentifier(new RegularIdentifier("someColumn")));
 	}
 
 	@Test
@@ -1235,14 +1238,14 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithStringConstant() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("contant");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new SignedLiteral(null, "constant"));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new GeneralLiteral("constant")));
 	}
 
 	@Test
 	public void testValidateSelectColumnWithNumber() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("contant");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new SignedLiteral("1", null));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new UnsignedNumericLiteral(new ExactNumericLiteral(1L))));
 	}
 
 	@Test
@@ -1250,7 +1253,7 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("invalid");
 		try {
-			SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new ActualIdentifier("invalid", null));
+			SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new ActualIdentifier(new RegularIdentifier("invalid")));
 			fail("Should throw IllegalArgumentException");
 		} catch (IllegalArgumentException e) {
 			String message = e.getMessage();

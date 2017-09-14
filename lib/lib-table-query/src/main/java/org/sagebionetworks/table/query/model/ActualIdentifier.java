@@ -8,53 +8,54 @@ import java.util.List;
  */
 public class ActualIdentifier extends SQLElement implements HasQuoteValue {
 	
-	private String regularIdentifier;
-	private String delimitedIdentifier;
-	public ActualIdentifier(String regularIdentifier, String delimitedIdentifier) {
-		if(regularIdentifier != null && delimitedIdentifier != null) throw new IllegalArgumentException("An actual identifier must be either a regular-identifier or a delimited-identifier but not both"); 
+	String overrideSql = null;
+	RegularIdentifier regularIdentifier;
+	DelimitedIdentifier delimitedIdentifier;
+	
+	public ActualIdentifier(RegularIdentifier regularIdentifier) {
+		super();
 		this.regularIdentifier = regularIdentifier;
+	}
+	
+	public ActualIdentifier(DelimitedIdentifier delimitedIdentifier) {
+		super();
 		this.delimitedIdentifier = delimitedIdentifier;
-	}
-	public String getRegularIdentifier() {
-		return regularIdentifier;
-	}
-	public String getDelimitedIdentifier() {
-		return delimitedIdentifier;
 	}
 
 	@Override
 	public void toSql(StringBuilder builder) {
-		if(regularIdentifier != null){
-			// Regular identifiers can be written without modification.
-			builder.append(regularIdentifier);
+		if(overrideSql != null){
+			builder.append(overrideSql);
+		}else if(regularIdentifier != null){
+			regularIdentifier.toSql(builder);
 		}else{
-			// Delimited identifiers must be within double quotes.
-			// And double quote characters must be escaped with another double quote.
-			builder.append("\"");
-			builder.append(delimitedIdentifier.replaceAll("\"", "\"\""));
-			builder.append("\"");
+			delimitedIdentifier.toSql(builder);
 		}
 	}
-	@Override
-	public String getValueWithoutQuotes() {
-		if (regularIdentifier != null) {
-			return regularIdentifier;
-		} else {
-			return delimitedIdentifier;
-		}
-	}
+
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this element does not contain any SQLElements
+		checkElement(elements, type, regularIdentifier);
+		checkElement(elements, type, delimitedIdentifier);
 	}
-	
+
+	@Override
+	public String getValueWithoutQuotes() {
+		if(regularIdentifier != null){
+			return regularIdentifier.toSql();
+		}else{
+			return delimitedIdentifier.getValueWithoutQuotes();
+		}
+	}
+
 	@Override
 	public boolean isSurrounedeWithQuotes() {
 		return delimitedIdentifier != null;
 	}
+
 	@Override
-	public void replaceUnquoted(String newValue) {
-		regularIdentifier = newValue;
-		delimitedIdentifier = null;
+	public void overrideSql(String overrideSql) {
+		this.overrideSql = overrideSql;
 	}
+
 }

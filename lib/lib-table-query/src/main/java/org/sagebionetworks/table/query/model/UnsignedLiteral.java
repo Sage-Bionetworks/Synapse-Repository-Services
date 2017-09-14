@@ -2,8 +2,9 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-public class UnsignedLiteral extends SQLElement {
+public class UnsignedLiteral extends SQLElement implements HasQuoteValue  {
 	
+	private String overrideSql;
 	private UnsignedNumericLiteral unsignedNumericLiteral;
 	private GeneralLiteral generalLiteral;
 	
@@ -19,7 +20,9 @@ public class UnsignedLiteral extends SQLElement {
 
 	@Override
 	public void toSql(StringBuilder builder) {
-		if(unsignedNumericLiteral != null){
+		if(overrideSql != null){
+			builder.append(overrideSql);
+		}else if(unsignedNumericLiteral != null){
 			unsignedNumericLiteral.toSql(builder);
 		} else {
 			generalLiteral.toSql(builder);
@@ -32,4 +35,22 @@ public class UnsignedLiteral extends SQLElement {
 		checkElement(elements, type, generalLiteral);
 	}
 
+	@Override
+	public String getValueWithoutQuotes() {
+		if(unsignedNumericLiteral != null){
+			return unsignedNumericLiteral.toSql();
+		}else{
+			return generalLiteral.getValueWithoutQuotes();
+		}
+	}
+
+	@Override
+	public boolean isSurrounedeWithQuotes() {
+		return generalLiteral != null;
+	}
+
+	@Override
+	public void overrideSql(String overrideSql) {
+		this.overrideSql = overrideSql;
+	}
 }

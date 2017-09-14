@@ -51,7 +51,7 @@ public class QuerySpecificationTest {
 		MysqlFunction foundRows = MysqlFunction.FOUND_ROWS;
 		NumericValueFunction numericValueFunction = new NumericValueFunction(foundRows);
 		NumericPrimary numericPrimary = new NumericPrimary(numericValueFunction);
-		Factor factor = new Factor(numericPrimary);
+		Factor factor = new Factor(null, numericPrimary);
 		Term term = new Term(factor);
 		NumericValueExpression numericValueExpression = new NumericValueExpression(term);
 		ValueExpression valueExpression = new ValueExpression(numericValueExpression);

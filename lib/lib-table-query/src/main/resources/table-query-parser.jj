@@ -116,8 +116,7 @@ SKIP : /* WHITE SPACE */
 TOKEN:{
  < unsigned_integer: ["0"-"9"](["0"-"9"])*>
 | < exact_numeric_literal: (<unsigned_integer> ( <period> ( <unsigned_integer> )? )?) | (<period> <unsigned_integer>) >
-| < signed_integer: (["+","-"])? <unsigned_integer> > 
-| < approximate_numeric_literal:  <exact_numeric_literal> ["e","E"] <signed_integer> >
+| < approximate_numeric_literal:  <exact_numeric_literal> ["e","E"] (["+","-"])? <unsigned_integer> >
 }
 
 /* Function tokens */
@@ -198,15 +197,13 @@ TOKEN: {
 | < letter: ["a"-"z","A"-"Z"]>
 }
 
-void regularIdentifier(StringBuilder builder):
+RegularIdentifier regularIdentifier():
 {
 	Token token = null;
 }
 {
-	token = <regular_identifier> { builder.append(token.image); }
+	token = <regular_identifier> { return new RegularIdentifier(token.image); }
 }
-/** Literal Numbers, Strings, Dates and Times */
-
 UnsignedInteger unsignedInteger():
 {
 	Token token = null;
@@ -295,15 +292,17 @@ Identifier identifier():
 }
 ActualIdentifier actualIdentifier():
 {
-	StringBuilder builder = new StringBuilder();
+	RegularIdentifier regularIdentifier = null;
+	DelimitedIdentifier delmitedIdentifier = null;
 }
 {
-	regularIdentifier(builder) { builder.toString(); return new ActualIdentifier(builder.toString(), null); }
-	| delimitedIentifier(builder) { builder.toString(); return new ActualIdentifier(null, builder.toString());}
+	regularIdentifier = regularIdentifier() { return new ActualIdentifier(regularIdentifier); }
+	| delmitedIdentifier = delimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
 }
-void delimitedIentifier(StringBuilder builder):
+DelimitedIdentifier delimitedIdentifier():
 { 
 	Token token = null;
+	StringBuilder builder = new StringBuilder();
 }
 {
 	<start_double_quote>
@@ -312,6 +311,7 @@ void delimitedIentifier(StringBuilder builder):
 		| <escape_double_quote> { builder.append("\""); }
 	)*
 	<end_double_quote>
+	{ return new DelimitedIdentifier(builder.toString()); }
 }
 ColumnReference columnReference():
 {
