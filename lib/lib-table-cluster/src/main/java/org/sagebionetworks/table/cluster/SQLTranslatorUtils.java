@@ -450,8 +450,8 @@ public class SQLTranslatorUtils {
 			// handle the right-hand-side
 			Iterable<HasReplaceableChildren> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
-				for(HasReplaceableChildren hasQuoteValue: rightHandSide){
-					translateRightHandeSide(hasQuoteValue, model, parameters);
+				for(HasReplaceableChildren element: rightHandSide){
+					translateRightHandeSide(element, model, parameters);
 				}
 			}
 		}
