@@ -1,5 +1,6 @@
 /* The BNF for this parser was derived from: https://github.com/ronsavage/SQL/blob/master/sql-92.bnf (SQL-92) 
 * https://javacc.java.net/doc/docindex.html
+* The BNF can be viewed with UMLet file in this same directory: SQL92BNF.uxf
 * To debug changes to this file run:
 * mvn clean generate-sources
 */
