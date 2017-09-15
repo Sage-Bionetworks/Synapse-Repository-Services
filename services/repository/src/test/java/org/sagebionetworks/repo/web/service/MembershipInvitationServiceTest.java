@@ -50,6 +50,7 @@ public class MembershipInvitationServiceTest {
 		String content = "foo";
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setInviteeId("1");
 		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
