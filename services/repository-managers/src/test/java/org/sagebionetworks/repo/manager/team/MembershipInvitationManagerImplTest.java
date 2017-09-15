@@ -7,28 +7,28 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.util.*;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
@@ -37,8 +37,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
-import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipInvitationManagerImplTest {
@@ -47,10 +45,12 @@ public class MembershipInvitationManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
 	private TeamDAO mockTeamDAO = null;
+	private SynapseEmailService mockSynapseEmailService;
 
 	private UserInfo userInfo = null;
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
+	private static final String INVITEE_EMAIL = "test@test.com";
 
 	private static final String TEAM_ID = "123";
 	private static final String MIS_ID = "987";
@@ -63,7 +63,17 @@ public class MembershipInvitationManagerImplTest {
 		mis.setMessage("Please join our team.");
 		return mis;
 	}
-	
+
+	private static MembershipInvtnSubmission createMembershipInvtnSubmissionToEmail(String id) {
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setId(id);
+		mis.setTeamId(TEAM_ID);
+		mis.setInviteeEmail(INVITEE_EMAIL);
+		mis.setCreatedOn(new Date());
+		mis.setMessage("Please join our team.");
+		return mis;
+	}
+
 	private static MembershipInvitation createMembershipInvitation() {
 		MembershipInvitation mi = new MembershipInvitation();
 		mi.setTeamId(TEAM_ID);
@@ -77,9 +87,11 @@ public class MembershipInvitationManagerImplTest {
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl();
+		mockSynapseEmailService = Mockito.mock(SynapseEmailService.class);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "teamDAO", mockTeamDAO);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "sesClient", mockSynapseEmailService);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
 	}
 
@@ -261,19 +273,19 @@ public class MembershipInvitationManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateInvitationNotification() throws Exception {
+	public void testCreateInvitationToUser() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		testCreateInvitationNotificationHelper(mis);
+		testCreateInvitationToUserHelper(mis);
 	}
 	
 	@Test
-	public void testCreateInvitationNotificationWithNullCreatedOn() throws Exception {
+	public void testCreateInvitationToUserWithNullCreatedOn() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
 		mis.setCreatedOn(null);
-		testCreateInvitationNotificationHelper(mis);
+		testCreateInvitationToUserHelper(mis);
 	}
 	
-	private void testCreateInvitationNotificationHelper(MembershipInvtnSubmission mis) {
+	private void testCreateInvitationToUserHelper(MembershipInvtnSubmission mis) {
 		Team team = new Team();
 		team.setName("test team");
 		team.setId(TEAM_ID);
@@ -281,7 +293,7 @@ public class MembershipInvitationManagerImplTest {
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MessageToUserAndBody result = membershipInvitationManagerImpl.
-				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+			createInvitationToUser(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
@@ -310,6 +322,31 @@ public class MembershipInvitationManagerImplTest {
 				"  </body>\r\n" + 
 				"</html>\r\n";
 		assertEquals(expected, result.getBody());
+	}
+
+	@Test
+	public void testSendInvitationToEmail() throws Exception {
+		Team team = new Team();
+		String teamName = "Test team";
+		team.setName(teamName);
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+			new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertNotNull(mimeMessage.getSubject());
+		assertTrue(body.contains(mis.getTeamId()));
+		assertTrue(body.contains(teamName));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(EmailUtils.createOneClickJoinTeamLink(acceptInvitationEndpoint, MIS_ID, mis.getCreatedOn())));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

@@ -16,6 +16,7 @@ import javax.mail.internet.MimeUtility;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
@@ -214,7 +215,18 @@ public class EmailUtils {
 		validateSynapsePortalHost(result);
 		return result;
 	}
-	
+
+	public static String createOneClickJoinTeamLink(String endpoint, String membershipInvitationId, Date createdOn) {
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
+		token.setCreatedOn(createdOn);
+		token.setMembershipInvitationId(membershipInvitationId);
+		SignedTokenUtil.signToken(token);
+		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
+		String result = endpoint+serializedToken;
+		validateSynapsePortalHost(result);
+		return result;
+	}
+
 	public static String createOneClickUnsubscribeLink(String endpoint, String userId) {
 		if (endpoint==null || userId==null) throw new IllegalArgumentException("endpoint and userId are required.");
 		NotificationSettingsSignedToken token = new NotificationSettingsSignedToken();
@@ -229,7 +241,7 @@ public class EmailUtils {
 		validateSynapsePortalHost(result);
 		return result;
 	}
-	
+
 	public static String createHtmlUnsubscribeLink(String unsubscribeLink) {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_UNSUBSCRIBE, unsubscribeLink);

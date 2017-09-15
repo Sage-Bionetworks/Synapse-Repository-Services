@@ -26,7 +26,7 @@ public interface MembershipInvitationManager {
 	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
-	 * Create the notification content
+	 * Create an invitation message for an existing user
 	 * 
 	 * @param mis
 	 * @param acceptInvitationEndpoint
@@ -34,9 +34,19 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
-			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
-	
+	MessageToUserAndBody createInvitationToUser(MembershipInvtnSubmission mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+
+	/**
+	 * Create an invitation message for a new user
+	 *
+	 * @param mis
+	 * @param acceptInvitationEndpoint
+	 * @param notificationUnsubscribeEndpoint
+	 * @return
+	 * @throws NotFoundException
+	 */
+	void sendInvitationToEmail(MembershipInvtnSubmission mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+
 	/**
 	 * Retrieve an invitation by its ID
 	 * @param userInfo

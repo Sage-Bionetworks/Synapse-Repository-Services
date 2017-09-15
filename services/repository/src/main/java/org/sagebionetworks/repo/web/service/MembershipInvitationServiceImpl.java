@@ -55,13 +55,19 @@ public class MembershipInvitationServiceImpl implements
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
-		MessageToUserAndBody message = membershipInvitationManager.
-				createInvitationNotification(created,
-						acceptInvitationEndpoint,
-						notificationUnsubscribeEndpoint);
-		if (message!=null) {
-			notificationManager.
-				sendNotifications(userInfo, Collections.singletonList(message));
+		// Post condition: created either has inviteeId or inviteeEmail, never both
+		if (created.getInviteeId() != null) {
+		    // Invitation to existing user
+			MessageToUserAndBody message = membershipInvitationManager.
+				createInvitationToUser(created,
+					acceptInvitationEndpoint,
+					notificationUnsubscribeEndpoint);
+			if (message != null) {
+				notificationManager.sendNotifications(userInfo, Collections.singletonList(message));
+			}
+		} else {
+			// Invitation to new user
+			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		}
 
 		return created;
