@@ -41,7 +41,7 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<ValueExpression> getRightHandSideValues() {
+	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
 		return null;
 	}
 	

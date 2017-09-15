@@ -141,7 +141,7 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("foo.bar >= 10.1e-10");
 		Predicate element = parser.predicate();
 		String sql = toSQL(element);
-		assertEquals("foo.bar >= 10.1e-10", sql);
+		assertEquals("foo.bar >= 1.01E-9", sql);
 	}
 	
 	@Test

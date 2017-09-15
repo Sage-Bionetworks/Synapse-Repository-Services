@@ -16,5 +16,5 @@ public interface HasPredicate extends Element {
 	 * Get right-hand-side values.
 	 * @return
 	 */
-	public Iterable<ValueExpression> getRightHandSideValues();
+	public Iterable<HasReplaceableChildren> getRightHandSideValues();
 }

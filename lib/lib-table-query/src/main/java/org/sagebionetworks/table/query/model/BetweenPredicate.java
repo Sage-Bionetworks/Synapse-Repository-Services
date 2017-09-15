@@ -63,8 +63,8 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<ValueExpression> getRightHandSideValues() {
-		List<ValueExpression> results = new LinkedList<ValueExpression>();
+	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
+		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
 		for(ValueExpression value: betweenRowValueConstructor.createIterable(ValueExpression.class)){
 			results.add(value);
 		}

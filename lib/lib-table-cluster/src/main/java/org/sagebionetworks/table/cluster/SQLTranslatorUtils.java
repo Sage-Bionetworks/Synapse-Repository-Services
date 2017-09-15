@@ -29,6 +29,7 @@ import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -447,9 +448,9 @@ public class SQLTranslatorUtils {
 			String newName = SQLUtils.getColumnNameForId(model.getId());
 			columnNameReference.replaceChildren(new StringOverride(newName));
 			// handle the right-hand-side
-			Iterable<ValueExpression> rightHandSide = predicate.getRightHandSideValues();
+			Iterable<HasReplaceableChildren> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
-				for(ValueExpression hasQuoteValue: rightHandSide){
+				for(HasReplaceableChildren hasQuoteValue: rightHandSide){
 					translateRightHandeSide(hasQuoteValue, model, parameters);
 				}
 			}
@@ -462,18 +463,18 @@ public class SQLTranslatorUtils {
 	 * Translate user generated queries to queries that can
 	 * run against the actual database.
 	 * 
-	 * @param valueExpression
+	 * @param element
 	 * @param model
 	 * @param parameters
 	 */
-	public static void translateRightHandeSide(ValueExpression valueExpression,
+	public static void translateRightHandeSide(HasReplaceableChildren element,
 			ColumnModel model, Map<String, Object> parameters) {
-		ValidateArgument.required(valueExpression, "hasQuoteValue");
+		ValidateArgument.required(element, "element");
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(parameters, "parameters");
 		
 		String key = BIND_PREFIX+parameters.size();
-		String value = valueExpression.toSqlWithoutQuotes();
+		String value = element.toSqlWithoutQuotes();
 		Object valueObject = null;
 		try{
 			valueObject = SQLUtils.parseValueForDB(model.getColumnType(), value);
@@ -483,7 +484,7 @@ public class SQLTranslatorUtils {
 		}
 
 		parameters.put(key, valueObject);
-		valueExpression.replaceChildren(new StringOverride(COLON+key));
+		element.replaceChildren(new StringOverride(COLON+key));
 	}
 
 	/**

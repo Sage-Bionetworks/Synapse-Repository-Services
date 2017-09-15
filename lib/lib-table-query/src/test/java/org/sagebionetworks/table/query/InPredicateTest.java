@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -42,7 +43,7 @@ public class InPredicateTest {
 		Predicate predicate = new TableQueryParser("foo in (1,'2',\"3\")").predicate();
 		InPredicate element = predicate.getInPredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<ValueExpression> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(3, values.size());
 		assertEquals("1", values.get(0).toSqlWithoutQuotes());

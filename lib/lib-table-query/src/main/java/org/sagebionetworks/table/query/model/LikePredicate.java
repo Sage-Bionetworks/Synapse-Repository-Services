@@ -62,15 +62,11 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<ValueExpression> getRightHandSideValues() {
-		List<ValueExpression> results = new LinkedList<ValueExpression>();
-		for(ValueExpression value: pattern.createIterable(ValueExpression.class)){
-			results.add(value);
-		}
+	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
+		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
+		results.add(pattern);
 		if(escapeCharacter != null){
-			for(ValueExpression value: escapeCharacter.createIterable(ValueExpression.class)){
-				results.add(value);
-			}
+			results.add(escapeCharacter);
 		}
 		return results;
 	}

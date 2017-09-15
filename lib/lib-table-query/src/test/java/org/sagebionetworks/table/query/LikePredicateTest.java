@@ -6,15 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
-import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
-import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -57,7 +54,7 @@ public class LikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo like '%aa%'").predicate();
 		LikePredicate element = predicate.getLikePredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<ValueExpression> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(1, values.size());
 		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
@@ -68,7 +65,7 @@ public class LikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
 		LikePredicate element = predicate.getLikePredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<ValueExpression> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(2, values.size());
 		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
