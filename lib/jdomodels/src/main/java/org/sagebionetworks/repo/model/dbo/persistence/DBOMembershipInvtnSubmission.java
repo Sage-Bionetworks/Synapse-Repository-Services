@@ -26,7 +26,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		new FieldColumn("teamId", COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID),
 		new FieldColumn("expiresOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON),
 		new FieldColumn("inviteeId", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID),
-		new FieldColumn("inviteeEmail", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID),
+		new FieldColumn("inviteeEmail", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
 	
@@ -59,7 +59,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				Long inviteeId = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID);
 				if (rs.wasNull()) inviteeId=null;
 				dbo.setInviteeId(inviteeId);
-				String inviteeEmail = rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID);
+				String inviteeEmail = rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL);
 				if (rs.wasNull()) inviteeEmail=null;
 				dbo.setInviteeEmail(inviteeEmail);
 				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
