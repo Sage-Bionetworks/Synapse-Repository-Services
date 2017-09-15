@@ -46,7 +46,7 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("SELECT");
 		if (sqlDirective != null) {
 			builder.append(" ");
@@ -57,10 +57,10 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 			builder.append(setQuantifier.name());
 		}
 		builder.append(" ");
-		selectList.toSql(builder);
+		selectList.toSql(builder, parameters);
 		if (tableExpression != null) {
 			builder.append(" ");
-			tableExpression.toSql(builder);
+			tableExpression.toSql(builder, parameters);
 		}
 	}
 

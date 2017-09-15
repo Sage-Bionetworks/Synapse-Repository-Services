@@ -11,32 +11,34 @@ public class ActualIdentifierTest {
 	public void testRegularToSQL() throws ParseException{
 		ActualIdentifier element = new TableQueryParser("C123").actualIdentifier();
 		assertEquals("C123", element.toString());
+		assertFalse(element.hasQuotesRecursive());
 	}
 	
 	@Test
 	public void testDelimitedToSQL() throws ParseException{
 		ActualIdentifier element = new TableQueryParser("\"has\"\"quote\"").actualIdentifier();
 		assertEquals("\"has\"\"quote\"", element.toString());
+		assertTrue(element.hasQuotesRecursive());
 	}
 	
 	@Test
 	public void testValueWithQuotes() throws ParseException{
 		ActualIdentifier element = new TableQueryParser("\"foo\"").actualIdentifier();
-		assertEquals("foo", element.getValueWithoutQuotes());
-		assertTrue(element.isSurrounedeWithQuotes());
+		assertEquals("foo", element.toSqlWithoutQuotes());
+		assertTrue(element.hasQuotesRecursive());
 	}
 	
 	@Test
 	public void testValueNoQuotes() throws ParseException{
 		ActualIdentifier element = new TableQueryParser("foo").actualIdentifier();
-		assertEquals("foo", element.getValueWithoutQuotes());
-		assertFalse(element.isSurrounedeWithQuotes());
+		assertEquals("foo", element.toSqlWithoutQuotes());
+		assertFalse(element.hasQuotesRecursive());
 	}
 
 	@Test
 	public void testValueUnderscore() throws ParseException{
 		ActualIdentifier element = new TableQueryParser("_foo_").actualIdentifier();
-		assertEquals("_foo_", element.getValueWithoutQuotes());
-		assertFalse(element.isSurrounedeWithQuotes());
+		assertEquals("_foo_", element.toSqlWithoutQuotes());
+		assertFalse(element.hasQuotesRecursive());
 	}
 }

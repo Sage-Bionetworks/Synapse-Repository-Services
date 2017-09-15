@@ -24,11 +24,11 @@ public class BooleanFactor extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(not != null){
 			builder.append("NOT ");
 		}
-		booleanTest.toSql(builder);
+		booleanTest.toSql(builder, parameters);
 	}
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {

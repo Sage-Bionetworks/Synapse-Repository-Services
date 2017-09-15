@@ -27,12 +27,12 @@ public class RowValueConstructor extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(rowValueConstructorElement != null){
-			rowValueConstructorElement.toSql(builder);
+			rowValueConstructorElement.toSql(builder, parameters);
 		}else{
 			builder.append("( ");
-			rowValueConstructorList.toSql(builder);
+			rowValueConstructorList.toSql(builder, parameters);
 			builder.append(" )");
 		}
 	}

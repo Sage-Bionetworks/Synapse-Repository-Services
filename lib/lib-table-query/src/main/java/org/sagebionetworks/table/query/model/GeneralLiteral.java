@@ -2,10 +2,12 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
-public class GeneralLiteral extends SQLElement implements HasQuoteValue {
-	
-	String overrideSql;
-	
+/**
+ * A GeneralLiteral is a string surrounded with single quotes.
+ *
+ */
+public class GeneralLiteral extends SQLElement {
+		
 	String generalLiteral;
 
 	public GeneralLiteral(String generalLiteral) {
@@ -14,36 +16,25 @@ public class GeneralLiteral extends SQLElement implements HasQuoteValue {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		if(overrideSql != null){
-			builder.append(overrideSql);
-			return;
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		if(parameters.includeQuotes()){
+			// General literals have single quotes
+			builder.append("'");
+			// single quotes within the string must be replaced.
+			builder.append(this.generalLiteral.replaceAll("'", "''"));
+			builder.append("'");
+		}else{
+			builder.append(this.generalLiteral);
 		}
-		// General literals have single quotes
-		builder.append("'");
-		// single quotes within the string must be replaced.
-		builder.append(this.generalLiteral.replaceAll("'", "''"));
-		builder.append("'");
 	}
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// no sub-elements
+		// this is a leaf element
 	}
 
 	@Override
-	public String getValueWithoutQuotes() {
-		return generalLiteral;
-	}
-
-	@Override
-	public boolean isSurrounedeWithQuotes() {
+	public boolean hasQuotes() {
 		return true;
 	}
-	
-	@Override
-	public void overrideSql(String overrideSql) {
-		this.overrideSql = overrideSql;
-	}
-
 }

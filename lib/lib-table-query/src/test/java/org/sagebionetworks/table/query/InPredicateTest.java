@@ -12,6 +12,7 @@ import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -41,11 +42,11 @@ public class InPredicateTest {
 		Predicate predicate = new TableQueryParser("foo in (1,'2',\"3\")").predicate();
 		InPredicate element = predicate.getInPredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<ValueExpression> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(3, values.size());
-		assertEquals("1", values.get(0).getValueWithoutQuotes());
-		assertEquals("2", values.get(1).getValueWithoutQuotes());
-		assertEquals("3", values.get(2).getValueWithoutQuotes());
+		assertEquals("1", values.get(0).toSqlWithoutQuotes());
+		assertEquals("2", values.get(1).toSqlWithoutQuotes());
+		assertEquals("3", values.get(2).toSqlWithoutQuotes());
 	}
 }

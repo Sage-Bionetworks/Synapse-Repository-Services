@@ -39,15 +39,15 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		if(not != null){
 			builder.append(" NOT");
 		}
 		builder.append(" BETWEEN ");
-		betweenRowValueConstructor.toSql(builder);
+		betweenRowValueConstructor.toSql(builder, parameters);
 		builder.append(" AND ");
-		andRowValueConstructorRHS.toSql(builder);
+		andRowValueConstructorRHS.toSql(builder, parameters);
 	}
 
 	@Override
@@ -63,12 +63,12 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
-		for(HasQuoteValue value: betweenRowValueConstructor.createIterable(HasQuoteValue.class)){
+	public Iterable<ValueExpression> getRightHandSideValues() {
+		List<ValueExpression> results = new LinkedList<ValueExpression>();
+		for(ValueExpression value: betweenRowValueConstructor.createIterable(ValueExpression.class)){
 			results.add(value);
 		}
-		for(HasQuoteValue value: andRowValueConstructorRHS.createIterable(HasQuoteValue.class)){
+		for(ValueExpression value: andRowValueConstructorRHS.createIterable(ValueExpression.class)){
 			results.add(value);
 		}
 		return results;

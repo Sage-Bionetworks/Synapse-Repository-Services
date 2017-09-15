@@ -21,10 +21,8 @@ public class ExactNumericLiteral extends SQLElement {
 		this.doubleValue = doubleValue;
 	}
 
-
-
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(longValue != null){
 			builder.append(longValue);
 		}else{

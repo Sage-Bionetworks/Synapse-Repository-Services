@@ -5,5 +5,30 @@ package org.sagebionetworks.table.query.model;
  *
  */
 public interface Element {
+	
+	
+	/**
+	 * Write the SQL for this element.
+	 * @return
+	 */
+	String toSql();
+	
+	/**
+	 * Write the SQL for this element without quotes.
+	 * @return
+	 */
+	String toSqlWithoutQuotes();
 
+	/**
+	 * Does this element have either single or double quotes?
+	 * 
+	 * @return
+	 */
+	public boolean hasQuotes();
+	
+	/**
+	 * Does this element in this tree have either single or double quotes?
+	 * @return
+	 */
+	public boolean hasQuotesRecursive();
 }

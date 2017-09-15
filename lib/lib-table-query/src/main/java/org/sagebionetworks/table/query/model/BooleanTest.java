@@ -39,8 +39,8 @@ public class BooleanTest extends SQLElement {
 	}
 	
 	@Override
-	public void toSql(StringBuilder builder) {
-		booleanPrimary.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		booleanPrimary.toSql(builder, parameters);
 		if(is != null){
 			builder.append(" IS ");
 			if(not != null){

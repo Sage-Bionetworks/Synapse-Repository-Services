@@ -29,12 +29,12 @@ public class ColumnReference extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if (nameLHS != null) {
-			nameLHS.toSql(builder);
+			nameLHS.toSql(builder, parameters);
 			builder.append(".");
 		}
-		nameRHS.toSql(builder);
+		nameRHS.toSql(builder, parameters);
 	}
 
 	@Override

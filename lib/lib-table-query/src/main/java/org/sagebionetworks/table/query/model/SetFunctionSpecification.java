@@ -39,7 +39,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if (countAsterisk != null) {
 			builder.append("COUNT(*)");
 		} else {
@@ -49,7 +49,7 @@ public class SetFunctionSpecification extends SQLElement implements HasAggregate
 				builder.append(setQuantifier.name());
 				builder.append(" ");
 			}
-			valueExpression.toSql(builder);
+			valueExpression.toSql(builder, parameters);
 			builder.append(")");
 		}
 	}

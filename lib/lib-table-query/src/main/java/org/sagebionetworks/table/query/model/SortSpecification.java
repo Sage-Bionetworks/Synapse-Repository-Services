@@ -23,8 +23,8 @@ public class SortSpecification extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		sortKey.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		sortKey.toSql(builder, parameters);
 		if(orderingSpecification != null){
 			builder.append(" ");
 			builder.append(orderingSpecification.name());

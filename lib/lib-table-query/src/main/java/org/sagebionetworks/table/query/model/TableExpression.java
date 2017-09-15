@@ -42,23 +42,23 @@ public class TableExpression extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		fromClause.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		fromClause.toSql(builder, parameters);
 		if(whereClause != null){
 			builder.append(" ");
-			whereClause.toSql(builder);
+			whereClause.toSql(builder, parameters);
 		}
 		if(groupByClause != null){
 			builder.append(" ");
-			groupByClause.toSql(builder);
+			groupByClause.toSql(builder, parameters);
 		}
 		if(orderByClause != null){
 			builder.append(" ");
-			orderByClause.toSql(builder);
+			orderByClause.toSql(builder, parameters);
 		}
 		if(pagination != null){
 			builder.append(" ");
-			pagination.toSql(builder);
+			pagination.toSql(builder, parameters);
 		}
 	}
 

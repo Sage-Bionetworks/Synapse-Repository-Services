@@ -12,6 +12,7 @@ import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -32,9 +33,9 @@ public class ComparisonPredicateTest {
 		Predicate predicate = new TableQueryParser("foo > bar").predicate();
 		ComparisonPredicate element = predicate.getComparisonPredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<ValueExpression> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(1, values.size());
-		assertEquals("bar", values.get(0).getValueWithoutQuotes());
+		assertEquals("bar", values.get(0).toSqlWithoutQuotes());
 	}
 }

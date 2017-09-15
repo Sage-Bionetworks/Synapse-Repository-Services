@@ -19,8 +19,8 @@ public class InPredicateValue extends SQLElement {
 	}
 	
 	@Override
-	public void toSql(StringBuilder builder) {
-		inValueList.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		inValueList.toSql(builder, parameters);
 	}
 
 	@Override

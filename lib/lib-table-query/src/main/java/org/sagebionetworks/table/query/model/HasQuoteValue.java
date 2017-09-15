@@ -6,23 +6,23 @@ package org.sagebionetworks.table.query.model;
  */
 public interface HasQuoteValue extends Element {
 
-	/**
-	 * Get the value of this element without quotes.
-	 * 
-	 * @return
-	 */
-	public String getValueWithoutQuotes();
-	
-	/**
-	 * Is this element surrounded with quotes?
-	 * @return
-	 */
-	public boolean isSurrounedeWithQuotes();
-
-	/**
-	 * Completely override the SQL of this element with the given value.
-	 * 
-	 * @param overrideSql
-	 */
-	public void overrideSql(String overrideSql);
+//	/**
+//	 * Get the value of this element without quotes.
+//	 * 
+//	 * @return
+//	 */
+//	public String getValueWithoutQuotes();
+//	
+//	/**
+//	 * Is this element surrounded with quotes?
+//	 * @return
+//	 */
+//	public boolean isSurrounedeWithQuotes();
+//
+//	/**
+//	 * Completely override the SQL of this element with the given value.
+//	 * 
+//	 * @param overrideSql
+//	 */
+//	public void overrideSql(String overrideSql);
 }

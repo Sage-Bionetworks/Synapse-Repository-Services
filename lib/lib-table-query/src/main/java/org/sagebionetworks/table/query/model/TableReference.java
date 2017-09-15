@@ -18,7 +18,7 @@ public class TableReference extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(tableName);
 	}
 

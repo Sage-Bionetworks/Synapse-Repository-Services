@@ -12,13 +12,13 @@ public class RegularIdentifier extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(regularIdentifier);
 	}
 
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		// this is a root element so nothing to do.
+		// this is a leaf element.
 	}
 
 }

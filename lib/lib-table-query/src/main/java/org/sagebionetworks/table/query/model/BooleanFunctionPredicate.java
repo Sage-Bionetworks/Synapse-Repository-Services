@@ -22,10 +22,10 @@ public class BooleanFunctionPredicate extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(booleanFunction.name());
 		builder.append("(");
-		columnReference.toSql(builder);
+		columnReference.toSql(builder, parameters);
 		builder.append(")");
 	}
 

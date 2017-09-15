@@ -1,30 +1,13 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
- * This matches &ltcolumn name&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * ColumnName ::= {@link Identifier}
  */
-public class ColumnName extends SQLElement {
+public class ColumnName extends SimpleBranch {
 
-	Identifier identifier;
 
 	public ColumnName(Identifier identifier) {
-		this.identifier = identifier;
-	}
-
-	public Identifier getIdentifier() {
-		return identifier;
-	}
-
-	@Override
-	public void toSql(StringBuilder builder) {
-		identifier.toSql(builder);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, identifier);
+		super(identifier);
 	}
 	
 }

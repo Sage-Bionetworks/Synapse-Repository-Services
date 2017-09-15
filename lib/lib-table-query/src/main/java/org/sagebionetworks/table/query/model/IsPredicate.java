@@ -26,8 +26,8 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	public abstract String getCompareValue();
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" IS ");
 		if (not != null) {
 			builder.append("NOT ");
@@ -41,7 +41,7 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
+	public Iterable<ValueExpression> getRightHandSideValues() {
 		return null;
 	}
 	

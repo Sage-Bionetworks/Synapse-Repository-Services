@@ -18,8 +18,8 @@ public class SortKey extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		valueExpressionPrimary.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		valueExpressionPrimary.toSql(builder, parameters);
 	}
 
 	@Override

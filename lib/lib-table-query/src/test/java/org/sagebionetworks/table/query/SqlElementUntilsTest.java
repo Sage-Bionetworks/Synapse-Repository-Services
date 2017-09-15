@@ -223,7 +223,7 @@ public class SqlElementUntilsTest {
 		assertEquals("syn123", model.getTableName());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
-		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());
 	}
 	
 	@Test
@@ -232,7 +232,7 @@ public class SqlElementUntilsTest {
 		assertEquals("syn123", model.getTableName());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
-		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());
 	}
 	
 	@Test
@@ -241,7 +241,7 @@ public class SqlElementUntilsTest {
 		assertEquals("syn123", model.getTableName());
 		ComparisonPredicate predicate = model.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("id", predicate.getLeftHandSide().toSql());
-		assertEquals("syn456", predicate.getRowValueConstructorRHS().getFirstUnquotedValue());
+		assertEquals("syn456", predicate.getRowValueConstructorRHS().toSqlWithoutQuotes());
 	}
 	
 	@Test

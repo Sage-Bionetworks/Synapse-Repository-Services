@@ -614,7 +614,7 @@ public class SqlElementUntils {
 		// build a mapping for each as clause
 		for(DerivedColumn dc: originalSelect.getColumns()){
 			if(dc.getAsClause() != null){
-				String asValue = dc.getAsClause().getFirstUnquotedValue();
+				String asValue = dc.getAsClause().getColumnName().toSqlWithoutQuotes();
 				asMapping.put(asValue, dc.getValueExpression());
 			}
 		}
@@ -624,7 +624,7 @@ public class SqlElementUntils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			String unQuoted = gcr.getFirstUnquotedValue();
+			String unQuoted = gcr.toSqlWithoutQuotes();
 			ValueExpression selectValue = asMapping.get(unQuoted);
 			if(selectValue != null){
 				// replace ass with value expression

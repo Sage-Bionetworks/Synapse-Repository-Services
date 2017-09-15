@@ -1,25 +1,16 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
-public class UnsignedValueSpecification extends SQLElement {
+/**
+ * UnsignedValueSpecification ::= {@link UnsignedLiteral} | <general value specification>
+ *
+ */
+public class UnsignedValueSpecification extends SimpleBranch {
 	
 	UnsignedLiteral unsignedLiteral;
 
 	
 	public UnsignedValueSpecification(UnsignedLiteral unsignedLiteral) {
-		super();
-		this.unsignedLiteral = unsignedLiteral;
-	}
-
-	@Override
-	public void toSql(StringBuilder builder) {
-		unsignedLiteral.toSql(builder);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, unsignedLiteral);
+		super(unsignedLiteral);
 	}
 
 }

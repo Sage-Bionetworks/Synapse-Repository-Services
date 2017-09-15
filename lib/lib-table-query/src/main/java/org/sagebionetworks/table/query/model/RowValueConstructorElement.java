@@ -41,9 +41,9 @@ public class RowValueConstructorElement extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(valueExpression != null){
-			valueExpression.toSql(builder);
+			valueExpression.toSql(builder, parameters);
 		}else if(nullSpecification != null){
 			builder.append("NULL");
 		} else if (truthSpecification != null) {

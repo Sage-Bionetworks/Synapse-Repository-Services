@@ -3,6 +3,8 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
+ * TermPrime ::= {@link ArithmeticOperator} {@link Term}
+ * <p>
  * Term prime is used to support arithmetic operations of terms while
  * avoiding left-recursion.
  *
@@ -25,9 +27,9 @@ public class TermPrime extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(operator.toSQL());
-		term.toSql(builder);
+		term.toSql(builder, parameters);
 	}
 
 	@Override

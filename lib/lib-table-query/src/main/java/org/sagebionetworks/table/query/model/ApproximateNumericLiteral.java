@@ -4,16 +4,16 @@ import java.util.List;
 
 public class ApproximateNumericLiteral extends SQLElement {
 	
-	Double approximateNumericLiteral;
+	Double doubleValue;
 
 	public ApproximateNumericLiteral(String approximateNumericLiteral) {
 		super();
-		this.approximateNumericLiteral = new Double(approximateNumericLiteral);
+		this.doubleValue = new Double(approximateNumericLiteral);
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		builder.append(approximateNumericLiteral);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		builder.append(doubleValue);
 	}
 
 	@Override
