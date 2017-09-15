@@ -29,7 +29,7 @@
 									<bean class="org.sagebionetworks.worker.entity.EntityReplicationWorker" />
 								</property>
 								<property name="semaphoreLockKey" value="tableEntityReplication" />
-								<property name="semaphoreMaxLockCount" value="1" />
+								<property name="semaphoreMaxLockCount" value="2" />
 								<property name="semaphoreLockAndMessageVisibilityTimeoutSec" value="120" />
 								<property name="queueName" ref="stackConfiguration.workerQueueName[TableEntityReplicationWorker]"/>
 								<property name="topicNamesToSubscribe">
