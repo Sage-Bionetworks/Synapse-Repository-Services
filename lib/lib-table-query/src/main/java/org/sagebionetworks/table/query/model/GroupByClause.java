@@ -20,9 +20,9 @@ public class GroupByClause extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("GROUP BY ");
-		groupingColumnReferenceList.toSql(builder);
+		groupingColumnReferenceList.toSql(builder, parameters);
 	}
 
 	@Override

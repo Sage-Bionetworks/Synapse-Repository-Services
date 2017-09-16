@@ -28,7 +28,7 @@ public class SelectList extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(asterisk != null){
 			builder.append("*");
 		}else{
@@ -37,7 +37,7 @@ public class SelectList extends SQLElement {
 				if(!first){
 					builder.append(", ");
 				}
-				dc.toSql(builder);
+				dc.toSql(builder, parameters);
 				first = false;
 			}
 		}

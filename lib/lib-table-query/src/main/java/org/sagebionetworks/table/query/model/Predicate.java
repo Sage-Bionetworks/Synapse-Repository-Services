@@ -63,19 +63,19 @@ public class Predicate extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if (comparisonPredicate != null) {
-			comparisonPredicate.toSql(builder);
+			comparisonPredicate.toSql(builder, parameters);
 		} else if (betweenPredicate != null) {
-			betweenPredicate.toSql(builder);
+			betweenPredicate.toSql(builder, parameters);
 		} else if (inPredicate != null) {
-			inPredicate.toSql(builder);
+			inPredicate.toSql(builder, parameters);
 		} else if (likePredicate != null) {
-			likePredicate.toSql(builder);
+			likePredicate.toSql(builder, parameters);
 		} else if (isPredicate != null) {
-			isPredicate.toSql(builder);
+			isPredicate.toSql(builder, parameters);
 		} else if (booleanFunctionPredicate != null) {
-			booleanFunctionPredicate.toSql(builder);
+			booleanFunctionPredicate.toSql(builder, parameters);
 		} else {
 			throw new IllegalArgumentException("no predicate defined");
 		}

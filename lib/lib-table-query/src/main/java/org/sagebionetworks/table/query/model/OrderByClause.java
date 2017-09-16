@@ -16,9 +16,9 @@ public class OrderByClause extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("ORDER BY ");
-		sortSpecificationList.toSql(builder);
+		sortSpecificationList.toSql(builder, parameters);
 	}
 
 	@Override

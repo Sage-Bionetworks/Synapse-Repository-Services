@@ -6,10 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
-import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
@@ -55,10 +54,10 @@ public class LikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo like '%aa%'").predicate();
 		LikePredicate element = predicate.getLikePredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(1, values.size());
-		assertEquals("%aa%", values.get(0).getValueWithoutQuotes());
+		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
 	}
 	
 	@Test
@@ -66,10 +65,10 @@ public class LikePredicateTest {
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
 		LikePredicate element = predicate.getLikePredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(2, values.size());
-		assertEquals("%aa%", values.get(0).getValueWithoutQuotes());
-		assertEquals("@", values.get(1).getValueWithoutQuotes());
+		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
+		assertEquals("@", values.get(1).toSqlWithoutQuotes());
 	}
 }

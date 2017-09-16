@@ -27,13 +27,13 @@ public class RowValueConstructorList extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean isFirst = true;
 		for(RowValueConstructorElement element: rowValueConstructorElements){
 			if(!isFirst){
 				builder.append(", ");
 			}
-			element.toSql(builder);
+			element.toSql(builder, parameters);
 			isFirst = false;
 		}
 	}

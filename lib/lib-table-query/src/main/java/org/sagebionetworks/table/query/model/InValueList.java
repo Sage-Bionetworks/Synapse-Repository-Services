@@ -28,13 +28,13 @@ public class InValueList extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean first = true;
 		for(ValueExpression valueExpression: valueExpressions){
 			if(!first){
 				builder.append(", ");
 			}
-			valueExpression.toSql(builder);
+			valueExpression.toSql(builder, parameters);
 			first = false;
 		}
 	}

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -32,14 +33,14 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" ");
 		if (this.not != null) {
 			builder.append("NOT ");
 		}
 		builder.append("IN ( ");
-		inPredicateValue.toSql(builder);
+		inPredicateValue.toSql(builder, parameters);
 		builder.append(" )");
 	}
 
@@ -55,7 +56,11 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		return inPredicateValue.createIterable(HasQuoteValue.class);
+	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
+		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
+		for(ValueExpression element: inPredicateValue.createIterable(ValueExpression.class)){
+			results.add(element);
+		}
+		return results;
 	}
 }

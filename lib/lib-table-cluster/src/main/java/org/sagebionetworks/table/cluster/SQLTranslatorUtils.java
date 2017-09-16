@@ -20,23 +20,25 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
-import org.sagebionetworks.table.query.model.HasQuoteValue;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SignedLiteral;
+import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -116,7 +118,7 @@ public class SQLTranslatorUtils {
 		// Extract data about this column.
 		String displayName = derivedColumn.getDisplayName();
 		// lookup the column referenced by this select.
-		HasQuoteValue referencedColumn = derivedColumn.getReferencedColumn();
+		ColumnNameReference referencedColumn = derivedColumn.getReferencedColumn();
 		// If element has a function get its name.
 		FunctionType functionType = derivedColumn.getFunctionType();
 		// Select defines the selection
@@ -126,7 +128,7 @@ public class SQLTranslatorUtils {
 		ColumnModel model = null;
 		if(referencedColumn != null){
 			// Does the reference match an actual column name?
-			model = columnMap.get(referencedColumn.getValueWithoutQuotes());
+			model = columnMap.get(referencedColumn.toSqlWithoutQuotes());
 		}
 		// Lookup the base type starting only with the column referenced.
 		ColumnType columnType = getBaseColulmnType(referencedColumn);
@@ -149,11 +151,11 @@ public class SQLTranslatorUtils {
 	}
 	
 	public static void validateSelectColumn(SelectColumn selectColumn, FunctionType functionType,
-			ColumnModel model, HasQuoteValue referencedColumn) {
+			ColumnModel model, ColumnNameReference referencedColumn) {
 		ValidateArgument.requirement(model != null
 				|| functionType != null
 				|| rowMetadataColumnNames.contains(selectColumn.getName().toUpperCase())
-				|| (referencedColumn != null && referencedColumn instanceof SignedLiteral),
+				|| (referencedColumn != null && referencedColumn instanceof UnsignedLiteral),
 				"Unknown column "+selectColumn.getName());
 	}
 
@@ -163,19 +165,19 @@ public class SQLTranslatorUtils {
 	 * @param derivedColumn
 	 * @return
 	 */
-	public static ColumnType getBaseColulmnType(HasQuoteValue referencedColumn){
+	public static ColumnType getBaseColulmnType(ColumnNameReference referencedColumn){
 		if(referencedColumn == null){
 			return null;
 		}
 		// Get the upper case column name without quotes.
-		String columnNameUpper = referencedColumn.getValueWithoutQuotes().toUpperCase();
+		String columnNameUpper = referencedColumn.toSqlWithoutQuotes().toUpperCase();
 		if(TableConstants.ROW_ID.equals(columnNameUpper)){
 			return ColumnType.INTEGER;
 		}
 		if(TableConstants.ROW_VERSION.equals(columnNameUpper)){
 			return ColumnType.INTEGER;
 		}
-		if(!referencedColumn.isSurrounedeWithQuotes()){
+		if(!referencedColumn.hasQuotesRecursive()){
 			return ColumnType.DOUBLE;
 		}
 		return ColumnType.STRING;
@@ -408,14 +410,14 @@ public class SQLTranslatorUtils {
 			Map<String, ColumnModel> columnNameToModelMap) {
 		ValidateArgument.required(groupByClause, "groupByClause");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
-		Iterable<HasQuoteValue> hasQuotes = groupByClause.createIterable(HasQuoteValue.class);
-		if(hasQuotes != null){
-			for(HasQuoteValue hasQuoteValue: hasQuotes){
+		Iterable<ColumnNameReference> references = groupByClause.createIterable(ColumnNameReference.class);
+		if(references != null){
+			for(ColumnNameReference reference: references){
 				// Lookup the column
-				ColumnModel model = columnNameToModelMap.get(hasQuoteValue.getValueWithoutQuotes());
+				ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
 				if(model != null){
 					String newName = SQLUtils.getColumnNameForId(model.getId());
-					hasQuoteValue.replaceUnquoted(newName);
+					reference.replaceChildren(new StringOverride(newName));
 				}
 			}
 		}
@@ -440,16 +442,16 @@ public class SQLTranslatorUtils {
 		// Translate the left-hand-side
 		ColumnReference leftHandSide = predicate.getLeftHandSide();
 		// lookup the column name
-		ActualIdentifier actualIdentifier = leftHandSide.getNameRHS().getFirstElementOfType(ActualIdentifier.class);
-		ColumnModel model = columnNameToModelMap.get(actualIdentifier.getValueWithoutQuotes());
+		ColumnNameReference columnNameReference = leftHandSide.getNameRHS().getFirstElementOfType(ColumnNameReference.class);
+		ColumnModel model = columnNameToModelMap.get(columnNameReference.toSqlWithoutQuotes());
 		if(model != null){
 			String newName = SQLUtils.getColumnNameForId(model.getId());
-			actualIdentifier.replaceUnquoted(newName);
+			columnNameReference.replaceChildren(new StringOverride(newName));
 			// handle the right-hand-side
-			Iterable<HasQuoteValue> rightHandSide = predicate.getRightHandSideValues();
+			Iterable<HasReplaceableChildren> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
-				for(HasQuoteValue hasQuoteValue: rightHandSide){
-					translateRightHandeSide(hasQuoteValue, model, parameters);
+				for(HasReplaceableChildren element: rightHandSide){
+					translateRightHandeSide(element, model, parameters);
 				}
 			}
 		}
@@ -461,18 +463,18 @@ public class SQLTranslatorUtils {
 	 * Translate user generated queries to queries that can
 	 * run against the actual database.
 	 * 
-	 * @param hasQuoteValue
+	 * @param element
 	 * @param model
 	 * @param parameters
 	 */
-	public static void translateRightHandeSide(HasQuoteValue hasQuoteValue,
+	public static void translateRightHandeSide(HasReplaceableChildren element,
 			ColumnModel model, Map<String, Object> parameters) {
-		ValidateArgument.required(hasQuoteValue, "hasQuoteValue");
+		ValidateArgument.required(element, "element");
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(parameters, "parameters");
 		
 		String key = BIND_PREFIX+parameters.size();
-		String value = hasQuoteValue.getValueWithoutQuotes();
+		String value = element.toSqlWithoutQuotes();
 		Object valueObject = null;
 		try{
 			valueObject = SQLUtils.parseValueForDB(model.getColumnType(), value);
@@ -482,7 +484,7 @@ public class SQLTranslatorUtils {
 		}
 
 		parameters.put(key, valueObject);
-		hasQuoteValue.replaceUnquoted(COLON+key);
+		element.replaceChildren(new StringOverride(COLON+key));
 	}
 
 	/**
@@ -494,7 +496,7 @@ public class SQLTranslatorUtils {
 	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
 		if(booleanPrimary.getPredicate() != null && booleanPrimary.getPredicate().getBooleanFunctionPredicate() != null){
 			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getBooleanFunctionPredicate();
-			String columnName = bfp.getColumnReference().getFirstUnquotedValue();
+			String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
 			ColumnModel cm = columnNameToModelMap.get(columnName);
 			if(cm == null){
 				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
@@ -535,9 +537,9 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateSelect(HasReferencedColumn column,
 			Map<String, ColumnModel> columnNameToModelMap) {
-		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
-		if(hasQuoteValue != null){
-			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+		ColumnNameReference columnNameReference = column.getReferencedColumn();
+		if(columnNameReference != null){
+			String unquotedName = columnNameReference.toSqlWithoutQuotes();
 			ColumnModel model = columnNameToModelMap.get(unquotedName);
 			String newName = null;
 			if(model != null){
@@ -549,7 +551,7 @@ public class SQLTranslatorUtils {
 				}
 			}
 			if(newName != null){
-				hasQuoteValue.replaceUnquoted(newName);
+				columnNameReference.replaceChildren(new StringOverride(newName));
 			}
 		}
 	}
@@ -565,14 +567,14 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateOrderBy(HasReferencedColumn column,
 			Map<String, ColumnModel> columnNameToModelMap) {
-		HasQuoteValue hasQuoteValue = column.getReferencedColumn();
-		if(hasQuoteValue != null){
-			String unquotedName = hasQuoteValue.getValueWithoutQuotes();
+		ColumnNameReference columnNameReference = column.getReferencedColumn();
+		if(columnNameReference != null){
+			String unquotedName = columnNameReference.toSqlWithoutQuotes();
 			ColumnModel model = columnNameToModelMap.get(unquotedName);
 			String newName = null;
 			if(model != null){
 				newName = SQLUtils.getColumnNameForId(model.getId());
-				hasQuoteValue.replaceUnquoted(newName);
+				columnNameReference.replaceChildren(new StringOverride(newName));
 			}
 		}
 	}

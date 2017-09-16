@@ -28,13 +28,13 @@ public class GroupingColumnReferenceList extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean first = true;
 		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
 			if(!first){
 				builder.append(", ");
 			}
-			groupingColumnReference.toSql(builder);
+			groupingColumnReference.toSql(builder, parameters);
 			first = false;
 		}
 	}

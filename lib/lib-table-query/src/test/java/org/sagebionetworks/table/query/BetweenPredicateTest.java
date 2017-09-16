@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -42,11 +42,11 @@ public class BetweenPredicateTest {
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
 		BetweenPredicate element = predicate.getBetweenPredicate();
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(2, values.size());
-		assertEquals("1.2", values.get(0).getValueWithoutQuotes());
-		assertEquals("2.2", values.get(1).getValueWithoutQuotes());
+		assertEquals("1.2", values.get(0).toSqlWithoutQuotes());
+		assertEquals("2.2", values.get(1).toSqlWithoutQuotes());
 	}
 
 }

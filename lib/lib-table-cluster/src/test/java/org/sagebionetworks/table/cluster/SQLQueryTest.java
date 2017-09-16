@@ -530,7 +530,7 @@ public class SQLQueryTest {
 		// The value should be bound in the SQL
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
 				translator.getOutputSQL());
-		assertEquals("1.89e4", translator.getParameters().get("b0"));
+		assertEquals("18900.0", translator.getParameters().get("b0"));
 		assertEquals(10L, translator.getParameters().get("b1"));
 		assertEquals(0L, translator.getParameters().get("b2"));
 	}
@@ -544,7 +544,7 @@ public class SQLQueryTest {
 		assertEquals(
 				"SELECT FOUND_ROWS(), _C111_, _C333_ FROM T123 WHERE _C444_ >= :b0 GROUP BY _C111_ ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
 				translator.getOutputSQL());
-		assertEquals("1.89e4",translator.getParameters().get("b0"));
+		assertEquals("18900.0",translator.getParameters().get("b0"));
 		assertEquals(10L,translator.getParameters().get("b1"));
 		assertEquals(0L,translator.getParameters().get("b2"));
 	}

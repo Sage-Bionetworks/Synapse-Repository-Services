@@ -18,8 +18,8 @@ public class CharacterFactor extends SQLElement {
 	}
 	
 	@Override
-	public void toSql(StringBuilder builder) {
-		characterPrimary.toSql(builder);		
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		characterPrimary.toSql(builder, parameters);		
 	}
 
 	@Override

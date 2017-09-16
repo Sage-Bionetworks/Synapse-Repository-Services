@@ -36,16 +36,16 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		if (not != null) {
 			builder.append(" NOT");
 		}
 		builder.append(" LIKE ");
-		pattern.toSql(builder);
+		pattern.toSql(builder, parameters);
 		if (escapeCharacter != null) {
 			builder.append(" ESCAPE ");
-			escapeCharacter.toSql(builder);
+			escapeCharacter.toSql(builder, parameters);
 		}
 	}
 
@@ -62,15 +62,11 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
-		for(HasQuoteValue value: pattern.createIterable(HasQuoteValue.class)){
-			results.add(value);
-		}
+	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
+		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
+		results.add(pattern);
 		if(escapeCharacter != null){
-			for(HasQuoteValue value: escapeCharacter.createIterable(HasQuoteValue.class)){
-				results.add(value);
-			}
+			results.add(escapeCharacter);
 		}
 		return results;
 	}

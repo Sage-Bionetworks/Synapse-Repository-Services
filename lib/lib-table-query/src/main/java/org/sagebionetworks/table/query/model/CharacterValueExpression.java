@@ -1,30 +1,14 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
- * This matches &ltcharacter value expression&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * CharacterValueExpression ::= <concatenation> | {@link CharacterFactor}
  */
-public class CharacterValueExpression extends SQLElement {
+public class CharacterValueExpression extends SimpleBranch {
 
 	CharacterFactor characterFactor;
 
 	public CharacterValueExpression(CharacterFactor characterFactor) {
-		this.characterFactor = characterFactor;
+		super(characterFactor);
 	}
 
-	public CharacterFactor getCharacterFactor() {
-		return characterFactor;
-	}
-
-	@Override
-	public void toSql(StringBuilder builder) {
-		characterFactor.toSql(builder);		
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, characterFactor);
-	}
-	
 }

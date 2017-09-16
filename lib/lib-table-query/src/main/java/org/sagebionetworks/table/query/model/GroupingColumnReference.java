@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
- * This matches &ltgrouping column reference&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ *  GroupingColumnReference ::= {@link ColumnReference} [ <collate clause> ]
  */
 public class GroupingColumnReference extends SQLElement {
 
@@ -18,8 +18,8 @@ public class GroupingColumnReference extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReference.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReference.toSql(builder, parameters);
 	}
 
 	@Override

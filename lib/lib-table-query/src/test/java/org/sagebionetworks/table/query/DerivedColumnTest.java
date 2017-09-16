@@ -126,77 +126,66 @@ public class DerivedColumnTest {
 	public void testGetReferencedColumnCountStar() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*)");
 		assertEquals(null, element.getReferencedColumnName());
-		assertEquals(null, element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnFoundRows() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("found_rows()");
 		assertEquals(null, element.getReferencedColumnName());
-		assertEquals(null, element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnCountStarAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*) as bar");
 		assertEquals(null, element.getReferencedColumnName());
-		assertEquals(null, element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("foo as bar");
 		assertEquals("foo", element.getReferencedColumnName());
-		assertFalse(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnAsQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("'foo' as \"bar\"");
 		assertEquals("foo", element.getReferencedColumnName());
-		assertTrue(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnAsQuotesDouble() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("\"foo\" as \"bar\"");
 		assertEquals("foo", element.getReferencedColumnName());
-		assertTrue(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnFunction() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar)");
 		assertEquals("bar", element.getReferencedColumnName());
-		assertFalse(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnFunctionQuotes() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(\"bar\")");
 		assertEquals("bar", element.getReferencedColumnName());
-		assertTrue(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnNameFunctionQuotesSingle() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max('bar')");
 		assertEquals("bar", element.getReferencedColumnName());
-		assertTrue(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 	@Test
 	public void testGetReferencedColumnNameFunctionAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(bar) as \"foo\"");
 		assertEquals("bar", element.getReferencedColumnName());
-		assertFalse(element.isReferencedColumnSurroundedWithQuotes());
 	}
 
 	@Test
 	public void testGetReferencedColumnNameFunctionDistinct() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(distinct bar)");
 		assertEquals("bar", element.getReferencedColumnName());
-		assertFalse(element.isReferencedColumnSurroundedWithQuotes());
 	}
 	
 }

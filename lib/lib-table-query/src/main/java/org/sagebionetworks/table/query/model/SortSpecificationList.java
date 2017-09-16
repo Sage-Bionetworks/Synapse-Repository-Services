@@ -28,13 +28,13 @@ public class SortSpecificationList extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean first = true;
 		for(SortSpecification sortSpecification: sortSpecifications){
 			if(!first){
 				builder.append(", ");
 			}
-			sortSpecification.toSql(builder);
+			sortSpecification.toSql(builder, parameters);
 			first = false;
 		}
 	}

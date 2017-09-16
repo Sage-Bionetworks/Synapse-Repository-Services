@@ -29,7 +29,7 @@ public class BooleanTermTest {
 	public void testBooleanTermNegativeDoubleToSQLSingle() throws ParseException {
 		List<BooleanFactor> list = SqlElementUntils.createBooleanFactors("foo>-.1");
 		BooleanTerm element = new BooleanTerm(list);
-		assertEquals("foo > -.1", element.toString());
+		assertEquals("foo > -0.1", element.toString());
 	}
 
 	@Test

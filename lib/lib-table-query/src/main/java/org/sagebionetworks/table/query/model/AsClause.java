@@ -19,9 +19,9 @@ public class AsClause extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("AS ");
-		columnName.toSql(builder);
+		columnName.toSql(builder, parameters);
 	}
 
 	@Override

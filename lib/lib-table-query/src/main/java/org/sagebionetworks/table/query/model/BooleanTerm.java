@@ -27,13 +27,13 @@ public class BooleanTerm extends SQLElement {
 	}
 	
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean isFirst = true;
 		for(BooleanFactor booleanFactor: andBooleanFactors){
 			if (!isFirst) {
 				builder.append(" AND ");
 			}
-			booleanFactor.toSql(builder);
+			booleanFactor.toSql(builder, parameters);
 			isFirst = false;
 		}
 	}
