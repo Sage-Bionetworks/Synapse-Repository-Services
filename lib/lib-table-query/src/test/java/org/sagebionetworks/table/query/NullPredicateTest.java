@@ -29,7 +29,7 @@ public class NullPredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo is null").predicate();
-		NullPredicate element = (NullPredicate) predicate.getIsPredicate();
+		NullPredicate element = predicate.getFirstElementOfType(NullPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		assertEquals(null, element.getRightHandSideValues());
 	}
@@ -37,7 +37,7 @@ public class NullPredicateTest {
 	@Test
 	public void testHasPredicateBoolean() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo is true").predicate();
-		BooleanPredicate element = (BooleanPredicate) predicate.getIsPredicate();
+		BooleanPredicate element = predicate.getFirstElementOfType(BooleanPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		assertEquals(null, element.getRightHandSideValues());
 	}

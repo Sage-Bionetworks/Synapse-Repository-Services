@@ -38,7 +38,6 @@ import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -494,34 +493,36 @@ public class SQLTranslatorUtils {
 	 * @param columnNameToModelMap
 	 */
 	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
-		if(booleanPrimary.getPredicate() != null && booleanPrimary.getPredicate().getBooleanFunctionPredicate() != null){
-			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getBooleanFunctionPredicate();
-			String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
-			ColumnModel cm = columnNameToModelMap.get(columnName);
-			if(cm == null){
-				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
-			}
-			if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
-				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
-			}
-			StringBuilder builder = new StringBuilder();
-			// Is this a boolean function
-			switch(bfp.getBooleanFunction()){
-			case ISINFINITY:
-				SQLUtils.appendIsInfinity(cm.getId(), "", builder);
-				break;
-			case ISNAN:
-				SQLUtils.appendIsNan(cm.getId(), "", builder);
-				break;
-			default:
-				throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
-			}
-			
-			try {
-				BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
-				booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
-			} catch (ParseException e) {
-				throw new IllegalArgumentException(e);
+		if(booleanPrimary.getPredicate() != null){
+			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getFirstElementOfType(BooleanFunctionPredicate.class);
+			if(bfp != null){
+				String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
+				ColumnModel cm = columnNameToModelMap.get(columnName);
+				if(cm == null){
+					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
+				}
+				if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
+					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
+				}
+				StringBuilder builder = new StringBuilder();
+				// Is this a boolean function
+				switch(bfp.getBooleanFunction()){
+				case ISINFINITY:
+					SQLUtils.appendIsInfinity(cm.getId(), "", builder);
+					break;
+				case ISNAN:
+					SQLUtils.appendIsNan(cm.getId(), "", builder);
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
+				}
+				
+				try {
+					BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
+					booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
+				} catch (ParseException e) {
+					throw new IllegalArgumentException(e);
+				}
 			}
 		}
 	}

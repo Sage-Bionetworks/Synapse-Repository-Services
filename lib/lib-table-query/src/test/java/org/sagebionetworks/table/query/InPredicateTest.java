@@ -38,7 +38,7 @@ public class InPredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo in (1,'2',\"3\")").predicate();
-		InPredicate element = predicate.getInPredicate();
+		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);

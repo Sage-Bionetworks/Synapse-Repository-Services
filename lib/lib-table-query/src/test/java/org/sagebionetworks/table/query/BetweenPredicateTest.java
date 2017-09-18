@@ -40,7 +40,7 @@ public class BetweenPredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
-		BetweenPredicate element = predicate.getBetweenPredicate();
+		BetweenPredicate element = predicate.getFirstElementOfType(BetweenPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);

@@ -52,7 +52,7 @@ public class LikePredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo like '%aa%'").predicate();
-		LikePredicate element = predicate.getLikePredicate();
+		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
@@ -63,7 +63,7 @@ public class LikePredicateTest {
 	@Test
 	public void testHasPredicateEscape() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
-		LikePredicate element = predicate.getLikePredicate();
+		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);

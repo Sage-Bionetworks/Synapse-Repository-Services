@@ -6,14 +6,9 @@ import java.util.List;
 
 /**
  * An element that be serialized to SQL.
- * 
- * @author John
  *
  */
 public abstract class SQLElement implements Element {
-
-	private static final String EMPTY = "";
-	private static final String REGEX_QUOTES = "[',\"]";
 		
 	/**
 	 * Each element should override to build the SQL string.

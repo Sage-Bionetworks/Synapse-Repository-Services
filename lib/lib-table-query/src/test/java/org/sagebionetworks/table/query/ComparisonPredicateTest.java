@@ -30,7 +30,7 @@ public class ComparisonPredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo > bar").predicate();
-		ComparisonPredicate element = predicate.getComparisonPredicate();
+		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
 		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
