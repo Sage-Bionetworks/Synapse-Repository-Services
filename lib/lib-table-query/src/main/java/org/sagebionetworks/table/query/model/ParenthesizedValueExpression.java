@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.query.model;
 
+/**
+ * ParenthesizedValueExpression ::= '(' {@link ValueExpression} ')'
+ *
+ */
 public class ParenthesizedValueExpression extends SimpleBranch {
 
 	public ParenthesizedValueExpression(ValueExpression valueExpression) {
