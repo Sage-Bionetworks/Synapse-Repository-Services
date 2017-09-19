@@ -51,5 +51,11 @@ public class ValueExpressionTest {
 		ValueExpression two = SqlElementUntils.createValueExpression("\"has space\"");
 		assertTrue(one.equivalent(two));
 	}
+	
+	@Test
+	public void testArithmetic() throws ParseException{
+		ValueExpression one = new TableQueryParser("100/1").valueExpression();
+		assertEquals("100/1", one.toSql());
+	}
 
 }

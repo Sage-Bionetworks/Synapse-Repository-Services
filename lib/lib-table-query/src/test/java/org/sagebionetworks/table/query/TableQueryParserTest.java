@@ -381,9 +381,9 @@ public class TableQueryParserTest {
 	 * Test for PLFM-4566
 	 * @throws ParseException 
 	 */
-	@Ignore
 	@Test
 	public void testArithmetic() throws ParseException{
 		QuerySpecification element = TableQueryParser.parserQuery("select foo/100 from syn123");
+		assertEquals("SELECT foo/100 FROM syn123", element.toSql());
 	}
 }

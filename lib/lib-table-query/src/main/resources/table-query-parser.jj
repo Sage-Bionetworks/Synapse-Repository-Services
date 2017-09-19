@@ -692,8 +692,7 @@ ValueExpression valueExpression():
 	StringValueExpression stringValueExpression = null;
 }
 {
-	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
-	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+	numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
 }
 /**
 * The reference BNF definition for numericValueExpression() is "left recursive"
