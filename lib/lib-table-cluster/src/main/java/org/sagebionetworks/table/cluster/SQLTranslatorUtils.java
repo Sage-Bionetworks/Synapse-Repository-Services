@@ -457,7 +457,7 @@ public class SQLTranslatorUtils {
 			// handle the right-hand-side references
 			// We are currently treating all column names as values on the right-hand-side
 			Iterable<ColumnName> rightHandReferences = predicate.getRightHandSideColumnReferences();
-			if(rightHandSide != null){
+			if(rightHandReferences != null){
 				for(ColumnName columnName: rightHandReferences){
 					// is this a reference to a column?
 					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
