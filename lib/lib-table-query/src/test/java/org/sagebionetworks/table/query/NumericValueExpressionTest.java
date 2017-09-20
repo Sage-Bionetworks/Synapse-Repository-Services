@@ -18,8 +18,8 @@ public class NumericValueExpressionTest {
 	
 	@Test
 	public void testArithmeticExpression() throws ParseException{
-		NumericValueExpression nve = new TableQueryParser("12+14-1/89*11").numericValueExpression();
-		assertEquals("12+14-1/89*11", nve.toSql());
+		NumericValueExpression nve = new TableQueryParser("12+14-1/89*11%2").numericValueExpression();
+		assertEquals("12+14-1/89*11%2", nve.toSql());
 	}
 	
 	@Test

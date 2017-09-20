@@ -190,6 +190,7 @@ TOKEN:{
 | < plus_sign: "+">
 | < right_paren: ")">
 | < solidus: "/">
+| < modulo: "%">
 | <underscore: "_">
 }
 
@@ -752,6 +753,7 @@ FactorPrime factorPrime():
 {
 	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
 	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
+	| <modulo> factor = factor() { return new FactorPrime(ArithmeticOperator.MODULO, factor); }
 }
 Sign sign():
 {}
