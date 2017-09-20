@@ -657,12 +657,11 @@ public class SQLQueryTest {
 	}
 	
 	/**
+	 * We should be throwing 'column a not found' for this case but for backwards compatibility
+	 * we still support it.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3866">3866</a>
 	 * @throws Exception
-	 * Note: This test is ignored becuase double quoted values on the right-hand-side creates ambiguity 
-	 * when the right-hand-side is a column refernce. See PLFM-4566.
 	 */
-	@Ignore
 	@Test
 	public void testPLFM_3866() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo in (\"a\")", tableSchema);
@@ -671,13 +670,12 @@ public class SQLQueryTest {
 	}
 	
 	/**
+	 * We should be throwing 'column a not found' for this case but for backwards compatibility
+	 * we still support it.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
 	 * @throws Exception
-	 * Note: This test is ignored becuase double quoted values on the right-hand-side creates ambiguity 
-	 * when the right-hand-side is a column refernce. See PLFM-4566.
 	 */
 	@Test
-	@Ignore
 	public void testPLFM_3867() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
