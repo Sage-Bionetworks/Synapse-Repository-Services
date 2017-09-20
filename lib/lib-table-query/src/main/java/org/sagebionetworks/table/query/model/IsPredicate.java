@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 
 
 /**
@@ -43,6 +45,17 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	@Override
 	public Iterable<UnsignedLiteral> getRightHandSideValues() {
 		return null;
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return null;
+	}
+
+	@Override
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	

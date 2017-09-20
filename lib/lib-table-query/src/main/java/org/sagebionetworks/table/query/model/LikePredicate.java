@@ -70,4 +70,9 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 		}
 		return results;
 	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return null;
+	}
 }

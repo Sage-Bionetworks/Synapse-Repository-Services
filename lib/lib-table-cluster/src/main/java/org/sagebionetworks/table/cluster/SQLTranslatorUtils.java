@@ -22,6 +22,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
@@ -446,15 +447,33 @@ public class SQLTranslatorUtils {
 		if(model != null){
 			String newName = SQLUtils.getColumnNameForId(model.getId());
 			columnNameReference.replaceChildren(new StringOverride(newName));
-			// handle the right-hand-side
+			// handle the right-hand-side values
 			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
 				for(UnsignedLiteral element: rightHandSide){
 					translateRightHandeSide(element, model, parameters);
 				}
 			}
+			// handle the right-hand-side references
+			// We are currently treating all column names as values on the right-hand-side
+			Iterable<ColumnName> rightHandReferences = predicate.getRightHandSideColumnReferences();
+			if(rightHandSide != null){
+				for(ColumnName columnName: rightHandReferences){
+					// is this a reference to a column?
+					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+					if(subRefrence != null){
+						String replacementName = SQLUtils.getColumnNameForId(subRefrence.getId());
+						columnName.replaceChildren(new StringOverride(replacementName));
+					}else{
+						// since this does not match a column treat it as a value.
+						translateRightHandeSide(columnName, model, parameters);
+					}
+				}
+			}
 		}
 	}
+	
+	
 	
 	/**
 	 * Translate the right-hand-side of a predicate.
@@ -466,7 +485,7 @@ public class SQLTranslatorUtils {
 	 * @param model
 	 * @param parameters
 	 */
-	public static void translateRightHandeSide(UnsignedLiteral element,
+	public static void translateRightHandeSide(HasReplaceableChildren element,
 			ColumnModel model, Map<String, Object> parameters) {
 		ValidateArgument.required(element, "element");
 		ValidateArgument.required(model, "model");

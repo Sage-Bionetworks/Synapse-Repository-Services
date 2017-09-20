@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -1064,7 +1065,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereBetween() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and 2").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id between '1' and \"2\"").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ BETWEEN :b0 AND :b1",element.toSql());
@@ -1074,7 +1075,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,3)").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,\"3\")").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
@@ -1193,11 +1194,89 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = -(2+3)*10").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		System.out.println(parameters);
 		assertEquals("SELECT * FROM T123 WHERE _C111_ = -(:b0+:b1)*:b2",element.toSql());
 		assertEquals("2", parameters.get("b0"));
 		assertEquals("3", parameters.get("b1"));
 		assertEquals("10", parameters.get("b2"));
+	}
+	
+	/**
+	 * Column reference on the right-hand-side should be replaced with a valid reference to that columnn.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelRegularIdentiferRightHandSideColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_",element.toSql());
+	}
+	
+	/**
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * 
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelRegularIdentiferRightHandSideNotColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
+		assertEquals("notReference", parameters.get("b0"));
+	}
+	
+	/**
+	 * Column reference on the right-hand-side should be replaced with a valid reference to that column.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelDelimitedIdentiferRightHandSideColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"bar\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_",element.toSql());
+	}
+	
+	/**
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * 
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelDelemitedIdentiferRightHandSideNotColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
+		assertEquals("notReference", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = 2*3/bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0*:b1/_C333_",element.toSql());
+		assertEquals("2", parameters.get("b0"));
+		assertEquals("3", parameters.get("b1"));
+	}
+	
+	/**
+	 * Note: This test fails with a parser error, but it should pass.  Currently, the parser treats '(2+3)'
+	 * as the full right-hand-side of the predicate because of how the BNF defines RowValueConstructor 
+	 * to include parentheses.
+	 * 
+	 * @throws ParseException
+	 */
+	@Ignore
+	@Test
+	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide2() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
+		assertEquals("notReference", parameters.get("b0"));
 	}
 	
 	@Test
