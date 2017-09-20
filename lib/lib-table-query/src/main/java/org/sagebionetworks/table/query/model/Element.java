@@ -31,4 +31,11 @@ public interface Element {
 	 * @return
 	 */
 	public boolean hasQuotesRecursive();
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public <T extends Element> Iterable<T> createIterable(Class<T> type);
 }

@@ -52,9 +52,9 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
-		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
-		for(ValueExpression child: rowValueConstructorRHS.createIterable(ValueExpression.class)){
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		List<UnsignedLiteral> results = new LinkedList<UnsignedLiteral>();
+		for(UnsignedLiteral child: rowValueConstructorRHS.createIterable(UnsignedLiteral.class)){
 			results.add(child);
 		}
 		return results;

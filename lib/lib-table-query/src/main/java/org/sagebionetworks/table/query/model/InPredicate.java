@@ -56,9 +56,9 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
-		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
-		for(ValueExpression element: inPredicateValue.createIterable(ValueExpression.class)){
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		List<UnsignedLiteral> results = new LinkedList<UnsignedLiteral>();
+		for(UnsignedLiteral element: inPredicateValue.createIterable(UnsignedLiteral.class)){
 			results.add(element);
 		}
 		return results;

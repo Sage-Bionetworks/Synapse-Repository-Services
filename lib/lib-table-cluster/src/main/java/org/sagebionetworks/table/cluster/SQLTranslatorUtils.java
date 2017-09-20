@@ -447,9 +447,9 @@ public class SQLTranslatorUtils {
 			String newName = SQLUtils.getColumnNameForId(model.getId());
 			columnNameReference.replaceChildren(new StringOverride(newName));
 			// handle the right-hand-side
-			Iterable<HasReplaceableChildren> rightHandSide = predicate.getRightHandSideValues();
+			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
-				for(HasReplaceableChildren element: rightHandSide){
+				for(UnsignedLiteral element: rightHandSide){
 					translateRightHandeSide(element, model, parameters);
 				}
 			}
@@ -466,7 +466,7 @@ public class SQLTranslatorUtils {
 	 * @param model
 	 * @param parameters
 	 */
-	public static void translateRightHandeSide(HasReplaceableChildren element,
+	public static void translateRightHandeSide(UnsignedLiteral element,
 			ColumnModel model, Map<String, Object> parameters) {
 		ValidateArgument.required(element, "element");
 		ValidateArgument.required(model, "model");
