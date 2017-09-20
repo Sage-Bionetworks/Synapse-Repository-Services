@@ -290,7 +290,7 @@ public class FacetModelTest {
 
 	@Test
 	public void testGenerateFacetFilteredQueryNonEmptyFacetColumnsList() throws ParseException {
-		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
+		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
 				facetSchema);
 
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
