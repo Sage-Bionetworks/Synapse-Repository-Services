@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao.migration;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +36,7 @@ public class MigratableTableDAOImplUnitTest {
 	}
 	
 	@Test
-	public void testNoAutoIncrement() throws SQLException {
+	public void testNoAutoIncrement() {
 		// Add an auto-increment class to the register
 		StubAutoIncrement autoIncrement = new StubAutoIncrement();
 		databaseObjectRegister.add(autoIncrement);

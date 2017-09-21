@@ -122,7 +122,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	/**
 	 * Called when this bean is ready.
 	 */
-	public void initialize() throws SQLException {
+	public void initialize() {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 		// Create the schema for each 
@@ -163,7 +163,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * @param dbo
 	 */
 	@SuppressWarnings("unchecked")
-	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) throws SQLException {
+	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
 		if(dbo == null) throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
 		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
 		TableMapping mapping = dbo.getTableMapping();
@@ -230,18 +230,22 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	}
 
-	private void validateEtagColumn(String tableName, String columnName) throws SQLException {
-		Connection conn = jdbcTemplate.getDataSource().getConnection();
-		DatabaseMetaData metaData = conn.getMetaData();
-		ResultSet columns = metaData.getColumns(null, null, tableName, columnName);
-		if (columns.next()) {
-			if (columns.getString("IS_NULLABLE").equals("NO")) {
-				return;
+	private void validateEtagColumn(String tableName, String columnName) {
+		try (
+				Connection conn = jdbcTemplate.getDataSource().getConnection();
+				ResultSet columns = conn.getMetaData().getColumns(null, null, tableName, columnName);
+			) {
+			if (columns.next()) {
+				if (columns.getString("IS_NULLABLE").equals("NO")) {
+					return;
+				} else {
+					throw new IllegalArgumentException("etag column cannot be null for table " + tableName);
+				}
 			} else {
-				throw new IllegalArgumentException("etag column cannot be null for table " + tableName);
+				throw new IllegalArgumentException("Table " + tableName + " doesn't have an etag column");
 			}
-		} else {
-			throw new IllegalArgumentException("Table " + tableName + " doesn't have an etag column");
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
