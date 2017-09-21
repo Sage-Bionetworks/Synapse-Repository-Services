@@ -36,7 +36,7 @@ public class MigratableTableDAOImplUnitTest {
 	}
 	
 	@Test
-	public void testNoAutoIncrement(){
+	public void testNoAutoIncrement() {
 		// Add an auto-increment class to the register
 		StubAutoIncrement autoIncrement = new StubAutoIncrement();
 		databaseObjectRegister.add(autoIncrement);

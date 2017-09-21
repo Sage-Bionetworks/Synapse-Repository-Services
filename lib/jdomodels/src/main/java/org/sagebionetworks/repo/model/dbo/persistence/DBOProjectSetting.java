@@ -39,7 +39,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 	@Field(name = COL_PROJECT_SETTING_TYPE, nullable = false, varchar = 256)
 	private ProjectSettingsType type;
 
-	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true)
+	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
 	private String etag;
 
 	@Field(name = COL_PROJECT_SETTING_DATA, serialized = "mediumblob")

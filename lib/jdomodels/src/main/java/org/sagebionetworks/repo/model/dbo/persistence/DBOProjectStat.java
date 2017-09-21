@@ -41,7 +41,7 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 	@Field(name = COL_PROJECT_STAT_LAST_ACCESSED, nullable = false)
 	private Date lastAccessed;
 	
-	@Field(name = COL_PROJECT_STAT_ETAG, etag = true)
+	@Field(name = COL_PROJECT_STAT_ETAG, etag = true, nullable = false)
 	private String etag;
 
 	private static TableMapping<DBOProjectStat> tableMapping = AutoTableMapping.create(DBOProjectStat.class);
