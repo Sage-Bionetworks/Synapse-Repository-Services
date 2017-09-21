@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -52,11 +51,12 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
-		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
-		for(ValueExpression child: rowValueConstructorRHS.createIterable(ValueExpression.class)){
-			results.add(child);
-		}
-		return results;
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {	
+		return rowValueConstructorRHS.createIterable(UnsignedLiteral.class);
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return rowValueConstructorRHS.createIterable(ColumnName.class);
 	}
 }

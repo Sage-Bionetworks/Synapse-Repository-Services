@@ -105,5 +105,11 @@ public class ValueExpressionPrimaryTest {
 		assertFalse(element.isReferenceInFunction());
 	}
 	
+	@Test
+	public void testParens() throws ParseException{
+		ValueExpressionPrimary element = new TableQueryParser("(foo)").valueExpressionPrimary();
+		assertEquals("(foo)", element.toSql());
+	}
+	
 	
 }

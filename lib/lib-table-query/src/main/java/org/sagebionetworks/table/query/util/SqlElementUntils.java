@@ -220,7 +220,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static ComparisonPredicate createComparisonPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getComparisonPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(ComparisonPredicate.class);
 	}
 
 	/**
@@ -230,7 +230,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static BetweenPredicate createBetweenPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getBetweenPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(BetweenPredicate.class);
 	}
 
 	/**
@@ -240,7 +240,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static InPredicate createInPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getInPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(InPredicate.class);
 	}
 
 	/**
@@ -250,7 +250,7 @@ public class SqlElementUntils {
 	 * @throws ParseException 
 	 */
 	public static LikePredicate createLikePredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getLikePredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(LikePredicate.class);
 	}
 
 	/**
@@ -261,7 +261,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static BooleanPredicate createBooleanPredicate(String sql) throws ParseException {
-		return (BooleanPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+		return (BooleanPredicate) new TableQueryParser(sql).predicate().getFirstElementOfType(BooleanPredicate.class);
 	}
 
 	/**
@@ -272,7 +272,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static NullPredicate createNullPredicate(String sql) throws ParseException {
-		return (NullPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+		return (NullPredicate) new TableQueryParser(sql).predicate().getFirstElementOfType(NullPredicate.class);
 	}
 
 	/**

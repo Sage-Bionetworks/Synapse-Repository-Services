@@ -22,6 +22,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
@@ -38,7 +39,6 @@ import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.WhereClause;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -447,15 +447,33 @@ public class SQLTranslatorUtils {
 		if(model != null){
 			String newName = SQLUtils.getColumnNameForId(model.getId());
 			columnNameReference.replaceChildren(new StringOverride(newName));
-			// handle the right-hand-side
-			Iterable<HasReplaceableChildren> rightHandSide = predicate.getRightHandSideValues();
+			// handle the right-hand-side values
+			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
-				for(HasReplaceableChildren element: rightHandSide){
+				for(UnsignedLiteral element: rightHandSide){
 					translateRightHandeSide(element, model, parameters);
+				}
+			}
+			// handle the right-hand-side references
+			// We are currently treating all column names as values on the right-hand-side
+			Iterable<ColumnName> rightHandReferences = predicate.getRightHandSideColumnReferences();
+			if(rightHandReferences != null){
+				for(ColumnName columnName: rightHandReferences){
+					// is this a reference to a column?
+					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+					if(subRefrence != null){
+						String replacementName = SQLUtils.getColumnNameForId(subRefrence.getId());
+						columnName.replaceChildren(new StringOverride(replacementName));
+					}else{
+						// since this does not match a column treat it as a value.
+						translateRightHandeSide(columnName, model, parameters);
+					}
 				}
 			}
 		}
 	}
+	
+	
 	
 	/**
 	 * Translate the right-hand-side of a predicate.
@@ -494,34 +512,36 @@ public class SQLTranslatorUtils {
 	 * @param columnNameToModelMap
 	 */
 	public static void replaceBooleanFunction(BooleanPrimary booleanPrimary, Map<String, ColumnModel> columnNameToModelMap){
-		if(booleanPrimary.getPredicate() != null && booleanPrimary.getPredicate().getBooleanFunctionPredicate() != null){
-			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getBooleanFunctionPredicate();
-			String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
-			ColumnModel cm = columnNameToModelMap.get(columnName);
-			if(cm == null){
-				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
-			}
-			if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
-				throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
-			}
-			StringBuilder builder = new StringBuilder();
-			// Is this a boolean function
-			switch(bfp.getBooleanFunction()){
-			case ISINFINITY:
-				SQLUtils.appendIsInfinity(cm.getId(), "", builder);
-				break;
-			case ISNAN:
-				SQLUtils.appendIsNan(cm.getId(), "", builder);
-				break;
-			default:
-				throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
-			}
-			
-			try {
-				BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
-				booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
-			} catch (ParseException e) {
-				throw new IllegalArgumentException(e);
+		if(booleanPrimary.getPredicate() != null){
+			BooleanFunctionPredicate bfp = booleanPrimary.getPredicate().getFirstElementOfType(BooleanFunctionPredicate.class);
+			if(bfp != null){
+				String columnName = bfp.getColumnReference().toSqlWithoutQuotes();
+				ColumnModel cm = columnNameToModelMap.get(columnName);
+				if(cm == null){
+					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" has unknown reference: "+columnName);
+				}
+				if(!ColumnType.DOUBLE.equals(cm.getColumnType())){
+					throw new IllegalArgumentException("Function: "+bfp.getBooleanFunction()+" can only be used with a column of type DOUBLE.");
+				}
+				StringBuilder builder = new StringBuilder();
+				// Is this a boolean function
+				switch(bfp.getBooleanFunction()){
+				case ISINFINITY:
+					SQLUtils.appendIsInfinity(cm.getId(), "", builder);
+					break;
+				case ISNAN:
+					SQLUtils.appendIsNan(cm.getId(), "", builder);
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown boolean function: "+bfp.getBooleanFunction());
+				}
+				
+				try {
+					BooleanPrimary newPrimary = new TableQueryParser(builder.toString()).booleanPrimary();
+					booleanPrimary.replaceSearchCondition(newPrimary.getSearchCondition());
+				} catch (ParseException e) {
+					throw new IllegalArgumentException(e);
+				}
 			}
 		}
 	}

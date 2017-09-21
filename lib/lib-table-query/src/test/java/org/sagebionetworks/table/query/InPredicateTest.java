@@ -11,6 +11,7 @@ import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -37,10 +38,10 @@ public class InPredicateTest {
 	
 	@Test
 	public void testHasPredicate() throws ParseException{
-		Predicate predicate = new TableQueryParser("foo in (1,'2',\"3\")").predicate();
-		InPredicate element = predicate.getInPredicate();
+		Predicate predicate = new TableQueryParser("foo in (1,'2',3)").predicate();
+		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(3, values.size());
 		assertEquals("1", values.get(0).toSqlWithoutQuotes());

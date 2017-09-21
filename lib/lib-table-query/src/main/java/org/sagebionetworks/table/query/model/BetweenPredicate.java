@@ -63,12 +63,24 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
-		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
-		for(ValueExpression value: betweenRowValueConstructor.createIterable(ValueExpression.class)){
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		List<UnsignedLiteral> results = new LinkedList<UnsignedLiteral>();
+		for(UnsignedLiteral value: betweenRowValueConstructor.createIterable(UnsignedLiteral.class)){
 			results.add(value);
 		}
-		for(ValueExpression value: andRowValueConstructorRHS.createIterable(ValueExpression.class)){
+		for(UnsignedLiteral value: andRowValueConstructorRHS.createIterable(UnsignedLiteral.class)){
+			results.add(value);
+		}
+		return results;
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		List<ColumnName> results = new LinkedList<ColumnName>();
+		for(ColumnName value: betweenRowValueConstructor.createIterable(ColumnName.class)){
+			results.add(value);
+		}
+		for(ColumnName value: andRowValueConstructorRHS.createIterable(ColumnName.class)){
 			results.add(value);
 		}
 		return results;

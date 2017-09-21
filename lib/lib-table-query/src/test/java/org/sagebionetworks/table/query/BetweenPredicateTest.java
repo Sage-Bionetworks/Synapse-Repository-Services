@@ -11,6 +11,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -40,9 +41,9 @@ public class BetweenPredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo between 1.2 and 2.2").predicate();
-		BetweenPredicate element = predicate.getBetweenPredicate();
+		BetweenPredicate element = predicate.getFirstElementOfType(BetweenPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(2, values.size());
 		assertEquals("1.2", values.get(0).toSqlWithoutQuotes());

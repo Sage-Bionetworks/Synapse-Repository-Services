@@ -657,6 +657,8 @@ public class SQLQueryTest {
 	}
 	
 	/**
+	 * We should be throwing 'column a not found' for this case but for backwards compatibility
+	 * we still support it.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3866">3866</a>
 	 * @throws Exception
 	 */
@@ -668,6 +670,8 @@ public class SQLQueryTest {
 	}
 	
 	/**
+	 * We should be throwing 'column a not found' for this case but for backwards compatibility
+	 * we still support it.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
 	 * @throws Exception
 	 */

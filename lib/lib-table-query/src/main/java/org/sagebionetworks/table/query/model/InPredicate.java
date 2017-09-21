@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -56,11 +55,12 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
-		List<HasReplaceableChildren> results = new LinkedList<HasReplaceableChildren>();
-		for(ValueExpression element: inPredicateValue.createIterable(ValueExpression.class)){
-			results.add(element);
-		}
-		return results;
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		return inPredicateValue.createIterable(UnsignedLiteral.class);
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return inPredicateValue.createIterable(ColumnName.class);
 	}
 }

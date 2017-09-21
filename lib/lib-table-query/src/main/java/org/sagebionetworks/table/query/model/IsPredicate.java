@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-
-
 /**
  * This matches &ltis predicate&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -41,9 +39,13 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasReplaceableChildren> getRightHandSideValues() {
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
 		return null;
 	}
-	
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return null;
+	}	
 	
 }

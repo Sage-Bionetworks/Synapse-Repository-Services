@@ -190,6 +190,7 @@ TOKEN:{
 | < plus_sign: "+">
 | < right_paren: ")">
 | < solidus: "/">
+| < modulo: "%">
 | <underscore: "_">
 }
 
@@ -261,11 +262,20 @@ ValueExpressionPrimary valueExpressionPrimary():
 	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
+	ParenthesizedValueExpression parenthesizedValueExpression;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
+}
+ParenthesizedValueExpression parenthesizedValueExpression():
+{
+	ValueExpression valueExpression;
+}
+{
+	<left_paren> valueExpression = valueExpression() <right_paren> { return new ParenthesizedValueExpression(valueExpression); }
 }
 UnsignedValueSpecification unsignedValueSpecification():
 {
@@ -513,7 +523,7 @@ BooleanPrimary booleanPrimary():
 	SearchCondition searchCondition = null;
 }
 {
-	LOOKAHEAD(2)
+	LOOKAHEAD(3)
 	predicate = predicate() { return new BooleanPrimary(predicate);}
 	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
 }
@@ -559,6 +569,7 @@ RowValueConstructor rowValueConstructor():
 	RowValueConstructorList rowValueConstructorList = null;
 }
 {
+	LOOKAHEAD(3)
 	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
 	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
 }
@@ -689,11 +700,9 @@ BooleanFunction booleanFunction():
 ValueExpression valueExpression():
 {
   	NumericValueExpression numericValueExpression = null;
-	StringValueExpression stringValueExpression = null;
 }
 {
-	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
-	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+	numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
 }
 /**
 * The reference BNF definition for numericValueExpression() is "left recursive"
@@ -744,6 +753,7 @@ FactorPrime factorPrime():
 {
 	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
 	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
+	| <modulo> factor = factor() { return new FactorPrime(ArithmeticOperator.MODULO, factor); }
 }
 Sign sign():
 {}

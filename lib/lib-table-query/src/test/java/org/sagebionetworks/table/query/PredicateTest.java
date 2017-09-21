@@ -48,14 +48,14 @@ public class PredicateTest {
 	@Test
 	public void testPredicateToSQLisInfinityBooleanFunction() throws ParseException {
 		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isInfinity(col5)").predicate()
-				.getBooleanFunctionPredicate();
+				.getFirstElementOfType(BooleanFunctionPredicate.class);
 		Predicate element = new Predicate(booleanFunctionPredicate);
 		assertEquals("ISINFINITY(col5)", element.toString());
 	}
 
 	@Test
 	public void testPredicateToSQLIsNanBooleanFunction() throws ParseException {
-		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isNaN(col5)").predicate().getBooleanFunctionPredicate();
+		BooleanFunctionPredicate booleanFunctionPredicate = new TableQueryParser("isNaN(col5)").predicate().getFirstElementOfType(BooleanFunctionPredicate.class);
 		Predicate element = new Predicate(booleanFunctionPredicate);
 		assertEquals("ISNAN(col5)", element.toString());
 	}

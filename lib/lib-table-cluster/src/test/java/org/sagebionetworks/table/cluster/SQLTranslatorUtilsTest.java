@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -831,46 +832,38 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTranslateRightHandeSideNullElement(){
-		ValueExpression element = null;
+		UnsignedLiteral element = null;
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTranslateRightHandeSideNullParameters() throws ParseException{
-		ValueExpression element = new TableQueryParser("aString").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("'aString'").unsignedLiteral();
 		Map<String, Object> parameters = null;
 		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTranslateRightHandeSideNullColumn() throws ParseException{
-		ValueExpression element = new TableQueryParser("aString").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("'aString'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, null, parameters);
 	}
 	
 	@Test
 	public void testTranslateRightHandeSideString() throws ParseException{
-		ValueExpression element = new TableQueryParser("aString").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("'aString'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
 		assertEquals("aString", parameters.get("b0"));
 	}
 	
-	@Test
-	public void testTranslateRightHandeSideStringQuotes() throws ParseException{
-		ValueExpression element = new TableQueryParser("\"aString\"").valueExpression();
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateRightHandeSide(element, columnFoo, parameters);
-		assertEquals(":b0", element.toSqlWithoutQuotes());
-		assertEquals("aString", parameters.get("b0"));
-	}
 	
 	@Test
 	public void testTranslateRightHandeSideInteger() throws ParseException{
-		ValueExpression element = new TableQueryParser("123456").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("123456").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -879,7 +872,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideIntegerLikeValue() throws ParseException{
-		ValueExpression element = new TableQueryParser("'12345%'").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("'12345%'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnId, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -888,7 +881,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideDouble() throws ParseException{
-		ValueExpression element = new TableQueryParser("1.45").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("1.45").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDouble, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -897,7 +890,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideDateString() throws ParseException{
-		ValueExpression element = new TableQueryParser("\"16-01-29 13:55:33.999\"").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("'16-01-29 13:55:33.999'").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -906,7 +899,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateRightHandeSideDateEpoch() throws ParseException{
-		ValueExpression element = new TableQueryParser("1454075733999").valueExpression();
+		UnsignedLiteral element = new TableQueryParser("1454075733999").unsignedLiteral();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
 		assertEquals(":b0", element.toSqlWithoutQuotes());
@@ -1082,7 +1075,7 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateModelWhereIn() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',\"2\",3)").querySpecification();
+		QuerySpecification element = new TableQueryParser("select foo from syn123 where id in ('1',2,\"3\")").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 WHERE _C444_ IN ( :b0, :b1, :b2 )",element.toSql());
@@ -1186,6 +1179,114 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT FOUND_ROWS()",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectArithmetic() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select -(2+2)*10").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT -(2+2)*10",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateModelSelectArithmeticRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = -(2+3)*10").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = -(:b0+:b1)*:b2",element.toSql());
+		assertEquals("2", parameters.get("b0"));
+		assertEquals("3", parameters.get("b1"));
+		assertEquals("10", parameters.get("b2"));
+	}
+	
+	/**
+	 * Column reference on the right-hand-side should be replaced with a valid reference to that columnn.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelRegularIdentiferRightHandSideColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_",element.toSql());
+	}
+	
+	/**
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * 
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelRegularIdentiferRightHandSideNotColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = notReference").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
+		assertEquals("notReference", parameters.get("b0"));
+	}
+	
+	/**
+	 * Column reference on the right-hand-side should be replaced with a valid reference to that column.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelDelimitedIdentiferRightHandSideColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"bar\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = _C333_",element.toSql());
+	}
+	
+	/**
+	 * Regular Identifier on the right-hand-side that does not match a column should be treated as a value.
+	 * 
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelDelemitedIdentiferRightHandSideNotColumnReference() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = \"notReference\"").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0",element.toSql());
+		assertEquals("notReference", parameters.get("b0"));
+	}
+	
+	@Test
+	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = 2*3/bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0*:b1/_C333_",element.toSql());
+		assertEquals("2", parameters.get("b0"));
+		assertEquals("3", parameters.get("b1"));
+	}
+	
+	/**
+	 * Note: This test fails with a parser error, but it should pass.  Currently, the parser treats '(2+3)'
+	 * as the full right-hand-side of the predicate because of how the BNF defines RowValueConstructor 
+	 * to include parentheses.
+	 * 
+	 * @throws ParseException
+	 */
+	@Ignore
+	@Test
+	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide2() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+	}
+	
+	/**
+	 * This case should work but currently group by can only contain column references.
+	 * @throws ParseException
+	 */
+	@Ignore
+	@Test
+	public void testTranslateModelArithmeticGroupBy() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 group by bar/456 - min(bar)").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 	}
 	
 	@Test

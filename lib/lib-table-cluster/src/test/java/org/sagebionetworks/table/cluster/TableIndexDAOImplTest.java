@@ -1607,6 +1607,75 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.setContainerSynchronizationExpiration(empty, expires);
 	}
 	
+	@Test
+	public void testArithmeticSelect() throws ParseException {
+		// Create the table
+		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		createOrUpdateTable(doubleColumn, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
+		// insert special values
+		rows.get(0).getValues().set(0, "50");
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(set, doubleColumn);
+		// This is our query
+		SqlQuery query = new SqlQuery("select 2 + 2, col1/10 from " + tableId, doubleColumn);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		assertEquals("4", results.getRows().get(0).getValues().get(0));
+		assertEquals("5", results.getRows().get(0).getValues().get(1));
+	}
+	
+	@Test
+	public void testArithmeticPredicateRightHandSide() throws ParseException {
+		// Create the table
+		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		createOrUpdateTable(doubleColumn, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
+		// insert special values
+		rows.get(0).getValues().set(0, "-50");
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(doubleColumn);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(set, doubleColumn);
+		// This is our query
+		SqlQuery query = new SqlQuery("select col1 from " + tableId+" where col1 = -5*10", doubleColumn);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		assertEquals("-50", results.getRows().get(0).getValues().get(0));
+	}
+	
 	/**
 	 * Create a view schema using an EntityDTO as a template.
 	 * 

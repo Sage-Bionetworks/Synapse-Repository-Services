@@ -5,8 +5,6 @@ package org.sagebionetworks.table.query.model;
  */
 public class EscapeCharacter extends SimpleBranch {
 
-	CharacterValueExpression characterValueExpression;
-
 	public EscapeCharacter(CharacterValueExpression characterValueExpression) {
 		super(characterValueExpression);
 	}

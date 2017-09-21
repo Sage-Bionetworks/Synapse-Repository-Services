@@ -12,6 +12,7 @@ import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -52,9 +53,9 @@ public class LikePredicateTest {
 	@Test
 	public void testHasPredicate() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo like '%aa%'").predicate();
-		LikePredicate element = predicate.getLikePredicate();
+		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(1, values.size());
 		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
@@ -63,9 +64,9 @@ public class LikePredicateTest {
 	@Test
 	public void testHasPredicateEscape() throws ParseException{
 		Predicate predicate = new TableQueryParser("foo like '%aa%' ESCAPE '@'").predicate();
-		LikePredicate element = predicate.getLikePredicate();
+		LikePredicate element = predicate.getFirstElementOfType(LikePredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasReplaceableChildren> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(2, values.size());
 		assertEquals("%aa%", values.get(0).toSqlWithoutQuotes());
