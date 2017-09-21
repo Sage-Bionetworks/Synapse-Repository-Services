@@ -68,6 +68,7 @@ public class DBOMembershipInvtnSubmissionTest {
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipInvtnSubmission invitation = new DBOMembershipInvtnSubmission();
 		invitation.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID));
+		invitation.setEtag("etag");
 		invitation.setCreatedOn(System.currentTimeMillis());
 		invitation.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();
