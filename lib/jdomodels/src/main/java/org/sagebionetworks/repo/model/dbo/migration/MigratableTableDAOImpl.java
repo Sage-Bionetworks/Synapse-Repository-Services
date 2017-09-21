@@ -28,7 +28,9 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -231,21 +233,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	private void validateEtagColumn(String tableName, String columnName) {
-		try (
-				Connection conn = jdbcTemplate.getDataSource().getConnection();
-				ResultSet columns = conn.getMetaData().getColumns(null, null, tableName, columnName);
-			) {
-			if (columns.next()) {
-				if (columns.getString("IS_NULLABLE").equals("NO")) {
-					return;
-				} else {
-					throw new IllegalArgumentException("etag column cannot be null for table " + tableName);
-				}
-			} else {
-				throw new IllegalArgumentException("Table " + tableName + " doesn't have an etag column");
-			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+		String query =
+				"SELECT IS_NULLABLE \n" +
+				"FROM INFORMATION_SCHEMA.COLUMNS \n" +
+				"WHERE TABLE_NAME = ? \n" +
+				"AND COLUMN_NAME = ? \n";
+		String isNullable = jdbcTemplate.queryForObject(query, String.class, tableName, columnName);
+		if (!"NO".equals(isNullable)) {
+			throw new IllegalArgumentException("etag column " + columnName + " must be NOT NULL for table " + tableName);
 		}
 	}
 	
