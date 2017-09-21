@@ -14,24 +14,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -48,7 +43,9 @@ public class MembershipInvitationManagerImpl implements
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
 	private TeamDAO teamDAO;
-	
+	@Autowired
+	private SynapseEmailService sesClient;
+
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "You Have Been Invited to Join a Team";
@@ -57,7 +54,9 @@ public class MembershipInvitationManagerImpl implements
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
 		if (mis.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if (mis.getInviteeId()==null) throw new InvalidModelException("'inviteeId' field is required.");
+		if ((mis.getInviteeId() == null ^ mis.getInviteeEmail() == null) == false) {
+			throw new InvalidModelException("One and only one of the fields 'inviteeId' and 'inviteeEmail' is required");
+		}
 		if (mis.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 
@@ -84,7 +83,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 	
 	@Override
-	public MessageToUserAndBody createInvitationNotification(MembershipInvtnSubmission mis, 
+	public MessageToUserAndBody createInvitationToUser(MembershipInvtnSubmission mis,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
 		if (mis.getCreatedOn() == null) mis.setCreatedOn(new Date());
@@ -106,6 +105,35 @@ public class MembershipInvitationManagerImpl implements
 		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
 		return new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType());
+	}
+
+	@Override
+	public void sendInvitationToEmail(MembershipInvtnSubmission mis,
+			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
+		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return;
+		String teamName = teamDAO.get(mis.getTeamId()).getName();
+		String subject = "You have been invited to join the team " + teamName;
+		Map<String,String> fieldValues = new HashMap<>();
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(acceptInvitationEndpoint, mis.getId(), mis.getCreatedOn()));
+		String messageBody = EmailUtils.readMailTemplate("message/emailTeamMembershipInvitationExtendedTemplate.html", fieldValues);
+		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
+			.withRecipientEmail(mis.getInviteeEmail())
+			.withSubject(subject)
+			.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.HTML)
+			.withIsNotificationMessage(true)
+			.build();
+		sesClient.sendRawEmail(sendEmailRequest);
+	}
+
+	private String createMembershipInvtnSignedToken(String membershipInvitationId, Date now) {
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
+		token.setCreatedOn(now);
+		token.setMembershipInvitationId(membershipInvitationId);
+		SignedTokenUtil.signToken(token);
+		return SerializationUtils.serializeAndHexEncode(token);
 	}
 
 	/* (non-Javadoc)

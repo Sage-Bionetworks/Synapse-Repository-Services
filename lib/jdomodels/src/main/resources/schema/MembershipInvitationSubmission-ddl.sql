@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS `MEMBERSHIP_INVITATION_SUBMISSION` (
   `ID` bigint(20) NOT NULL,
+  `ETAG` char(36),
   `TEAM_ID` bigint(20) NOT NULL,
-  `INVITEE_ID` bigint(20) NOT NULL,
+  `INVITEE_ID` bigint(20),
+  `INVITEE_EMAIL` varchar(320),
   `CREATED_ON` bigint(20) NOT NULL,
   `EXPIRES_ON` bigint(20),
   `PROPERTIES` mediumblob,
