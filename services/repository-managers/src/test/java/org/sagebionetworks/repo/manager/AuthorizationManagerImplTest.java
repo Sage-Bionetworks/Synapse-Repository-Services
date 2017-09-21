@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.util.ArrayList;
@@ -18,18 +19,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
+import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
+import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
+import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -40,6 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -68,6 +64,9 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private ActivityManager activityManager;
+
+	@Autowired
+	private TeamManager teamManager;
 	
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -631,5 +630,20 @@ public class AuthorizationManagerImplTest {
 	public void testCanSubscribeAnonymous() {
 		assertEquals(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
 				authorizationManager.canSubscribe(anonInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitation() {
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		String misId = "1";
+		mis.setId(misId);
+		String teamId = "123";
+		mis.setTeamId(teamId);
+		mis.setInviteeId(userInfo.getId().toString());
+		mis.setMessage("Please join our team.");
+		MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
+		when(mockMembershipInvtnSubmissionDAO.get(misId)).thenReturn(mis);
+		ReflectionTestUtils.setField(authorizationManager, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
+		assertTrue(authorizationManager.canAccess(userInfo, misId, ObjectType.MEMBERSHIP_INVITATION, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
 	}
 }

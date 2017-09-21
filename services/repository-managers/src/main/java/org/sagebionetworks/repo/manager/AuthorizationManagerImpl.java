@@ -15,27 +15,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DockerNodeDao;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -98,6 +79,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private DockerNodeDao dockerNodeDao;
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
+	@Autowired
+	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	
 	@Override
@@ -128,6 +111,15 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
+			case MEMBERSHIP_INVITATION:
+				MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(objectId);
+				// the invitee should be able to access the invitation
+				if (Long.parseLong(mis.getInviteeId()) == userInfo.getId()) {
+					return AuthorizationManagerUtil.AUTHORIZED;
+				}
+				// the user is not the invitee, so fall through to check if they have access to the team
+				objectId = mis.getTeamId();
+				objectType = ObjectType.TEAM;
 			case TEAM:
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
@@ -138,7 +130,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				
 				// just check the acl
-				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, ObjectType.TEAM, accessType);
+				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
 				if (teamAccessPermission) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {

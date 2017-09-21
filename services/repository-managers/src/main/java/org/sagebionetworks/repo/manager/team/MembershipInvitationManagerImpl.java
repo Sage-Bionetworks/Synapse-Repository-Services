@@ -116,7 +116,7 @@ public class MembershipInvitationManagerImpl implements
 			throws DatastoreException, NotFoundException {
 		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(id);
 		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, id, ObjectType.MEMBERSHIP_INVITATION, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitation.");
 		return mis;
 	}
@@ -134,7 +134,7 @@ public class MembershipInvitationManagerImpl implements
 			return;
 		}
 		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+				userInfo, id, ObjectType.MEMBERSHIP_INVITATION, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized())
 			throw new UnauthorizedException("Cannot delete membership invitation.");
 		membershipInvtnSubmissionDAO.delete(id);
 	}
