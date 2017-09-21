@@ -487,7 +487,7 @@ public class SqlElementUntils {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
 			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
-				String columnName = spec.getSortKey().getValueExpressionPrimary().toString();
+				String columnName = spec.getSortKey().toSql();
 				originalSortSpecifications.put(columnName, spec);
 			}
 		}
@@ -669,8 +669,8 @@ public class SqlElementUntils {
 			 * create the SortKey. For non-aggregate functions the name must be
 			 * bracketed in quotes.
 			 */
-			ValueExpressionPrimary primary = new TableQueryParser(columnName)
-					.valueExpressionPrimary();
+			ValueExpression primary = new TableQueryParser(columnName)
+					.valueExpression();
 			if (primary.hasAnyAggregateElements()) {
 				return new SortKey(primary);
 			} else {

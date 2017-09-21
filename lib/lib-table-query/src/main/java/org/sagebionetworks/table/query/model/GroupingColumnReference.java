@@ -1,29 +1,14 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
 
 /**
- *  GroupingColumnReference ::= {@link ColumnReference} [ <collate clause> ]
+ * To support function in a group by this was change to have a ValueExpression child (see: PLFM-4566).
+ * <p>
+ *  GroupingColumnReference ::= {@link ValueExpression}
  */
-public class GroupingColumnReference extends SQLElement {
+public class GroupingColumnReference extends SimpleBranch {
 
-	ColumnReference columnReference;
-
-	public GroupingColumnReference(ColumnReference columnReference) {
-		this.columnReference = columnReference;
-	}
-
-	public ColumnReference getColumnReference() {
-		return columnReference;
-	}
-
-	@Override
-	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		columnReference.toSql(builder, parameters);
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReference);
+	public GroupingColumnReference(ValueExpression valueExpression) {
+		super(valueExpression);
 	}
 }

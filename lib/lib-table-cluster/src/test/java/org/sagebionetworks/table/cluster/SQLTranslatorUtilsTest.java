@@ -80,7 +80,7 @@ public class SQLTranslatorUtilsTest {
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
-		columnDate = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DATE);
+		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
 		
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble);
 		// setup the map
@@ -1198,6 +1198,26 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("2", parameters.get("b0"));
 		assertEquals("3", parameters.get("b1"));
 		assertEquals("10", parameters.get("b2"));
+	}
+	
+	@Test
+	public void testTranslateModelSelectArithmeticFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS \"sum\" FROM T123",element.toSql());
+	}
+	
+	/**
+	 * This use case is referenced in PLFM-4566.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelSelectArithmeticGroupByOrderBy() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo%10, count(*) from syn123 group by foo%10 order by foo%10").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_%10, COUNT(*) FROM T123 GROUP BY _C111_%10 ORDER BY _C111_%10",element.toSql());
 	}
 	
 	/**
