@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -45,7 +44,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
@@ -80,7 +78,7 @@ public class SQLTranslatorUtilsTest {
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		columnSpecial = TableModelTestUtils.createColumn(555L, specialChars, ColumnType.DOUBLE);
 		columnDouble = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DOUBLE);
-		columnDate = TableModelTestUtils.createColumn(777L, "aDouble", ColumnType.DATE);
+		columnDate = TableModelTestUtils.createColumn(888L, "aDate", ColumnType.DATE);
 		
 		schema = Lists.newArrayList(columnFoo, columnHasSpace, columnBar, columnId, columnSpecial, columnDouble);
 		// setup the map
@@ -1200,6 +1198,26 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("10", parameters.get("b2"));
 	}
 	
+	@Test
+	public void testTranslateModelSelectArithmeticFunction() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select sum((id+foo)/aDouble) as \"sum\" from syn123").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT SUM((_C444_+_C111_)/CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END) AS \"sum\" FROM T123",element.toSql());
+	}
+	
+	/**
+	 * This use case is referenced in PLFM-4566.
+	 * @throws ParseException
+	 */
+	@Test
+	public void testTranslateModelSelectArithmeticGroupByOrderBy() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select foo%10, count(*) from syn123 group by foo%10 order by foo%10").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT _C111_%10, COUNT(*) FROM T123 GROUP BY _C111_%10 ORDER BY _C111_%10",element.toSql());
+	}
+	
 	/**
 	 * Column reference on the right-hand-side should be replaced with a valid reference to that columnn.
 	 * @throws ParseException
@@ -1262,31 +1280,20 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("3", parameters.get("b1"));
 	}
 	
-	/**
-	 * Note: This test fails with a parser error, but it should pass.  Currently, the parser treats '(2+3)'
-	 * as the full right-hand-side of the predicate because of how the BNF defines RowValueConstructor 
-	 * to include parentheses.
-	 * 
-	 * @throws ParseException
-	 */
-	@Ignore
 	@Test
 	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide2() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = (:b0+:b1)/_C333_",element.toSql());
 	}
 	
-	/**
-	 * This case should work but currently group by can only contain column references.
-	 * @throws ParseException
-	 */
-	@Ignore
 	@Test
 	public void testTranslateModelArithmeticGroupBy() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 group by bar/456 - min(bar)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 GROUP BY _C333_/456-MIN(_C333_)",element.toSql());
 	}
 	
 	@Test

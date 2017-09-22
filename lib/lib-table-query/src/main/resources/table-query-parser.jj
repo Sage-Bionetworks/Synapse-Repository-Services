@@ -523,7 +523,6 @@ BooleanPrimary booleanPrimary():
 	SearchCondition searchCondition = null;
 }
 {
-	LOOKAHEAD(3)
 	predicate = predicate() { return new BooleanPrimary(predicate);}
 	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
 }
@@ -566,12 +565,9 @@ ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
 RowValueConstructor rowValueConstructor():
 {
 	RowValueConstructorElement rowValueConstructorElement = null;
-	RowValueConstructorList rowValueConstructorList = null;
 }
 {
-	LOOKAHEAD(3)
-	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
-	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
+	rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
 }
 RowValueConstructorList rowValueConstructorList():
 {
@@ -589,9 +585,9 @@ RowValueConstructorElement rowValueConstructorElement():
 	TruthValue truthValue;
 }
 {
-		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
-	| 	truthValue = truthValue() { return new RowValueConstructorElement(truthValue); }
-	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
+		<null_specification> { return new RowValueConstructorElement(new NullSpecification()); }
+	|	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
+	|	truthValue = truthValue() { return new RowValueConstructorElement(new TruthSpecification(truthValue)); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
 CompOp compOp():
@@ -846,10 +842,10 @@ GroupingColumnReferenceList groupingColumnReferenceList():
 }
 GroupingColumnReference groupingColumnReference():
 {
-	ColumnReference columnReference = null;
+	ValueExpression valueExpression = null;
 }
 {
-	columnReference = columnReference() { return new GroupingColumnReference(columnReference); }
+	valueExpression = valueExpression() { return new GroupingColumnReference(valueExpression); }
 }
 OrderByClause orderByClause():
 {
@@ -882,11 +878,11 @@ SortSpecification sortSpecification():
 }
 SortKey sortKey():
 {
-	ValueExpressionPrimary valueExpressionPrimary = null;
+	ValueExpression valueExpression = null;
 }
 {
-	valueExpressionPrimary = valueExpressionPrimary()
-	{ return new SortKey(valueExpressionPrimary); }
+	valueExpression = valueExpression()
+	{ return new SortKey(valueExpression); }
 }
 OrderingSpecification orderingSpecification():
 {}
