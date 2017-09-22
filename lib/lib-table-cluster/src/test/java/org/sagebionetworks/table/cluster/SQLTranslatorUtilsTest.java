@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -45,7 +44,6 @@ import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 import com.google.common.collect.Lists;
@@ -1282,31 +1280,20 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("3", parameters.get("b1"));
 	}
 	
-	/**
-	 * Note: This test fails with a parser error, but it should pass.  Currently, the parser treats '(2+3)'
-	 * as the full right-hand-side of the predicate because of how the BNF defines RowValueConstructor 
-	 * to include parentheses.
-	 * 
-	 * @throws ParseException
-	 */
-	@Ignore
 	@Test
 	public void testTranslateModelArithmeticAndColumnReferenceOnRightHandSide2() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 where foo = (2+3)/bar").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = (:b0+:b1)/_C333_",element.toSql());
 	}
 	
-	/**
-	 * This case should work but currently group by can only contain column references.
-	 * @throws ParseException
-	 */
-	@Ignore
 	@Test
 	public void testTranslateModelArithmeticGroupBy() throws ParseException{
 		QuerySpecification element = new TableQueryParser("select * from syn123 group by bar/456 - min(bar)").querySpecification();
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 GROUP BY _C333_/456-MIN(_C333_)",element.toSql());
 	}
 	
 	@Test
