@@ -136,16 +136,6 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(ColumnType.INTEGER, lookup);
 	}
 	
-	@Test
-	public void testGetColumnTypeForFunctionFoundRows(){
-		FunctionType functionType = FunctionType.FOUND_ROWS;
-		ColumnType baseType = null;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// found rows is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetColumnTypeForFunctionAvgNullType(){
 		FunctionType functionType = FunctionType.AVG;
@@ -1169,14 +1159,6 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT _C111_ FROM T123 ORDER BY MIN(_C777_)",element.toSql());
-	}
-	
-	@Test
-	public void testTranslateModelSelectFoundRows() throws ParseException{
-		QuerySpecification element = new TableQueryParser("select FOUND_ROWS()").querySpecification();
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
-		assertEquals("SELECT FOUND_ROWS()",element.toSql());
 	}
 	
 	@Test

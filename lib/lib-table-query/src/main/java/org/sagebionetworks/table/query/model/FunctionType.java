@@ -10,6 +10,5 @@ public enum FunctionType {
 	MAX,
 	MIN,
 	SUM,
-	AVG,
-	FOUND_ROWS
+	AVG
 }

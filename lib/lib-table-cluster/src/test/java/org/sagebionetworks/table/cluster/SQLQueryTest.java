@@ -516,12 +516,6 @@ public class SQLQueryTest {
 		assertEquals(100L,translator.getParameters().get("b0"));
 		assertEquals(2L, translator.getParameters().get("b1"));
 	}
-	
-	@Test
-	public void testFoundRows() throws ParseException {
-		SqlQuery translator = new SqlQuery("select found_rows() from syn123", tableSchema);
-		assertEquals("SELECT FOUND_ROWS() FROM T123", translator.getOutputSQL());
-	}
 
 	@Test
 	public void testAllParts() throws ParseException{
@@ -538,11 +532,11 @@ public class SQLQueryTest {
 	@Test
 	public void testAllPartsWithGrouping() throws ParseException {
 		SqlQuery translator = new SqlQuery(
-				"select found_rows(), foo, bar from syn123 where foo_bar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
+				"select foo, bar from syn123 where foo_bar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
 				tableSchema);
 		// The value should be bound in the SQL
 		assertEquals(
-				"SELECT FOUND_ROWS(), _C111_, _C333_ FROM T123 WHERE _C444_ >= :b0 GROUP BY _C111_ ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
+				"SELECT _C111_, _C333_ FROM T123 WHERE _C444_ >= :b0 GROUP BY _C111_ ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
 				translator.getOutputSQL());
 		assertEquals("18900.0",translator.getParameters().get("b0"));
 		assertEquals(10L,translator.getParameters().get("b1"));
@@ -551,18 +545,16 @@ public class SQLQueryTest {
 
 	@Test
 	public void testTypeSetFunctionStrings() throws Exception {
-		SqlQuery translator = new SqlQuery("select found_rows(), count(*), min(foo), max(foo), count(foo) from syn123", tableSchema);
-		assertEquals("SELECT FOUND_ROWS(), COUNT(*), MIN(_C111_), MAX(_C111_), COUNT(_C111_) FROM T123", translator.getOutputSQL());
-		assertEquals(TableModelUtils.createSelectColumn("FOUND_ROWS()", ColumnType.INTEGER, null), translator.getSelectColumns()
-				.get(0));
+		SqlQuery translator = new SqlQuery("select count(*), min(foo), max(foo), count(foo) from syn123", tableSchema);
+		assertEquals("SELECT COUNT(*), MIN(_C111_), MAX(_C111_), COUNT(_C111_) FROM T123", translator.getOutputSQL());
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null), translator.getSelectColumns()
-				.get(1));
+				.get(0));
 		assertEquals(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null), translator.getSelectColumns()
-				.get(2));
+				.get(1));
 		assertEquals(TableModelUtils.createSelectColumn("MAX(foo)", ColumnType.STRING, null), translator.getSelectColumns()
-				.get(3));
+				.get(2));
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(foo)", ColumnType.INTEGER, null), translator.getSelectColumns()
-				.get(4));
+				.get(3));
 	}
 
 	@Test
