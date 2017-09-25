@@ -68,7 +68,7 @@ public class DBOMembershipInvtnSubmissionTest {
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipInvtnSubmission invitation = new DBOMembershipInvtnSubmission();
 		invitation.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID));
-		invitation.setEtag("etag");
+		invitation.setEtag(DBOMembershipInvtnSubmission.defaultEtag);
 		invitation.setCreatedOn(System.currentTimeMillis());
 		invitation.setExpiresOn(System.currentTimeMillis());
 		DBOTeam team = DBOTeamTest.newTeam();
@@ -107,7 +107,7 @@ public class DBOMembershipInvtnSubmissionTest {
 		DBOMembershipInvtnSubmission clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, params);
 		assertEquals(clone, clone2);
 	}
-	
+
 	private static MembershipInvtnSubmission createMembershipInvtnSubmission(Date createdOn) {
 		//It's easiest to create a DBO object by first creating a DTO object and then converting it
 		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
@@ -128,7 +128,10 @@ public class DBOMembershipInvtnSubmissionTest {
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
 		// now do the round trip
 		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
-		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
+		DBOMembershipInvtnSubmission actual = dbo.getTranslator().createDatabaseObjectFromBackup(backup);
+		DBOMembershipInvtnSubmission expected = backup;
+		expected.setEtag(DBOMembershipInvtnSubmission.defaultEtag);
+		assertEquals(expected, actual);
 		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
 	}
 }

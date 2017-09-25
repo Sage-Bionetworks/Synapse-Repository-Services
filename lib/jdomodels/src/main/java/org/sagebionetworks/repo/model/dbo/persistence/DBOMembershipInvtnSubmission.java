@@ -28,6 +28,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		new FieldColumn("inviteeId", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
+
+	public static String defaultEtag = "defaultEtag";
 	
 	private Long id;
 	private String etag;
@@ -45,7 +47,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 				dbo.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
 				String etag = rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG);
-				if (rs.wasNull()) etag=null;
+				// Assume etag is not null
 				dbo.setEtag(etag);
 				Long createdOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON);
 				if (rs.wasNull()) createdOn=null;
@@ -155,6 +157,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 			@Override
 			public DBOMembershipInvtnSubmission createDatabaseObjectFromBackup(DBOMembershipInvtnSubmission backup) {
+				if (backup.getEtag() == null) {
+					backup.setEtag(defaultEtag);
+				}
 				return backup;
 			}
 
