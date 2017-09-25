@@ -123,12 +123,6 @@ public class DerivedColumnTest {
 	}
 	
 	@Test
-	public void testGetReferencedColumnFoundRows() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("found_rows()");
-		assertEquals(null, element.getReferencedColumnName());
-	}
-	
-	@Test
 	public void testGetReferencedColumnCountStarAs() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("count(*) as bar");
 		assertEquals(null, element.getReferencedColumnName());

@@ -22,13 +22,6 @@ public class QuerySpecificationTest {
 		assertEquals("SELECT one, two FROM syn123", element.toString());
 	}
 
-	
-	@Test
-	public void testFoundRows() throws ParseException{
-		QuerySpecification element = new TableQueryParser("SELECT FOUND_ROWS()").querySpecification();
-		assertEquals("SELECT FOUND_ROWS()", element.toSql());
-	}
-
 	@Test
 	public void testQuerySpecificationToSQLWithSetQuantifier() throws ParseException{
 		SetQuantifier setQuantifier = SetQuantifier.DISTINCT;
