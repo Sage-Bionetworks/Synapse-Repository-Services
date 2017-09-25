@@ -93,12 +93,6 @@ public class DerivedColumnTest {
 	}
 	
 	@Test
-	public void testGetFunctionTypeFoundRows() throws ParseException{
-		DerivedColumn element = SqlElementUntils.createDerivedColumn("FOUND_ROWS()");
-		assertEquals(FunctionType.FOUND_ROWS, element.getFunctionType());
-	}
-	
-	@Test
 	public void testGetFunctionTypeMax() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("max(foo) as bar");
 		assertEquals(FunctionType.MAX, element.getFunctionType());

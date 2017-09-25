@@ -136,16 +136,6 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(ColumnType.INTEGER, lookup);
 	}
 	
-	@Test
-	public void testGetColumnTypeForFunctionFoundRows(){
-		FunctionType functionType = FunctionType.FOUND_ROWS;
-		ColumnType baseType = null;
-		// call under test
-		ColumnType lookup = SQLTranslatorUtils.getColumnTypeForFunction(functionType, baseType);
-		// found rows is always integer
-		assertEquals(ColumnType.INTEGER, lookup);
-	}
-	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetColumnTypeForFunctionAvgNullType(){
 		FunctionType functionType = FunctionType.AVG;

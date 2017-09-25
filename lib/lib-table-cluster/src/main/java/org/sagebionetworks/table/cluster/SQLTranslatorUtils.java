@@ -193,8 +193,6 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(functionType, "functionType");
 		switch(functionType) {
 		case COUNT:
-		case FOUND_ROWS:
-			return ColumnType.INTEGER;
 		case AVG:
 			if(!isNumericType(baseType)){
 				throw new IllegalArgumentException("Cannot calculate "+functionType.name()+" for type: "+baseType);

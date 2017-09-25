@@ -4,21 +4,10 @@ import java.util.List;
 
 
 public class NumericValueFunction extends SQLElement implements HasAggregate, HasFunctionType {
-
-	private MysqlFunction mysqlFunction;
-
-	public NumericValueFunction(MysqlFunction mysqlFunction) {
-		this.mysqlFunction = mysqlFunction;
-	}
-
-	public MysqlFunction getMysqlFunction() {
-		return mysqlFunction;
-	}
 	
 	@Override
 	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
-		builder.append(mysqlFunction.name());
-		builder.append("()");
+
 	}
 
 	@Override
@@ -33,11 +22,6 @@ public class NumericValueFunction extends SQLElement implements HasAggregate, Ha
 
 	@Override
 	public FunctionType getFunctionType() {
-		switch (mysqlFunction) {
-		case FOUND_ROWS:
-			return FunctionType.FOUND_ROWS;
-		default:
-			throw new IllegalArgumentException("unexpected mysqlFuntion");
-		}
+		throw new UnsupportedOperationException();
 	}
 }
