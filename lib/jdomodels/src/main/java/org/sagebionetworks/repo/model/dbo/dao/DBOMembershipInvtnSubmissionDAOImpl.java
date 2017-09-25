@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -123,6 +124,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		if (dto.getId()==null) dto.setId(idGenerator.generateNewId(IdType.MEMBERSHIP_INVITATION_ID).toString());
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		MembershipInvtnSubmission result = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
 		return result;
