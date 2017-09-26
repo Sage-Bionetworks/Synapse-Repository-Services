@@ -47,7 +47,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	
 	static private Log log = LogFactory.getLog(V2WikiManagerImpl.class);
 	
-	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an onwerId: '%2$s' of type: '%3$s'";
+	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an ownerId: '%2$s' of type: '%3$s'";
 	
 	private static final Long MAX_WIKI_MARKDOWN_RANK = 100L;
 
