@@ -1621,7 +1621,7 @@ Needed?</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1000</x>
+      <x>912</x>
       <y>680</y>
       <w>128</w>
       <h>24</h>
@@ -1632,18 +1632,18 @@ Needed?</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1000</x>
+      <x>968</x>
       <y>640</y>
-      <w>72</w>
+      <w>64</w>
       <h>56</h>
     </coordinates>
     <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>70.0;50.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;50.0;60.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1000</x>
+      <x>888</x>
       <y>720</y>
       <w>280</w>
       <h>56</h>
@@ -1657,13 +1657,13 @@ Needed?</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1056</x>
+      <x>968</x>
       <y>696</y>
-      <w>88</w>
+      <w>24</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>90.0;30.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;30.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
@@ -1967,7 +1967,7 @@ Needed?</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1336</x>
+      <x>1456</x>
       <y>728</y>
       <w>616</w>
       <h>24</h>
@@ -1989,7 +1989,7 @@ Needed?</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1336</x>
+      <x>1536</x>
       <y>776</y>
       <w>408</w>
       <h>24</h>
@@ -2002,16 +2002,16 @@ Needed?</panel_attributes>
     <coordinates>
       <x>912</x>
       <y>224</y>
-      <w>440</w>
+      <w>640</w>
       <h>584</h>
     </coordinates>
     <panel_attributes>lt=&lt;..</panel_attributes>
-    <additional_attributes>10.0;10.0;380.0;30.0;530.0;710.0</additional_attributes>
+    <additional_attributes>10.0;10.0;380.0;30.0;780.0;710.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1624</x>
+      <x>1744</x>
       <y>744</y>
       <w>24</w>
       <h>48</h>
@@ -2110,7 +2110,7 @@ Needed?</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1624</x>
+      <x>1720</x>
       <y>704</y>
       <w>24</w>
       <h>40</h>
@@ -2425,5 +2425,49 @@ Needed?</panel_attributes>
     </coordinates>
     <panel_attributes>&lt;pagination&gt; ::= &lt;limit&gt; &lt;unsigned integer&gt; [ &lt;offset&gt; &lt;unsigned integer&gt; ]</panel_attributes>
     <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1072</x>
+      <y>680</y>
+      <w>344</w>
+      <h>24</h>
+    </coordinates>
+    <panel_attributes>&lt;interval literal&gt; ::= INTERVAL &lt;unsigned integer&gt; &lt;datetime field&gt;</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1008</x>
+      <y>640</y>
+      <w>248</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>290.0;50.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1104</x>
+      <y>792</y>
+      <w>368</w>
+      <h>24</h>
+    </coordinates>
+    <panel_attributes>&lt;datetime field&gt; ::= YEAR | MONTH | DAY | HOUR | MINUTE | SECOND</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1232</x>
+      <y>696</y>
+      <w>32</w>
+      <h>112</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>20.0;120.0;10.0;10.0</additional_attributes>
   </element>
 </diagram>
