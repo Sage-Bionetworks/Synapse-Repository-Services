@@ -590,15 +590,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType) {
-		boolean accessTypeIsReadOrDelete = accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE;
-		// The invitee should be able to read or delete the invitation
-		boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
-		if (userIsInvitee && accessTypeIsReadOrDelete) {
-			return AuthorizationManagerUtil.AUTHORIZED;
+		if (mis.getInviteeId() != null) {
+			// The invitee should be able to read or delete the invitation
+			boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
+			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
+				return AuthorizationManagerUtil.AUTHORIZED;
+			}
 		}
-		// An admin of the team should be able to read or delete the invitation
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, accessType);
-		if (userIsTeamAdmin && accessTypeIsReadOrDelete) {
+		// An admin of the team should be able to create, read or delete the invitation
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 		// A Synapse admin should have access of any type

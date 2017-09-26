@@ -652,21 +652,23 @@ public class AuthorizationManagerImplTest {
 
 		// Test all access types
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
-			boolean inviteeAccess = authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, accessType).getAuthorized();
-			boolean teamAdminAccess = authorizationManager.canAccessMembershipInvitationSubmission(teamAdmin, mis, accessType).getAuthorized();
+			// Invitee can only read or delete the invitation
+			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
-				// Invitee can read and delete the invitation
-				assertTrue("Invitee must have access of type " + accessType + " to the invitation.", inviteeAccess);
-				// Team admin can read and delete the invitation
-				assertTrue("Team admin must have access of type " + accessType + " to the invitation.", teamAdminAccess);
+				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
 			} else {
-				// Invitee can't do anything else
-				assertFalse("Invitee must not have access of type " + accessType + " to the invitation.", inviteeAccess);
-				// Team admin can't do anything else
-				assertFalse("Team admin must not have access of type " + accessType + " to the invitation.", teamAdminAccess);
+				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+			}
+			// Team admin can only create, read or delete the invitation
+			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(teamAdmin, mis, accessType);
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
+				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+			} else {
+				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
 			}
 			// Synapse admin has access of any type
-			assertTrue("Synapse admin must have access to the invitation.", authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType).getAuthorized());
+			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType);
+			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
 		}
 	}
 }

@@ -74,8 +74,7 @@ public class MembershipInvitationManagerImpl implements
 			MembershipInvtnSubmission mis) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		validateForCreate(mis);
-		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
+		if (!authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, ACCESS_TYPE.CREATE).getAuthorized())
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
