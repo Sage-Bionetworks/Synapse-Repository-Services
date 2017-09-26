@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON;
 
 import java.util.ArrayList;
@@ -19,9 +18,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
-import org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -67,7 +63,7 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private TeamManager teamManager;
-	
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
@@ -76,6 +72,8 @@ public class AuthorizationManagerImplTest {
 	private UserInfo userInfo;
 	private UserInfo adminUser;
 	private UserInfo anonInfo;
+	private UserInfo teamAdmin;
+	private Team team;
 	private UserGroup testGroup;
 	private UserGroup publicGroup;
 	
@@ -120,7 +118,7 @@ public class AuthorizationManagerImplTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUser, nu, cred, tou);
-		
+
 		// Create a new group
 		testGroup = new UserGroup();
 		testGroup.setIsIndividual(false);
@@ -129,7 +127,15 @@ public class AuthorizationManagerImplTest {
 		// Add new user to new group (in the user's info)
 		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
+
+		// Create team with teamAdmin as the admin
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		teamAdmin = userManager.createUser(adminUser, nu, cred, tou);
+		team = new Team();
+		team.setName("teamName");
+		team = teamManager.create(teamAdmin, team);
+
 		// Find some existing principals
 		anonInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		publicGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -161,7 +167,9 @@ public class AuthorizationManagerImplTest {
 				activityManager.deleteActivity(adminUser, activityId);
 			}
 		}
-		
+
+		teamManager.delete(teamAdmin, team.getId());
+		userManager.deletePrincipal(adminUser, teamAdmin.getId());
 		userManager.deletePrincipal(adminUser, userInfo.getId());
 		userGroupDAO.delete(testGroup.getId());
 	}
@@ -634,16 +642,31 @@ public class AuthorizationManagerImplTest {
 
 	@Test
 	public void testCanAccessMembershipInvitation() {
+		// Create invitation from team to userInfo
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		String misId = "1";
 		mis.setId(misId);
-		String teamId = "123";
-		mis.setTeamId(teamId);
+		mis.setTeamId(team.getId());
 		mis.setInviteeId(userInfo.getId().toString());
 		mis.setMessage("Please join our team.");
-		MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
-		when(mockMembershipInvtnSubmissionDAO.get(misId)).thenReturn(mis);
-		ReflectionTestUtils.setField(authorizationManager, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
-		assertTrue(authorizationManager.canAccess(userInfo, misId, ObjectType.MEMBERSHIP_INVITATION, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized());
+
+		// Test all access types
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			boolean inviteeAccess = authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, accessType).getAuthorized();
+			boolean teamAdminAccess = authorizationManager.canAccessMembershipInvitationSubmission(teamAdmin, mis, accessType).getAuthorized();
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
+				// Invitee can read and delete the invitation
+				assertTrue("Invitee must have access of type " + accessType + " to the invitation.", inviteeAccess);
+				// Team admin can read and delete the invitation
+				assertTrue("Team admin must have access of type " + accessType + " to the invitation.", teamAdminAccess);
+			} else {
+				// Invitee can't do anything else
+				assertFalse("Invitee must not have access of type " + accessType + " to the invitation.", inviteeAccess);
+				// Team admin can't do anything else
+				assertFalse("Team admin must not have access of type " + accessType + " to the invitation.", teamAdminAccess);
+			}
+			// Synapse admin has access of any type
+			assertTrue("Synapse admin must have access to the invitation.", authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType).getAuthorized());
+		}
 	}
 }

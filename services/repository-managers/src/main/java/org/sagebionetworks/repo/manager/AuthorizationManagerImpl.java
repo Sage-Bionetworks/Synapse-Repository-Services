@@ -111,15 +111,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				}
 				return AuthorizationManagerUtil.accessDenied("Only ACT member can perform this action.");
-			case MEMBERSHIP_INVITATION:
-				MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(objectId);
-				// the invitee should be able to access the invitation
-				if (Long.parseLong(mis.getInviteeId()) == userInfo.getId()) {
-					return AuthorizationManagerUtil.AUTHORIZED;
-				}
-				// the user is not the invitee, so fall through to check if they have access to the team
-				objectId = mis.getTeamId();
-				objectType = ObjectType.TEAM;
 			case TEAM:
 				if (userInfo.isAdmin()) {
 					return AuthorizationManagerUtil.AUTHORIZED;
@@ -595,5 +586,25 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
 					"Accessors must have validated profiles.");
 		}
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType) {
+		boolean accessTypeIsReadOrDelete = accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE;
+		// The invitee should be able to read or delete the invitation
+		boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
+		if (userIsInvitee && accessTypeIsReadOrDelete) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// An admin of the team should be able to read or delete the invitation
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, accessType);
+		if (userIsTeamAdmin && accessTypeIsReadOrDelete) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// A Synapse admin should have access of any type
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
 	}
 }
