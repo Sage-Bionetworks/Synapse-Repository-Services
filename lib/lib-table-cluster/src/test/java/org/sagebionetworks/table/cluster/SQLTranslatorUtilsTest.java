@@ -29,6 +29,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
@@ -1329,7 +1330,7 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithStringConstant() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("contant");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new GeneralLiteral("constant")));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new GeneralLiteral(new CharacterStringLiteral("constant"))));
 	}
 
 	@Test

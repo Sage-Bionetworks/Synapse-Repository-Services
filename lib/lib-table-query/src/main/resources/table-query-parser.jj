@@ -168,6 +168,16 @@ TOKEN [IGNORE_CASE]: {
 | < is_infinity: "ISINFINITY">
 }
 
+/* datetime */
+TOKEN [IGNORE_CASE]: {
+  < year: "YEAR">
+| < month: "MONTH">
+| < day: "DAY">
+| < hour: "HOUR">
+| < minute: "MINUTE">
+| < second: "SECOND">
+}
+
 TOKEN [IGNORE_CASE]: {
   < regular_identifier: ["a"-"z","A"-"Z","_"](["a"-"z","A"-"Z","0"-"9","_"])*>
 }
@@ -237,14 +247,34 @@ UnsignedNumericLiteral unsignedNumericLiteral():
 }
 GeneralLiteral generalLiteral():
 {
+	CharacterStringLiteral characterStringLiteral = null;
+	IntervalLiteral intervalLiteral = null;
+}
+{
+	characterStringLiteral = characterStringLiteral() { return new GeneralLiteral(characterStringLiteral); }
+	| intervalLiteral = intervalLiteral() { return new GeneralLiteral(intervalLiteral); }
+}
+IntervalLiteral intervalLiteral():
+{
+	UnsignedInteger unsignedInteger = null;
+	DatetimeField datetimeField = null;
+}
+{
+	<interval> unsignedInteger = unsignedInteger() datetimeField = datetimeField() { return new IntervalLiteral(unsignedInteger, datetimeField); }
+}
+DatetimeField datetimeField():
+{}
+{
+	<year> { return DatetimeField.YEAR; }
+	| <month> { return DatetimeField.MONTH; }
+	| <day> { return DatetimeField.DAY; }
+	| <hour> { return DatetimeField.HOUR; }
+	| <minute> { return DatetimeField.MINUTE; }
+	| <second> { return DatetimeField.SECOND; }
+}
+CharacterStringLiteral characterStringLiteral():
+{
 	StringBuilder builder = new StringBuilder();
-}
-{
-	characterStringLiteral(builder)
-	{ return new GeneralLiteral(builder.toString()); }
-}
-void characterStringLiteral(StringBuilder builder):
-{
 	Token token;
 }
 {
@@ -254,6 +284,7 @@ void characterStringLiteral(StringBuilder builder):
 		| <escape_single_quote>  { builder.append("'"); }
 	)*
 	<end_single_quote>
+	{ return new CharacterStringLiteral(builder.toString()); }
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
