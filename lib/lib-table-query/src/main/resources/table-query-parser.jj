@@ -137,8 +137,6 @@ TOKEN [IGNORE_CASE]: {
 | < date: "DATE" >
 | < count: "COUNT">
 | < desc: "DESC" >
-| < current_date: "CURRENT_DATE">
-| < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
 | < escape: "ESCAPE">
@@ -166,6 +164,18 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+}
+
+/* date and time functions */
+TOKEN [IGNORE_CASE]: {
+  < date_time_function_name:
+   "CURRENT_TIMESTAMP"
+   | "CURRENT_DATE"
+   | "CURRENT_TIME"
+   | "NOW"
+   | "UNIX_TIMESTAMP"
+   | "FROM_UNIXTIME"   
+  >
 }
 
 /* datetime */
@@ -794,7 +804,42 @@ NumericPrimary numericPrimary():
 	NumericValueFunction numericValueFunction = null;
 }
 {
-	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }}
+	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
+	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
+NumericValueFunction numericValueFunction():
+{
+	MySqlFunction mysqlFunction = null;
+}
+{
+	mysqlFunction = mysqlFunction() { return new NumericValueFunction(mysqlFunction); }
+}
+MySqlFunction mysqlFunction():
+{
+	MySqlFunction mySqlFunction = null;
+ 	MySqlFunctionName functionName = null;
+ 	ValueExpression valueExpression;
+}
+{
+	functionName = mySqlFunctionName() { mySqlFunction = new MySqlFunction(functionName); }
+	[ 
+		<left_paren> { mySqlFunction.startParentheses(); }
+		[  
+			valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
+			(
+				<comma> valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
+			)*
+		]
+		<right_paren>
+	]
+	{ return mySqlFunction; }
+}
+MySqlFunctionName mySqlFunctionName():
+{
+	Token functionName = null;
+}
+{
+	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+}
 StringValueExpression stringValueExpression():
 {
 	CharacterValueExpression characterValueExpression;

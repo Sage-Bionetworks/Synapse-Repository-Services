@@ -1147,172 +1147,6 @@ needed?</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>824</x>
-      <y>352</y>
-      <w>152</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;character value expression&gt;</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>816</x>
-      <y>296</y>
-      <w>88</w>
-      <h>72</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>90.0;70.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>824</x>
-      <y>392</y>
-      <w>88</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;concatenation&gt;</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>928</x>
-      <y>392</y>
-      <w>104</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;character factor&gt;</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>896</x>
-      <y>368</y>
-      <w>104</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>110.0;30.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>856</x>
-      <y>368</y>
-      <w>64</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;30.0;60.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>880</x>
-      <y>432</y>
-      <w>208</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;character primary&gt; [ &lt;collate clause&gt; ]</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>968</x>
-      <y>408</y>
-      <w>24</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;30.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>912</x>
-      <y>472</y>
-      <w>120</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;character primary&gt;</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>960</x>
-      <y>448</y>
-      <w>24</w>
-      <h>40</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;30.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>912</x>
-      <y>504</y>
-      <w>120</w>
-      <h>24</h>
-    </coordinates>
-    <panel_attributes>&lt;string value function&gt;</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>960</x>
-      <y>488</y>
-      <w>24</w>
-      <h>32</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;20.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>560</x>
-      <y>448</y>
-      <w>368</w>
-      <h>48</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;..</panel_attributes>
-    <additional_attributes>10.0;40.0;210.0;10.0;440.0;40.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>896</x>
-      <y>536</y>
-      <w>144</w>
-      <h>32</h>
-    </coordinates>
-    <panel_attributes>&lt;character value function&gt;
-Needed?</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>960</x>
-      <y>520</y>
-      <w>24</w>
-      <h>32</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>10.0;20.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
       <x>312</x>
       <y>592</y>
       <w>208</w>
@@ -2469,5 +2303,31 @@ Needed?</panel_attributes>
     </coordinates>
     <panel_attributes>lt=&lt;-</panel_attributes>
     <additional_attributes>20.0;120.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>960</x>
+      <y>528</y>
+      <w>280</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>&lt;mysql function&gt; ::= &lt;mysql function name&gt; 
+[	&lt;left_paren&gt; 	[
+			&lt;value expression&gt;
+			( &lt;comma&gt; &lt;value expression&gt; )*
+] &lt;right_paren&gt; ]</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>744</x>
+      <y>480</y>
+      <w>368</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>440.0;60.0;10.0;10.0</additional_attributes>
   </element>
 </diagram>

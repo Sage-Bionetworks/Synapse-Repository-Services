@@ -486,6 +486,17 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
 	}
+	
+	@Test
+	public void testGetSelectColumnsMySqlFunction() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("from_unixtime(foo)").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("FROM_UNIXTIME(foo)", results.getName());
+		assertEquals(ColumnType.INTEGER, results.getColumnType());
+		assertEquals(null, results.getId());
+	}
 
 	@Test
 	public void testGetSelectColumnsSimpleMismatch() throws ParseException{
@@ -896,6 +907,14 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateRightHandeSideInterval() throws ParseException{
+		UnsignedLiteral element = new TableQueryParser("INTERVAL 3 MONTH").unsignedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals("INTERVAL 3 MONTH", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
 	public void testTranslateGroupByMultiple() throws ParseException{
 		GroupByClause element = new TableQueryParser("group by foo, id").groupByClause();
 		SQLTranslatorUtils.translate(element, columnMap);
@@ -1277,6 +1296,15 @@ public class SQLTranslatorUtilsTest {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
 		assertEquals("SELECT * FROM T123 GROUP BY _C333_/456-MIN(_C333_)",element.toSql());
+	}
+	
+	@Test
+	public void testTranslateMySqlFunctionRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)/1000").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ > UNIX_TIMESTAMP(CURRENT_TIMESTAMP-INTERVAL 1 MONTH)/:b0",element.toSql());
+		assertEquals("1000", parameters.get("b0"));
 	}
 	
 	@Test
