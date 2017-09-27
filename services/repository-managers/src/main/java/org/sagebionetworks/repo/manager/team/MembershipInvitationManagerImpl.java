@@ -8,22 +8,19 @@ import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.EmailUtils;
-import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
+import org.sagebionetworks.repo.manager.*;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -45,6 +42,8 @@ public class MembershipInvitationManagerImpl implements
 	private TeamDAO teamDAO;
 	@Autowired
 	private SynapseEmailService sesClient;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 
 	public static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.html";
 
@@ -128,14 +127,6 @@ public class MembershipInvitationManagerImpl implements
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 
-	private String createMembershipInvtnSignedToken(String membershipInvitationId, Date now) {
-		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
-		token.setCreatedOn(now);
-		token.setMembershipInvitationId(membershipInvitationId);
-		SignedTokenUtil.signToken(token);
-		return SerializationUtils.serializeAndHexEncode(token);
-	}
-
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#get(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */
@@ -191,6 +182,32 @@ public class MembershipInvitationManagerImpl implements
 		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(Long.parseLong(principalId), System.currentTimeMillis());
 		result.setCount(count);
 		return result;
+	}
+
+	@Override
+	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
+		// Get list of email addresses associated with userId
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(userId);
+		List<String> emails = new ArrayList<>();
+		for (PrincipalAlias alias : aliases) {
+			if (alias.getType() == AliasType.USER_EMAIL) {
+				emails.add(alias.getAlias());
+			}
+		}
+		// Get inviteeEmail from membershipInvitation
+		String inviteeEmail = membershipInvtnSubmissionDAO.getInviteeEmail(membershipInvitationId);
+		// If inviteeEmail is in the emails list, construct InviteeVerificationSignedToken and return it
+		if (emails.contains(inviteeEmail)) {
+			InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+			token.setInviteeId(userId.toString());
+			token.setMembershipInvitationId(membershipInvitationId);
+			SignedTokenUtil.signToken(token);
+			return token;
+		}
+		// inviteeEmail is not associated with the user, return null to convey invitee verification failure
+		return null;
 	}
 
 	/* (non-Javadoc)

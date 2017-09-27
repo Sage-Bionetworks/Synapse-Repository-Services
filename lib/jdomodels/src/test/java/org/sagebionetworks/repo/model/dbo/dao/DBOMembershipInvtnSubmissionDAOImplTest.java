@@ -269,4 +269,12 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
 		assertEquals(createdOn, miList.get(0).getCreatedOn());
 	}
+
+	@Test
+	public void testGetInviteeEmail() {
+		String inviteeEmail = "test@test.com";
+		mis.setInviteeEmail(inviteeEmail);
+		mis = membershipInvtnSubmissionDAO.create(mis);
+		assertEquals(inviteeEmail, membershipInvtnSubmissionDAO.getInviteeEmail(mis.getId()));
+	}
 }

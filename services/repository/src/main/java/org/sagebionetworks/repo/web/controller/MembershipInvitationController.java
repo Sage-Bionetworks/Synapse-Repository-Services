@@ -4,12 +4,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -164,5 +159,23 @@ public class MembershipInvitationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) {
 		return serviceProvider.getMembershipInvitationService().getOpenInvitationCount(userId);
+	}
+
+	/**
+	 * Verify whether the inviteeEmail of the indicated MembershipInvitation is associated with the authenticated user.
+	 * If it is, the response body will contain an InviteeVerificationSignedToken.
+	 * If it is not, the response body will be null.
+	 * @param membershipInvitationId
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_VERIFY_INVITEE, method = RequestMethod.POST)
+	public @ResponseBody InviteeVerificationSignedToken verifyInvitee(
+			@PathVariable("id") String membershipInvitationId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) throws NotFoundException {
+		return serviceProvider.getMembershipInvitationService().verifyInvitee(userId, membershipInvitationId);
 	}
 }

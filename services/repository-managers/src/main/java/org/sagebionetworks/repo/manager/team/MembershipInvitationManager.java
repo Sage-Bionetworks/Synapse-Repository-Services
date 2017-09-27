@@ -2,13 +2,7 @@ package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MembershipInvitationManager {
@@ -122,4 +116,11 @@ public interface MembershipInvitationManager {
 	 */
 	public Count getOpenInvitationCountForUser(String principalId);
 
+	/**
+	 *
+	 * @param userId
+	 * @param membershipInvitationId
+	 * @return
+	 */
+	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
 }

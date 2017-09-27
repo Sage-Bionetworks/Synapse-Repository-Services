@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -25,18 +22,13 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipInvitationManagerImplTest {
@@ -50,7 +42,7 @@ public class MembershipInvitationManagerImplTest {
 	private UserInfo userInfo = null;
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
-	private static final String INVITEE_EMAIL = "test@test.com";
+	private static final String INVITEE_EMAIL = "invitee@test.com";
 
 	private static final String TEAM_ID = "123";
 	private static final String MIS_ID = "987";
@@ -361,5 +353,45 @@ public class MembershipInvitationManagerImplTest {
 		Count result = membershipInvitationManagerImpl.getOpenInvitationCountForUser(MEMBER_PRINCIPAL_ID);
 		assertNotNull(result);
 		assertEquals(count, result.getCount());
+	}
+
+	@Test
+	public void testVerifyInvitee() {
+		// Setup
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
+
+		// Mock listPrincipalAliases to return one alias with the invitee email
+		PrincipalAliasDAO mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(INVITEE_EMAIL);
+		alias.setType(AliasType.USER_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
+
+		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
+
+		// Test verifyInvitee by inspecting the token it returns
+		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		assertNotNull(token);
+		assertEquals(token.getInviteeId(), MEMBER_PRINCIPAL_ID);
+		assertEquals(token.getMembershipInvitationId(), MIS_ID);
+		SignedTokenUtil.validateToken(token);
+
+		// Test failure cases
+		// Failure #1
+		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn("other-invitee@test.com");
+		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID));
+		// Restore mock
+		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
+
+		// Failure #2
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(new ArrayList<PrincipalAlias>());
+		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID));
+
+		// Failure #3
+		alias.setAlias("not-invitee@test.com");
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
+		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID));
 	}
 }
