@@ -1677,6 +1677,60 @@ public class TableIndexDAOImplTest {
 	}
 	
 	/**
+	 * Test for PLFM-4575.
+	 * @throws ParseException 
+	 */
+	@Test
+	public void testDateTimeFunctions() throws ParseException{
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
+				.createColumn(1L, "aDate", ColumnType.DATE));
+		createOrUpdateTable(schema, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// The first row is in the past
+		long now = System.currentTimeMillis();
+		long thritySecondsPast = now - (1000*30);
+		long thritySecondsFuture = now + (1000*30);
+		// first row is in the past
+		rows.get(0).getValues().set(0, ""+thritySecondsPast);
+		// second row is in the future
+		rows.get(1).getValues().set(0, ""+thritySecondsFuture);
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
+		
+		// This is our query
+		SqlQuery query = new SqlQuery("select aDate from " + tableId+" where aDate > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 SECOND)*1000", schema);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		assertEquals(""+thritySecondsFuture, results.getRows().get(0).getValues().get(0));
+	}
+	
+	/**
+	 * Create update or delete the given rows in the current table.
+	 * @param rows
+	 * @param schema
+	 */
+	public void createOrUpdateOrDeleteRows(List<Row> rows, List<ColumnModel> schema){
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		createOrUpdateOrDeleteRows(set, schema);
+	}
+	
+	/**
 	 * Create a view schema using an EntityDTO as a template.
 	 * 
 	 * @param dto

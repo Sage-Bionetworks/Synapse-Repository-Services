@@ -33,10 +33,12 @@ import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -509,6 +511,56 @@ public class SQLTranslatorUtilsTest {
 			String message = e.getMessage();
 			assertTrue(message.contains("fo0"));
 			assertTrue(message.contains("Unknown column"));
+		}
+	}
+	
+	@Test
+	public void testgetColumnTypeForMySqlFunctionNull() throws ParseException{
+		MySqlFunction function = null;
+		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testgetColumnTypeForMySqlFunctionNow() throws ParseException{
+		MySqlFunction function = new TableQueryParser("now()").mysqlFunction();
+		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
+		assertEquals(ColumnType.STRING, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetColumnTypeNull(){
+		FunctionReturnType returnType = null;
+		SQLTranslatorUtils.getColumnType(returnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeLong(){
+		FunctionReturnType returnType = FunctionReturnType.LONG;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.INTEGER, result);
+	}
+	
+	@Test
+	public void testGetColumnTypeDouble(){
+		FunctionReturnType returnType = FunctionReturnType.DOUBLE;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.DOUBLE, result);
+	}
+	
+	@Test
+	public void testGetColumnTypeString(){
+		FunctionReturnType returnType = FunctionReturnType.STRING;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.STRING, result);
+	}
+
+	@Test
+	public void testGetColumnTypeAllTypes(){
+		// should work for all types
+		for(FunctionReturnType returnType: FunctionReturnType.values()){
+			ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+			assertNotNull(result);
 		}
 	}
 	
