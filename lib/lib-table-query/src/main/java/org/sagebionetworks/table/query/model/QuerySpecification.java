@@ -8,24 +8,16 @@ import java.util.List;
 public class QuerySpecification extends SQLElement implements HasAggregate {
 
 	SetQuantifier setQuantifier;
-	SqlDirective sqlDirective;
 	SelectList selectList;
 	TableExpression tableExpression;
 
-	public QuerySpecification(SetQuantifier setQuantifier, SelectList selectList, TableExpression tableExpression) {
-		this(null, setQuantifier, selectList, tableExpression);
-	}
 
-	public QuerySpecification(SqlDirective sqlDirective, SetQuantifier setQuantifier, SelectList selectList, TableExpression tableExpression) {
-		this.sqlDirective = sqlDirective;
+	public QuerySpecification(SetQuantifier setQuantifier, SelectList selectList, TableExpression tableExpression) {
 		this.setQuantifier = setQuantifier;
 		this.selectList = selectList;
 		this.tableExpression = tableExpression;
 	}
 
-	public SqlDirective getSqlDirective() {
-		return sqlDirective;
-	}
 	public SetQuantifier getSetQuantifier() {
 		return setQuantifier;
 	}
@@ -46,21 +38,17 @@ public class QuerySpecification extends SQLElement implements HasAggregate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("SELECT");
-		if (sqlDirective != null) {
-			builder.append(" ");
-			builder.append(sqlDirective.name());
-		}
 		if (setQuantifier != null) {
 			builder.append(" ");
 			builder.append(setQuantifier.name());
 		}
 		builder.append(" ");
-		selectList.toSql(builder);
+		selectList.toSql(builder, parameters);
 		if (tableExpression != null) {
 			builder.append(" ");
-			tableExpression.toSql(builder);
+			tableExpression.toSql(builder, parameters);
 		}
 	}
 

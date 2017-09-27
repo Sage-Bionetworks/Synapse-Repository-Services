@@ -3,6 +3,9 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
+ * FactorPrime ::= {@link ArithmeticOperator} {@link Factor}
+ * <p>
+ * 
  * Factor prime is used to support arithmetic operations of factors while
  * avoiding left-recursion.
  *
@@ -24,9 +27,9 @@ public class FactorPrime extends SQLElement {
 		this.factor = factor;
 	}
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append(operator.toSQL());
-		factor.toSql(builder);
+		factor.toSql(builder, parameters);
 	}
 	@Override
 	<T extends Element> void addElements(List<T> elements, Class<T> type) {

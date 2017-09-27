@@ -39,15 +39,15 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		if(not != null){
 			builder.append(" NOT");
 		}
 		builder.append(" BETWEEN ");
-		betweenRowValueConstructor.toSql(builder);
+		betweenRowValueConstructor.toSql(builder, parameters);
 		builder.append(" AND ");
-		andRowValueConstructorRHS.toSql(builder);
+		andRowValueConstructorRHS.toSql(builder, parameters);
 	}
 
 	@Override
@@ -63,12 +63,24 @@ public class BetweenPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
-		for(HasQuoteValue value: betweenRowValueConstructor.createIterable(HasQuoteValue.class)){
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		List<UnsignedLiteral> results = new LinkedList<UnsignedLiteral>();
+		for(UnsignedLiteral value: betweenRowValueConstructor.createIterable(UnsignedLiteral.class)){
 			results.add(value);
 		}
-		for(HasQuoteValue value: andRowValueConstructorRHS.createIterable(HasQuoteValue.class)){
+		for(UnsignedLiteral value: andRowValueConstructorRHS.createIterable(UnsignedLiteral.class)){
+			results.add(value);
+		}
+		return results;
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		List<ColumnName> results = new LinkedList<ColumnName>();
+		for(ColumnName value: betweenRowValueConstructor.createIterable(ColumnName.class)){
+			results.add(value);
+		}
+		for(ColumnName value: andRowValueConstructorRHS.createIterable(ColumnName.class)){
 			results.add(value);
 		}
 		return results;

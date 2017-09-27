@@ -13,7 +13,7 @@ public interface HasReferencedColumn extends Element {
 	 * 
 	 * @return
 	 */
-	public HasQuoteValue getReferencedColumn();
+	public ColumnNameReference getReferencedColumn();
 	
 	/**
 	 * Is the reference in a function?

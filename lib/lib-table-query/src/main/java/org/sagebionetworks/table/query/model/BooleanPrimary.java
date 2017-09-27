@@ -26,12 +26,12 @@ public class BooleanPrimary extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		if(predicate != null){
-			predicate.toSql(builder);
+			predicate.toSql(builder, parameters);
 		}else{
 			builder.append("( ");
-			searchCondition.toSql(builder);
+			searchCondition.toSql(builder, parameters);
 			builder.append(" )");
 		}
 	}

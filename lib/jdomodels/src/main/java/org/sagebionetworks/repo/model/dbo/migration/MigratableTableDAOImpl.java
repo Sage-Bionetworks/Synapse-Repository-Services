@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -26,7 +28,9 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -167,6 +171,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		TableMapping mapping = dbo.getTableMapping();
 		DMLUtils.validateMigratableTableMapping(mapping);
 		MigrationType type = dbo.getMigratableTableType();
+
 		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
@@ -192,6 +197,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
 		if(etag != null){
+			validateEtagColumn(mapping.getTableName(), etag.getColumnName());
 			etagColumns.put(type, etag);
 		}
 		FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
@@ -224,6 +230,18 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		
 		registeredMigrationTypes.add(dbo.getMigratableTableType());
 
+	}
+
+	private void validateEtagColumn(String tableName, String columnName) {
+		String query =
+				"SELECT IS_NULLABLE \n" +
+				"FROM INFORMATION_SCHEMA.COLUMNS \n" +
+				"WHERE TABLE_NAME = ? \n" +
+				"AND COLUMN_NAME = ? \n";
+		String isNullable = jdbcTemplate.queryForObject(query, String.class, tableName, columnName);
+		if (!"NO".equals(isNullable)) {
+			throw new IllegalArgumentException("etag column " + columnName + " must be NOT NULL for table " + tableName);
+		}
 	}
 	
 	/**

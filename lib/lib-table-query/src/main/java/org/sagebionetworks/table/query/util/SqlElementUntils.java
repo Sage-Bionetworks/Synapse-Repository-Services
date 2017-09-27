@@ -220,7 +220,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static ComparisonPredicate createComparisonPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getComparisonPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(ComparisonPredicate.class);
 	}
 
 	/**
@@ -230,7 +230,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static BetweenPredicate createBetweenPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getBetweenPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(BetweenPredicate.class);
 	}
 
 	/**
@@ -240,7 +240,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static InPredicate createInPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getInPredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(InPredicate.class);
 	}
 
 	/**
@@ -250,7 +250,7 @@ public class SqlElementUntils {
 	 * @throws ParseException 
 	 */
 	public static LikePredicate createLikePredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getLikePredicate();
+		return new TableQueryParser(sql).predicate().getFirstElementOfType(LikePredicate.class);
 	}
 
 	/**
@@ -261,7 +261,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static BooleanPredicate createBooleanPredicate(String sql) throws ParseException {
-		return (BooleanPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+		return (BooleanPredicate) new TableQueryParser(sql).predicate().getFirstElementOfType(BooleanPredicate.class);
 	}
 
 	/**
@@ -272,7 +272,7 @@ public class SqlElementUntils {
 	 * @throws ParseException
 	 */
 	public static NullPredicate createNullPredicate(String sql) throws ParseException {
-		return (NullPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+		return (NullPredicate) new TableQueryParser(sql).predicate().getFirstElementOfType(NullPredicate.class);
 	}
 
 	/**
@@ -487,7 +487,7 @@ public class SqlElementUntils {
 			// need to preserve order, so use linked hash map
 			originalSortSpecifications = Maps.newLinkedHashMap();
 			for (SortSpecification spec : orderByClause.getSortSpecificationList().getSortSpecifications()) {
-				String columnName = spec.getSortKey().getValueExpressionPrimary().toString();
+				String columnName = spec.getSortKey().toSql();
 				originalSortSpecifications.put(columnName, spec);
 			}
 		}
@@ -614,7 +614,7 @@ public class SqlElementUntils {
 		// build a mapping for each as clause
 		for(DerivedColumn dc: originalSelect.getColumns()){
 			if(dc.getAsClause() != null){
-				String asValue = dc.getAsClause().getFirstUnquotedValue();
+				String asValue = dc.getAsClause().getColumnName().toSqlWithoutQuotes();
 				asMapping.put(asValue, dc.getValueExpression());
 			}
 		}
@@ -624,7 +624,7 @@ public class SqlElementUntils {
 			if(!isFirst){
 				builder.append(", ");
 			}
-			String unQuoted = gcr.getFirstUnquotedValue();
+			String unQuoted = gcr.toSqlWithoutQuotes();
 			ValueExpression selectValue = asMapping.get(unQuoted);
 			if(selectValue != null){
 				// replace ass with value expression
@@ -669,8 +669,8 @@ public class SqlElementUntils {
 			 * create the SortKey. For non-aggregate functions the name must be
 			 * bracketed in quotes.
 			 */
-			ValueExpressionPrimary primary = new TableQueryParser(columnName)
-					.valueExpressionPrimary();
+			ValueExpression primary = new TableQueryParser(columnName)
+					.valueExpression();
 			if (primary.hasAnyAggregateElements()) {
 				return new SortKey(primary);
 			} else {

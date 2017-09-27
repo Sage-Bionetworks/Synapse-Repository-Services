@@ -6,32 +6,34 @@ import java.util.List;
 
 /**
  * An element that be serialized to SQL.
- * 
- * @author John
  *
  */
 public abstract class SQLElement implements Element {
-
-	private static final String EMPTY = "";
-	private static final String REGEX_QUOTES = "[',\"]";
-
-	
+		
 	/**
 	 * Each element should override to build the SQL string.
 	 * 
 	 * @param builder
 	 */
-	public abstract void toSql(StringBuilder builder);
+	public abstract void toSql(StringBuilder builder, ToSqlParameters parameters);
 	
 	/**
 	 * Write this element to SQL.
 	 * @return
 	 */
-	public String toSql(){
+	final public String toSql(){
+		// By default Quotes are include when writing to SQL.
+		boolean includeQutoes = true;
+		return toSql(includeQutoes);
+	}
+
+	private String toSql(boolean includeQutoes) {
+		ToSqlParameters parameters = new ToSqlParameters(includeQutoes);
 		StringBuilder builder = new StringBuilder();
-		toSql(builder);
+		toSql(builder, parameters);
 		return builder.toString();
 	}
+	
 
 	@Override
 	public String toString() {
@@ -54,6 +56,15 @@ public abstract class SQLElement implements Element {
 		LinkedList<T> list = new LinkedList<T>();
 		checkElement(list, type, this);
 		return list;
+	}
+	
+	/**
+	 * Iterate over all element of this tree.
+	 * 
+	 * @return
+	 */
+	public Iterable<Element> createAllElementsIterable(){
+		return createIterable(Element.class);
 	}
 	
 	/**
@@ -131,19 +142,32 @@ public abstract class SQLElement implements Element {
 	 * @return
 	 */
 	public String toSqlWithoutQuotes(){
-		return this.toSql().replaceAll(REGEX_QUOTES, EMPTY);
+		// do not include quotes
+		boolean includeQutoes = false;
+		return toSql(includeQutoes);
+	}
+	
+	@Override
+	public boolean hasQuotes(){
+		return false;
 	}
 	
 	/**
-	 * Get the first unquoted value in this element.
+	 * Does this tree have a leaf with quotes?
+	 * 
 	 * @return
 	 */
-	public String getFirstUnquotedValue(){
-		HasQuoteValue element = getFirstElementOfType(HasQuoteValue.class);
-		if(element != null){
-			return element.getValueWithoutQuotes();
+	public boolean hasQuotesRecursive(){
+		if(this.hasQuotes()){
+			return true;
 		}
-		return null;
+		// Check all nodes
+		for(Element leaf: createAllElementsIterable()){
+			if(leaf.hasQuotes()){
+				return true;
+			}
+		}
+		return false;
 	}
 	
 }

@@ -17,45 +17,10 @@ import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.SignedLiteral;
-import org.sagebionetworks.table.query.model.SignedValueSpecification;
+import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
 public class TableQueryParserTest {
-	
-	/**
-	 * Delimited Identifiers are surrounded by double quotes.
-	 * 
-	 * @throws ParseException
-	 */
-	@Test
-	public void testDelimitedIdentifier() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		// Double quotes are used to escape double quotes.
-		TableQueryParser parser = new TableQueryParser("\"This is a long string in quotes\"");
-		parser.delimitedIentifier(builder);
-		assertEquals("This is a long string in quotes", builder.toString());
-	}
-
-	/**
-	 * Double quotes within a delimited identifier are escaped with double quotes
-	 * @throws ParseException
-	 */
-	@Test
-	public void testDelimitedIdentifierEscape() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("\"A string \"\"within a\"\" string.\"");
-		parser.delimitedIentifier(builder);
-		assertEquals("A string \"within a\" string.", builder.toString());
-	}
-
-	@Test
-	public void testDelimitedIdentifierEmptyString() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("\"\"");
-		parser.delimitedIentifier(builder);
-		assertEquals("", builder.toString());
-	}
 	
 	/**
 	 * Character String Literals are surrounded by single quotes.
@@ -94,145 +59,8 @@ public class TableQueryParserTest {
 	
 	@Test
 	public void testSignedInteger() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(" 1234567890 ");
-		parser.signedInteger(builder);
-		assertEquals("1234567890", builder.toString());
-	}
-	
-	@Test
-	public void testSignedIntegerPlus() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(" +1234567890 ");
-		parser.signedInteger(builder);
-		assertEquals("+1234567890", builder.toString());
-	}
-	
-	@Test
-	public void testSignedIntegerMinus() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(" -1234567890 ");
-		parser.signedInteger(builder);
-		assertEquals("-1234567890", builder.toString());
-	}
-	
-	@Test
-	public void testExactNumericLiteralLeadingZero() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("0.123");
-		parser.exactNumericLiteral(builder);
-		assertEquals("0.123", builder.toString());
-	}
-	
-	@Test
-	public void testExactNumericLiteralLeadingPeriod() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(".123");
-		parser.exactNumericLiteral(builder);
-		assertEquals(".123", builder.toString());
-	}
-	
-	@Test
-	public void testApproximateNumericLiteral() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("1.123e-12");
-		parser.approximateNumericLiteral(builder);
-		assertEquals("1.123e-12", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralNoExponent() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(".12");
-		parser.signedNumericLiteral(builder);
-		assertEquals(".12", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralIntegerStartNoExponent() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("123.1");
-		parser.signedNumericLiteral(builder);
-		assertEquals("123.1", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralWithExponent() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("9.12E+123");
-		parser.signedNumericLiteral(builder);
-		assertEquals("9.12E+123", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralNoIntegerStartWithExponent() throws ParseException {
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser(".12E+123");
-		parser.signedNumericLiteral(builder);
-		assertEquals(".12E+123", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralWithNoSign() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("9.12E+123");
-		parser.signedNumericLiteral(builder);
-		assertEquals("9.12E+123", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralPlus() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("+9.12E+123");
-		parser.signedNumericLiteral(builder);
-		assertEquals("+9.12E+123", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralMinus() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("-9.12E+123");
-		parser.signedNumericLiteral(builder);
-		assertEquals("-9.12E+123", builder.toString());
-	}
-	
-	/**
-	 * Regular identifiers must start with a letter.
-	 * 
-	 * @throws ParseException
-	 */
-	@Test (expected=ParseException.class)
-	public void testRegularIdentifierBadStart() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("123");
-		parser.regularIdentifier(builder);
-	}
-	
-	@Test 
-	public void testRegularIdentifierHappy() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("T1_23a");
-		parser.regularIdentifier(builder);
-		assertEquals("T1_23a", builder.toString());
-	}
-	/**
-	 * Since 'e' can also be an exponent make sure it works in an identifier.
-	 * @throws ParseException
-	 */
-	@Test 
-	public void testRegularIdentifierWithE() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("ebay");
-		parser.regularIdentifier(builder);
-		assertEquals("ebay", builder.toString());
-	}
-	
-	@Test 
-	public void testRegularIdentifierWithEAndNumber() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("e123");
-		parser.regularIdentifier(builder);
-		assertEquals("e123", builder.toString());
+		UnsignedNumericLiteral element =  new TableQueryParser(" 1234567890 ").unsignedNumericLiteral();
+		assertEquals("1234567890", element.toSql());
 	}
 	
 	@Test
@@ -271,84 +99,7 @@ public class TableQueryParserTest {
 		assertEquals("\"with space\".\"cat's\"", sql);
 	}
 	
-	@Test
-	public void testSignedLiteralSignedNumericLiteral() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("123.456e-1");
-		SignedLiteral model = parser.signedLiteral();
-		assertNotNull(model);
-		String sql = toSQL(model);
-		assertEquals("123.456e-1", sql);
-	}
-	
-	@Test
-	public void testSignedLiteralGeneralLiteral() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("'Batman''s car'");
-		SignedLiteral model = parser.signedLiteral();
-		assertNotNull(model);
-		String sql = toSQL(model);
-		assertEquals("'Batman''s car'", sql);
-	}
-	
-	@Test
-	public void testSignedNumericLiteralInteger() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("123");
-		StringBuilder builder = new StringBuilder();
-		parser.signedNumericLiteral(builder);
-		assertEquals("123", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralDouble() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("123.456");
-		StringBuilder builder = new StringBuilder();
-		parser.signedNumericLiteral(builder);
-		assertEquals("123.456", builder.toString());
-	}
-	
-	@Test
-	public void testSignedNumericLiteralExponent() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("123.456e2");
-		StringBuilder builder = new StringBuilder();
-		parser.signedNumericLiteral(builder);
-		assertEquals("123.456e2", builder.toString());
-	}
-	
-	@Test
-	public void testSignedValueSpecificationInteger() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("123456");
-		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
-		assertNotNull(signedValueSpec);
-		String sql = toSQL(signedValueSpec);
-		assertEquals("123456", sql);
-	}
-	
-	@Test
-	public void testSignedValueSpecificationIntegerMinus() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("-123456");
-		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
-		assertNotNull(signedValueSpec);
-		String sql = toSQL(signedValueSpec);
-		assertEquals("-123456", sql);
-	}
 
-	@Test
-	public void testSignedValueSpecificationIntegerPlus() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("+123456");
-		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
-		assertNotNull(signedValueSpec);
-		String sql = toSQL(signedValueSpec);
-		assertEquals("+123456", sql);
-	}
-
-	@Test
-	public void testSignedValueSpecificationCharacterString() throws ParseException {
-		TableQueryParser parser = new TableQueryParser("'a string'");
-		SignedValueSpecification signedValueSpec = parser.signedValueSpecification();
-		assertNotNull(signedValueSpec);
-		String sql = toSQL(signedValueSpec);
-		assertEquals("'a string'", sql);
-	}
-	
 	@Test
 	public void testSetFunctionSpecification() throws ParseException{
 		TableQueryParser parser = new TableQueryParser("count( distinct \"name\")");
@@ -390,7 +141,7 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("foo.bar >= 10.1e-10");
 		Predicate element = parser.predicate();
 		String sql = toSQL(element);
-		assertEquals("foo.bar >= 10.1e-10", sql);
+		assertEquals("foo.bar >= 1.01E-9", sql);
 	}
 	
 	@Test
@@ -630,9 +381,9 @@ public class TableQueryParserTest {
 	 * Test for PLFM-4566
 	 * @throws ParseException 
 	 */
-	@Ignore
 	@Test
 	public void testArithmetic() throws ParseException{
 		QuerySpecification element = TableQueryParser.parserQuery("select foo/100 from syn123");
+		assertEquals("SELECT foo/100 FROM syn123", element.toSql());
 	}
 }

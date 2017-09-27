@@ -31,12 +31,12 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" ");
 		builder.append(compOp.toSQL());
 		builder.append(" ");
-		rowValueConstructorRHS.toSql(builder);
+		rowValueConstructorRHS.toSql(builder, parameters);
 	}
 
 	@Override
@@ -51,7 +51,12 @@ public class ComparisonPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		return rowValueConstructorRHS.createIterable(HasQuoteValue.class);
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {	
+		return rowValueConstructorRHS.createIterable(UnsignedLiteral.class);
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return rowValueConstructorRHS.createIterable(ColumnName.class);
 	}
 }

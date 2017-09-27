@@ -16,5 +16,11 @@ public interface HasPredicate extends Element {
 	 * Get right-hand-side values.
 	 * @return
 	 */
-	public Iterable<HasQuoteValue> getRightHandSideValues();
+	public Iterable<UnsignedLiteral> getRightHandSideValues();
+	
+	/**
+	 * Get right-hand-side column references.
+	 * @return
+	 */
+	public Iterable<ColumnName> getRightHandSideColumnReferences();
 }

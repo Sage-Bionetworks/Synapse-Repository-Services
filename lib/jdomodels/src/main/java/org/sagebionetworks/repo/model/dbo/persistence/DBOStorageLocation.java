@@ -30,7 +30,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE)
 	private UploadType uploadType;
 
-	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true)
+	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
 	private String etag;
 
 	@Field(name = COL_STORAGE_LOCATION_DATA, serialized = "mediumblob")

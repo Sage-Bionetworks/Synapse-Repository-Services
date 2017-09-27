@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 import java.util.List;
 
 /**
- * This matches &ltidentifier&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * Identifier ::= [ <introducer><character set specification> ] {@link ActualIdentifier}
  */
 public class Identifier extends SQLElement {
 
@@ -19,8 +19,8 @@ public class Identifier extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		actualIdentifier.toSql(builder);		
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		actualIdentifier.toSql(builder, parameters);		
 	}
 
 	@Override

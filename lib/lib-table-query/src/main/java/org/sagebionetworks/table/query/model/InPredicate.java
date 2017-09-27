@@ -32,14 +32,14 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" ");
 		if (this.not != null) {
 			builder.append("NOT ");
 		}
 		builder.append("IN ( ");
-		inPredicateValue.toSql(builder);
+		inPredicateValue.toSql(builder, parameters);
 		builder.append(" )");
 	}
 
@@ -55,7 +55,12 @@ public class InPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		return inPredicateValue.createIterable(HasQuoteValue.class);
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		return inPredicateValue.createIterable(UnsignedLiteral.class);
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return inPredicateValue.createIterable(ColumnName.class);
 	}
 }

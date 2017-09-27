@@ -1,76 +1,49 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
 
 /**
- * This matches &ltvalue expression primary&gt   in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
+ * ValueExpressionPrimary ::= {@link UnsignedValueSpecification} | {@link ColumnReference} | {@link SetFunctionSpecification} | {@link ParenthesizedValueExpression}
  */
-public class ValueExpressionPrimary extends SQLElement implements HasReferencedColumn {
-
-	SignedValueSpecification signedValueSpecification;
-	ColumnReference columnReference;
-	SetFunctionSpecification setFunctionSpecification;
+public class ValueExpressionPrimary extends SimpleBranch implements HasReferencedColumn {
 	
-	public ValueExpressionPrimary(SignedValueSpecification signedValueSpecification) {
-		this.signedValueSpecification = signedValueSpecification;
+	public ValueExpressionPrimary(UnsignedValueSpecification unsignedValueSpecifictation) {
+		super(unsignedValueSpecifictation);
 	}
 	
 	public ValueExpressionPrimary(ColumnReference columnReference) {
-		this.columnReference = columnReference;
+		super(columnReference);
 	}
 
 	public ValueExpressionPrimary(SetFunctionSpecification setFunctionSpecification) {
-		this.setFunctionSpecification = setFunctionSpecification;
+		super(setFunctionSpecification);
 	}
 
-	public SignedValueSpecification getSignedValueSpecification() {
-		return signedValueSpecification;
-	}
-	public ColumnReference getColumnReference() {
-		return columnReference;
-	}
-	public SetFunctionSpecification getSetFunctionSpecification() {
-		return setFunctionSpecification;
+	public ValueExpressionPrimary(
+			ParenthesizedValueExpression parenthesizedValueExpression) {
+		super(parenthesizedValueExpression);
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		// only one element at a time will be no null
-		if (signedValueSpecification != null) {
-			signedValueSpecification.toSql(builder);
-		} else if (columnReference != null) {
-			columnReference.toSql(builder);
-		} else {
-			setFunctionSpecification.toSql(builder);
-		}
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, signedValueSpecification);
-		checkElement(elements, type, columnReference);
-		checkElement(elements, type, setFunctionSpecification);
-	}
-
-	@Override
-	public HasQuoteValue getReferencedColumn() {
+	public ColumnNameReference getReferencedColumn() {
 		// Handle functions first
+		SetFunctionSpecification setFunctionSpecification = this.getFirstElementOfType(SetFunctionSpecification.class);
 		if(setFunctionSpecification != null){
 			if(setFunctionSpecification.getCountAsterisk() != null){
 				// count(*) does not reference a column
 				return null;
 			}else{
 				// first unquoted value starting at the value expression.
-				return setFunctionSpecification.getValueExpression().getFirstElementOfType(HasQuoteValue.class);
+				return setFunctionSpecification.getValueExpression().getFirstElementOfType(ColumnNameReference.class);
 			}
 		}else{
 			// This is not a function so get the first unquoted.
-			return this.getFirstElementOfType(HasQuoteValue.class);
+			return this.getFirstElementOfType(ColumnNameReference.class);
 		}
 	}
 
 	@Override
 	public boolean isReferenceInFunction() {
+		SetFunctionSpecification setFunctionSpecification = this.getFirstElementOfType(SetFunctionSpecification.class);
 		if(setFunctionSpecification != null && setFunctionSpecification.getCountAsterisk() != null){
 			throw new IllegalArgumentException("COUNT(*) does not have a column reference");
 		}

@@ -28,13 +28,13 @@ public class SearchCondition extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		boolean isFirst = true;
 		for (BooleanTerm booleanTerm : orBooleanTerms) {
 			if (!isFirst) {
 				builder.append(" OR ");
 			}
-			booleanTerm.toSql(builder);
+			booleanTerm.toSql(builder, parameters);
 			isFirst = false;
 		}
 	}

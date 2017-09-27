@@ -36,16 +36,16 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		if (not != null) {
 			builder.append(" NOT");
 		}
 		builder.append(" LIKE ");
-		pattern.toSql(builder);
+		pattern.toSql(builder, parameters);
 		if (escapeCharacter != null) {
 			builder.append(" ESCAPE ");
-			escapeCharacter.toSql(builder);
+			escapeCharacter.toSql(builder, parameters);
 		}
 	}
 
@@ -62,16 +62,17 @@ public class LikePredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
-		List<HasQuoteValue> results = new LinkedList<HasQuoteValue>();
-		for(HasQuoteValue value: pattern.createIterable(HasQuoteValue.class)){
-			results.add(value);
-		}
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
+		List<UnsignedLiteral> results = new LinkedList<UnsignedLiteral>();
+		results.add(pattern.getFirstElementOfType(UnsignedLiteral.class));
 		if(escapeCharacter != null){
-			for(HasQuoteValue value: escapeCharacter.createIterable(HasQuoteValue.class)){
-				results.add(value);
-			}
+			results.add(escapeCharacter.getFirstElementOfType(UnsignedLiteral.class));
 		}
 		return results;
+	}
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return null;
 	}
 }

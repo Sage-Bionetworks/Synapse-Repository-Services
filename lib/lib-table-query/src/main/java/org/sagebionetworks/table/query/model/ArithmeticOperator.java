@@ -9,7 +9,8 @@ public enum ArithmeticOperator {
 	ASTERISK("*"),
 	SOLIDUS("/"),
 	PLUS_SIGN("+"),
-	MINUS_SIGN("-");
+	MINUS_SIGN("-"),
+	MODULO("%");
 	
 	ArithmeticOperator(String sql){
 		this.sql = sql;

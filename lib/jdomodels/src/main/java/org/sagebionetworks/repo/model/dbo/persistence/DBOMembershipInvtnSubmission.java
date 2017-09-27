@@ -21,7 +21,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, true).withIsBackupId(true),
-		new FieldColumn("etag", COL_MEMBERSHIP_INVITATION_ETAG).withIsEtag(true),
+		new FieldColumn("etag", COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG).withIsEtag(true),
 		new FieldColumn("createdOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON),
 		new FieldColumn("teamId", COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID),
 		new FieldColumn("expiresOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON),
@@ -29,6 +29,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		new FieldColumn("inviteeEmail", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
+
+	public static String defaultEtag = "defaultEtag";
 	
 	private Long id;
 	private String etag;
@@ -46,8 +48,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 			public DBOMembershipInvtnSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 				dbo.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
-				String etag = rs.getString(COL_MEMBERSHIP_INVITATION_ETAG);
-				if (rs.wasNull()) etag=null;
+				String etag = rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG);
+				// Assume etag is not null
 				dbo.setEtag(etag);
 				Long createdOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON);
 				if (rs.wasNull()) createdOn=null;
@@ -92,13 +94,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		};
 	}
 
-
-
 	public Long getId() {
 		return id;
 	}
-
-
 
 	public void setId(Long id) {
 		this.id = id;
@@ -112,59 +110,41 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		this.etag = etag;
 	}
 
-
 	public Long getCreatedOn() {
 		return createdOn;
 	}
-
-
 
 	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
-
-
 	public byte[] getProperties() {
 		return properties;
 	}
-
-
 
 	public void setProperties(byte[] properties) {
 		this.properties = properties;
 	}
 
-
 	public Long getTeamId() {
 		return teamId;
 	}
-
-
 
 	public void setTeamId(Long teamId) {
 		this.teamId = teamId;
 	}
 
-
-
 	public Long getExpiresOn() {
 		return expiresOn;
 	}
-
-
 
 	public void setExpiresOn(Long expiresOn) {
 		this.expiresOn = expiresOn;
 	}
 
-
-
 	public Long getInviteeId() {
 		return inviteeId;
 	}
-
-
 
 	public void setInviteeId(Long inviteeId) {
 		this.inviteeId = inviteeId;
@@ -178,7 +158,6 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		this.inviteeEmail = inviteeEmail;
 	}
 
-
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
@@ -190,6 +169,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 			@Override
 			public DBOMembershipInvtnSubmission createDatabaseObjectFromBackup(DBOMembershipInvtnSubmission backup) {
+				if (backup.getEtag() == null) {
+					backup.setEtag(defaultEtag);
+				}
 				return backup;
 			}
 
@@ -284,14 +266,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		return true;
 	}
 
-
-
 	@Override
 	public String toString() {
-		return "DBOMembershipInvtnSubmission [id=" + id + ", etag="
-			+ etag + ", createdOn=" + createdOn + ", teamId=" + teamId
+		return "DBOMembershipInvtnSubmission [id=" + id + ", etag=" + etag
+			+ ", createdOn=" + createdOn + ", teamId=" + teamId
 			+ ", expiresOn=" + expiresOn + ", inviteeId=" + inviteeId
 			+ ", inviteeEmail=" + inviteeEmail
-			+ ", properties=" + Arrays.toString(properties) + "]";
-	}
+			+ ", properties=" + Arrays.toString(properties) + "]";	}
 }

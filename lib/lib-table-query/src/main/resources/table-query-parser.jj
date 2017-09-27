@@ -1,5 +1,6 @@
 /* The BNF for this parser was derived from: https://github.com/ronsavage/SQL/blob/master/sql-92.bnf (SQL-92) 
 * https://javacc.java.net/doc/docindex.html
+* The BNF can be viewed with UMLet file in this same directory: SQL92BNF.uxf
 * To debug changes to this file run:
 * mvn clean generate-sources
 */
@@ -112,10 +113,18 @@ SKIP : /* WHITE SPACE */
 | < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
 }
 
+/* Numeric tokens */
 TOKEN:{
- <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
-| < count_asterisk: ("count"|"COUNT")"(*)" >
+ < unsigned_integer: ["0"-"9"](["0"-"9"])*>
+| < exact_numeric_literal: (<unsigned_integer> ( <period> ( <unsigned_integer> )? )?) | (<period> <unsigned_integer>) >
+| < approximate_numeric_literal:  <exact_numeric_literal> ["e","E"] (["+","-"])? <unsigned_integer> >
 }
+
+/* Function tokens */
+TOKEN:{
+ < count_asterisk: ("count"|"COUNT")"(*)" >
+}
+
 
 /* Reserved words */
 TOKEN [IGNORE_CASE]: {
@@ -131,7 +140,6 @@ TOKEN [IGNORE_CASE]: {
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
-| < sql_calc__found_rows: "SQL_CALC_FOUND_ROWS">
 | < default_specification: "DEFAULT" > 
 | < escape: "ESCAPE">
 | < _false: "FALSE">
@@ -156,7 +164,6 @@ TOKEN [IGNORE_CASE]: {
 | < _true: "TRUE">
 | < where: "WHERE">
 | < unknown: "UNKNOWN">
-| < found_rows: "FOUND_ROWS">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
 }
@@ -181,6 +188,7 @@ TOKEN:{
 | < plus_sign: "+">
 | < right_paren: ")">
 | < solidus: "/">
+| < modulo: "%">
 | <underscore: "_">
 }
 
@@ -189,94 +197,51 @@ TOKEN: {
 | < letter: ["a"-"z","A"-"Z"]>
 }
 
-void regularIdentifier(StringBuilder builder):
+RegularIdentifier regularIdentifier():
 {
 	Token token = null;
 }
 {
-	token = <regular_identifier> { builder.append(token.image); }
+	token = <regular_identifier> { return new RegularIdentifier(token.image); }
 }
-/** Literal Numbers, Strings, Dates and Times */
-
-void unsignedInteger(StringBuilder builder):
+UnsignedInteger unsignedInteger():
 {
 	Token token = null;
 }
 {
-	token = <digit> { builder.append(token.image); }
-	(
-		token = <digit> { builder.append(token.image); } 
-	)*
+	token = <unsigned_integer> { return new UnsignedInteger(token.image); }
 }
-String unsignedInteger2():
+ExactNumericLiteral exactNumericLiteral():
+{
+	Token token = null;
+}
+{
+	token = <unsigned_integer> { return new ExactNumericLiteral(new Long(token.image)); }
+	| token = <exact_numeric_literal> { return new ExactNumericLiteral(new Double(token.image)); }
+}
+ApproximateNumericLiteral approximateNumericLiteral():
+{
+	Token token = null;
+}
+{
+	token = <approximate_numeric_literal> { return new ApproximateNumericLiteral(token.image); }
+}
+UnsignedNumericLiteral unsignedNumericLiteral():
+{
+	ExactNumericLiteral exactNumericLiteral = null;
+	ApproximateNumericLiteral approximateNumericLiteral = null; 
+}
+{
+	exactNumericLiteral = exactNumericLiteral() { return new UnsignedNumericLiteral(exactNumericLiteral); }
+	| approximateNumericLiteral = approximateNumericLiteral() { return new UnsignedNumericLiteral(approximateNumericLiteral); }
+}
+GeneralLiteral generalLiteral():
 {
 	StringBuilder builder = new StringBuilder();
 }
-{
-	unsignedInteger(builder)
-	{ return builder.toString(); }
-}
-void sign(StringBuilder builder):
-{}
-{
-	<plus_sign> { builder.append("+"); }
-	| <minus_sign> { builder.append("-"); }
-}
-void signedInteger(StringBuilder builder):
-{}
-{
-	[ sign(builder) ] unsignedInteger(builder) 
-}
-void period(StringBuilder builder):
-{}
-{
-	<period> { builder.append("."); }
-}
-void exactNumericLiteral(StringBuilder builder):
-{}
-{
-	[ sign(builder) ]
-		( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
-		| ( period(builder) unsignedInteger(builder) )
-}
-void exponent(StringBuilder builder):
-{
-	Token token = null;
-}
-{
-	token = <exponent> { builder.append(token.image); }
-}
-void approximateNumericLiteral(StringBuilder builder):
-{}
-{
-  	[ sign(builder) ]
-		(  period(builder) exponent(builder) )
-		| ( unsignedInteger(builder) period(builder) exponent(builder) )
-}
-void unsignedNumericLiteral(StringBuilder builder):
-{}
-{
-	( unsignedInteger(builder) [ period(builder) ( unsignedInteger(builder) | exponent(builder) ) ] )
-	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
-}
-void signedNumericLiteral(StringBuilder builder):
-{
-}
-{
-	[ sign(builder) ] unsignedNumericLiteral(builder)
-}
-String literal():
-{
-	StringBuilder builder = new StringBuilder();
-}
-{
-	signedNumericLiteral(builder) { return builder.toString(); }
-	| generalLiteral(builder) { return builder.toString(); }
-}
-void generalLiteral(StringBuilder builder):
-{}
 {
 	characterStringLiteral(builder)
+	{ return new GeneralLiteral(builder.toString()); }
 }
 void characterStringLiteral(StringBuilder builder):
 {
@@ -292,27 +257,39 @@ void characterStringLiteral(StringBuilder builder):
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
-	SignedValueSpecification signedValueSpecification = null;
+	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
+	ParenthesizedValueExpression parenthesizedValueExpression;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
-	| signedValueSpecification = signedValueSpecification() { return new ValueExpressionPrimary(signedValueSpecification); }
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+	| parenthesizedValueExpression = parenthesizedValueExpression() { return new ValueExpressionPrimary(parenthesizedValueExpression); }
 }
-SignedValueSpecification signedValueSpecification():
+ParenthesizedValueExpression parenthesizedValueExpression():
 {
-	SignedLiteral signedLiteral;
+	ValueExpression valueExpression;
 }
 {
-	signedLiteral = signedLiteral() { return new SignedValueSpecification(signedLiteral); }
+	<left_paren> valueExpression = valueExpression() <right_paren> { return new ParenthesizedValueExpression(valueExpression); }
 }
-SignedLiteral signedLiteral():
-{ StringBuilder builder = new StringBuilder(); }
+UnsignedValueSpecification unsignedValueSpecification():
 {
-	signedNumericLiteral(builder) { return new SignedLiteral(builder.toString(), null); }
-	| generalLiteral(builder) { return new SignedLiteral(null, builder.toString()); }
+	UnsignedLiteral unsignedLiteral;
+}
+{
+	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+}
+UnsignedLiteral unsignedLiteral():
+{
+	UnsignedNumericLiteral unsignedNumericLiteral;
+	GeneralLiteral generalLiteral;
+}
+{
+	unsignedNumericLiteral = unsignedNumericLiteral() { return new UnsignedLiteral(unsignedNumericLiteral); }
+	| generalLiteral = generalLiteral() { return new UnsignedLiteral(generalLiteral); }
 }
 Identifier identifier():
 {
@@ -324,15 +301,17 @@ Identifier identifier():
 }
 ActualIdentifier actualIdentifier():
 {
-	StringBuilder builder = new StringBuilder();
+	RegularIdentifier regularIdentifier = null;
+	DelimitedIdentifier delmitedIdentifier = null;
 }
 {
-	regularIdentifier(builder) { builder.toString(); return new ActualIdentifier(builder.toString(), null); }
-	| delimitedIentifier(builder) { builder.toString(); return new ActualIdentifier(null, builder.toString());}
+	regularIdentifier = regularIdentifier() { return new ActualIdentifier(regularIdentifier); }
+	| delmitedIdentifier = delimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
 }
-void delimitedIentifier(StringBuilder builder):
+DelimitedIdentifier delimitedIdentifier():
 { 
 	Token token = null;
+	StringBuilder builder = new StringBuilder();
 }
 {
 	<start_double_quote>
@@ -341,6 +320,7 @@ void delimitedIentifier(StringBuilder builder):
 		| <escape_double_quote> { builder.append("\""); }
 	)*
 	<end_double_quote>
+	{ return new DelimitedIdentifier(builder.toString()); }
 }
 ColumnReference columnReference():
 {
@@ -353,14 +333,13 @@ ColumnReference columnReference():
 }
 QuerySpecification querySpecification():
 {
-	SqlDirective sqlDirective = null;
 	SetQuantifier setQuantifier = null;
 	SelectList selectList = null;
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ sqlDirective = setSqlDirective()] [ setQuantifier = setQuantifier()] selectList = selectList() [ tableExpression = tableExpression() ] <EOF>
-	{ return new QuerySpecification(sqlDirective, setQuantifier, selectList, tableExpression); }
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() [ tableExpression = tableExpression() ] <EOF>
+	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
 {
@@ -436,11 +415,6 @@ ColumnName columnName():
 }
 {
 	identifier = identifier() {return new ColumnName(identifier); }
-}
-SqlDirective setSqlDirective():
-{}
-{
-	<sql_calc__found_rows> { return SqlDirective.SQL_CALC_FOUND_ROWS;}
 }
 SetQuantifier setQuantifier():
 {}
@@ -541,7 +515,6 @@ BooleanPrimary booleanPrimary():
 	SearchCondition searchCondition = null;
 }
 {
-	LOOKAHEAD(2)
 	predicate = predicate() { return new BooleanPrimary(predicate);}
 	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
 }
@@ -584,11 +557,9 @@ ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
 RowValueConstructor rowValueConstructor():
 {
 	RowValueConstructorElement rowValueConstructorElement = null;
-	RowValueConstructorList rowValueConstructorList = null;
 }
 {
-	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
-	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
+	rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
 }
 RowValueConstructorList rowValueConstructorList():
 {
@@ -606,9 +577,9 @@ RowValueConstructorElement rowValueConstructorElement():
 	TruthValue truthValue;
 }
 {
-		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
-	| 	truthValue = truthValue() { return new RowValueConstructorElement(truthValue); }
-	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
+		<null_specification> { return new RowValueConstructorElement(new NullSpecification()); }
+	|	<default_specification> { return new RowValueConstructorElement(new DefaultSpecification()); }
+	|	truthValue = truthValue() { return new RowValueConstructorElement(new TruthSpecification(truthValue)); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
 CompOp compOp():
@@ -717,11 +688,9 @@ BooleanFunction booleanFunction():
 ValueExpression valueExpression():
 {
   	NumericValueExpression numericValueExpression = null;
-	StringValueExpression stringValueExpression = null;
 }
 {
-	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
-	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+	numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
 }
 /**
 * The reference BNF definition for numericValueExpression() is "left recursive"
@@ -772,13 +741,21 @@ FactorPrime factorPrime():
 {
 	<asterisk> factor = factor() { return new FactorPrime(ArithmeticOperator.ASTERISK, factor); }
 	| <solidus> factor = factor() { return new FactorPrime(ArithmeticOperator.SOLIDUS, factor); }
+	| <modulo> factor = factor() { return new FactorPrime(ArithmeticOperator.MODULO, factor); }
+}
+Sign sign():
+{}
+{
+	<plus_sign> { return Sign.PLUS; }
+	| <minus_sign> { return Sign.MINUS; }
 }
 Factor factor():
 {
+	Sign sign = null;
 	NumericPrimary numericPrimary = null;
 }
 {
-	numericPrimary = numericPrimary() { return new Factor(numericPrimary); }
+	[ sign = sign() ] numericPrimary = numericPrimary() { return new Factor(sign, numericPrimary); }
 }
 NumericPrimary numericPrimary():
 {
@@ -786,20 +763,7 @@ NumericPrimary numericPrimary():
 	NumericValueFunction numericValueFunction = null;
 }
 {
-	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
-	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
-NumericValueFunction numericValueFunction():
-{
-	MysqlFunction mysqlFunction = null;
-}
-{
-	mysqlFunction = mysqlFunction() <left_paren> <right_paren> { return new NumericValueFunction(mysqlFunction); }
-}
-MysqlFunction mysqlFunction():
-{}
-{
-	<found_rows> { return MysqlFunction.FOUND_ROWS; }
-}
+	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }}
 StringValueExpression stringValueExpression():
 {
 	CharacterValueExpression characterValueExpression;
@@ -857,10 +821,10 @@ GroupingColumnReferenceList groupingColumnReferenceList():
 }
 GroupingColumnReference groupingColumnReference():
 {
-	ColumnReference columnReference = null;
+	ValueExpression valueExpression = null;
 }
 {
-	columnReference = columnReference() { return new GroupingColumnReference(columnReference); }
+	valueExpression = valueExpression() { return new GroupingColumnReference(valueExpression); }
 }
 OrderByClause orderByClause():
 {
@@ -893,11 +857,11 @@ SortSpecification sortSpecification():
 }
 SortKey sortKey():
 {
-	ValueExpressionPrimary valueExpressionPrimary = null;
+	ValueExpression valueExpression = null;
 }
 {
-	valueExpressionPrimary = valueExpressionPrimary()
-	{ return new SortKey(valueExpressionPrimary); }
+	valueExpression = valueExpression()
+	{ return new SortKey(valueExpression); }
 }
 OrderingSpecification orderingSpecification():
 {}
@@ -907,10 +871,10 @@ OrderingSpecification orderingSpecification():
 }
 Pagination pagination():
 {
-	String _limit = null;
-	String _offset = null;
+	UnsignedInteger _limit = null;
+	UnsignedInteger _offset = null;
 }
 {
-	<limit> _limit = unsignedInteger2() [ <offset> _offset = unsignedInteger2() ]
+	<limit> _limit = unsignedInteger() [ <offset> _offset = unsignedInteger() ]
 	{ return new Pagination(_limit, _offset); }
 }

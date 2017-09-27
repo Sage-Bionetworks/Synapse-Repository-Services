@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS `MEMBERSHIP_INVITATION_SUBMISSION` (
   `ID` bigint(20) NOT NULL,
-  `ETAG` char(36),
+  `ETAG` char(36) NOT NULL,
   `TEAM_ID` bigint(20) NOT NULL,
   `INVITEE_ID` bigint(20),
   `INVITEE_EMAIL` varchar(320),

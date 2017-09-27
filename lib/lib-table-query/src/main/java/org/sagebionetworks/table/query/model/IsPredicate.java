@@ -1,7 +1,5 @@
 package org.sagebionetworks.table.query.model;
 
-
-
 /**
  * This matches &ltis predicate&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -26,8 +24,8 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	public abstract String getCompareValue();
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		columnReferenceLHS.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		columnReferenceLHS.toSql(builder, parameters);
 		builder.append(" IS ");
 		if (not != null) {
 			builder.append("NOT ");
@@ -41,9 +39,13 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	}
 
 	@Override
-	public Iterable<HasQuoteValue> getRightHandSideValues() {
+	public Iterable<UnsignedLiteral> getRightHandSideValues() {
 		return null;
 	}
-	
+
+	@Override
+	public Iterable<ColumnName> getRightHandSideColumnReferences() {
+		return null;
+	}	
 	
 }

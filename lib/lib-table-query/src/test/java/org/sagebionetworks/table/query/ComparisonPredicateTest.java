@@ -9,9 +9,10 @@ import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.CompOp;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
-import org.sagebionetworks.table.query.model.HasQuoteValue;
+import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -29,12 +30,12 @@ public class ComparisonPredicateTest {
 	
 	@Test
 	public void testHasPredicate() throws ParseException{
-		Predicate predicate = new TableQueryParser("foo > bar").predicate();
-		ComparisonPredicate element = predicate.getComparisonPredicate();
+		Predicate predicate = new TableQueryParser("foo > 12").predicate();
+		ComparisonPredicate element = predicate.getFirstElementOfType(ComparisonPredicate.class);
 		assertEquals("foo", element.getLeftHandSide().toSql());
-		List<HasQuoteValue> values = Lists.newArrayList(element.getRightHandSideValues());
+		List<UnsignedLiteral> values = Lists.newArrayList(element.getRightHandSideValues());
 		assertNotNull(values);
 		assertEquals(1, values.size());
-		assertEquals("bar", values.get(0).getValueWithoutQuotes());
+		assertEquals("12", values.get(0).toSqlWithoutQuotes());
 	}
 }

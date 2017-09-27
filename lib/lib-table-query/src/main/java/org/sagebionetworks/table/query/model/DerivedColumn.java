@@ -25,11 +25,11 @@ public class DerivedColumn extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
-		valueExpression.toSql(builder);
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
+		valueExpression.toSql(builder, parameters);
 		if(asClause!= null){
 			builder.append(" ");
-			asClause.toSql(builder);
+			asClause.toSql(builder, parameters);
 		}
 	}
 
@@ -48,17 +48,17 @@ public class DerivedColumn extends SQLElement {
 	 */
 	public String getDisplayName() {
 		if(asClause != null){
-			return asClause.getFirstElementOfType(ActualIdentifier.class).getValueWithoutQuotes();
+			return asClause.getFirstElementOfType(ActualIdentifier.class).toSqlWithoutQuotes();
 		}
 		// For any aggregate without an as, use the function SQL.
 		if(hasAnyAggregateElements()){
 			return toSql();
 		}
 		// If this has a string literal, then we need the unquoted value.
-		HasQuoteValue hasQuotes = getFirstElementOfType(HasQuoteValue.class);
+		ColumnNameReference hasQuotes = getFirstElementOfType(ColumnNameReference.class);
 		if(hasQuotes != null){
 			// For columns with signedLiterals the name is the unquoted value.
-			return hasQuotes.getValueWithoutQuotes();
+			return hasQuotes.toSqlWithoutQuotes();
 		}else{
 			// For all all others the name is just the SQL.
 			return toSql();
@@ -87,7 +87,7 @@ public class DerivedColumn extends SQLElement {
 	 * 
 	 * @return
 	 */
-	public HasQuoteValue getReferencedColumn(){
+	public ColumnNameReference getReferencedColumn(){
 		HasReferencedColumn hasReferencedColumn = valueExpression.getFirstElementOfType(HasReferencedColumn.class);
 		if(hasReferencedColumn != null){
 			return hasReferencedColumn.getReferencedColumn();
@@ -107,25 +107,9 @@ public class DerivedColumn extends SQLElement {
 	 * @return
 	 */
 	public String getReferencedColumnName(){
-		HasQuoteValue hasQuotedValue = getReferencedColumn();
+		ColumnNameReference hasQuotedValue = getReferencedColumn();
 		if(hasQuotedValue != null){
-			return hasQuotedValue.getValueWithoutQuotes();
-		}
-		return null;
-	}
-	
-	/**
-	 * Is the Referenced column value surrounded with quotes?
-	 * 
-	 * See:
-	 * {@link #getReferencedColumn()}
-	 * 
-	 * @return
-	 */
-	public Boolean isReferencedColumnSurroundedWithQuotes(){
-		HasQuoteValue hasQuotedValue = getReferencedColumn();
-		if(hasQuotedValue != null){
-			return hasQuotedValue.isSurrounedeWithQuotes();
+			return hasQuotedValue.toSqlWithoutQuotes();
 		}
 		return null;
 	}

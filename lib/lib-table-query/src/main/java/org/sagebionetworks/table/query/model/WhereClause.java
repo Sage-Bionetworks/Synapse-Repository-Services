@@ -19,9 +19,9 @@ public class WhereClause extends SQLElement {
 	}
 
 	@Override
-	public void toSql(StringBuilder builder) {
+	public void toSql(StringBuilder builder, ToSqlParameters parameters) {
 		builder.append("WHERE ");
-		searchCondition.toSql(builder);
+		searchCondition.toSql(builder, parameters);
 	}
 
 	@Override
