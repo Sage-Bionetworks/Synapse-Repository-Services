@@ -15,27 +15,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DockerNodeDao;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -98,6 +79,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private DockerNodeDao dockerNodeDao;
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
+	@Autowired
+	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	
 	@Override
@@ -138,7 +121,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				
 				// just check the acl
-				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, ObjectType.TEAM, accessType);
+				boolean teamAccessPermission = aclDAO.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
 				if (teamAccessPermission) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {
@@ -603,5 +586,26 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
 					"Accessors must have validated profiles.");
 		}
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType) {
+		if (mis.getInviteeId() != null) {
+			// The invitee should be able to read or delete the invitation
+			boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
+			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
+				return AuthorizationManagerUtil.AUTHORIZED;
+			}
+		}
+		// An admin of the team should be able to create, read or delete the invitation
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// A Synapse admin should have access of any type
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
 	}
 }
