@@ -1,7 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
 /**
- * GeneralLiteral ::= {@link CharacterStringLiteral} | {@link CharacterStringLiteral}
+ * GeneralLiteral ::= {@link CharacterStringLiteral} | {@link IntervalLiteral}
  *
  */
 public class GeneralLiteral extends SimpleBranch {

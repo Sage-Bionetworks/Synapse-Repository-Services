@@ -37,8 +37,8 @@ public class MySqlFunctionTest {
 	
 	@Test
 	public void testCurrenTime() throws ParseException{
-		MySqlFunction element = new TableQueryParser("current_date").mysqlFunction();
-		assertEquals("CURRENT_DATE", element.toSql());
+		MySqlFunction element = new TableQueryParser("current_time").mysqlFunction();
+		assertEquals("CURRENT_TIME", element.toSql());
 		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
 	
@@ -53,13 +53,13 @@ public class MySqlFunctionTest {
 	public void testFromUnixTime() throws ParseException{
 		MySqlFunction element = new TableQueryParser("from_unixtime(1111885200)").mysqlFunction();
 		assertEquals("FROM_UNIXTIME(1111885200)", element.toSql());
-		assertEquals(FunctionReturnType.LONG, element.getFunctionName().getFunctionReturnType());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
 	
 	@Test
 	public void testFromUnixTimeMultipleParameters() throws ParseException{
 		MySqlFunction element = new TableQueryParser("from_unixtime(1111885200, '%Y %D %M %h:%i:%s %x')").mysqlFunction();
 		assertEquals("FROM_UNIXTIME(1111885200,'%Y %D %M %h:%i:%s %x')", element.toSql());
-		assertEquals(FunctionReturnType.LONG, element.getFunctionName().getFunctionReturnType());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
 }

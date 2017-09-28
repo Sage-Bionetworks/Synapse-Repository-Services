@@ -11,7 +11,7 @@ public enum MySqlFunctionName {
 	CURRENT_TIME(FunctionReturnType.STRING),
 	NOW(FunctionReturnType.STRING),
 	UNIX_TIMESTAMP(FunctionReturnType.LONG),
-	FROM_UNIXTIME(FunctionReturnType.LONG);
+	FROM_UNIXTIME(FunctionReturnType.STRING);
 	
 	FunctionReturnType returnType;
 	
