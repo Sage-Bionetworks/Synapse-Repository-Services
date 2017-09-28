@@ -374,8 +374,8 @@ public class MembershipInvitationManagerImplTest {
 		// Test verifyInvitee by inspecting the token it returns
 		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
 		assertNotNull(token);
-		assertEquals(token.getInviteeId(), MEMBER_PRINCIPAL_ID);
-		assertEquals(token.getMembershipInvitationId(), MIS_ID);
+		assertEquals(MEMBER_PRINCIPAL_ID, token.getInviteeId());
+		assertEquals(MIS_ID, token.getMembershipInvitationId());
 		SignedTokenUtil.validateToken(token);
 
 		// Test failure cases
