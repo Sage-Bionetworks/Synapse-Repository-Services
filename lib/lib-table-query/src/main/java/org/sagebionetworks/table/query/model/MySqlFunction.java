@@ -3,6 +3,11 @@ package org.sagebionetworks.table.query.model;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * 
+ * MySqlFunction ::= {@link MySqlFunctionName} [ left_paren [ {@link ValueExpression} ( comma {@link ValueExpression} )* ] right_paren ]
+ *
+ */
 public class MySqlFunction extends SQLElement {
 	
 	MySqlFunctionName functionName;

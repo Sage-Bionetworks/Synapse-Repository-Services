@@ -496,7 +496,7 @@ public class SQLTranslatorUtilsTest {
 		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
 		assertNotNull(results);
 		assertEquals("FROM_UNIXTIME(foo)", results.getName());
-		assertEquals(ColumnType.INTEGER, results.getColumnType());
+		assertEquals(ColumnType.STRING, results.getColumnType());
 		assertEquals(null, results.getId());
 	}
 
