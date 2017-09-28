@@ -38,4 +38,11 @@ public interface Element {
 	 * @return
 	 */
 	public <T extends Element> Iterable<T> createIterable(Class<T> type);
+	
+	/**
+	 * Get the first element of in the tree of the given class.
+	 * @param type
+	 * @return
+	 */
+	public <T extends Element> T getFirstElementOfType(Class<T> type);
 }

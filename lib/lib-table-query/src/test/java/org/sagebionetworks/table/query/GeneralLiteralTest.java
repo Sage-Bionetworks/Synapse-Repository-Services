@@ -12,7 +12,7 @@ public class GeneralLiteralTest {
 		GeneralLiteral element = new TableQueryParser("'in single quotes'").generalLiteral();
 		assertEquals("'in single quotes'", element.toSql());
 		assertEquals("in single quotes", element.toSqlWithoutQuotes());
-		assertTrue(element.hasQuotes());
+		assertTrue(element.hasQuotesRecursive());
 	}
 	
 	@Test
@@ -21,6 +21,12 @@ public class GeneralLiteralTest {
 		assertEquals("'Batman''s car'", element.toSql());
 		// single quotes within the string must not be escaped.
 		assertEquals("Batman's car", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
+	public void testInterval() throws ParseException{
+		GeneralLiteral element = new TableQueryParser("INTERVAL 1 second").generalLiteral();
+		assertEquals("INTERVAL 1 SECOND", element.toSql());
 	}
 	
 }

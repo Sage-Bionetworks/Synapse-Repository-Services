@@ -29,13 +29,16 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.ExactNumericLiteral;
+import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GeneralLiteral;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
+import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -485,6 +488,17 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(ColumnType.DOUBLE, results.getColumnType());
 		assertEquals(columnSpecial.getId(), results.getId());
 	}
+	
+	@Test
+	public void testGetSelectColumnsMySqlFunction() throws ParseException{
+		DerivedColumn derivedColumn = new TableQueryParser("from_unixtime(foo)").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, columnMap);
+		assertNotNull(results);
+		assertEquals("FROM_UNIXTIME(foo)", results.getName());
+		assertEquals(ColumnType.INTEGER, results.getColumnType());
+		assertEquals(null, results.getId());
+	}
 
 	@Test
 	public void testGetSelectColumnsSimpleMismatch() throws ParseException{
@@ -497,6 +511,56 @@ public class SQLTranslatorUtilsTest {
 			String message = e.getMessage();
 			assertTrue(message.contains("fo0"));
 			assertTrue(message.contains("Unknown column"));
+		}
+	}
+	
+	@Test
+	public void testgetColumnTypeForMySqlFunctionNull() throws ParseException{
+		MySqlFunction function = null;
+		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testgetColumnTypeForMySqlFunctionNow() throws ParseException{
+		MySqlFunction function = new TableQueryParser("now()").mysqlFunction();
+		ColumnType result = SQLTranslatorUtils.getColumnTypeForMySqlFunction(function);
+		assertEquals(ColumnType.STRING, result);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetColumnTypeNull(){
+		FunctionReturnType returnType = null;
+		SQLTranslatorUtils.getColumnType(returnType);
+	}
+	
+	@Test
+	public void testGetColumnTypeLong(){
+		FunctionReturnType returnType = FunctionReturnType.LONG;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.INTEGER, result);
+	}
+	
+	@Test
+	public void testGetColumnTypeDouble(){
+		FunctionReturnType returnType = FunctionReturnType.DOUBLE;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.DOUBLE, result);
+	}
+	
+	@Test
+	public void testGetColumnTypeString(){
+		FunctionReturnType returnType = FunctionReturnType.STRING;
+		ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+		assertEquals(ColumnType.STRING, result);
+	}
+
+	@Test
+	public void testGetColumnTypeAllTypes(){
+		// should work for all types
+		for(FunctionReturnType returnType: FunctionReturnType.values()){
+			ColumnType result = SQLTranslatorUtils.getColumnType(returnType);
+			assertNotNull(result);
 		}
 	}
 	
@@ -895,6 +959,14 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateRightHandeSideInterval() throws ParseException{
+		UnsignedLiteral element = new TableQueryParser("INTERVAL 3 MONTH").unsignedLiteral();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateRightHandeSide(element, columnDate, parameters);
+		assertEquals("INTERVAL 3 MONTH", element.toSqlWithoutQuotes());
+	}
+	
+	@Test
 	public void testTranslateGroupByMultiple() throws ParseException{
 		GroupByClause element = new TableQueryParser("group by foo, id").groupByClause();
 		SQLTranslatorUtils.translate(element, columnMap);
@@ -1279,6 +1351,15 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
+	public void testTranslateMySqlFunctionRightHandSide() throws ParseException{
+		QuerySpecification element = new TableQueryParser("select * from syn123 where foo > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 MONTH)/1000").querySpecification();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translateModel(element, parameters, columnMap);
+		assertEquals("SELECT * FROM T123 WHERE _C111_ > UNIX_TIMESTAMP(CURRENT_TIMESTAMP-INTERVAL 1 MONTH)/:b0",element.toSql());
+		assertEquals("1000", parameters.get("b0"));
+	}
+	
+	@Test
 	public void testGetColumnTypeInfoArray(){
 		SelectColumn one = new SelectColumn();
 		one.setColumnType(ColumnType.STRING);
@@ -1329,7 +1410,7 @@ public class SQLTranslatorUtilsTest {
 	public void testValidateSelectColumnWithStringConstant() {
 		SelectColumn selectColumn = new SelectColumn();
 		selectColumn.setName("contant");
-		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new GeneralLiteral("constant")));
+		SQLTranslatorUtils.validateSelectColumn(selectColumn, null, null, new UnsignedLiteral(new GeneralLiteral(new CharacterStringLiteral("constant"))));
 	}
 
 	@Test
