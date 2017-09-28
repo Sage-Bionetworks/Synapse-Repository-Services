@@ -18,18 +18,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -40,6 +31,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -68,7 +60,10 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private ActivityManager activityManager;
-	
+
+	@Autowired
+	private TeamManager teamManager;
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
@@ -77,6 +72,8 @@ public class AuthorizationManagerImplTest {
 	private UserInfo userInfo;
 	private UserInfo adminUser;
 	private UserInfo anonInfo;
+	private UserInfo teamAdmin;
+	private Team team;
 	private UserGroup testGroup;
 	private UserGroup publicGroup;
 	
@@ -121,7 +118,7 @@ public class AuthorizationManagerImplTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUser, nu, cred, tou);
-		
+
 		// Create a new group
 		testGroup = new UserGroup();
 		testGroup.setIsIndividual(false);
@@ -130,7 +127,15 @@ public class AuthorizationManagerImplTest {
 		// Add new user to new group (in the user's info)
 		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
+
+		// Create team with teamAdmin as the admin
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		teamAdmin = userManager.createUser(adminUser, nu, cred, tou);
+		team = new Team();
+		team.setName("teamName");
+		team = teamManager.create(teamAdmin, team);
+
 		// Find some existing principals
 		anonInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		publicGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -162,7 +167,9 @@ public class AuthorizationManagerImplTest {
 				activityManager.deleteActivity(adminUser, activityId);
 			}
 		}
-		
+
+		teamManager.delete(teamAdmin, team.getId());
+		userManager.deletePrincipal(adminUser, teamAdmin.getId());
 		userManager.deletePrincipal(adminUser, userInfo.getId());
 		userGroupDAO.delete(testGroup.getId());
 	}
@@ -631,5 +638,37 @@ public class AuthorizationManagerImplTest {
 	public void testCanSubscribeAnonymous() {
 		assertEquals(AuthorizationManagerUtil.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON),
 				authorizationManager.canSubscribe(anonInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitation() {
+		// Create invitation from team to userInfo
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		String misId = "1";
+		mis.setId(misId);
+		mis.setTeamId(team.getId());
+		mis.setInviteeId(userInfo.getId().toString());
+		mis.setMessage("Please join our team.");
+
+		// Test all access types
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			// Invitee can only read or delete the invitation
+			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, accessType);
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
+				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+			} else {
+				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+			}
+			// Team admin can only create, read or delete the invitation
+			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(teamAdmin, mis, accessType);
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
+				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+			} else {
+				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+			}
+			// Synapse admin has access of any type
+			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType);
+			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+		}
 	}
 }

@@ -29,11 +29,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOUserGroup> {
 	private Long id;
-	/**
-	 * This field will be remove in stack-28
-	 */
-	@Deprecated
-	private String name;
 	private Date creationDate;
 	private Boolean isIndividual = false;
 	private String etag;
@@ -83,17 +78,6 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 			}
 		};
 	}
-
-
-	public String getName() {
-		return name;
-	}
-
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
 
 	/**
 	 * @return the id

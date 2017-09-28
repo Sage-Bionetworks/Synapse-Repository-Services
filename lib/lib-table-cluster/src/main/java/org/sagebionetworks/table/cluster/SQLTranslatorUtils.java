@@ -26,11 +26,14 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.FunctionType;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.IntervalLiteral;
+import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -139,6 +142,11 @@ public class SQLTranslatorUtils {
 		// If there is a function it can change the type
 		if(functionType != null){
 			columnType = getColumnTypeForFunction(functionType, columnType);
+		}else{
+			ColumnType mySqlFunctionType = getColumnTypeForMySqlFunction(derivedColumn.getFirstElementOfType(MySqlFunction.class));
+			if(mySqlFunctionType != null){
+				columnType = mySqlFunctionType;
+			}
 		}
 		selectColumn.setColumnType(columnType);
 		// We only set the id on the select column when the display name match the column name.
@@ -214,6 +222,38 @@ public class SQLTranslatorUtils {
 		default:
 			throw new IllegalArgumentException("Unknown type: "+functionType.name());
 		}
+	}
+	
+	/**
+	 * Get the column type for a MySqlFunction.
+	 * @param function
+	 * @return
+	 */
+	public static ColumnType getColumnTypeForMySqlFunction(MySqlFunction function){
+		if(function == null){
+			return null;
+		}
+		FunctionReturnType returnType = function.getFunctionName().getFunctionReturnType();
+		return getColumnType(returnType);
+	}
+	
+	/**
+	 * For a given function type, get the column type.
+	 * @param returnType
+	 * @return
+	 */
+	public static ColumnType getColumnType(FunctionReturnType returnType){
+		ValidateArgument.required(returnType, "returnType");
+		switch(returnType){
+		case DOUBLE:
+			return ColumnType.DOUBLE;
+		case LONG:
+			return ColumnType.INTEGER;
+		case STRING:
+		return ColumnType.STRING;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+returnType);
+	}
 	}
 	
 	/**
@@ -489,6 +529,10 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(element, "element");
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(parameters, "parameters");
+		if(element.getFirstElementOfType(IntervalLiteral.class) != null){
+			// intervals should not be replaced.
+			return;
+		}
 		
 		String key = BIND_PREFIX+parameters.size();
 		String value = element.toSqlWithoutQuotes();

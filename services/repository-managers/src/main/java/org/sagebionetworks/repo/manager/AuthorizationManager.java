@@ -3,16 +3,9 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.http.auth.AUTH;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -226,4 +219,14 @@ public interface AuthorizationManager {
 	 * @param accessors
 	 */
 	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
+
+	/**
+	 * Check whether a user has access to a membership invitation submission
+	 *
+	 * @param userInfo
+	 * @param mis
+	 * @param accessType
+	 * @return whether access is granted and, if not, a String giving the reason why
+	 */
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType);
 }

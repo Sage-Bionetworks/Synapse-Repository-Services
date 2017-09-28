@@ -137,8 +137,6 @@ TOKEN [IGNORE_CASE]: {
 | < date: "DATE" >
 | < count: "COUNT">
 | < desc: "DESC" >
-| < current_date: "CURRENT_DATE">
-| < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
 | < escape: "ESCAPE">
@@ -166,6 +164,28 @@ TOKEN [IGNORE_CASE]: {
 | < unknown: "UNKNOWN">
 | < is_nan: "ISNAN">
 | < is_infinity: "ISINFINITY">
+}
+
+/* date and time functions */
+TOKEN [IGNORE_CASE]: {
+  < date_time_function_name:
+   "CURRENT_TIMESTAMP"
+   | "CURRENT_DATE"
+   | "CURRENT_TIME"
+   | "NOW"
+   | "UNIX_TIMESTAMP"
+   | "FROM_UNIXTIME"   
+  >
+}
+
+/* datetime */
+TOKEN [IGNORE_CASE]: {
+  < year: "YEAR">
+| < month: "MONTH">
+| < day: "DAY">
+| < hour: "HOUR">
+| < minute: "MINUTE">
+| < second: "SECOND">
 }
 
 TOKEN [IGNORE_CASE]: {
@@ -237,14 +257,34 @@ UnsignedNumericLiteral unsignedNumericLiteral():
 }
 GeneralLiteral generalLiteral():
 {
+	CharacterStringLiteral characterStringLiteral = null;
+	IntervalLiteral intervalLiteral = null;
+}
+{
+	characterStringLiteral = characterStringLiteral() { return new GeneralLiteral(characterStringLiteral); }
+	| intervalLiteral = intervalLiteral() { return new GeneralLiteral(intervalLiteral); }
+}
+IntervalLiteral intervalLiteral():
+{
+	UnsignedInteger unsignedInteger = null;
+	DatetimeField datetimeField = null;
+}
+{
+	<interval> unsignedInteger = unsignedInteger() datetimeField = datetimeField() { return new IntervalLiteral(unsignedInteger, datetimeField); }
+}
+DatetimeField datetimeField():
+{}
+{
+	<year> { return DatetimeField.YEAR; }
+	| <month> { return DatetimeField.MONTH; }
+	| <day> { return DatetimeField.DAY; }
+	| <hour> { return DatetimeField.HOUR; }
+	| <minute> { return DatetimeField.MINUTE; }
+	| <second> { return DatetimeField.SECOND; }
+}
+CharacterStringLiteral characterStringLiteral():
+{
 	StringBuilder builder = new StringBuilder();
-}
-{
-	characterStringLiteral(builder)
-	{ return new GeneralLiteral(builder.toString()); }
-}
-void characterStringLiteral(StringBuilder builder):
-{
 	Token token;
 }
 {
@@ -254,6 +294,7 @@ void characterStringLiteral(StringBuilder builder):
 		| <escape_single_quote>  { builder.append("'"); }
 	)*
 	<end_single_quote>
+	{ return new CharacterStringLiteral(builder.toString()); }
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
@@ -763,7 +804,42 @@ NumericPrimary numericPrimary():
 	NumericValueFunction numericValueFunction = null;
 }
 {
-	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }}
+	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
+	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
+NumericValueFunction numericValueFunction():
+{
+	MySqlFunction mysqlFunction = null;
+}
+{
+	mysqlFunction = mysqlFunction() { return new NumericValueFunction(mysqlFunction); }
+}
+MySqlFunction mysqlFunction():
+{
+	MySqlFunction mySqlFunction = null;
+ 	MySqlFunctionName functionName = null;
+ 	ValueExpression valueExpression;
+}
+{
+	functionName = mySqlFunctionName() { mySqlFunction = new MySqlFunction(functionName); }
+	[ 
+		<left_paren> { mySqlFunction.startParentheses(); }
+		[  
+			valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
+			(
+				<comma> valueExpression = valueExpression() { mySqlFunction.addParameter(valueExpression); }
+			)*
+		]
+		<right_paren>
+	]
+	{ return mySqlFunction; }
+}
+MySqlFunctionName mySqlFunctionName():
+{
+	Token functionName = null;
+}
+{
+	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+}
 StringValueExpression stringValueExpression():
 {
 	CharacterValueExpression characterValueExpression;

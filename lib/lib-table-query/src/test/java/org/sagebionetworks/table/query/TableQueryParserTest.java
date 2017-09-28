@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -20,42 +21,7 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.UnsignedNumericLiteral;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 
-public class TableQueryParserTest {
-	
-	/**
-	 * Character String Literals are surrounded by single quotes.
-	 * 
-	 * @throws ParseException
-	 */
-	@Test
-	public void testCharacterStringLiteral() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		// Double quotes are used to escape double quotes.
-		TableQueryParser parser = new TableQueryParser("'This is a long string in quotes'");
-		parser.characterStringLiteral(builder);
-		assertEquals("This is a long string in quotes", builder.toString());
-	}
-
-	/**
-	 * Single quotes within a Character String Literal are escaped with single quotes
-	 * @throws ParseException
-	 */
-	@Test
-	public void testCharacterStringLiteralEscape() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("'A string ''within a'' string.'");
-		parser.characterStringLiteral(builder);
-		assertEquals("A string 'within a' string.", builder.toString());
-	}
-
-	@Test
-	public void testCharacterStringLiteralEmptyString() throws ParseException{
-		StringBuilder builder = new StringBuilder();
-		TableQueryParser parser = new TableQueryParser("''");
-		parser.characterStringLiteral(builder);
-		assertEquals("", builder.toString());
-	}
-	
+public class TableQueryParserTest {	
 	
 	@Test
 	public void testSignedInteger() throws ParseException {

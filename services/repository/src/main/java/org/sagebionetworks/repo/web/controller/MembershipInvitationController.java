@@ -116,7 +116,7 @@ public class MembershipInvitationController extends BaseController {
 
 	/**
 	 * Retrieve an invitation by ID
-	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 * Note:  The client must be an administrator of the Team referenced by the invitation or the invitee to make this request.
 	 * @param id the ID of the invitation
 	 * @param userId
 	 * @return
@@ -134,7 +134,7 @@ public class MembershipInvitationController extends BaseController {
 
 	/**
 	 * Delete an invitation
-	 * Note:  The client must be an administrator of the Team referenced by the invitation to make this request.
+	 * Note:  The client must be an administrator of the Team referenced by the invitation or the invitee to make this request.
 	 * @param id the ID of the invitation to be deleted
 	 * @param userId
 	 * @throws NotFoundException
