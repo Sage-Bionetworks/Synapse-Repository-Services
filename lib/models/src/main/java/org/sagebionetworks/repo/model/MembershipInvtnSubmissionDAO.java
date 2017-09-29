@@ -131,7 +131,15 @@ public interface MembershipInvtnSubmissionDAO {
 	 *
 	 * @param membershipInvitationId
 	 * @return
-	 * @throws NotFoundException
 	 */
 	public String getInviteeEmail(String membershipInvitationId);
+
+	/**
+	 * Update the inviteeId of misId if inviteeId is null
+	 *
+	 * @param misId
+	 * @param inviteeId
+	 * @throws DatastoreException
+	 */
+	public void updateInviteeId(String misId, long inviteeId) throws DatastoreException;
 }

@@ -132,4 +132,9 @@ public class MembershipInvitationServiceImpl implements
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId) {
 		return membershipInvitationManager.verifyInvitee(userId, membershipInvitationId);
 	}
+
+	@Override
+	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
+		membershipInvitationManager.updateInviteeId(userId, misId, token);
+	}
 }

@@ -214,6 +214,15 @@ public class MembershipInvitationManagerImpl implements
 		return null;
 	}
 
+	@Override
+	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
+		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, ACCESS_TYPE.UPDATE);
+		if (!status.getAuthorized()) {
+			throw new UnauthorizedException(status.getReason());
+		}
+		membershipInvtnSubmissionDAO.updateInviteeId(misId, userId);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#getOpenForUserAndTeamInRange(java.lang.String, java.lang.String, long, long)
 	 */

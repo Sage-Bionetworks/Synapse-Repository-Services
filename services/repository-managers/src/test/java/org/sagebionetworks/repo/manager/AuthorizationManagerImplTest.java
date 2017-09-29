@@ -683,14 +683,48 @@ public class AuthorizationManagerImplTest {
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, accessType);
+			// Only reading is allowed
 			if (accessType != ACCESS_TYPE.READ) {
 				assertFalse(status.getAuthorized());
 			} else {
 				assertTrue(status.getAuthorized());
 			}
 		}
+
+		// Incorrect mis id should be denied
 		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectMisId, token, ACCESS_TYPE.READ).getAuthorized());
 		token.setMembershipInvitationId("corruptedId");
+		// Non valid signed token should be denied
 		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, ACCESS_TYPE.READ).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitationWithInviteeVerificationSignedToken() {
+		Long userId = 1L;
+		String misId = "11";
+		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		token.setInviteeId(userId.toString());
+		token.setMembershipInvitationId(misId);
+		SignedTokenUtil.signToken(token);
+
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			// Only updating is allowed
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, accessType);
+			if (accessType != ACCESS_TYPE.UPDATE) {
+				assertFalse(status.getAuthorized());
+			} else {
+				assertTrue(status.getAuthorized());
+			}
+		}
+
+		// Incorrect user id should be denied
+		Long incorrectUserId = 2L;
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectUserId, misId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		// Incorrect mis id should be denied
+		String incorrectMisId = "22";
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, incorrectMisId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		// Invalid token should be denied
+		token.setMembershipInvitationId("corruptedId");
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
 }

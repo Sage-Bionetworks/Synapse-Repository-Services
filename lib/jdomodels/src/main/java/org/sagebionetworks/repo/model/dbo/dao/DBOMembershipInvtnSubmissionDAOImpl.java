@@ -107,6 +107,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			"FROM " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
 			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 
+	private static final String UPDATE_INVITEE_ID =
+			"UPDATE " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
+			"SET " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " " +
+			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " " +
+			"AND " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " IS NULL " +
+			"AND " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL + " IS NOT NULL";
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
@@ -293,4 +299,15 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_INVITEE_EMAIL, param, String.class);
 	}
 
+	@WriteTransaction
+	@Override
+	public void updateInviteeId(String misId, long inviteeId) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, misId);
+		int rowsUpdated = namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
+		if (rowsUpdated != 1) {
+			throw new DatastoreException("Update failed: expected to update 1 row, but updated " + rowsUpdated + " instead.");
+		}
+	}
 }

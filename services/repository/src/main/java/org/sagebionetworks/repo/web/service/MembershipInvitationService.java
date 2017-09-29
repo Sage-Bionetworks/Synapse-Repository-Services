@@ -93,4 +93,12 @@ public interface MembershipInvitationService {
 	 * @return
 	 */
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
+
+	/**
+	 *
+	 * @param userId
+	 * @param misId
+	 * @param token
+	 */
+	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token);
 }

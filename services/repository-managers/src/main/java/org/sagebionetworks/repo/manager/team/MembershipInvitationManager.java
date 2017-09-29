@@ -133,4 +133,13 @@ public interface MembershipInvitationManager {
 	 * @return
 	 */
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
+
+	/**
+	 *
+	 * @param userId
+	 * @param misId
+	 * @param token
+	 * @return
+	 */
+	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token);
 }

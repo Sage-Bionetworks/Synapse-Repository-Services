@@ -394,4 +394,13 @@ public class MembershipInvitationManagerImplTest {
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
 		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID));
 	}
+
+	@Test
+	public void testUpdateId() {
+		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
+		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		Mockito.verify(mockMembershipInvtnSubmissionDAO).updateInviteeId(MIS_ID, userId);
+	}
 }

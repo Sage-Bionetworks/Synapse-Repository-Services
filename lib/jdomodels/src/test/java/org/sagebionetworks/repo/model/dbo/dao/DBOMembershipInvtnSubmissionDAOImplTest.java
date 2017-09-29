@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -12,17 +9,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import javax.xml.crypto.Data;
+
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -276,5 +270,47 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		mis.setInviteeEmail(inviteeEmail);
 		mis = membershipInvtnSubmissionDAO.create(mis);
 		assertEquals(inviteeEmail, membershipInvtnSubmissionDAO.getInviteeEmail(mis.getId()));
+	}
+
+	@Test
+	public void testUpdateInviteeId() {
+		// Create a mis with null invitee id and non null invitee email
+		String inviteeEmail = "test@test.com";
+		mis.setInviteeEmail(inviteeEmail);
+		mis.setInviteeId(null);
+		mis = membershipInvtnSubmissionDAO.create(mis);
+
+		// Update the inviteeId and get the update mis
+		String inviteeId = individUser.getId();
+		String misId = mis.getId();
+		membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
+		mis = membershipInvtnSubmissionDAO.get(misId);
+
+		// inviteeId should be updated
+		assertEquals(inviteeId, mis.getInviteeId());
+
+		// Updating the inviteeId again should fail
+		boolean caughtException = false;
+		try {
+			membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
+		} catch (DatastoreException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Delete the mis and recreate it with non null invitee id and null invitee email
+		membershipInvtnSubmissionDAO.delete(mis.getId());
+		mis.setInviteeEmail(null);
+		mis.setInviteeId(inviteeId);
+		mis = membershipInvtnSubmissionDAO.create(mis);
+
+		// Updating the inviteeId should fail
+		caughtException = false;
+		try {
+			membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
+		} catch (DatastoreException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
 	}
 }

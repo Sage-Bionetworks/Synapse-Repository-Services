@@ -188,4 +188,23 @@ public class MembershipInvitationController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().verifyInvitee(userId, membershipInvitationId);
 	}
+
+	/**
+	 * Set the inviteeId of a MembershipInvitation.
+	 * A valid InviteeVerificationSignedToken must have an inviteeId equal to the id of
+	 * the authenticated user andan membershipInvitationId equal to the id in the URI.
+	 * This call will only succeed if the indicated MembershipInvitation has a
+	 * null inviteeId and a non null inviteeEmail.
+	 * @param membershipInvitationId
+	 * @param userId
+	 * @param token
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_UPDATE_INVITEE_ID, method = RequestMethod.PUT)
+	public void updateInviteeId(
+			@PathVariable("id") String membershipInvitationId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody InviteeVerificationSignedToken token) {
+		serviceProvider.getMembershipInvitationService().updateInviteeId(userId, membershipInvitationId, token);
+	}
 }
