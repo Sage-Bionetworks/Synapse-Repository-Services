@@ -62,4 +62,39 @@ public class MySqlFunctionTest {
 		assertEquals("FROM_UNIXTIME(1111885200,'%Y %D %M %h:%i:%s %x')", element.toSql());
 		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
 	}
+	
+	@Test
+	public void testConcat() throws ParseException{
+		MySqlFunction element = new TableQueryParser("concat('a','b','c')").mysqlFunction();
+		assertEquals("CONCAT('a','b','c')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testReplace() throws ParseException{
+		MySqlFunction element = new TableQueryParser("replace('a','b')").mysqlFunction();
+		assertEquals("REPLACE('a','b')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testUpper() throws ParseException{
+		MySqlFunction element = new TableQueryParser("upper('ab')").mysqlFunction();
+		assertEquals("UPPER('ab')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testLower() throws ParseException{
+		MySqlFunction element = new TableQueryParser("lower('AB')").mysqlFunction();
+		assertEquals("LOWER('AB')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
+	
+	@Test
+	public void testTrim() throws ParseException{
+		MySqlFunction element = new TableQueryParser("trim(' AB ')").mysqlFunction();
+		assertEquals("TRIM(' AB ')", element.toSql());
+		assertEquals(FunctionReturnType.STRING, element.getFunctionName().getFunctionReturnType());
+	}
 }

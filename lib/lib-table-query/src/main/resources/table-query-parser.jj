@@ -178,6 +178,17 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
+/* string functions */
+TOKEN [IGNORE_CASE]: {
+  < string_function_name:
+   "CONCAT"
+   | "REPLACE"
+   | "UPPER"
+   | "LOWER"
+   | "TRIM" 
+  >
+}
+
 /* datetime */
 TOKEN [IGNORE_CASE]: {
   < year: "YEAR">
@@ -839,6 +850,7 @@ MySqlFunctionName mySqlFunctionName():
 }
 {
 	functionName = <date_time_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
+	| functionName = <string_function_name> { return MySqlFunctionName.valueOf(functionName.image.toUpperCase()); }
 }
 StringValueExpression stringValueExpression():
 {
