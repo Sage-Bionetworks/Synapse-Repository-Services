@@ -3990,6 +3990,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public MembershipInvtnSubmission getMembershipInvitation(
+			String invitationId, MembershipInvtnSignedToken token) throws SynapseException {
+		String uri = MEMBERSHIP_INVITATION + "/" + invitationId;
+		return postJSONEntity(getRepoEndpoint(), uri, token, MembershipInvtnSubmission.class);
+	}
+
+	@Override
 	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(
 			String memberId, String teamId, long limit, long offset)
 			throws SynapseException {

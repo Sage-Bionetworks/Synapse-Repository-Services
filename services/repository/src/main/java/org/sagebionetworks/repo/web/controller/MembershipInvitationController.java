@@ -132,6 +132,13 @@ public class MembershipInvitationController extends BaseController {
 		return serviceProvider.getMembershipInvitationService().get(userId, id);
 	}
 
+	/**
+	 * Retrieve an invitation by ID using a MembershipInvtnSignedToken for authorization
+	 * @param id
+	 * @param token
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.POST)
 	public @ResponseBody

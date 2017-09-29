@@ -1510,6 +1510,15 @@ public interface SynapseClient extends BaseClient {
 	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
 
 	/**
+	 *
+	 * @param invitationId
+	 * @param token
+	 * @return
+	 * @throws SynapseException
+	 */
+	MembershipInvtnSubmission getMembershipInvitation(String invitationId, MembershipInvtnSignedToken token) throws SynapseException;
+
+	/**
 	 * 
 	 * @param memberId
 	 * @param teamId the team for which the invitations are extended (optional)
