@@ -395,10 +395,54 @@ public class MembershipInvitationManagerImplTest {
 
 	@Test
 	public void testUpdateId() {
+		// Setup
 		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		// Mock happy case behavior
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
+		when(mockMembershipInvtnSubmissionDAO.updateInviteeId(MIS_ID,  userId)).thenReturn(1);
+
+		// Happy case should succeed
 		membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).updateInviteeId(MIS_ID, userId);
+
+		// Mock the authorization manager so that it denies access
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		// Updating the inviteeId should throw an UnauthorizedException
+		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Restore the authorization manager to allow access again
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// Set the existing invitation's inviteeId
+		mis.setInviteeId(userId.toString());
+		// Updating the inviteeId should throw an UnauthorizedException
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Set the existing invitation's inviteeId back to null
+		mis.setInviteeId(null);
+		// Mock the DAO updateInviteeId to return 0
+		when(mockMembershipInvtnSubmissionDAO.updateInviteeId(MIS_ID, userId)).thenReturn(0);
+		// Updating the inviteeId should throw a DatastoreException
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (DatastoreException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
 	}
 }

@@ -272,13 +272,11 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 
 	@Test
 	public void testUpdateInviteeId() {
-		// Create a mis with null invitee id and non null invitee email
-		String inviteeEmail = "test@test.com";
-		mis.setInviteeEmail(inviteeEmail);
+		// Create a mis with null invitee id
 		mis.setInviteeId(null);
 		mis = membershipInvtnSubmissionDAO.create(mis);
 
-		// Update the inviteeId and get the update mis
+		// Update the inviteeId and get the updated mis
 		String inviteeId = individUser.getId();
 		String misId = mis.getId();
 		membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
@@ -286,29 +284,5 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 
 		// inviteeId should be updated
 		assertEquals(inviteeId, mis.getInviteeId());
-
-		// Updating the inviteeId again should fail
-		boolean caughtException = false;
-		try {
-			membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
-		} catch (DatastoreException e) {
-			caughtException = true;
-		}
-		assertTrue(caughtException);
-
-		// Delete the mis and recreate it with non null invitee id and null invitee email
-		membershipInvtnSubmissionDAO.delete(mis.getId());
-		mis.setInviteeEmail(null);
-		mis.setInviteeId(inviteeId);
-		mis = membershipInvtnSubmissionDAO.create(mis);
-
-		// Updating the inviteeId should fail
-		caughtException = false;
-		try {
-			membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
-		} catch (DatastoreException e) {
-			caughtException = true;
-		}
-		assertTrue(caughtException);
 	}
 }

@@ -135,11 +135,11 @@ public interface MembershipInvtnSubmissionDAO {
 	public String getInviteeEmail(String membershipInvitationId);
 
 	/**
-	 * Update the inviteeId of misId if inviteeId is null
+	 * Update the inviteeId of the indicated mis
 	 *
 	 * @param misId
 	 * @param inviteeId
 	 * @throws DatastoreException
 	 */
-	public void updateInviteeId(String misId, long inviteeId) throws DatastoreException;
+	public int updateInviteeId(String misId, long inviteeId);
 }

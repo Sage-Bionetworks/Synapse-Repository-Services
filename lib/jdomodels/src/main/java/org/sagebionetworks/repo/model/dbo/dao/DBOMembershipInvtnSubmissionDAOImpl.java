@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -110,14 +111,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	private static final String UPDATE_INVITEE_ID =
 			"UPDATE " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
 			"SET " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " " +
-			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " " +
-			"AND " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " IS NULL " +
-			"AND " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL + " IS NOT NULL";
+			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
 	 */
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException,
 	InvalidModelException {
@@ -282,7 +281,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteByTeamAndUser(long teamId, long inviteeId)
 			throws DatastoreException {
@@ -299,15 +298,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_INVITEE_EMAIL, param, String.class);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
-	public void updateInviteeId(String misId, long inviteeId) throws DatastoreException {
+	public int updateInviteeId(String misId, long inviteeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, misId);
-		int rowsUpdated = namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
-		if (rowsUpdated != 1) {
-			throw new DatastoreException("Update failed: expected to update 1 row, but updated " + rowsUpdated + " instead.");
-		}
+		return namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
 	}
 }

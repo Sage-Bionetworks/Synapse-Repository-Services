@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -65,6 +67,7 @@ public class MembershipInvitationManagerImpl implements
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public MembershipInvtnSubmission create(UserInfo userInfo,
 			MembershipInvtnSubmission mis) throws DatastoreException,
@@ -148,6 +151,7 @@ public class MembershipInvitationManagerImpl implements
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#delete(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */
+	@WriteTransactionReadCommitted
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -214,13 +218,21 @@ public class MembershipInvitationManagerImpl implements
 		return null;
 	}
 
+	@WriteTransactionReadCommitted
 	@Override
 	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, ACCESS_TYPE.UPDATE);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}
-		membershipInvtnSubmissionDAO.updateInviteeId(misId, userId);
+		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(misId);
+		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {
+			throw new UnauthorizedException("Cannot update inviteeId. The target invitation must have a null inviteeId and a non null inviteeEmail.");
+		}
+		int rowsUpdated = membershipInvtnSubmissionDAO.updateInviteeId(misId, userId);
+		if (rowsUpdated != 1) {
+			throw new DatastoreException("Expected to update 1 row, but instead updated " + rowsUpdated + " rows.");
+		}
 	}
 
 	/* (non-Javadoc)
