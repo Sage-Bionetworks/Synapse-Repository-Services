@@ -108,6 +108,11 @@ public class MembershipInvitationServiceImpl implements
 		return membershipInvitationManager.get(userInfo, dtoId);
 	}
 
+	@Override
+	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return membershipInvitationManager.get(misId, token);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#delete(java.lang.String, java.lang.String)
 	 */

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -670,5 +671,26 @@ public class AuthorizationManagerImplTest {
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType);
 			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
 		}
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
+		String correctMisId = "1";
+		String incorrectMisId = "2";
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
+		token.setMembershipInvitationId(correctMisId);
+		SignedTokenUtil.signToken(token);
+
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, accessType);
+			if (accessType != ACCESS_TYPE.READ) {
+				assertFalse(status.getAuthorized());
+			} else {
+				assertTrue(status.getAuthorized());
+			}
+		}
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectMisId, token, ACCESS_TYPE.READ).getAuthorized());
+		token.setMembershipInvitationId("corruptedId");
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, ACCESS_TYPE.READ).getAuthorized());
 	}
 }

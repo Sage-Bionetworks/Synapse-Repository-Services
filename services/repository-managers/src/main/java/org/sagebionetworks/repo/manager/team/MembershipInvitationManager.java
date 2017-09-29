@@ -52,6 +52,16 @@ public interface MembershipInvitationManager {
 	public MembershipInvtnSubmission get(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Retrieve an invitation by its ID using a signed token for authorization
+	 * @param misId
+	 * @param token
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Delete an invitation
 	 * 
 	 * @param userInfo

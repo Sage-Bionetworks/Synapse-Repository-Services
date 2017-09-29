@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -607,5 +608,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(String misId, MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
+		try {
+			SignedTokenUtil.validateToken(token);
+		} catch (IllegalArgumentException e) {
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+		}
+		if (token.getMembershipInvitationId().equals(misId) && accessType == ACCESS_TYPE.READ) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
 	}
 }

@@ -132,6 +132,16 @@ public class MembershipInvitationController extends BaseController {
 		return serviceProvider.getMembershipInvitationService().get(userId, id);
 	}
 
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.POST)
+	public @ResponseBody
+	MembershipInvtnSubmission getInvitation(
+			@PathVariable String id,
+			@RequestBody MembershipInvtnSignedToken token
+	) throws NotFoundException {
+		return serviceProvider.getMembershipInvitationService().get(id, token);
+	}
+
 	/**
 	 * Delete an invitation
 	 * Note:  The client must be an administrator of the Team referenced by the invitation or the invitee to make this request.

@@ -58,7 +58,17 @@ public interface MembershipInvitationService {
 	 * @throws NotFoundException
 	 */
 	public MembershipInvtnSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
+
+	/**
+	 *
+	 * @param token
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException;
+
 	/**
 	 * 
 	 * @param userId

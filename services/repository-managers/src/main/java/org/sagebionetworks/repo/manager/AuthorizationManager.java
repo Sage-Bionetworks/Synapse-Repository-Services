@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.http.auth.AUTH;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
@@ -229,4 +228,13 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
 	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType);
+
+	/**
+	 * Check whether the token is valid for the access_type
+	 *
+	 * @param token
+	 * @param accessType
+	 * @return
+	 */
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(String misId, MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
 }

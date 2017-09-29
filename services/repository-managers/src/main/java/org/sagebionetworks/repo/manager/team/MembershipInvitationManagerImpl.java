@@ -14,7 +14,6 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.*;
-import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -23,7 +22,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -136,6 +134,15 @@ public class MembershipInvitationManagerImpl implements
 		if (!authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, ACCESS_TYPE.READ).getAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitation.");
 		return mis;
+	}
+
+	@Override
+	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
+		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(misId, token, ACCESS_TYPE.READ);
+		if (!status.getAuthorized()) {
+			throw new UnauthorizedException(status.getReason());
+		}
+		return membershipInvtnSubmissionDAO.get(misId);
 	}
 
 	/* (non-Javadoc)
