@@ -104,7 +104,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
-import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1554,6 +1553,17 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 */
 	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException;
+
+	/**
+	 * Set the inviteeId of a MembershipInvitation.
+	 * A valid InviteeVerificationSignedToken must have an inviteeId equal to the id of
+	 * the authenticated user and a membershipInvitationId equal to the id in the URI.
+	 * This call will only succeed if the indicated MembershipInvitation has a
+	 * null inviteeId and a non null inviteeEmail.
+	 * @param membershipInvitationId
+	 * @param token
+	 */
+	void updateInviteeId(String membershipInvitationId, InviteeVerificationSignedToken token) throws SynapseException;
 
 	/**
 	 * 

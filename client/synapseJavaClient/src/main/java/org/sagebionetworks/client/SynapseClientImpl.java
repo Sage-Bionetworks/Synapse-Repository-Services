@@ -4040,6 +4040,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void updateInviteeId(String membershipInvitationId, InviteeVerificationSignedToken token) throws SynapseException {
+		String uri = MEMBERSHIP_INVITATION + "/" + membershipInvitationId + "/inviteeId";
+		voidPut(getRepoEndpoint(), uri, token);
+	}
+
+	@Override
 	public MembershipRqstSubmission createMembershipRequest(
 			MembershipRqstSubmission request,
 			String acceptRequestEndpoint,

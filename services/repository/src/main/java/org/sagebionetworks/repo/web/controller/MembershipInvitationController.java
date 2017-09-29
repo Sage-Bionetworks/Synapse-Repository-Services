@@ -192,7 +192,7 @@ public class MembershipInvitationController extends BaseController {
 	/**
 	 * Set the inviteeId of a MembershipInvitation.
 	 * A valid InviteeVerificationSignedToken must have an inviteeId equal to the id of
-	 * the authenticated user andan membershipInvitationId equal to the id in the URI.
+	 * the authenticated user and a membershipInvitationId equal to the id in the URI.
 	 * This call will only succeed if the indicated MembershipInvitation has a
 	 * null inviteeId and a non null inviteeEmail.
 	 * @param membershipInvitationId
