@@ -21,7 +21,6 @@ import java.util.Set;
 
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
@@ -36,7 +35,6 @@ import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -139,7 +137,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
 		for (String recipientPrincipalId : teamAdmins) {
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(
 					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId(), mrs.getCreatedOn()));
 			String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();

@@ -1502,7 +1502,7 @@ public interface SynapseClient extends BaseClient {
 			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
 	/**
-	 * 
+	 *
 	 * @param invitationId
 	 * @return
 	 * @throws SynapseException
@@ -1510,6 +1510,7 @@ public interface SynapseClient extends BaseClient {
 	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
 
 	/**
+	 * Retrieve membership invitation using a signed token for authorization
 	 *
 	 * @param invitationId
 	 * @param token

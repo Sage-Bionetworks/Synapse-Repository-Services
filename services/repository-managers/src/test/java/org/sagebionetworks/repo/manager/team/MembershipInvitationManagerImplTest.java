@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
-import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -289,7 +287,7 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
-		String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn());
+		String oneClickJoin = EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn());
 		String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
 				"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
 				"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 
@@ -338,7 +336,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getTeamId()));
 		assertTrue(body.contains(teamName));
 		assertTrue(body.contains(mis.getMessage()));
-		assertTrue(body.contains(EmailUtils.createOneClickJoinTeamLink(acceptInvitationEndpoint, MIS_ID, mis.getCreatedOn())));
+		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID, mis.getCreatedOn())));
 	}
 
 	@Test (expected = IllegalArgumentException.class)

@@ -90,7 +90,7 @@ public class EmailUtilsTest {
 		String memberId = "222";
 		String teamId = "333";
 		Date createdOn = new Date();
-		String link = EmailUtils.createOneClickJoinTeamLink(endpoint, userId, memberId, teamId, createdOn);
+		String link = EmailUtils.createMembershipInvtnLink(endpoint, userId, memberId, teamId, createdOn);
 		assertTrue(link.startsWith(endpoint));
 		
 		JoinTeamSignedToken token = SerializationUtils.hexDecodeAndDeserialize(

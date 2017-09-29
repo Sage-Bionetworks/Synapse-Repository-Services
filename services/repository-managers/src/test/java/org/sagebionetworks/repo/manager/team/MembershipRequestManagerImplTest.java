@@ -6,12 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_REQUESTER_MESSAGE;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +28,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
@@ -45,8 +38,6 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
-import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipRequestManagerImplTest {
@@ -224,7 +215,7 @@ public class MembershipRequestManagerImplTest {
 			String teamName = "test-team";
 			String requesterMessage = "The requester sends the following message: <Blockquote> Please let me in your team. </Blockquote> ";
 			String adminId = teamAdmins.get(i);
-			String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
+			String oneClickJoin = EmailUtils.createMembershipInvtnLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
 			String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
 					"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
 					"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 

@@ -9,6 +9,7 @@ public interface MembershipInvitationManager {
 	
 	/**
 	 * Invite someone to join the team.  Note, the invitee list can include a group/team, as shorthand for all users in said group/team.
+	 *
 	 * @param userInfo
 	 * @param mis
 	 * @return
@@ -20,8 +21,8 @@ public interface MembershipInvitationManager {
 	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
-	 * Create an invitation message for an existing user
-	 * 
+	 * Create an invitation message addressed to an existing user
+	 *
 	 * @param mis
 	 * @param acceptInvitationEndpoint
 	 * @param notificationUnsubscribeEndpoint
@@ -31,7 +32,7 @@ public interface MembershipInvitationManager {
 	MessageToUserAndBody createInvitationToUser(MembershipInvtnSubmission mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	/**
-	 * Create an invitation message for a new user
+	 * Send an invitation message to an email address
 	 *
 	 * @param mis
 	 * @param acceptInvitationEndpoint
@@ -43,6 +44,7 @@ public interface MembershipInvitationManager {
 
 	/**
 	 * Retrieve an invitation by its ID
+	 *
 	 * @param userInfo
 	 * @param id
 	 * @return
@@ -53,6 +55,7 @@ public interface MembershipInvitationManager {
 
 	/**
 	 * Retrieve an invitation by its ID using a signed token for authorization
+	 *
 	 * @param misId
 	 * @param token
 	 * @return
@@ -84,6 +87,7 @@ public interface MembershipInvitationManager {
 
 	/**
 	 * Get the Invitations for the given user, to join the given team
+	 *
 	 * @param principalId
 	 * @param teamId
 	 * @return
@@ -127,6 +131,8 @@ public interface MembershipInvitationManager {
 	public Count getOpenInvitationCountForUser(String principalId);
 
 	/**
+	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the given user.
+	 * Return an InviteeVerificationSignedToken if the verification succeeds, null if it fails.
 	 *
 	 * @param userId
 	 * @param membershipInvitationId
@@ -135,6 +141,8 @@ public interface MembershipInvitationManager {
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
 
 	/**
+	 * Set the inviteeId of the indicated MembershipInvtnSubmission if the given token is valid.
+	 * The indicated mis must have null inviteeId and a non null inviteeEmail.
 	 *
 	 * @param userId
 	 * @param misId

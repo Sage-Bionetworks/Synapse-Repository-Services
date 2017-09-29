@@ -203,7 +203,7 @@ public class EmailUtils {
 	
 
 	
-	public static String createOneClickJoinTeamLink(String endpoint, String userId, String memberId, String teamId, Date createdOn) {
+	public static String createMembershipInvtnLink(String endpoint, String userId, String memberId, String teamId, Date createdOn) {
 		JoinTeamSignedToken token = new JoinTeamSignedToken();
 		token.setCreatedOn(createdOn);
 		token.setUserId(userId);
@@ -216,7 +216,7 @@ public class EmailUtils {
 		return result;
 	}
 
-	public static String createOneClickJoinTeamLink(String endpoint, String membershipInvitationId, Date createdOn) {
+	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, Date createdOn) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setCreatedOn(createdOn);
 		token.setMembershipInvitationId(membershipInvitationId);
