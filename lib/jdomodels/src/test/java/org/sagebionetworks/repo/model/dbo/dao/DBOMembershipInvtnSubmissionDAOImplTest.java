@@ -9,8 +9,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -31,6 +35,8 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+
+	@Autowired DBOBasicDao basicDAO;
 	
 	private Team team;
 	private UserGroup individUser;
@@ -274,15 +280,23 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	public void testUpdateInviteeId() {
 		// Create a mis with null invitee id
 		mis.setInviteeId(null);
-		mis = membershipInvtnSubmissionDAO.create(mis);
+		MembershipInvtnSubmission dto = membershipInvtnSubmissionDAO.create(mis);
+		String misId = dto.getId();
 
-		// Update the inviteeId and get the updated mis
+		// Get the invitation's etag
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(DBOConstants.PARAM_EVALUATION_ID, misId);
+		DBOMembershipInvtnSubmission dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		String oldEtag = dbo.getEtag();
+
+		// Update the inviteeId and get the updated invitation
 		String inviteeId = individUser.getId();
-		String misId = mis.getId();
 		membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
-		mis = membershipInvtnSubmissionDAO.get(misId);
+		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
 
 		// inviteeId should be updated
-		assertEquals(inviteeId, mis.getInviteeId());
+		assertEquals(inviteeId, dbo.getInviteeId().toString());
+		// etag should be different
+		assertNotEquals(oldEtag, dbo.getEtag());
 	}
 }

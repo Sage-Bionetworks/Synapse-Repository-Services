@@ -110,7 +110,8 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 
 	private static final String UPDATE_INVITEE_ID =
 			"UPDATE " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
-			"SET " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " " +
+			"SET " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + ", " +
+			COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG + " " +
 			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 
 	/* (non-Javadoc)
@@ -304,6 +305,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, misId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG, UUID.randomUUID().toString());
 		return namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
 	}
 }
