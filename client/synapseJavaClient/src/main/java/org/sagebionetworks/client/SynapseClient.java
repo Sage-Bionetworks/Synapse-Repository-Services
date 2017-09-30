@@ -250,7 +250,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Add a new email address to an existing account.
 	 * 
-	 * @param addEmailInfo the token sent to the user via email
+	 * @param emailValidationSignedToken the token sent to the user via email
 	 * @param setAsNotificationEmail if true then set the new email address to be the user's notification address
 	 * @throws NotFoundException
 	 */
