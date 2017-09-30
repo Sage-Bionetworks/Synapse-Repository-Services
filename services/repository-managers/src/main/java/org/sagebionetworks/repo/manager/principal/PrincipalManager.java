@@ -4,11 +4,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.util.Date;
@@ -65,11 +61,11 @@ public interface PrincipalManager {
 	 * Add a new email address to an existing account.
 	 * 
 	 * @param userInfo
-	 * @param addEmailInfo
+	 * @param emailValidationSignedToken
 	 * @param setAsNotificationEmail
 	 * @throws NotFoundException
 	 */
-	void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws NotFoundException;
+	void addEmail(UserInfo userInfo, EmailValidationSignedToken emailValidationSignedToken, Boolean setAsNotificationEmail) throws NotFoundException;
 	
 	/**
 	 * Remove an email address from an existing account.

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
@@ -52,6 +53,7 @@ public class PrincipalManagerImplUnitTest {
 	private NewUser user;
 	private Date now;
 
+	private static final Long USER_ID = 111L;
 	private static final String EMAIL = "foo@bar.com";
 	private static final String FIRST_NAME = "foo";
 	private static final String LAST_NAME = "bar";
@@ -121,94 +123,7 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.isAliasAvailable(toTest)).thenReturn(true);
 		assertTrue(manager.isAliasAvailable(toTest));
 	}
-	
-	@Test
-	public void testGenerateSignature() {
-		String token1 = PrincipalManagerImpl.
-				generateSignature("my dog has fleas");
-		assertTrue(token1.length()>0);
-		// same inputs, same result
-		String token2 = PrincipalManagerImpl.
-				generateSignature("my dog has fleas");
-		assertEquals(token1, token2);
-		// different inputs, different token
-		String token3 = PrincipalManagerImpl.
-				generateSignature("my dog has gnats");
-		assertTrue(token3.length()>0);
-		assertFalse(token1.equals(token3));
-	}
-	
-	@Test
-	public void testGenerateSignatureForNewAccount() {
-		String token1 = PrincipalManagerImpl.
-				generateSignatureForNewAccount("Foo", "Bar", 
-				"foo@bar.com", "2014-Jun-02", "synapse");
-		assertTrue(token1.length()>0);
-		// same inputs, same result
-		String token2 = PrincipalManagerImpl.
-				generateSignatureForNewAccount("Foo", "Bar", 
-				"foo@bar.com", "2014-Jun-02", "synapse");
-		assertEquals(token1, token2);
-		// different inputs, different token
-		String token3 = PrincipalManagerImpl.
-				generateSignatureForNewAccount("Foo", "Bas", 
-				"foo@bar.com", "2014-Jun-02", "synapse");
-		assertTrue(token3.length()>0);
-		assertFalse(token1.equals(token3));
-	}
-	
-	@Test
-	public void testCreateTokenForNewAccount() {
-		String token1 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, now);
-		assertTrue(token1.length()>0);
-		// same inputs, same result
-		String token2 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, now);
-		assertEquals(token1, token2);
-		// different inputs, different token
-		Date otherDate = new Date(now.getTime()+1L);
-		String token3 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, otherDate);
-		assertTrue(token3.length()>0);
-		assertFalse(token1.equals(token3));
-	}
-	
-	@Test
-	public void testCreateTokenForNewAccountNoName() {
-		user.setFirstName("");
-		user.setLastName("");
-		String token1 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, now);
-		assertTrue(token1.length()>0);
-		// same inputs, same result
-		String token2 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, now);
-		assertEquals(token1, token2);
-		// different inputs, different token
-		Date otherDate = new Date(now.getTime()+1L);
-		String token3 = PrincipalManagerImpl.
-				createTokenForNewAccount(user, otherDate);
-		assertTrue(token3.length()>0);
-		assertFalse(token1.equals(token3));
-	}
 
-	@Test
-	public void testValidateNewAccountToken() {
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String extractedEmail = PrincipalManagerImpl.validateEmailToken(token, now);
-		assertEquals(EMAIL, extractedEmail);
-	}
-	
-	@Test
-	public void testValidateNewAccountTokenNoName() {
-		user.setFirstName("");
-		user.setLastName("");
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String extractedEmail = PrincipalManagerImpl.validateEmailToken(token, now);
-		assertEquals(EMAIL, extractedEmail);
-	}
-	
 	private static String paste(String[] pieces, String and) {
 		boolean first = true;
 		StringBuilder sb = new StringBuilder();
@@ -218,83 +133,27 @@ public class PrincipalManagerImplUnitTest {
 		}
 		return sb.toString();
 	}
-	
-	// try removing a required field from the 'token'
-	private void testMissingParamValidateNewAccountToken(String paramName) {
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String[] params = token.split("&");
-		for (int i=0; i<params.length; i++) {
-			if (params[i].contains(paramName)) params[i]=null;
-		}
-		token = paste(params, "&");
-		PrincipalManagerImpl.validateEmailToken(token, now);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingFirstName() {
-		testMissingParamValidateNewAccountToken("firstname");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingLastName() {
-		testMissingParamValidateNewAccountToken("lastname");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingEmail() {
-		testMissingParamValidateNewAccountToken("email");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingTimeStamp() {
-		testMissingParamValidateNewAccountToken("timestamp");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingDomain() {
-		testMissingParamValidateNewAccountToken("domain");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenMissingMac() {
-		testMissingParamValidateNewAccountToken("mac");
-	}
-	
-	// try removing a required field from the 'token'
-	private void testReplacedParamValidateNewAccountToken(String paramName, String paramValue) {
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String[] params = token.split("&");
-		for (int i=0; i<params.length; i++) {
-			if (params[i].startsWith(paramName)) params[i]=paramName+"="+paramValue;
-		}
-		token = paste(params, "&");
-		PrincipalManagerImpl.validateEmailToken(token, now);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenBadTimestamp() {
-		testReplacedParamValidateNewAccountToken("timestamp", "not-a-time-stamp");
-	}
-	
+
 	// token is OK 23 hours from now
 	@Test
 	public void testValidateNOTtooOLDTimestamp() {
 		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		PrincipalManagerImpl.validateEmailToken(token, notOutOfDate);
+		EmailValidationSignedToken token = new EmailValidationSignedToken();
+		token.setEmail(EMAIL);
+		token.setCreatedOn(now);
+		SignedTokenUtil.signToken(token);
+		PrincipalManagerImpl.validateEmailSignedToken(token, notOutOfDate);
 	}
-	
+
 	// token is not OK 25 hours from now
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateOLDTimestamp() {
 		Date outOfDate = new Date(System.currentTimeMillis()+25*3600*1000L);
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		PrincipalManagerImpl.validateEmailToken(token, outOfDate);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateNewAccountTokenInvalidToken() {
-		testReplacedParamValidateNewAccountToken("mac", "invalid-mac");
+		EmailValidationSignedToken token = new EmailValidationSignedToken();
+		token.setEmail(EMAIL);
+		token.setCreatedOn(now);
+		SignedTokenUtil.signToken(token);
+		PrincipalManagerImpl.validateEmailSignedToken(token, outOfDate);
 	}
 
 	@Test
@@ -313,7 +172,7 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(!body.contains("#"));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(manager.createAccountCreationToken(user, now)));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(manager.createAccountCreationToken(user, now))));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -344,28 +203,6 @@ public class PrincipalManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(false);
 		manager.newAccountEmailValidation(user, PORTAL_ENDPOINT, now);
 	}
-	
-	@Test
-	public void testCreateNewAccountOld() throws Exception {
-		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken(PrincipalManagerImpl.createTokenForNewAccount(user, now));
-		accountSetupInfo.setFirstName(FIRST_NAME);
-		accountSetupInfo.setLastName(LAST_NAME);
-		accountSetupInfo.setPassword(PASSWORD);
-		accountSetupInfo.setUsername(USER_NAME);
-		long principalId = 111L;
-		when(mockUserManager.createUser((NewUser)any())).thenReturn(principalId);
-		manager.createNewAccount(accountSetupInfo);
-		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
-		verify(mockUserManager).createUser(newUserCaptor.capture());
-		NewUser user = newUserCaptor.getValue();
-		assertEquals(FIRST_NAME, user.getFirstName());
-		assertEquals(LAST_NAME, user.getLastName());
-		assertEquals(USER_NAME, user.getUserName());
-		assertEquals(EMAIL, user.getEmail());
-		verify(mockAuthManager).changePassword(principalId, PASSWORD);
-		verify(mockAuthManager).authenticate(principalId, PASSWORD);
-	}
 
 	@Test
 	public void testCreateNewAccount() throws Exception {
@@ -379,8 +216,8 @@ public class PrincipalManagerImplUnitTest {
 		accountSetupInfo.setLastName(LAST_NAME);
 		accountSetupInfo.setPassword(PASSWORD);
 		accountSetupInfo.setUsername(USER_NAME);
-		long principalId = 111L;
-		when(mockUserManager.createUser((NewUser)any())).thenReturn(principalId);
+		long USER_ID = 111L;
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
 		manager.createNewAccount(accountSetupInfo);
 		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
 		verify(mockUserManager).createUser(newUserCaptor.capture());
@@ -389,122 +226,37 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(LAST_NAME, user.getLastName());
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
-		verify(mockAuthManager).changePassword(principalId, PASSWORD);
-		verify(mockAuthManager).authenticate(principalId, PASSWORD);
+		verify(mockAuthManager).changePassword(USER_ID, PASSWORD);
+		verify(mockAuthManager).authenticate(USER_ID, PASSWORD);
 	}
 
-	@Test
-	public void testCreateTokenForAdditionalEmail() {
-		String token1 = PrincipalManagerImpl.
-				createTokenForAdditionalEmail(111L, EMAIL, now);
-		assertTrue(token1.length()>0);
-		// same inputs, same result
-		String token2 = PrincipalManagerImpl.
-				createTokenForAdditionalEmail(111L, EMAIL, now);
-		assertEquals(token1, token2);
-		// different inputs, different token
-		String token3 = PrincipalManagerImpl.
-				createTokenForAdditionalEmail(111L, "someother@email.com", now);
-		assertTrue(token3.length()>0);
-		assertFalse(token1.equals(token3));
-	}
-	
-	@Test
-	public void testValidateTokenForAdditionalEmail() {
-		Long principalId = 111L;
-		String token = PrincipalManagerImpl.createTokenForAdditionalEmail(principalId, EMAIL, now);
-		PrincipalManagerImpl.validateAdditionalEmailToken(token, now);
-		String validatedEmail = PrincipalManagerImpl.getParameterValueFromToken(token, "email");
-		String originalUserId = PrincipalManagerImpl.getParameterValueFromToken(token, "userid");
-		assertEquals(EMAIL, validatedEmail);
-		assertEquals(principalId.toString(), originalUserId);
-	}
-	
-	// try removing a required field from the 'token'
-	private void testMissingParamValidateAdditionalEmailToken(String paramName) {
-		String token = PrincipalManagerImpl.createTokenForNewAccount(user, now);
-		String[] params = token.split("&");
-		for (int i=0; i<params.length; i++) {
-			if (params[i].contains(paramName)) params[i]=null;
-		}
-		token = paste(params, "&");
-		PrincipalManagerImpl.validateAdditionalEmailToken(token, now);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenMissingFirstName() {
-		testMissingParamValidateAdditionalEmailToken("userid");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenMissingEmail() {
-		testMissingParamValidateAdditionalEmailToken("email");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenMissingTimeStamp() {
-		testMissingParamValidateAdditionalEmailToken("timestamp");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenMissingDomain() {
-		testMissingParamValidateAdditionalEmailToken("domain");
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenMissingMac() {
-		testMissingParamValidateAdditionalEmailToken("mac");
-	}
-	
-	// try removing a required field from the 'token'
-	private void testReplacedParamValidateAdditionalEmailToken(String paramName, String paramValue) {
-		String token = PrincipalManagerImpl.createTokenForAdditionalEmail(111L, EMAIL, now);
-		String[] params = token.split("&");
-		for (int i=0; i<params.length; i++) {
-			if (params[i].startsWith(paramName)) params[i]=paramName+"="+paramValue;
-		}
-		token = paste(params, "&");
-		PrincipalManagerImpl.validateAdditionalEmailToken(token, now);
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenBadTimestamp() {
-		testReplacedParamValidateAdditionalEmailToken("timestamp", "not-a-time-stamp");
-	}
-	
 	// token is OK 23 hours from now
 	@Test
 	public void testValidateAdditionalEmailNOTtooOLDTimestamp() {
 		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
-		String token = PrincipalManagerImpl.createTokenForAdditionalEmail(111L, EMAIL, now);
-		PrincipalManagerImpl.validateAdditionalEmailToken(token, notOutOfDate);
+		EmailValidationSignedToken token = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		PrincipalManagerImpl.validateAdditionalEmailSignedToken(token, USER_ID.toString(), notOutOfDate);
 	}
-	
+
 	// token is not OK 25 hours from now
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateAdditionalEmailOLDTimestamp() {
 		Date outOfDate = new Date(System.currentTimeMillis()+25*3600*1000L);
-		String token = PrincipalManagerImpl.createTokenForAdditionalEmail(111L, EMAIL, now);
-		PrincipalManagerImpl.validateAdditionalEmailToken(token, outOfDate);
+		EmailValidationSignedToken token = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		PrincipalManagerImpl.validateAdditionalEmailSignedToken(token, USER_ID.toString(), outOfDate);
 	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testValidateAdditionalEmailTokenInvalidToken() {
-		testReplacedParamValidateAdditionalEmailToken("mac", "invalid-mac");
-	}
-	
+
 	@Test
 	public void testAdditionalEmailValidation() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
 		UserProfile profile = new UserProfile();
 		profile.setFirstName(FIRST_NAME);
 		profile.setLastName(LAST_NAME);
-		when(mockUserProfileDAO.get(principalId.toString())).thenReturn(profile);
-		when(mockPrincipalAliasDAO.getUserName(principalId)).thenReturn(USER_NAME);
+		when(mockUserProfileDAO.get(USER_ID.toString())).thenReturn(profile);
+		when(mockPrincipalAliasDAO.getUserName(USER_ID)).thenReturn(USER_NAME);
 		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
@@ -523,13 +275,12 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(body.contains(EMAIL));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(manager.createEmailValidationSignedToken(principalId, EMAIL, now)));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(manager.createEmailValidationSignedToken(USER_ID, EMAIL, now))));
 	}
 
 	@Test(expected=NameConflictException.class)
 	public void testAdditionalEmailEmailAlreadyUsed() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		// the following line simulates that the email is already used
@@ -539,8 +290,8 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
-		Long principalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		UserInfo userInfo = new UserInfo(false, principalId);
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo userInfo = new UserInfo(false, anonId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
@@ -548,8 +299,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testAdditionalEmailValidationInvalidEmail() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		Username email = new Username();
 		email.setEmail("not-an-email-address");
 		manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
@@ -557,8 +307,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testAdditionalEmailValidationInvalidEndpoint() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 
@@ -566,46 +315,18 @@ public class PrincipalManagerImplUnitTest {
 	}	
 	
 	@Test
-	public void testAddEmailOld() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
-		
-		String emailValidationToken = PrincipalManagerImpl.createTokenForAdditionalEmail(principalId, EMAIL, now);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken(emailValidationToken);
-		
-		Boolean setAsNotificationEmail = true;
-		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
-		
-		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
-		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
-		PrincipalAlias alias = aliasCaptor.getValue();
-		assertEquals(principalId, alias.getPrincipalId());
-		assertEquals(AliasType.USER_EMAIL, alias.getType());
-		assertEquals(EMAIL, alias.getAlias());
-		verify(mockNotificationEmailDao).update((PrincipalAlias)any());
-	}
-
-	@Test
 	public void testAddEmail() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 
-		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
-		emailValidationSignedToken.setUserId(principalId + "");
-		emailValidationSignedToken.setEmail(EMAIL);
-		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
 
 		Boolean setAsNotificationEmail = true;
-		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
+		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 
 		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
 		PrincipalAlias alias = aliasCaptor.getValue();
-		assertEquals(principalId, alias.getPrincipalId());
+		assertEquals(USER_ID, alias.getPrincipalId());
 		assertEquals(AliasType.USER_EMAIL, alias.getType());
 		assertEquals(EMAIL, alias.getAlias());
 		verify(mockNotificationEmailDao).update((PrincipalAlias)any());
@@ -613,99 +334,88 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAddEmailNoSetNotification() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		
-		String emailValidationToken = PrincipalManagerImpl.createTokenForAdditionalEmail(principalId, EMAIL, now);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken(emailValidationToken);
-		
+		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+
 		Boolean setAsNotificationEmail = null;
-		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
+		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		
 		ArgumentCaptor<PrincipalAlias> aliasCaptor = ArgumentCaptor.forClass(PrincipalAlias.class);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(aliasCaptor.capture());
 		PrincipalAlias alias = aliasCaptor.getValue();
-		assertEquals(principalId, alias.getPrincipalId());
+		assertEquals(USER_ID, alias.getPrincipalId());
 		assertEquals(AliasType.USER_EMAIL, alias.getType());
 		assertEquals(EMAIL, alias.getAlias());
 		verify(mockNotificationEmailDao, times(0)).update((PrincipalAlias)any());
 		
 		// null and false are equivalent for this param
 		setAsNotificationEmail = false;
-		manager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
+		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		verify(mockNotificationEmailDao, times(0)).update((PrincipalAlias)any());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testAddEmailWrongUser() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
-		
-		String emailValidationToken = PrincipalManagerImpl.createTokenForAdditionalEmail(222L, EMAIL, now);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken(emailValidationToken);
-		
-		manager.addEmail(userInfo, addEmailInfo, null);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
+		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(222L, EMAIL, now);
+		manager.addEmail(userInfo, emailValidationSignedToken, null);
 	}
 	
 	@Test
 	public void testRemoveEmailHappyCase() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
 		currentNotificationAlias.setAliasId(aliasId);
-		currentNotificationAlias.setPrincipalId(principalId);
+		currentNotificationAlias.setPrincipalId(USER_ID);
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(currentNotificationAlias.getAlias());
 		PrincipalAlias alternateEmailAlias = new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		alternateEmailAlias.setAliasId(2L);
-		alternateEmailAlias.setPrincipalId(principalId);
+		alternateEmailAlias.setPrincipalId(USER_ID);
 		alternateEmailAlias.setType(AliasType.USER_EMAIL);
 		
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "notification@mail.com")).
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, "notification@mail.com")).
 			thenReturn(Collections.singletonList(currentNotificationAlias));
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL,EMAIL)).
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL,EMAIL)).
 			thenReturn(Collections.singletonList(alternateEmailAlias));
 
 		manager.removeEmail(userInfo, EMAIL);
-		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(principalId);
-		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(principalId, 2L);
+		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(USER_ID);
+		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(USER_ID, 2L);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testRemoveNotificationEmail() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		Long aliasId = 1L;
 		currentNotificationAlias.setAliasId(aliasId);
-		currentNotificationAlias.setPrincipalId(principalId);
+		currentNotificationAlias.setPrincipalId(USER_ID);
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(currentNotificationAlias.getAlias());
 		List<PrincipalAlias> aliases = Collections.singletonList(currentNotificationAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, EMAIL)).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).thenReturn(aliases);
 
 		manager.removeEmail(userInfo, EMAIL);
 	}
 	
 	@Test(expected=NotFoundException.class)
 	public void testRemoveBOGUSEmail() throws Exception {
-		Long principalId = 111L;
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, USER_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
 		currentNotificationAlias.setAliasId(aliasId);
-		currentNotificationAlias.setPrincipalId(principalId);
+		currentNotificationAlias.setPrincipalId(USER_ID);
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(currentNotificationAlias.getAlias());
 		List<PrincipalAlias> aliases = Collections.singletonList(currentNotificationAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "notification@mail.com")).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, "notification@mail.com")).thenReturn(aliases);
 
 		manager.removeEmail(userInfo, "bogus@email.com");
 	}

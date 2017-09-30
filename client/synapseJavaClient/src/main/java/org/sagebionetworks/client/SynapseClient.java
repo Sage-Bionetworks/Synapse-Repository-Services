@@ -144,15 +144,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
-import org.sagebionetworks.repo.model.principal.TypeFilter;
-import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -262,7 +254,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param setAsNotificationEmail if true then set the new email address to be the user's notification address
 	 * @throws NotFoundException
 	 */
-	void addEmail(AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws SynapseException;
+	void addEmail(EmailValidationSignedToken emailValidationSignedToken, Boolean setAsNotificationEmail) throws SynapseException;
 	
 	/**
 	 * Remove an email address from an existing account.
