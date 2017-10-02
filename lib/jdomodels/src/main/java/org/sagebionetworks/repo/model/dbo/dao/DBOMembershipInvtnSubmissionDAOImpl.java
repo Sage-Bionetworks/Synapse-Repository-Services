@@ -296,8 +296,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	public String getInviteeEmail(String membershipInvitationId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, membershipInvitationId);
-		return namedJdbcTemplate.queryForObject(SELECT_INVITEE_EMAIL, param, String.class);
-	}
+		return namedJdbcTemplate.queryForObject(SELECT_INVITEE_EMAIL, param, String.class); }
 
 	@WriteTransactionReadCommitted
 	@Override

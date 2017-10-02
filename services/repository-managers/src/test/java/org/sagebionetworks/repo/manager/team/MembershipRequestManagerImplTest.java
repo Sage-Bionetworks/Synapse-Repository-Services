@@ -215,7 +215,7 @@ public class MembershipRequestManagerImplTest {
 			String teamName = "test-team";
 			String requesterMessage = "The requester sends the following message: <Blockquote> Please let me in your team. </Blockquote> ";
 			String adminId = teamAdmins.get(i);
-			String oneClickJoin = EmailUtils.createMembershipInvtnLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
+			String oneClickJoin = EmailUtils.createOneClickJoinTeamLink(acceptRequestEndpoint, adminId, userId, teamId, mrs.getCreatedOn());
 			String expected = "<html style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-size: 10px;-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\">\r\n" + 
 					"  <body style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;font-family: &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size: 14px;line-height: 1.42857143;color: #333333;background-color: #ffffff;\">\r\n" + 
 					"    <div style=\"margin: 10px;-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;\">\r\n" + 

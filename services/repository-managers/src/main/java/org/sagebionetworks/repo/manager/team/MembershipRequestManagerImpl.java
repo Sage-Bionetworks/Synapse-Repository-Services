@@ -137,7 +137,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
 		for (String recipientPrincipalId : teamAdmins) {
-			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(
+			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
 					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId(), mrs.getCreatedOn()));
 			String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
