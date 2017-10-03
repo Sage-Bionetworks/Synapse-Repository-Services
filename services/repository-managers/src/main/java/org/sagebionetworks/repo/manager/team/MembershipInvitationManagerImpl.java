@@ -119,7 +119,7 @@ public class MembershipInvitationManagerImpl implements
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), expiresOn));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
-		String messageBody = EmailUtils.readMailTemplate("message/emailTeamMembershipInvitationExtendedTemplate.html", fieldValues);
+		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 			.withRecipientEmail(mis.getInviteeEmail())
 			.withSubject(subject)
@@ -143,7 +143,7 @@ public class MembershipInvitationManagerImpl implements
 
 	@Override
 	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
-		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(misId, token, ACCESS_TYPE.READ);
+		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}
@@ -227,7 +227,7 @@ public class MembershipInvitationManagerImpl implements
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
-		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, ACCESS_TYPE.UPDATE);
+		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}

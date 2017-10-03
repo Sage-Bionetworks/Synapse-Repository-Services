@@ -1405,7 +1405,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(inviteeId, token.getInviteeId());
 		assertEquals(mis.getId(), token.getMembershipInvitationId());
 
-		// update the inviteeIinviteeUserProfile.getOwnerId()d of the invitation
+		// update the inviteeIinviteeUserProfile.getOwnerId() of the invitation
 		synapseTwo.updateInviteeId(mis.getId(), token);
 		mis = synapseTwo.getMembershipInvitation(mis.getId());
 		// test if updateInviteeId succeeded
