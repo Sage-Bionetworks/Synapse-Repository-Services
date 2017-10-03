@@ -10,6 +10,10 @@
     "membershipInvitationId": {
       "type": "string",
       "description": "The ID of the membership invitation."
+    },
+    "expiresOn": {
+      "type": "string",
+      "description": "The date on which this token expires."
     }
   }
 }

@@ -1394,7 +1394,11 @@ public class IT500SynapseJavaClient {
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
 		MembershipInvtnSubmission mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		InviteeVerificationSignedToken token = synapseTwo.verifyInvitee(mis.getId());
+		String bucketKey = EmailValidationUtil.getBucketKeyForEmail(TEST_EMAIL);
+		String invitationEmail = EmailValidationUtil.readFile(bucketKey);
+		String encodedMembershipInvtnSignedToken = parseMembershipInvtnSignedToken(invitationEmail);
+		MembershipInvtnSignedToken membershipInvtnSignedToken = SerializationUtils.hexDecodeAndDeserialize(encodedMembershipInvtnSignedToken, MembershipInvtnSignedToken.class);
+		InviteeVerificationSignedToken token = synapseTwo.verifyInvitee(mis.getId(), membershipInvtnSignedToken);
 		// test if verifyInvitee succeeded
 		assertNotNull(token);
 		String inviteeId = inviteeUserProfile.getOwnerId();
@@ -1415,6 +1419,14 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) {
 			// as expected
 		}
+	}
+
+	private String parseMembershipInvtnSignedToken(String invitationEmail) {
+		String head = "<a href=\"" + MOCK_ACCEPT_INVITATION_ENDPOINT;
+		String tail = "\" style=\"-webkit-box-sizing: border-box;-moz-box-sizing: border-box;box-sizing: border-box;background-color: #337ab7;color: #ffffff;text-decoration: none;display: inline-block;margin-bottom: 0;font-weight: normal;text-align: center;vertical-align: middle;-ms-touch-action: manipulation;touch-action: manipulation;cursor: pointer;background-image: none;border: 1px solid transparent;white-space: nowrap;padding: 10px 16px;font-size: 18px;line-height: 1.3333333;border-radius: 6px;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;border-color: #2e6da4;\">Join</a>";
+		int startIndex = invitationEmail.indexOf(head) + head.length();
+		int endIndex = invitationEmail.indexOf(tail);
+		return invitationEmail.substring(startIndex, endIndex);
 	}
 
 	@Test

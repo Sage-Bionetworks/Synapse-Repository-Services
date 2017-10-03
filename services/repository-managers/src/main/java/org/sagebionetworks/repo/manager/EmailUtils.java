@@ -216,10 +216,10 @@ public class EmailUtils {
 		return result;
 	}
 
-	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, Date createdOn) {
+	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, String expiresOn) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
-		token.setCreatedOn(createdOn);
 		token.setMembershipInvitationId(membershipInvitationId);
+		token.setExpiresOn(expiresOn);
 		SignedTokenUtil.signToken(token);
 		String serializedToken = SerializationUtils.serializeAndHexEncode(token);
 		String result = endpoint+serializedToken;

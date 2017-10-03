@@ -1386,7 +1386,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Get the hierarchical path to this entity via its id and urlPrefix
 	 * 
 	 * @param entityId
-	 * @param urlPrefix
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -3521,8 +3520,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	/**
 	 * Get the temporary URL for the data file of a file handle column for a
 	 * row. This is an alternative to downloading the file.
-	 * 
-	 * @param entityId
+	 *
+	 * @param tableId
+	 * @param row
+	 * @param columnId
 	 * @return
 	 * @throws IOException
 	 * @throws SynapseException
@@ -4041,9 +4042,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException {
+	public InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId, MembershipInvtnSignedToken token) throws SynapseException {
 		String uri = MEMBERSHIP_INVITATION + "/" + membershipInvitationId + "/verification";
-		return postJSONEntity(getRepoEndpoint(), uri, null, InviteeVerificationSignedToken.class);
+		return postJSONEntity(getRepoEndpoint(), uri, token, InviteeVerificationSignedToken.class);
 	}
 
 	@Override
@@ -4331,8 +4332,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Register a Team for a Challenge. The user making this request must be
 	 * registered for the Challenge and be an administrator of the Team.
 	 * 
-	 * @param challengeId
-	 * @param teamId
+	 * @param challengeTeam
 	 * @throws SynapseException
 	 */
 	@Override

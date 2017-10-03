@@ -48,6 +48,8 @@ public class MembershipInvitationManagerImpl implements
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "You Have Been Invited to Join a Team";
 
+	protected static final long SIGNED_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 24;
+
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
@@ -111,11 +113,12 @@ public class MembershipInvitationManagerImpl implements
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return;
 		String teamName = teamDAO.get(mis.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;
+		String expiresOn = Long.toString(mis.getCreatedOn().getTime() + SIGNED_TOKEN_EXPIRATION_TIME);
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), expiresOn));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), mis.getCreatedOn()));
 		String messageBody = EmailUtils.readMailTemplate("message/emailTeamMembershipInvitationExtendedTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 			.withRecipientEmail(mis.getInviteeEmail())
@@ -192,9 +195,13 @@ public class MembershipInvitationManagerImpl implements
 	}
 
 	@Override
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId) {
+	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId, MembershipInvtnSignedToken token) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
+		SignedTokenUtil.validateToken(token);
+		if (Long.parseLong(token.getExpiresOn()) < new Date().getTime()) {
+			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
+		}
 		// Get list of email addresses associated with userId
 		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(userId);
 		List<String> emails = new ArrayList<>();
@@ -207,11 +214,11 @@ public class MembershipInvitationManagerImpl implements
 		String inviteeEmail = membershipInvtnSubmissionDAO.getInviteeEmail(membershipInvitationId);
 		// If inviteeEmail is in the emails list, construct InviteeVerificationSignedToken and return it
 		if (emails.contains(inviteeEmail)) {
-			InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
-			token.setInviteeId(userId.toString());
-			token.setMembershipInvitationId(membershipInvitationId);
-			SignedTokenUtil.signToken(token);
-			return token;
+			InviteeVerificationSignedToken responseToken = new InviteeVerificationSignedToken();
+			responseToken.setInviteeId(userId.toString());
+			responseToken.setMembershipInvitationId(membershipInvitationId);
+			SignedTokenUtil.signToken(responseToken);
+			return responseToken;
 		}
 		// inviteeEmail is not associated with the user, return null to convey invitee verification failure
 		return null;

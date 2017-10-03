@@ -1126,7 +1126,6 @@ public interface SynapseClient extends BaseClient {
 	 * Attempt to cancel an Asynchronous job. Not all jobs can be canceled and cancelation is not immediate (wait for
 	 * job to finish with ERROR if you need to make sure it was canceled)
 	 * 
-	 * @param request The request body.
 	 * @return The jobId is used to get the job results.
 	 */
 	public void cancelAsynchJob(String jobId) throws SynapseException;
@@ -1258,7 +1257,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Create new ColumnModels. If a column already exists with the same parameters, that column will be returned.
 	 * 
-	 * @param model
+	 * @param models
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1337,7 +1336,6 @@ public interface SynapseClient extends BaseClient {
 	 * Get the URL to follow to download the icon
 	 * 
 	 * @param teamId
-	 * @param redirect
 	 * @return
 	 * @throws SynapseException if no icon for team (service throws 404)
 	 */
@@ -1487,7 +1485,14 @@ public interface SynapseClient extends BaseClient {
 	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
-	 * 
+	 * Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
+	 * specified. If an inviteeId is specified, the invitee is notified of the invitation through a notification.
+	 * If an inviteeEmail is specified instead, an email containing an invitation link is sent to the invitee. The link
+	 * will contain a serialized MembershipInvtnSignedToken. This link expires in 24 hours.
+	 * Optionally, the creator may include an invitation message and/or expiration date for the invitation.
+	 * If no expiration date is specified then the invitation never expires.
+	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 *
 	 * @param invitation
 	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
 	 * invitation.  A signed, serialized token is appended to create the complete URL.
@@ -1560,9 +1565,10 @@ public interface SynapseClient extends BaseClient {
 	 * If it is, the response body will contain an InviteeVerificationSignedToken.
 	 * If it is not, the response body will be null.
 	 * @param membershipInvitationId
+	 * @param token
 	 * @return
 	 */
-	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException;
+	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId, MembershipInvtnSignedToken token) throws SynapseException;
 
 	/**
 	 * Set the inviteeId of a MembershipInvitation.
@@ -1599,7 +1605,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param teamId
-	 * @param requestorId the id of the user requesting membership (optional)
+	 * @param requesterId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
 	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
@@ -1835,8 +1841,8 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * create a new upload destination setting
-	 * 
-	 * @param uploadDestinationSetting
+	 *
+	 * @param storageLocationSetting
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1855,7 +1861,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * get a list of my upload destination settings
 	 * 
-	 * @param storageLocationId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1884,7 +1889,6 @@ public interface SynapseClient extends BaseClient {
 	 * get the default upload destination for a container
 	 * 
 	 * @param parentEntityId
-	 * @param uploadId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1893,7 +1897,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1903,7 +1906,7 @@ public interface SynapseClient extends BaseClient {
 	 * create a project setting
 	 * 
 	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsType
 	 * @throws SynapseException
 	 */
 	ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException;
@@ -1911,7 +1914,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1920,8 +1922,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsId
 	 * @throws SynapseException
 	 */
 	void deleteProjectSetting(String projectSettingsId) throws SynapseException;
@@ -2170,7 +2171,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param verificationId
 	 * @param verificationState the new state for the verification request
 	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription (optional)
-	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
+	 * @throws SynapseException   If the caller specifies an illegal state transition a BadRequestException will be thrown.
 	 */
 	void updateVerificationState(long verificationId, 
 			VerificationState verificationState,
@@ -2260,7 +2261,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the forum metadata for a given ID
 	 * 
-	 * @param projectId
+	 * @param forumId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2601,8 +2602,9 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Retrieve an entityId given its name and parentId.
-	 * 
-	 * @param request
+	 *
+	 * @param parentId
+	 * @param entityName
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2738,7 +2740,7 @@ public interface SynapseClient extends BaseClient {
 	 * Get the possible ColumnModel definitions based on annotation within a
 	 * given scope.
 	 * 
-	 * @param viewScope
+	 * @param scope
 	 *            List of parent IDs that define the scope.
 	 * @param nextPageToken
 	 *            Optional: When the results include a next page token, the
