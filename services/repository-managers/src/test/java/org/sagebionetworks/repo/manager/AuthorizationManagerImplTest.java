@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -675,14 +674,12 @@ public class AuthorizationManagerImplTest {
 
 	@Test
 	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
-		String correctMisId = "1";
-		String incorrectMisId = "2";
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
-		token.setMembershipInvitationId(correctMisId);
+		token.setMembershipInvitationId("validId");
 		SignedTokenUtil.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
-			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, accessType);
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, accessType);
 			// Only reading is allowed
 			if (accessType != ACCESS_TYPE.READ) {
 				assertFalse(status.getAuthorized());
@@ -691,25 +688,22 @@ public class AuthorizationManagerImplTest {
 			}
 		}
 
-		// Incorrect mis id should be denied
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectMisId, token, ACCESS_TYPE.READ).getAuthorized());
 		token.setMembershipInvitationId("corruptedId");
 		// Non valid signed token should be denied
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(correctMisId, token, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ).getAuthorized());
 	}
 
 	@Test
 	public void testCanAccessMembershipInvitationWithInviteeVerificationSignedToken() {
 		Long userId = 1L;
-		String misId = "11";
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		token.setInviteeId(userId.toString());
-		token.setMembershipInvitationId(misId);
+		token.setMembershipInvitationId("validId");
 		SignedTokenUtil.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Only updating is allowed
-			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, accessType);
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, accessType);
 			if (accessType != ACCESS_TYPE.UPDATE) {
 				assertFalse(status.getAuthorized());
 			} else {
@@ -719,12 +713,9 @@ public class AuthorizationManagerImplTest {
 
 		// Incorrect user id should be denied
 		Long incorrectUserId = 2L;
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectUserId, misId, token, ACCESS_TYPE.UPDATE).getAuthorized());
-		// Incorrect mis id should be denied
-		String incorrectMisId = "22";
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, incorrectMisId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectUserId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 		// Invalid token should be denied
 		token.setMembershipInvitationId("corruptedId");
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, misId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
 }

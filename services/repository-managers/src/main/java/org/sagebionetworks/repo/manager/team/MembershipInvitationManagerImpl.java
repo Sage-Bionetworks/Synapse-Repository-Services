@@ -196,6 +196,9 @@ public class MembershipInvitationManagerImpl implements
 
 	@Override
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId, MembershipInvtnSignedToken token) {
+		if (!membershipInvitationId.equals(token.getMembershipInvitationId())) {
+			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
+		}
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
 		SignedTokenUtil.validateToken(token);
@@ -227,6 +230,9 @@ public class MembershipInvitationManagerImpl implements
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
+		if (!misId.equals(token.getMembershipInvitationId())) {
+			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
+		}
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());

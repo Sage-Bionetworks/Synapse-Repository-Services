@@ -611,20 +611,22 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(String misId, MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
+		String misId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {
 			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
 		}
-		if (token.getMembershipInvitationId().equals(misId) && accessType == ACCESS_TYPE.READ) {
+		if (accessType == ACCESS_TYPE.READ) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
 	}
 
 	@Override
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, String misId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
+		String misId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {

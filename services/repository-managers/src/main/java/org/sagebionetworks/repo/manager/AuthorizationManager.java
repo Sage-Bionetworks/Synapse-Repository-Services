@@ -236,16 +236,15 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(String misId, MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
 
 	/**
 	 * Check whether the token is valid for the access_type
 	 *
 	 * @param userId
-	 * @param misId
 	 * @param token
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, String misId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
 }

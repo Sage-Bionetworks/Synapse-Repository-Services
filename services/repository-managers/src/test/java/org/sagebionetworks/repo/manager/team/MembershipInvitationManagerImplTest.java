@@ -382,25 +382,34 @@ public class MembershipInvitationManagerImplTest {
 		SignedTokenUtil.validateToken(token);
 
 		// Test failure cases
-		// Failure 1 - token is expired
+		// Failure 1 - URI misId and signed token misId don't match
+		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, "incorrectId", membershipInvtnSignedToken);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Failure 2 - token is expired
 		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
 		expiredToken.setExpiresOn(Long.toString(mis.getCreatedOn().getTime() - 1000));
 		SignedTokenUtil.signToken(expiredToken);
-		boolean success = false;
+		caughtException = false;
 		try {
 			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, expiredToken);
 		} catch (IllegalArgumentException e) {
-			success = true;
+			caughtException = true;
 		}
-		assertTrue(success);
+		assertTrue(caughtException);
 
-		// Failure 2 - invitee email doesn't match
+		// Failure 3 - invitee email doesn't match
 		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn("other-invitee@test.com");
 		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken));
 		// Restore mock
 		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
 
-		// Failure 3 - invitee email doesn't match
+		// Failure 4 - invitee email doesn't match
 		alias.setAlias("not-invitee@test.com");
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
 		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken));
@@ -413,7 +422,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		// Mock happy case behavior
-		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		when(mockMembershipInvtnSubmissionDAO.updateInviteeId(MIS_ID,  userId)).thenReturn(1);
 
@@ -421,10 +430,19 @@ public class MembershipInvitationManagerImplTest {
 		membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).updateInviteeId(MIS_ID, userId);
 
-		// Mock the authorization manager so that it denies access
-		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		// Updating the inviteeId should throw an UnauthorizedException
+		// URI id and signed token id should match
 		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, "incorrectId", token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Mock the authorization manager so that it denies access
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		// Updating the inviteeId should throw an UnauthorizedException
+		caughtException = false;
 		try {
 			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
 		} catch (UnauthorizedException e) {
@@ -433,7 +451,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(caughtException);
 
 		// Restore the authorization manager to allow access again
-		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, MIS_ID, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		// Set the existing invitation's inviteeId
 		mis.setInviteeId(userId.toString());
 		// Updating the inviteeId should throw an UnauthorizedException
