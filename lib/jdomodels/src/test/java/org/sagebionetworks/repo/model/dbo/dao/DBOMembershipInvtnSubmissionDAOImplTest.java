@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -12,17 +9,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -39,6 +35,8 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+
+	@Autowired DBOBasicDao basicDAO;
 	
 	private Team team;
 	private UserGroup individUser;
@@ -268,5 +266,37 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		
 		miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
 		assertEquals(createdOn, miList.get(0).getCreatedOn());
+	}
+
+	@Test
+	public void testGetInviteeEmail() {
+		String inviteeEmail = "test@test.com";
+		mis.setInviteeEmail(inviteeEmail);
+		mis = membershipInvtnSubmissionDAO.create(mis);
+		assertEquals(inviteeEmail, membershipInvtnSubmissionDAO.getInviteeEmail(mis.getId()));
+	}
+
+	@Test
+	public void testUpdateInviteeId() {
+		// Create a mis with null invitee id
+		mis.setInviteeId(null);
+		MembershipInvtnSubmission dto = membershipInvtnSubmissionDAO.create(mis);
+		String misId = dto.getId();
+
+		// Get the invitation's etag
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(DBOConstants.PARAM_EVALUATION_ID, misId);
+		DBOMembershipInvtnSubmission dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		String oldEtag = dbo.getEtag();
+
+		// Update the inviteeId and get the updated invitation
+		String inviteeId = individUser.getId();
+		membershipInvtnSubmissionDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
+		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+
+		// inviteeId should be updated
+		assertEquals(inviteeId, dbo.getInviteeId().toString());
+		// etag should be different
+		assertNotEquals(oldEtag, dbo.getEtag());
 	}
 }

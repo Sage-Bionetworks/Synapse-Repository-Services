@@ -665,6 +665,7 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID			= "TEAM_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID		= "INVITEE_ID";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL	= "INVITEE_EMAIL";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION	= "schema/MembershipInvitationSubmission-ddl.sql";
 	

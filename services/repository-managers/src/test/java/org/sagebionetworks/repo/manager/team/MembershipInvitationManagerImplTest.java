@@ -1,44 +1,30 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl.TWENTY_FOUR_HOURS_IN_MS;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.util.*;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
+import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
-import org.sagebionetworks.util.SerializationUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class MembershipInvitationManagerImplTest {
@@ -47,10 +33,12 @@ public class MembershipInvitationManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
 	private TeamDAO mockTeamDAO = null;
+	private SynapseEmailService mockSynapseEmailService;
 
 	private UserInfo userInfo = null;
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
+	private static final String INVITEE_EMAIL = "invitee@test.com";
 
 	private static final String TEAM_ID = "123";
 	private static final String MIS_ID = "987";
@@ -63,7 +51,19 @@ public class MembershipInvitationManagerImplTest {
 		mis.setMessage("Please join our team.");
 		return mis;
 	}
-	
+
+	private static MembershipInvtnSubmission createMembershipInvtnSubmissionToEmail(String id) {
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setId(id);
+		mis.setTeamId(TEAM_ID);
+		mis.setInviteeEmail(INVITEE_EMAIL);
+		Date now = new Date();
+		mis.setCreatedOn(now);
+		mis.setExpiresOn(new Date(now.getTime() + TWENTY_FOUR_HOURS_IN_MS));
+		mis.setMessage("Please join our team.");
+		return mis;
+	}
+
 	private static MembershipInvitation createMembershipInvitation() {
 		MembershipInvitation mi = new MembershipInvitation();
 		mi.setTeamId(TEAM_ID);
@@ -77,9 +77,11 @@ public class MembershipInvitationManagerImplTest {
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl();
+		mockSynapseEmailService = Mockito.mock(SynapseEmailService.class);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "membershipInvtnSubmissionDAO", mockMembershipInvtnSubmissionDAO);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "teamDAO", mockTeamDAO);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "sesClient", mockSynapseEmailService);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
 	}
 
@@ -178,7 +180,16 @@ public class MembershipInvitationManagerImplTest {
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		assertEquals(mis, membershipInvitationManagerImpl.get(userInfo, MIS_ID));
 	}
-	
+
+	@Test
+	public void testGetWithMembershipInvtnSignedToken() {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(any(MembershipInvtnSignedToken.class), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
+		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, token));
+	}
+
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
@@ -195,7 +206,7 @@ public class MembershipInvitationManagerImplTest {
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).delete(MIS_ID);
 	}
-	
+
 
 	@Test
 	public void testGetOpenForUserInRange() throws Exception {
@@ -261,19 +272,19 @@ public class MembershipInvitationManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateInvitationNotification() throws Exception {
+	public void testCreateInvitationToUser() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		testCreateInvitationNotificationHelper(mis);
+		testCreateInvitationToUserHelper(mis);
 	}
 	
 	@Test
-	public void testCreateInvitationNotificationWithNullCreatedOn() throws Exception {
+	public void testCreateInvitationToUserWithNullCreatedOn() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
 		mis.setCreatedOn(null);
-		testCreateInvitationNotificationHelper(mis);
+		testCreateInvitationToUserHelper(mis);
 	}
 	
-	private void testCreateInvitationNotificationHelper(MembershipInvtnSubmission mis) {
+	private void testCreateInvitationToUserHelper(MembershipInvtnSubmission mis) {
 		Team team = new Team();
 		team.setName("test team");
 		team.setId(TEAM_ID);
@@ -281,7 +292,7 @@ public class MembershipInvitationManagerImplTest {
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
 		MessageToUserAndBody result = membershipInvitationManagerImpl.
-				createInvitationNotification(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+			createInvitationToUser(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		assertEquals("You Have Been Invited to Join a Team", result.getMetadata().getSubject());
 		assertEquals(Collections.singleton(MEMBER_PRINCIPAL_ID), result.getMetadata().getRecipients());
 		assertEquals(notificationUnsubscribeEndpoint, result.getMetadata().getNotificationUnsubscribeEndpoint());
@@ -312,6 +323,31 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(expected, result.getBody());
 	}
 
+	@Test
+	public void testSendInvitationToEmail() throws Exception {
+		Team team = new Team();
+		String teamName = "Test team";
+		team.setName(teamName);
+		team.setId(TEAM_ID);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
+		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
+	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
+		SendRawEmailRequest emailRequest =  argument.getValue();
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+			new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertNotNull(mimeMessage.getSubject());
+		assertTrue(body.contains(mis.getTeamId()));
+		assertTrue(body.contains(teamName));
+		assertTrue(body.contains(mis.getMessage()));
+		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID)));
+	}
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetOpenInvitationCountForUserWithNullPrincipalId() {
 		membershipInvitationManagerImpl.getOpenInvitationCountForUser(null);
@@ -324,5 +360,121 @@ public class MembershipInvitationManagerImplTest {
 		Count result = membershipInvitationManagerImpl.getOpenInvitationCountForUser(MEMBER_PRINCIPAL_ID);
 		assertNotNull(result);
 		assertEquals(count, result.getCount());
+	}
+
+	@Test
+	public void testVerifyInvitee() {
+		// Setup
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
+		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
+		// Mock listPrincipalAliases to return one alias with the invitee email
+		PrincipalAliasDAO mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
+		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(true);
+
+		// Test verifyInvitee by inspecting the token it returns
+		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		assertNotNull(token);
+		assertEquals(MEMBER_PRINCIPAL_ID, token.getInviteeId());
+		assertEquals(MIS_ID, token.getMembershipInvitationId());
+		SignedTokenUtil.validateToken(token);
+
+		// Test failure cases
+		// Failure 1 - mis is expired
+		Date expiresOn = mis.getExpiresOn();
+		mis.setExpiresOn(new Date(new Date().getTime() - 999999L));
+		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+		// Restore expiresOn
+		mis.setExpiresOn(expiresOn);
+
+		// Failure 2 - inviteeId is set
+		mis.setInviteeId("not-null");
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+		mis.setInviteeId(null);
+
+		// Failure 3 - invitee email is not associated with user
+		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(false);
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+	}
+
+	@Test
+	public void testUpdateId() {
+		// Setup
+		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		token.setMembershipInvitationId(MIS_ID);
+		token.setExpiresOn(mis.getExpiresOn());
+		// Mock happy case behavior
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockMembershipInvtnSubmissionDAO.getWithUpdateLock(MIS_ID)).thenReturn(mis);
+
+		// Happy case should succeed
+		membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		Mockito.verify(mockMembershipInvtnSubmissionDAO).updateInviteeId(MIS_ID, userId);
+
+		// URI id and signed token id should match
+		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, "incorrectId", token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Expired token should fail
+		token.setExpiresOn(new Date(new Date().getTime() - TWENTY_FOUR_HOURS_IN_MS));
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+		// Restore valid expiration date
+		token.setExpiresOn(mis.getExpiresOn());
+
+		// Mock the authorization manager so that it denies access
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		// Updating the inviteeId should throw an UnauthorizedException
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+		// Restore the authorization manager to allow access again
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		// Set the existing invitation's inviteeId
+		mis.setInviteeId(userId.toString());
+		// Updating the inviteeId should throw an UnauthorizedException
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
 	}
 }

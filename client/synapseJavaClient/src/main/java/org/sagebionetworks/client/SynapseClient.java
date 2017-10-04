@@ -26,55 +26,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
-import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
-import org.sagebionetworks.repo.model.Challenge;
-import org.sagebionetworks.repo.model.ChallengePagedResults;
-import org.sagebionetworks.repo.model.ChallengeTeam;
-import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityChildrenRequest;
-import org.sagebionetworks.repo.model.EntityChildrenResponse;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
-import org.sagebionetworks.repo.model.LockAccessRequirement;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedIds;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.ProjectListSortColumn;
-import org.sagebionetworks.repo.model.ProjectListType;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResponseMessage;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
-import org.sagebionetworks.repo.model.RestrictionInformationRequest;
-import org.sagebionetworks.repo.model.RestrictionInformationResponse;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserBundle;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
@@ -152,7 +104,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.principal.TypeFilter;
-import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1175,7 +1126,6 @@ public interface SynapseClient extends BaseClient {
 	 * Attempt to cancel an Asynchronous job. Not all jobs can be canceled and cancelation is not immediate (wait for
 	 * job to finish with ERROR if you need to make sure it was canceled)
 	 * 
-	 * @param request The request body.
 	 * @return The jobId is used to get the job results.
 	 */
 	public void cancelAsynchJob(String jobId) throws SynapseException;
@@ -1307,7 +1257,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Create new ColumnModels. If a column already exists with the same parameters, that column will be returned.
 	 * 
-	 * @param model
+	 * @param models
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1386,7 +1336,6 @@ public interface SynapseClient extends BaseClient {
 	 * Get the URL to follow to download the icon
 	 * 
 	 * @param teamId
-	 * @param redirect
 	 * @return
 	 * @throws SynapseException if no icon for team (service throws 404)
 	 */
@@ -1536,7 +1485,14 @@ public interface SynapseClient extends BaseClient {
 	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
-	 * 
+	 * Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
+	 * specified. If an inviteeId is specified, the invitee is notified of the invitation through a notification.
+	 * If an inviteeEmail is specified instead, an email containing an invitation link is sent to the invitee. The link
+	 * will contain a serialized MembershipInvtnSignedToken.
+	 * Optionally, the creator may include an invitation message and/or expiration date for the invitation.
+	 * If no expiration date is specified then the invitation never expires.
+	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 *
 	 * @param invitation
 	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
 	 * invitation.  A signed, serialized token is appended to create the complete URL.
@@ -1551,12 +1507,22 @@ public interface SynapseClient extends BaseClient {
 			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
 	/**
-	 * 
+	 *
 	 * @param invitationId
 	 * @return
 	 * @throws SynapseException
 	 */
 	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
+
+	/**
+	 * Retrieve membership invitation using a signed token for authorization
+	 *
+	 * @param invitationId
+	 * @param token
+	 * @return
+	 * @throws SynapseException
+	 */
+	MembershipInvtnSubmission getMembershipInvitation(String invitationId, MembershipInvtnSignedToken token) throws SynapseException;
 
 	/**
 	 * 
@@ -1593,7 +1559,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Count getOpenMembershipInvitationCount() throws SynapseException;
-	
+
+	/**
+	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the authenticated user.
+	 * If it is, the response body will contain an InviteeVerificationSignedToken.
+	 * If it is not, a response status 403 Forbidden will be returned.
+	 * @param membershipInvitationId
+	 * @return
+	 */
+	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException;
+
+	/**
+	 * Set the inviteeId of a MembershipInvitation.
+	 * A valid InviteeVerificationSignedToken must have an inviteeId equal to the id of
+	 * the authenticated user and a membershipInvitationId equal to the id in the URI.
+	 * This call will only succeed if the indicated MembershipInvitation has a
+	 * null inviteeId and a non null inviteeEmail.
+	 * @param membershipInvitationId
+	 * @param token
+	 */
+	void updateInviteeId(String membershipInvitationId, InviteeVerificationSignedToken token) throws SynapseException;
+
 	/**
 	 * 
 	 * @param request
@@ -1618,7 +1604,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param teamId
-	 * @param requestorId the id of the user requesting membership (optional)
+	 * @param requesterId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
 	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
@@ -1854,8 +1840,8 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * create a new upload destination setting
-	 * 
-	 * @param uploadDestinationSetting
+	 *
+	 * @param storageLocationSetting
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1874,7 +1860,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * get a list of my upload destination settings
 	 * 
-	 * @param storageLocationId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1903,7 +1888,6 @@ public interface SynapseClient extends BaseClient {
 	 * get the default upload destination for a container
 	 * 
 	 * @param parentEntityId
-	 * @param uploadId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1912,7 +1896,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1922,7 +1905,7 @@ public interface SynapseClient extends BaseClient {
 	 * create a project setting
 	 * 
 	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsType
 	 * @throws SynapseException
 	 */
 	ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException;
@@ -1930,7 +1913,6 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1939,8 +1921,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsId
 	 * @throws SynapseException
 	 */
 	void deleteProjectSetting(String projectSettingsId) throws SynapseException;
@@ -2189,7 +2170,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param verificationId
 	 * @param verificationState the new state for the verification request
 	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription (optional)
-	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
+	 * @throws SynapseException   If the caller specifies an illegal state transition a BadRequestException will be thrown.
 	 */
 	void updateVerificationState(long verificationId, 
 			VerificationState verificationState,
@@ -2279,7 +2260,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the forum metadata for a given ID
 	 * 
-	 * @param projectId
+	 * @param forumId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2620,8 +2601,9 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Retrieve an entityId given its name and parentId.
-	 * 
-	 * @param request
+	 *
+	 * @param parentId
+	 * @param entityName
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2757,7 +2739,7 @@ public interface SynapseClient extends BaseClient {
 	 * Get the possible ColumnModel definitions based on annotation within a
 	 * given scope.
 	 * 
-	 * @param viewScope
+	 * @param scope
 	 *            List of parent IDs that define the scope.
 	 * @param nextPageToken
 	 *            Optional: When the results include a next page token, the
