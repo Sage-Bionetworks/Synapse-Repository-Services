@@ -26,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
@@ -139,6 +138,16 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
 		DBOMembershipInvtnSubmission dbo = basicDao.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		MembershipInvtnSubmission dto = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
+		return dto;
+	}
+
+	@WriteTransactionReadCommitted
+	@Override
+	public MembershipInvtnSubmission getWithUpdateLock(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_TEAM_ID.toLowerCase(), id);
+		DBOMembershipInvtnSubmission dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMembershipInvtnSubmission.class, param);
 		MembershipInvtnSubmission dto = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
 		return dto;
 	}
@@ -300,11 +309,16 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 
 	@WriteTransactionReadCommitted
 	@Override
-	public int updateInviteeId(String misId, long inviteeId) {
+	public void updateInviteeId(String misId, long inviteeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, misId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG, UUID.randomUUID().toString());
-		return namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
+		int rowsUpdated = namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
+		if (rowsUpdated == 0) {
+			throw new NotFoundException("Could not update MembershipInvtnSubmission with id " + misId + ".");
+		} else if (rowsUpdated > 1) {
+			throw new DatastoreException("Expected to update 1 row but more than 1 was updated.");
+		}
 	}
 }

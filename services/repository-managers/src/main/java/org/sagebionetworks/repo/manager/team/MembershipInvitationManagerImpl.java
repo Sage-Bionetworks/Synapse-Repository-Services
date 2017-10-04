@@ -231,14 +231,11 @@ public class MembershipInvitationManagerImpl implements
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}
-		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(misId);
+		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.getWithUpdateLock(misId);
 		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {
-			throw new UnauthorizedException("Cannot update inviteeId. The target invitation must have a null inviteeId and a non null inviteeEmail.");
+			throw new IllegalArgumentException("Cannot update inviteeId. The target invitation must have a null inviteeId and a non null inviteeEmail.");
 		}
-		int rowsUpdated = membershipInvtnSubmissionDAO.updateInviteeId(misId, userId);
-		if (rowsUpdated != 1) {
-			throw new DatastoreException("Expected to update 1 row, but instead updated " + rowsUpdated + " rows.");
-		}
+		membershipInvtnSubmissionDAO.updateInviteeId(misId, userId);
 	}
 
 	/* (non-Javadoc)

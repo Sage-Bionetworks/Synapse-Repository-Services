@@ -22,7 +22,15 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public MembershipInvtnSubmission get(String id) throws DatastoreException, NotFoundException;
-	
+
+	/**
+	 * Retrieves the object given its id, while locking the object's row for the current transaction
+	 *
+	 * @param id
+	 * @return
+	 */
+	public MembershipInvtnSubmission getWithUpdateLock(String id);
+
 	/**
 	 * 
 	 * @param teamId
@@ -141,5 +149,5 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @param inviteeId
 	 * @throws DatastoreException
 	 */
-	public int updateInviteeId(String misId, long inviteeId);
+	public void updateInviteeId(String misId, long inviteeId);
 }

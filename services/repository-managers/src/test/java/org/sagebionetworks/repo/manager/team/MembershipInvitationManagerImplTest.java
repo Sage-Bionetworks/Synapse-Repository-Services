@@ -437,8 +437,7 @@ public class MembershipInvitationManagerImplTest {
 		token.setMembershipInvitationId(MIS_ID);
 		// Mock happy case behavior
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
-		when(mockMembershipInvtnSubmissionDAO.updateInviteeId(MIS_ID,  userId)).thenReturn(1);
+		when(mockMembershipInvtnSubmissionDAO.getWithUpdateLock(MIS_ID)).thenReturn(mis);
 
 		// Happy case should succeed
 		membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
@@ -472,20 +471,7 @@ public class MembershipInvitationManagerImplTest {
 		caughtException = false;
 		try {
 			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
-		} catch (UnauthorizedException e) {
-			caughtException = true;
-		}
-		assertTrue(caughtException);
-
-		// Set the existing invitation's inviteeId back to null
-		mis.setInviteeId(null);
-		// Mock the DAO updateInviteeId to return 0
-		when(mockMembershipInvtnSubmissionDAO.updateInviteeId(MIS_ID, userId)).thenReturn(0);
-		// Updating the inviteeId should throw a DatastoreException
-		caughtException = false;
-		try {
-			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
-		} catch (DatastoreException e) {
+		} catch (IllegalArgumentException e) {
 			caughtException = true;
 		}
 		assertTrue(caughtException);
