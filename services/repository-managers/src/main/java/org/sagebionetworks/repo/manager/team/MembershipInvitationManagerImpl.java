@@ -197,12 +197,12 @@ public class MembershipInvitationManagerImpl implements
 
 	@Override
 	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId, MembershipInvtnSignedToken token) {
-		if (!membershipInvitationId.equals(token.getMembershipInvitationId())) {
-			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
-		}
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
 		SignedTokenUtil.validateToken(token);
+		if (!membershipInvitationId.equals(token.getMembershipInvitationId())) {
+			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
+		}
 		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
 			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
 		}
@@ -217,6 +217,7 @@ public class MembershipInvitationManagerImpl implements
 		InviteeVerificationSignedToken response = new InviteeVerificationSignedToken();
 		response.setInviteeId(userId.toString());
 		response.setMembershipInvitationId(membershipInvitationId);
+		response.setExpiresOn(new Date(new Date().getTime() + TWENTY_FOUR_HOURS_IN_MS));
 		SignedTokenUtil.signToken(response);
 		return response;
 	}
@@ -224,12 +225,15 @@ public class MembershipInvitationManagerImpl implements
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
-		if (!misId.equals(token.getMembershipInvitationId())) {
-			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
-		}
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
+		}
+		if (!misId.equals(token.getMembershipInvitationId())) {
+			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
+		}
+		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
+			throw new IllegalArgumentException("InviteeVerificationSignedToken is expired");
 		}
 		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.getWithUpdateLock(misId);
 		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {

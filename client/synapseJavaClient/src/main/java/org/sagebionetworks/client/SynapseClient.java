@@ -1488,7 +1488,7 @@ public interface SynapseClient extends BaseClient {
 	 * Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
 	 * specified. If an inviteeId is specified, the invitee is notified of the invitation through a notification.
 	 * If an inviteeEmail is specified instead, an email containing an invitation link is sent to the invitee. The link
-	 * will contain a serialized MembershipInvtnSignedToken. This link expires in 24 hours.
+	 * will contain a serialized MembershipInvtnSignedToken.
 	 * Optionally, the creator may include an invitation message and/or expiration date for the invitation.
 	 * If no expiration date is specified then the invitation never expires.
 	 * Note:  The client must be an administrator of the specified Team to make this request.

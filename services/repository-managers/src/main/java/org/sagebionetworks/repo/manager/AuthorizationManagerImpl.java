@@ -2,12 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;

@@ -466,6 +466,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
 		token.setMembershipInvitationId(MIS_ID);
+		token.setExpiresOn(mis.getExpiresOn());
 		// Mock happy case behavior
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockMembershipInvtnSubmissionDAO.getWithUpdateLock(MIS_ID)).thenReturn(mis);
@@ -482,6 +483,18 @@ public class MembershipInvitationManagerImplTest {
 			caughtException = true;
 		}
 		assertTrue(caughtException);
+
+		// Expired token should fail
+		token.setExpiresOn(new Date(new Date().getTime() - TWENTY_FOUR_HOURS_IN_MS));
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+		// Restore valid expiration date
+		token.setExpiresOn(mis.getExpiresOn());
 
 		// Mock the authorization manager so that it denies access
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
