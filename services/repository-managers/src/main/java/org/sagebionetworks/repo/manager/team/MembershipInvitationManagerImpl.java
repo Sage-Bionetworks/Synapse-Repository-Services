@@ -16,9 +16,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
@@ -49,7 +47,7 @@ public class MembershipInvitationManagerImpl implements
 
 	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "You Have Been Invited to Join a Team";
 
-	protected static final long SIGNED_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 24;
+	protected static final long TWENTY_FOUR_HOURS_IN_MS = 1000 * 60 * 60 * 24;
 
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
@@ -114,11 +112,10 @@ public class MembershipInvitationManagerImpl implements
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return;
 		String teamName = teamDAO.get(mis.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;
-		String expiresOn = Long.toString(mis.getCreatedOn().getTime() + SIGNED_TOKEN_EXPIRATION_TIME);
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), expiresOn));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), mis.getExpiresOn()));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -147,6 +144,9 @@ public class MembershipInvitationManagerImpl implements
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
+		}
+		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
+			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
 		}
 		return membershipInvtnSubmissionDAO.get(misId);
 	}
@@ -203,7 +203,7 @@ public class MembershipInvitationManagerImpl implements
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
 		SignedTokenUtil.validateToken(token);
-		if (Long.parseLong(token.getExpiresOn()) < new Date().getTime()) {
+		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
 			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
 		}
 		// Get inviteeEmail from membershipInvitation

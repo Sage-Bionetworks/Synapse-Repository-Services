@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager.team;
 
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl.SIGNED_TOKEN_EXPIRATION_TIME;
+import static org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl.TWENTY_FOUR_HOURS_IN_MS;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
@@ -60,7 +59,9 @@ public class MembershipInvitationManagerImplTest {
 		mis.setId(id);
 		mis.setTeamId(TEAM_ID);
 		mis.setInviteeEmail(INVITEE_EMAIL);
-		mis.setCreatedOn(new Date());
+		Date now = new Date();
+		mis.setCreatedOn(now);
+		mis.setExpiresOn(new Date(now.getTime() + TWENTY_FOUR_HOURS_IN_MS));
 		mis.setMessage("Please join our team.");
 		return mis;
 	}
@@ -181,7 +182,38 @@ public class MembershipInvitationManagerImplTest {
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		assertEquals(mis, membershipInvitationManagerImpl.get(userInfo, MIS_ID));
 	}
-	
+
+	@Test
+	public void testGetWithMembershipInvtnSignedToken() {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
+
+		// Test case with future expiration date
+		MembershipInvtnSignedToken validToken = new MembershipInvtnSignedToken();
+		validToken.setExpiresOn(new Date(new Date().getTime() + TWENTY_FOUR_HOURS_IN_MS));
+		SignedTokenUtil.signToken(validToken);
+		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(any(MembershipInvtnSignedToken.class), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
+		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, validToken));
+
+		// Test case with no expiration date
+		MembershipInvtnSignedToken noExpirationToken = new MembershipInvtnSignedToken();
+		SignedTokenUtil.signToken(noExpirationToken);
+		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, noExpirationToken));
+
+		// Test case with past expiration date
+		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
+		expiredToken.setExpiresOn(new Date(mis.getExpiresOn().getTime() - TWENTY_FOUR_HOURS_IN_MS));
+		SignedTokenUtil.signToken(expiredToken);
+		boolean caughtException = false;
+		try {
+			membershipInvitationManagerImpl.get(MIS_ID, expiredToken);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+
+	}
+
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
@@ -198,7 +230,7 @@ public class MembershipInvitationManagerImplTest {
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).delete(MIS_ID);
 	}
-	
+
 
 	@Test
 	public void testGetOpenForUserInRange() throws Exception {
@@ -337,8 +369,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getTeamId()));
 		assertTrue(body.contains(teamName));
 		assertTrue(body.contains(mis.getMessage()));
-		String expiresOn = Long.toString(mis.getCreatedOn().getTime() + SIGNED_TOKEN_EXPIRATION_TIME);
-		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID, expiresOn)));
+		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID, mis.getExpiresOn())));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -361,7 +392,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		MembershipInvtnSignedToken membershipInvtnSignedToken = new MembershipInvtnSignedToken();
 		membershipInvtnSignedToken.setMembershipInvitationId(MIS_ID);
-		membershipInvtnSignedToken.setExpiresOn(Long.toString(new Date().getTime() + SIGNED_TOKEN_EXPIRATION_TIME));
+		membershipInvtnSignedToken.setExpiresOn(mis.getExpiresOn());
 		SignedTokenUtil.signToken(membershipInvtnSignedToken);
 		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
 
@@ -395,7 +426,7 @@ public class MembershipInvitationManagerImplTest {
 
 		// Failure 2 - token is expired
 		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
-		expiredToken.setExpiresOn(Long.toString(mis.getCreatedOn().getTime() - 1000));
+		expiredToken.setExpiresOn(new Date(mis.getCreatedOn().getTime() - 1000L));
 		SignedTokenUtil.signToken(expiredToken);
 		caughtException = false;
 		try {

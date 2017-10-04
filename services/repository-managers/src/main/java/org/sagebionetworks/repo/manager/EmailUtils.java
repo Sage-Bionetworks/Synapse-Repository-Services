@@ -216,7 +216,7 @@ public class EmailUtils {
 		return result;
 	}
 
-	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, String expiresOn) {
+	public static String createMembershipInvtnLink(String endpoint, String membershipInvitationId, Date expiresOn) {
 		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		token.setMembershipInvitationId(membershipInvitationId);
 		token.setExpiresOn(expiresOn);
