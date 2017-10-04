@@ -192,7 +192,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 
 	@Override
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId) {
+	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
 		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(membershipInvitationId);

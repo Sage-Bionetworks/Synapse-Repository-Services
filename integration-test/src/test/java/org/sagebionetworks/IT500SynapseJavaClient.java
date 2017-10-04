@@ -1394,8 +1394,8 @@ public class IT500SynapseJavaClient {
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
 		MembershipInvtnSubmission mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		InviteeVerificationSignedToken token = synapseTwo.verifyInvitee(mis.getId());
-		// test if verifyInvitee succeeded
+		InviteeVerificationSignedToken token = synapseTwo.getInviteeVerificationSignedToken(mis.getId());
+		// test if getInviteeVerificationSignedToken succeeded
 		assertNotNull(token);
 		String inviteeId = inviteeUserProfile.getOwnerId();
 		assertEquals(inviteeId, token.getInviteeId());

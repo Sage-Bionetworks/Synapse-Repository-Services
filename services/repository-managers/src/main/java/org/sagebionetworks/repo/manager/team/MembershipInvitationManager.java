@@ -140,7 +140,7 @@ public interface MembershipInvitationManager {
 	 * @param token
 	 * @return
 	 */
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
+	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId);
 
 	/**
 	 * Set the inviteeId of the indicated MembershipInvtnSubmission if the given token is valid.

@@ -1567,7 +1567,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param membershipInvitationId
 	 * @return
 	 */
-	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException;
+	InviteeVerificationSignedToken getInviteeVerificationSignedToken(String membershipInvitationId) throws SynapseException;
 
 	/**
 	 * Set the inviteeId of a MembershipInvitation.

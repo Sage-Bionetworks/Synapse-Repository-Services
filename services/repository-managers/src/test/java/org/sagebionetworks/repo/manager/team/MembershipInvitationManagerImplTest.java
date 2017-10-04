@@ -373,8 +373,8 @@ public class MembershipInvitationManagerImplTest {
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
 		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(true);
 
-		// Test verifyInvitee by inspecting the token it returns
-		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+		// Test getInviteeVerificationSignedToken by inspecting the token it returns
+		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.getInviteeVerificationSignedToken(userId, MIS_ID);
 		assertNotNull(token);
 		assertEquals(MEMBER_PRINCIPAL_ID, token.getInviteeId());
 		assertEquals(MIS_ID, token.getMembershipInvitationId());
@@ -386,7 +386,7 @@ public class MembershipInvitationManagerImplTest {
 		mis.setExpiresOn(new Date(new Date().getTime() - 999999L));
 		boolean caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+			membershipInvitationManagerImpl.getInviteeVerificationSignedToken(userId, MIS_ID);
 		} catch (IllegalArgumentException e) {
 			caughtException = true;
 		}
@@ -398,7 +398,7 @@ public class MembershipInvitationManagerImplTest {
 		mis.setInviteeId("not-null");
 		caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+			membershipInvitationManagerImpl.getInviteeVerificationSignedToken(userId, MIS_ID);
 		} catch (IllegalArgumentException e) {
 			caughtException = true;
 		}
@@ -409,7 +409,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(false);
 		caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
+			membershipInvitationManagerImpl.getInviteeVerificationSignedToken(userId, MIS_ID);
 		} catch (UnauthorizedException e) {
 			caughtException = true;
 		}
