@@ -434,6 +434,7 @@ public class MembershipInvitationManagerImplTest {
 		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		token.setMembershipInvitationId(MIS_ID);
 		// Mock happy case behavior
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
