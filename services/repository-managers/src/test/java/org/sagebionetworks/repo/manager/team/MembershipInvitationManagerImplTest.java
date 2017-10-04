@@ -441,6 +441,18 @@ public class MembershipInvitationManagerImplTest {
 		}
 		assertTrue(caughtException);
 
+		// Token with null expiresOn should fail
+		token.setExpiresOn(null);
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.updateInviteeId(userId, MIS_ID, token);
+		} catch (IllegalArgumentException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
+		// Restore valid expiration date
+		token.setExpiresOn(mis.getExpiresOn());
+
 		// Expired token should fail
 		token.setExpiresOn(new Date(new Date().getTime() - TWENTY_FOUR_HOURS_IN_MS));
 		caughtException = false;

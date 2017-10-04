@@ -224,7 +224,10 @@ public class MembershipInvitationManagerImpl implements
 		if (!misId.equals(token.getMembershipInvitationId())) {
 			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
 		}
-		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
+		if (token.getExpiresOn() == null ) {
+			throw new IllegalArgumentException("expiresOn field in InviteeVerificationSignedToken is missing");
+		}
+		if (token.getExpiresOn().before(new Date())) {
 			throw new IllegalArgumentException("InviteeVerificationSignedToken is expired");
 		}
 		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.getWithUpdateLock(misId);
