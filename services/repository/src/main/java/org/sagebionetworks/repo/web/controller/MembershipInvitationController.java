@@ -182,9 +182,9 @@ public class MembershipInvitationController extends BaseController {
 	}
 
 	/**
-	 * Verify whether the inviteeEmail of the indicated MembershipInvitation is associated with the authenticated user.
+	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the authenticated user.
 	 * If it is, the response body will contain an InviteeVerificationSignedToken.
-	 * If it is not, the response body will be null.
+	 * If it is not, a response status 403 Forbidden will be returned.
 	 * See https://sagebionetworks.jira.com/wiki/spaces/PLFM/pages/143628166/Invite+a+new+user+to+join+a+team for more information.
 	 * @param membershipInvitationId
 	 * @param userId

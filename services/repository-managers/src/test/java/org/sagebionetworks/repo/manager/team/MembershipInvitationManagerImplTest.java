@@ -360,6 +360,7 @@ public class MembershipInvitationManagerImplTest {
 		// Setup
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		MembershipInvtnSignedToken membershipInvtnSignedToken = new MembershipInvtnSignedToken();
+		membershipInvtnSignedToken.setMembershipInvitationId(MIS_ID);
 		membershipInvtnSignedToken.setExpiresOn(Long.toString(new Date().getTime() + SIGNED_TOKEN_EXPIRATION_TIME));
 		SignedTokenUtil.signToken(membershipInvtnSignedToken);
 		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
@@ -367,10 +368,11 @@ public class MembershipInvitationManagerImplTest {
 		// Mock listPrincipalAliases to return one alias with the invitee email
 		PrincipalAliasDAO mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(INVITEE_EMAIL);
-		alias.setType(AliasType.USER_EMAIL);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
+		PrincipalAlias principalAlias = new PrincipalAlias();
+		principalAlias.setAlias(INVITEE_EMAIL);
+		principalAlias.setType(AliasType.USER_EMAIL);
+		principalAlias.setPrincipalId(userId);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(INVITEE_EMAIL)).thenReturn(principalAlias);
 
 		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
 
@@ -405,14 +407,25 @@ public class MembershipInvitationManagerImplTest {
 
 		// Failure 3 - invitee email doesn't match
 		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn("other-invitee@test.com");
-		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken));
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
 		// Restore mock
 		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
 
-		// Failure 4 - invitee email doesn't match
-		alias.setAlias("not-invitee@test.com");
-		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(Arrays.asList(alias));
-		assertNull(membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken));
+		// Failure 4 - principal alias id found doesn't match the user's id
+		principalAlias.setPrincipalId(userId + 999L);
+		caughtException = false;
+		try {
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken);
+		} catch (UnauthorizedException e) {
+			caughtException = true;
+		}
+		assertTrue(caughtException);
 	}
 
 	@Test

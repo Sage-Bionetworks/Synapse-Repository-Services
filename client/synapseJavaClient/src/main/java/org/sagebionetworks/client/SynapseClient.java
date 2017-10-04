@@ -1561,9 +1561,9 @@ public interface SynapseClient extends BaseClient {
 	Count getOpenMembershipInvitationCount() throws SynapseException;
 
 	/**
-	 * Verify whether the inviteeEmail of the indicated MembershipInvitation is associated with the authenticated user.
+	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the authenticated user.
 	 * If it is, the response body will contain an InviteeVerificationSignedToken.
-	 * If it is not, the response body will be null.
+	 * If it is not, a response status 403 Forbidden will be returned.
 	 * @param membershipInvitationId
 	 * @param token
 	 * @return

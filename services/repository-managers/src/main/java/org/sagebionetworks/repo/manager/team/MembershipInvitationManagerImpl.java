@@ -16,6 +16,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -205,26 +206,19 @@ public class MembershipInvitationManagerImpl implements
 		if (Long.parseLong(token.getExpiresOn()) < new Date().getTime()) {
 			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
 		}
-		// Get list of email addresses associated with userId
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(userId);
-		List<String> emails = new ArrayList<>();
-		for (PrincipalAlias alias : aliases) {
-			if (alias.getType() == AliasType.USER_EMAIL) {
-				emails.add(alias.getAlias());
-			}
-		}
 		// Get inviteeEmail from membershipInvitation
 		String inviteeEmail = membershipInvtnSubmissionDAO.getInviteeEmail(membershipInvitationId);
-		// If inviteeEmail is in the emails list, construct InviteeVerificationSignedToken and return it
-		if (emails.contains(inviteeEmail)) {
-			InviteeVerificationSignedToken responseToken = new InviteeVerificationSignedToken();
-			responseToken.setInviteeId(userId.toString());
-			responseToken.setMembershipInvitationId(membershipInvitationId);
-			SignedTokenUtil.signToken(responseToken);
-			return responseToken;
+		// Find out if the given user has an alias that matches the inviteeEmail
+		PrincipalAlias principalAlias = principalAliasDAO.findPrincipalWithAlias(inviteeEmail);
+		if (principalAlias == null || !principalAlias.getPrincipalId().equals(userId) || !principalAlias.getAlias().equals(inviteeEmail)) {
+			// inviteeEmail is not associated with the user
+			throw new UnauthorizedException("This membership invitation is not addressed to the authenticated user.");
 		}
-		// inviteeEmail is not associated with the user, return null to convey invitee verification failure
-		return null;
+		InviteeVerificationSignedToken response = new InviteeVerificationSignedToken();
+		response.setInviteeId(userId.toString());
+		response.setMembershipInvitationId(membershipInvitationId);
+		SignedTokenUtil.signToken(response);
+		return response;
 	}
 
 	@WriteTransactionReadCommitted

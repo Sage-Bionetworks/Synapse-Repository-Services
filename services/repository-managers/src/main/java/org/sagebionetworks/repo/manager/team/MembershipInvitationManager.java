@@ -132,7 +132,8 @@ public interface MembershipInvitationManager {
 
 	/**
 	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the given user.
-	 * Return an InviteeVerificationSignedToken if the verification succeeds, null if it fails.
+	 * Return an InviteeVerificationSignedToken if the verification succeeds.
+	 * Throw UnauthorizedException if it fails.
 	 *
 	 * @param userId
 	 * @param membershipInvitationId
