@@ -30,14 +30,15 @@ public class SynapseServerException extends SynapseException {
 	 * 
 	 */
 	public SynapseServerException(int httpStatus) {
+		super("Status Code: "+httpStatus);
 		this.statusCode=httpStatus;
 	}
 
 	/**
-	 * @param arg0
+	 * @param message
 	 */
-	public SynapseServerException(int httpStatus, String arg0) {
-		super(arg0);
+	public SynapseServerException(int httpStatus, String message) {
+		super("Status Code: "+httpStatus+" message: "+message);
 		this.statusCode=httpStatus;
 	}
 
