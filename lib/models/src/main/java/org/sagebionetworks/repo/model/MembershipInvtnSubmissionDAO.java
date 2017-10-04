@@ -136,13 +136,6 @@ public interface MembershipInvtnSubmissionDAO {
 	public void deleteByTeamAndUser(long teamId, long inviteeId) throws DatastoreException;
 
 	/**
-	 *
-	 * @param membershipInvitationId
-	 * @return
-	 */
-	public String getInviteeEmail(String membershipInvitationId);
-
-	/**
 	 * Update the inviteeId of the indicated mis
 	 *
 	 * @param misId
