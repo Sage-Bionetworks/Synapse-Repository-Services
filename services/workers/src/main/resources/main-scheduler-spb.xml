@@ -103,5 +103,8 @@
 	<bean id="workerLogger" class="org.sagebionetworks.cloudwatch.WorkerLoggerImpl">
 		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
 	</bean>
+	
+	<bean id="workerProfiler" class="org.sagebionetworks.worker.utils.WorkerProfiler">
+	</bean>
 
 </beans>
