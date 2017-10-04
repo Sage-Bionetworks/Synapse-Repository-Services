@@ -202,7 +202,7 @@ public class MembershipInvitationManagerImplTest {
 
 		// Test case with past expiration date
 		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
-		expiredToken.setExpiresOn(new Date(mis.getExpiresOn().getTime() - TWENTY_FOUR_HOURS_IN_MS));
+		expiredToken.setExpiresOn(new Date(new Date().getTime() - TWENTY_FOUR_HOURS_IN_MS));
 		SignedTokenUtil.signToken(expiredToken);
 		boolean caughtException = false;
 		try {
