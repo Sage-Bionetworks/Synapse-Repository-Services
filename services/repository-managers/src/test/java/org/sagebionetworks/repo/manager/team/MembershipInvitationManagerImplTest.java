@@ -23,8 +23,6 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -186,32 +184,10 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testGetWithMembershipInvtnSignedToken() {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
-
-		// Test case with future expiration date
-		MembershipInvtnSignedToken validToken = new MembershipInvtnSignedToken();
-		validToken.setExpiresOn(new Date(new Date().getTime() + TWENTY_FOUR_HOURS_IN_MS));
-		SignedTokenUtil.signToken(validToken);
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
 		when(mockAuthorizationManager.canAccessMembershipInvitationSubmission(any(MembershipInvtnSignedToken.class), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
-		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, validToken));
-
-		// Test case with no expiration date
-		MembershipInvtnSignedToken noExpirationToken = new MembershipInvtnSignedToken();
-		SignedTokenUtil.signToken(noExpirationToken);
-		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, noExpirationToken));
-
-		// Test case with past expiration date
-		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
-		expiredToken.setExpiresOn(new Date(new Date().getTime() - TWENTY_FOUR_HOURS_IN_MS));
-		SignedTokenUtil.signToken(expiredToken);
-		boolean caughtException = false;
-		try {
-			membershipInvitationManagerImpl.get(MIS_ID, expiredToken);
-		} catch (IllegalArgumentException e) {
-			caughtException = true;
-		}
-		assertTrue(caughtException);
-
+		assertEquals(mis, membershipInvitationManagerImpl.get(MIS_ID, token));
 	}
 
 	@Test(expected=UnauthorizedException.class)
@@ -369,7 +345,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getTeamId()));
 		assertTrue(body.contains(teamName));
 		assertTrue(body.contains(mis.getMessage()));
-		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID, mis.getExpiresOn())));
+		assertTrue(body.contains(EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, MIS_ID)));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -390,69 +366,50 @@ public class MembershipInvitationManagerImplTest {
 	public void testVerifyInvitee() {
 		// Setup
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
-		MembershipInvtnSignedToken membershipInvtnSignedToken = new MembershipInvtnSignedToken();
-		membershipInvtnSignedToken.setMembershipInvitationId(MIS_ID);
-		membershipInvtnSignedToken.setExpiresOn(mis.getExpiresOn());
-		SignedTokenUtil.signToken(membershipInvtnSignedToken);
+		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		Long userId = Long.parseLong(MEMBER_PRINCIPAL_ID);
-
 		// Mock listPrincipalAliases to return one alias with the invitee email
 		PrincipalAliasDAO mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		ReflectionTestUtils.setField(membershipInvitationManagerImpl, "principalAliasDAO", mockPrincipalAliasDAO);
-		PrincipalAlias principalAlias = new PrincipalAlias();
-		principalAlias.setAlias(INVITEE_EMAIL);
-		principalAlias.setType(AliasType.USER_EMAIL);
-		principalAlias.setPrincipalId(userId);
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(INVITEE_EMAIL)).thenReturn(principalAlias);
-
-		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
+		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(true);
 
 		// Test verifyInvitee by inspecting the token it returns
-		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken);
+		InviteeVerificationSignedToken token = membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
 		assertNotNull(token);
 		assertEquals(MEMBER_PRINCIPAL_ID, token.getInviteeId());
 		assertEquals(MIS_ID, token.getMembershipInvitationId());
 		SignedTokenUtil.validateToken(token);
 
 		// Test failure cases
-		// Failure 1 - URI misId and signed token misId don't match
+		// Failure 1 - mis is expired
+		Date expiresOn = mis.getExpiresOn();
+		mis.setExpiresOn(new Date(new Date().getTime() - 999999L));
 		boolean caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, "incorrectId", membershipInvtnSignedToken);
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
 		} catch (IllegalArgumentException e) {
 			caughtException = true;
 		}
 		assertTrue(caughtException);
+		// Restore expiresOn
+		mis.setExpiresOn(expiresOn);
 
-		// Failure 2 - token is expired
-		MembershipInvtnSignedToken expiredToken = new MembershipInvtnSignedToken();
-		expiredToken.setExpiresOn(new Date(mis.getCreatedOn().getTime() - 1000L));
-		SignedTokenUtil.signToken(expiredToken);
+		// Failure 2 - inviteeId is set
+		mis.setInviteeId("not-null");
 		caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, expiredToken);
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
 		} catch (IllegalArgumentException e) {
 			caughtException = true;
 		}
 		assertTrue(caughtException);
+		mis.setInviteeId(null);
 
-		// Failure 3 - invitee email doesn't match
-		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn("other-invitee@test.com");
+		// Failure 3 - invitee email is not associated with user
+		when(mockPrincipalAliasDAO.aliasIsBoundToPrincipal(INVITEE_EMAIL, MEMBER_PRINCIPAL_ID)).thenReturn(false);
 		caughtException = false;
 		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken);
-		} catch (UnauthorizedException e) {
-			caughtException = true;
-		}
-		assertTrue(caughtException);
-		// Restore mock
-		when(mockMembershipInvtnSubmissionDAO.getInviteeEmail(MIS_ID)).thenReturn(INVITEE_EMAIL);
-
-		// Failure 4 - principal alias id found doesn't match the user's id
-		principalAlias.setPrincipalId(userId + 999L);
-		caughtException = false;
-		try {
-			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID, membershipInvtnSignedToken);
+			membershipInvitationManagerImpl.verifyInvitee(userId, MIS_ID);
 		} catch (UnauthorizedException e) {
 			caughtException = true;
 		}

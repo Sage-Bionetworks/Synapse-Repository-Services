@@ -193,13 +193,12 @@ public class MembershipInvitationController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_VERIFY_INVITEE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_VERIFY_INVITEE, method = RequestMethod.GET)
 	public @ResponseBody InviteeVerificationSignedToken verifyInvitee(
 			@PathVariable("id") String membershipInvitationId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody MembershipInvtnSignedToken token
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
-		return serviceProvider.getMembershipInvitationService().verifyInvitee(userId, membershipInvitationId, token);
+		return serviceProvider.getMembershipInvitationService().verifyInvitee(userId, membershipInvitationId);
 	}
 
 	/**

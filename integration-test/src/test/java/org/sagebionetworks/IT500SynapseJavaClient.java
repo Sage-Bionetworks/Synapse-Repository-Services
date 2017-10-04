@@ -1394,11 +1394,7 @@ public class IT500SynapseJavaClient {
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
 		MembershipInvtnSubmission mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
-		String bucketKey = EmailValidationUtil.getBucketKeyForEmail(TEST_EMAIL);
-		String invitationEmail = EmailValidationUtil.readFile(bucketKey);
-		String encodedMembershipInvtnSignedToken = parseMembershipInvtnSignedToken(invitationEmail);
-		MembershipInvtnSignedToken membershipInvtnSignedToken = SerializationUtils.hexDecodeAndDeserialize(encodedMembershipInvtnSignedToken, MembershipInvtnSignedToken.class);
-		InviteeVerificationSignedToken token = synapseTwo.verifyInvitee(mis.getId(), membershipInvtnSignedToken);
+		InviteeVerificationSignedToken token = synapseTwo.verifyInvitee(mis.getId());
 		// test if verifyInvitee succeeded
 		assertNotNull(token);
 		String inviteeId = inviteeUserProfile.getOwnerId();

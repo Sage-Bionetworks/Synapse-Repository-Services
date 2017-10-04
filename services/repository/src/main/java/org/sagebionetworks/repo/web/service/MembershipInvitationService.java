@@ -90,10 +90,9 @@ public interface MembershipInvitationService {
 	 *
 	 * @param userId
 	 * @param membershipInvitationId
-	 * @param token
 	 * @return
 	 */
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId, MembershipInvtnSignedToken token);
+	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
 
 	/**
 	 *

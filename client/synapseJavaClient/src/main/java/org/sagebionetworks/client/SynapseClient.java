@@ -1565,10 +1565,9 @@ public interface SynapseClient extends BaseClient {
 	 * If it is, the response body will contain an InviteeVerificationSignedToken.
 	 * If it is not, a response status 403 Forbidden will be returned.
 	 * @param membershipInvitationId
-	 * @param token
 	 * @return
 	 */
-	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId, MembershipInvtnSignedToken token) throws SynapseException;
+	InviteeVerificationSignedToken verifyInvitee(String membershipInvitationId) throws SynapseException;
 
 	/**
 	 * Set the inviteeId of a MembershipInvitation.

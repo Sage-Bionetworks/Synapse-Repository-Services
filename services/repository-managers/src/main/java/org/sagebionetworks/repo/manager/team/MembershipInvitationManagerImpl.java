@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
@@ -115,7 +114,7 @@ public class MembershipInvitationManagerImpl implements
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId(), mis.getExpiresOn()));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId()));
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
@@ -144,9 +143,6 @@ public class MembershipInvitationManagerImpl implements
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
-		}
-		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
-			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
 		}
 		return membershipInvtnSubmissionDAO.get(misId);
 	}
@@ -196,21 +192,17 @@ public class MembershipInvitationManagerImpl implements
 	}
 
 	@Override
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId, MembershipInvtnSignedToken token) {
+	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
-		SignedTokenUtil.validateToken(token);
-		if (!membershipInvitationId.equals(token.getMembershipInvitationId())) {
-			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
+		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(membershipInvitationId);
+		if (mis.getExpiresOn() != null && mis.getExpiresOn().before(new Date())) {
+			throw new IllegalArgumentException("Indicated MembershipInvtnSubmission is expired.");
 		}
-		if (token.getExpiresOn() != null && token.getExpiresOn().before(new Date())) {
-			throw new IllegalArgumentException("MembershipInvtnSignedToken is expired");
+		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {
+			throw new IllegalArgumentException("The indicated invitation must have a null inviteeId and a non null inviteeEmail.");
 		}
-		// Get inviteeEmail from membershipInvitation
-		String inviteeEmail = membershipInvtnSubmissionDAO.getInviteeEmail(membershipInvitationId);
-		// Find out if the given user has an alias that matches the inviteeEmail
-		PrincipalAlias principalAlias = principalAliasDAO.findPrincipalWithAlias(inviteeEmail);
-		if (principalAlias == null || !principalAlias.getPrincipalId().equals(userId) || !principalAlias.getAlias().equals(inviteeEmail)) {
+		if (!principalAliasDAO.aliasIsBoundToPrincipal(mis.getInviteeEmail(), Long.toString(userId))) {
 			// inviteeEmail is not associated with the user
 			throw new UnauthorizedException("This membership invitation is not addressed to the authenticated user.");
 		}

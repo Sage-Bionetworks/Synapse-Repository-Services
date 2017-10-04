@@ -142,7 +142,6 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return dto;
 	}
 
-	@WriteTransactionReadCommitted
 	@Override
 	public MembershipInvtnSubmission getWithUpdateLock(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();

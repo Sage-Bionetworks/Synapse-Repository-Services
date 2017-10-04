@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -96,6 +97,12 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+" FROM "+TABLE_PRINCIPAL_ALIAS
 			+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" IN (:"+UNIQUE_ALIAS_LIST+")"
 					+ " AND "+COL_PRINCIPAL_ALIAS_TYPE+" IN (:"+TYPE_LIST+")";
+
+	private static final String SQL_ALIAS_IS_BOUND_TO_PRINCIPAL =
+			"SELECT COUNT(*) " +
+			"FROM " + TABLE_PRINCIPAL_ALIAS + " " +
+			"WHERE " + COL_PRINCIPAL_ALIAS_UNIQUE + " = :" + COL_PRINCIPAL_ALIAS_UNIQUE + " " +
+			"AND " + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = :" + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 
 
 	@Autowired
@@ -413,5 +420,21 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		parameters.addValue(UNIQUE_ALIAS_LIST, processAliases);
 		parameters.addValue(TYPE_LIST, typeStrings);
 		return this.namedTemplate.queryForList(SQL_SELECT_BY_ALIASES_AND_TYPE, parameters, Long.class);
+	}
+
+	@Override
+	public boolean aliasIsBoundToPrincipal(String alias, String principalId) {
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue(COL_PRINCIPAL_ALIAS_UNIQUE, AliasUtils.getUniqueAliasName(alias));
+		parameters.addValue(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID, principalId);
+		int count = namedTemplate.queryForObject(SQL_ALIAS_IS_BOUND_TO_PRINCIPAL, parameters, Integer.class);
+		if (count == 0) {
+			return false;
+		} else if (count == 1) {
+			return true;
+		} else {
+			// This should never happen
+			throw new DatastoreException("Expected count 0 or 1, but greater than 1 has been found");
+		}
 	}
 }
