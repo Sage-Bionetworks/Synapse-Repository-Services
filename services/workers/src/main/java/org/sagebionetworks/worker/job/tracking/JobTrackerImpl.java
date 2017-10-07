@@ -2,6 +2,8 @@ package org.sagebionetworks.worker.job.tracking;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,7 +34,7 @@ public class JobTrackerImpl implements JobTracker {
 	/**
 	 * Tracks the elapse times (MS) of jobs that have completed.
 	 */
-	private Map<String, Long> finishedJobElapsTimes = new HashMap<String, Long>();
+	private Map<String, List<Long>> finishedJobElapsTimes = new HashMap<String, List<Long>>();
 
 	/*
 	 * (non-Javadoc)
@@ -58,7 +60,12 @@ public class JobTrackerImpl implements JobTracker {
 		Long startTime = startedJobTimes.remove(jobName);
 		if (startTime != null) {
 			long jobElapseTimeMs = clock.currentTimeMillis() - startTime;
-			finishedJobElapsTimes.put(jobName, jobElapseTimeMs);
+			List<Long> elapseList = finishedJobElapsTimes.get(jobName);
+			if(elapseList == null){
+				elapseList = new LinkedList<Long>();
+				finishedJobElapsTimes.put(jobName, elapseList);
+			}
+			elapseList.add(jobElapseTimeMs);
 		}
 	}
 
@@ -77,7 +84,7 @@ public class JobTrackerImpl implements JobTracker {
 		 * Consume the finished jobs. The current map is returned while the
 		 * local map is replaced with a new empty map.
 		 */
-		Map<String, Long> copyFinishedJobElapsTimes = finishedJobElapsTimes;
+		Map<String, List<Long>> copyFinishedJobElapsTimes = finishedJobElapsTimes;
 		finishedJobElapsTimes = new HashMap<>(copyFinishedJobElapsTimes.size());
 		return new TrackedData(copyOfAllKnownJobNames, copyStartedJobTimes,
 				copyFinishedJobElapsTimes);

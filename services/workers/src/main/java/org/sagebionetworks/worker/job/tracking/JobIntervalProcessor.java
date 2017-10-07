@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -28,18 +29,10 @@ public class JobIntervalProcessor {
 	 */
 	public static final long METRIC_PUSH_FREQUENCY_MS = 1000 * 60; // one minute
 
-	public static final String COUNT = "count";
-	public static final String RUNTIME = "runtime";
-	public static final String WORKER_NAME = "name";
-	public static final Double ONE = new Double(1);
-	
-	public static final String PERCENTAGE_OF_TIME_SPENT_RUNNING = "% Time Spent Running";
-
-	public static final String WORKER_PERCENTAGE_NAMESPACE = "Worker-Percentage-test";
-	public static final String WORKER_COUNT_NAMESPACE = "Worker-Count-3"
-			+ StackConfiguration.getStackInstance();
-	public static final String WORKER_RUNTIME_NAMESPACE = "Worker-Runtime-3"
-			+ StackConfiguration.getStackInstance();
+	public static final String DIMENSION_WORKER_NAME = "Worker Name";
+	public static final String DIMENSION_INSTANCE_ID = "Instance ID";
+	public static final String METRIC_NAME_PERCENT_TIMET_RUNNING = "% Time Running";
+	public static final String NAMESPACE_WORKER_STATISTICS = "Worker-Statistics-Test-5"+ StackConfiguration.getStackInstance();
 
 	@Autowired
 	JobTracker jobTracker;
@@ -52,9 +45,10 @@ public class JobIntervalProcessor {
 
 	Long lastPushTimeMS;
 
-	Map<String, IntervalStatistics> percentageOfTimeSpentRunning = new HashMap<>();
-	Map<String, IntervalStatistics> jobCounts = new HashMap<>();
-	Map<String, IntervalStatistics> jobRuntimes = new HashMap<>();
+	/*
+	 * These maps are only access from the timer thread.
+	 */
+	Map<String, IntervalStatistics> percentTimeRunningStatistics = new HashMap<>();
 
 	/**
 	 * Called from a timer to gather statistics at a regular interval.
@@ -67,7 +61,7 @@ public class JobIntervalProcessor {
 			lastPushTimeMS = now;
 		}
 		// Calculate the metrics for this time slice
-		calculateMetrics();
+		calculateMetrics(now);
 
 		long timeSinceLastPush = now - lastPushTimeMS;
 		if (timeSinceLastPush > METRIC_PUSH_FREQUENCY_MS) {
@@ -81,7 +75,7 @@ public class JobIntervalProcessor {
 	 * Calculate all of the metrics for a single time slice.
 	 * 
 	 */
-	public void calculateMetrics() {
+	public void calculateMetrics(long now) {
 		/*
 		 * Copies of the synchronized collections are made to minimize the
 		 * impact of synchronization of the running jobs. The Copies are not
@@ -90,7 +84,7 @@ public class JobIntervalProcessor {
 		TrackedData consumedData = jobTracker.consumeTrackedData();
 		
 		// percentage of time spent running.
-		calculatePercentageOfTimeSpentRunning(consumedData);
+		calculatePercentTimeRunning(consumedData);
 	}
 
 	/**
@@ -99,7 +93,7 @@ public class JobIntervalProcessor {
 	 * 
 	 * @param consumedData
 	 */
-	public void calculatePercentageOfTimeSpentRunning(TrackedData consumedData) {
+	public void calculatePercentTimeRunning(TrackedData consumedData) {
 		/*
 		 *  A job that is currently running is at 100% while a job that is not
 		 *  running is at 0%.
@@ -111,11 +105,11 @@ public class JobIntervalProcessor {
 				// this job is running so it is at 100% for this interval
 				percentage = 100;
 			}
-			addValueToIntervalMap(jobName, percentage, percentageOfTimeSpentRunning);
+			addValueToIntervalMap(jobName, percentage, percentTimeRunningStatistics);
 		}
 		
 	}
-
+	
 	/**
 	 * Add a value to the IntervalStatistics for the given job name.
 	 * @param jobName
@@ -143,9 +137,9 @@ public class JobIntervalProcessor {
 		Date timestamp = new Date(now);
 		// Create the profile data
 		List<ProfileData> percentageData = createProfileDataForMap(
-				percentageOfTimeSpentRunning, 
-				WORKER_PERCENTAGE_NAMESPACE,
-				PERCENTAGE_OF_TIME_SPENT_RUNNING,
+				percentTimeRunningStatistics, 
+				NAMESPACE_WORKER_STATISTICS,
+				METRIC_NAME_PERCENT_TIMET_RUNNING,
 				StandardUnit.Percent.name(),
 				timestamp);
 		
@@ -153,7 +147,7 @@ public class JobIntervalProcessor {
 		consumer.addProfileData(percentageData);
 		
 		// reset the interval data
-		percentageOfTimeSpentRunning.clear();
+		percentTimeRunningStatistics.clear();
 	}
 	
 	/**
@@ -184,7 +178,7 @@ public class JobIntervalProcessor {
 	 * @param name
 	 * @return
 	 */
-	public static ProfileData createProfileData(String nameSpace, String units, String metricName, IntervalStatistics interval, String jobName, Date timestamp){
+	public static ProfileData createProfileData(String nameSpace, String units, String metricName, IntervalStatistics interval, String workerName, Date timestamp){
 		// convert the interval to a metric
 		MetricStats stats = new MetricStats();
 		stats.setMaximum(interval.getMaximumValue());
@@ -197,7 +191,9 @@ public class JobIntervalProcessor {
 		pd.setMetricStats(stats);
 		pd.setNamespace(nameSpace);
 		pd.setUnit(units);
-		pd.setDimension(Collections.singletonMap(WORKER_NAME, jobName));
+		Map<String, String> dimensions = new HashMap<String, String>(1);
+		dimensions.put(DIMENSION_WORKER_NAME, workerName);
+		pd.setDimension(dimensions);
 		pd.setTimestamp(timestamp);
 		return pd;
 	}

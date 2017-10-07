@@ -30,6 +30,6 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="301" />
-		<property name="repeatInterval" value="10" />
+		<property name="repeatInterval" value="100" />
 	</bean>
 </beans>

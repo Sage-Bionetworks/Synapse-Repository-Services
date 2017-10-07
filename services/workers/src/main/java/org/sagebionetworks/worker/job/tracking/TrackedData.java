@@ -1,5 +1,6 @@
 package org.sagebionetworks.worker.job.tracking;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,7 +22,7 @@ public class TrackedData {
 	/**
 	 * Tracks the elapse times (MS) of jobs that have completed.
 	 */
-	private Map<String, Long> finishedJobElapsTimes;
+	private Map<String, List<Long>> finishedJobElapsTimes;
 
 	/**
 	 * Create a new
@@ -32,7 +33,7 @@ public class TrackedData {
 	 */
 	public TrackedData(Set<String> allKnownJobNames,
 			Map<String, Long> startedJobTimes,
-			Map<String, Long> finishedJobElapsTimes) {
+			Map<String, List<Long>> finishedJobElapsTimes) {
 		super();
 		this.allKnownJobNames = allKnownJobNames;
 		this.startedJobTimes = startedJobTimes;
@@ -62,7 +63,7 @@ public class TrackedData {
 	 * 
 	 * @return
 	 */
-	public Map<String, Long> getFinishedJobElapsTimes() {
+	public Map<String, List<Long>> getFinishedJobElapsTimes() {
 		return finishedJobElapsTimes;
 	}
 
