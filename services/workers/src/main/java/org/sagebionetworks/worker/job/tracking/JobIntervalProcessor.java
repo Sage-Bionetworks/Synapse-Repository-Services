@@ -1,6 +1,5 @@
 package org.sagebionetworks.worker.job.tracking;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -8,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
@@ -18,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 /**
- * This class is driven by a timer thread, to calculate metric statistics for
+ * This class is driven by a timer thread to calculate metric statistics for
  * running jobs at a regular interval.
  * 
  */
@@ -30,9 +28,10 @@ public class JobIntervalProcessor {
 	public static final long METRIC_PUSH_FREQUENCY_MS = 1000 * 60; // one minute
 
 	public static final String DIMENSION_WORKER_NAME = "Worker Name";
-	public static final String DIMENSION_INSTANCE_ID = "Instance ID";
 	public static final String METRIC_NAME_PERCENT_TIMET_RUNNING = "% Time Running";
-	public static final String NAMESPACE_WORKER_STATISTICS = "Worker-Statistics-Test-5"+ StackConfiguration.getStackInstance();
+	public static final String METRIC_CUMULATIVE_RUNTIME = "Cumulative runtime";
+	public static final String METRIC_COMPLETED_JOB_COUNT = "Completed Job Count";
+	public static final String NAMESPACE_WORKER_STATISTICS = "Worker-Statistics-"+ StackConfiguration.getStackInstance();
 
 	@Autowired
 	JobTracker jobTracker;
@@ -49,6 +48,8 @@ public class JobIntervalProcessor {
 	 * These maps are only access from the timer thread.
 	 */
 	Map<String, IntervalStatistics> percentTimeRunningStatistics = new HashMap<>();
+	Map<String, IntervalStatistics> cumulativeRuntimeStatisitsics= new HashMap<>();
+	Map<String, IntervalStatistics> completedJobCountStatistics= new HashMap<>();
 
 	/**
 	 * Called from a timer to gather statistics at a regular interval.
@@ -85,6 +86,10 @@ public class JobIntervalProcessor {
 		
 		// percentage of time spent running.
 		calculatePercentTimeRunning(consumedData);
+		// the amount of time spent on each job.
+		calculateCumulativeRuntime(consumedData, now);
+		// The number of completed jobs
+		calculateCompletedJobCount(consumedData);
 	}
 
 	/**
@@ -107,7 +112,49 @@ public class JobIntervalProcessor {
 			}
 			addValueToIntervalMap(jobName, percentage, percentTimeRunningStatistics);
 		}
-		
+	}
+	
+	/**
+	 * Calculate the cumulative runtime for all known job types.
+	 * 
+	 * @param consumedData
+	 * @param now
+	 */
+	public void calculateCumulativeRuntime(TrackedData consumedData, long now) {
+		for(String jobName: consumedData.getAllKnownJobNames()){
+			// if no jobs of this type are currently running then the runtime is zero.
+			long runtime = 0;
+			Long startTime = consumedData.getStartedJobTimes().get(jobName);
+			if(startTime != null){
+				// A job of this type is running.  How long has it been running?
+				runtime = now - startTime;
+			}
+			addValueToIntervalMap(jobName, runtime, cumulativeRuntimeStatisitsics);
+		}
+	}
+	
+	/**
+	 * Calculate the number of jobs completed during this interval.
+	 * 
+	 * @param consumedData
+	 */
+	public void calculateCompletedJobCount(TrackedData consumedData){
+		for(String jobName: consumedData.getAllKnownJobNames()){
+			// For a continuous statistic ensure there is at least one value.
+			IntervalStatistics interval = completedJobCountStatistics.get(jobName);
+			if(interval == null){
+				interval = new IntervalStatistics(0);
+				completedJobCountStatistics.put(jobName, interval);
+			}
+			List<Long> completedJobs = consumedData.getFinishedJobElapsTimes().get(jobName);
+			if(completedJobs != null){
+				// count each completed job
+				for(Long elapseTimeMs: completedJobs){
+					// add one for each completed job
+					addValueToIntervalMap(jobName, 1, completedJobCountStatistics);
+				}
+			}
+		}
 	}
 	
 	/**
@@ -135,20 +182,52 @@ public class JobIntervalProcessor {
 	 */
 	public void publishAndRestMetrics(long now) {
 		Date timestamp = new Date(now);
-		// Create the profile data
-		List<ProfileData> percentageData = createProfileDataForMap(
+		// % time running
+		publishAndClearStatistics(
 				percentTimeRunningStatistics, 
 				NAMESPACE_WORKER_STATISTICS,
 				METRIC_NAME_PERCENT_TIMET_RUNNING,
 				StandardUnit.Percent.name(),
 				timestamp);
-		
-		// publish the metric to cloudwatch
-		consumer.addProfileData(percentageData);
-		
-		// reset the interval data
-		percentTimeRunningStatistics.clear();
+		// cumulative runtime
+		publishAndClearStatistics(
+				cumulativeRuntimeStatisitsics, 
+				NAMESPACE_WORKER_STATISTICS,
+				METRIC_CUMULATIVE_RUNTIME,
+				StandardUnit.Milliseconds.name(),
+				timestamp);
+		// count completed jobs
+		publishAndClearStatistics(
+				completedJobCountStatistics, 
+				NAMESPACE_WORKER_STATISTICS,
+				METRIC_COMPLETED_JOB_COUNT,
+				StandardUnit.Count.name(),
+				timestamp);
 	}
+	
+	/**
+	 * Publish the given statistics then clear the results.
+	 * 
+	 * @param intervalMap
+	 * @param nameSpace
+	 * @param metricName
+	 * @param units
+	 * @param timestamp
+	 */
+	public void publishAndClearStatistics(Map<String, IntervalStatistics> intervalMap, String nameSpace, String metricName, String units, Date timestamp){
+		List<ProfileData> results = new LinkedList<>();
+		for(String jobName: intervalMap.keySet()){
+			IntervalStatistics interval = intervalMap.get(jobName);
+			ProfileData pd = createProfileData(nameSpace, units, metricName, interval, jobName, timestamp);
+			results.add(pd);
+		}
+		// publish the metric to cloudwatch
+		consumer.addProfileData(results);
+		// reset the map.
+		intervalMap.clear();
+	}
+	
+	
 	
 	/**
 	 * Create a list of metrics for a given interval map.
