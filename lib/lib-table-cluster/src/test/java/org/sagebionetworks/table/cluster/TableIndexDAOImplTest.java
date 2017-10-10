@@ -1711,6 +1711,48 @@ public class TableIndexDAOImplTest {
 	}
 	
 	/**
+	 * PLFM-4028 is an error that occurs when any type of column is changed 
+	 * to a type of large text.
+	 */
+	@Test
+	public void testPLFM_4028WithIndex(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId);
+		int maxNumberOfIndices = 2;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
+		
+		// the new schema has a large text column with the same name
+		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	@Test
+	public void testPLFM_4028WithoutIndex(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
+		
+		// the new schema has a large text column with the same name
+		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	/**
 	 * Create update or delete the given rows in the current table.
 	 * @param rows
 	 * @param schema
