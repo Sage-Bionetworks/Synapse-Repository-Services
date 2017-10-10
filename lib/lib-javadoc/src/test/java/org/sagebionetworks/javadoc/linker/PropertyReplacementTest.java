@@ -1,6 +1,6 @@
 package org.sagebionetworks.javadoc.linker;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,5 +60,32 @@ public class PropertyReplacementTest {
 		String expected = "File: \"C:/file/path.text\".";
 		String result = PropertyReplacement.replaceProperties(input, replacements);
 		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testReplaceWithMissingTailingBracket(){
+		Map<String, String> replacements = new HashMap<String, String>();
+		replacements.put("to.replace.one", "foo");
+		replacements.put("to.replace.two", "bar");
+		String input = "<html><body>This is ${to.replace.one and this is the ${to.replace.two}</body></html>";
+		try {
+			PropertyReplacement.replaceProperties(input, replacements);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("${to.replace.one"));
+		}
+	}
+	
+	@Test
+	public void testValidateNoMissingBrackets(){
+		// call under test
+		PropertyReplacement.validateNoMissingBrackets("this does not have missing brackets");
+		try {
+			// call under test
+			PropertyReplacement.validateNoMissingBrackets("this${has.missing.brackets");
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals("Missing tailing bracket: ${has.missing.brackets", e.getMessage());
+		}
 	}
 }

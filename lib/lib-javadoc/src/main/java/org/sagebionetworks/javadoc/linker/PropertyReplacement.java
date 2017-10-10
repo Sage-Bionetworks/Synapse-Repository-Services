@@ -17,6 +17,7 @@ public class PropertyReplacement {
 	 */
 	private static final String PROPERTY_REG_EX = "(\\$\\{)([^\\{\\}\\$]*)(\\})";
 	private static final Pattern PROPERTY_PATTERN = Pattern.compile(PROPERTY_REG_EX);
+	private static final Pattern PROPERTY_PATTERN_BROKEN = Pattern.compile("(\\$\\{)([a-zA-Z0-9.]*)");
 
 	/**
 	 * Replace all properties in the input string with values from the replacement map
@@ -60,10 +61,26 @@ public class PropertyReplacement {
             } while (result);
             // Add add anything left
             matcher.appendTail(sb);
-            return sb.toString();
+            String results = sb.toString();
+            validateNoMissingBrackets(results);
+            return results;
         }
         // There were no matches.
         return input;
+	}
+	
+	/**
+	 * Validate no missing brackets.
+	 * @param results
+	 */
+	public static void validateNoMissingBrackets(String results){
+		Matcher matcher = PROPERTY_PATTERN_BROKEN.matcher(results);
+        boolean result = matcher.find();
+        if (result) {
+        	// The group will be a raw value like: ${<key>}
+        	String group = matcher.group();
+        	throw new IllegalArgumentException("Missing tailing bracket: "+group);
+        }
 	}
 
 }

@@ -120,7 +120,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Deleting the ACL of a Project is not allowed.
  * </p>
  * <p>
- * The <a href="${GET.entity.id.acl">GET /entity/{id}/acl</a> can be used to get
+ * The <a href="${GET.entity.id.acl}">GET /entity/{id}/acl</a> can be used to get
  * an Entity's ACL.
  * </p>
  * <p>
@@ -147,7 +147,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
  * /entity/{id}/version/{versionNumber}</a> method. The Annotations of a
  * specific version of an FileEntity can be retrieved using the <a
- * href="${GET.entity.id.version.versionNumber.annotations">GET
+ * href="${GET.entity.id.version.versionNumber.annotations}">GET
  * /entity/{id}/version/{versionNumber}/annotations</a> method.
  * </p>
  * <p>
