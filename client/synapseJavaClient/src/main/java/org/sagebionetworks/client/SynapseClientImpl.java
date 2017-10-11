@@ -3991,9 +3991,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public MembershipInvtnSubmission getMembershipInvitation(
-			String invitationId, MembershipInvtnSignedToken token) throws SynapseException {
-		String uri = MEMBERSHIP_INVITATION + "/" + invitationId;
+	public MembershipInvtnSubmission getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException {
+		String uri = MEMBERSHIP_INVITATION + "/" + token.getMembershipInvitationId();
 		return postJSONEntity(getRepoEndpoint(), uri, token, MembershipInvtnSubmission.class);
 	}
 

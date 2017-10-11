@@ -1517,12 +1517,11 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Retrieve membership invitation using a signed token for authorization
 	 *
-	 * @param invitationId
 	 * @param token
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission getMembershipInvitation(String invitationId, MembershipInvtnSignedToken token) throws SynapseException;
+	MembershipInvtnSubmission getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException;
 
 	/**
 	 * 
