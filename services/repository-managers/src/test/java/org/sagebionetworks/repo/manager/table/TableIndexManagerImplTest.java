@@ -661,6 +661,7 @@ public class TableIndexManagerImplTest {
 		
 		// call under test
 		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
+		verify(mockIndexDao).provideIndexName(curretIndexSchema, tableId);
 		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
 		List<ColumnChangeDetails> captured = changeCaptor.getValue();
 		// the results should be changed
@@ -672,7 +673,6 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, updated.getOldColumn());
 		assertEquals(newColumn, updated.getNewColumn());
 	}
-	
 	
 	/**
 	 * Create the default EntityField schema with IDs for each column.

@@ -911,7 +911,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
 		// call under test.
-		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
@@ -924,7 +924,7 @@ public class TableIndexDAOImplTest {
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
 		change = new ColumnChangeDetails(oldColumn, newColumn);
-		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
 	
