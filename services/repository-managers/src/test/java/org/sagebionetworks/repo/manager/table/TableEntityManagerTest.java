@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.ColumnChange;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -90,6 +89,7 @@ import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -273,7 +273,7 @@ public class TableEntityManagerTest {
 		schemaChangeRequest.setChanges(changes);
 		schemaChangeRequest.setEntityId(tableId);
 		
-		columChangedetails = TableModelTestUtils.createDetailsForChanges(changes);
+		columChangedetails = createDetailsForChanges(changes);
 		
 		when(mockColumModelManager.getColumnModelsForTable(user, tableId)).thenReturn(models);
 		when(mockColumnModelDao.getColumnModelsForObject(tableId)).thenReturn(models);
@@ -1039,7 +1039,7 @@ public class TableEntityManagerTest {
 		List<String> newColumnIds = Lists.newArrayList("111");
 		request.setOrderedColumnIds(newColumnIds);
 
-		List<ColumnChangeDetails> details = TableModelTestUtils.createDetailsForChanges(changes);
+		List<ColumnChangeDetails> details = createDetailsForChanges(changes);
 
 		when(mockColumModelManager.getColumnChangeDetails(changes)).thenReturn(details);
 		// Call under test
@@ -1440,5 +1440,27 @@ public class TableEntityManagerTest {
 		List<String> retrievedSchema = manager.getTableSchema(tableId);
 		assertEquals(newColumnIds, retrievedSchema);
 
+	}
+	
+	/**
+	 * Create test details for given column changes.
+	 * 
+	 * @param changes
+	 * @return
+	 */
+	public static List<ColumnChangeDetails> createDetailsForChanges(List<ColumnChange> changes){
+		List<ColumnChangeDetails> results = new LinkedList<>();
+		for(ColumnChange change: changes){
+			ColumnModel oldModel = null;
+			ColumnModel newModel = null;
+			if(change.getOldColumnId() != null){
+				oldModel = TableModelTestUtils.createColumn(Long.parseLong(change.getOldColumnId()));
+			}
+			if(change.getNewColumnId() != null){
+				newModel = TableModelTestUtils.createColumn(Long.parseLong(change.getNewColumnId()));
+			}
+			results.add(new ColumnChangeDetails(oldModel, newModel));
+		}
+		return results;
 	}
 }
