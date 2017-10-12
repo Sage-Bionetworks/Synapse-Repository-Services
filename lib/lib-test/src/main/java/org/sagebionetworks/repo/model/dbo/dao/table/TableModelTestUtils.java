@@ -16,7 +16,6 @@ import java.util.TimeZone;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnChange;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -661,26 +660,5 @@ public class TableModelTestUtils {
 		}
 		return results;
 	}
-	
-	/**
-	 * Create test details for given column changes.
-	 * 
-	 * @param changes
-	 * @return
-	 */
-	public static List<ColumnChangeDetails> createDetailsForChanges(List<ColumnChange> changes){
-		List<ColumnChangeDetails> results = new LinkedList<>();
-		for(ColumnChange change: changes){
-			ColumnModel oldModel = null;
-			ColumnModel newModel = null;
-			if(change.getOldColumnId() != null){
-				oldModel = createColumn(Long.parseLong(change.getOldColumnId()));
-			}
-			if(change.getNewColumnId() != null){
-				newModel = createColumn(Long.parseLong(change.getNewColumnId()));
-			}
-			results.add(new ColumnChangeDetails(oldModel, newModel));
-		}
-		return results;
-	}
+
 }

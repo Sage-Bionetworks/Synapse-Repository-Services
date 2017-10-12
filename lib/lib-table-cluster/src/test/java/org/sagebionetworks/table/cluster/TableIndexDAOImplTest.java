@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -103,9 +102,26 @@ public class TableIndexDAOImplTest {
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
+		// Ensure all all updated columns actually exist.
+		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
+	/**
+	 * Helper to alter the table as needed.
+	 * @param tableId
+	 * @param changes
+	 * @param alterTemp
+	 * @return
+	 */
+	boolean alterTableAsNeeded(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+		// Lookup the current schema of the index.
+		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId);
+		tableIndexDAO.provideIndexName(currentIndedSchema, tableId);
+		// Ensure all all updated columns actually exist.
+		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
+		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
+	}
 	/**
 	 * Helper to apply a change set to the index.s
 	 * @param rowSet
@@ -895,7 +911,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createTableIfDoesNotExist(tableId);
 		boolean alterTemp = false;
 		// call under test.
-		boolean wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
 		// Check the results
 		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
@@ -908,7 +924,7 @@ public class TableIndexDAOImplTest {
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
 		change = new ColumnChangeDetails(oldColumn, newColumn);
-		wasAltered = tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
+		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
 	
@@ -996,7 +1012,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
+		alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1020,7 +1036,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
+		alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1037,7 +1053,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setName("bar");
 		newColumn.setColumnType(ColumnType.DATE);
 		
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
+		alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		// the index should get renamed
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		infoList = getAllColumnInfo(tableId);
@@ -1060,7 +1076,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setColumnType(ColumnType.INTEGER);
 		boolean alterTemp = false;
 		// add the column
-		tableIndexDAO.alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
+		alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		int maxNumberOfIndices = 5;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Get the latest table information
@@ -1708,6 +1724,48 @@ public class TableIndexDAOImplTest {
 		assertEquals(tableId, results.getTableId());
 		assertEquals(1, results.getRows().size());
 		assertEquals(""+thritySecondsFuture, results.getRows().get(0).getValues().get(0));
+	}
+	
+	/**
+	 * PLFM-4028 is an error that occurs when any type of column is changed 
+	 * to a type of large text.
+	 */
+	@Test
+	public void testPLFM_4028WithIndex(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId);
+		int maxNumberOfIndices = 2;
+		optimizeTableIndices(tableId, maxNumberOfIndices);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
+		
+		// the new schema has a large text column with the same name
+		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		alterTableAsNeeded(tableId, changes, alterTemp);
+	}
+	
+	@Test
+	public void testPLFM_4028WithoutIndex(){
+		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
+		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
+		createOrUpdateTable(schema, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// apply the rows
+		createOrUpdateOrDeleteRows(rows, schema);
+		
+		// the new schema has a large text column with the same name
+		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
+		
+		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
+		boolean alterTemp = false;
+		alterTableAsNeeded(tableId, changes, alterTemp);
 	}
 	
 	/**

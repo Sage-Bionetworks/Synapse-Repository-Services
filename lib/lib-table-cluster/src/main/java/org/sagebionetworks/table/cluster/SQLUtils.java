@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -741,8 +740,16 @@ public class SQLUtils {
 			ColumnChangeDetails change, boolean isFirst) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
+		ValidateArgument.required(change.getOldColumnInfo(), "change.getOldColumnInfo()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
 		if(!isFirst){
+			builder.append(", ");
+		}
+		
+		if(change.getOldColumnInfo().hasIndex()){
+			// drop the index on the old column before changing the column.
+			ValidateArgument.required(change.getOldColumnInfo().getIndexName(), "change.getOldColumnInfo().getIndexName");
+			appendDropIndex(builder, change.getOldColumnInfo());	
 			builder.append(", ");
 		}
 		builder.append("CHANGE COLUMN ");
@@ -1419,18 +1426,23 @@ public class SQLUtils {
 	public static List<ColumnChangeDetails> matchChangesToCurrentInfo(
 			List<DatabaseColumnInfo> currentIndexSchema,
 			List<ColumnChangeDetails> changes) {
-		Set<String> existingColumnIds = new HashSet<>(currentIndexSchema.size());
-		List<ColumnModel> currentModels = extractSchemaFromInfo(currentIndexSchema);
-		for (ColumnModel model : currentModels) {
-			if(model.getId() != null){
-				existingColumnIds.add(model.getId());
+		// Map the ColumnIds of the current schema to the DatabaseColumnInfo for each column.
+		Map<String, DatabaseColumnInfo> currentColumnIdToInfo = new HashMap<String, DatabaseColumnInfo>(currentIndexSchema.size());
+		for(DatabaseColumnInfo info: currentIndexSchema){
+			if(!info.isRowIdOrVersion()){
+				if(info.getColumnType() != null){
+					String columnId = ""+getColumnId(info);
+					currentColumnIdToInfo.put(columnId, info);
+				}
 			}
 		}
 		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
 		for (ColumnChangeDetails change : changes) {
+			DatabaseColumnInfo oldColumnInfo = null;
 			ColumnModel oldColumn = change.getOldColumn();
 			if (oldColumn != null) {
-				if (!existingColumnIds.contains(oldColumn.getId())) {
+				oldColumnInfo = currentColumnIdToInfo.get(oldColumn.getId());
+				if (oldColumnInfo == null) {
 					/*
 					 * The old column does not exist in the table. Setting the
 					 * old column to null will treat this change as an add
@@ -1439,7 +1451,7 @@ public class SQLUtils {
 					oldColumn = null;
 				}
 			}
-			results.add(new ColumnChangeDetails(oldColumn, change
+			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, change
 					.getNewColumn()));
 		}
 		return results;

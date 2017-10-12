@@ -7,7 +7,6 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.RowSet;
