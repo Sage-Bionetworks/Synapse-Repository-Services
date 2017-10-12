@@ -118,12 +118,8 @@ public class MultipartManagerImpl implements MultipartManager {
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
 		}
-		assert s3Client!=null;
-		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(
-				new InitiateMultipartUploadRequest(
-				MultipartUtils.getBucket(storageLocationSetting), 
-				key).
-				withObjectMetadata(objMeta)
+		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(
+				MultipartUtils.getBucket(storageLocationSetting), key).withObjectMetadata(objMeta)
 				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
 		// the token will be the ke
 		ChunkedFileToken cft = new ChunkedFileToken();
