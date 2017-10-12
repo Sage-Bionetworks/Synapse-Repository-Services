@@ -27,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
@@ -83,6 +84,7 @@ public class S3MultipartUploadDAOImplTest {
 		assertEquals("attachment; filename=foo.txt", capture.getValue().getObjectMetadata().getContentDisposition());
 		assertEquals("text/plain", capture.getValue().getObjectMetadata().getContentType());
 		assertEquals("g1asy6qL/G3cbGEiJMbJsw==", capture.getValue().getObjectMetadata().getContentMD5());
+		assertEquals(CannedAccessControlList.BucketOwnerFullControl, capture.getValue().getCannedACL());
 	}
 	
 	@Test
