@@ -4,7 +4,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
-import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -596,11 +596,11 @@ public class SQLUtils {
 	 * Select distinct values from the given column ID.
 	 * 
 	 * @param tableId
-	 * @param columnId
+	 * @param columnName
 	 * @return
 	 */
-	public static String createSQLGetDistinctValues(String tableId, String columnId){
-		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
+	public static String createSQLGetDistinctValues(String tableId, String columnName){
+		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 	
 	/**
@@ -608,14 +608,21 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTableIfDoesNotExistSQL(String tableId){
+	public static String createTableIfDoesNotExistSQL(String tableId, boolean isView){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append("( ");
 		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
 		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+		if(isView){
+			builder.append(ROW_ETAG).append(" bigint(20) NOT NULL, ");
+			builder.append(ROW_BENEFACTOR).append(" bigint(20) NOT NULL, ");
+		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		if(isView){
+			builder.append(", KEY (").append(ROW_BENEFACTOR).append(")");
+		}
 		builder.append(")");
 		return builder.toString();
 	}
@@ -1293,6 +1300,14 @@ public class SQLUtils {
 		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_ETAG);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				// For doubles, the double-meta columns is also selected.
@@ -1323,6 +1338,10 @@ public class SQLUtils {
 		builder.append(TableConstants.ROW_ID);
 		builder.append(", ");
 		builder.append(TableConstants.ROW_VERSION);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_ETAG);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				builder.append(", _DBL");
@@ -1340,11 +1359,9 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId, String benefactorColumnId){
+	public static String buildTableViewCRC32Sql(String viewId){
 		String tableName = getTableNameForId(viewId, TableType.INDEX);
-		String etagColumnName = getColumnNameForId(etagColumnId);
-		String benefactorColumnMame = getColumnNameForId(benefactorColumnId);
-		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, etagColumnName, benefactorColumnMame, tableName);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
 	/**

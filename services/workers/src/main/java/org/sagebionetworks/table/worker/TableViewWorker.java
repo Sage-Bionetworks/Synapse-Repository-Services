@@ -136,7 +136,8 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewType);
 
 			// create the table in the index.
-			indexManager.setIndexSchema(tableId, callback, expandedSchema);
+			boolean isTableView = true;
+			indexManager.setIndexSchema(tableId, isTableView, callback, expandedSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
 			Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewType, allContainersInScope, expandedSchema);

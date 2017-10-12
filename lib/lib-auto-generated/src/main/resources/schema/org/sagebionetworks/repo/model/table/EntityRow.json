@@ -1,0 +1,12 @@
+{
+	"description": "Table Row that represents an Entity",
+	"extends":{
+		"$ref":"org.sagebionetworks.repo.model.table.Row"
+	},
+	"properties": {
+		"etag": {
+			"type": "string",
+			"description": "The current etag of the entity",
+		}
+	}
+}

@@ -77,23 +77,7 @@ public class TableViewManagerImpl implements TableViewManager {
 
 	@Override
 	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId) {
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-		/* Set of required column names.
-		 * Note: Using a list instead of a HashSet because the list only contains two elements.
-		 */
-		List<ColumnModel> requiredFields = tableManagerSupport.getColumnModels(
-				EntityField.etag,
-				EntityField.benefactorId
-				);
-		// remove the the columns that already exist
-		for(ColumnModel cm: currentSchema){
-			requiredFields.remove(cm);
-		}
-		// Add anything still missing
-		for(ColumnModel required: requiredFields){
-			currentSchema.add(required);
-		}
-		return currentSchema;
+		 return tableManagerSupport.getColumnModelsForTable(tableId);
 	}
 
 	@WriteTransactionReadCommitted

@@ -303,8 +303,8 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateSQLGetDistinctValues(){
-		String expected = "SELECT DISTINCT _C789_ FROM T123";
-		String result = SQLUtils.createSQLGetDistinctValues("syn123", "789");
+		String expected = "SELECT DISTINCT ROW_BENEFACTORS FROM T123";
+		String result = SQLUtils.createSQLGetDistinctValues("syn123", "ROW_BENEFACTORS");
 		assertEquals(expected, result);
 	}
 	

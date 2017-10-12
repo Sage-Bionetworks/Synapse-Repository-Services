@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,6 +15,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -325,13 +327,19 @@ public class SQLTranslatorUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, ColumnTypeInfo[] colunTypes) throws SQLException{
+	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, boolean hasEtag, ColumnTypeInfo[] colunTypes) throws SQLException{
 		Row row = new Row();
+		if(hasEtag){
+			row = new EntityRow();
+		}
 		List<String> values = new LinkedList<String>();
 		row.setValues(values);
 		if(includesRowIdAndVersion){
 			row.setRowId(rs.getLong(ROW_ID));
 			row.setVersionNumber(rs.getLong(ROW_VERSION));
+			if(hasEtag){
+				((EntityRow)row).setEtag(rs.getString(ROW_ETAG));
+			}
 		}
 		// Read the select columns.
 		for(int i=0; i < colunTypes.length; i++){

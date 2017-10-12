@@ -118,12 +118,12 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @param removeMissingColumns Should missing columns be removed?
 	 */
 	@Override
-	public void setIndexSchema(final String tableId, ProgressCallback progressCallback, List<ColumnModel> newSchema){
+	public void setIndexSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> newSchema){
 		// Lookup the current schema of the index
 		List<DatabaseColumnInfo> currentSchema = tableIndexDao.getDatabaseInfo(tableId);
 		// create a change that replaces the old schema as needed.
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		updateTableSchema(tableId, progressCallback, changes);
+		updateTableSchema(tableId, isTableView, progressCallback, changes);
 	}
 
 	@Override
@@ -151,9 +151,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	
 	@Override
-	public boolean updateTableSchema(final String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
+	public boolean updateTableSchema(final String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes) {
 		// create the table if it does not exist
-		tableIndexDao.createTableIfDoesNotExist(tableId);
+		tableIndexDao.createTableIfDoesNotExist(tableId, isTableView);
 		// Create all of the status tables unconditionally.
 		tableIndexDao.createSecondaryTables(tableId);
 		boolean alterTemp = false;
@@ -280,16 +280,6 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(viewType, "viewType");
 		ValidateArgument.required(allContainersInScope, "allContainersInScope");
 		ValidateArgument.required(currentSchema, "currentSchema");
-		// Lookup the etag column
-		ColumnModel etagColumn = EntityField.findMatch(currentSchema, EntityField.etag);
-		if(etagColumn == null){
-			throw new IllegalArgumentException("The ETAG column is missing from the schema");
-		}
-		// Lookup the benefactor column.
-		ColumnModel benefactorColumn = EntityField.findMatch(currentSchema, EntityField.benefactorId);
-		if(benefactorColumn == null){
-			throw new IllegalArgumentException("The BENEFACTOR column is missing from the schema");
-		}
 		// copy the data from the entity replication tables to table's index
 		try {
 			tableIndexDao.copyEntityReplicationToTable(tableId, viewType, allContainersInScope, currentSchema);
@@ -298,7 +288,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			determineCauseOfReplicationFailure(e, currentSchema,  allContainersInScope, viewType);
 		}
 		// calculate the new CRC32;
-		return tableIndexDao.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		return tableIndexDao.calculateCRC32ofTableView(tableId);
 	}
 	
 	/**

@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.Query;
@@ -27,12 +26,12 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -236,6 +235,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(EntityType.entityview.equals(tableType)){
 			// Table views must have a row level filter applied to the query
 			filteredQuery = addRowLevelFilter(user, query, indexDao);
+			// For views, include the row etag in the results.
+			filteredQuery.setIncludeRowEtag(true);
 		}else{
 			// A row level filter is not needed so the original query can be used.
 			filteredQuery = query;
@@ -305,7 +306,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		
 		//run 
-
 		bundle.setQueryResult(queryResult);
 		bundle.setQueryCount(count);
 		bundle.setFacets(facetResults);
@@ -656,16 +656,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 */
 	SqlQuery addRowLevelFilter(UserInfo user, SqlQuery query, TableIndexDAO indexDao) throws EmptyResultException {
-		// First get the distinct benefactors applied to the table
-		ColumnModel benefactorColumn = tableManagerSupport.getColumnModel(EntityField.benefactorId);
 		// lookup the distinct benefactor IDs applied to the table.
-		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), benefactorColumn.getId());
+		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), TableConstants.ROW_BENEFACTOR);
 		if(tableBenefactors.isEmpty()){
 			throw new EmptyResultException("Table has no benefactors", query.getTableId());
 		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
-		return buildBenefactorFilter(query, accessibleBenefactors, benefactorColumn.getId());
+		return buildBenefactorFilter(query, accessibleBenefactors);
 	}
 	
 	/**
@@ -675,7 +673,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 * @throws EmptyResultException 
 	 */
-	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors, String benefactorColumnId) throws EmptyResultException{
+	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if(accessibleBenefactors.isEmpty()){
@@ -692,7 +690,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				filterBuilder.append(where.getSearchCondition().toSql());
 				filterBuilder.append(") AND ");
 			}
-			filterBuilder.append(SQLUtils.getColumnNameForId(benefactorColumnId));
+			filterBuilder.append(TableConstants.ROW_BENEFACTOR);
 			filterBuilder.append(" IN (");
 			boolean isFirst = true;
 			for(Long id: accessibleBenefactors){

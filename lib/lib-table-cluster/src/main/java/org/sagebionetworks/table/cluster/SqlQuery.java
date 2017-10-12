@@ -76,6 +76,12 @@ public class SqlQuery {
 	boolean includesRowIdAndVersion;
 	
 	/**
+	 * Should the query results include the row's etag?
+	 * Note: This is true for view queries.
+	 */
+	boolean includeRowEtag;
+	
+	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
 	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
 	 * will be null when isAggregatedResults = true.
@@ -105,7 +111,8 @@ public class SqlQuery {
 		Long overrideOffset = null;
 		Long overrideLimit = null;
 		Long maxBytesPerPage = null;
-		init(parsedQuery, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
+		boolean includeEtag = false;
+		init(parsedQuery, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
 	}
 	
 	/**
@@ -121,7 +128,8 @@ public class SqlQuery {
 		Long overrideOffset = null;
 		Long overrideLimit = null;
 		Long maxBytesPerPage = null;
-		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
+		boolean includeEtag = false;
+		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
 	}
 	
 	/**
@@ -138,7 +146,8 @@ public class SqlQuery {
 			Long maxBytesPerPage) {
 		if (model == null)
 			throw new IllegalArgumentException("The input model cannot be null");
-		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage);
+		boolean includeEtag = false;
+		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
 	}
 	
 	/**
@@ -149,7 +158,7 @@ public class SqlQuery {
 	public SqlQuery(QuerySpecification model, SqlQuery toCopy) {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(toCopy, "toCopy");
-		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage);
+		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage, toCopy.includeRowEtag());
 	}
 
 	/**
@@ -160,7 +169,7 @@ public class SqlQuery {
 	 */
 	public void init(QuerySpecification parsedModel,
 			List<ColumnModel> tableSchema, Long overrideOffset,
-			Long overrideLimit, Long maxBytesPerPage) {
+			Long overrideLimit, Long maxBytesPerPage, boolean includeRowEtag) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
 			throw new IllegalArgumentException("Table schema cannot be empty");
@@ -171,6 +180,7 @@ public class SqlQuery {
 		this.overrideOffset = overrideOffset;
 		this.overrideLimit = overrideLimit;
 		this.maxBytesPerPage = maxBytesPerPage;
+		this.includeRowEtag = includeRowEtag;
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
@@ -218,6 +228,14 @@ public class SqlQuery {
 	 */
 	public boolean includesRowIdAndVersion(){
 		return this.includesRowIdAndVersion;
+	}
+	
+	/**
+	 * Does this query include ROW_ETAG
+	 * @return
+	 */
+	public boolean includeRowEtag(){
+		return this.includeRowEtag;
 	}
 
 	/**
@@ -312,6 +330,16 @@ public class SqlQuery {
 	 */
 	public Long getMaxRowsPerPage() {
 		return maxRowsPerPage;
+	}
+
+	/**
+	 * Set to true if the ROW_ETAG should be returned
+	 * in the results.
+	 * 
+	 * @param value
+	 */
+	public void setIncludeRowEtag(boolean value) {
+		this.includeRowEtag = value;
 	}
 	
 	
