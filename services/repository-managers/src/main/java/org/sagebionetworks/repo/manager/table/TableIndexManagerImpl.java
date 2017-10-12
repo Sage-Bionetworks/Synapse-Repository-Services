@@ -9,11 +9,11 @@ import java.util.concurrent.Callable;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnMetadata;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
@@ -209,6 +209,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	boolean alterTableAsNeededWithinAutoProgress(String tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDao.getDatabaseInfo(tableId);
+		// must also gather the names of each index currently applied to each column.
+		tableIndexDao.provideIndexName(currentIndedSchema, tableId);
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDao.alterTableAsNeeded(tableId, changes, alterTemp);

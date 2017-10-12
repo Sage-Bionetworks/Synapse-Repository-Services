@@ -38,7 +38,6 @@ import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -46,6 +45,7 @@ import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -661,6 +661,7 @@ public class TableIndexManagerImplTest {
 		
 		// call under test
 		manager.alterTableAsNeededWithinAutoProgress(tableId, changes, true);
+		verify(mockIndexDao).provideIndexName(curretIndexSchema, tableId);
 		verify(mockIndexDao).alterTableAsNeeded(eq(tableId), changeCaptor.capture(), eq(true));
 		List<ColumnChangeDetails> captured = changeCaptor.getValue();
 		// the results should be changed
@@ -672,7 +673,6 @@ public class TableIndexManagerImplTest {
 		assertEquals(null, updated.getOldColumn());
 		assertEquals(newColumn, updated.getNewColumn());
 	}
-	
 	
 	/**
 	 * Create the default EntityField schema with IDs for each column.

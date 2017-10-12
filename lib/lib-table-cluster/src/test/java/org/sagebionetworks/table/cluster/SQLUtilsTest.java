@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -470,40 +469,84 @@ public class SQLUtilsTest {
 		assertEquals(", CHANGE COLUMN _DBL_C123_ _DBL_C456_ ENUM ('NaN', 'Infinity', '-Infinity') DEFAULT null", builder.toString());
 	}
 	
-	@Test
-	public void testAppendUpdateColumnCompatibleIndex(){
+	@Test (expected=IllegalArgumentException.class)
+	public void testAppendUpdateColumnNullInfo(){
 		StringBuilder builder = new StringBuilder();
 		// old column.
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = null;
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAppendUpdateColumnWithNullIndexName(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(true);
+		// Index name is required when an index exists.
+		oldColumnInfo.setIndexName(null);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
+		// call under test
+		SQLUtils.appendUpdateColumn(builder, change, isFirst);
+	}
+	
+	@Test
+	public void testAppendUpdateColumnNoIndex(){
+		StringBuilder builder = new StringBuilder();
+		// old column.
+		ColumnModel oldColumn = new ColumnModel();
+		oldColumn.setId("123");
+		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
+		// new column
+		ColumnModel newColumn = new ColumnModel();
+		newColumn.setId("456");
+		newColumn.setColumnType(ColumnType.BOOLEAN);
+		
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BOOLEAN DEFAULT NULL COMMENT 'BOOLEAN'", builder.toString());
 	}
 	
 	@Test
-	public void testAppendUpdateColumnNonCompatibleIndex(){
+	public void testAppendUpdateColumnWithIndex(){
 		StringBuilder builder = new StringBuilder();
 		// old column.
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(true);
+		oldColumnInfo.setIndexName("indexName");
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
-		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
+		assertEquals("DROP INDEX indexName, CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
 	}
 	
 	@Test
@@ -513,12 +556,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -531,12 +576,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.STRING);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		isFirst = false;
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals(", CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'", builder.toString());
@@ -549,12 +596,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.DOUBLE);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ BIGINT(20) DEFAULT NULL COMMENT 'INTEGER'"
@@ -568,12 +617,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.INTEGER);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -587,12 +638,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.DOUBLE);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.DOUBLE);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		SQLUtils.appendUpdateColumn(builder, change, isFirst);
 		assertEquals("CHANGE COLUMN _C123_ _C456_ DOUBLE DEFAULT NULL COMMENT 'DOUBLE'"
@@ -606,12 +659,14 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
 		
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		// call under test
 		boolean hasChange = SQLUtils.appendAlterTableSql(builder, change, isFirst);
 		assertTrue(hasChange);
@@ -689,22 +744,26 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		
 		oldColumn = new ColumnModel();
 		oldColumn.setId("111");
 		oldColumn.setColumnType(ColumnType.DOUBLE);
+		oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		newColumn = new ColumnModel();
 		newColumn.setId("222");
 		newColumn.setColumnType(ColumnType.STRING);
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
-		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		String tableId = "syn999";
 		boolean alterTemp = false;
 		// call under test
@@ -720,22 +779,26 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.BOOLEAN);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("456");
 		newColumn.setColumnType(ColumnType.INTEGER);
-		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		
 		oldColumn = new ColumnModel();
 		oldColumn.setId("111");
 		oldColumn.setColumnType(ColumnType.DOUBLE);
+		oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		newColumn = new ColumnModel();
 		newColumn.setId("222");
 		newColumn.setColumnType(ColumnType.STRING);
 		newColumn.setMaximumSize(15L);
 		newColumn.setDefaultValue("foo");
-		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails change2 = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		String tableId = "syn999";
 		boolean alterTemp = true;
 		// call under test
@@ -774,11 +837,13 @@ public class SQLUtilsTest {
 		ColumnModel oldColumn = new ColumnModel();
 		oldColumn.setId("123");
 		oldColumn.setColumnType(ColumnType.INTEGER);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("123");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
-		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		 
 		// the second should not be a change.
 		oldColumn = new ColumnModel();
@@ -817,11 +882,13 @@ public class SQLUtilsTest {
 		oldColumn = new ColumnModel();
 		oldColumn.setId("444");
 		oldColumn.setColumnType(ColumnType.INTEGER);
+		DatabaseColumnInfo oldColumnInfo = new DatabaseColumnInfo();
+		oldColumnInfo.setHasIndex(false);
 		// new column
 		newColumn = new ColumnModel();
 		newColumn.setId("444");
 		newColumn.setColumnType(ColumnType.BOOLEAN);
-		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, newColumn);
+		ColumnChangeDetails changeTwo = new ColumnChangeDetails(oldColumn, oldColumnInfo, newColumn);
 		
 		boolean alterTemp = false;
 		String tableId = "syn999";
