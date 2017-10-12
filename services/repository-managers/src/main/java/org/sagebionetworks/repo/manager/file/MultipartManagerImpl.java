@@ -28,6 +28,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
 import com.amazonaws.services.s3.model.CopyPartRequest;
@@ -117,8 +118,13 @@ public class MultipartManagerImpl implements MultipartManager {
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
 		}
-		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(
-				MultipartUtils.getBucket(storageLocationSetting), key).withObjectMetadata(objMeta));
+		assert s3Client!=null;
+		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(
+				new InitiateMultipartUploadRequest(
+				MultipartUtils.getBucket(storageLocationSetting), 
+				key).
+				withObjectMetadata(objMeta)
+				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
 		// the token will be the ke
 		ChunkedFileToken cft = new ChunkedFileToken();
 		cft.setKey(key);
