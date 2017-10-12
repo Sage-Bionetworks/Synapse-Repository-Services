@@ -17,6 +17,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyPartRequest;
 import com.amazonaws.services.s3.model.CopyPartResult;
@@ -57,7 +58,8 @@ public class S3MultipartUploadDAOImpl implements S3MultipartUploadDAO {
 				.fromHex(request.getContentMD5Hex())));
 		InitiateMultipartUploadResult result = s3Client
 				.initiateMultipartUpload(new InitiateMultipartUploadRequest(
-						bucket, key, objectMetadata));
+						bucket, key, objectMetadata)
+				.withCannedACL(CannedAccessControlList.BucketOwnerFullControl));
 		return result.getUploadId();
 	}
 
