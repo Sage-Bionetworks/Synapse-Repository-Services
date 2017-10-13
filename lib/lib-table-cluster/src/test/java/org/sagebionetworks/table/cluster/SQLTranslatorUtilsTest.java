@@ -724,7 +724,7 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getString(2)).thenReturn("true");
 		// call under test.
 		boolean isEntityRow = false;
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, isEntityRow, includesRowIdAndVersion, infoArray);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, isEntityRow, infoArray);
 		assertNotNull(result);
 		assertEquals(rowId, result.getRowId());
 		assertEquals(rowVersion, result.getVersionNumber());
@@ -758,7 +758,7 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getString(2)).thenReturn("true");
 		// call under test.
 		boolean isEntityRow = true;
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, isEntityRow, includesRowIdAndVersion, infoArray);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, isEntityRow, infoArray);
 		assertNotNull(result);
 		assertTrue(result instanceof EntityRow);
 		EntityRow entityRow = (EntityRow) result;

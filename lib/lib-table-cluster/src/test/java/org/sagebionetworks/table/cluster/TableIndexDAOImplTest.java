@@ -878,7 +878,7 @@ public class TableIndexDAOImplTest {
 		
 		createOrUpdateOrDeleteRows(set, schema);
 		
-		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, column.getId());
+		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, SQLUtils.getColumnNameForId(column.getId()));
 		Set<Long> expected = Sets.newHashSet(3000L, 3001L);
 		assertEquals(expected, results);
 	}
@@ -1336,6 +1336,7 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testCopyEntityReplicationToTable(){
+		isView = true;
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1368,6 +1369,7 @@ public class TableIndexDAOImplTest {
 	 */
 	@Test
 	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
+		isView = true;
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		
@@ -1406,6 +1408,7 @@ public class TableIndexDAOImplTest {
 
 	@Test
 	public void testCopyEntityReplicationToTableScopeEmpty(){
+		isView = true;
 		// delete all data
 		tableIndexDAO.deleteEntityData(mockProgressCallback, Lists.newArrayList(2L,3L));
 		

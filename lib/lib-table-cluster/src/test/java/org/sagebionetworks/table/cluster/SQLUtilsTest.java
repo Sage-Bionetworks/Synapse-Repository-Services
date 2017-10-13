@@ -1417,7 +1417,7 @@ public class SQLUtilsTest {
 		StringBuilder builder = new StringBuilder();
 		// call under test
 		SQLUtils.buildInsertValues(builder, metaList);
-		assertEquals("ROW_ID, ROW_VERSION, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
+		assertEquals("ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_, _DBL_C3_, _C3_", builder.toString());
 	}
 	
 	@Test
@@ -1438,7 +1438,7 @@ public class SQLUtilsTest {
 		// call under test
 		SQLUtils.buildSelect(builder, metaList);
 		assertEquals(
-				"R.ID, R.CURRENT_VERSION"
+				"R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID"
 				+ ", A0.STRING_VALUE AS _C0_"
 				+ ", A1.DOUBLE_ABSTRACT AS _DBL_C1_"
 				+ ", A1.DOUBLE_VALUE AS _C1_"
@@ -1471,6 +1471,8 @@ public class SQLUtilsTest {
 		assertEquals(
 				"R.ID"
 				+ ", R.CURRENT_VERSION"
+				+ ", R.ETAG"
+				+ ", R.BENEFACTOR_ID"
 				+ ", R.ID AS _C0_"
 				+ ", R.NAME AS _C1_"
 				+ ", R.CREATED_ON AS _C2_"
@@ -1540,8 +1542,8 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		ViewType type = ViewType.file;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
-		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
@@ -1557,8 +1559,8 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(one, id);
 		ViewType type = ViewType.project;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
-		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _C1_, _C2_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _C1_, _C2_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID, A0.STRING_VALUE AS _C1_, R.ID AS _C2_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
@@ -1575,8 +1577,8 @@ public class SQLUtilsTest {
 		List<ColumnModel> schema = Lists.newArrayList(doubleAnnotation);
 		ViewType type = ViewType.file;
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, type, schema);
-		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, _DBL_C3_, _C3_)"
-				+ " SELECT R.ID, R.CURRENT_VERSION,"
+		assertEquals("INSERT INTO T123(ROW_ID, ROW_VERSION, ROW_ETAG, ROW_BENEFACTOR, _DBL_C3_, _C3_)"
+				+ " SELECT R.ID, R.CURRENT_VERSION, R.ETAG, R.BENEFACTOR_ID,"
 				+ " A0.DOUBLE_ABSTRACT AS _DBL_C3_, A0.DOUBLE_VALUE AS _C3_"
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
