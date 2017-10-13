@@ -49,7 +49,11 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		}
 		if (StatusEnum.READ_ONLY == status || StatusEnum.DOWN == status) {
 			StackStatus full = stackStatusDao.getFullCurrentStatus();
-			throw new ServiceUnavailableException("Synapse is down for maintenance. Message: "+full.getCurrentMessage());
+			String msg = "Synapse is down for maintenance.";
+			if ((full.getCurrentMessage() != null) && (full.getCurrentMessage() != "")) {
+				msg = full.getCurrentMessage();
+			}
+			throw new ServiceUnavailableException(msg);
 		}else{
 			throw new IllegalStateException("Unknown Synapse status: "+status);
 		}
