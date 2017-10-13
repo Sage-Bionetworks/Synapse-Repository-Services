@@ -76,7 +76,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId) {
+	public List<ColumnModel> getViewSchema(String tableId) {
 		 return tableManagerSupport.getColumnModelsForTable(tableId);
 	}
 
