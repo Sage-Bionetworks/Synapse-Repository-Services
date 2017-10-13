@@ -1,10 +1,5 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +14,8 @@ import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.junit.Assert.*;
+
 /**
  * Test that the intercepter is working as expected.
  * @author John
@@ -27,8 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestBase {
 	
 	private static final String CURRENT_STATUS_2 = " for StackStatusInterceptorTest.test";
-
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
+	private static final String MSG_FORMAT = CURRENT_STATUS_1 + "%s" + CURRENT_STATUS_2;
 	
 	@Autowired
 	private StackStatusDao stackStatusDao;
@@ -65,6 +62,13 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	}
 	
 	@Test
+	public void testStatusMessage() {
+		assertNull(statusMessage(StatusEnum.READ_ONLY, null));
+		assertEquals("", statusMessage(StatusEnum.READ_ONLY, ""));
+		assertEquals(String.format(MSG_FORMAT, StatusEnum.READ_ONLY), statusMessage(StatusEnum.READ_ONLY, MSG_FORMAT));
+	}
+
+	@Test
 	public void testGetWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
@@ -75,7 +79,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test
 	public void testGetReadOnly() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.READ_ONLY);
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		try{
@@ -89,11 +93,45 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_2) > 0);
 		}
 	}
-	
+
+	@Test
+	public void testGetReadOnlyNullMsg() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.READ_ONLY, null);
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
+		assertNull(stackStatusDao.getFullCurrentStatus().getCurrentMessage());
+		try{
+			// This should fail in read only.
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			fail("Calling a GET while synapse is down should have thrown an 503");
+		} catch (DatastoreException e){
+			// Make sure the message is in the exception
+			assertTrue(e.getMessage().contains("Synapse is down for maintenance."));
+		}
+	}
+
+	@Test
+	public void testGetReadOnlyEmptyMsg() throws Exception {
+		// Set the status to be read only
+		setStackStatus(StatusEnum.READ_ONLY, "");
+		// Make sure the status is what we expect
+		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
+		assertEquals("", stackStatusDao.getFullCurrentStatus().getCurrentMessage());
+		try{
+			// This should fail in read only.
+			servletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
+			fail("Calling a GET while synapse is down should have thrown an 503");
+		} catch (DatastoreException e){
+			// Make sure the message is in the exception
+			assertTrue(e.getMessage().contains("Synapse is down for maintenance."));
+		}
+	}
+
 	@Test
 	public void testGetDown() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.DOWN);
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		try{
@@ -121,7 +159,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test
 	public void testPostReadOnly() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.READ_ONLY);
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		Project child = new Project();
@@ -141,7 +179,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test (expected=DatastoreException.class)
 	public void testPostDown() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.DOWN);
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
@@ -162,7 +200,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test (expected=DatastoreException.class)
 	public void testPutReadOnly() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.READ_ONLY);
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
@@ -173,7 +211,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test (expected=DatastoreException.class)
 	public void testPutDown() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.DOWN);
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
@@ -192,7 +230,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test (expected=DatastoreException.class)
 	public void testDeleteReadOnly() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.READ_ONLY);
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
@@ -204,7 +242,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test (expected=DatastoreException.class)
 	public void testDeleteDown() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.DOWN);
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
@@ -217,18 +255,25 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	 * Helper to set the status.
 	 * @param toSet
 	 */
-	private void setStackStatus(StatusEnum toSet){
+	private void setStackStatus(StatusEnum toSet, String msg){
 		StackStatus status = new StackStatus();
 		status.setStatus(toSet);
-		status.setCurrentMessage(CURRENT_STATUS_1+toSet+CURRENT_STATUS_2);
+		status.setCurrentMessage(statusMessage(toSet, msg));
 		status.setPendingMaintenanceMessage("Pending the completion of StackStatusInterceptorTest.test");
 		stackStatusDao.updateStatus(status);
+	}
+
+	private String statusMessage(StatusEnum status, String msg) {
+		if ((msg != null) && (! msg.isEmpty())) {
+			return String.format(msg, status);
+		}
+		return msg;
 	}
 
 	@Test
 	public void testGetVersionReadOnly() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.READ_ONLY);
+		setStackStatus(StatusEnum.READ_ONLY, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		SynapseVersionInfo versionInfo = servletTestHelper.getVersionInfo();
@@ -239,7 +284,7 @@ public class StackStatusInterceptorTest extends AbstractAutowiredControllerTestB
 	@Test
 	public void testGetVersionDown() throws Exception {
 		// Set the status to be read only
-		setStackStatus(StatusEnum.DOWN);
+		setStackStatus(StatusEnum.DOWN, MSG_FORMAT);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		SynapseVersionInfo versionInfo = servletTestHelper.getVersionInfo();
