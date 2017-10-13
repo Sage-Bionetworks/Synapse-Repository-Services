@@ -6,8 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
@@ -660,10 +660,20 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testAddRowIdAndVersionToSelect() throws ParseException{
+		boolean includeEtag = false;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SelectList results = SQLTranslatorUtils.addRowIdAndVersionToSelect(element);
+		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
 		assertNotNull(results);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", results.toSql());
+	}
+	
+	@Test
+	public void testAddRowIdAndVersionToSelectWithEtag() throws ParseException{
+		boolean includeEtag = true;
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		assertNotNull(results);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", results.toSql());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -713,7 +723,8 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getString(1)).thenReturn("aString");
 		when(mockResultSet.getString(2)).thenReturn("true");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
+		boolean isEntityRow = false;
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, isEntityRow, includesRowIdAndVersion, infoArray);
 		assertNotNull(result);
 		assertEquals(rowId, result.getRowId());
 		assertEquals(rowVersion, result.getVersionNumber());
@@ -723,6 +734,70 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
 		
 	}
+	
+	@Test
+	public void testReadEntityRowWithMetadata() throws SQLException{
+		
+		boolean includesRowIdAndVersion = true;
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
+		
+		Long rowId = 123L;
+		Long rowVersion = 2L;
+		// Setup the result set
+		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
+		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
+		when(mockResultSet.getString(ROW_ETAG)).thenReturn("anEtag");
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("true");
+		// call under test.
+		boolean isEntityRow = true;
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, isEntityRow, includesRowIdAndVersion, infoArray);
+		assertNotNull(result);
+		assertTrue(result instanceof EntityRow);
+		EntityRow entityRow = (EntityRow) result;
+		assertEquals("anEtag", entityRow.getEtag());
+		assertEquals(rowId, entityRow.getRowId());
+		assertEquals(rowVersion, entityRow.getVersionNumber());
+		assertNotNull(entityRow.getValues());
+		assertEquals(2, entityRow.getValues().size());
+		assertEquals("aString", entityRow.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), entityRow.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadEntityRowWithNoMetadata() throws SQLException{
+		
+		boolean includesRowIdAndVersion = false;
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		List<SelectColumn> selectList = Lists.newArrayList(one, two);
+		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
+		
+		Long rowId = 123L;
+		Long rowVersion = 2L;
+		// Setup the result set
+		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
+		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
+		when(mockResultSet.getString(ROW_ETAG)).thenReturn("anEtag");
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("true");
+		// call under test.
+		boolean isEntityRow = true;
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, isEntityRow, includesRowIdAndVersion, infoArray);
+		assertNotNull(result);
+		assertFalse(result instanceof EntityRow);
+	}
+	
 	
 	@Test
 	public void testReadRowNoRowId() throws SQLException{
@@ -740,7 +815,8 @@ public class SQLTranslatorUtilsTest {
 		when(mockResultSet.getString(1)).thenReturn("aString");
 		when(mockResultSet.getString(2)).thenReturn("false");
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
+		boolean isEntityRow = false;
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, isEntityRow, infoArray);
 		assertNotNull(result);
 		assertEquals(null, result.getRowId());
 		assertEquals(null, result.getVersionNumber());

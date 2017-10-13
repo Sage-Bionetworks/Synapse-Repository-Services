@@ -69,6 +69,7 @@ public class TableIndexDAOImplTest {
 	ProgressCallback mockProgressCallback;
 
 	String tableId;
+	boolean isView;
 
 	@Before
 	public void before() {
@@ -80,6 +81,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO = tableConnectionFactory.getConnection(tableId);
 		tableIndexDAO.deleteTable(tableId);
 		tableIndexDAO.deleteSecondaryTables(tableId);
+		isView = false;
 	}
 
 	@After
@@ -97,10 +99,10 @@ public class TableIndexDAOImplTest {
 	 * @param newSchema
 	 * @param tableId
 	 */
-	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId){
+	public boolean createOrUpdateTable(List<ColumnModel> newSchema, String tableId, boolean isView){
 		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(tableId);
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		boolean alterTemp = false;
 		// Ensure all all updated columns actually exist.
 		changes = SQLUtils.matchChangesToCurrentInfo(currentSchema, changes);
@@ -151,11 +153,11 @@ public class TableIndexDAOImplTest {
 		// Create a Simple table with only a few columns
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
-		boolean updated = createOrUpdateTable(allTypes, tableId);
+		boolean updated = createOrUpdateTable(allTypes, tableId, isView);
 		assertTrue(
 				"The table should not have existed so update should be true",
 				updated);
-		updated = createOrUpdateTable(allTypes, tableId);
+		updated = createOrUpdateTable(allTypes, tableId, isView);
 		assertFalse(
 				"The table already existed in that state so it should not have been updated",
 				updated);
@@ -167,7 +169,7 @@ public class TableIndexDAOImplTest {
 		for (int i = 0; i < allTypes.size(); i++) {
 			// Now remove a column and update the table
 			ColumnModel removed = allTypes.remove(0);
-			createOrUpdateTable(allTypes, tableId);
+			createOrUpdateTable(allTypes, tableId, isView);
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
@@ -180,7 +182,7 @@ public class TableIndexDAOImplTest {
 					+ extraColumns, columns.size());
 			// Now add a column
 			allTypes.add(removed);
-			createOrUpdateTable(allTypes, tableId);
+			createOrUpdateTable(allTypes, tableId, isView);
 			// Now we should be able to see the columns that were created
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
@@ -205,7 +207,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Create the table
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection()
@@ -264,7 +266,7 @@ public class TableIndexDAOImplTest {
 				null, count);
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be 0 when the table is empty",
@@ -338,7 +340,7 @@ public class TableIndexDAOImplTest {
 	public void testSimpleQuery() throws ParseException, SimpleAggregateQueryException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -395,7 +397,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "col1", ColumnType.DOUBLE));
-		createOrUpdateTable(doubleColumn, tableId);
+		createOrUpdateTable(doubleColumn, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 5);
 		// insert special values
@@ -436,7 +438,7 @@ public class TableIndexDAOImplTest {
 	public void testSimpleQueryWithDeletedRows() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		Row deletion = new Row();
@@ -478,7 +480,7 @@ public class TableIndexDAOImplTest {
 	public void testNullQuery() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createNullRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -528,7 +530,7 @@ public class TableIndexDAOImplTest {
 		selectColumn.setColumnType(null);
 		selectColumn.setId(null);
 		selectColumn.setName("count(*)");
-		createOrUpdateTable(allTypes, tableId);
+		createOrUpdateTable(allTypes, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
@@ -581,7 +583,7 @@ public class TableIndexDAOImplTest {
 		schema.add(foo);
 		schema.add(bar);
 		// Create the table.
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Create some data
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
@@ -636,7 +638,7 @@ public class TableIndexDAOImplTest {
 		schema.add(foo);
 		schema.add(bar);
 		// Create the table.
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Create some data
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
@@ -688,7 +690,7 @@ public class TableIndexDAOImplTest {
 			}
 		}
 		// Create the table.
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 	}
 
 	@Test
@@ -709,7 +711,7 @@ public class TableIndexDAOImplTest {
 		}
 
 		// Create the table.
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 
 		// replace 10 columns
 		for (int i = 30; i < 40; i++) {
@@ -718,7 +720,7 @@ public class TableIndexDAOImplTest {
 			indexes.set(i + 1, SQLUtils.getColumnNameForId(cm.getId()));
 		}
 
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 
 		// replace 10 and add 10 columns
 		for (int i = 20; i < 30; i++) {
@@ -737,7 +739,7 @@ public class TableIndexDAOImplTest {
 				indexes.add(SQLUtils.getColumnNameForId(cm.getId()));
 			}
 		}
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 	}
 	
 	@Test
@@ -858,7 +860,7 @@ public class TableIndexDAOImplTest {
 		column.setColumnType(ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(column);
 		
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// add duplicate values
@@ -884,7 +886,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetCurrentTableColumns(){
 		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		// Call under test.
 		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
@@ -908,7 +910,7 @@ public class TableIndexDAOImplTest {
 		newColumn.setName("aBoolean");
 		ColumnChangeDetails change = new ColumnChangeDetails(oldColumn, newColumn);
 		// Create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		boolean alterTemp = false;
 		// call under test.
 		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
@@ -944,7 +946,7 @@ public class TableIndexDAOImplTest {
 		
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
 		
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
 		// add duplicate values
@@ -1002,7 +1004,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testIndexAdd(){
 		// create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		ColumnModel oldColumn = null;
 		
 		// Create a column
@@ -1026,7 +1028,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testIndexRename(){
 		// create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		ColumnModel oldColumn = null;
 		
 		// Create a column
@@ -1066,7 +1068,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testIndexDrop(){
 		// create the table
-		tableIndexDAO.createTableIfDoesNotExist(tableId);
+		tableIndexDAO.createTableIfDoesNotExist(tableId, isView);
 		ColumnModel oldColumn = null;
 		
 		// Create a column
@@ -1144,7 +1146,7 @@ public class TableIndexDAOImplTest {
 		
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
 		
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
 		// add duplicate values
@@ -1350,16 +1352,14 @@ public class TableIndexDAOImplTest {
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
 		// Create the view index
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
 		// Check the CRC of the view
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId);
 		assertEquals(381255304L, crc32);
 	}
 	
@@ -1396,7 +1396,7 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// Create the view index
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
 		// Query the results
@@ -1422,16 +1422,14 @@ public class TableIndexDAOImplTest {
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromEntityDTO(file2);
 		// Create the view index
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Copy the entity data to the table
 		tableIndexDAO.copyEntityReplicationToTable(tableId, ViewType.file, scope, schema);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
 		// Check the CRC of the view
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
-		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		long crc32 = tableIndexDAO.calculateCRC32ofTableView(tableId);
 		assertEquals(-1L, crc32);
 	}
 	
@@ -1628,7 +1626,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "col1", ColumnType.DOUBLE));
-		createOrUpdateTable(doubleColumn, tableId);
+		createOrUpdateTable(doubleColumn, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
 		// insert special values
@@ -1663,7 +1661,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "col1", ColumnType.DOUBLE));
-		createOrUpdateTable(doubleColumn, tableId);
+		createOrUpdateTable(doubleColumn, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
 		// insert special values
@@ -1700,7 +1698,7 @@ public class TableIndexDAOImplTest {
 	public void testDateTimeFunctions() throws ParseException{
 		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
 				.createColumn(1L, "aDate", ColumnType.DATE));
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// The first row is in the past
@@ -1734,7 +1732,7 @@ public class TableIndexDAOImplTest {
 	public void testPLFM_4028WithIndex(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		int maxNumberOfIndices = 2;
 		optimizeTableIndices(tableId, maxNumberOfIndices);
 		// Now add some data
@@ -1754,7 +1752,7 @@ public class TableIndexDAOImplTest {
 	public void testPLFM_4028WithoutIndex(){
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
-		createOrUpdateTable(schema, tableId);
+		createOrUpdateTable(schema, tableId, isView);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// apply the rows

@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -311,7 +312,25 @@ public class TableViewIntegrationTest {
 		assertNotNull(results.getQueryResult().getQueryResults().getRows());
 		rows = results.getQueryResult().getQueryResults().getRows();
 		assertEquals(fileCount, rows.size());
+		validateRowsMatchFiles(rows);
 	}
+	
+	/**
+	 * Validate the EntityRows match the FileEntity
+	 * @param rows
+	 */
+	public void validateRowsMatchFiles(List<Row> rows){
+		// Match each row to each file
+		for(Row row: rows){
+			// Each row should be an EntityRow
+			assertTrue(row instanceof EntityRow);
+			EntityRow entityRow = (EntityRow) row;
+			// Lookup the entity
+			FileEntity entity = entityManager.getEntity(adminUserInfo, ""+row.getRowId(), FileEntity.class);
+			assertEquals(entity.getEtag(), entityRow.getEtag());
+		}
+	}
+	
 	
 	@Test
 	public void testContentUpdate() throws Exception {
@@ -348,8 +367,6 @@ public class TableViewIntegrationTest {
 		assertNotNull(results.getQueryResult().getQueryResults().getRows());
 		row = results.getQueryResult().getQueryResults().getRows().get(0);
 		assertEquals(fileId, row.getRowId());
-		etag = row.getValues().get(0);
-		assertEquals(file.getEtag(), etag);
 	}
 	
 	@Test

@@ -106,12 +106,22 @@ public class SqlQuery {
 	 * @throws ParseException
 	 */
 	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
+		this(sql, tableSchema, false);
+	}
+	
+	/**
+	 * 
+	 * @param sql
+	 * @param tableSchema
+	 * @param includeEtag
+	 * @throws ParseException
+	 */
+	public SqlQuery(String sql, List<ColumnModel> tableSchema, boolean includeEtag) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
 		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
 		Long overrideOffset = null;
 		Long overrideLimit = null;
 		Long maxBytesPerPage = null;
-		boolean includeEtag = false;
 		init(parsedQuery, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
 	}
 	
@@ -159,6 +169,18 @@ public class SqlQuery {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(toCopy, "toCopy");
 		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage, toCopy.includeRowEtag());
+	}
+	
+	/**
+	 * Copy with override to include the etag.
+	 * @param model
+	 * @param toCopy
+	 * @param includeRowEtag
+	 */
+	public SqlQuery(QuerySpecification model, SqlQuery toCopy, boolean includeRowEtag) {
+		ValidateArgument.required(model, "model");
+		ValidateArgument.required(toCopy, "toCopy");
+		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage, includeRowEtag);
 	}
 
 	/**
@@ -211,7 +233,7 @@ public class SqlQuery {
 		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
 		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
 			// we need to add the row count and row version columns
-			SelectList expandedSelectList = SQLTranslatorUtils.addRowIdAndVersionToSelect(this.transformedModel.getSelectList());
+			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeRowEtag);
 			transformedModel.replaceSelectList(expandedSelectList);
 			this.includesRowIdAndVersion = true;
 		}else{
@@ -331,17 +353,6 @@ public class SqlQuery {
 	public Long getMaxRowsPerPage() {
 		return maxRowsPerPage;
 	}
-
-	/**
-	 * Set to true if the ROW_ETAG should be returned
-	 * in the results.
-	 * 
-	 * @param value
-	 */
-	public void setIncludeRowEtag(boolean value) {
-		this.includeRowEtag = value;
-	}
-	
 	
 	
 }

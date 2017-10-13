@@ -64,7 +64,6 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -72,6 +71,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -221,7 +221,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		HashSet<Long> benfactors = Sets.newHashSet(333L,444L);
 		HashSet<Long> subSet = Sets.newHashSet(444L);
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(benfactors);
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(user, benfactors)).thenReturn(subSet);
 		
 		facetColumnName = "i2";
@@ -412,7 +412,7 @@ public class TableQueryManagerImplTest {
 		// a benefactor check must occur for FileViews
 		verify(mockTableManagerSupport).getAccessibleBenefactors(any(UserInfo.class), anySetOf(Long.class));
 		// validate the benefactor filter is applied
-		assertEquals("SELECT COUNT(*) FROM T123 WHERE _C999_ IN ( 444 )", sqlCaptrue.getValue());
+		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( 444 )", sqlCaptrue.getValue());
 	}
 	
 	@Test
@@ -1099,11 +1099,27 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
-		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C1_ IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getOutputSQL());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 WHERE ( _C1_ IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.getOutputSQL());
+	}
+	
+	@Test
+	public void testBuildBenefactorFilterNoBenefactorInSchema() throws ParseException, EmptyResultException{
+		// there is no benefactor column in the schema.
+		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 is not null", models);
+		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(456L);
+		benefactorIds.add(123L);
+		
+		// call under test
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
+		assertNotNull(filtered);
+		// should filter by benefactorId
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 WHERE ( _C1_ IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.getOutputSQL());
 	}
 	
 	/**
@@ -1130,10 +1146,10 @@ public class TableQueryManagerImplTest {
 		benefactorIds.add(123L);
 		
 		// call under test
-		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumn.getId());
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND _C99_ IN ( 456, 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ( i1 > 0 OR i1 IS NOT NULL ) AND ROW_BENEFACTOR IN ( 456, 123 )", filtered.getModel().toSql());
 	}
 	
 	@Test
@@ -1142,21 +1158,19 @@ public class TableQueryManagerImplTest {
 		SqlQuery query = new SqlQuery("select i0 from "+tableId, models);
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
 		benefactorIds.add(123L);
-		String benefactorColumnId = "44";
 		// call under test
-		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnId);
+		SqlQuery filtered = TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
 		assertNotNull(filtered);
 		// should filter by benefactorId
-		assertEquals("SELECT i0 FROM syn123 WHERE _C44_ IN ( 123 )", filtered.getModel().toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 123 )", filtered.getModel().toSql());
 	}
 	
 	@Test (expected=EmptyResultException.class)
 	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
 		SqlQuery query = new SqlQuery("select i0 from "+tableId+" where i1 is not null", models);
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
-		String benefactorColumnId = "44";
 		// call under test
-		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnId);
+		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds);
 	}
 	
 	@Test (expected=EmptyResultException.class)
@@ -1166,7 +1180,7 @@ public class TableQueryManagerImplTest {
 		benefactorColumn.setId("999");
 		when(mockTableManagerSupport.getColumnModel(EntityField.benefactorId)).thenReturn(benefactorColumn);
 		//return empty benefactors
-		when(mockTableIndexDAO.getDistinctLongValues(tableId, benefactorColumn.getId())).thenReturn(new HashSet<Long>());
+		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
 		manager.addRowLevelFilter(user, query, mockTableIndexDAO);
 	}
@@ -1177,7 +1191,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		SqlQuery result = manager.addRowLevelFilter(user, query, mockTableIndexDAO);
 		assertNotNull(result);
-		assertEquals("SELECT i0 FROM syn123 WHERE _C999_ IN ( 444 )", result.getModel().toSql());
+		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444 )", result.getModel().toSql());
 	}
 	
 	

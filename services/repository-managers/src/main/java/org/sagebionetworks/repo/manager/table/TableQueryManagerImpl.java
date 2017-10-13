@@ -235,8 +235,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if(EntityType.entityview.equals(tableType)){
 			// Table views must have a row level filter applied to the query
 			filteredQuery = addRowLevelFilter(user, query, indexDao);
-			// For views, include the row etag in the results.
-			filteredQuery.setIncludeRowEtag(true);
 		}else{
 			// A row level filter is not needed so the original query can be used.
 			filteredQuery = query;
@@ -704,8 +702,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// create the new where
 			where = new TableQueryParser(filterBuilder.toString()).whereClause();
 			modelCopy.getTableExpression().replaceWhere(where);
+			boolean includeRowEtag = true;
 			// return a copy
-			return new SqlQuery(modelCopy, originalQuery);
+			return new SqlQuery(modelCopy, originalQuery, includeRowEtag);
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

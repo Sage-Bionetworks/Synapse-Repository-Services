@@ -830,5 +830,30 @@ public class SQLQueryTest {
 		SqlQuery query = new SqlQuery(sql, schema);
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
-
+	
+	@Test
+	public void testSelectViewWithEtag() throws ParseException{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		List<ColumnModel> schema = Lists.newArrayList(cm);
+		String sql = "select * from syn123";
+		boolean includEtag = true;
+		SqlQuery query = new SqlQuery(sql, schema, includEtag);
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
+	}
+	
+	@Test
+	public void testSelectViewWithEtagAggregate() throws ParseException{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		List<ColumnModel> schema = Lists.newArrayList(cm);
+		String sql = "select count(*) from syn123";
+		boolean includEtag = true;
+		SqlQuery query = new SqlQuery(sql, schema, includEtag);
+		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
+	}
 }

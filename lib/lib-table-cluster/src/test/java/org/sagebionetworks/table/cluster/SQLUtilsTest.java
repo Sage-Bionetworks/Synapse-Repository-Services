@@ -900,12 +900,29 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateTableIfDoesNotExistSQL(){
 		String tableId = "syn123";
+		boolean isView = false;
 		// call under test
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId);
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
 				+ "ROW_ID bigint(20) NOT NULL, "
 				+ "ROW_VERSION bigint(20) NOT NULL, "
 				+ "PRIMARY KEY (ROW_ID))", sql);
+	}
+	
+	@Test
+	public void testCreateTableIfDoesNotExistSQLView(){
+		String tableId = "syn123";
+		boolean isView = true;
+		// call under test
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
+		assertEquals("CREATE TABLE IF NOT EXISTS T123( "
+				+ "ROW_ID bigint(20) NOT NULL, "
+				+ "ROW_VERSION bigint(20) NOT NULL, "
+				+ "ROW_ETAG varchar(36) NOT NULL, "
+				+ "ROW_BENEFACTOR bigint(20) NOT NULL, "
+				+ "PRIMARY KEY (ROW_ID), "
+				+ "KEY `IDX_ETAG` (ROW_ETAG), "
+				+ "KEY `IDX_BENEFACTOR` (ROW_BENEFACTOR))", sql);
 	}
 	
 	@Test
@@ -1570,10 +1587,8 @@ public class SQLUtilsTest {
 	@Test
 	public void testBuildTableViewCRC32Sql(){
 		String viewId = "syn123";
-		String etagColumnId = "444";
-		String benefactorId = "555";
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorId);
-		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', _C444_, '-', _C555_))) FROM T123", sql);
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
+		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', ROW_ETAG, '-', ROW_BENEFACTOR))) FROM T123", sql);
 	}
 	
 	@Test

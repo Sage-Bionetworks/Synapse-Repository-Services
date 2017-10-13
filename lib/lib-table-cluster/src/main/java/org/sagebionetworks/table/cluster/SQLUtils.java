@@ -615,12 +615,13 @@ public class SQLUtils {
 		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
 		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
 		if(isView){
-			builder.append(ROW_ETAG).append(" bigint(20) NOT NULL, ");
+			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
 			builder.append(ROW_BENEFACTOR).append(" bigint(20) NOT NULL, ");
 		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
 		if(isView){
-			builder.append(", KEY (").append(ROW_BENEFACTOR).append(")");
+			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
+			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
 		}
 		builder.append(")");
 		return builder.toString();
@@ -902,7 +903,7 @@ public class SQLUtils {
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
-			if(info.isRowIdOrVersion()){
+			if(info.isMetadata()){
 				continue;
 			}
 			if(indexCount < maxNumberOfIndex){
@@ -1055,7 +1056,7 @@ public class SQLUtils {
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		if(infoList != null){
 			for(DatabaseColumnInfo info: infoList){
-				if(!info.isRowIdOrVersion()){
+				if(!info.isMetadata()){
 					if(info.getColumnType() != null){
 						long columnId = getColumnId(info);
 						ColumnModel cm = new ColumnModel();
@@ -1429,7 +1430,7 @@ public class SQLUtils {
 		// Map the ColumnIds of the current schema to the DatabaseColumnInfo for each column.
 		Map<String, DatabaseColumnInfo> currentColumnIdToInfo = new HashMap<String, DatabaseColumnInfo>(currentIndexSchema.size());
 		for(DatabaseColumnInfo info: currentIndexSchema){
-			if(!info.isRowIdOrVersion()){
+			if(!info.isMetadata()){
 				if(info.getColumnType() != null){
 					String columnId = ""+getColumnId(info);
 					currentColumnIdToInfo.put(columnId, info);
