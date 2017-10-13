@@ -6,7 +6,7 @@
 	"properties": {
 		"etag": {
 			"type": "string",
-			"description": "The current etag of the entity",
+			"description": "The current etag of the entity"
 		}
 	}
 }
