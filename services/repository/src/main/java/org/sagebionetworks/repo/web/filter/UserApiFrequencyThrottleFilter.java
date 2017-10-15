@@ -60,7 +60,7 @@ public class UserApiFrequencyThrottleFilter implements Filter{
 			chain.doFilter(request, response);
 		} else{
 			HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-			String normalizedPath = PathNormalizer.normalizeMethodSignature(httpServletRequest.getRequestURI());
+			String normalizedPath = PathNormalizer.normalizeMethodSignature(httpServletRequest.getMethod(), httpServletRequest.getRequestURI());
 			ThrottleLimit limit = throttleRulesCache.getThrottleLimit(normalizedPath);
 			if(limit == null){
 				//no throttle exists for this URI

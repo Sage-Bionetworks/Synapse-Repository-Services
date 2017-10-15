@@ -50,7 +50,8 @@ public class UserApiFrequencyThrottleFilterTest {
 	
 	private static final String userId = "123";
 	private static final String path = "/repo/v1/the/path/is/a/lie/12345/";
-	private static final String normalizedPath = PathNormalizer.normalizeMethodSignature(path);
+	private static final String httpMethod = "GET";
+	private static final String normalizedPath = PathNormalizer.normalizeMethodSignature(httpMethod, path);
 	private static final ThrottleLimit throttleLimit = new ThrottleLimit(123, 456);
 	private static final String keyForSemaphore = userId + ":" + normalizedPath;
 	
@@ -66,6 +67,7 @@ public class UserApiFrequencyThrottleFilterTest {
 		request = new MockHttpServletRequest();
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setRequestURI(path);
+		request.setMethod(httpMethod);
 		
 		response = new MockHttpServletResponse();
 	}
