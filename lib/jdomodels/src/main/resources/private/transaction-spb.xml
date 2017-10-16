@@ -35,6 +35,10 @@
 		<!-- This is the SQL uses to test if a connection is alive -->
 		<property name="validationQuery"
 			ref="stackConfiguration.databaseConnectionPoolValidateSql" />
+		<!-- Default all transaction to TRANSACTION_READ_COMMITTED -->
+		<property name="defaultTransactionIsolation">
+			<util:constant static-field="java.sql.Connection.TRANSACTION_READ_COMMITTED"/>
+		</property>
 	</bean>
 
 	<!-- A profiler that logs performance data for all bean method calls. -->
