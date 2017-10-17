@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.common.util.progress.ProgressingCallable;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -87,21 +86,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public QueryResultBundle querySinglePage(
 			ProgressCallback progressCallback, UserInfo user,
-			String query, List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, Long offset,
-			Long limit, boolean runQuery, boolean runCount, boolean returnFacets, boolean isConsistent)
+			Query query, boolean runQuery, boolean runCount, boolean returnFacets)
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		try{
+			if(query.getIsConsistent() == null){
+				// default to true.
+				query.setIsConsistent(true);
+			}
 			// handler will capture the results of the query.
 			SinglePageRowHandler rowHandler = null;
 			if(runQuery){
 				rowHandler = new SinglePageRowHandler();
 			}
 			// parser the query
-			SqlQuery sqlQuery = createQuery(query, sortList, offset, limit, this.maxBytesPerRequest);
+			SqlQuery sqlQuery = createQuery(query, this.maxBytesPerRequest);
 			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, selectedFacets, rowHandler,runCount, returnFacets, isConsistent);
+			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, query.getSelectedFacets(), rowHandler, runQuery, runCount, returnFacets);
 			// save the max rows per page.
 			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
 			// add captured rows to the bundle
@@ -111,9 +113,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// add the next page token if needed
 			if (isRowCountEqualToMaxRowsPerPage(bundle)) {
 				int maxRowsPerPage = bundle.getMaxRowsPerPage().intValue();
-				long nextOffset = (offset == null ? 0 : offset) + maxRowsPerPage;
-				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query,sortList,
-						nextOffset, limit, isConsistent, selectedFacets);
+				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
+				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
+						nextOffset, query.getLimit(), query.getIsConsistent(), query.getSelectedFacets());
 				bundle.getQueryResult().setNextPageToken(nextPageToken);
 			}
 			return bundle;
@@ -359,8 +361,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException,
 			LockUnavilableException {
 		Query query = TableQueryUtils.createQueryFromNextPageToken(nextPageToken);
-		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query.getSql(), null, query.getSelectedFacets(), query.getOffset(), query.getLimit(),
-				true, false, false, query.getIsConsistent());
+		boolean runQuery = true;
+		boolean runCount = false;
+		boolean returnFacets = false;
+		QueryResultBundle queryResult = querySinglePage(progressCallback, user, query, runQuery, runCount, returnFacets);
 		return queryResult.getQueryResult();
 	}
 
@@ -381,20 +385,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		boolean runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
 		boolean runCount = ((partMask & BUNDLE_MASK_QUERY_COUNT) != 0);
 		boolean returnFacets = ((partMask & BUNDLE_MASK_QUERY_FACETS) != 0);
-		boolean isConsistent = BooleanUtils.isNotFalse(queryBundle.getQuery()
-				.getIsConsistent());
 		
 		// execute the query
 		QueryResultBundle queryResult = querySinglePage(
 				progressCallback,
 				user,
-				queryBundle.getQuery().getSql(),
-				queryBundle.getQuery().getSort(),
-				queryBundle.getQuery().getSelectedFacets(), 
-				queryBundle.getQuery().getOffset(),
-				queryBundle.getQuery().getLimit(),
+				queryBundle.getQuery(),
 				runQuery,
-				runCount, returnFacets, isConsistent
+				runCount,
+				returnFacets
 				);
 		
 		if(runQuery){
@@ -430,11 +429,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param sortList
 	 * @return
 	 */
-	public SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptyResultException {
-		Long overrideOffset = null;
-		Long overrideLimit = null;
+	public SqlQuery createQuery(DownloadFromTableRequest request) throws EmptyResultException {
 		Long maxBytesPerPage = null;
-		return createQuery(sql, sortList, overrideOffset, overrideLimit, maxBytesPerPage);
+		return createQuery(request, maxBytesPerPage);
 	}
 	
 	/**
@@ -448,13 +445,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws EmptyResultException
 	 * @throws ParseException 
 	 */
-	public SqlQuery createQuery(String sql, List<SortItem> sortList, Long overrideOffset, Long overrideLimit, Long maxBytesPerPage) throws EmptyResultException {
+	public SqlQuery createQuery(Query query, Long maxBytesPerPage) throws EmptyResultException {
 		// First parse the SQL
-		QuerySpecification model = parserQuery(sql);
-		if (sortList != null && !sortList.isEmpty()) {
+		QuerySpecification model = parserQuery(query.getSql());
+		if (query.getSort() != null && !query.getSort().isEmpty()) {
 			// change the query to use the sort list
 			try {
-				model = SqlElementUntils.convertToSortedQuery(model, sortList);
+				model = SqlElementUntils.convertToSortedQuery(model, query.getSort());
 			} catch (ParseException e) {
 				throw new IllegalArgumentException(e);
 			}
@@ -462,14 +459,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		String tableId = model.getTableName();
 		if (tableId == null) {
-			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + sql);
+			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + query.getSql());
 		}
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
 		if(columnModels.isEmpty()){
 			throw new EmptyResultException("Table schema is empty for: "+tableId, tableId);
 		}	
-		return new SqlQuery(model, columnModels, overrideOffset, overrideLimit, maxBytesPerPage);
+		return new SqlQuery(model, columnModels, query.getOffset(), query.getLimit(), maxBytesPerPage);
 	}
 	
 	/**
@@ -484,24 +481,31 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(
-			ProgressCallback progressCallback, UserInfo user, String sql,
-			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets,final CSVWriterStream writer,
-			boolean includeRowIdAndVersion, final boolean writeHeader)
+			ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request,
+			final CSVWriterStream writer)
 			throws TableUnavailableException, NotFoundException,
 			TableFailedException, LockUnavilableException {
 		// Convert to a query.
 		try {
-			final SqlQuery query = createQuery(sql, sortList);
+			if(request.getIncludeRowIdAndRowVersion() == null){
+				// default to true
+				request.setIncludeRowIdAndRowVersion(true);
+			}
+			if(request.getWriteHeader() == null){
+				// default to true
+				request.setWriteHeader(true);
+			}
+			final SqlQuery query = createQuery(request);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
 			if (!query.includesRowIdAndVersion()) {
-				includeRowIdAndVersion = false;
+				request.setIncludeRowIdAndRowVersion(false);
 			}
 			// This handler will capture the row data.
 			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer,
-					query.getSelectColumns(), includeRowIdAndVersion);
+					query.getSelectColumns(), request.getIncludeRowIdAndRowVersion());
 			
-			if (writeHeader) {
+			if (request.getWriteHeader()) {
 				handler.writeHeader();
 			}
 			
@@ -509,7 +513,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			boolean runCount = false;
 			boolean isConsistent = true;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, selectedFacets ,handler, runCount, false, isConsistent);
+					query, request.getSelectedFacets() ,handler, runCount, false, isConsistent);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());

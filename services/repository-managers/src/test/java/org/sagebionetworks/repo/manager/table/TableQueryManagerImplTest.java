@@ -748,11 +748,19 @@ public class TableQueryManagerImplTest {
 		manager.validateTableIsAvailable(tableId);
 	}
 	
+	SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptyResultException{
+		Query query = new Query();
+		query.setSql(sql);
+		query.setSort(sortList);
+		Long maxBytesPerPage = null;
+		return manager.createQuery(query, maxBytesPerPage);
+	}
+	
 	@Test
 	public void testCreateQuerySelectStar() throws EmptyResultException {
 		List<SortItem> sortList= null;
 		// call under test
-		SqlQuery result = manager.createQuery("select * from "+tableId, sortList);
+		SqlQuery result = createQuery("select * from "+tableId, sortList);
 		assertNotNull(result);
 		assertEquals("SELECT \"i0\", \"i1\", \"i2\", \"i3\", \"i4\", \"i5\", \"i6\", \"i7\", \"i8\", \"i9\" FROM syn123", result.getModel().toSql());
 	}
@@ -764,7 +772,7 @@ public class TableQueryManagerImplTest {
 		sort.setDirection(SortDirection.DESC);
 		List<SortItem> sortList= Lists.newArrayList(sort);
 		// call under test
-		SqlQuery result = manager.createQuery("select i2, i0 from "+tableId, sortList);
+		SqlQuery result = createQuery("select i2, i0 from "+tableId, sortList);
 		assertNotNull(result);
 		assertEquals("SELECT i2, i0 FROM syn123 ORDER BY \"i0\" DESC", result.getModel().toSql());
 	}
@@ -776,7 +784,7 @@ public class TableQueryManagerImplTest {
 		List<SortItem> sortList= null;
 		// call under test
 		try {
-			manager.createQuery("select * from "+tableId, sortList);
+			createQuery("select * from "+tableId, sortList);
 			fail("Should have failed since the schema is empty");
 		} catch (EmptyResultException e) {
 			assertEquals(tableId, e.getTableId());

@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
@@ -336,9 +337,14 @@ public class TableCSVDownloadWorkerIntegrationTest {
 
 	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws Exception {
 		long start = System.currentTimeMillis();
+		boolean runQuery = true;
+		boolean runCount = false;
+		boolean returnFacets = false;
+		Query query = new Query();
+		query.setSql(sql);
 		while(true){
 			try {
-				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, sql, null, null, 0L, 100L, true, false, false, true).getQueryResult().getQueryResults();
+				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, runQuery, runCount, returnFacets).getQueryResult().getQueryResults();
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
