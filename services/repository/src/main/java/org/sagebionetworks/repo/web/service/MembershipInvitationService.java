@@ -92,7 +92,7 @@ public interface MembershipInvitationService {
 	 * @param membershipInvitationId
 	 * @return
 	 */
-	public InviteeVerificationSignedToken verifyInvitee(Long userId, String membershipInvitationId);
+	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId);
 
 	/**
 	 *

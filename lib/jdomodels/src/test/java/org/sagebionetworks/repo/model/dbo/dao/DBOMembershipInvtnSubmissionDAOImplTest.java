@@ -269,14 +269,6 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	}
 
 	@Test
-	public void testGetInviteeEmail() {
-		String inviteeEmail = "test@test.com";
-		mis.setInviteeEmail(inviteeEmail);
-		mis = membershipInvtnSubmissionDAO.create(mis);
-		assertEquals(inviteeEmail, membershipInvtnSubmissionDAO.getInviteeEmail(mis.getId()));
-	}
-
-	@Test
 	public void testUpdateInviteeId() {
 		// Create a mis with null invitee id
 		mis.setInviteeId(null);
