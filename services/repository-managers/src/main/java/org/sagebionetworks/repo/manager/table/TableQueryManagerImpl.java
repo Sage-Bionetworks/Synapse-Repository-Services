@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -32,6 +31,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -99,11 +99,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			if(runQuery){
 				rowHandler = new SinglePageRowHandler();
 			}
-			// parser the query
-			SqlQuery sqlQuery = createQuery(query, this.maxBytesPerRequest);
+			// pre-flight includes parsing and authorization
+			SqlQuery sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest);
 			
 			// run the query as a stream.
-			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, query.getSelectedFacets(), rowHandler, runQuery, runCount, returnFacets);
+			QueryResultBundle bundle = queryAsStream(progressCallback, user, sqlQuery, rowHandler, runCount, returnFacets);
 			// save the max rows per page.
 			bundle.setMaxRowsPerPage(sqlQuery.getMaxRowsPerPage());
 			// add captured rows to the bundle
@@ -127,6 +127,58 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	/**
+	 * Query pre-flight includes the following:
+	 * <ol>
+	 * <li>Parse the query SQL string, and identify the tableId.</li>
+	 * <li>Authenticate that the user has read access on the table.</li>
+	 * <li>Gather table's schema information</li>
+	 * <li>Add row level filtering as needed.</li>
+	 * <li>Create processed {@link SqlQuery} that is ready for execution.</li>
+	 * </ol>
+	 * a
+	 * @param user
+	 * @param query
+	 * @return
+	 * @throws EmptyResultException 
+	 */
+	SqlQuery queryPreflight(UserInfo user, Query query, Long maxBytesPerPage) throws EmptyResultException{
+		ValidateArgument.required(user, "UserInfo");
+		ValidateArgument.required(query, "Query");
+		ValidateArgument.required(query.getSql(), "Query");
+		// 1. Parse the SQL string
+		QuerySpecification model = parserQuery(query.getSql());
+		// We now have the table's ID.
+		String tableId = model.getTableName();
+		
+		// 2. Validate the user has read access on this table
+		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, tableId);
+		
+		// 3. Get the table's schema
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
+		if(columnModels.isEmpty()){
+			throw new EmptyResultException("Table schema is empty for: "+tableId, tableId);
+		}
+		
+		// 4. Add row level filter as needed.
+		if(EntityType.entityview.equals(tableType)){
+			// Table views must have a row level filter applied to the query
+			model = addRowLevelFilter(user, model);
+		}
+		// Return the prepared query.
+		return new SqlQueryBuilder(model)
+		.tableSchema(columnModels)
+		.overrideOffset(query.getOffset())
+		.overrideLimit(query.getLimit())
+		.maxBytesPerPage(maxBytesPerPage)
+		.isConsistent(query.getIsConsistent())
+		.includeEntityEtag(query.getIncludeEntityEtag())
+		.selectedFacets(query.getSelectedFacets())
+		.sortList(query.getSort())
+		.tableType(tableType)
+		.build();
+	}
+	
+	/**
 	 * The main entry point for all table queries.  Any business logic
 	 * that must be applied to all table queries should applied here or lower.
 	 * 
@@ -147,12 +199,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException
 	 */
 	QueryResultBundle queryAsStream(final ProgressCallback progressCallback,
-			final UserInfo user, final SqlQuery query, final List<FacetColumnRequest> selectedFacets,
-			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets, final boolean isConsistent)
+			final UserInfo user, final SqlQuery query,
+			final RowHandler rowHandler,final  boolean runCount, final boolean returnFacets)
 			throws DatastoreException, NotFoundException,
 			TableUnavailableException, TableFailedException, LockUnavilableException, EmptyResultException {		
 		// consistent queries are run with a read lock on the table and include the current etag.
-		if(isConsistent){
+		if(query.isConsistent()){
 			// run with the read lock
 			return tryRunWithTableReadLock(
 					progressCallback, query.getTableId(),
@@ -164,7 +216,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						// We can only run this query if the table is available.
 						final TableStatus status = validateTableIsAvailable(query.getTableId());
 						// run the query
-						QueryResultBundle bundle = queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets, rowHandler, runCount, returnFacets);
+						QueryResultBundle bundle = queryAsStreamAfterAuthorization(progressCallback, query, rowHandler, runCount, returnFacets);
 						// add the status to the result
 						if(rowHandler != null){
 							// the etag is only returned for consistent queries.
@@ -174,7 +226,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					}});
 		}else{
 			// run without a read lock.
-			return queryAsStreamWithAuthorization(progressCallback, user, query, selectedFacets,rowHandler, runCount, returnFacets);
+			return queryAsStreamAfterAuthorization(progressCallback, query, rowHandler, runCount, returnFacets);
 		}
 	}
 	
@@ -208,42 +260,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	/**
-	 * Table query authorization includes validating the user has read access to the given table.
-	 * In addition, a row level filter must be applied to queries against TableViews.  All authorization
-	 * checks and filters are applied in this method.
-	 * 
-	 * @param progressCallback
-	 * @param user
-	 * @param query
-	 * @param rowHandler
-	 * @param runCount
-	 * @return
-	 * @throws NotFoundException
-	 * @throws LockUnavilableException
-	 * @throws TableUnavailableException
-	 * @throws TableFailedException
-	 * @throws EmptyResultException 
-	 */
-	QueryResultBundle queryAsStreamWithAuthorization(ProgressCallback progressCallback, UserInfo user, SqlQuery query, List<FacetColumnRequest> selectedFacets,
-			RowHandler rowHandler, boolean runCount, boolean returnFacets) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, EmptyResultException{
-		// Get a connection to the table.
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
-		
-		// Validate the user has read access on this object
-		EntityType tableType = tableManagerSupport.validateTableReadAccess(user, query.getTableId());
-		SqlQuery filteredQuery = null;
-		if(EntityType.entityview.equals(tableType)){
-			// Table views must have a row level filter applied to the query
-			filteredQuery = addRowLevelFilter(user, query, indexDao);
-		}else{
-			// A row level filter is not needed so the original query can be used.
-			filteredQuery = query;
-		}
-		// run the actual query.
-		return queryAsStreamAfterAuthorization(progressCallback, filteredQuery, selectedFacets, rowHandler, runCount, returnFacets, indexDao);
-	}
 
 	/**
 	 * Run a query as a stream after all authorization checks have been performed
@@ -264,15 +280,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException
 	 */
-	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query, List<FacetColumnRequest> queryFacetColumns,
-			RowHandler rowHandler, boolean runCount, boolean returnFacets,TableIndexDAO indexDao)
+	QueryResultBundle queryAsStreamAfterAuthorization(ProgressCallback progressCallback, SqlQuery query,
+			RowHandler rowHandler, boolean runCount, boolean returnFacets)
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
 		bundle.setColumnModels(query.getTableSchema());
 		bundle.setSelectColumns(query.getSelectColumns());
 		
-		FacetModel facetModel = new FacetModel(queryFacetColumns, query, returnFacets);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+		
+		FacetModel facetModel = new FacetModel(query.getSelectedFacets(), query, returnFacets);
 		
 		//determine whether or not to run with facet filters
 		SqlQuery queryToRun;
@@ -422,52 +440,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 		return bundle;
 	}
-
-	/**
-	 * Create Query from SQL and a sort list.
-	 * @param sql
-	 * @param sortList
-	 * @return
-	 */
-	public SqlQuery createQuery(DownloadFromTableRequest request) throws EmptyResultException {
-		Long maxBytesPerPage = null;
-		return createQuery(request, maxBytesPerPage);
-	}
-	
-	/**
-	 * Create a new query from the given SQL and optional parameters.
-	 * @param sql
-	 * @param sortList
-	 * @param overrideOffset
-	 * @param overrideLimit
-	 * @param maxBytesPerPage
-	 * @return
-	 * @throws EmptyResultException
-	 * @throws ParseException 
-	 */
-	public SqlQuery createQuery(Query query, Long maxBytesPerPage) throws EmptyResultException {
-		// First parse the SQL
-		QuerySpecification model = parserQuery(query.getSql());
-		if (query.getSort() != null && !query.getSort().isEmpty()) {
-			// change the query to use the sort list
-			try {
-				model = SqlElementUntils.convertToSortedQuery(model, query.getSort());
-			} catch (ParseException e) {
-				throw new IllegalArgumentException(e);
-			}
-		}
-
-		String tableId = model.getTableName();
-		if (tableId == null) {
-			throw new IllegalArgumentException("Could not parse the table name in the sql expression: " + query.getSql());
-		}
-		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		if(columnModels.isEmpty()){
-			throw new EmptyResultException("Table schema is empty for: "+tableId, tableId);
-		}	
-		return new SqlQuery(model, columnModels, query.getOffset(), query.getLimit(), maxBytesPerPage);
-	}
 	
 	/**
 	 * 
@@ -495,7 +467,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				// default to true
 				request.setWriteHeader(true);
 			}
-			final SqlQuery query = createQuery(request);
+			// there is no limit to the size
+			Long maxBytes = null;
+			final SqlQuery query = queryPreflight(user, request, maxBytes);
 
 			// Do not include rowId and version if it is not provided (PLFM-2993)
 			if (!query.includesRowIdAndVersion()) {
@@ -511,9 +485,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			
 			// run the query.
 			boolean runCount = false;
-			boolean isConsistent = true;
+			boolean returnFacets = false;
 			QueryResultBundle result = queryAsStream(progressCallback, user,
-					query, request.getSelectedFacets() ,handler, runCount, false, isConsistent);
+					query, handler, runCount, returnFacets);
 			// convert the response
 			DownloadFromTableResult response = new DownloadFromTableResult();
 			response.setHeaders(result.getSelectColumns());
@@ -657,11 +631,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query
 	 * @return
 	 */
-	SqlQuery addRowLevelFilter(UserInfo user, SqlQuery query, TableIndexDAO indexDao) throws EmptyResultException {
+	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query) throws EmptyResultException {
+		String tableId = query.getTableName();
+		// Get a connection to the table.
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
 		// lookup the distinct benefactor IDs applied to the table.
-		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(query.getTableId(), TableConstants.ROW_BENEFACTOR);
+		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
 		if(tableBenefactors.isEmpty()){
-			throw new EmptyResultException("Table has no benefactors", query.getTableId());
+			throw new EmptyResultException("Table has no benefactors", tableId);
 		}
 		// Get the sub-set of benefactors visible to the user.
 		Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, tableBenefactors);
@@ -675,16 +652,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @return
 	 * @throws EmptyResultException 
 	 */
-	public static SqlQuery buildBenefactorFilter(SqlQuery originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
+	public static QuerySpecification buildBenefactorFilter(QuerySpecification originalQuery, Set<Long> accessibleBenefactors) throws EmptyResultException{
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
 		if(accessibleBenefactors.isEmpty()){
-			throw new EmptyResultException("User does not have access to any benefactors in the table.", originalQuery.getTableId());
+			throw new EmptyResultException("User does not have access to any benefactors in the table.", originalQuery.getTableName());
 		}
 		// copy the original model
 		try {
-			QuerySpecification modelCopy = new TableQueryParser(originalQuery.getModel().toSql()).querySpecification();
-			WhereClause where = originalQuery.getModel().getTableExpression().getWhereClause();
+			QuerySpecification modelCopy = new TableQueryParser(originalQuery.toSql()).querySpecification();
+			WhereClause where = originalQuery.getTableExpression().getWhereClause();
 			StringBuilder filterBuilder = new StringBuilder();
 			filterBuilder.append("WHERE ");
 			if(where != null){
@@ -706,9 +683,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// create the new where
 			where = new TableQueryParser(filterBuilder.toString()).whereClause();
 			modelCopy.getTableExpression().replaceWhere(where);
-			boolean includeRowEtag = true;
 			// return a copy
-			return new SqlQuery(modelCopy, originalQuery, includeRowEtag);
+			return modelCopy;
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

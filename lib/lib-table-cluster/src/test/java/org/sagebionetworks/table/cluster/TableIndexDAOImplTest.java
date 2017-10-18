@@ -356,7 +356,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
-		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -418,7 +418,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQuery("select * from " + tableId, doubleColumn);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, doubleColumn).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -466,7 +466,7 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		createOrUpdateOrDeleteRows(set, allTypes);
 		// This is our query
-		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -496,7 +496,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, allTypes);
 		// Now query for the results
-		SqlQuery query = new SqlQuery("select * from " + tableId, allTypes);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId, allTypes).build();
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -546,8 +546,8 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, allTypes);
 		// Now a count query
-		SqlQuery query = new SqlQuery("select count(*) from " + tableId,
-				allTypes);
+		SqlQuery query = new SqlQueryBuilder("select count(*) from " + tableId,
+				allTypes).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -600,11 +600,11 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
-		SqlQuery query = new SqlQuery(
+		SqlQuery query = new SqlQueryBuilder(
 				"select foo, bar from "
 						+ tableId
 						+ " where foo is not null group by foo order by bar desc limit 1 offset 0",
-				schema);
+				schema).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -655,9 +655,9 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, schema);
 		// Now create the query
-		SqlQuery query = new SqlQuery("select * from " + tableId
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId
 				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
-				schema);
+				schema).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -1647,7 +1647,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQuery("select 2 + 2, col1/10 from " + tableId, doubleColumn);
+		SqlQuery query = new SqlQueryBuilder("select 2 + 2, col1/10 from " + tableId, doubleColumn).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -1682,7 +1682,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(set, doubleColumn);
 		// This is our query
-		SqlQuery query = new SqlQuery("select col1 from " + tableId+" where col1 = -5*10", doubleColumn);
+		SqlQuery query = new SqlQueryBuilder("select col1 from " + tableId+" where col1 = -5*10", doubleColumn).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);
@@ -1716,7 +1716,7 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(rows, schema);
 		
 		// This is our query
-		SqlQuery query = new SqlQuery("select aDate from " + tableId+" where aDate > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 SECOND)*1000", schema);
+		SqlQuery query = new SqlQueryBuilder("select aDate from " + tableId+" where aDate > unix_timestamp(CURRENT_TIMESTAMP - INTERVAL 1 SECOND)*1000", schema).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(mockProgressCallback, query);
 		assertNotNull(results);

@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -79,7 +82,7 @@ public class SqlQuery {
 	 * Should the query results include the row's etag?
 	 * Note: This is true for view queries.
 	 */
-	boolean includeRowEtag;
+	boolean includeEntityEtag;
 	
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
@@ -87,6 +90,8 @@ public class SqlQuery {
 	 * will be null when isAggregatedResults = true.
 	 */
 	boolean isAggregatedResult;
+	
+	boolean isConsistent;
 	
 	/**
 	 * The list of all columns referenced in the select column.
@@ -97,91 +102,7 @@ public class SqlQuery {
 	Long overrideLimit;
 	Long maxBytesPerPage;
 	
-	
-	/**
-	 * Create a new SQLQuery from an input SQL string and mapping of the column names to column IDs.
-	 * 
-	 * @param sql
-	 * @param columnNameToModelMap
-	 * @throws ParseException
-	 */
-	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
-		this(sql, tableSchema, false);
-	}
-	
-	/**
-	 * 
-	 * @param sql
-	 * @param tableSchema
-	 * @param includeEtag
-	 * @throws ParseException
-	 */
-	public SqlQuery(String sql, List<ColumnModel> tableSchema, boolean includeEtag) throws ParseException {
-		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
-		QuerySpecification parsedQuery = TableQueryParser.parserQuery(sql);
-		Long overrideOffset = null;
-		Long overrideLimit = null;
-		Long maxBytesPerPage = null;
-		init(parsedQuery, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
-	}
-	
-	/**
-	 * Create a query with a parsed model.
-	 * 
-	 * @param model
-	 * @param columnNameToModelMap
-	 * @throws ParseException
-	 */
-	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema, String tableId) {
-		if (model == null)
-			throw new IllegalArgumentException("The input model cannot be null");
-		Long overrideOffset = null;
-		Long overrideLimit = null;
-		Long maxBytesPerPage = null;
-		boolean includeEtag = false;
-		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
-	}
-	
-	/**
-	 * Create a new
-	 * @param model
-	 * @param tableSchema
-	 * @param tableId
-	 * @param overrideOffset Optional parameter to override the offset in the passed SQL.
-	 * @param overrideLimit Optional parameter to override the limit in the passed SQL.
-	 * @param maxBytesPerPage Optional parameter to limit the number or rows returned by the query.
-	 */
-	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema,
-			Long overrideOffset, Long overrideLimit,
-			Long maxBytesPerPage) {
-		if (model == null)
-			throw new IllegalArgumentException("The input model cannot be null");
-		boolean includeEtag = false;
-		init(model, tableSchema, overrideOffset, overrideLimit, maxBytesPerPage, includeEtag);
-	}
-	
-	/**
-	 * Create a new query as a copy of the passed query model.
-	 * @param model
-	 * @param toCopy
-	 */
-	public SqlQuery(QuerySpecification model, SqlQuery toCopy) {
-		ValidateArgument.required(model, "model");
-		ValidateArgument.required(toCopy, "toCopy");
-		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage, toCopy.includeRowEtag());
-	}
-	
-	/**
-	 * Copy with override to include the etag.
-	 * @param model
-	 * @param toCopy
-	 * @param includeRowEtag
-	 */
-	public SqlQuery(QuerySpecification model, SqlQuery toCopy, boolean includeRowEtag) {
-		ValidateArgument.required(model, "model");
-		ValidateArgument.required(toCopy, "toCopy");
-		init(model, toCopy.getTableSchema(), toCopy.overrideOffset, toCopy.overrideLimit, toCopy.maxBytesPerPage, includeRowEtag);
-	}
+	List<FacetColumnRequest> selectedFacets;
 
 	/**
 	 * @param tableId
@@ -189,9 +110,19 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public void init(QuerySpecification parsedModel,
-			List<ColumnModel> tableSchema, Long overrideOffset,
-			Long overrideLimit, Long maxBytesPerPage, boolean includeRowEtag) {
+	public SqlQuery(
+			QuerySpecification parsedModel,
+			List<ColumnModel> tableSchema,
+			Long overrideOffset,
+			Long overrideLimit,
+			Long maxBytesPerPage,
+			List<SortItem> sortList,
+			Boolean isConsistent,
+			Boolean includeEntityEtag,
+			Boolean includeRowIdAndRowVersion,
+			EntityType tableType,
+			List<FacetColumnRequest> selectedFacets
+			) {
 		ValidateArgument.required(tableSchema, "TableSchema");
 		if(tableSchema.isEmpty()){
 			throw new IllegalArgumentException("Table schema cannot be empty");
@@ -202,7 +133,30 @@ public class SqlQuery {
 		this.overrideOffset = overrideOffset;
 		this.overrideLimit = overrideLimit;
 		this.maxBytesPerPage = maxBytesPerPage;
-		this.includeRowEtag = includeRowEtag;
+		this.selectedFacets = selectedFacets;
+		
+		if(isConsistent == null){
+			// default to true
+			this.isConsistent = true;
+		}else{
+			this.isConsistent = isConsistent;
+		}
+		
+		if(includeEntityEtag == null){
+			// default to false
+			this.includeEntityEtag = false;
+		}else{
+			this.includeEntityEtag = includeEntityEtag;
+		}
+
+		if (sortList != null && !sortList.isEmpty()) {
+			// change the query to use the sort list
+			try {
+				model = SqlElementUntils.convertToSortedQuery(model, sortList);
+			} catch (ParseException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
 
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
@@ -233,7 +187,7 @@ public class SqlQuery {
 		// Add ROW_ID and ROW_VERSION only if all columns have an Id.
 		if (SQLTranslatorUtils.doAllSelectMatchSchema(selectColumns)) {
 			// we need to add the row count and row version columns
-			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeRowEtag);
+			SelectList expandedSelectList = SQLTranslatorUtils.addMetadataColumnsToSelect(this.transformedModel.getSelectList(), this.includeEntityEtag);
 			transformedModel.replaceSelectList(expandedSelectList);
 			this.includesRowIdAndVersion = true;
 		}else{
@@ -256,8 +210,8 @@ public class SqlQuery {
 	 * Does this query include ROW_ETAG
 	 * @return
 	 */
-	public boolean includeRowEtag(){
-		return this.includeRowEtag;
+	public boolean includeEntityEtag(){
+		return this.includeEntityEtag;
 	}
 
 	/**
@@ -354,5 +308,20 @@ public class SqlQuery {
 		return maxRowsPerPage;
 	}
 	
+	/**
+	 * Should this query be run as consistent?
+	 * 
+	 * @return
+	 */
+	public boolean isConsistent(){
+		return this.isConsistent;
+	}
 	
+	/**
+	 * Get the selected facets
+	 * @return
+	 */
+	public List<FacetColumnRequest> getSelectedFacets(){
+		return this.selectedFacets;
+	}
 }
