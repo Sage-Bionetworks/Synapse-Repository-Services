@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +55,10 @@ public class SearchDaoImpl implements SearchDao {
 	SearchDomainSetup searchDomainSetup;
 	@Autowired
 	CloudSearchClient cloudHttpClient = null;
+
+	//TODO:z figure out autowire
+	@Autowired
+	AmazonCloudSearchDomain cloudSearchDomainClient;
 	
 	@Override
 	public boolean postInitialize() throws Exception {
@@ -235,6 +242,12 @@ public class SearchDaoImpl implements SearchDao {
 			ServiceUnavailableException, CloudSearchClientException {
 		CloudSearchClient searchClient = validateSearchAvailable();
 		return searchClient.performSearch(search);
+	}
+
+	@Override
+	public void executeCloudSearchDomainSearch(String search){
+		SearchRequest searchRequest = new SearchRequest();
+		SearchResult searchResult = SearchResultcloudSearchDomainClient.search(searchRequest);
 	}
 
 	@Override

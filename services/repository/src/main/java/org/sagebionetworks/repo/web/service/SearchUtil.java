@@ -7,8 +7,13 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 
-public class SearchUtil {
+public class SearchUtil
+
+	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
+		//TODO:z
+	}
 	
 	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
