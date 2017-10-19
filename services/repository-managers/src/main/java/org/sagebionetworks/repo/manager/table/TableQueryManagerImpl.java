@@ -90,10 +90,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		try{
-			if(query.getIsConsistent() == null){
-				// default to true.
-				query.setIsConsistent(true);
-			}
 			// handler will capture the results of the query.
 			SinglePageRowHandler rowHandler = null;
 			if(runQuery){
@@ -140,8 +136,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query
 	 * @return
 	 * @throws EmptyResultException 
+	 * @throws TableFailedException 
+	 * @throws TableUnavailableException 
+	 * @throws NotFoundException 
 	 */
-	SqlQuery queryPreflight(UserInfo user, Query query, Long maxBytesPerPage) throws EmptyResultException{
+	SqlQuery queryPreflight(UserInfo user, Query query, Long maxBytesPerPage) throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException{
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
 		ValidateArgument.required(query.getSql(), "Query");
@@ -474,10 +473,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// Do not include rowId and version if it is not provided (PLFM-2993)
 			if (!query.includesRowIdAndVersion()) {
 				request.setIncludeRowIdAndRowVersion(false);
+				request.setIncludeEntityEtag(false);
 			}
 			// This handler will capture the row data.
 			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer,
-					query.getSelectColumns(), request.getIncludeRowIdAndRowVersion());
+					query.getSelectColumns(), request.getIncludeRowIdAndRowVersion(), request.getIncludeEntityEtag());
 			
 			if (request.getWriteHeader()) {
 				handler.writeHeader();
@@ -630,11 +630,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param user
 	 * @param query
 	 * @return
+	 * @throws TableFailedException 
+	 * @throws TableUnavailableException 
+	 * @throws NotFoundException 
 	 */
-	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query) throws EmptyResultException {
+	QuerySpecification addRowLevelFilter(UserInfo user, QuerySpecification query) throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getTableName();
 		// Get a connection to the table.
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+		// Can only get the benefactors if the table is available.
+		// We can only run this query if the table is available.
+		validateTableIsAvailable(tableId);
 		// lookup the distinct benefactor IDs applied to the table.
 		Set<Long> tableBenefactors = indexDao.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR);
 		if(tableBenefactors.isEmpty()){

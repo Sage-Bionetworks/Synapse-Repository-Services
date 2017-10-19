@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewType;
@@ -217,8 +218,34 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		request.setSql("select * from "+projectView.getId());
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(true);
+		// null should default to false
+		request.setIncludeEntityEtag(null);
 		List<String[]> results = downloadCSV(request);
 		assertEquals(4, results.size());
+		String[] headers = results.get(0);
+		String headerString = Arrays.toString(headers);
+		String[] expected = new String[]{ROW_ID, ROW_VERSION, EntityField.name.name()};
+		String expectedString = Arrays.toString(expected);
+		assertEquals(expectedString, headerString);
+	}
+	
+	@Test
+	public void testDownloadViewWithEtag() throws Exception{
+		// Create a project view to query
+		EntityView projectView =  createProjectView();
+		// CSV download from the view
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql("select * from "+projectView.getId());
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		request.setIncludeEntityEtag(true);
+		List<String[]> results = downloadCSV(request);
+		assertEquals(4, results.size());
+		String[] headers = results.get(0);
+		String headerString = Arrays.toString(headers);
+		String[] expected = new String[]{ROW_ID, ROW_VERSION, ROW_ETAG, EntityField.name.name()};
+		String expectedString = Arrays.toString(expected);
+		assertEquals(expectedString, headerString);
 	}
 
 	private void checkResults(List<String[]> results, List<String[]> input, boolean includeRowAndVersion) throws IOException,
@@ -236,25 +263,27 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	 */
 	private EntityView createProjectView(){
 		String uuid = UUID.randomUUID().toString();
+		List<String> projectIds = new LinkedList<String>();
 		// Create three projects
 		for(int i=0; i<3; i++){
 			Project project = new Project();
 			project.setName(uuid+"-"+i);
 			String projectId = entityManager.createEntity(adminUserInfo, project, null);
-			toDelete.add(projectId);
+			projectIds.add(projectId);
 		}
+		toDelete.addAll(projectIds);
 		// Create a projectView
 		ColumnModel nameColumn  = columnManager.createColumnModel(adminUserInfo, EntityField.name.getColumnModel());
 		schema = Lists.newArrayList(nameColumn);
 		headers = TableModelUtils.getIds(schema);
 		EntityView view = new EntityView();
 		view.setName(uuid+"-view");
-		view.setScopeIds(toDelete);
+		view.setScopeIds(projectIds);
 		view.setColumnIds(Lists.newArrayList(nameColumn.getId()));
 		view.setType(ViewType.project);
 		tableId = entityManager.createEntity(adminUserInfo, view, null);
 		toDelete.add(tableId);
-		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, toDelete, ViewType.project, tableId);
+		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, projectIds, ViewType.project, tableId);
 		return entityManager.getEntity(adminUserInfo, tableId, EntityView.class);
 	}
 

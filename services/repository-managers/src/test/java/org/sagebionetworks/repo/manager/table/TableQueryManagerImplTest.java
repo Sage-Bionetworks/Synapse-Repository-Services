@@ -768,7 +768,7 @@ public class TableQueryManagerImplTest {
 //	}
 	
 	@Test
-	public void testQueryPreflightSelectStar() throws EmptyResultException {
+	public void testQueryPreflightSelectStar() throws Exception {
 		List<SortItem> sortList= null;
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -781,7 +781,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryPreflightOverrideSort() throws EmptyResultException {
+	public void testQueryPreflightOverrideSort() throws Exception {
 		SortItem sort = new SortItem();
 		sort.setColumn("i0");
 		sort.setDirection(SortDirection.DESC);
@@ -797,7 +797,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryPreflightEmptySchema() {
+	public void testQueryPreflightEmptySchema() throws Exception {
 		// setup an empty schema.
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
 		List<SortItem> sortList= null;
@@ -1207,7 +1207,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test (expected=EmptyResultException.class)
-	public void testAddRowLevelFilterEmpty() throws ParseException, EmptyResultException{
+	public void testAddRowLevelFilterEmpty() throws Exception {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(tableId, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
@@ -1216,12 +1216,14 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testAddRowLevelFilter() throws ParseException, EmptyResultException{
+	public void testAddRowLevelFilter() throws Exception {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
 		QuerySpecification result = manager.addRowLevelFilter(user, query);
 		assertNotNull(result);
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( 444 )", result.toSql());
+		// the table status must be checked before the table
+		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(tableId);
 	}
 	
 	

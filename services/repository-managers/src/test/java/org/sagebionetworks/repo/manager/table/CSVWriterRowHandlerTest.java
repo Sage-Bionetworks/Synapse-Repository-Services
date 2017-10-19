@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -21,6 +22,7 @@ public class CSVWriterRowHandlerTest {
 	CSVWriterStream writer;
 	List<SelectColumn> selectColumns;
 	boolean includeRowIdAndVersion;
+	boolean includeRowEtag;
 	CSVWriterRowHandler handler;
 	
 	@Before
@@ -49,8 +51,9 @@ public class CSVWriterRowHandlerTest {
 		selectColumns = Lists.newArrayList(column);
 		
 		includeRowIdAndVersion = true;
+		includeRowEtag = false;
 		
-		handler = new CSVWriterRowHandler(writer, selectColumns, includeRowIdAndVersion);
+		handler = new CSVWriterRowHandler(writer, selectColumns, includeRowIdAndVersion, includeRowEtag);
 	}
 
 	@Test
@@ -66,6 +69,24 @@ public class CSVWriterRowHandlerTest {
 		assertEquals(2, writtenLines.size());
 		assertEquals("ROW_ID,ROW_VERSION,foo", writtenLines.get(0));
 		assertEquals("1,2,one", writtenLines.get(1));
+	}
+	
+	@Test 
+	public void testHandlerWithEtag(){
+		includeRowEtag = true;
+		handler = new CSVWriterRowHandler(writer, selectColumns, includeRowIdAndVersion, includeRowEtag);
+		// write the header.
+		handler.writeHeader();
+		//  add a row
+		EntityRow row = new EntityRow();
+		row.setRowId(1L);
+		row.setVersionNumber(2L);
+		row.setEtag("someEtag");
+		row.setValues(Lists.newArrayList("one"));
+		handler.nextRow(row);
+		assertEquals(2, writtenLines.size());
+		assertEquals("ROW_ID,ROW_VERSION,ROW_ETAG,foo", writtenLines.get(0));
+		assertEquals("1,2,someEtag,one", writtenLines.get(1));
 	}
 
 }
