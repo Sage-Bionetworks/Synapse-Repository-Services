@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +22,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -59,7 +59,7 @@ public class FacetTransformerValueCountsTest {
 		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
 		originalSearchCondition = "i0 LIKE 'asdf%'";
-		originalQuery = new SqlQuery("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema);
+		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema).build();
 		
 		rowSet = new RowSet();
 		

@@ -15,16 +15,21 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -806,17 +811,33 @@ public class SQLQueryTest {
 		Long overideLimit = 101L;
 		Long maxBytesPerPage = 501L;
 		QuerySpecification originalModel = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery original = new SqlQueryBuilder(originalModel, tableSchema, overideOffset, overideLimit, maxBytesPerPage).build();
+		SortItem sortItem = new SortItem();
+		sortItem.setColumn("bar");
+		sortItem.setDirection(SortDirection.DESC);
+		List<SortItem> sortList = Lists.newArrayList(sortItem);
+		SqlQuery original = new SqlQueryBuilder(originalModel)
+		.tableSchema(tableSchema)
+		.overrideOffset(overideOffset)
+		.overrideLimit(overideLimit)
+		.maxBytesPerPage(maxBytesPerPage)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.sortList(sortList)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", original.getOutputSQL());
 
-		QuerySpecification newModel = new TableQueryParser("select foo as bar from syn123").querySpecification();
-		SqlQuery copy = new SqlQueryBuilder(newModel, original);
-		assertEquals("SELECT _C111_ AS bar FROM T123 LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
+		QuerySpecification newModel = new TableQueryParser(original.getModel().toSql()).querySpecification();
+		SelectList newSelectList = new TableQueryParser("foo as bar").selectList();
+		newModel.replaceSelectList(newSelectList);
+		
+		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
+		assertEquals("SELECT _C111_ AS bar FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
 		assertEquals(3L, copy.getParameters().get("b0"));
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());
 		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
-		assertEquals(overideOffset, copy.overrideOffset);
-		assertEquals(overideLimit, copy.overrideLimit);
+		assertEquals(EntityType.entityview, copy.tableType);
+		assertEquals(true, copy.includeEntityEtag);
 	}
 	
 	@Test

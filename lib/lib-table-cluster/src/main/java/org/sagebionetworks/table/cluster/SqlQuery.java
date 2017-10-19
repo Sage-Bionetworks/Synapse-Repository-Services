@@ -103,6 +103,8 @@ public class SqlQuery {
 	Long maxBytesPerPage;
 	
 	List<FacetColumnRequest> selectedFacets;
+	
+	EntityType tableType;
 
 	/**
 	 * @param tableId
@@ -130,10 +132,16 @@ public class SqlQuery {
 		this.tableSchema = tableSchema;
 		this.model = parsedModel;
 		this.tableId = parsedModel.getTableName();
-		this.overrideOffset = overrideOffset;
-		this.overrideLimit = overrideLimit;
 		this.maxBytesPerPage = maxBytesPerPage;
 		this.selectedFacets = selectedFacets;
+		this.overrideLimit = overrideLimit;
+		this.overrideOffset = overrideOffset;
+		
+		if(tableType == null){
+			this.tableType = EntityType.table;
+		}else{
+			this.tableType = tableType;
+		}
 		
 		if(isConsistent == null){
 			// default to true

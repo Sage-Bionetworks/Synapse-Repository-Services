@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -1004,13 +1005,12 @@ public class TableViewIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				List<SortItem> sortList = null;
-				Long offset = null;
-				Long limit = null;
 				boolean runQuery = true;
 				boolean runCount = true;
-				boolean isConsistent = true;
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortList, null, offset, limit, runQuery, runCount, false, isConsistent);
+				boolean returnFacets = false;
+				Query query = new Query();
+				query.setSql(sql);
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {
