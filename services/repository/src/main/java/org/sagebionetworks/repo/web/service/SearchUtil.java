@@ -5,14 +5,163 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import org.sagebionetworks.repo.manager.search.SearchHelper;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import org.sagebionetworks.util.ValidateArgument;
 
-public class SearchUtil
+public class SearchUtil{
 
-	public static SearchRequest generateSearchRequest(SearchQuery searchQuery){
+	public static SearchRequest generateSearchRequest(SearchQuery searchQuery, UserInfo userInfo){
+		ValidateArgument.required(searchQuery, "searchQuery");
+		SearchRequest searchRequest = new SearchRequest();
 		//TODO:z
+
+
+		List<String> params = new ArrayList<String>();
+		List<String> q = searchQuery.getQueryTerm();
+		List<KeyValue> bq = searchQuery.getBooleanQuery();
+		StringBuilder queryTermsStringBuilder = new StringBuilder();
+
+		// clean up empty q
+		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
+			q = null;
+		}
+
+		// test for minimum search requirements
+		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
+			throw new IllegalArgumentException(
+					"Either one queryTerm or one booleanQuery must be defined");
+		}
+
+		// unstructured query terms into structured query terms
+		if (q != null && q.size() > 0)
+			queryTermsStringBuilder.append("(and " + joinQueries(q, " ") + ")");
+
+		// boolean query into structured query terms
+		if (bq != null && bq.size() > 0) {
+			List<String> bqTerms = new ArrayList<String>();
+			for (KeyValue pair : bq) {
+				// this regex is pretty lame to have. need to work continuous into KeyValue model
+				String value = pair.getValue();
+
+				if(value.contains("*")){ //prefix queries are treated differently
+					String prefixQuery = createPrefixQuery(value, pair.getKey());
+					bqTerms.add(prefixQuery);
+					continue;
+				}
+
+				//convert numeric ranges from 2011 cloudsearch syntax to 2013 syntax, for example: 200.. to [200,}
+				if(value.contains("..")) {
+					//TODO: remove this part once client stops using ".." notation for ranges
+					String[] range = value.split("\\.\\.", -1);
+
+					if(range.length != 2 ){
+						throw new IllegalArgumentException("Numeric range is incorrectly formatted");
+					}
+
+					StringBuilder rangeStringBuilder = new StringBuilder();
+					//left bound
+					if(range[0].equals("")){
+						rangeStringBuilder.append("{");
+					}else{
+						rangeStringBuilder.append("[" + range[0]);
+					}
+
+					//right bound
+					rangeStringBuilder.append(",");
+					if(range[1].equals("")){
+						rangeStringBuilder.append("}");
+					}else{
+						rangeStringBuilder.append( range[1] + "]");
+					}
+					value = rangeStringBuilder.toString();
+				}
+
+				if((value.contains("{") || value.contains("["))
+						&& (value.contains("}") || value.contains("]")) ){ //if is a continuous range such as [300,}
+					bqTerms.add("(range field=" + pair.getKey()+ " " + value + ")");
+					continue;
+				}
+
+				//add quotes around value. i.e. value -> 'value'
+				value = "'" + escapeQuotedValue(pair.getValue()) + "'";
+				String term = pair.getKey() + ":" + value;
+				if(pair.getNot() != null && pair.getNot()) {
+					term = "(not " + term + ")";
+				}
+				bqTerms.add(term);
+			}
+
+			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
+			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + join(bqTerms, " ")+ ")");
+			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
+		}
+
+		//add additional condition to filter for only documents that user can see
+		if(!userInfo.isAdmin()){
+			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
+			queryTermsStringBuilder.append(SearchHelper.formulateAuthorizationFilter(userInfo));
+			queryTermsStringBuilder.append(')');
+		}
+
+		searchRequest.setQueryParser(QueryParser.Structured);
+		searchRequest.setQuery(queryTermsStringBuilder.toString());
+
+		//preprocess the FacetSortConstraints
+		// facet field constraints
+		if (searchQuery.getFacetFieldConstraints() != null
+				&& searchQuery.getFacetFieldConstraints().size() > 0) {
+			throw new IllegalArgumentException("Facet field constraints are no longer supported");
+		}
+		if (searchQuery.getFacetFieldSort() != null){
+			throw new IllegalArgumentException("Sorting of facets is no longer supported");
+		}
+
+		// facets
+		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0){ //iterate over all facets
+			StringBuilder facetStringBuilder = new StringBuilder();
+			facetStringBuilder.append('{');
+			for(String facetFieldName : searchQuery.getFacet()){
+				if (facetStringBuilder.length() > 0){
+					facetStringBuilder.append(',');
+				}
+				//no options inside {} since none are used by the webclient
+				facetStringBuilder.append("\""+ facetFieldName + "\":{}");
+			}
+			facetStringBuilder.append('}');
+			searchRequest.setFacet(facetStringBuilder.toString());
+		}
+
+		//switch to size parameter in facet
+		// facet top n
+		if (searchQuery.getFacetFieldTopN() != null) {
+			throw new IllegalArgumentException("facet-field-top-n is no longer supported");
+		}
+
+		// rank
+		if (searchQuery.getRank() != null){
+			throw new IllegalArgumentException("Rank is no longer supported");
+		}
+
+
+		// return-fields
+		if (searchQuery.getReturnFields() != null
+				&& searchQuery.getReturnFields().size() > 0)
+			searchRequest.setReturn(join(searchQuery.getReturnFields(), ","));
+
+		// size
+		if (searchQuery.getSize() != null)
+			searchRequest.setSize(searchQuery.getSize());
+
+		// start
+		if (searchQuery.getStart() != null)
+			searchRequest.setStart(searchQuery.getStart());
+
+		return searchRequest;
 	}
 	
 	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{

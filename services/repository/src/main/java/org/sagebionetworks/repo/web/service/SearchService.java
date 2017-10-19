@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -29,4 +30,6 @@ public interface SearchService {
 	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException,
 			DatastoreException, NotFoundException, ServiceUnavailableException, CloudSearchClientException;
 
+	@ResponseBody
+	SearchResults proxySearchAwsApi(UserInfo userInfo, SearchQuery searchQuery);
 }

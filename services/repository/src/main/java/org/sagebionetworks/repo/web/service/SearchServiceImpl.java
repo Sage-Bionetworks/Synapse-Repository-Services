@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,6 +104,20 @@ public class SearchServiceImpl implements SearchService {
 		}
 		return results;
 	}
+
+	@Override
+	public @ResponseBody
+	SearchResults proxySearchAwsApi(UserInfo userInfo, SearchQuery searchQuery){
+		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery, userInfo);
+		SearchResult result = searchDao.executeCloudSearchDomainSearch(searchRequest);
+		return convertToSynapseSearchResult(searchResult);
+	}
+
+	public SearchResults convertToSynapseSearchResult(SearchResult searchResult){
+		SearchResults result = new SearchResults();
+		//TODO:
+		return result;
+	}
 	
 	/**
 	 * Add extra return results to the hit list.
@@ -138,10 +154,10 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	public String createQueryString(UserInfo userInfo, SearchQuery searchQuery)
 			throws UnsupportedEncodingException {
-		String serchQueryString = SearchUtil.generateStructuredQueryString(searchQuery);
-		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
+		String searchQueryString = SearchUtil.generateStructuredQueryString(searchQuery);
+		searchQueryString = filterSeachForAuthorization(userInfo, searchQueryString);
 		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
+		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQueryString);
 		return cleanedSearchQuery;
 	}
 

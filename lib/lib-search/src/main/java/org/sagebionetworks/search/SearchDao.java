@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -94,8 +96,11 @@ public interface SearchDao {
 	 */
 	String executeRawSearch(String search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException;
-	 
-	 /**
+
+	//TODO:z Documentation!!!!!!!!!!!!!!!!!!
+	SearchResult executeCloudSearchDomainSearch(SearchRequest searchRequest);
+
+	/**
 	 * Does a document already exist with the given id and etag?
 	 * 
 	 * @param id

@@ -245,9 +245,8 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void executeCloudSearchDomainSearch(String search){
-		SearchRequest searchRequest = new SearchRequest();
-		SearchResult searchResult = SearchResultcloudSearchDomainClient.search(searchRequest);
+	public SearchResult executeCloudSearchDomainSearch(SearchRequest searchRequest){
+		return cloudSearchDomainClient.search(searchRequest);
 	}
 
 	@Override
