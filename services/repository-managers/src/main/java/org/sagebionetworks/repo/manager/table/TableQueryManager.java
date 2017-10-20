@@ -97,7 +97,7 @@ public interface TableQueryManager {
 	 * @throws TableFailedException
 	 * @throws TableLockUnavailableException 
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
+	DownloadFromTableResult runQueryDownloadAsStream(ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request, CSVWriterStream writer) throws TableUnavailableException, NotFoundException, TableFailedException, LockUnavilableException;
 
 
 	/**

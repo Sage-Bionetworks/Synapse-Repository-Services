@@ -86,7 +86,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManger.runConsistentQueryAsStream(progressCallback, user, request, stream);
+				result = tableQueryManger.runQueryDownloadAsStream(progressCallback, user, request, stream);
 			}finally{
 				writer.close();
 			}

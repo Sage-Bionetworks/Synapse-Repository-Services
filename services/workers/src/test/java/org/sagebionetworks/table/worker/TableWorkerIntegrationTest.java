@@ -2265,7 +2265,7 @@ public class TableWorkerIntegrationTest {
 				request.setSelectedFacets(selectedFacets);
 				request.setIncludeRowIdAndRowVersion(includeRowIdAndVersion);
 				request.setWriteHeader(writeHeader);
-				return tableQueryManger.runConsistentQueryAsStream(mockProgressCallbackVoid, adminUserInfo, request, writer);
+				return tableQueryManger.runQueryDownloadAsStream(mockProgressCallbackVoid, adminUserInfo, request, writer);
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

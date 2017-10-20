@@ -90,6 +90,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException,
 			TableFailedException, LockUnavilableException {
 		try{
+			// Set the default values
+			TableQueryManagerImpl.setDefaultsValues(query);
 			// handler will capture the results of the query.
 			SinglePageRowHandler rowHandler = null;
 			if(runQuery){
@@ -441,6 +443,42 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 	
 	/**
+	 * Set the default value for a Query
+	 * @param request
+	 * @return
+	 */
+	public static void setDefaultsValues(Query query){
+		ValidateArgument.required(query, "query");
+		if(query.getIsConsistent() == null){
+			// default to true
+			query.setIsConsistent(true);
+		}
+		if(query.getIncludeEntityEtag() == null){
+			// default to false
+			query.setIncludeEntityEtag(false);
+		}
+	}
+	
+	/**
+	 * Set the default value for a download request.
+	 * @param request
+	 * @return
+	 */
+	public static void setDefaultValues(DownloadFromTableRequest request){
+		ValidateArgument.required(request, "request");
+		// get query defaults
+		TableQueryManagerImpl.setDefaultsValues((Query)request);
+		if(request.getIncludeRowIdAndRowVersion() == null){
+			// default to true
+			request.setIncludeRowIdAndRowVersion(true);
+		}
+		if(request.getWriteHeader() == null){
+			// default to true
+			request.setWriteHeader(true);
+		}
+	}
+	
+	/**
 	 * 
 	 * @param sql
 	 * @param writer
@@ -451,21 +489,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableLockUnavailableException 
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(
+	public DownloadFromTableResult runQueryDownloadAsStream(
 			ProgressCallback progressCallback, UserInfo user, DownloadFromTableRequest request,
 			final CSVWriterStream writer)
 			throws TableUnavailableException, NotFoundException,
 			TableFailedException, LockUnavilableException {
 		// Convert to a query.
 		try {
-			if(request.getIncludeRowIdAndRowVersion() == null){
-				// default to true
-				request.setIncludeRowIdAndRowVersion(true);
-			}
-			if(request.getWriteHeader() == null){
-				// default to true
-				request.setWriteHeader(true);
-			}
+			// ensure null values in request are set to defaults.
+			setDefaultValues(request);
 			// there is no limit to the size
 			Long maxBytes = null;
 			final SqlQuery query = queryPreflight(user, request, maxBytes);
@@ -477,7 +509,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			// This handler will capture the row data.
 			CSVWriterRowHandler handler = new CSVWriterRowHandler(writer,
-					query.getSelectColumns(), request.getIncludeRowIdAndRowVersion(), request.getIncludeEntityEtag());
+					query.getSelectColumns(), request.getIncludeRowIdAndRowVersion(), query.includeEntityEtag());
 			
 			if (request.getWriteHeader()) {
 				handler.writeHeader();

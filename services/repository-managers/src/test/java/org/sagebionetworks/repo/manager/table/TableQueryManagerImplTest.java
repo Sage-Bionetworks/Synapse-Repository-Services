@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -245,6 +246,36 @@ public class TableQueryManagerImplTest {
 		expectedRangeResult.setColumnMin(expectedColMin);
 		expectedRangeResult.setFacetType(expectedFacetType);
 		expectedRangeResult.setColumnMax(expectedColMax);
+	}
+	
+	/**
+	 * Add RowId and RowVersion to rows.
+	 */
+	public void addRowIdAndVersionToRows(){
+		long id = 0;
+		long version = 101;
+		for(Row row: rows){
+			row.setRowId(id++);
+			row.setVersionNumber(version);
+		}
+	}
+	
+	/**
+	 * Convert each row to an entity row.
+	 */
+	public void convertRowsToEntityRows(){
+		int count = 0;
+		List<Row> newRows = new LinkedList<Row>();
+		for(Row row: rows){
+			EntityRow newRow = new EntityRow();
+			newRow.setRowId(row.getRowId());
+			newRow.setVersionNumber(row.getVersionNumber());
+			newRow.setEtag("etag-"+count);
+			newRow.setValues(row.getValues());
+			count++;
+			newRows.add(newRow);
+		}
+		this.rows = newRows;
 	}
 
 	@Test (expected = UnauthorizedException.class)
@@ -815,7 +846,7 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunConsistentQueryAsStreamDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
@@ -823,7 +854,7 @@ public class TableQueryManagerImplTest {
 		request.setWriteHeader(true);
 
 		// call under test
-		DownloadFromTableResult results = manager.runConsistentQueryAsStream(
+		DownloadFromTableResult results = manager.runQueryDownloadAsStream(
 				mockProgressCallbackVoid, user, request, writer);
 		assertNotNull(results);
 		
@@ -831,8 +862,108 @@ public class TableQueryManagerImplTest {
 		assertEquals(11, writtenLines.size());
 	}
 	
+	@Test
+	public void testRunQueryDownloadAsStreamDownloadDefaultValues() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql("select i0 from "+tableId);
+		request.setSort(null);
+		// null values should should have defaults set.
+		request.setIncludeRowIdAndRowVersion(null);
+		request.setWriteHeader(null);
+		request.setIncludeEntityEtag(null);
+		// row id and version numbers are needed for this case
+		addRowIdAndVersionToRows();
+
+		// call under test
+		DownloadFromTableResult results = manager.runQueryDownloadAsStream(
+				mockProgressCallbackVoid, user, request, writer);
+		assertNotNull(results);
+		
+		// the header should be written and include rowid and version but not etag
+		String line = Arrays.toString(writtenLines.get(0));
+		assertEquals("[ROW_ID, ROW_VERSION, i0]", line);
+		line = Arrays.toString(writtenLines.get(1));
+		assertTrue(line.startsWith("[0, 101, string0"));
+	}
+	
+	@Test
+	public void testRunQueryDownloadAsStreamDownloadIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql("select i0 from "+tableId);
+		request.setSort(null);
+		// null values should should have defaults set.
+		request.setIncludeRowIdAndRowVersion(null);
+		request.setWriteHeader(null);
+		request.setIncludeEntityEtag(true);
+		// row id and version numbers are needed for this case
+		addRowIdAndVersionToRows();
+		// need entity rows for this case
+		convertRowsToEntityRows();
+
+		// call under test
+		DownloadFromTableResult results = manager.runQueryDownloadAsStream(
+				mockProgressCallbackVoid, user, request, writer);
+		assertNotNull(results);
+		
+		String line = Arrays.toString(writtenLines.get(0));
+		assertEquals("[ROW_ID, ROW_VERSION, ROW_ETAG, i0]", line);
+		line = Arrays.toString(writtenLines.get(1));
+		assertTrue(line.startsWith("[0, 101, etag-0, string0"));
+	}
+	
+	@Test
+	public void testRunQueryDownloadAsStreamDownloadIncludeEtagWithoutRowId() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql("select i0 from "+tableId);
+		request.setSort(null);
+		// without rowId and version etag should not be written
+		request.setIncludeRowIdAndRowVersion(false);
+		request.setIncludeEntityEtag(true);
+		// row id and version numbers are needed for this case
+		addRowIdAndVersionToRows();
+		// need entity rows for this case
+		convertRowsToEntityRows();
+
+		// call under test
+		DownloadFromTableResult results = manager.runQueryDownloadAsStream(
+				mockProgressCallbackVoid, user, request, writer);
+		assertNotNull(results);
+		
+		String line = Arrays.toString(writtenLines.get(0));
+		// just the selected value
+		assertEquals("[i0]", line);
+	}
+	
+	@Test
+	public void testSetRequsetDefaultsQuery(){
+		Query query = new Query();
+		query.setIsConsistent(null);
+		query.setIncludeEntityEtag(null);
+		
+		// call under test
+		TableQueryManagerImpl.setDefaultsValues(query);
+		assertTrue(query.getIsConsistent());
+		assertFalse(query.getIncludeEntityEtag());
+	}
+	
+	@Test
+	public void testSetRequsetDefaultsDownloadFromTableRequest(){
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setIncludeRowIdAndRowVersion(null);
+		request.setWriteHeader(null);
+		request.setIsConsistent(null);
+		request.setIncludeEntityEtag(null);
+		
+		// call under test
+		TableQueryManagerImpl.setDefaultValues(request);
+		assertTrue(request.getIncludeRowIdAndRowVersion());
+		assertTrue(request.getWriteHeader());
+		assertTrue(request.getIsConsistent());
+		assertFalse(request.getIncludeEntityEtag());
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
-	public void testRunConsistentQueryAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
+	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
 		// setup an empty schema.
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
@@ -842,7 +973,7 @@ public class TableQueryManagerImplTest {
 		request.setWriteHeader(true);
 		
 		// call under test
-		manager.runConsistentQueryAsStream(
+		manager.runQueryDownloadAsStream(
 				mockProgressCallbackVoid, user, request, writer);
 	}
 	
@@ -1028,6 +1159,31 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getMaxRowsPerPage());
 		assertNotNull(result.getQueryResult());
 		assertNull(result.getQueryResult().getNextPageToken());
+	}
+	
+	@Test
+	public void testQuerySinglePageWithEtag() throws Exception {
+		
+		addRowIdAndVersionToRows();
+		convertRowsToEntityRows();
+		
+		boolean runQuery = true;
+		boolean runCount = false;
+		boolean returnFacets = false;
+		Query query = new Query();
+		query.setSql("select * from "+tableId);
+		query.setIncludeEntityEtag(true);
+		
+		// call under test.
+		QueryResultBundle result = manager.querySinglePage(
+				mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
+		assertNotNull(result);
+		assertNotNull(result.getQueryResult());
+		assertNotNull(result.getQueryResult().getQueryResults());
+		List<Row> rows = result.getQueryResult().getQueryResults().getRows();
+		assertNotNull(rows);
+		Row row = rows.get(0);
+		assertTrue(row instanceof EntityRow);
 	}
 	
 	@Test
