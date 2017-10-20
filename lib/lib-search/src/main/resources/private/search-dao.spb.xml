@@ -24,6 +24,13 @@
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
+	<!-- Create the AWS search client using the current credentials. -->
+	<bean id="cloudSearchDomainClient"
+		  class="com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient"
+		  scope="singleton">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
+
 	<!-- The search DAO -->
 	<bean id="searchDomainSetup"
 		class="org.sagebionetworks.search.SearchDomainSetupImpl"

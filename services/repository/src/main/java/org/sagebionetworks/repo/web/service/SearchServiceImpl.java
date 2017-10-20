@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.http.client.ClientProtocolException;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.manager.search.SearchHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -74,7 +77,7 @@ public class SearchServiceImpl implements SearchService {
 			throws ClientProtocolException,	IOException, DatastoreException,
 			NotFoundException, ServiceUnavailableException, CloudSearchClientException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return proxySearch(userInfo, searchQuery);
+		return proxySearchAwsApi(userInfo, searchQuery);
 	}
 
 	/**
@@ -110,12 +113,23 @@ public class SearchServiceImpl implements SearchService {
 	SearchResults proxySearchAwsApi(UserInfo userInfo, SearchQuery searchQuery){
 		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery, userInfo);
 		SearchResult result = searchDao.executeCloudSearchDomainSearch(searchRequest);
-		return convertToSynapseSearchResult(searchResult);
+		return convertToSynapseSearchResult(result);
 	}
 
 	public SearchResults convertToSynapseSearchResult(SearchResult searchResult){
 		SearchResults result = new SearchResults();
-		//TODO:
+
+		resultFacets = result.getFacets();
+		List<Facet> facetList = new ArrayList<>();
+		for(Facet facet: result.getFacets()){
+
+		}
+		result.setFacets(facetList);
+
+		result.setFound();
+		result.setHits();
+		result.setStart();
+		System.out.println(searchResult);
 		return result;
 	}
 	

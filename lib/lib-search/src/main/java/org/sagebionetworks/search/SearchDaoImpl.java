@@ -237,6 +237,7 @@ public class SearchDaoImpl implements SearchDao {
 		}
 	}
 
+	//TODO: no usage of this method is found
 	@Override
 	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
