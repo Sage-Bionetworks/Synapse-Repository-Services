@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -21,7 +21,7 @@ public class NamedAnnotations {
 	private Map<String, Annotations> map;
 	
 	public NamedAnnotations(){
-		map = new HashMap<String, Annotations>();
+		map = new LinkedHashMap<String, Annotations>();
 		map.put(AnnotationNameSpace.PRIMARY.name(), new Annotations());
 		map.put(AnnotationNameSpace.ADDITIONAL.name(), new Annotations());
 	}

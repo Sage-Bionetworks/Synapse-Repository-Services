@@ -1025,9 +1025,10 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Create another page to check that query does filter on id
 		page.setTitle("title2");
 		page.setMarkdownFileHandleId(markdownTwo.getId());
-		V2WikiPage clone3 = wikiPageDao.create(page, fileNameMap, "syn193", ObjectType.ENTITY, fileIds);
+		String ownerId2 = "syn193";
+		V2WikiPage clone3 = wikiPageDao.create(page, fileNameMap, ownerId2, ownerType, fileIds);
 		assertNotNull(clone3);
-		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone3.getId());
+		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId2, ownerType, clone3.getId());
 		toDelete.add(key2);
 		
 		Long numVersions = wikiPageDao.getNumberOfVersions(key1);

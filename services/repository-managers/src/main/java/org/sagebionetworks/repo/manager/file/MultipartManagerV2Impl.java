@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.file.CreateMultipartRequest;
 import org.sagebionetworks.repo.model.dbo.file.MultipartUploadDAO;
 import org.sagebionetworks.repo.model.file.AddPartRequest;
 import org.sagebionetworks.repo.model.file.AddPartResponse;
+import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlRequest;
 import org.sagebionetworks.repo.model.file.BatchPresignedUploadUrlResponse;
 import org.sagebionetworks.repo.model.file.CompleteMultipartRequest;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.model.file.PartMD5;
 import org.sagebionetworks.repo.model.file.PartPresignedUrl;
 import org.sagebionetworks.repo.model.file.PartUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.file.AddPartState;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -206,8 +206,8 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 			String json = EntityFactory.createJSONStringForEntity(request);
 			byte[] jsonBytes = json.getBytes("UTF-8");
 			MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-			byte[] md5Byptes = messageDigest.digest(jsonBytes);
-			return new String(Hex.encodeHex(md5Byptes));
+			byte[] md5Bytes = messageDigest.digest(jsonBytes);
+			return new String(Hex.encodeHex(md5Bytes));
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		} catch (UnsupportedEncodingException e) {
