@@ -300,13 +300,6 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		namedJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
 	}
 
-	@Override
-	public String getInviteeEmail(String membershipInvitationId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, membershipInvitationId);
-		return namedJdbcTemplate.queryForObject(SELECT_INVITEE_EMAIL, param, String.class);
-	}
-
 	@WriteTransactionReadCommitted
 	@Override
 	public void updateInviteeId(String misId, long inviteeId) {

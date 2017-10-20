@@ -7,10 +7,9 @@
       "description": "Signed token containing the email address of the new account.",
       "$ref": "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"
     },
-    "membershipInvtnSignedToken": {
-      "type": "object",
-      "description": "Signed token containing the information needed to retrieve a membership invitation.",
-      "$ref": "org.sagebionetworks.repo.model.MembershipInvtnSignedToken"
+    "encodedMembershipInvtnSignedToken": {
+      "type": "string",
+      "description": "Encoded signed token containing the information needed to retrieve a membership invitation."
     }
   }
 }
