@@ -313,6 +313,26 @@ public class TableViewIntegrationTest {
 		assertNotNull(results.getQueryResult().getQueryResults().getRows());
 		rows = results.getQueryResult().getQueryResults().getRows();
 		assertEquals(fileCount, rows.size());
+	}
+	
+	@Test
+	public void testFileViewWithEtag() throws Exception{
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+
+		// run the query again
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query);
+		assertNotNull(results);
+		assertEquals(new Long(fileCount), results.getQueryCount());
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals(fileCount, rows.size());
 		validateRowsMatchFiles(rows);
 	}
 	
@@ -1002,14 +1022,18 @@ public class TableViewIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql) throws Exception {
+		Query query = new Query();
+		query.setSql(sql);
+		return waitForConsistentQuery(user, query);
+	}
+	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
 				boolean runQuery = true;
 				boolean runCount = true;
 				boolean returnFacets = false;
-				Query query = new Query();
-				query.setSql(sql);
 				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
