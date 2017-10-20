@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +236,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         // Add an attachment
         page.setAttachmentFileHandleIds(new LinkedList<String>());
         page.getAttachmentFileHandleIds().add(attachOne.getId());
-        Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+        Map<String, FileHandle> fileNameMap = new LinkedHashMap<String, FileHandle>();
         fileNameMap.put(attachOne.getFileName(), attachOne);
         List<String> newIds = new ArrayList<String>();
         newIds.add(attachOne.getId());
@@ -708,7 +709,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Add file handles to the root.
 		root.getAttachmentFileHandleIds().add(attachOne.getId());
 		root.getAttachmentFileHandleIds().add(attachTwo.getId());
-		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		Map<String, FileHandle> fileNameMap = new LinkedHashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		List<String> newIds = new ArrayList<String>();
