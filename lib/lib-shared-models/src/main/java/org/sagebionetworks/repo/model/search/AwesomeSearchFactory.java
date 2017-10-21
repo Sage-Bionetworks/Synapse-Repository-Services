@@ -1,14 +1,19 @@
 package org.sagebionetworks.repo.model.search;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 
 /**
  * Factory methods to convert AWESOMESEARCH <-> Synapse entities
@@ -188,4 +193,8 @@ public class AwesomeSearchFactory {
 		return results;
 
 	}
+
+
+
+
 }

@@ -5,9 +5,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 
+import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.http.client.ClientProtocolException;
@@ -20,6 +23,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Facet;
+import org.sagebionetworks.repo.model.search.FacetConstraint;
+import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -116,23 +121,63 @@ public class SearchServiceImpl implements SearchService {
 		return convertToSynapseSearchResult(result);
 	}
 
-	public SearchResults convertToSynapseSearchResult(SearchResult searchResult){
-		SearchResults result = new SearchResults();
 
-		resultFacets = result.getFacets();
-		List<Facet> facetList = new ArrayList<>();
-		for(Facet facet: result.getFacets()){
+	public SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
+		SearchResults synapseSearchResults = new SearchResults();
+
+		//Handle Translating of facets
+		Map<String, BucketInfo> facetMap = cloudSearchResult.getFacets();
+		if(facetMap != null) {
+			List<Facet> facetList = new ArrayList<>();
+
+			for (Map.Entry<String, BucketInfo> facetInfo : facetMap.entrySet()) {//iterate over each facet
+
+				String facetName = facetInfo.getKey();
+
+				FacetTypeNames facetType = FACET_TYPES.get(facetName);
+				if (facetType == null) {
+					throw new IllegalArgumentException(
+							"facet "
+									+ facetName
+									+ " is not properly configured, add it to the facet type map");
+				}
+
+				Facet synapseFacet = new Facet();
+				synapseFacet.setName(facetName;
+				synapseFacet.setType(facetType);
+				//Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
+
+				BucketInfo bucketInfo = facetInfo.getValue();
+				List<FacetConstraint> facetConstraints = new ArrayList<>();
+				for (Bucket bucket: bucketInfo.getBuckets()){
+					FacetConstraint facetConstraint = new FacetConstraint();
+					facetConstraint.setValue(bucket.getValue());
+					facetConstraint.setCount(bucket.getCount());
+				}
+				synapseFacet.setConstraints(facetConstraints);
+
+				facetList.add(synapseFacet);
+			}
+			synapseSearchResults.setFacets(facetList);
+		}
+
+		Hits hits = cloudSearchResult.getHits();
+
+		synapseSearchResults.setFound(hits.getFound());
+		synapseSearchResults.setStart(hits.getStart());
+
+		//class names clashing feelsbadman
+		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
+		for(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()){
+			org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
 
 		}
-		result.setFacets(facetList);
+		synapseSearchResults.setHits(hitList);
 
-		result.setFound();
-		result.setHits();
-		result.setStart();
-		System.out.println(searchResult);
-		return result;
+		System.out.println(cloudSearchResult);
+		return synapseSearchResults;
 	}
-	
+
 	/**
 	 * Add extra return results to the hit list.
 	 * @param hits
