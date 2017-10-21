@@ -48,7 +48,7 @@ public class JobHashProviderImplTest {
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
 		String hash = provider.getJobHash(body);
-		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
+		assertEquals("99cfd112ffd95d9ac7b0e02fe5fe027e", hash);
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class JobHashProviderImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
-		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);
+		assertEquals("57d1b4ac73696877b3c6951f4ca740b4", etag);
 	}
 	
 	@Test
@@ -103,7 +103,7 @@ public class JobHashProviderImplTest {
 		body1.setSql("select * from syn123");
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
+		assertEquals("99cfd112ffd95d9ac7b0e02fe5fe027e", hash);
 	}
 	
 	@Test

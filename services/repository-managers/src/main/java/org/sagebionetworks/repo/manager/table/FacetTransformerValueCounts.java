@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -72,7 +73,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(pagination.toSql());
 		
 		try {
-			return new SqlQuery(builder.toString(), originalQuery.getTableSchema());
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

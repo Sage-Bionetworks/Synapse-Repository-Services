@@ -7,8 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,6 +31,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -1140,7 +1140,8 @@ public class TableModelUtilsTest {
 		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
 		schema.add(TableModelTestUtils.createSelectColumn(567L, "count(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = false;
-		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "three", "two", "count(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
@@ -1152,8 +1153,22 @@ public class TableModelUtilsTest {
 		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
 		schema.add(TableModelTestUtils.createSelectColumn(567L, "COUNT(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = true;
-		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { ROW_ID, ROW_VERSION, "three", "two", "COUNT(*)" };
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testCreateColumnNameHeaderWithRowIdWithEtag() {
+		List<SelectColumn> schema = Lists.newArrayList();
+		schema.add(TableModelTestUtils.createSelectColumn(123L, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(567L, "COUNT(*)", ColumnType.STRING));
+		boolean includeRowIdAndVersion = true;
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
+		String[] expected = new String[] { ROW_ID, ROW_VERSION, ROW_ETAG, "three", "two", "COUNT(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 
@@ -1164,8 +1179,37 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(2L);
 		row.setValues(Arrays.asList("a", "b", "c"));
 		boolean includeRowIdAndVersion = true;
-		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "123", "2", "a", "b", "c" };
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testWriteRowToStringArrayIncludeRowIdWithEtag() {
+		EntityRow row = new EntityRow();
+		row.setRowId(123L);
+		row.setVersionNumber(2L);
+		row.setEtag("someEtag");
+		row.setValues(Arrays.asList("a", "b", "c"));
+		boolean includeRowIdAndVersion = true;
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
+		String[] expected = new String[] { "123", "2","someEtag", "a", "b", "c" };
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testWriteRowToStringArrayIncludeRowIdWithEtagWrongRowType() {
+		// wrong row type.
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(2L);
+		row.setValues(Arrays.asList("a", "b", "c"));
+		boolean includeRowIdAndVersion = true;
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
+		String[] expected = new String[] { "123", "2","someEtag", "a", "b", "c" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 
@@ -1176,7 +1220,8 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(2L);
 		row.setValues(Arrays.asList("a", "b", "c"));
 		boolean includeRowIdAndVersion = false;
-		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "a", "b", "c" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}

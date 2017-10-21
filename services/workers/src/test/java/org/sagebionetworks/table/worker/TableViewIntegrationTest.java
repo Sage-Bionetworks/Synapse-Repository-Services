@@ -52,11 +52,13 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -314,6 +316,44 @@ public class TableViewIntegrationTest {
 	}
 	
 	@Test
+	public void testFileViewWithEtag() throws Exception{
+		createFileView();
+		// wait for replication
+		waitForEntityReplication(fileViewId, fileViewId);
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+
+		// run the query again
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query);
+		assertNotNull(results);
+		assertEquals(new Long(fileCount), results.getQueryCount());
+		assertNotNull(results.getQueryResult());
+		assertNotNull(results.getQueryResult().getQueryResults());
+		assertNotNull(results.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = results.getQueryResult().getQueryResults().getRows();
+		assertEquals(fileCount, rows.size());
+		validateRowsMatchFiles(rows);
+	}
+	
+	/**
+	 * Validate the EntityRows match the FileEntity
+	 * @param rows
+	 */
+	public void validateRowsMatchFiles(List<Row> rows){
+		// Match each row to each file
+		for(Row row: rows){
+			// Each row should be an EntityRow
+			assertTrue(row instanceof EntityRow);
+			EntityRow entityRow = (EntityRow) row;
+			// Lookup the entity
+			FileEntity entity = entityManager.getEntity(adminUserInfo, ""+row.getRowId(), FileEntity.class);
+			assertEquals(entity.getEtag(), entityRow.getEtag());
+		}
+	}
+	
+	
+	@Test
 	public void testContentUpdate() throws Exception {
 		createFileView();
 		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
@@ -348,8 +388,6 @@ public class TableViewIntegrationTest {
 		assertNotNull(results.getQueryResult().getQueryResults().getRows());
 		row = results.getQueryResult().getQueryResults().getRows().get(0);
 		assertEquals(fileId, row.getRowId());
-		etag = row.getValues().get(0);
-		assertEquals(file.getEtag(), etag);
 	}
 	
 	@Test
@@ -984,16 +1022,19 @@ public class TableViewIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql) throws Exception {
+		Query query = new Query();
+		query.setSql(sql);
+		return waitForConsistentQuery(user, query);
+	}
+	
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				List<SortItem> sortList = null;
-				Long offset = null;
-				Long limit = null;
 				boolean runQuery = true;
 				boolean runCount = true;
-				boolean isConsistent = true;
-				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, sql, sortList, null, offset, limit, runQuery, runCount, false, isConsistent);
+				boolean returnFacets = false;
+				return tableQueryManger.querySinglePage(mockProgressCallbackVoid, user, query, runQuery, runCount, returnFacets);
 			} catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -1151,11 +1152,14 @@ public class TableModelUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static String[] createColumnNameHeader(List<SelectColumn> selectColumns, boolean includeRowIdAndVersion) {
+	public static String[] createColumnNameHeader(List<SelectColumn> selectColumns, boolean includeRowIdAndVersion, boolean includeRowEtag) {
 		List<String> outHeaderList = Lists.newArrayListWithCapacity(selectColumns.size() + 2);
 		if (includeRowIdAndVersion) {
 			outHeaderList.add(TableConstants.ROW_ID);
 			outHeaderList.add(TableConstants.ROW_VERSION);
+			if(includeRowEtag){
+				outHeaderList.add(TableConstants.ROW_ETAG);
+			}
 		}
 		for (SelectColumn selectColumn : selectColumns) {
 			outHeaderList.add(selectColumn.getName());
@@ -1170,7 +1174,7 @@ public class TableModelUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion){
+	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion, boolean includeRowEtag){
 		String[] array = null;
 		// Write this row
 		if(!includeRowIdAndVersion){
@@ -1178,10 +1182,19 @@ public class TableModelUtils {
 			array = row.getValues().toArray(new String[row.getValues().size()]);
 		}else{
 			// For non-aggregates the rowId and rowVersion must also be written
-			array = new String[row.getValues().size()+2];
-			array[0] = row.getRowId().toString();
-			array[1] = row.getVersionNumber().toString();
-			int index = 2;
+			int size = 2;
+			if(includeRowEtag){
+				size++;
+			}
+			int index = 0;
+			array = new String[row.getValues().size()+size];
+			array[index++] = row.getRowId().toString();
+			array[index++] = row.getVersionNumber().toString();
+			if(includeRowEtag){
+				ValidateArgument.requirement(row instanceof EntityRow, "Expected an EntityRow but was: "+row.getClass().getName());
+				EntityRow entityRow = (EntityRow) row;
+				array[index++] = entityRow.getEtag();
+			}
 			for(String value: row.getValues()){
 				array[index] = value;
 				index++;

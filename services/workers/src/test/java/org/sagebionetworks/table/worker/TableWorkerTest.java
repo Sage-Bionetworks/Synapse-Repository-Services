@@ -82,6 +82,7 @@ public class TableWorkerTest {
 	SparseChangeSet sparseRowset1;
 	RowSet rowSet2;
 	SparseChangeSet sparseRowset2;
+	boolean isTableView;
 	
 	@Before
 	public void before() throws LockUnavilableException, InterruptedException, Exception{
@@ -163,6 +164,7 @@ public class TableWorkerTest {
 		
 		when(mockTableEntityManager.getSparseChangeSet(trc1)).thenReturn(sparseRowset1);
 		when(mockTableEntityManager.getSparseChangeSet(trc2)).thenReturn(sparseRowset2);
+		isTableView = false;
 	}
 	
 	
@@ -509,7 +511,7 @@ public class TableWorkerTest {
 		// call under test
 		worker.applyRowChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
 		// schema of the change should be applied
-		verify(mockTableIndexManager).setIndexSchema(tableId, mockProgressCallback, currentSchema);
+		verify(mockTableIndexManager).setIndexSchema(tableId, isTableView, mockProgressCallback, currentSchema);
 		// the change set should be applied.
 		verify(mockTableIndexManager).applyChangeSetToIndex(tableId, sparseRowset1,trc.getRowVersion());
 	}
@@ -561,7 +563,7 @@ public class TableWorkerTest {
 		when(mockTableEntityManager.getSchemaChangeForVersion(tableId, trc.getRowVersion())).thenReturn(details);
 		// call under test
 		worker.applyColumnChange(mockProgressCallback, mockTableIndexManager, tableId, trc);
-		verify(mockTableIndexManager).updateTableSchema(tableId, mockProgressCallback, details);
+		verify(mockTableIndexManager).updateTableSchema(tableId, isTableView, mockProgressCallback, details);
 		verify(mockTableIndexManager).setIndexVersion(tableId, trc.getRowVersion());
 	}
 }

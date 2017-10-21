@@ -18,13 +18,15 @@ public class CSVWriterRowHandler implements RowHandler {
 	CSVWriterStream writer;
 	List<SelectColumn> selectColumns;
 	boolean includeRowIdAndVersion;
+	boolean includeRowEtag;
 	
 	public CSVWriterRowHandler(CSVWriterStream writer,
-			List<SelectColumn> selectColumns, boolean includeRowIdAndVersion) {
+			List<SelectColumn> selectColumns, boolean includeRowIdAndVersion, boolean includeRowEtag) {
 		super();
 		this.writer = writer;
 		this.selectColumns = selectColumns;
 		this.includeRowIdAndVersion = includeRowIdAndVersion;
+		this.includeRowEtag = includeRowEtag;
 	}
 
 	/**
@@ -34,7 +36,8 @@ public class CSVWriterRowHandler implements RowHandler {
 		// create the header row.
 		String[] csvHeaders = TableModelUtils.createColumnNameHeader(
 				selectColumns,
-				includeRowIdAndVersion);
+				includeRowIdAndVersion,
+				includeRowEtag);
 		writer.writeNext(csvHeaders);
 	}
 
@@ -42,7 +45,7 @@ public class CSVWriterRowHandler implements RowHandler {
 	public void nextRow(Row row) {
 		// translate the row
 		String[] array = TableModelUtils.writeRowToStringArray(row,
-				includeRowIdAndVersion);
+				includeRowIdAndVersion, includeRowEtag);
 		// write it to the stream.
 		writer.writeNext(array);
 	}

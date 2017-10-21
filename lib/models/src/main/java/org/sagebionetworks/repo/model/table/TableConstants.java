@@ -25,6 +25,10 @@ public class TableConstants {
 	public static final String ROW_VERSION = "ROW_VERSION";
 	public static final String SINGLE_KEY = "SINGLE_KEY";
 	public static final String SCHEMA_HASH = "SCHEMA_HASH";
+	
+	public static final String ROW_ETAG = "ROW_ETAG";
+	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";
+	
 	/**
 	 * FileHandle IDs 
 	 */
@@ -216,7 +220,7 @@ public class TableConstants {
 	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 
 			"SELECT"
 			+ " SUM(CRC32(CONCAT("
-					+ROW_ID+", '-', %1$s, '-', %2$s))) FROM %3$s";
+					+ROW_ID+", '-', "+ROW_ETAG+", '-', "+ROW_BENEFACTOR+"))) FROM %1$s";
 	
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 				="ANNOTATION_REPLICATION";
