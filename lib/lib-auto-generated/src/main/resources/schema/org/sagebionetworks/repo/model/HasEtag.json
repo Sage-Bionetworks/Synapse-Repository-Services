@@ -5,7 +5,6 @@
 		"etag": {
 			"type": "string",
 			"description": "The current etag of this object."
-			}
         }
     }
 }
