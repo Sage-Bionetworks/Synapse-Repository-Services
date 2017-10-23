@@ -879,7 +879,8 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamDownloadIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+	public void testRunQueryDownloadAsStreamDownloadViewIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.entityview);
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -901,6 +902,32 @@ public class TableQueryManagerImplTest {
 		assertEquals("[ROW_ID, ROW_VERSION, ROW_ETAG, i0]", line);
 		line = Arrays.toString(writtenLines.get(1));
 		assertTrue(line.startsWith("[0, 101, etag-0, string0"));
+	}
+	
+	@Test
+	public void testRunQueryDownloadAsStreamDownloadTableIncludeEtag() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException{
+		when(mockTableManagerSupport.validateTableReadAccess(user, tableId)).thenReturn(EntityType.table);
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql("select i0 from "+tableId);
+		request.setSort(null);
+		// null values should should have defaults set.
+		request.setIncludeRowIdAndRowVersion(true);
+		request.setWriteHeader(true);
+		request.setIncludeEntityEtag(true);
+		// row id and version numbers are needed for this case
+		addRowIdAndVersionToRows();
+		// need entity rows for this case
+		convertRowsToEntityRows();
+
+		// call under test
+		DownloadFromTableResult results = manager.runQueryDownloadAsStream(
+				mockProgressCallbackVoid, user, request, writer);
+		assertNotNull(results);
+		
+		String line = Arrays.toString(writtenLines.get(0));
+		assertEquals("[ROW_ID, ROW_VERSION, i0]", line);
+		line = Arrays.toString(writtenLines.get(1));
+		assertTrue(line.startsWith("[0, 101, string0"));
 	}
 	
 	@Test
