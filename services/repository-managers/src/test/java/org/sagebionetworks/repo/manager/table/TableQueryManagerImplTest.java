@@ -790,14 +790,6 @@ public class TableQueryManagerImplTest {
 		manager.validateTableIsAvailable(tableId);
 	}
 	
-//	SqlQuery createQuery(String sql, List<SortItem> sortList) throws EmptyResultException{
-//		Query query = new Query();
-//		query.setSql(sql);
-//		query.setSort(sortList);
-//		Long maxBytesPerPage = null;
-//		return manager.createQuery(query, maxBytesPerPage);
-//	}
-	
 	@Test
 	public void testQueryPreflightSelectStar() throws Exception {
 		List<SortItem> sortList= null;

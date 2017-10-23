@@ -19,13 +19,14 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -49,6 +50,10 @@ public class SQLQueryTest {
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
 	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
 			+ ", _C888_, _C999_";
+	
+	ColumnModel cm;
+	List<ColumnModel> schema;
+	String sql;
 
 	@Before
 	public void before(){
@@ -63,6 +68,13 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("inttype", TableModelTestUtils.createColumn(888L, "inttype", ColumnType.INTEGER));
 		columnNameToModelMap.put("has-hyphen", TableModelTestUtils.createColumn(999L, "has-hyphen", ColumnType.STRING));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
+		
+		cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		schema = Lists.newArrayList(cm);
+		sql = "select * from syn123";
 	}
 		
 	@Test (expected=IllegalArgumentException.class)
@@ -836,49 +848,162 @@ public class SQLQueryTest {
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());
 		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
+		assertEquals(overideOffset, copy.overrideOffset);
+		assertEquals(overideLimit, copy.overrideLimit);
 		assertEquals(EntityType.entityview, copy.tableType);
 		assertEquals(true, copy.includeEntityEtag);
 	}
 	
 	@Test
 	public void testPLFM_4161() throws ParseException{
-		ColumnModel cm = new ColumnModel();
-		cm.setName("5ormore");
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setId("111");
-		List<ColumnModel> schema = Lists.newArrayList(cm);
 		String sql = "select * from syn123";
 		SqlQuery query = new SqlQueryBuilder(sql, schema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
 	
 	@Test
-	public void testSelectViewWithEtag() throws ParseException{
-		ColumnModel cm = new ColumnModel();
-		cm.setName("5ormore");
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setId("111");
-		List<ColumnModel> schema = Lists.newArrayList(cm);
-		String sql = "select * from syn123";
+	public void testDeafultConsistent() throws ParseException{
+		// call under test
 		SqlQuery query = new SqlQueryBuilder(sql)
 		.tableSchema(schema)
+		.isConsistent(null)
+		.build();
+		// should default to table.
+		assertTrue(query.isConsistent());
+	}
+	
+	@Test
+	public void testNotConsistent() throws ParseException{
+		// call under test
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.isConsistent(false)
+		.build();
+		assertFalse(query.isConsistent());
+	}
+	
+	@Test
+	public void testDeafultType() throws ParseException{
+		// call under test
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(null)
+		.build();
+		// should default to table.
+		assertEquals(EntityType.table, query.getTableType());
+	}
+	
+	@Test
+	public void testTableDefaultEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(null)
+		.build();
+		// should default to false
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testViewDefaultEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(null)
+		.build();
+		// should default to false
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
 		.includeEntityEtag(true)
 		.build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
+		assertTrue(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithoutEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(null)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectTableWithEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(true)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
 	}
 	
 	@Test
 	public void testSelectViewWithEtagAggregate() throws ParseException{
-		ColumnModel cm = new ColumnModel();
-		cm.setName("5ormore");
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setId("111");
-		List<ColumnModel> schema = Lists.newArrayList(cm);
-		String sql = "select count(*) from syn123";
+		sql = "select count(*) from syn123";
 		SqlQuery query = new SqlQueryBuilder(sql)
 		.tableSchema(schema)
+		.tableType(EntityType.entityview)
 		.includeEntityEtag(true)
 		.build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableViewWithEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertTrue(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableViewWithOutEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(false)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableWithEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(true)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableWithoutEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(false)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
 	}
 }
