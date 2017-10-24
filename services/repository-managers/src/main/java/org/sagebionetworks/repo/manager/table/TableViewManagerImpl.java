@@ -121,10 +121,20 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 		String entityId = KeyFactory.keyToString(row.getRowId());
 		Map<String, String> values = row.getValues();
-		ColumnModel etagColumn = getEtagColumn(tableSchema);
-		String etag = values.get(etagColumn.getId());
+		String etag = row.getEtag();
 		if(etag == null){
-			throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
+			/*
+			 * Prior to PLFM-4249, users provided the etag as a column on the table.  
+			 * View query results will now include the etag if requested, even if the 
+			 * view does not have an etag column.  However, if this etag is null, then
+			 * for backwards compatibility we still need to look for an etag column
+			 * in the view.
+			 */
+			ColumnModel etagColumn = getEtagColumn(tableSchema);
+			etag = values.get(etagColumn.getId());
+			if(etag == null){
+				throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
+			}
 		}
 		// Get the current annotations for this entity.
 		NamedAnnotations annotations = nodeManager.getAnnotations(user, entityId);

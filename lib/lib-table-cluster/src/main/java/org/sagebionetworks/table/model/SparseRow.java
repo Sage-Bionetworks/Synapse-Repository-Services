@@ -36,6 +36,18 @@ public interface SparseRow {
 	 * 
 	 */
 	public Long getVersionNumber();
+	
+	/**
+	 * The etag of a view row.
+	 * @param etag
+	 */
+	public void setRowEtag(String etag);
+	
+	/**
+	 * The etag of a view row.
+	 * @return
+	 */
+	public String getRowEtag();
 
 	/**
 	 * Does this row have a cell value for the given column ID. Note: A NULL

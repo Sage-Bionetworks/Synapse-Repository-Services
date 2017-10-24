@@ -15,10 +15,7 @@ public class TableConstants {
 	 * The reserved column name for row id.
 	 */
 	public static final String ROW_ID = "ROW_ID";
-	/**
-	 * The reserved column id for row id.
-	 */
-	public static final Long ROW_ID_ID = -1L;
+
 	/**
 	 * The reserved column name for row version.
 	 */
@@ -33,24 +30,33 @@ public class TableConstants {
 	 * FileHandle IDs 
 	 */
 	public static final String FILE_ID = "FILE_ID";
+	
+	/**
+	 * The reserved column id for row id.
+	 */
+	public static final Long ROW_ID_ID = -1L;
 	/**
 	 * The reserved column name for row version.
 	 */
 	public static final Long ROW_VERSION_ID = -2L;
+	public static final Long ROW_ETAG_ID = -3L;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and
 	 * ROW_VERSION
 	 */
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and
 	 * ROW_VERSION to pseudo ids
 	 */
-	private static final Map<String, Long> RESERVED_COLUMNS_IDS = ImmutableMap.<String, Long> builder().put(ROW_ID, ROW_ID_ID)
-			.put(ROW_VERSION, ROW_VERSION_ID).build();
+	private static final Map<String, Long> RESERVED_COLUMNS_IDS = ImmutableMap.<String, Long> builder()
+			.put(ROW_ID, ROW_ID_ID)
+			.put(ROW_VERSION, ROW_VERSION_ID)
+			.put(ROW_ETAG, ROW_ETAG_ID)
+			.build();
 	
 	/**
 	 * The column name prefix for extra doubles column.
