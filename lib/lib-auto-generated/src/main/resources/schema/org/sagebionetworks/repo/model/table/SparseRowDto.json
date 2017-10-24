@@ -1,6 +1,11 @@
 {
 	"title":"PartialRow",
 	"description":"Represents a single partial row of a TableEntity",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.HasEtag"
+		}
+	],
 	"properties":{
 		"rowId":{
 			"type":"integer",

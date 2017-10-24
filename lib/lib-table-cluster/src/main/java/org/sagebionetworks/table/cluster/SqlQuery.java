@@ -8,7 +8,9 @@ import java.util.Map;
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -138,6 +140,7 @@ public class SqlQuery {
 		this.overrideOffset = overrideOffset;
 		
 		if(tableType == null){
+			// default to table
 			this.tableType = EntityType.table;
 		}else{
 			this.tableType = tableType;
@@ -150,11 +153,11 @@ public class SqlQuery {
 			this.isConsistent = isConsistent;
 		}
 		
-		if(includeEntityEtag == null){
-			// default to false
-			this.includeEntityEtag = false;
-		}else{
+		// only a view can include the etag
+		if(EntityType.entityview.equals(tableType) && includeEntityEtag != null){
 			this.includeEntityEtag = includeEntityEtag;
+		}else{
+			this.includeEntityEtag = false;
 		}
 
 		if (sortList != null && !sortList.isEmpty()) {
@@ -331,5 +334,25 @@ public class SqlQuery {
 	 */
 	public List<FacetColumnRequest> getSelectedFacets(){
 		return this.selectedFacets;
+	}
+	
+	/**
+	 * Create a Row object that is compatible with the query results.
+	 * @return
+	 */
+	public Row createCompatibleRow(){
+		if(EntityType.entityview.equals(this.tableType) && this.includeEntityEtag){
+			// EntityRow is for views with etags only
+			return new EntityRow();
+		}
+		return new Row();
+	}
+	
+	/**
+	 * The type of table.
+	 * @return
+	 */
+	public EntityType getTableType(){
+		return this.tableType;
 	}
 }

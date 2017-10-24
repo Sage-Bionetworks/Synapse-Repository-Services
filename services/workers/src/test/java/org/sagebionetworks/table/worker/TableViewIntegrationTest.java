@@ -478,6 +478,58 @@ public class TableViewIntegrationTest {
 		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
 	}
 	
+	@Test
+	public void testUpdateAnnotationsWithPartialRowSetWithEtag() throws Exception {
+		// do not include the etag column in the view.
+		defaultColumnIds.remove(etagColumn.getId());
+		createFileView();
+		Long fileId = KeyFactory.stringToKey(fileIds.get(0));
+		// lookup the file
+		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
+		waitForEntityReplication(fileViewId, file.getId());
+		
+		Map<String, String> rowValues = new HashMap<String, String>();
+		rowValues.put(anno1Column.getId(), "123456789");
+		PartialRow row = new PartialRow();
+		row.setRowId(fileId);
+		row.setValues(rowValues);
+		row.setEtag(file.getEtag());
+		PartialRowSet rowSet = new PartialRowSet();
+		rowSet.setRows(Lists.newArrayList(row));
+		rowSet.setTableId(file.getId());
+		
+		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
+		appendRequest.setEntityId(fileViewId);
+		appendRequest.setToAppend(rowSet);
+		
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		List<TableUpdateRequest> changes = new LinkedList<TableUpdateRequest>();
+		changes.add(appendRequest);
+		transactionRequest.setChanges(changes);
+		transactionRequest.setEntityId(fileViewId);
+		//  start the job to update the table
+		TableUpdateTransactionResponse response = startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
+		assertNotNull(response);
+		assertNotNull(response.getResults());
+		assertEquals(1, response.getResults().size());
+		TableUpdateResponse rep = response.getResults().get(0);
+		assertTrue(rep instanceof EntityUpdateResults);
+		EntityUpdateResults updateResults = (EntityUpdateResults)rep;
+		assertNotNull(updateResults.getUpdateResults());
+		assertEquals(1, updateResults.getUpdateResults().size());
+		EntityUpdateResult eur = updateResults.getUpdateResults().get(0);
+		assertNotNull(eur);
+		assertEquals(file.getId(), eur.getEntityId());
+		System.out.println(eur.getFailureMessage());
+		assertNull(eur.getFailureCode());
+		assertNull(eur.getFailureMessage());
+		
+		// is the annotation changed?
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, file.getId());
+		assertEquals(123456789L, annos.getSingleValue(anno1Column.getName()));
+	}
+	
+	
 	/**
 	 * This is a test for PLFM-4088.  Need to support 'syn123' in both 
 	 * a query where clause query return values.
@@ -922,6 +974,64 @@ public class TableViewIntegrationTest {
 		}
 
 	}
+
+	@Test
+	public void testUpdateViewWithRowsetAndEtag() throws Exception{
+		// one
+		String fileId = fileIds.get(0);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, fileId);
+		annos.addAnnotation(stringColumn.getName(), "1");
+		entityManager.updateAnnotations(adminUserInfo, fileId, annos);
+		
+		// the view does not have an etag column
+		defaultColumnIds = Lists.newArrayList(stringColumn.getId());
+		createFileView();
+		
+		// wait for the view.
+		waitForEntityReplication(fileViewId, fileId);
+		
+		// Query for the values as strings.
+		String sql = "select "+stringColumn.getName()+" from "+fileViewId+" where ROW_ID="+KeyFactory.stringToKey(fileId);
+		int rowCount = 1;
+		Query query = new Query();
+		query.setSql(sql);
+		query.setIncludeEntityEtag(true);
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, rowCount);
+
+		List<Row> rows  = extractRows(results);
+		assertEquals(1, rows.size());
+		Row row = rows.get(0);
+		assertTrue(row instanceof EntityRow);
+		EntityRow entityRow = (EntityRow) row;
+		assertNotNull(entityRow.getEtag());
+		String oldEtag = entityRow.getEtag();
+		assertEquals("1", row.getValues().get(0));
+		// change the value
+		row.setValues(Lists.newArrayList("111"));
+			
+		// use the results to update the annotations.
+		RowSet rowSet = results.getQueryResult().getQueryResults();
+		List<EntityUpdateResult> updates = updateView(rowSet, fileViewId);
+		assertEquals(1, updates.size());
+		// all of the update should have succeeded.
+		for(EntityUpdateResult eur: updates){
+			assertEquals(null, eur.getFailureMessage());
+			assertEquals(null, eur.getFailureCode());
+		}
+		
+		// wait for the view.
+		waitForEntityReplication(fileViewId, fileId);
+		results = waitForConsistentQuery(adminUserInfo, query, rowCount);
+
+		rows  = extractRows(results);
+		assertEquals(1, rows.size());
+		row = rows.get(0);
+		assertTrue(row instanceof EntityRow);
+		entityRow = (EntityRow) row;
+		assertNotNull(entityRow.getEtag());
+		assertEquals("111", row.getValues().get(0));
+		assertFalse(oldEtag.equals(entityRow.getEtag()));
+	}
 	
 	/**
 	 * Helper to update a view using a result set.
@@ -998,9 +1108,23 @@ public class TableViewIntegrationTest {
 	 * @throws Exception
 	 */
 	private QueryResultBundle waitForConsistentQuery(UserInfo user, String sql, int rowCount) throws Exception {
+		Query query = new Query();
+		query.setSql(sql);
+		return waitForConsistentQuery(user, query, rowCount);
+	}
+	
+	/**
+	 * Wait for a query to return the expected number of rows.
+	 * @param user
+	 * @param sql
+	 * @param rowCount
+	 * @return
+	 * @throws Exception
+	 */
+	private QueryResultBundle waitForConsistentQuery(UserInfo user, Query query, int rowCount) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
-			QueryResultBundle results = waitForConsistentQuery(user, sql);
+			QueryResultBundle results = waitForConsistentQuery(user, query);
 			List<Row> rows = extractRows(results);
 			if(rows.size() == rowCount){
 				return results;
