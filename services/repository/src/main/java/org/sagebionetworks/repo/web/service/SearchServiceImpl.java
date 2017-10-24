@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.search.SearchHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
@@ -134,8 +135,8 @@ public class SearchServiceImpl implements SearchService {
 			for (Map.Entry<String, BucketInfo> facetInfo : facetMap.entrySet()) {//iterate over each facet
 
 				String facetName = facetInfo.getKey();
-
-				FacetTypeNames facetType = FACET_TYPES.get(facetName);
+				//TODO: REFACTOR
+				FacetTypeNames facetType = AwesomeSearchFactory.FACET_TYPES.get(facetName);
 				if (facetType == null) {
 					throw new IllegalArgumentException(
 							"facet "
@@ -185,17 +186,20 @@ public class SearchServiceImpl implements SearchService {
 			synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
 			synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
 			synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
-			//TODO: oh no nested json object....... why.......
-			synapseHit.setPath(getFirstListValueFromMap(fieldsMap, "path"));
 			synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
+			//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+
+			hitList.add(synapseHit);
 		}
 		synapseSearchResults.setHits(hitList);
 
+		//TODO: remove print
 		System.out.println(cloudSearchResult);
 		return synapseSearchResults;
 	}
 
 	public String getFirstListValueFromMap(Map<String, List<String>> map, String key){
+		//TODO: are we on Java 8 yet? switch to lambda function?
 		List<String> value = map.get(key);
 		return value == null || value.isEmpty() ? null : value.get(0);
 	}
