@@ -21,6 +21,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.HasEtag;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -1402,6 +1403,9 @@ public class TableModelUtils {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
+			if(row instanceof HasEtag){
+				sparse.setRowEtag(((HasEtag)row).getEtag());
+			}
 			if(row.getValues() != null && !row.getValues().isEmpty()){
 				// add each value that matches the schema
 				for(ColumnModel column: schema){
@@ -1506,6 +1510,7 @@ public class TableModelUtils {
 			SparseRowDto sparseRow = new SparseRowDto();
 			sparseRow.setRowId(partialRow.getRowId());
 			sparseRow.setVersionNumber(versionNumber);
+			sparseRow.setEtag(partialRow.getEtag());
 			sparseRow.setValues(partialRow.getValues());
 			sparseRows.add(sparseRow);
 		}

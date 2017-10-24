@@ -95,11 +95,19 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 			return reader.readNext();
 		}
 		boolean lastRowIncludesRowIdAndVersion = false;
-		if (lastRow != null && lastRow.length == resultSchema.size() + 2) {
+		boolean includeEtag = false;
+		if (lastRow != null && lastRow.length >= resultSchema.size() + 2) {
 			if (TableConstants.ROW_ID.equals(lastRow[0])
 					&& TableConstants.ROW_VERSION.equals(lastRow[1])) {
 				lastRowIncludesRowIdAndVersion = true;
 			}
+			
+			if(lastRow.length == resultSchema.size() + 3){
+				if(TableConstants.ROW_ETAG.equals(lastRow[2])){
+					includeEtag = true;
+				}
+			}
+			
 		}
 		List<String> headerList = new LinkedList<>();
 		/*
@@ -111,6 +119,9 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 			// For this case the header needs to include ROW_ID and version
 			headerList.add(TableConstants.ROW_ID);
 			headerList.add(TableConstants.ROW_VERSION);
+			if(includeEtag){
+				headerList.add(TableConstants.ROW_ETAG);
+			}
 		}
 		// Add the names of the columns from the schema
 		for (ColumnModel cm : resultSchema) {
@@ -164,6 +175,16 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 				String value = lastRow[csvColumnIndex];
 				if (!StringUtils.isEmpty(value)) {
 					row.setVersionNumber(Long.parseLong(value));
+				}
+			}
+		}
+		
+		csvColumnIndex = columnIdToCsvColumnIndexMap.get(TableConstants.ROW_ETAG_ID);
+		if (csvColumnIndex != null) {
+			if (lastRow.length > csvColumnIndex) {
+				String value = lastRow[csvColumnIndex];
+				if (!StringUtils.isEmpty(value)) {
+					row.setEtag(value);
 				}
 			}
 		}

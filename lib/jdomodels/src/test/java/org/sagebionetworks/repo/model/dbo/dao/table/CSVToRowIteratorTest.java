@@ -416,6 +416,60 @@ public class CSVToRowIteratorTest {
 		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, columns, "AAA"), rows.get(0));
 		assertEquals(TableModelTestUtils.createSparseRow(2L, 11L, columns, "BBB"), rows.get(1));
 	}
+	
+	@Test
+	public void testCSVIncludeEtag() throws IOException{
+		// Create a reader with some data.
+		String csv =
+			"ROW_ID,ROW_VERSION,ROW_ETAG,foo\n" +
+			"1,11,etag1,AAA\n"+
+			"2,11,etag2,BBB\n";
+		
+		CSVReader reader = new CSVReader(new StringReader(csv));
+		// Create some columns
+		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("foo");
+		boolean isFirstLineHeader = true;
+		Long linesToSkip = null;
+		 
+		// Create the iterator.
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
+		List<SparseRowDto> rows = readAll(iterator);
+
+		/*
+		 * For this case the first row should be skipped but the next two rows
+		 * should be read correctly including ROW_ID and ROW_VERSION.
+		 */
+		assertEquals(2, rows.size());
+		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, "etag1", columns, "AAA"), rows.get(0));
+		assertEquals(TableModelTestUtils.createSparseRow(2L, 11L, "etag2", columns, "BBB"), rows.get(1));
+	}
+	
+	@Test
+	public void testCSVIncludeEtagSkipFirstLine() throws IOException{
+		// Create a reader with some data.
+		String csv =
+			"ROW_ID,ROW_VERSION,ROW_ETAG,foo\n" +
+			"1,11,etag1,AAA\n"+
+			"2,11,etag2,BBB\n";
+		
+		CSVReader reader = new CSVReader(new StringReader(csv));
+		// Create some columns
+		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("foo");
+		boolean isFirstLineHeader = false;
+		Long linesToSkip = 1L;
+		 
+		// Create the iterator.
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
+		List<SparseRowDto> rows = readAll(iterator);
+
+		/*
+		 * For this case the first row should be skipped but the next two rows
+		 * should be read correctly including ROW_ID, ROW_VERSION, and ROW_ETAG.
+		 */
+		assertEquals(2, rows.size());
+		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, "etag1", columns, "AAA"), rows.get(0));
+		assertEquals(TableModelTestUtils.createSparseRow(2L, 11L, "etag2", columns, "BBB"), rows.get(1));
+	}
 
 	/**
 	 * Read all data from the iterator into a list.
