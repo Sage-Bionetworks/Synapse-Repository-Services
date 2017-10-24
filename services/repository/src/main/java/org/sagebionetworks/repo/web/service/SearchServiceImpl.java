@@ -13,6 +13,7 @@ import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -170,13 +171,35 @@ public class SearchServiceImpl implements SearchService {
 		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
 		for(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()){
 			org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
+			Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
+			//TODO: test to make sure the values are correct
 
+			synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
+			synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
+			synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, "description"));
+			synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, "disease"));
+			synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, "etag"));
+			synapseHit.setId(getFirstListValueFromMap(fieldsMap, "id"));
+			synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, "modified_by"));
+			synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "modified_on")));
+			synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
+			synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
+			synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
+			//TODO: oh no nested json object....... why.......
+			synapseHit.setPath(getFirstListValueFromMap(fieldsMap, "path"));
+			synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
 		}
 		synapseSearchResults.setHits(hitList);
 
 		System.out.println(cloudSearchResult);
 		return synapseSearchResults;
 	}
+
+	public String getFirstListValueFromMap(Map<String, List<String>> map, String key){
+		List<String> value = map.get(key);
+		return value == null || value.isEmpty() ? null : value.get(0);
+	}
+
 
 	/**
 	 * Add extra return results to the hit list.
