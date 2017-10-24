@@ -290,6 +290,7 @@ public class SparseChangeSetTest {
 		SparseRow row = changeSet.addEmptyRow();
 		row.setRowId(0L);
 		row.setVersionNumber(111L);
+		row.setRowEtag("etag1");
 		row.setCellValue(booleanColumn.getId(), "true");
 		row.setCellValue(stringColumn.getId(), "aString");
 		row.setCellValue(doubleColumn.getId(), "2.21");

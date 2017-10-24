@@ -310,7 +310,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
+				Row row = SQLTranslatorUtils.readRow(rs, query.createCompatibleRow(), query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
 				handler.nextRow(row);
 			}
 		});
@@ -408,15 +408,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Set<Long> getDistinctLongValues(String tableId, String columnIds) {
-		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnIds);
+	public Set<Long> getDistinctLongValues(String tableId, String columnName) {
+		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnName);
 		List<Long> results = template.queryForList(sql, Long.class);
 		return new HashSet<Long>(results);
 	}
 
 	@Override
-	public void createTableIfDoesNotExist(String tableId) {
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId);
+	public void createTableIfDoesNotExist(String tableId, boolean isView) {
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		template.update(sql);
 	}
 
@@ -733,8 +733,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorColumnId);
+	public long calculateCRC32ofTableView(String viewId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
 			return -1L;

@@ -140,7 +140,7 @@ public class TableIndexManagerImplTest {
 			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
 		
 		crc32 = 5678L;
-		when(mockIndexDao.calculateCRC32ofTableView(anyString(), anyString(), anyString())).thenReturn(crc32);
+		when(mockIndexDao.calculateCRC32ofTableView(anyString())).thenReturn(crc32);
 		
 		containerIds = Sets.newHashSet(1l,2L,3L);
 		limit = 10L;
@@ -236,8 +236,9 @@ public class TableIndexManagerImplTest {
 		
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
 		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
+		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, mockCallback, schema);
+		manager.setIndexSchema(tableId, isTableView, mockCallback, schema);
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(schema));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -246,8 +247,9 @@ public class TableIndexManagerImplTest {
 	public void testSetIndexSchemaWithNoColumns(){
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
 		when(mockIndexDao.alterTableAsNeeded(anyString(), anyList(), anyBoolean())).thenReturn(true);
+		boolean isTableView = false;
 		// call under test
-		manager.setIndexSchema(tableId, mockCallback, new LinkedList<ColumnModel>());
+		manager.setIndexSchema(tableId, isTableView, mockCallback, new LinkedList<ColumnModel>());
 		String schemaMD5Hex = TableModelUtils. createSchemaMD5HexCM(Lists.newArrayList(new LinkedList<ColumnModel>()));
 		verify(mockIndexDao).setCurrentSchemaMD5Hex(tableId, schemaMD5Hex);
 	}
@@ -310,10 +312,10 @@ public class TableIndexManagerImplTest {
 		info.setColumnName("_C12_");
 		info.setColumnType(ColumnType.BOOLEAN);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(Lists.newArrayList(info));
-		
+		boolean isTableView = false;
 		// call under test
-		manager.updateTableSchema(tableId, mockCallback, changes);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		// The new schema is not empty so do not truncate.
 		verify(mockIndexDao, never()).truncateTable(tableId);
@@ -337,9 +339,10 @@ public class TableIndexManagerImplTest {
 		current.setColumnType(ColumnType.STRING);
 		List<DatabaseColumnInfo> startSchema = Lists.newArrayList(current);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(startSchema, new LinkedList<DatabaseColumnInfo>());
+		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, mockCallback, changes);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao, times(2)).getDatabaseInfo(tableId);
 		// The new schema is empty so the table is truncated.
@@ -356,9 +359,10 @@ public class TableIndexManagerImplTest {
 		boolean alterTemp = false;
 		when(mockIndexDao.alterTableAsNeeded(tableId, changes, alterTemp)).thenReturn(false);
 		when(mockIndexDao.getDatabaseInfo(tableId)).thenReturn(new LinkedList<DatabaseColumnInfo>());
+		boolean isTableView = true;
 		// call under test
-		manager.updateTableSchema(tableId, mockCallback, changes);
-		verify(mockIndexDao).createTableIfDoesNotExist(tableId);
+		manager.updateTableSchema(tableId, isTableView, mockCallback, changes);
+		verify(mockIndexDao).createTableIfDoesNotExist(tableId, isTableView);
 		verify(mockIndexDao).createSecondaryTables(tableId);
 		verify(mockIndexDao).alterTableAsNeeded(tableId, changes, alterTemp);
 		verify(mockIndexDao).getDatabaseInfo(tableId);
@@ -388,17 +392,18 @@ public class TableIndexManagerImplTest {
 		ViewType viewType = ViewType.file;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplication(tableId, mockCallback, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * Etag is no long a required column.
+	 */
+	@Test
 	public void testPopulateViewFromEntityReplicationMissingEtagColumn(){
 		ViewType viewType = ViewType.file;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
@@ -410,7 +415,10 @@ public class TableIndexManagerImplTest {
 		manager.populateViewFromEntityReplication(tableId, mockCallback, viewType, scope, schema);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	/**
+	 * Etag column is no longer requierd.
+	 */
+	@Test
 	public void testPopulateViewFromEntityReplicationMissingBenefactorColumn(){
 		ViewType viewType = ViewType.file;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
@@ -464,14 +472,12 @@ public class TableIndexManagerImplTest {
 		ViewType viewType = ViewType.file;
 		Set<Long> scope = Sets.newHashSet(1L,2L);
 		List<ColumnModel> schema = createDefaultColumnsWithIds();
-		ColumnModel etagColumn = EntityField.findMatch(schema, EntityField.etag);
-		ColumnModel benefactorColumn = EntityField.findMatch(schema, EntityField.benefactorId);
 		// call under test
 		Long resultCrc = manager.populateViewFromEntityReplicationWithProgress(tableId, viewType, scope, schema);
 		assertEquals(crc32, resultCrc);
 		verify(mockIndexDao).copyEntityReplicationToTable(tableId, viewType, scope, schema);
 		// the CRC should be calculated with the etag column.
-		verify(mockIndexDao).calculateCRC32ofTableView(tableId, etagColumn.getId(), benefactorColumn.getId());
+		verify(mockIndexDao).calculateCRC32ofTableView(tableId);
 	}
 	
 	@Test

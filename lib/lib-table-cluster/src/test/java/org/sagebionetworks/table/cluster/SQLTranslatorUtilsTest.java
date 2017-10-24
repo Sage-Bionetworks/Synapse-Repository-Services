@@ -5,9 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+import static org.mockito.Mockito.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.query.ParseException;
@@ -70,8 +70,14 @@ public class SQLTranslatorUtilsTest {
 	
 	List<ColumnModel> schema;
 	
+	List<SelectColumn> selectList;
+	ColumnTypeInfo[] infoArray;
+	Long rowId;
+	Long rowVersion;
+	String etag;
+	
 	@Before
-	public void before(){
+	public void before() throws Exception {
 		MockitoAnnotations.initMocks(this);
 
 		columnFoo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
@@ -89,6 +95,24 @@ public class SQLTranslatorUtilsTest {
 		for(ColumnModel cm: schema){
 			columnMap.put(cm.getName(), cm);
 		}
+		
+		SelectColumn one = new SelectColumn();
+		one.setColumnType(ColumnType.STRING);
+		SelectColumn two = new SelectColumn();
+		two.setColumnType(ColumnType.BOOLEAN);
+		
+		selectList = Lists.newArrayList(one, two);
+		infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
+		
+		rowId = 123L;
+		rowVersion = 2L;
+		etag = "anEtag";
+		// Setup the result set
+		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
+		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
+		when(mockResultSet.getString(ROW_ETAG)).thenReturn(etag);
+		when(mockResultSet.getString(1)).thenReturn("aString");
+		when(mockResultSet.getString(2)).thenReturn("true");
 	}
 
 	
@@ -660,10 +684,20 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testAddRowIdAndVersionToSelect() throws ParseException{
+		boolean includeEtag = false;
 		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
-		SelectList results = SQLTranslatorUtils.addRowIdAndVersionToSelect(element);
+		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
 		assertNotNull(results);
 		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION", results.toSql());
+	}
+	
+	@Test
+	public void testAddRowIdAndVersionToSelectWithEtag() throws ParseException{
+		boolean includeEtag = true;
+		SelectList element = new TableQueryParser("foo, 'has space'").selectList();
+		SelectList results = SQLTranslatorUtils.addMetadataColumnsToSelect(element, includeEtag);
+		assertNotNull(results);
+		assertEquals("foo, 'has space', ROW_ID, ROW_VERSION, ROW_ETAG", results.toSql());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -693,27 +727,15 @@ public class SQLTranslatorUtilsTest {
 	}
 	
 	@Test
-	public void testReadRow() throws SQLException{
-		
-		boolean includesRowIdAndVersion = true;
-		
-		SelectColumn one = new SelectColumn();
-		one.setColumnType(ColumnType.STRING);
-		SelectColumn two = new SelectColumn();
-		two.setColumnType(ColumnType.BOOLEAN);
-		
-		List<SelectColumn> selectList = Lists.newArrayList(one, two);
-		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
-		
-		Long rowId = 123L;
-		Long rowVersion = 2L;
-		// Setup the result set
-		when(mockResultSet.getLong(ROW_ID)).thenReturn(rowId);
-		when(mockResultSet.getLong(ROW_VERSION)).thenReturn(rowVersion);
-		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("true");
+	public void testReadWithHeadersWithEtagRow() throws SQLException{
+		boolean withHeaders = true;
+		boolean withEtag = true;
+		Row newRow = new Row();
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet).getLong(ROW_ID);
+		verify(mockResultSet).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
 		assertNotNull(result);
 		assertEquals(rowId, result.getRowId());
 		assertEquals(rowVersion, result.getVersionNumber());
@@ -721,35 +743,149 @@ public class SQLTranslatorUtilsTest {
 		assertEquals(2, result.getValues().size());
 		assertEquals("aString", result.getValues().get(0));
 		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
-		
 	}
 	
 	@Test
-	public void testReadRowNoRowId() throws SQLException{
-		
-		boolean includesRowIdAndVersion = false;
-		
-		SelectColumn one = new SelectColumn();
-		one.setColumnType(ColumnType.STRING);
-		SelectColumn two = new SelectColumn();
-		two.setColumnType(ColumnType.BOOLEAN);
-		
-		List<SelectColumn> selectList = Lists.newArrayList(one, two);
-		ColumnTypeInfo[] infoArray = SQLTranslatorUtils.getColumnTypeInfoArray(selectList);
-
-		when(mockResultSet.getString(1)).thenReturn("aString");
-		when(mockResultSet.getString(2)).thenReturn("false");
+	public void testReadWithHeadersWithEtagEntityRow() throws SQLException{
+		boolean withHeaders = true;
+		boolean withEtag = true;
+		Row newRow = new EntityRow();
 		// call under test.
-		Row result = SQLTranslatorUtils.readRow(mockResultSet, includesRowIdAndVersion, infoArray);
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet).getLong(ROW_ID);
+		verify(mockResultSet).getLong(ROW_VERSION);
+		verify(mockResultSet).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(rowId, result.getRowId());
+		assertEquals(rowVersion, result.getVersionNumber());
+		assertTrue(result instanceof EntityRow);
+		assertEquals(etag, ((EntityRow)result).getEtag());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadWithoutHeadersWithEtagRow() throws SQLException{
+		boolean withHeaders = false;
+		boolean withEtag = true;
+		Row newRow = new Row();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet, never()).getLong(ROW_ID);
+		verify(mockResultSet, never()).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
 		assertNotNull(result);
 		assertEquals(null, result.getRowId());
 		assertEquals(null, result.getVersionNumber());
 		assertNotNull(result.getValues());
 		assertEquals(2, result.getValues().size());
 		assertEquals("aString", result.getValues().get(0));
-		assertEquals(Boolean.FALSE.toString(), result.getValues().get(1));
-		
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
 	}
+	
+	@Test
+	public void testReadWithoutHeadersWithEtagEntityRow() throws SQLException{
+		boolean withHeaders = false;
+		boolean withEtag = true;
+		Row newRow = new EntityRow();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet, never()).getLong(ROW_ID);
+		verify(mockResultSet, never()).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(null, result.getRowId());
+		assertEquals(null, result.getVersionNumber());
+		assertTrue(result instanceof EntityRow);
+		assertEquals(null, ((EntityRow)result).getEtag());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadWithoutHeadersWithoutEtagRow() throws SQLException{
+		boolean withHeaders = false;
+		boolean withEtag = false;
+		Row newRow = new Row();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet, never()).getLong(ROW_ID);
+		verify(mockResultSet, never()).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(null, result.getRowId());
+		assertEquals(null, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadWithoutHeadersWithoutEtagEntityRow() throws SQLException{
+		boolean withHeaders = false;
+		boolean withEtag = false;
+		Row newRow = new EntityRow();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet, never()).getLong(ROW_ID);
+		verify(mockResultSet, never()).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(null, result.getRowId());
+		assertEquals(null, result.getVersionNumber());
+		assertTrue(result instanceof EntityRow);
+		assertEquals(null, ((EntityRow)result).getEtag());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadWithHeadersWithoutEtagRow() throws SQLException{
+		boolean withHeaders = true;
+		boolean withEtag = false;
+		Row newRow = new Row();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet).getLong(ROW_ID);
+		verify(mockResultSet).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(rowId, result.getRowId());
+		assertEquals(rowVersion, result.getVersionNumber());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
+	@Test
+	public void testReadWithHeadersWithoutEtagEntityRow() throws SQLException{
+		boolean withHeaders = true;
+		boolean withEtag = false;
+		Row newRow = new EntityRow();
+		// call under test.
+		Row result = SQLTranslatorUtils.readRow(mockResultSet, newRow, withHeaders, withEtag, infoArray);
+		verify(mockResultSet).getLong(ROW_ID);
+		verify(mockResultSet).getLong(ROW_VERSION);
+		verify(mockResultSet, never()).getString(ROW_ETAG);
+		assertNotNull(result);
+		assertEquals(rowId, result.getRowId());
+		assertEquals(rowVersion, result.getVersionNumber());
+		assertTrue(result instanceof EntityRow);
+		assertEquals(null, ((EntityRow)result).getEtag());
+		assertNotNull(result.getValues());
+		assertEquals(2, result.getValues().size());
+		assertEquals("aString", result.getValues().get(0));
+		assertEquals(Boolean.TRUE.toString(), result.getValues().get(1));
+	}
+	
 	
 	@Test
 	public void testTranslateTableReference(){

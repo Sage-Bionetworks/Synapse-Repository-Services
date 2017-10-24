@@ -64,9 +64,11 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = AsynchJobUtils.extractRequestBody(status, DownloadFromTableRequest.class);
+			boolean runQuery = false;
+			boolean runCount = true;
+			boolean returnFacets = false;
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request.getSql(), request.getSort(), null, null, null, false,
-					true, false, true);
+			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request, runQuery, runCount, returnFacets);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -81,13 +83,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, progressCallback, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId(), clock);
-			boolean includeRowIdAndVersion = BooleanUtils.isNotFalse(request.getIncludeRowIdAndRowVersion());
-			boolean writeHeaders = BooleanUtils.isNotFalse(request.getWriteHeader());
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManger.runConsistentQueryAsStream(progressCallback, user, request.getSql(), request.getSort(), request.getSelectedFacets(), stream,
-						includeRowIdAndVersion, writeHeaders);
+				result = tableQueryManger.runQueryDownloadAsStream(progressCallback, user, request, stream);
 			}finally{
 				writer.close();
 			}

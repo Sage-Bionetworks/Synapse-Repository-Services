@@ -1,0 +1,11 @@
+{
+	"description": "Table Row that represents an Entity",
+	"extends":{
+		"$ref":"org.sagebionetworks.repo.model.table.Row"
+	},
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.HasEtag"
+		}
+	]
+}

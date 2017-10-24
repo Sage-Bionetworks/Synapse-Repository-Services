@@ -417,9 +417,15 @@ public class TableModelTestUtils {
 	}
 	
 	public static SparseRowDto createSparseRow(Long rowId, Long rowVersion, List<ColumnModel> schema, String... values) {
+		String etag = null;
+		return createSparseRow(rowId, rowVersion, etag, schema, values);
+	}
+	
+	public static SparseRowDto createSparseRow(Long rowId, Long rowVersion, String etag, List<ColumnModel> schema, String... values) {
 		SparseRowDto row = new SparseRowDto();
 		row.setRowId(rowId);
 		row.setVersionNumber(rowVersion);
+		row.setEtag(etag);
 		row.setValues(mapInput(values, schema));
 		return row;
 	}

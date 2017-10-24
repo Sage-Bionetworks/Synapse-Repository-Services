@@ -15,16 +15,22 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityRow;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import com.google.common.collect.Lists;
@@ -44,6 +50,10 @@ public class SQLQueryTest {
 	private static final String DOUBLE_COLUMN = "CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END";
 	private static final String STAR_COLUMNS = "_C111_, _C222_, _C333_, _C444_, _C555_, _C666_, " + DOUBLE_COLUMN
 			+ ", _C888_, _C999_";
+	
+	ColumnModel cm;
+	List<ColumnModel> schema;
+	String sql;
 
 	@Before
 	public void before(){
@@ -58,17 +68,24 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("inttype", TableModelTestUtils.createColumn(888L, "inttype", ColumnType.INTEGER));
 		columnNameToModelMap.put("has-hyphen", TableModelTestUtils.createColumn(999L, "has-hyphen", ColumnType.STRING));
 		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
+		
+		cm = new ColumnModel();
+		cm.setName("5ormore");
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setId("111");
+		schema = Lists.newArrayList(cm);
+		sql = "select * from syn123";
 	}
 		
 	@Test (expected=IllegalArgumentException.class)
 	public void testSelectStarEmtpySchema() throws ParseException{
 		tableSchema = new LinkedList<ColumnModel>();
-		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
 	}
 	
 	@Test
 	public void testSelectStar() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		assertNotNull(translator.getSelectColumns());
@@ -78,17 +95,17 @@ public class SQLQueryTest {
 
 	@Test
 	public void testSelectStarEscaping() throws ParseException {
-		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		String sql = translator.getModel().toString();
 		assertEquals("SELECT \"foo\", \"has space\", \"bar\", \"foo_bar\", \"Foo\", \"datetype\", \"doubletype\", \"inttype\", \"has-hyphen\" FROM syn123", sql);
-		translator = new SqlQuery(sql, tableSchema);
+		translator = new SqlQueryBuilder(sql, tableSchema).build();
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 	}
 
 	@Test
 	public void testSelectSingleColumns() throws ParseException {
-		SqlQuery translator = new SqlQuery("select foo from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123", tableSchema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
@@ -97,7 +114,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectMultipleColumns() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo, bar from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo, bar from syn123", tableSchema).build();
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
@@ -106,7 +123,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectDistinct() throws ParseException{
-		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select distinct foo, bar from syn123", tableSchema).build();
 		assertEquals("SELECT DISTINCT _C111_, _C333_ FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		List<SelectColumn> expectedSelect = Lists.newArrayList(TableModelUtils.createSelectColumn("foo", ColumnType.STRING, null),
@@ -116,7 +133,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectConstant() throws ParseException {
-		SqlQuery translator = new SqlQuery("select 'not a foo' from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select 'not a foo' from syn123", tableSchema).build();
 		assertEquals("SELECT 'not a foo' FROM T123", translator.getOutputSQL());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("not a foo", ColumnType.STRING, null)), translator
 				.getSelectColumns());
@@ -125,7 +142,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testSelectCountStar() throws ParseException{
-		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select count(*) from syn123", tableSchema).build();
 		assertEquals("SELECT COUNT(*) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null)), translator
@@ -134,7 +151,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectAggregate() throws ParseException{
-		SqlQuery translator = new SqlQuery("select avg(inttype) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select avg(inttype) from syn123", tableSchema).build();
 		assertEquals("SELECT AVG(_C888_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.DOUBLE, null)), translator
@@ -143,7 +160,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectAggregateMoreColumns() throws ParseException {
-		SqlQuery translator = new SqlQuery("select avg(inttype), bar from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select avg(inttype), bar from syn123", tableSchema).build();
 		assertEquals("SELECT AVG(_C888_), _C333_ FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("AVG(inttype)", ColumnType.DOUBLE, null),
@@ -152,7 +169,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testSelectGroupByAggregate() throws ParseException {
-		SqlQuery translator = new SqlQuery("select foo from syn123 group by foo", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 group by foo", tableSchema).build();
 		assertEquals("SELECT _C111_ FROM T123 GROUP BY _C111_", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("foo", ColumnType.STRING, null)), translator
@@ -161,7 +178,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testSelectAggregateMultiple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select min(foo), max(bar) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select min(foo), max(bar) from syn123", tableSchema).build();
 		assertEquals("SELECT MIN(_C111_), MAX(_C333_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null),
@@ -170,7 +187,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectDistinctAggregate() throws ParseException{
-		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select count(distinct foo) from syn123", tableSchema).build();
 		assertEquals("SELECT COUNT(DISTINCT _C111_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertEquals(Lists.newArrayList(TableModelUtils.createSelectColumn("COUNT(DISTINCT foo)", ColumnType.INTEGER, null)), translator
@@ -376,7 +393,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereSimple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where foo = 1", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0",
 				translator.getOutputSQL());
@@ -386,7 +403,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereDoubleFunction() throws ParseException {
-		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(doubletype)", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where isNaN(doubletype) or isInfinity(doubletype)", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT "
@@ -399,7 +416,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereDouble() throws ParseException {
-		SqlQuery translator = new SqlQuery("select foo from syn123 where doubletype between 1.0 and 2.0", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where doubletype between 1.0 and 2.0", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C777_ BETWEEN :b0 AND :b1",
@@ -410,7 +427,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testWhereOr() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where foo = 1 or bar = 2", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 OR _C333_ = :b1",
 				translator.getOutputSQL());
@@ -422,7 +439,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereAnd() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 and bar = 2", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where foo = 1 and bar = 2", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0 AND _C333_ = :b1",
 				translator.getOutputSQL());
@@ -433,7 +450,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereNested() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foo_bar = 3", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where (foo = 1 and bar = 2) or foo_bar = 3", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE ( _C111_ = :b0 AND _C333_ = :b1 ) OR _C444_ = :b2",
 				translator.getOutputSQL());
@@ -445,7 +462,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testGroupByOne() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 group by foo", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 group by foo", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + " FROM T123 GROUP BY _C111_",
 				translator.getOutputSQL());
@@ -453,7 +470,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testGroupByMultiple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 group by foo, bar", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 group by foo, bar", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + " FROM T123 GROUP BY _C111_, _C333_",
 				translator.getOutputSQL());
@@ -461,7 +478,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByOneNoSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 order by foo", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_",
 				translator.getOutputSQL());
@@ -469,7 +486,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByOneWithSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo desc", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 order by foo desc", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_ DESC",
 				translator.getOutputSQL());
@@ -477,14 +494,14 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByDouble() throws ParseException {
-		SqlQuery translator = new SqlQuery("select foo from syn123 order by doubletype desc", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 order by doubletype desc", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 ORDER BY _C777_ DESC", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByMultipleNoSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo, bar", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 order by foo, bar", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_, _C333_",
 				translator.getOutputSQL());
@@ -492,7 +509,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByMultipeWithSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo asc, bar desc", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 order by foo asc, bar desc", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 ORDER BY _C111_ ASC, _C333_ DESC",
 				translator.getOutputSQL());
@@ -500,7 +517,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testLimit() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 limit 100", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 limit 100", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 LIMIT :b0",
 				translator.getOutputSQL());
@@ -509,7 +526,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testLimitAndOffset() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 limit 100 offset 2", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 limit 100 offset 2", tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",
 				translator.getOutputSQL());
@@ -519,8 +536,8 @@ public class SQLQueryTest {
 
 	@Test
 	public void testAllParts() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo, bar from syn123 where foo_bar >= 1.89e4 order by bar desc limit 10 offset 0",
-				tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo, bar from syn123 where foo_bar >= 1.89e4 order by bar desc limit 10 offset 0",
+				tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
 				translator.getOutputSQL());
@@ -531,9 +548,9 @@ public class SQLQueryTest {
 
 	@Test
 	public void testAllPartsWithGrouping() throws ParseException {
-		SqlQuery translator = new SqlQuery(
+		SqlQuery translator = new SqlQueryBuilder(
 				"select foo, bar from syn123 where foo_bar >= 1.89e4 group by foo order by bar desc limit 10 offset 0",
-				tableSchema);
+				tableSchema).build();
 		// The value should be bound in the SQL
 		assertEquals(
 				"SELECT _C111_, _C333_ FROM T123 WHERE _C444_ >= :b0 GROUP BY _C111_ ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
@@ -545,7 +562,7 @@ public class SQLQueryTest {
 
 	@Test
 	public void testTypeSetFunctionStrings() throws Exception {
-		SqlQuery translator = new SqlQuery("select count(*), min(foo), max(foo), count(foo) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select count(*), min(foo), max(foo), count(foo) from syn123", tableSchema).build();
 		assertEquals("SELECT COUNT(*), MIN(_C111_), MAX(_C111_), COUNT(_C111_) FROM T123", translator.getOutputSQL());
 		assertEquals(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null), translator.getSelectColumns()
 				.get(0));
@@ -559,8 +576,8 @@ public class SQLQueryTest {
 
 	@Test
 	public void testTypeSetFunctionIntegers() throws Exception {
-		SqlQuery translator = new SqlQuery("select min(inttype), max(inttype), sum(inttype), avg(inttype), count(inttype) from syn123",
-				tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select min(inttype), max(inttype), sum(inttype), avg(inttype), count(inttype) from syn123",
+				tableSchema).build();
 		assertEquals("SELECT MIN(_C888_), MAX(_C888_), SUM(_C888_), AVG(_C888_), COUNT(_C888_) FROM T123", translator.getOutputSQL());
 		assertEquals(TableModelUtils.createSelectColumn("MIN(inttype)", ColumnType.INTEGER, null), translator.getSelectColumns()
 				.get(0));
@@ -576,8 +593,8 @@ public class SQLQueryTest {
 
 	@Test
 	public void testTypeSetFunctionDoubles() throws Exception {
-		SqlQuery translator = new SqlQuery(
-				"select min(doubletype), max(doubletype), sum(doubletype), avg(doubletype), count(doubletype) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder(
+				"select min(doubletype), max(doubletype), sum(doubletype), avg(doubletype), count(doubletype) from syn123", tableSchema).build();
 		assertEquals("SELECT MIN(_C777_), MAX(_C777_), SUM(_C777_), AVG(_C777_), COUNT(_C777_) FROM T123", translator.getOutputSQL());
 		assertEquals(TableModelUtils.createSelectColumn("MIN(doubletype)", ColumnType.DOUBLE, null), translator.getSelectColumns()
 				.get(0));
@@ -597,8 +614,8 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3864() throws Exception{
-		SqlQuery translator = new SqlQuery(
-				"select doubletype as f1 from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder(
+				"select doubletype as f1 from syn123", tableSchema).build();
 		assertEquals("SELECT"
 				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
 				+ "FROM T123", translator.getOutputSQL());
@@ -610,8 +627,8 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3864withOrderBy() throws Exception{
-		SqlQuery translator = new SqlQuery(
-				"select doubletype as f1 from syn123 order by f1", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder(
+				"select doubletype as f1 from syn123 order by f1", tableSchema).build();
 		assertEquals("SELECT"
 				+ " CASE WHEN _DBL_C777_ IS NULL THEN _C777_ ELSE _DBL_C777_ END AS f1 "
 				+ "FROM T123 ORDER BY f1", translator.getOutputSQL());
@@ -623,8 +640,8 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3865() throws Exception{
-		SqlQuery translator = new SqlQuery(
-				"select max(doubletype), min(doubletype) from syn123 order by min(doubletype)", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder(
+				"select max(doubletype), min(doubletype) from syn123 order by min(doubletype)", tableSchema).build();
 		assertEquals("SELECT"
 				+ " MAX(_C777_)"
 				+ ", MIN(_C777_) "
@@ -639,8 +656,8 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3865andPLFM_3864() throws Exception{
-		SqlQuery translator = new SqlQuery(
-				"select max(doubletype) as f1, min(doubletype) as f2 from syn123 order by f2", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder(
+				"select max(doubletype) as f1, min(doubletype) as f2 from syn123 order by f2", tableSchema).build();
 		assertEquals("SELECT"
 				+ " MAX(_C777_) AS f1"
 				+ ", MIN(_C777_) AS f2 "
@@ -656,7 +673,7 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3866() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123 where foo in (\"a\")", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo in (\"a\")", tableSchema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( :b0 )", translator.getOutputSQL());
 		assertEquals("a", translator.getParameters().get("b0"));
 	}
@@ -669,14 +686,14 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3867() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123 where foo = \"a\"", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo = \"a\"", tableSchema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
 		assertEquals("a", translator.getParameters().get("b0"));
 	}
 	
 	@Test
 	public void testTranslateNotIsNaN() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123 where not isNaN(doubletype)", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where not isNaN(doubletype)", tableSchema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE NOT ( _DBL_C777_ IS NOT NULL AND _DBL_C777_ = 'NaN' )", translator.getOutputSQL());
 	}
 	
@@ -687,7 +704,7 @@ public class SQLQueryTest {
 	@Test
 	public void testPLFM_3869() throws ParseException{
 		tableSchema = Lists.newArrayList(TableModelTestUtils.createColumn(123L, "aDouble", ColumnType.DOUBLE));
-		SqlQuery translator = new SqlQuery("select * from syn123 where not isNaN(aDouble)", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123 where not isNaN(aDouble)", tableSchema).build();
 		assertEquals("SELECT "
 				+ "CASE WHEN _DBL_C123_ IS NULL THEN _C123_ ELSE _DBL_C123_ END,"
 				+ " ROW_ID, ROW_VERSION"
@@ -707,14 +724,14 @@ public class SQLQueryTest {
 	 */
 	@Test
 	public void testPLFM_3870() throws ParseException{
-		SqlQuery translator = new SqlQuery("select sum(doubletype) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select sum(doubletype) from syn123", tableSchema).build();
 		assertEquals("SELECT SUM(_C777_) FROM T123", translator.getOutputSQL());
 	}
 	
 	@Ignore // not sure if we are going to suppor this yet.
 	@Test
 	public void testTranslateRightHandSideNaN() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123 where aDouble <> 'NaN'", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where aDouble <> 'NaN'", tableSchema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE (_DBL_C123_ IS NULL OR _DBL_C123_ <> 'NaN')", translator.getOutputSQL());
 	}
 	
@@ -722,7 +739,7 @@ public class SQLQueryTest {
 	public void testMaxRowSizeBytesSelectStar() throws ParseException{
 		// the size will include the size of the schema
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
-		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select * from syn123", tableSchema).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 	}
 	
@@ -730,7 +747,7 @@ public class SQLQueryTest {
 	public void testMaxRowSizeBytesCountStar() throws ParseException{
 		// the size is the size of an integer
 		int maxSizeSchema = TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null);
-		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
+		SqlQuery translator = new SqlQueryBuilder("select count(*) from syn123", tableSchema).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 	}
 	
@@ -739,7 +756,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = maxSizeSchema*2L;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, null, null, maxBytesPerPage).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(new Long(2L), translator.getMaxRowsPerPage());
 	}
@@ -749,7 +766,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = 3L;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, null, null, maxBytesPerPage).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(new Long(1L), translator.getMaxRowsPerPage());
 	}
@@ -759,7 +776,7 @@ public class SQLQueryTest {
 		int maxSizeSchema = TableModelUtils.calculateMaxRowSize(tableSchema);
 		Long maxBytesPerPage = null;
 		QuerySpecification model = new TableQueryParser("select * from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, null, null, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, null, null, maxBytesPerPage).build();
 		assertEquals(maxSizeSchema, translator.getMaxRowSizeBytes());
 		assertEquals(null, translator.getMaxRowsPerPage());
 	}
@@ -770,7 +787,7 @@ public class SQLQueryTest {
 		Long overideLimit = 10L;
 		Long maxBytesPerPage = 10000L;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",translator.getOutputSQL());
 		assertEquals(overideLimit, translator.getParameters().get("b0"));
 		assertEquals(overideOffset, translator.getParameters().get("b1"));
@@ -784,7 +801,7 @@ public class SQLQueryTest {
 		Long overideLimit = null;
 		Long maxBytesPerPage = 1L;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 LIMIT :b0 OFFSET :b1",translator.getOutputSQL());
 		assertEquals(new Long(1), translator.getParameters().get("b0"));
 		assertEquals(new Long(0), translator.getParameters().get("b1"));
@@ -796,7 +813,7 @@ public class SQLQueryTest {
 		Long overideLimit = null;
 		Long maxBytesPerPage = null;
 		QuerySpecification model = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery translator = new SqlQuery(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		SqlQuery translator = new SqlQueryBuilder(model, tableSchema, overideOffset, overideLimit, maxBytesPerPage).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123",translator.getOutputSQL());
 	}
 	
@@ -806,29 +823,187 @@ public class SQLQueryTest {
 		Long overideLimit = 101L;
 		Long maxBytesPerPage = 501L;
 		QuerySpecification originalModel = new TableQueryParser("select foo from syn123").querySpecification();
-		SqlQuery original = new SqlQuery(originalModel, tableSchema, overideOffset, overideLimit, maxBytesPerPage);
+		SortItem sortItem = new SortItem();
+		sortItem.setColumn("bar");
+		sortItem.setDirection(SortDirection.DESC);
+		List<SortItem> sortList = Lists.newArrayList(sortItem);
+		SqlQuery original = new SqlQueryBuilder(originalModel)
+		.tableSchema(tableSchema)
+		.overrideOffset(overideOffset)
+		.overrideLimit(overideLimit)
+		.maxBytesPerPage(maxBytesPerPage)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.sortList(sortList)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", original.getOutputSQL());
 
-		QuerySpecification newModel = new TableQueryParser("select foo as bar from syn123").querySpecification();
-		SqlQuery copy = new SqlQuery(newModel, original);
-		assertEquals("SELECT _C111_ AS bar FROM T123 LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
+		QuerySpecification newModel = new TableQueryParser(original.getModel().toSql()).querySpecification();
+		SelectList newSelectList = new TableQueryParser("foo as bar").selectList();
+		newModel.replaceSelectList(newSelectList);
+		
+		SqlQuery copy = new SqlQueryBuilder(newModel, original).build();
+		assertEquals("SELECT _C111_ AS bar FROM T123 ORDER BY _C333_ DESC LIMIT :b0 OFFSET :b1", copy.getOutputSQL());
 		assertEquals(3L, copy.getParameters().get("b0"));
 		assertEquals(overideOffset, copy.getParameters().get("b1"));
 		assertEquals(tableSchema, copy.getTableSchema());
 		assertEquals(maxBytesPerPage, copy.maxBytesPerPage);
 		assertEquals(overideOffset, copy.overrideOffset);
 		assertEquals(overideLimit, copy.overrideLimit);
+		assertEquals(EntityType.entityview, copy.tableType);
+		assertEquals(true, copy.includeEntityEtag);
 	}
 	
 	@Test
 	public void testPLFM_4161() throws ParseException{
-		ColumnModel cm = new ColumnModel();
-		cm.setName("5ormore");
-		cm.setColumnType(ColumnType.INTEGER);
-		cm.setId("111");
-		List<ColumnModel> schema = Lists.newArrayList(cm);
 		String sql = "select * from syn123";
-		SqlQuery query = new SqlQuery(sql, schema);
+		SqlQuery query = new SqlQueryBuilder(sql, schema).build();
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
 	}
-
+	
+	@Test
+	public void testDeafultConsistent() throws ParseException{
+		// call under test
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.isConsistent(null)
+		.build();
+		// should default to table.
+		assertTrue(query.isConsistent());
+	}
+	
+	@Test
+	public void testNotConsistent() throws ParseException{
+		// call under test
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.isConsistent(false)
+		.build();
+		assertFalse(query.isConsistent());
+	}
+	
+	@Test
+	public void testDeafultType() throws ParseException{
+		// call under test
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(null)
+		.build();
+		// should default to table.
+		assertEquals(EntityType.table, query.getTableType());
+	}
+	
+	@Test
+	public void testTableDefaultEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(null)
+		.build();
+		// should default to false
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testViewDefaultEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(null)
+		.build();
+		// should default to false
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION, ROW_ETAG FROM T123", query.getOutputSQL());
+		assertTrue(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithoutEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(null)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectTableWithEtag() throws ParseException{
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(true)
+		.build();
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", query.getOutputSQL());
+		assertFalse(query.includeEntityEtag());
+	}
+	
+	@Test
+	public void testSelectViewWithEtagAggregate() throws ParseException{
+		sql = "select count(*) from syn123";
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.build();
+		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableViewWithEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(true)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertTrue(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableViewWithOutEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.entityview)
+		.includeEntityEtag(false)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableWithEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(true)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
+	}
+	
+	@Test
+	public void testCreateCompatibleRowTableWithoutEtag() throws ParseException {
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(schema)
+		.tableType(EntityType.table)
+		.includeEntityEtag(false)
+		.build();
+		// call under test
+		Row row = query.createCompatibleRow();
+		assertFalse(row instanceof EntityRow);
+	}
 }
