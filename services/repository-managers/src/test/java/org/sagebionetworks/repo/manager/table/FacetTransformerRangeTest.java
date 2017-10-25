@@ -85,11 +85,10 @@ public class FacetTransformerRangeTest {
 	
 	@Test
 	public void testGenerateFacetSqlQuery(){
-
 		//check the non-transformed sql
-		String expectedString = "SELECT MIN(" + columnName + ") AS " 
-		+ FacetTransformerRange.MIN_ALIAS + ", MAX(" + columnName + ") AS " 
-		+ FacetTransformerRange.MAX_ALIAS + " FROM syn123 WHERE "+originalSearchCondition;
+		String expectedString = "SELECT MIN(\"i2\") AS minimum"
+				+ ", MAX(\"i2\") AS maximum"
+				+ " FROM syn123 WHERE i0 LIKE 'asdf%'";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
 		
 		//transformed model will be correct if schema and non-transformed query are correct

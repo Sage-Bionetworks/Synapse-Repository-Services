@@ -61,7 +61,9 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 		StringBuilder builder = new StringBuilder("SELECT ");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(" AS ");
 		builder.append(VALUE_ALIAS);
 		builder.append(", COUNT(*) AS ");
@@ -69,7 +71,10 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
-		builder.append(" GROUP BY " + columnName + " ");
+		builder.append(" GROUP BY ");
+		builder.append("\"");
+		builder.append(columnName);
+		builder.append("\" ");
 		builder.append(pagination.toSql());
 		
 		try {
