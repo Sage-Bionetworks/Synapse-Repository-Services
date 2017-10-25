@@ -56,11 +56,15 @@ public class FacetTransformerRange implements FacetTransformer {
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(") as ");
 		builder.append(MIN_ALIAS);
 		builder.append(", MAX(");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(") as ");
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
