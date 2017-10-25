@@ -56,10 +56,9 @@ public class SearchDaoImpl implements SearchDao {
 	@Autowired
 	CloudSearchClient cloudHttpClient = null;
 
-	//TODO:z figure out autowire
 	@Autowired
 	AmazonCloudSearchDomain cloudSearchDomainClient;
-	
+
 	@Override
 	public boolean postInitialize() throws Exception {
 		if (!searchDomainSetup.isSearchEnabled()) {
@@ -79,6 +78,11 @@ public class SearchDaoImpl implements SearchDao {
 		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
 		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
 		//cloudHttpClient._init();
+		//TODO: figure out for the document endpoint also
+		log.info("THis is snek:" + searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
+
+		//Note: even though we only gave it the search endpoint, the client seems to be able to change to the document upload endpoint automatically
+		cloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
 		return true;
 	}
 	

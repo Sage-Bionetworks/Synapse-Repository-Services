@@ -145,7 +145,7 @@ public class SearchServiceImpl implements SearchService {
 				}
 
 				Facet synapseFacet = new Facet();
-				synapseFacet.setName(facetName;
+				synapseFacet.setName(facetName);
 				synapseFacet.setType(facetType);
 				//Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
 
