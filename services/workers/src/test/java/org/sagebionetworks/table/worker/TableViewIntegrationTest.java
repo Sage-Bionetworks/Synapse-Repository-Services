@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableSchemaChangeRequest;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -1031,6 +1032,45 @@ public class TableViewIntegrationTest {
 		assertNotNull(entityRow.getEtag());
 		assertEquals("111", row.getValues().get(0));
 		assertFalse(oldEtag.equals(entityRow.getEtag()));
+	}
+	
+	/**
+	 * PLFM-4270 is request to add support views with both files and tables.
+	 * @throws Exception 
+	 */
+	@Test
+	public void testViewWithFilesAndTables() throws Exception{
+		// use the default columns for this type.
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewType.file_and_table);
+		// Add a table to the project
+		TableEntity table = new TableEntity();
+		table.setName("someTable");
+		table.setParentId(project.getId());
+		String childTableId = entityManager.createEntity(adminUserInfo, table, null);
+		table = entityManager.getEntity(adminUserInfo, childTableId, TableEntity.class);
+		// create the view that includes both files and tables.
+		ViewType type = ViewType.file_and_table;
+		List<String> scope = Lists.newArrayList(project.getId());
+		fileViewId = createView(type, scope);
+	
+		// wait for the view.
+		waitForEntityReplication(fileViewId, childTableId);
+		
+		// Query for the values as strings.
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+		int rowCount = 4;
+		QueryResultBundle resuls = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		List<Row> rows = extractRows(resuls);
+		assertEquals(4, rows.size());
+		// The last row should be the table
+		Row last = rows.get(3);
+		assertTrue(last instanceof EntityRow);
+		EntityRow lastEntityRow = (EntityRow) last;
+		assertEquals(KeyFactory.stringToKey(table.getId()), lastEntityRow.getRowId());
+		assertEquals(table.getEtag(), lastEntityRow.getEtag());
+		
 	}
 	
 	/**
