@@ -7,7 +7,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,7 +33,6 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -1187,24 +1188,10 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testWriteRowToStringArrayIncludeRowIdWithEtag() {
-		EntityRow row = new EntityRow();
-		row.setRowId(123L);
-		row.setVersionNumber(2L);
-		row.setEtag("someEtag");
-		row.setValues(Arrays.asList("a", "b", "c"));
-		boolean includeRowIdAndVersion = true;
-		boolean includeRowEtag = true;
-		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
-		String[] expected = new String[] { "123", "2","someEtag", "a", "b", "c" };
-		assertEquals(Arrays.toString(expected), Arrays.toString(results));
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testWriteRowToStringArrayIncludeRowIdWithEtagWrongRowType() {
-		// wrong row type.
 		Row row = new Row();
 		row.setRowId(123L);
 		row.setVersionNumber(2L);
+		row.setEtag("someEtag");
 		row.setValues(Arrays.asList("a", "b", "c"));
 		boolean includeRowIdAndVersion = true;
 		boolean includeRowEtag = true;
@@ -1496,13 +1483,13 @@ public class TableModelUtilsTest {
 		List<String> headerIds = Lists.newArrayList("2","1");
 		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, rowSetSchema);
 		
-		EntityRow row1 = new EntityRow();
+		Row row1 = new Row();
 		row1.setRowId(1L);
 		row1.setVersionNumber(versionNumber);
 		row1.setEtag("etag1");
 		row1.setValues(Lists.newArrayList("1", "true"));
 		
-		EntityRow row2 = new EntityRow();
+		Row row2 = new Row();
 		row2.setRowId(2L);
 		row2.setVersionNumber(versionNumber);
 		row2.setEtag("etag2");
