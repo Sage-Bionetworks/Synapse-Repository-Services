@@ -53,11 +53,14 @@ public class SearchDaoImpl implements SearchDao {
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
-	@Autowired
-	CloudSearchClient cloudHttpClient = null;
+//	@Autowired
+//	CloudSearchClient cloudHttpClient = null;
 
-	@Autowired
-	AmazonCloudSearchDomain cloudSearchDomainClient;
+//	@Autowired
+//	AmazonCloudSearchDomain cloudSearchDomainClient;
+	//TODO: figure out initialization of this client
+	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
+
 
 	@Override
 	public boolean postInitialize() throws Exception {
@@ -137,7 +140,7 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
-		CloudSearchClient searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
 		searchClient.sendDocuments(cleanSearchDocuments(batch));
 	}
 	
@@ -207,7 +210,7 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
-		CloudSearchClient searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
 		DateTime now = DateTime.now();
 		// Note that we cannot use a JSONEntity here because the format is
 		// just a JSON array
@@ -231,7 +234,8 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
-		CloudSearchClient searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
+
 		String results = searchClient.performSearch(search);
 		try {
 			return searchResultsFactory.fromAwesomeSearchResults(results);
@@ -241,17 +245,17 @@ public class SearchDaoImpl implements SearchDao {
 		}
 	}
 
-	//TODO: no usage of this method is found
+	//TODO: no usage of this method is found. REmove?
 	@Override
 	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
-		CloudSearchClient searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
 		return searchClient.performSearch(search);
 	}
 
 	@Override
-	public SearchResult executeCloudSearchDomainSearch(SearchRequest searchRequest){
-		return cloudSearchDomainClient.search(searchRequest);
+	public SearchResults executeCloudSearchDomainSearch(SearchRequest searchRequest){
+		return cloudSearchClientAdapter.search(searchRequest);
 	}
 
 	@Override
@@ -298,20 +302,21 @@ public class SearchDaoImpl implements SearchDao {
 		return searchDomainSetup.isSearchEnabled();
 	}
 
-	private CloudSearchClient validateSearchAvailable() throws ServiceUnavailableException {
+	private CloudsSearchDomainClientAdapter validateSearchAvailable() throws ServiceUnavailableException {
 		validateSearchEnabled();
-		if ((cloudHttpClient.getSearchServiceEndpoint() == null) || (cloudHttpClient.getDocumentServiceEndpoint() == null)) {
+
+		//TODO: no way to check that the endpoint was set
+		if(!cloudSearchClientAdapter.isInitialized()) {
 			DomainStatus status = searchDomainSetup.getDomainStatus();
 			if (status == null) {
 				throw new ServiceUnavailableException("Search service not initialized...");
-			} else { 
-				cloudHttpClient.setSearchServiceEndpoint(searchDomainSetup.getSearchEndpoint());
-				cloudHttpClient.setDocumentServiceEndpoint(searchDomainSetup.getDocumentEndpoint());
+			} else {
+				cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getSearchEndpoint());
 				if (status.isProcessing()) {
 					throw new ServiceUnavailableException("Search service processing...");
 				}
 			}
 		}
-		return cloudHttpClient;
+		return cloudSearchClientAdapter;
 	}
 }

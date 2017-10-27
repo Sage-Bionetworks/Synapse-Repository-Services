@@ -98,7 +98,7 @@ public interface SearchDao {
 			ServiceUnavailableException, CloudSearchClientException;
 
 	//TODO:z Documentation!!!!!!!!!!!!!!!!!!
-	SearchResult executeCloudSearchDomainSearch(SearchRequest searchRequest);
+	SearchResults executeCloudSearchDomainSearch(SearchRequest searchRequest);
 
 	/**
 	 * Does a document already exist with the given id and etag?
