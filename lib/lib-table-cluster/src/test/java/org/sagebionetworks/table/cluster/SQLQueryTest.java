@@ -19,8 +19,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityRow;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -958,52 +956,5 @@ public class SQLQueryTest {
 		.build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
 	}
-	
-	@Test
-	public void testCreateCompatibleRowTableViewWithEtag() throws ParseException {
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.tableType(EntityType.entityview)
-		.includeEntityEtag(true)
-		.build();
-		// call under test
-		Row row = query.createCompatibleRow();
-		assertTrue(row instanceof EntityRow);
-	}
-	
-	@Test
-	public void testCreateCompatibleRowTableViewWithOutEtag() throws ParseException {
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.tableType(EntityType.entityview)
-		.includeEntityEtag(false)
-		.build();
-		// call under test
-		Row row = query.createCompatibleRow();
-		assertFalse(row instanceof EntityRow);
-	}
-	
-	@Test
-	public void testCreateCompatibleRowTableWithEtag() throws ParseException {
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.tableType(EntityType.table)
-		.includeEntityEtag(true)
-		.build();
-		// call under test
-		Row row = query.createCompatibleRow();
-		assertFalse(row instanceof EntityRow);
-	}
-	
-	@Test
-	public void testCreateCompatibleRowTableWithoutEtag() throws ParseException {
-		SqlQuery query = new SqlQueryBuilder(sql)
-		.tableSchema(schema)
-		.tableType(EntityType.table)
-		.includeEntityEtag(false)
-		.build();
-		// call under test
-		Row row = query.createCompatibleRow();
-		assertFalse(row instanceof EntityRow);
-	}
+
 }
