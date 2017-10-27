@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,7 +36,13 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
@@ -154,6 +165,23 @@ public class PrincipalManagerImplUnitTest {
 		token.setCreatedOn(now);
 		SignedTokenUtil.signToken(token);
 		PrincipalManagerImpl.validateEmailSignedToken(token, outOfDate);
+	}
+
+	@Test
+	public void testValidateNonNullUserId() {
+		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
+		EmailValidationSignedToken token = new EmailValidationSignedToken();
+		token.setUserId(Long.toString(USER_ID));
+		token.setEmail(EMAIL);
+		token.setCreatedOn(now);
+		SignedTokenUtil.signToken(token);
+		try {
+			// Method under test
+			PrincipalManagerImpl.validateEmailSignedToken(token, notOutOfDate);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
 	}
 
 	@Test
@@ -459,5 +487,53 @@ public class PrincipalManagerImplUnitTest {
 		PrincipalAliasResponse response = manager.lookupPrincipalId(request);
 		assertNotNull(response);
 		assertEquals(id, response.getPrincipalId());
+	}
+
+	@Test
+	public void testSetNotificationEmail() {
+		// Setup
+		UserInfo userInfo = new UserInfo(false, USER_ID);
+		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
+		currentNotificationAlias.setAlias(EMAIL);
+		Long aliasId = 1L;
+		currentNotificationAlias.setAliasId(aliasId);
+		currentNotificationAlias.setPrincipalId(USER_ID);
+		currentNotificationAlias.setType(AliasType.USER_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).
+				thenReturn(Collections.singletonList(currentNotificationAlias));
+
+		// Method under test
+		manager.setNotificationEmail(userInfo, EMAIL);
+
+		verify(mockNotificationEmailDao).update(currentNotificationAlias);
+	}
+
+	@Test
+	public void testSetNonExistentNotificationEmail() {
+		// Setup
+		UserInfo userInfo = new UserInfo(false, USER_ID);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).
+				thenReturn(Collections.<PrincipalAlias>emptyList());
+
+		try {
+			// Method under test
+			manager.setNotificationEmail(userInfo, EMAIL);
+			fail();
+		} catch (NotFoundException e) {
+			// As expected
+		}
+
+		verify(mockNotificationEmailDao, never()).update(any(PrincipalAlias.class));
+	}
+
+	@Test
+	public void testGetNotificationEmail() {
+		// Setup
+		UserInfo userInfo = new UserInfo(false, USER_ID);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
+
+		// Method under test
+		Username username = manager.getNotificationEmail(userInfo);
+		assertEquals(EMAIL, username.getEmail());
 	}
 }

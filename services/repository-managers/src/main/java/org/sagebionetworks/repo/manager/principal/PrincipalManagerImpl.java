@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -9,8 +8,8 @@ import java.util.Map;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -22,7 +21,15 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountCreationToken;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -57,17 +64,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 
-	public static final String PARAMETER_CHARSET = Charset.forName("utf-8").name();
-	public static final String EMAIL_VALIDATION_FIRST_NAME_PARAM = "firstname";
-	public static final String EMAIL_VALIDATION_DOMAIN_PARAM = "domain";
-	public static final String EMAIL_VALIDATION_LAST_NAME_PARAM = "lastname";
-	public static final String EMAIL_VALIDATION_USER_ID_PARAM = "userid";
-	public static final String EMAIL_VALIDATION_EMAIL_PARAM = "email";
-	public static final String EMAIL_VALIDATION_TIME_STAMP_PARAM = "timestamp";
-	public static final String EMAIL_VALIDATION_SIGNATURE_PARAM = "mac";
-	public static final String DATE_FORMAT_ISO8601 = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
-	public static final String AMPERSAND = "&";
-	public static final String EQUALS = "=";
 	public static final long EMAIL_VALIDATION_TIME_LIMIT_MILLIS = 24*3600*1000L; // 24 hours as milliseconds
 
 	@Override
@@ -103,7 +99,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	public static String validateEmailSignedToken(EmailValidationSignedToken token, Date now) {
 		if (token.getUserId() != null)
-			throw new IllegalArgumentException("EmailValidationSignedToken.token must be null");
+			throw new IllegalArgumentException("EmailValidationSignedToken.token.getUserId() must be null");
 		String email = token.getEmail();
 		ValidateArgument.required(email, "EmailValidationSignedToken.email");
 		Date createdOn = token.getCreatedOn();
