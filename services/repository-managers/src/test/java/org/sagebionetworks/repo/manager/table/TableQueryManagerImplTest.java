@@ -57,7 +57,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -267,7 +266,7 @@ public class TableQueryManagerImplTest {
 		int count = 0;
 		List<Row> newRows = new LinkedList<Row>();
 		for(Row row: rows){
-			EntityRow newRow = new EntityRow();
+			Row newRow = new Row();
 			newRow.setRowId(row.getRowId());
 			newRow.setVersionNumber(row.getVersionNumber());
 			newRow.setEtag("etag-"+count);
@@ -1202,7 +1201,7 @@ public class TableQueryManagerImplTest {
 		List<Row> rows = result.getQueryResult().getQueryResults().getRows();
 		assertNotNull(rows);
 		Row row = rows.get(0);
-		assertTrue(row instanceof EntityRow);
+		assertNotNull(row.getEtag());
 	}
 	
 	@Test

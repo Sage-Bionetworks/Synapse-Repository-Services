@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -8,7 +8,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -78,7 +77,7 @@ public class CSVWriterRowHandlerTest {
 		// write the header.
 		handler.writeHeader();
 		//  add a row
-		EntityRow row = new EntityRow();
+		Row row = new Row();
 		row.setRowId(1L);
 		row.setVersionNumber(2L);
 		row.setEtag("someEtag");

@@ -1,6 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -52,7 +57,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
 import org.sagebionetworks.repo.model.table.EntityField;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.EntityUpdateResult;
 import org.sagebionetworks.repo.model.table.EntityUpdateResults;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -344,12 +348,9 @@ public class TableViewIntegrationTest {
 	public void validateRowsMatchFiles(List<Row> rows){
 		// Match each row to each file
 		for(Row row: rows){
-			// Each row should be an EntityRow
-			assertTrue(row instanceof EntityRow);
-			EntityRow entityRow = (EntityRow) row;
 			// Lookup the entity
 			FileEntity entity = entityManager.getEntity(adminUserInfo, ""+row.getRowId(), FileEntity.class);
-			assertEquals(entity.getEtag(), entityRow.getEtag());
+			assertEquals(entity.getEtag(), row.getEtag());
 		}
 	}
 	
@@ -1002,10 +1003,8 @@ public class TableViewIntegrationTest {
 		List<Row> rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		Row row = rows.get(0);
-		assertTrue(row instanceof EntityRow);
-		EntityRow entityRow = (EntityRow) row;
-		assertNotNull(entityRow.getEtag());
-		String oldEtag = entityRow.getEtag();
+		assertNotNull(row.getEtag());
+		String oldEtag = row.getEtag();
 		assertEquals("1", row.getValues().get(0));
 		// change the value
 		row.setValues(Lists.newArrayList("111"));
@@ -1027,11 +1026,9 @@ public class TableViewIntegrationTest {
 		rows  = extractRows(results);
 		assertEquals(1, rows.size());
 		row = rows.get(0);
-		assertTrue(row instanceof EntityRow);
-		entityRow = (EntityRow) row;
-		assertNotNull(entityRow.getEtag());
+		assertNotNull(row.getEtag());
 		assertEquals("111", row.getValues().get(0));
-		assertFalse(oldEtag.equals(entityRow.getEtag()));
+		assertFalse(oldEtag.equals(row.getEtag()));
 	}
 	
 	/**
@@ -1066,10 +1063,8 @@ public class TableViewIntegrationTest {
 		assertEquals(4, rows.size());
 		// The last row should be the table
 		Row last = rows.get(3);
-		assertTrue(last instanceof EntityRow);
-		EntityRow lastEntityRow = (EntityRow) last;
-		assertEquals(KeyFactory.stringToKey(table.getId()), lastEntityRow.getRowId());
-		assertEquals(table.getEtag(), lastEntityRow.getEtag());
+		assertEquals(KeyFactory.stringToKey(table.getId()), last.getRowId());
+		assertEquals(table.getEtag(), last.getEtag());
 		
 	}
 	
