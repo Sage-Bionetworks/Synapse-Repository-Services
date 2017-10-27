@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -64,8 +63,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 
-	public static final long EMAIL_VALIDATION_TIME_LIMIT_MILLIS = 24*3600*1000L; // 24 hours as milliseconds
-
 	@Override
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
@@ -85,31 +82,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
-
-	protected AccountCreationToken createAccountCreationToken(NewUser user, Date now) {
-		AccountCreationToken accountCreationToken = new AccountCreationToken();
-		accountCreationToken.setEncodedMembershipInvtnSignedToken(user.getEncodedMembershipInvtnSignedToken());
-		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
-		emailValidationSignedToken.setEmail(user.getEmail());
-		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
-		accountCreationToken.setEmailValidationSignedToken(emailValidationSignedToken);
-		return accountCreationToken;
-	}
-
-	public static String validateEmailSignedToken(EmailValidationSignedToken token, Date now) {
-		if (token.getUserId() != null)
-			throw new IllegalArgumentException("EmailValidationSignedToken.token.getUserId() must be null");
-		String email = token.getEmail();
-		ValidateArgument.required(email, "EmailValidationSignedToken.email");
-		Date createdOn = token.getCreatedOn();
-		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
-		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
-			throw new IllegalArgumentException("Email validation link is out of date.");
-		SignedTokenUtil.validateToken(token);
-		return email;
-	}
-
 	// will throw exception for invalid email, invalid endpoint, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint, Date now) {
@@ -118,7 +90,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(user.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		AccountCreationToken token = createAccountCreationToken(user, now);
+		AccountCreationToken token = PrincipalUtils.createAccountCreationToken(user, now);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -139,7 +111,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@WriteTransaction
 	@Override
 	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws NotFoundException {
-		String validatedEmail = validateEmailSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date());
+		String validatedEmail = PrincipalUtils.validateEmailValidationSignedToken(accountSetupInfo.getEmailValidationSignedToken(), new Date());
 		NewUser newUser = new NewUser();
 		newUser.setEmail(validatedEmail);
 		newUser.setFirstName(accountSetupInfo.getFirstName());
@@ -149,30 +121,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		
 		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
 		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword());
-	}
-
-
-	protected EmailValidationSignedToken createEmailValidationSignedToken(Long userId, String email, Date now) {
-		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
-		emailValidationSignedToken.setUserId(userId + "");
-		emailValidationSignedToken.setEmail(email);
-		emailValidationSignedToken.setCreatedOn(now);
-		SignedTokenUtil.signToken(emailValidationSignedToken);
-		return emailValidationSignedToken;
-	}
-
-	public static String validateAdditionalEmailSignedToken(EmailValidationSignedToken token, String userId, Date now) {
-	    ValidateArgument.required(token.getUserId(), "EmailValidationSignedToken.userId");
-		if (!token.getUserId().equals(userId))
-			throw new IllegalArgumentException("Invalid token for userId " + userId);
-		String email = token.getEmail();
-		ValidateArgument.required(email, "EmailValidationSignedToken.email");
-		Date createdOn = token.getCreatedOn();
-		ValidateArgument.required(createdOn, "EmailValidationSignedToken.createdOn");
-		if (now.getTime() - createdOn.getTime() > EMAIL_VALIDATION_TIME_LIMIT_MILLIS)
-			throw new IllegalArgumentException("Email validation link is out of date.");
-		SignedTokenUtil.validateToken(token);
-		return email;
 	}
 
 	@Override
@@ -185,7 +133,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
 			throw new NameConflictException("The email address provided is already used.");
 		}
-		EmailValidationSignedToken token = createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(userInfo.getId(), email.getEmail(), now);
 		String encodedToken = SerializationUtils.serializeAndHexEncode(token);
 		String url = portalEndpoint+encodedToken;
 		EmailUtils.validateSynapsePortalHost(url);
@@ -212,8 +160,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@WriteTransaction
 	@Override
 	public void addEmail(UserInfo userInfo, EmailValidationSignedToken emailValidationSignedToken,
-	                     Boolean setAsNotificationEmail) throws NotFoundException {
-		String newEmail = validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date());
+						 Boolean setAsNotificationEmail) throws NotFoundException {
+		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date());
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(newEmail);
 		alias.setPrincipalId(userInfo.getId());
@@ -231,38 +179,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		principalAliasDAO.removeAliasFromPrincipal(userInfo.getId(), emailAlias.getAliasId());
 	}
 	
-	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, email);
-		if (aliases.size()==0) {
-			throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);			
-		} else if (aliases.size()==1) {
-			return aliases.get(0);
-		} else {
-			throw new DatastoreException("Expected 0-1 results but found "+aliases.size());
-		}
-	}
-
-	/**
-	 * Set the email which is used for notification.
-	 * 
-	 * @param userInfo
-	 * @param email
-	 * @throws NotFoundException 
-	 */
 	@WriteTransaction
 	@Override
 	public void setNotificationEmail(UserInfo userInfo, String email) throws NotFoundException {
 		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);
 		notificationEmailDao.update(emailAlias);
 	}
-	
-	/**
-	 * Get the email which is used for notification.
-	 * 
-	 * @param userInfo
-	 * @return
-	 * @throws NotFoundException
-	 */
+
 	@Override
 	public Username getNotificationEmail(UserInfo userInfo) throws NotFoundException {
 		String email= notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
@@ -283,4 +206,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return response;
 	}
 
+	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, email);
+		if (aliases.size()==0) {
+			throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);
+		} else if (aliases.size()==1) {
+			return aliases.get(0);
+		} else {
+			throw new DatastoreException("Expected 0-1 results but found "+aliases.size());
+		}
+	}
 }

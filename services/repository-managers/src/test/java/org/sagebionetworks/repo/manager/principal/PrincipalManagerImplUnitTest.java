@@ -153,7 +153,7 @@ public class PrincipalManagerImplUnitTest {
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
 		SignedTokenUtil.signToken(token);
-		PrincipalManagerImpl.validateEmailSignedToken(token, notOutOfDate);
+		PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
 	}
 
 	// token is not OK 25 hours from now
@@ -164,7 +164,7 @@ public class PrincipalManagerImplUnitTest {
 		token.setEmail(EMAIL);
 		token.setCreatedOn(now);
 		SignedTokenUtil.signToken(token);
-		PrincipalManagerImpl.validateEmailSignedToken(token, outOfDate);
+		PrincipalUtils.validateEmailValidationSignedToken(token, outOfDate);
 	}
 
 	@Test
@@ -177,7 +177,7 @@ public class PrincipalManagerImplUnitTest {
 		SignedTokenUtil.signToken(token);
 		try {
 			// Method under test
-			PrincipalManagerImpl.validateEmailSignedToken(token, notOutOfDate);
+			PrincipalUtils.validateEmailValidationSignedToken(token, notOutOfDate);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// As expected
@@ -200,7 +200,7 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(!body.contains("#"));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(manager.createAccountCreationToken(user, now))));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createAccountCreationToken(user, now))));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -262,16 +262,16 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testValidateAdditionalEmailNOTtooOLDTimestamp() {
 		Date notOutOfDate = new Date(System.currentTimeMillis()+23*3600*1000L);
-		EmailValidationSignedToken token = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
-		PrincipalManagerImpl.validateAdditionalEmailSignedToken(token, USER_ID.toString(), notOutOfDate);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), notOutOfDate);
 	}
 
 	// token is not OK 25 hours from now
 	@Test(expected=IllegalArgumentException.class)
 	public void testValidateAdditionalEmailOLDTimestamp() {
 		Date outOfDate = new Date(System.currentTimeMillis()+25*3600*1000L);
-		EmailValidationSignedToken token = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
-		PrincipalManagerImpl.validateAdditionalEmailSignedToken(token, USER_ID.toString(), outOfDate);
+		EmailValidationSignedToken token = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		PrincipalUtils.validateAdditionalEmailSignedToken(token, USER_ID.toString(), outOfDate);
 	}
 
 	@Test
@@ -303,7 +303,7 @@ public class PrincipalManagerImplUnitTest {
 		assertTrue(body.contains(EMAIL));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
-		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(manager.createEmailValidationSignedToken(USER_ID, EMAIL, now))));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now))));
 	}
 
 	@Test(expected=NameConflictException.class)
@@ -346,7 +346,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testAddEmail() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
 
-		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
 
 		Boolean setAsNotificationEmail = true;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
@@ -364,7 +364,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testAddEmailNoSetNotification() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
 		
-		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(USER_ID, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now);
 
 		Boolean setAsNotificationEmail = null;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
@@ -386,7 +386,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testAddEmailWrongUser() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
-		EmailValidationSignedToken emailValidationSignedToken = manager.createEmailValidationSignedToken(222L, EMAIL, now);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now);
 		manager.addEmail(userInfo, emailValidationSignedToken, null);
 	}
 	
