@@ -8,9 +8,7 @@ import java.util.Map;
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -334,18 +332,6 @@ public class SqlQuery {
 	 */
 	public List<FacetColumnRequest> getSelectedFacets(){
 		return this.selectedFacets;
-	}
-	
-	/**
-	 * Create a Row object that is compatible with the query results.
-	 * @return
-	 */
-	public Row createCompatibleRow(){
-		if(EntityType.entityview.equals(this.tableType) && this.includeEntityEtag){
-			// EntityRow is for views with etags only
-			return new EntityRow();
-		}
-		return new Row();
 	}
 	
 	/**
