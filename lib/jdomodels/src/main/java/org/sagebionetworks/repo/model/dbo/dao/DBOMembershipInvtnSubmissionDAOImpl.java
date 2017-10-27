@@ -3,19 +3,6 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_INVITATION_SUBMISSION;
-
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,12 +20,14 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.transactions.WriteTransactionReadCommitted;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 
 /**
@@ -67,8 +56,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 					+" ) "
 			+" AND ( mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+" IS NULL"
 					+ " OR mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+" ) ";
-	
-	private static final String SELECT_OPEN_INVITATIONS_BY_USER_CORE = 
+	private static final String SELECT_OPEN_INVITATIONS_BY_USER_CORE =
 			SELECT_OPEN_INVITATIONS_CORE
 			+" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID;
 	
@@ -114,10 +102,21 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			+" WHERE "+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID
 			+" AND "+COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID;
 
+	private static final String SELECT_INVITEE_EMAIL =
+			"SELECT " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL + " " +
+			"FROM " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
+			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
+
+	private static final String UPDATE_INVITEE_ID =
+			"UPDATE " + TABLE_MEMBERSHIP_INVITATION_SUBMISSION + " " +
+			"SET " + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID + ", " +
+			COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG + " " +
+			"WHERE " + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID + " = :" + COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
 	 */
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException,
 	InvalidModelException {
@@ -139,6 +138,15 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
 		DBOMembershipInvtnSubmission dbo = basicDao.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		MembershipInvtnSubmission dto = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
+		return dto;
+	}
+
+	@Override
+	public MembershipInvtnSubmission getWithUpdateLock(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_TEAM_ID.toLowerCase(), id);
+		DBOMembershipInvtnSubmission dbo = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOMembershipInvtnSubmission.class, param);
 		MembershipInvtnSubmission dto = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
 		return dto;
 	}
@@ -282,7 +290,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		return namedJdbcTemplate.queryForObject(SELECT_OPEN_INVITATIONS_BY_TEAM_COUNT, param, Long.class);
 	}
 
-	@WriteTransaction
+	@WriteTransactionReadCommitted
 	@Override
 	public void deleteByTeamAndUser(long teamId, long inviteeId)
 			throws DatastoreException {
@@ -292,5 +300,18 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		namedJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
 	}
 
-
+	@WriteTransactionReadCommitted
+	@Override
+	public void updateInviteeId(String misId, long inviteeId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, misId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG, UUID.randomUUID().toString());
+		int rowsUpdated = namedJdbcTemplate.update(UPDATE_INVITEE_ID, param);
+		if (rowsUpdated == 0) {
+			throw new NotFoundException("Could not update MembershipInvtnSubmission with id " + misId + ".");
+		} else if (rowsUpdated > 1) {
+			throw new DatastoreException("Expected to update 1 row but more than 1 was updated.");
+		}
+	}
 }

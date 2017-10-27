@@ -182,7 +182,7 @@ public class FacetRequestColumnModelTest {
 		String value = "hello";
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(" + columnName + "='" + value + "')", searchConditionString);
+		assertEquals("(\"someColumn\"='hello')", searchConditionString);
 	}
 	
 	@Test
@@ -190,7 +190,7 @@ public class FacetRequestColumnModelTest {
 		String value = TableConstants.NULL_VALUE_KEYWORD;
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(" + columnName + " IS NULL)", searchConditionString);
+		assertEquals("(\"someColumn\" IS NULL)", searchConditionString);
 	}
 	
 	@Test
@@ -201,7 +201,7 @@ public class FacetRequestColumnModelTest {
 
 
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(" + columnName + "='" + value1 + "' OR " + columnName + "='" + value2 + "')", searchConditionString);
+		assertEquals("(\"someColumn\"='hello' OR \"someColumn\"='world')", searchConditionString);
 	}
 	
 	@Test
@@ -212,7 +212,7 @@ public class FacetRequestColumnModelTest {
 
 
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(" + columnName + " IS NULL OR " + columnName + "='" + value2 + "')", searchConditionString);
+		assertEquals("(\"someColumn\" IS NULL OR \"someColumn\"='world')", searchConditionString);
 	}
 	
 	@Test
@@ -220,7 +220,7 @@ public class FacetRequestColumnModelTest {
 		String value = "hello world";
 		facetValues.setFacetValues(Sets.newHashSet(value));
 		String searchConditionString = FacetRequestColumnModel.createEnumerationSearchCondition(facetValues, ColumnType.STRING);
-		assertEquals("(" + columnName + "='" + value + "')", searchConditionString);
+		assertEquals("(\"someColumn\"='hello world')", searchConditionString);
 	}
 	
 	//////////////////////////////////////
@@ -243,7 +243,7 @@ public class FacetRequestColumnModelTest {
 		String min = "42";
 		facetRange.setMin(min);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange, ColumnType.INTEGER);
-		assertEquals("(" + columnName + ">=" + min + ")", searchConditionString);
+		assertEquals("(\"someColumn\">=42)", searchConditionString);
 	}
 	
 	@Test
@@ -251,7 +251,7 @@ public class FacetRequestColumnModelTest {
 		String max = "42";
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange, ColumnType.INTEGER);
-		assertEquals("(" + columnName + "<=" + max + ")", searchConditionString);
+		assertEquals("(\"someColumn\"<=42)", searchConditionString);
 	}
 	
 	@Test
@@ -261,7 +261,7 @@ public class FacetRequestColumnModelTest {
 		facetRange.setMin(min);
 		facetRange.setMax(max);
 		String searchConditionString = FacetRequestColumnModel.createRangeSearchCondition(facetRange, ColumnType.INTEGER);
-		assertEquals("(" + columnName + " BETWEEN " + min + " AND " + max + ")", searchConditionString);
+		assertEquals("(\"someColumn\" BETWEEN 123 AND 456)", searchConditionString);
 	}
 	
 	//////////////////////////////////////

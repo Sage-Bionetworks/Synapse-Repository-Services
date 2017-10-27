@@ -1,12 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MembershipInvitationService {
@@ -63,7 +58,17 @@ public interface MembershipInvitationService {
 	 * @throws NotFoundException
 	 */
 	public MembershipInvtnSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
+
+	/**
+	 *
+	 * @param token
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException;
+
 	/**
 	 * 
 	 * @param userId
@@ -80,4 +85,20 @@ public interface MembershipInvitationService {
 	 * @return
 	 */
 	public Count getOpenInvitationCount(Long principalId);
+
+	/**
+	 *
+	 * @param userId
+	 * @param membershipInvitationId
+	 * @return
+	 */
+	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId);
+
+	/**
+	 *
+	 * @param userId
+	 * @param misId
+	 * @param token
+	 */
+	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token);
 }

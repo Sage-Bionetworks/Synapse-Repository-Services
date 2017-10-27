@@ -2,12 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -30,6 +26,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.util.DockerNameUtil;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -607,5 +604,33 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
 		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
+		String misId = token.getMembershipInvitationId();
+		try {
+			SignedTokenUtil.validateToken(token);
+		} catch (IllegalArgumentException e) {
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+		}
+		if (accessType == ACCESS_TYPE.READ) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
+		String misId = token.getMembershipInvitationId();
+		try {
+			SignedTokenUtil.validateToken(token);
+		} catch (IllegalArgumentException e) {
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+		}
+		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(misId) && accessType == ACCESS_TYPE.UPDATE) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
 	}
 }

@@ -846,6 +846,8 @@ public class UrlHelpers {
 	public static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
 	public static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
 	public static final String OPEN_MEMBERSHIP_INVITATION_COUNT = MEMBERSHIP_INVITATION + "/openInvitationCount";
+	public static final String MEMBERSHIP_INVITATION_VERIFY_INVITEE = MEMBERSHIP_INVITATION_ID + "/inviteeVerificationSignedToken";
+	public static final String MEMBERSHIP_INVITATION_UPDATE_INVITEE_ID = MEMBERSHIP_INVITATION_ID + "/inviteeId";
 	// membership request
 	public static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;

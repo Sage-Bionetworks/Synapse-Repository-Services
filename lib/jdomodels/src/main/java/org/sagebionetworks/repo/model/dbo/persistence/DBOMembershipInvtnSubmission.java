@@ -26,6 +26,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		new FieldColumn("teamId", COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID),
 		new FieldColumn("expiresOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON),
 		new FieldColumn("inviteeId", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID),
+		new FieldColumn("inviteeEmail", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
 
@@ -37,6 +38,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	private Long teamId;
 	private Long expiresOn;
 	private Long inviteeId;
+	private String inviteeEmail;
 	private byte[] properties;
 
 	@Override
@@ -59,7 +61,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				Long inviteeId = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID);
 				if (rs.wasNull()) inviteeId=null;
 				dbo.setInviteeId(inviteeId);
-
+				String inviteeEmail = rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_EMAIL);
+				if (rs.wasNull()) inviteeEmail=null;
+				dbo.setInviteeEmail(inviteeEmail);
 				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 				if(blob != null){
 					dbo.setProperties(blob.getBytes(1, (int) blob.length()));
@@ -146,6 +150,14 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		this.inviteeId = inviteeId;
 	}
 
+	public String getInviteeEmail() {
+		return inviteeEmail;
+	}
+
+	public void setInviteeEmail(String inviteeEmail) {
+		this.inviteeEmail = inviteeEmail;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
@@ -197,6 +209,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				+ ((expiresOn == null) ? 0 : expiresOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((inviteeId == null) ? 0 : inviteeId.hashCode());
+		result = prime * result + ((inviteeEmail == null) ? 0 : inviteeEmail.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
 		return result;
@@ -238,6 +251,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				return false;
 		} else if (!inviteeId.equals(other.inviteeId))
 			return false;
+		if (inviteeEmail == null) {
+			if (other.inviteeEmail != null)
+				return false;
+		} else if (!inviteeEmail.equals(other.inviteeEmail))
+			return false;
 		if (!Arrays.equals(properties, other.properties))
 			return false;
 		if (teamId == null) {
@@ -248,12 +266,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		return true;
 	}
 
-
-
 	@Override
 	public String toString() {
 		return "DBOMembershipInvtnSubmission [id=" + id + ", etag=" + etag
 			+ ", createdOn=" + createdOn + ", teamId=" + teamId
 			+ ", expiresOn=" + expiresOn + ", inviteeId=" + inviteeId
+			+ ", inviteeEmail=" + inviteeEmail
 			+ ", properties=" + Arrays.toString(properties) + "]";	}
 }

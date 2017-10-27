@@ -92,7 +92,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	protected AccountCreationToken createAccountCreationToken(NewUser user, Date now) {
 		AccountCreationToken accountCreationToken = new AccountCreationToken();
-		accountCreationToken.setMembershipInvtnSignedToken(user.getMembershipInvtnSignedToken());
+		accountCreationToken.setEncodedMembershipInvtnSignedToken(user.getEncodedMembershipInvtnSignedToken());
 		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
 		emailValidationSignedToken.setEmail(user.getEmail());
 		emailValidationSignedToken.setCreatedOn(now);

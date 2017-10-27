@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
@@ -55,11 +56,15 @@ public class FacetTransformerRange implements FacetTransformer {
 		
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		StringBuilder builder = new StringBuilder("SELECT MIN(");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(") as ");
 		builder.append(MIN_ALIAS);
 		builder.append(", MAX(");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(") as ");
 		builder.append(MAX_ALIAS);
 		builder.append(" ");
@@ -68,7 +73,7 @@ public class FacetTransformerRange implements FacetTransformer {
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
 		
 		try {
-			return new SqlQuery(builder.toString(), originalQuery.getTableSchema());
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

@@ -1,0 +1,24 @@
+{
+  "title": "InviteeVerificationSignedToken",
+  "description": "Signed token containing the information needed to update the inviteeId of a MembershipInvitation.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.SignedTokenInterface"
+    }
+  ],
+  "properties": {
+    "inviteeId": {
+      "type": "string",
+      "description": "The ID of the invitee."
+    },
+    "membershipInvitationId": {
+      "type": "string",
+      "description": "The ID of the MembershipInvitation to update."
+    },
+    "expiresOn": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date on which this token expires."
+    }
+  }
+}

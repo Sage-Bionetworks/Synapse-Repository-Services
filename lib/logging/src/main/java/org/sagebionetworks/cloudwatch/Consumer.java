@@ -63,6 +63,15 @@ public class Consumer {
 	public void addProfileData(ProfileData addToList) {
 		listProfileData.add(addToList);
 	}
+	
+	/**
+	 * Add a list of ProfileData to be published.
+	 * 
+	 * @param toAdd
+	 */
+	public void addProfileData(List<ProfileData> toAdd) {
+		listProfileData.addAll(toAdd);
+	}
 
 	/**
 	 * removes ProfileData from synchronized list and sends to CloudWatch.
@@ -247,4 +256,5 @@ public class Consumer {
 	protected void setCloudWatch(AmazonCloudWatchClient cloudWatchClient) {
 		this.cloudWatchClient = cloudWatchClient;
 	}
+
 }

@@ -27,11 +27,11 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.util.SignedTokenUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -670,5 +670,52 @@ public class AuthorizationManagerImplTest {
 			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType);
 			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
 		}
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitationWithMembershipInvtnSignedToken() {
+		MembershipInvtnSignedToken token = new MembershipInvtnSignedToken();
+		token.setMembershipInvitationId("validId");
+		SignedTokenUtil.signToken(token);
+
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, accessType);
+			// Only reading is allowed
+			if (accessType != ACCESS_TYPE.READ) {
+				assertFalse(status.getAuthorized());
+			} else {
+				assertTrue(status.getAuthorized());
+			}
+		}
+
+		token.setMembershipInvitationId("corruptedId");
+		// Non valid signed token should be denied
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMembershipInvitationWithInviteeVerificationSignedToken() {
+		Long userId = 1L;
+		InviteeVerificationSignedToken token = new InviteeVerificationSignedToken();
+		token.setInviteeId(userId.toString());
+		token.setMembershipInvitationId("validId");
+		SignedTokenUtil.signToken(token);
+
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			// Only updating is allowed
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, accessType);
+			if (accessType != ACCESS_TYPE.UPDATE) {
+				assertFalse(status.getAuthorized());
+			} else {
+				assertTrue(status.getAuthorized());
+			}
+		}
+
+		// Incorrect user id should be denied
+		Long incorrectUserId = 2L;
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectUserId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		// Invalid token should be denied
+		token.setMembershipInvitationId("corruptedId");
+		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
 }

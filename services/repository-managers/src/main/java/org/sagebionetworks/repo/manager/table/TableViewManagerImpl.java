@@ -76,24 +76,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	}
 
 	@Override
-	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId) {
-		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-		/* Set of required column names.
-		 * Note: Using a list instead of a HashSet because the list only contains two elements.
-		 */
-		List<ColumnModel> requiredFields = tableManagerSupport.getColumnModels(
-				EntityField.etag,
-				EntityField.benefactorId
-				);
-		// remove the the columns that already exist
-		for(ColumnModel cm: currentSchema){
-			requiredFields.remove(cm);
-		}
-		// Add anything still missing
-		for(ColumnModel required: requiredFields){
-			currentSchema.add(required);
-		}
-		return currentSchema;
+	public List<ColumnModel> getViewSchema(String tableId) {
+		 return tableManagerSupport.getColumnModelsForTable(tableId);
 	}
 
 	@WriteTransactionReadCommitted
@@ -137,10 +121,20 @@ public class TableViewManagerImpl implements TableViewManager {
 		}
 		String entityId = KeyFactory.keyToString(row.getRowId());
 		Map<String, String> values = row.getValues();
-		ColumnModel etagColumn = getEtagColumn(tableSchema);
-		String etag = values.get(etagColumn.getId());
+		String etag = row.getEtag();
 		if(etag == null){
-			throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
+			/*
+			 * Prior to PLFM-4249, users provided the etag as a column on the table.  
+			 * View query results will now include the etag if requested, even if the 
+			 * view does not have an etag column.  However, if this etag is null, then
+			 * for backwards compatibility we still need to look for an etag column
+			 * in the view.
+			 */
+			ColumnModel etagColumn = getEtagColumn(tableSchema);
+			etag = values.get(etagColumn.getId());
+			if(etag == null){
+				throw new IllegalArgumentException(ETAG_MISSING_MESSAGE);
+			}
 		}
 		// Get the current annotations for this entity.
 		NamedAnnotations annotations = nodeManager.getAnnotations(user, entityId);

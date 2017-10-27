@@ -22,12 +22,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableChangeType;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -264,7 +264,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		}
 		// After all changes are applied to the index ensure the final schema is set
 		List<ColumnModel> currentSchema = tableManagerSupport.getColumnModelsForTable(tableId);
-		indexManager.setIndexSchema(tableId, progressCallback, currentSchema);
+		boolean isTableView = false;
+		indexManager.setIndexSchema(tableId, isTableView , progressCallback, currentSchema);
 		
 		// now that table is created and populated the indices on the table can be optimized.
 		indexManager.optimizeTableIndices(tableId);
@@ -290,7 +291,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		}
 		// apply the schema change
 		List<ColumnChangeDetails> schemaChange = tableEntityManager.getSchemaChangeForVersion(tableId, changeSet.getRowVersion());
-		indexManager.updateTableSchema(tableId, progressCallback, schemaChange);
+		boolean isTableView = false;
+		indexManager.updateTableSchema(tableId, isTableView, progressCallback, schemaChange);
 		indexManager.setIndexVersion(tableId, changeSet.getRowVersion());
 	}
 
@@ -314,7 +316,8 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 		// Get the change set.
 		SparseChangeSet sparseChangeSet = tableEntityManager.getSparseChangeSet(change);
 		// match the schema to the change set.
-		indexManager.setIndexSchema(tableId, progressCallback, sparseChangeSet.getSchema());
+		boolean isTableView = false;
+		indexManager.setIndexSchema(tableId, isTableView, progressCallback, sparseChangeSet.getSchema());
 		// attempt to apply this change set to the table.
 		indexManager.applyChangeSetToIndex(tableId, sparseChangeSet, change.getRowVersion());
 	}

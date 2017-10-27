@@ -139,4 +139,14 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	List<Long> findPrincipalsWithAliases(Collection<String> aliases, List<AliasType> types);
+
+
+	/**
+	 * Determine if the given alias is bound to the given principal.
+	 *
+	 * @param alias
+	 * @param principalId
+	 * @return
+	 */
+	boolean aliasIsBoundToPrincipal(String alias, String principalId);
 }

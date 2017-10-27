@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityDTO;
@@ -311,7 +310,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), infoArray);
+				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
 				handler.nextRow(row);
 			}
 		});
@@ -409,15 +408,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Set<Long> getDistinctLongValues(String tableId, String columnIds) {
-		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnIds);
+	public Set<Long> getDistinctLongValues(String tableId, String columnName) {
+		String sql = SQLUtils.createSQLGetDistinctValues(tableId, columnName);
 		List<Long> results = template.queryForList(sql, Long.class);
 		return new HashSet<Long>(results);
 	}
 
 	@Override
-	public void createTableIfDoesNotExist(String tableId) {
-		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId);
+	public void createTableIfDoesNotExist(String tableId, boolean isView) {
+		String sql = SQLUtils.createTableIfDoesNotExistSQL(tableId, isView);
 		template.update(sql);
 	}
 
@@ -723,7 +722,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.getCalculateCRC32Sql(viewType);
 		Long crc32 = namedTemplate.queryForObject(sql, param, Long.class);
@@ -734,8 +732,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId){
-		String sql = SQLUtils.buildTableViewCRC32Sql(viewId, etagColumnId, benefactorColumnId);
+	public long calculateCRC32ofTableView(String viewId){
+		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		Long result = this.template.queryForObject(sql, Long.class);
 		if(result == null){
 			return -1L;
@@ -754,7 +752,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewType, currentSchema);
 		namedTemplate.update(sql, param);

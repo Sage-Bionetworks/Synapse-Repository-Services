@@ -722,4 +722,20 @@ public class PrincipalAliasDaoImplTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
+
+	@Test
+	public void testAliasIsBoundToPrincipal() {
+		String boundEmail = "bound@test.com";
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(boundEmail);
+		alias.setPrincipalId(principalId);
+		alias.setType(AliasType.USER_EMAIL);
+		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
+		String principalIdAsString = Long.toString(principalId);
+
+		assertTrue(principalAliasDao.aliasIsBoundToPrincipal(boundEmail, principalIdAsString));
+		assertTrue(principalAliasDao.aliasIsBoundToPrincipal("bOunD@TesT.COM", principalIdAsString));
+		assertFalse(principalAliasDao.aliasIsBoundToPrincipal("not-bound@test.com", principalIdAsString));
+		assertFalse(principalAliasDao.aliasIsBoundToPrincipal(boundEmail, "not-the-right-id"));
+	}
 }

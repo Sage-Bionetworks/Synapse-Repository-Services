@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
@@ -146,7 +147,7 @@ public class FacetModel {
 		try{
 			QuerySpecification modifiedQuery = FacetUtils.appendFacetSearchConditionToQuerySpecification(sqlQuery.getModel(), validatedFacets);
 
-			return new SqlQuery(modifiedQuery, sqlQuery);
+			return new SqlQueryBuilder(modifiedQuery, sqlQuery).build();
 		}catch (ParseException e){
 			throw new RuntimeException(e);
 		}

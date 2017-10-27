@@ -1,10 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
-import static org.sagebionetworks.repo.model.table.TableConstants.SINGLE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -18,11 +14,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityField;
@@ -596,11 +592,11 @@ public class SQLUtils {
 	 * Select distinct values from the given column ID.
 	 * 
 	 * @param tableId
-	 * @param columnId
+	 * @param columnName
 	 * @return
 	 */
-	public static String createSQLGetDistinctValues(String tableId, String columnId){
-		return "SELECT DISTINCT "+getColumnNameForId(columnId)+" FROM "+getTableNameForId(tableId, TableType.INDEX);
+	public static String createSQLGetDistinctValues(String tableId, String columnName){
+		return "SELECT DISTINCT "+columnName+" FROM "+getTableNameForId(tableId, TableType.INDEX);
 	}
 	
 	/**
@@ -608,14 +604,22 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String createTableIfDoesNotExistSQL(String tableId){
+	public static String createTableIfDoesNotExistSQL(String tableId, boolean isView){
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS ");
 		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append("( ");
 		builder.append(ROW_ID).append(" bigint(20) NOT NULL, ");
 		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+		if(isView){
+			builder.append(ROW_ETAG).append(" varchar(36) NOT NULL, ");
+			builder.append(ROW_BENEFACTOR).append(" bigint(20) NOT NULL, ");
+		}
 		builder.append("PRIMARY KEY (").append("ROW_ID").append(")");
+		if(isView){
+			builder.append(", KEY `IDX_ETAG` (").append(ROW_ETAG).append(")");
+			builder.append(", KEY `IDX_BENEFACTOR` (").append(ROW_BENEFACTOR).append(")");
+		}
 		builder.append(")");
 		return builder.toString();
 	}
@@ -734,8 +738,16 @@ public class SQLUtils {
 			ColumnChangeDetails change, boolean isFirst) {
 		ValidateArgument.required(change, "change");
 		ValidateArgument.required(change.getOldColumn(), "change.getOldColumn()");
+		ValidateArgument.required(change.getOldColumnInfo(), "change.getOldColumnInfo()");
 		ValidateArgument.required(change.getNewColumn(), "change.getNewColumn()");
 		if(!isFirst){
+			builder.append(", ");
+		}
+		
+		if(change.getOldColumnInfo().hasIndex()){
+			// drop the index on the old column before changing the column.
+			ValidateArgument.required(change.getOldColumnInfo().getIndexName(), "change.getOldColumnInfo().getIndexName");
+			appendDropIndex(builder, change.getOldColumnInfo());	
 			builder.append(", ");
 		}
 		builder.append("CHANGE COLUMN ");
@@ -888,7 +900,7 @@ public class SQLUtils {
 		int indexCount = 1;
 		for(DatabaseColumnInfo info: list){
 			// ignore row_id and version
-			if(info.isRowIdOrVersion()){
+			if(info.isMetadata()){
 				continue;
 			}
 			if(indexCount < maxNumberOfIndex){
@@ -1041,7 +1053,7 @@ public class SQLUtils {
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		if(infoList != null){
 			for(DatabaseColumnInfo info: infoList){
-				if(!info.isRowIdOrVersion()){
+				if(!info.isMetadata()){
 					if(info.getColumnType() != null){
 						long columnId = getColumnId(info);
 						ColumnModel cm = new ColumnModel();
@@ -1240,9 +1252,44 @@ public class SQLUtils {
 		builder.append(" IN (:");
 		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
+		builder.append(createViewTypeFilter(viewType));
+		return builder.toString();
+	}
+	
+	/**
+	 * Filter for each view type.
+	 * @param type
+	 * @return
+	 */
+	public static String createViewTypeFilter(ViewType type){
+		ValidateArgument.required(type, "type");
+		StringBuilder builder = new StringBuilder();
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
-		builder.append(" = :");
-		builder.append(TableConstants.TYPE_PARAMETER_NAME);
+		builder.append(" IN (");
+		switch(type){
+		case file:
+			builder.append("'");
+			builder.append(EntityType.file.name());
+			builder.append("'");
+			break;
+		case project:
+			builder.append("'");
+			builder.append(EntityType.project.name());
+			builder.append("'");
+			break;
+		case file_and_table:
+			builder.append("'");
+			builder.append(EntityType.file.name());
+			builder.append("'");
+			builder.append(",");
+			builder.append("'");
+			builder.append(EntityType.table.name());
+			builder.append("'");
+			break;
+			default:
+				throw new IllegalArgumentException("Unknown type: "+type.name());
+		}
+		builder.append(")");
 		return builder.toString();
 	}
 
@@ -1293,6 +1340,14 @@ public class SQLUtils {
 		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
 		builder.append(".");
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_VERSION);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_ETAG);
+		builder.append(", ");
+		builder.append(TableConstants.ENTITY_REPLICATION_ALIAS);
+		builder.append(".");
+		builder.append(TableConstants.ENTITY_REPLICATION_COL_BENEFACTOR_ID);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				// For doubles, the double-meta columns is also selected.
@@ -1323,6 +1378,10 @@ public class SQLUtils {
 		builder.append(TableConstants.ROW_ID);
 		builder.append(", ");
 		builder.append(TableConstants.ROW_VERSION);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_ETAG);
+		builder.append(", ");
+		builder.append(TableConstants.ROW_BENEFACTOR);
 		for(ColumnMetadata meta: metadata){
 			if (AnnotationType.DOUBLE.equals(meta.getAnnotationType())) {
 				builder.append(", _DBL");
@@ -1340,11 +1399,9 @@ public class SQLUtils {
 	 * @param etagColumnId
 	 * @return
 	 */
-	public static String buildTableViewCRC32Sql(String viewId, String etagColumnId, String benefactorColumnId){
+	public static String buildTableViewCRC32Sql(String viewId){
 		String tableName = getTableNameForId(viewId, TableType.INDEX);
-		String etagColumnName = getColumnNameForId(etagColumnId);
-		String benefactorColumnMame = getColumnNameForId(benefactorColumnId);
-		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, etagColumnName, benefactorColumnMame, tableName);
+		return String.format(TableConstants.SQL_TABLE_VIEW_CRC_32_TEMPLATE, tableName);
 	}
 	
 	/**
@@ -1402,18 +1459,23 @@ public class SQLUtils {
 	public static List<ColumnChangeDetails> matchChangesToCurrentInfo(
 			List<DatabaseColumnInfo> currentIndexSchema,
 			List<ColumnChangeDetails> changes) {
-		Set<String> existingColumnIds = new HashSet<>(currentIndexSchema.size());
-		List<ColumnModel> currentModels = extractSchemaFromInfo(currentIndexSchema);
-		for (ColumnModel model : currentModels) {
-			if(model.getId() != null){
-				existingColumnIds.add(model.getId());
+		// Map the ColumnIds of the current schema to the DatabaseColumnInfo for each column.
+		Map<String, DatabaseColumnInfo> currentColumnIdToInfo = new HashMap<String, DatabaseColumnInfo>(currentIndexSchema.size());
+		for(DatabaseColumnInfo info: currentIndexSchema){
+			if(!info.isMetadata()){
+				if(info.getColumnType() != null){
+					String columnId = ""+getColumnId(info);
+					currentColumnIdToInfo.put(columnId, info);
+				}
 			}
 		}
 		List<ColumnChangeDetails> results = new LinkedList<ColumnChangeDetails>();
 		for (ColumnChangeDetails change : changes) {
+			DatabaseColumnInfo oldColumnInfo = null;
 			ColumnModel oldColumn = change.getOldColumn();
 			if (oldColumn != null) {
-				if (!existingColumnIds.contains(oldColumn.getId())) {
+				oldColumnInfo = currentColumnIdToInfo.get(oldColumn.getId());
+				if (oldColumnInfo == null) {
 					/*
 					 * The old column does not exist in the table. Setting the
 					 * old column to null will treat this change as an add
@@ -1422,7 +1484,7 @@ public class SQLUtils {
 					oldColumn = null;
 				}
 			}
-			results.add(new ColumnChangeDetails(oldColumn, change
+			results.add(new ColumnChangeDetails(oldColumn, oldColumnInfo, change
 					.getNewColumn()));
 		}
 		return results;
@@ -1511,8 +1573,11 @@ public class SQLUtils {
 		switch (type) {
 		case project:
 			return TableConstants.ENTITY_REPLICATION_COL_ID;
-		default:
+		case file:
+		case file_and_table:
 			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+type.name());
 		}
 	}
 	
@@ -1534,8 +1599,9 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getCalculateCRC32Sql(ViewType type){
+		String typeFilter = createViewTypeFilter(type);
 		String filterColumln = getViewScopeFilterColumnForType(type);
-		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, filterColumln);
+		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
 	}
 	
 	/**

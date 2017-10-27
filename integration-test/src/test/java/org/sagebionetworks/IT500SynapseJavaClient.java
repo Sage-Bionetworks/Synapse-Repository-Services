@@ -44,45 +44,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Count;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityChildrenRequest;
-import org.sagebionetworks.repo.model.EntityChildrenResponse;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.JoinTeamSignedToken;
-import org.sagebionetworks.repo.model.LogEntry;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.ResponseMessage;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.Condition;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
@@ -126,6 +88,7 @@ public class IT500SynapseJavaClient {
 	private static final String MOCK_ACCEPT_MEMB_RQST_ENDPOINT = "https://www.synapse.org/#request:";
 	private static final String MOCK_TEAM_ENDPOINT = "https://www.synapse.org/#Team:";
 	private static final String MOCK_NOTIFICATION_UNSUB_ENDPOINT = "https://www.synapse.org/#unsub:";
+	private static final String TEST_EMAIL = "test@test.com";
 
 	private List<String> toDelete;
 	private List<Long> accessRequirementsToDelete;
@@ -169,7 +132,7 @@ public class IT500SynapseJavaClient {
 		
 		synapseTwo = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(synapseTwo);
-		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo, UUID.randomUUID().toString(), "password", TEST_EMAIL);
 		
 		synapseAnonymous = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(synapseAnonymous);
@@ -1422,6 +1385,32 @@ public class IT500SynapseJavaClient {
 		synapseOne.deleteMembershipInvitation(created.getId());
 		try {
 			synapseOne.getMembershipInvitation(created.getId());
+			fail("Failed to delete membership invitation.");
+		} catch (SynapseException e) {
+			// as expected
+		}
+
+		// create an invitation with null inviteeId and non null inviteeEmail
+		dto.setInviteeId(null);
+		dto.setInviteeEmail(TEST_EMAIL);
+		MembershipInvtnSubmission mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		InviteeVerificationSignedToken token = synapseTwo.getInviteeVerificationSignedToken(mis.getId());
+		// test if getInviteeVerificationSignedToken succeeded
+		assertNotNull(token);
+		String inviteeId = inviteeUserProfile.getOwnerId();
+		assertEquals(inviteeId, token.getInviteeId());
+		assertEquals(mis.getId(), token.getMembershipInvitationId());
+
+		// update the inviteeIinviteeUserProfile.getOwnerId() of the invitation
+		synapseTwo.updateInviteeId(mis.getId(), token);
+		mis = synapseTwo.getMembershipInvitation(mis.getId());
+		// test if updateInviteeId succeeded
+		assertEquals(inviteeId, mis.getInviteeId());
+
+		// delete the second invitation
+		synapseOne.deleteMembershipInvitation(mis.getId());
+		try {
+			synapseOne.getMembershipInvitation(mis.getId());
 			fail("Failed to delete membership invitation.");
 		} catch (SynapseException e) {
 			// as expected

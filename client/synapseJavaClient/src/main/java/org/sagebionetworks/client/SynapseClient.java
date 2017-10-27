@@ -82,17 +82,17 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -144,7 +144,13 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -1166,8 +1172,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Attempt to cancel an Asynchronous job. Not all jobs can be canceled and cancelation is not immediate (wait for
 	 * job to finish with ERROR if you need to make sure it was canceled)
-	 * 
-	 * @param request The request body.
+	 *
 	 * @return The jobId is used to get the job results.
 	 */
 	public void cancelAsynchJob(String jobId) throws SynapseException;
@@ -1299,7 +1304,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Create new ColumnModels. If a column already exists with the same parameters, that column will be returned.
 	 * 
-	 * @param model
+	 * @param models
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1378,7 +1383,6 @@ public interface SynapseClient extends BaseClient {
 	 * Get the URL to follow to download the icon
 	 * 
 	 * @param teamId
-	 * @param redirect
 	 * @return
 	 * @throws SynapseException if no icon for team (service throws 404)
 	 */
@@ -1528,7 +1532,14 @@ public interface SynapseClient extends BaseClient {
 	AccessControlList updateTeamACL(AccessControlList acl) throws SynapseException;
 
 	/**
-	 * 
+	 * Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
+	 * specified. If an inviteeId is specified, the invitee is notified of the invitation through a notification.
+	 * If an inviteeEmail is specified instead, an email containing an invitation link is sent to the invitee. The link
+	 * will contain a serialized MembershipInvtnSignedToken.
+	 * Optionally, the creator may include an invitation message and/or expiration date for the invitation.
+	 * If no expiration date is specified then the invitation never expires.
+	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 *
 	 * @param invitation
 	 * @param acceptInvitationEndpoint the portal end-point for one-click acceptance of the membership
 	 * invitation.  A signed, serialized token is appended to create the complete URL.
@@ -1543,12 +1554,21 @@ public interface SynapseClient extends BaseClient {
 			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
 	/**
-	 * 
+	 *
 	 * @param invitationId
 	 * @return
 	 * @throws SynapseException
 	 */
 	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
+
+	/**
+	 * Retrieve membership invitation using a signed token for authorization
+	 *
+	 * @param token
+	 * @return
+	 * @throws SynapseException
+	 */
+	MembershipInvtnSubmission getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException;
 
 	/**
 	 * 
@@ -1585,7 +1605,27 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Count getOpenMembershipInvitationCount() throws SynapseException;
-	
+
+	/**
+	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the authenticated user.
+	 * If it is, the response body will contain an InviteeVerificationSignedToken.
+	 * If it is not, a response status 403 Forbidden will be returned.
+	 * @param membershipInvitationId
+	 * @return
+	 */
+	InviteeVerificationSignedToken getInviteeVerificationSignedToken(String membershipInvitationId) throws SynapseException;
+
+	/**
+	 * Set the inviteeId of a MembershipInvitation.
+	 * A valid InviteeVerificationSignedToken must have an inviteeId equal to the id of
+	 * the authenticated user and a membershipInvitationId equal to the id in the URI.
+	 * This call will only succeed if the indicated MembershipInvitation has a
+	 * null inviteeId and a non null inviteeEmail.
+	 * @param membershipInvitationId
+	 * @param token
+	 */
+	void updateInviteeId(String membershipInvitationId, InviteeVerificationSignedToken token) throws SynapseException;
+
 	/**
 	 * 
 	 * @param request
@@ -1610,7 +1650,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * 
 	 * @param teamId
-	 * @param requestorId the id of the user requesting membership (optional)
+	 * @param requesterId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
 	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
@@ -1846,8 +1886,8 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * create a new upload destination setting
-	 * 
-	 * @param uploadDestinationSetting
+	 *
+	 * @param storageLocationSetting
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1865,8 +1905,7 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * get a list of my upload destination settings
-	 * 
-	 * @param storageLocationId
+	 *
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1895,7 +1934,6 @@ public interface SynapseClient extends BaseClient {
 	 * get the default upload destination for a container
 	 * 
 	 * @param parentEntityId
-	 * @param uploadId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -1903,8 +1941,7 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * create a project setting
-	 * 
-	 * @param projectId
+	 *
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1914,15 +1951,14 @@ public interface SynapseClient extends BaseClient {
 	 * create a project setting
 	 * 
 	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsType
 	 * @throws SynapseException
 	 */
 	ProjectSetting getProjectSetting(String projectId, ProjectSettingsType projectSettingsType) throws SynapseException;
 
 	/**
 	 * create a project setting
-	 * 
-	 * @param projectId
+	 *
 	 * @param projectSetting
 	 * @throws SynapseException
 	 */
@@ -1931,8 +1967,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * create a project setting
 	 * 
-	 * @param projectId
-	 * @param projectSetting
+	 * @param projectSettingsId
 	 * @throws SynapseException
 	 */
 	void deleteProjectSetting(String projectSettingsId) throws SynapseException;
@@ -2181,7 +2216,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param verificationId
 	 * @param verificationState the new state for the verification request
 	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription (optional)
-	 * @throws SynapseException.   If the caller specifies an illegal state transition a BadRequestException will be thrown.
+	 * @throws SynapseException   If the caller specifies an illegal state transition a BadRequestException will be thrown.
 	 */
 	void updateVerificationState(long verificationId, 
 			VerificationState verificationState,
@@ -2271,7 +2306,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the forum metadata for a given ID
 	 * 
-	 * @param projectId
+	 * @param forumId
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2612,8 +2647,9 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Retrieve an entityId given its name and parentId.
-	 * 
-	 * @param request
+	 *
+	 * @param parentId
+	 * @param entityName
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -2749,7 +2785,7 @@ public interface SynapseClient extends BaseClient {
 	 * Get the possible ColumnModel definitions based on annotation within a
 	 * given scope.
 	 * 
-	 * @param viewScope
+	 * @param scope
 	 *            List of parent IDs that define the scope.
 	 * @param nextPageToken
 	 *            Optional: When the results include a next page token, the

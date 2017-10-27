@@ -6,10 +6,10 @@ import java.util.Set;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.table.ColumnChangeDetails;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.model.SparseChangeSet;
 
 /**
@@ -96,13 +96,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(String tableId, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
+	public boolean updateTableSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.

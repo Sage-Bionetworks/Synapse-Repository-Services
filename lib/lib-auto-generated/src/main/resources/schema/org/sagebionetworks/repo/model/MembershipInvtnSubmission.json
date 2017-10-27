@@ -12,8 +12,12 @@
 			"description": "The id of the Team which the user is invited to join."
 		},
 		"inviteeId": {
-			"description": "The principal IDs of the ones being invited to join the Team.",
-      		"type":"string"
+			"type":"string",
+			"description": "The principal ID of the user being invited to join the Team."
+		},
+		"inviteeEmail": {
+			"type":"string",
+			"description": "The email address of the user being invited to join the Team."
 		},
 		"message": {
 			"type": "string",

@@ -127,23 +127,37 @@ public class DatabaseColumnInfoTest {
 	}
 	
 	@Test
-	public void testIsRowIdOrVersionRowId(){
+	public void testIsMetadataRowId(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(TableConstants.ROW_ID);
-		assertTrue(info.isRowIdOrVersion());
+		assertTrue(info.isMetadata());
 	}
 	
 	@Test
-	public void testIsRowIdOrVersionRowVersion(){
+	public void testIsMetadataRowVersion(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName(TableConstants.ROW_VERSION);
-		assertTrue(info.isRowIdOrVersion());
+		assertTrue(info.isMetadata());
+	}
+	
+	@Test
+	public void testIsMetadataEtag(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(TableConstants.ROW_ETAG);
+		assertTrue(info.isMetadata());
+	}
+	
+	@Test
+	public void testIsMetadataBenefactor(){
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setColumnName(TableConstants.ROW_BENEFACTOR);
+		assertTrue(info.isMetadata());
 	}
 	
 	@Test
 	public void testIsRowIdOrVersionNot(){
 		DatabaseColumnInfo info = new DatabaseColumnInfo();
 		info.setColumnName("_C123_");
-		assertFalse(info.isRowIdOrVersion());
+		assertFalse(info.isMetadata());
 	}
 }

@@ -18,10 +18,9 @@
 			"type": "string",
 			"description": "A is a unique alias that will identify a user. A userName can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long."
 		},
-		"membershipInvtnSignedToken": {
-			"type": "object",
-			"description": "Signed token containing the information needed to retrieve a membership invitation.",
-			"$ref": "org.sagebionetworks.repo.model.MembershipInvtnSignedToken"
+		"encodedMembershipInvtnSignedToken": {
+			"type": "string",
+			"description": "Encoded signed token containing the information needed to retrieve a membership invitation."
 		}
 	}
 }
