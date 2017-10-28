@@ -3,8 +3,11 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -136,8 +139,8 @@ public class ProjectStatsManagerImplTest {
 		when(mockUserGroupDao.isIndividual(principalId)).thenReturn(false);
 		Long memberIdOne = 111L;
 		Long memberIdTwo = 222L;
-		when(mockGroupMemberDao.getMemberIds(principalId)).thenReturn(Sets.newHashSet(memberIdOne, memberIdTwo));
-		
+		when(mockGroupMemberDao.getMemberIds(principalId)).thenReturn(Sets.newLinkedHashSet(Arrays.asList(memberIdOne, memberIdTwo)));
+
 		ObjectType type = ObjectType.ENTITY;
 		Date activityDate = new Date(1);
 		// call under test
@@ -184,10 +187,10 @@ public class ProjectStatsManagerImplTest {
 		Date activityDate = new Date();
 		Long projectId1 = 111L;
 		Long projectId2 = 222L;
-		Set<Long> visibleProjectIds = Sets.newHashSet(projectId1, projectId2);
+		Set<Long> visibleProjectIds = Sets.newLinkedHashSet(Arrays.asList(projectId1, projectId2));
 		// the projects visible to the team
 		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
-						.newHashSet(teamId))).thenReturn(visibleProjectIds);
+						.newLinkedHashSet(Arrays.asList(teamId)))).thenReturn(visibleProjectIds);
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);
@@ -207,7 +210,7 @@ public class ProjectStatsManagerImplTest {
 		Set<Long> empty = new HashSet<Long>();
 		// the projects visible to the team
 		when(mockAuthorizationManager.getAccessibleProjectIds(Sets
-						.newHashSet(teamId))).thenReturn(empty);
+						.newLinkedHashSet(Arrays.asList(teamId)))).thenReturn(empty);
 		
 		// call under test
 		manager.memberAddedToTeam(teamId, memberId, activityDate);

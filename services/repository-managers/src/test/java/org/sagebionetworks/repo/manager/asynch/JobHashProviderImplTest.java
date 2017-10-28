@@ -10,9 +10,7 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.table.TableEntityManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -41,14 +39,14 @@ public class JobHashProviderImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(anyString())).thenReturn(tableStatus);
 		when(mockTableManagerSupport.getTableType(anyString())).thenReturn(ObjectType.TABLE);
 	}
-	
+
 	@Test
 	public void testHash(){
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
 		String hash = provider.getJobHash(body);
-		assertEquals("99cfd112ffd95d9ac7b0e02fe5fe027e", hash);
+		assertEquals("6e1004998c65dfe299ea947cd55a1bbe", hash);
 	}
 	
 	@Test
@@ -93,9 +91,9 @@ public class JobHashProviderImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
-		assertEquals("57d1b4ac73696877b3c6951f4ca740b4", etag);
+		assertEquals("a677a454999341a94f51f26b3ddd4d74", etag);
 	}
-	
+
 	@Test
 	public void testGetRequestObjectEtagTableWithRows() throws NotFoundException, IOException{
 		DownloadFromTableRequest body1 = new DownloadFromTableRequest();
@@ -103,9 +101,9 @@ public class JobHashProviderImplTest {
 		body1.setSql("select * from syn123");
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("99cfd112ffd95d9ac7b0e02fe5fe027e", hash);
+		assertEquals("6e1004998c65dfe299ea947cd55a1bbe", hash);
 	}
-	
+
 	@Test
 	public void testGetRequestObjectEtagQueryBundleRequest() throws NotFoundException, IOException{
 		QueryBundleRequest body1 = new QueryBundleRequest();
@@ -115,15 +113,15 @@ public class JobHashProviderImplTest {
 		body1.setQuery(query);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("cc3776d0dd9f21c63380b4514afaac29", hash);
+		assertEquals("6ec21be4052a97470dddc248e01633f1", hash);
 	}
-	
+
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
 		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L, true, null);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("c7cb5c28b91dae3fd40d6f8e4415eb75", hash);
+		assertEquals("a27d83c50b1666f2ed22b11f67598fad", hash);
 	}
 	
 }
