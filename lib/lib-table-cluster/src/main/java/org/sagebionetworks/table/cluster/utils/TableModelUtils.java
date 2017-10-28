@@ -21,6 +21,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.HasEtag;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -1151,11 +1152,14 @@ public class TableModelUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static String[] createColumnNameHeader(List<SelectColumn> selectColumns, boolean includeRowIdAndVersion) {
+	public static String[] createColumnNameHeader(List<SelectColumn> selectColumns, boolean includeRowIdAndVersion, boolean includeRowEtag) {
 		List<String> outHeaderList = Lists.newArrayListWithCapacity(selectColumns.size() + 2);
 		if (includeRowIdAndVersion) {
 			outHeaderList.add(TableConstants.ROW_ID);
 			outHeaderList.add(TableConstants.ROW_VERSION);
+			if(includeRowEtag){
+				outHeaderList.add(TableConstants.ROW_ETAG);
+			}
 		}
 		for (SelectColumn selectColumn : selectColumns) {
 			outHeaderList.add(selectColumn.getName());
@@ -1170,7 +1174,7 @@ public class TableModelUtils {
 	 * @param isAggregate
 	 * @return
 	 */
-	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion){
+	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion, boolean includeRowEtag){
 		String[] array = null;
 		// Write this row
 		if(!includeRowIdAndVersion){
@@ -1178,10 +1182,17 @@ public class TableModelUtils {
 			array = row.getValues().toArray(new String[row.getValues().size()]);
 		}else{
 			// For non-aggregates the rowId and rowVersion must also be written
-			array = new String[row.getValues().size()+2];
-			array[0] = row.getRowId().toString();
-			array[1] = row.getVersionNumber().toString();
-			int index = 2;
+			int size = 2;
+			if(includeRowEtag){
+				size++;
+			}
+			int index = 0;
+			array = new String[row.getValues().size()+size];
+			array[index++] = row.getRowId().toString();
+			array[index++] = row.getVersionNumber().toString();
+			if(includeRowEtag){
+				array[index++] = row.getEtag();
+			}
 			for(String value: row.getValues()){
 				array[index] = value;
 				index++;
@@ -1389,6 +1400,7 @@ public class TableModelUtils {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
+			sparse.setRowEtag(row.getEtag());
 			if(row.getValues() != null && !row.getValues().isEmpty()){
 				// add each value that matches the schema
 				for(ColumnModel column: schema){
@@ -1493,6 +1505,7 @@ public class TableModelUtils {
 			SparseRowDto sparseRow = new SparseRowDto();
 			sparseRow.setRowId(partialRow.getRowId());
 			sparseRow.setVersionNumber(versionNumber);
+			sparseRow.setEtag(partialRow.getEtag());
 			sparseRow.setValues(partialRow.getValues());
 			sparseRows.add(sparseRow);
 		}

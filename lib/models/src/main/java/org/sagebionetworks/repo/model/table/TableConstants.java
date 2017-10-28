@@ -15,6 +15,22 @@ public class TableConstants {
 	 * The reserved column name for row id.
 	 */
 	public static final String ROW_ID = "ROW_ID";
+
+	/**
+	 * The reserved column name for row version.
+	 */
+	public static final String ROW_VERSION = "ROW_VERSION";
+	public static final String SINGLE_KEY = "SINGLE_KEY";
+	public static final String SCHEMA_HASH = "SCHEMA_HASH";
+	
+	public static final String ROW_ETAG = "ROW_ETAG";
+	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";
+	
+	/**
+	 * FileHandle IDs 
+	 */
+	public static final String FILE_ID = "FILE_ID";
+	
 	/**
 	 * The reserved column id for row id.
 	 */
@@ -22,31 +38,25 @@ public class TableConstants {
 	/**
 	 * The reserved column name for row version.
 	 */
-	public static final String ROW_VERSION = "ROW_VERSION";
-	public static final String SINGLE_KEY = "SINGLE_KEY";
-	public static final String SCHEMA_HASH = "SCHEMA_HASH";
-	/**
-	 * FileHandle IDs 
-	 */
-	public static final String FILE_ID = "FILE_ID";
-	/**
-	 * The reserved column name for row version.
-	 */
 	public static final Long ROW_VERSION_ID = -2L;
+	public static final Long ROW_ETAG_ID = -3L;
 
 	/**
 	 * The set of reserved column names includes things like ROW_ID and
 	 * ROW_VERSION
 	 */
 	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(
-			Arrays.asList(ROW_ID, ROW_VERSION));
+			Arrays.asList(ROW_ID, ROW_VERSION, ROW_ETAG));
 
 	/**
 	 * The Map of reserved column names like ROW_ID and
 	 * ROW_VERSION to pseudo ids
 	 */
-	private static final Map<String, Long> RESERVED_COLUMNS_IDS = ImmutableMap.<String, Long> builder().put(ROW_ID, ROW_ID_ID)
-			.put(ROW_VERSION, ROW_VERSION_ID).build();
+	private static final Map<String, Long> RESERVED_COLUMNS_IDS = ImmutableMap.<String, Long> builder()
+			.put(ROW_ID, ROW_ID_ID)
+			.put(ROW_VERSION, ROW_VERSION_ID)
+			.put(ROW_ETAG, ROW_ETAG_ID)
+			.build();
 	
 	/**
 	 * The column name prefix for extra doubles column.
@@ -208,15 +218,13 @@ public class TableConstants {
 					+ ENTITY_REPLICATION_COL_ID+ ", '-',"+ ENTITY_REPLICATION_COL_ETAG+", '-', "+ENTITY_REPLICATION_COL_BENEFACTOR_ID
 			+ ")))"
 			+ " FROM "+ ENTITY_REPLICATION_TABLE
-			+ " WHERE "
-			+ ENTITY_REPLICATION_COL_TYPE + " = :"+TYPE_PARAMETER_NAME+""
-					+ " AND "+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
+			+ " WHERE %1$s AND %2$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// template to calculate CRC32 of a table view.
 	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 
 			"SELECT"
 			+ " SUM(CRC32(CONCAT("
-					+ROW_ID+", '-', %1$s, '-', %2$s))) FROM %3$s";
+					+ROW_ID+", '-', "+ROW_ETAG+", '-', "+ROW_BENEFACTOR+"))) FROM %1$s";
 	
 	// ANNOTATION_REPLICATION
 	public static final String ANNOTATION_REPLICATION_TABLE 				="ANNOTATION_REPLICATION";

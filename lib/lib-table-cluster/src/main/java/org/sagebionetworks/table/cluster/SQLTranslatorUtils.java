@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -295,11 +296,14 @@ public class SQLTranslatorUtils {
 	 * @param selectList
 	 * @return
 	 */
-	public static SelectList addRowIdAndVersionToSelect(SelectList selectList){
+	public static SelectList addMetadataColumnsToSelect(SelectList selectList, boolean includeEtag){
 		List<DerivedColumn> selectColumns = Lists.newArrayListWithCapacity(selectList.getColumns().size() + 2);
 		selectColumns.addAll(selectList.getColumns());
 		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_ID));
 		selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_VERSION));
+		if(includeEtag){
+			selectColumns.add(SqlElementUntils.createNonQuotedDerivedColumn(ROW_ETAG));
+		}
 		return new SelectList(selectColumns);
 	}
 	
@@ -321,17 +325,21 @@ public class SQLTranslatorUtils {
 	/**
 	 * Read a Row from a ResultSet that was produced with the given query.
 	 * @param rs
-	 * @param query
+	 * @param includesRowIdAndVersion Is ROW_ID and ROW_VERSION included in the result set?
+	 * @param includeEtag Is the read row an EntityRow?
 	 * @return
 	 * @throws SQLException
 	 */
-	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, ColumnTypeInfo[] colunTypes) throws SQLException{
+	public static Row readRow(ResultSet rs, boolean includesRowIdAndVersion, boolean includeEtag, ColumnTypeInfo[] colunTypes) throws SQLException{
 		Row row = new Row();
 		List<String> values = new LinkedList<String>();
 		row.setValues(values);
 		if(includesRowIdAndVersion){
 			row.setRowId(rs.getLong(ROW_ID));
 			row.setVersionNumber(rs.getLong(ROW_VERSION));
+			if(includeEtag){
+				row.setEtag(rs.getString(ROW_ETAG));
+			}
 		}
 		// Read the select columns.
 		for(int i=0; i < colunTypes.length; i++){

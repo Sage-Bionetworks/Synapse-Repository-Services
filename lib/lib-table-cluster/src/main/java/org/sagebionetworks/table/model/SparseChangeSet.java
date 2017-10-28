@@ -85,6 +85,7 @@ public class SparseChangeSet {
 			SparseRow sparse = this.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
+			sparse.setRowEtag(row.getEtag());
 			if(row.getValues() != null){
 				for(ColumnModel cm: this.schema){
 					if(row.getValues().containsKey(cm.getId())){
@@ -134,6 +135,7 @@ public class SparseChangeSet {
 			SparseRowDto partial = new SparseRowDto();
 			partial.setRowId(row.getRowId());
 			partial.setVersionNumber(row.getVersionNumber());
+			partial.setEtag(row.getRowEtag());
 			HashMap<String, String> values = new HashMap<String, String>(this.schema.size());
 			for(ColumnModel cm: this.schema){
 				if(row.hasCellValue(cm.getId())){
@@ -318,6 +320,7 @@ public class SparseChangeSet {
 		int rowIndex;
 		Long rowId;
 		Long versionNumber;
+		String etag;
 		Map<String, String> valueMap = new HashMap<String, String>();
 
 		private SparseRowImpl(int rowIndex) {
@@ -387,17 +390,27 @@ public class SparseChangeSet {
 		}
 		
 		@Override
+		public void setRowEtag(String etag) {
+			this.etag = etag;
+		}
+
+		@Override
+		public String getRowEtag() {
+			return etag;
+		}
+		
+		@Override
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 			result = prime * result + ((rowId == null) ? 0 : rowId.hashCode());
 			result = prime * result + rowIndex;
-			result = prime
-					* result
-					+ ((versionNumber == null) ? 0 : versionNumber
-							.hashCode());
 			result = prime * result
 					+ ((valueMap == null) ? 0 : valueMap.hashCode());
+			result = prime * result
+					+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
 			return result;
 		}
 
@@ -410,6 +423,11 @@ public class SparseChangeSet {
 			if (getClass() != obj.getClass())
 				return false;
 			SparseRowImpl other = (SparseRowImpl) obj;
+			if (etag == null) {
+				if (other.etag != null)
+					return false;
+			} else if (!etag.equals(other.etag))
+				return false;
 			if (rowId == null) {
 				if (other.rowId != null)
 					return false;
@@ -417,15 +435,15 @@ public class SparseChangeSet {
 				return false;
 			if (rowIndex != other.rowIndex)
 				return false;
-			if (versionNumber == null) {
-				if (other.versionNumber != null)
-					return false;
-			} else if (!versionNumber.equals(other.versionNumber))
-				return false;
 			if (valueMap == null) {
 				if (other.valueMap != null)
 					return false;
 			} else if (!valueMap.equals(other.valueMap))
+				return false;
+			if (versionNumber == null) {
+				if (other.versionNumber != null)
+					return false;
+			} else if (!versionNumber.equals(other.versionNumber))
 				return false;
 			return true;
 		}
@@ -435,6 +453,10 @@ public class SparseChangeSet {
 			return "SparseRowImpl [rowIndex=" + rowIndex + ", rowId=" + rowId
 					+ ", rowVersionNumber=" + versionNumber + ", valueMap="
 					+ valueMap + "]";
+		}
+
+		private SparseChangeSet getOuterType() {
+			return SparseChangeSet.this;
 		}
 	}
 

@@ -149,7 +149,7 @@ public class TableViewWorkerTest {
 			rows.add(row);
 		}
 		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(schema);
-		when(tableViewManager.getViewSchemaWithRequiredColumns(tableId)).thenReturn(expandedSchema);
+		when(tableViewManager.getViewSchema(tableId)).thenReturn(expandedSchema);
 		viewCRC = 888L;		
 		when(indexManager.populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema)).thenReturn(viewCRC);
 	}
@@ -232,8 +232,9 @@ public class TableViewWorkerTest {
 		worker.createOrUpdateIndexHoldingLock(tableId, indexManager, innerCallback, change);
 		
 		verify(indexManager).deleteTableIndex(tableId);
-		verify(indexManager).setIndexSchema(tableId, innerCallback,expandedSchema);
-		verify(tableViewManager).getViewSchemaWithRequiredColumns(tableId);
+		boolean isTableView = true;
+		verify(indexManager).setIndexSchema(tableId, isTableView, innerCallback,expandedSchema);
+		verify(tableViewManager).getViewSchema(tableId);
 		verify(tableManagerSupport, times(1)).attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 		verify(indexManager, times(1)).populateViewFromEntityReplication(tableId, innerCallback, ViewType.file, viewScope,expandedSchema);
 		verify(indexManager).setIndexVersionAndSchemaMD5Hex(tableId, viewCRC, schemaMD5Hex);

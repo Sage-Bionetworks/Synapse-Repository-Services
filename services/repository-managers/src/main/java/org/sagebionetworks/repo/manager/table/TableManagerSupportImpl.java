@@ -396,10 +396,15 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 */
 	public String createViewOverLimitMessage(ViewType viewType) throws IllegalArgumentException{
 		ValidateArgument.required(viewType, "ViewType");
-		if(ViewType.project.equals(viewType)){
+		switch (viewType) {
+		case project:
 			return SCOPE_SIZE_LIMITED_EXCEEDED_PROJECT_VIEW;
-		}else{
+		case file:
+		case file_and_table:
 			return SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW;
+		default:
+			throw new IllegalArgumentException("Unknown type: "
+					+ viewType.name());
 		}
 	}
 	
@@ -534,6 +539,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		ValidateArgument.required(viewType, "viewType");
 		switch(viewType){
 		case file:
+		case file_and_table:	
 			return getColumnModels(FILE_VIEW_DEFAULT_COLUMNS);
 		case project:
 			return getColumnModels(PROEJCT_VIEW_DEAFULT_COLUMNS);

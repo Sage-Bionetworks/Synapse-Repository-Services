@@ -40,7 +40,7 @@ public interface TableViewManager {
 	 * @param tableId
 	 * @return
 	 */
-	public List<ColumnModel> getViewSchemaWithRequiredColumns(String tableId);
+	public List<ColumnModel> getViewSchema(String tableId);
 
 
 	/**

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.audit.ObjectRecord;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.transactions.RequiresNewReadCommitted;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,7 +154,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 
-	@WriteTransaction
+	@RequiresNewReadCommitted
 	@Override
 	public void updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
 		// Progress can only be updated if the stack is in read-write mode.

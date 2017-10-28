@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 
@@ -92,11 +93,11 @@ public class FacetModelTest {
 		valuesRequest.setColumnName(facetColumnName2);
 		valuesRequest.setFacetValues(Sets.newHashSet(selectedValue));
 		
-		simpleQuery = new SqlQuery("select * from " + tableId, facetSchema);
+		simpleQuery = new SqlQueryBuilder("select * from " + tableId, facetSchema).build();
 		selectedFacets = Lists.newArrayList((FacetColumnRequest)rangeRequest, (FacetColumnRequest)valuesRequest);
 		
-		query = new SqlQuery("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
-				facetSchema);
+		query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> ayy and asdf < 'taco bell'",
+				facetSchema).build();
 	}
 	/////////////////////
 	// Constructor tests
@@ -290,8 +291,8 @@ public class FacetModelTest {
 
 	@Test
 	public void testGenerateFacetFilteredQueryNonEmptyFacetColumnsList() throws ParseException {
-		SqlQuery query = new SqlQuery("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
-				facetSchema);
+		SqlQuery query = new SqlQueryBuilder("select * from " + tableId + " where asdf <> 'ayy' and asdf < 'taco bell'",
+				facetSchema).build();
 
 		validatedQueryFacetColumns.add(new FacetRequestColumnModel(facetColumnModel, rangeRequest));
 

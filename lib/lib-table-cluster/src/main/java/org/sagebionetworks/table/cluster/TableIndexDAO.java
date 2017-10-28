@@ -25,8 +25,9 @@ public interface TableIndexDAO {
 	/**
 	 * Create a table with the given name if it does not exist.
 	 * @param tableId The ID of the table.
+	 * @param isView Is this table a View?
 	 */
-	public void createTableIfDoesNotExist(String tableId);
+	public void createTableIfDoesNotExist(String tableId, boolean isView);
 	
 	/**
 	 * Alter the given table as needed. The table will be changed
@@ -321,12 +322,10 @@ public interface TableIndexDAO {
 	 * truth.
 	 * 
 	 * @param viewId
-	 * @param etagColumnId The ID of the view's ETAG column.
-	 * @param benefactorColumnId The ID of the view's benefactorId column.
 	 * 
 	 * @return
 	 */
-	long calculateCRC32ofTableView(String viewId, String etagColumnId, String benefactorColumnId);
+	long calculateCRC32ofTableView(String viewId);
 
 	/**
 	 * Save both the current version and schema MD5 for current index.

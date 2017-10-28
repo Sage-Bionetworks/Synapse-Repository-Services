@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -1140,7 +1141,8 @@ public class TableModelUtilsTest {
 		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
 		schema.add(TableModelTestUtils.createSelectColumn(567L, "count(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = false;
-		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "three", "two", "count(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
@@ -1152,8 +1154,22 @@ public class TableModelUtilsTest {
 		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
 		schema.add(TableModelTestUtils.createSelectColumn(567L, "COUNT(*)", ColumnType.STRING));
 		boolean includeRowIdAndVersion = true;
-		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { ROW_ID, ROW_VERSION, "three", "two", "COUNT(*)" };
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testCreateColumnNameHeaderWithRowIdWithEtag() {
+		List<SelectColumn> schema = Lists.newArrayList();
+		schema.add(TableModelTestUtils.createSelectColumn(123L, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createSelectColumn(567L, "COUNT(*)", ColumnType.STRING));
+		boolean includeRowIdAndVersion = true;
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.createColumnNameHeader(schema, includeRowIdAndVersion, includeRowEtag);
+		String[] expected = new String[] { ROW_ID, ROW_VERSION, ROW_ETAG, "three", "two", "COUNT(*)" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 
@@ -1164,8 +1180,23 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(2L);
 		row.setValues(Arrays.asList("a", "b", "c"));
 		boolean includeRowIdAndVersion = true;
-		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		boolean includeRowEtag = false;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "123", "2", "a", "b", "c" };
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testWriteRowToStringArrayIncludeRowIdWithEtag() {
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(2L);
+		row.setEtag("someEtag");
+		row.setValues(Arrays.asList("a", "b", "c"));
+		boolean includeRowIdAndVersion = true;
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
+		String[] expected = new String[] { "123", "2","someEtag", "a", "b", "c" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
 
@@ -1176,7 +1207,8 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(2L);
 		row.setValues(Arrays.asList("a", "b", "c"));
 		boolean includeRowIdAndVersion = false;
-		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		boolean includeRowEtag = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion, includeRowEtag);
 		String[] expected = new String[] { "a", "b", "c" };
 		assertEquals(Arrays.toString(expected), Arrays.toString(results));
 	}
@@ -1437,6 +1469,61 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCreateSparseChangeSetEntityRow(){
+		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
+		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
+		ColumnModel c3 = TableModelTestUtils.createColumn(3L, "aString", ColumnType.STRING);
+		
+		List<ColumnModel> rowSetSchema = Lists.newArrayList(c2,c1);
+		// the current schema is not the same as the rowset schema.
+		List<ColumnModel> currentScema = Lists.newArrayList(c1,c3);
+		
+		Long versionNumber = 45L;
+		String tableId = "syn123";
+		List<String> headerIds = Lists.newArrayList("2","1");
+		List<SelectColumn> headers = TableModelUtils.getSelectColumnsFromColumnIds(headerIds, rowSetSchema);
+		
+		Row row1 = new Row();
+		row1.setRowId(1L);
+		row1.setVersionNumber(versionNumber);
+		row1.setEtag("etag1");
+		row1.setValues(Lists.newArrayList("1", "true"));
+		
+		Row row2 = new Row();
+		row2.setRowId(2L);
+		row2.setVersionNumber(versionNumber);
+		row2.setEtag("etag2");
+		row2.setValues(Lists.newArrayList("2", "false"));
+		
+		
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setEtag("etag");
+		rowSet.setRows(Lists.newArrayList((Row)row1, (Row)row2));
+		rowSet.setTableId(tableId);
+		
+		// Call under test
+		SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(rowSet, currentScema);
+		assertNotNull(sparse);
+		assertEquals("etag", sparse.getEtag());
+		assertEquals(currentScema, sparse.getSchema());
+		assertEquals(2, sparse.getRowCount());
+		List<SparseRow> rows = new LinkedList<SparseRow>();
+		for(SparseRow row:sparse.rowIterator()){
+			rows.add(row);
+		}
+		assertEquals(2, rows.size());
+		SparseRow one = rows.get(0);
+		assertEquals(row1.getRowId(), one.getRowId());
+		assertEquals(row1.getVersionNumber(), one.getVersionNumber());
+		assertEquals(row1.getEtag(), one.getRowEtag());
+		assertTrue(one.hasCellValue(c1.getId()));
+		assertEquals("true", one.getCellValue(c1.getId()));
+		assertFalse(one.hasCellValue(c2.getId()));
+		assertFalse(one.hasCellValue(c3.getId()));
+	}
+	
+	@Test
 	public void testCreateSparseChangeSetPLFM_4180(){
 		ColumnModel c1 = TableModelTestUtils.createColumn(1L, "aBoolean", ColumnType.BOOLEAN);
 		ColumnModel c2 = TableModelTestUtils.createColumn(2L, "anInteger", ColumnType.INTEGER);
@@ -1608,10 +1695,12 @@ public class TableModelUtilsTest {
 		PartialRow one = new PartialRow();
 		one.setRowId(1L);
 		one.setValues(new HashMap<String, String>());
+		one.setEtag("etag1");
 		one.getValues().put("11", "one");
 		
 		PartialRow two = new PartialRow();
 		two.setRowId(2L);
+		two.setEtag("etag2");
 		two.setValues(new HashMap<String, String>());
 		two.getValues().put("22", "two");
 		
@@ -1639,10 +1728,12 @@ public class TableModelUtilsTest {
 		// one
 		assertEquals(one.getRowId(), sparseOne.getRowId());
 		assertEquals(versionNumber, sparseOne.getVersionNumber());
+		assertEquals(one.getEtag(), sparseOne.getEtag());
 		assertEquals(one.getValues(), sparseOne.getValues());
 		// two
 		assertEquals(two.getRowId(), sparseTwo.getRowId());
 		assertEquals(versionNumber, sparseTwo.getVersionNumber());
+		assertEquals(two.getEtag(), sparseTwo.getEtag());
 		assertEquals(two.getValues(), sparseTwo.getValues());
 		// delete
 		assertEquals(deleteValue.getRowId(), sparseDelete.getRowId());
