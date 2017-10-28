@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +236,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         // Add an attachment
         page.setAttachmentFileHandleIds(new LinkedList<String>());
         page.getAttachmentFileHandleIds().add(attachOne.getId());
-        Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+        Map<String, FileHandle> fileNameMap = new LinkedHashMap<String, FileHandle>();
         fileNameMap.put(attachOne.getFileName(), attachOne);
         List<String> newIds = new ArrayList<String>();
         newIds.add(attachOne.getId());
@@ -708,7 +709,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Add file handles to the root.
 		root.getAttachmentFileHandleIds().add(attachOne.getId());
 		root.getAttachmentFileHandleIds().add(attachTwo.getId());
-		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		Map<String, FileHandle> fileNameMap = new LinkedHashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		List<String> newIds = new ArrayList<String>();
@@ -1024,9 +1025,10 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Create another page to check that query does filter on id
 		page.setTitle("title2");
 		page.setMarkdownFileHandleId(markdownTwo.getId());
-		V2WikiPage clone3 = wikiPageDao.create(page, fileNameMap, "syn193", ObjectType.ENTITY, fileIds);
+		String ownerId2 = "syn193";
+		V2WikiPage clone3 = wikiPageDao.create(page, fileNameMap, ownerId2, ownerType, fileIds);
 		assertNotNull(clone3);
-		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, clone3.getId());
+		WikiPageKey key2 = WikiPageKeyHelper.createWikiPageKey(ownerId2, ownerType, clone3.getId());
 		toDelete.add(key2);
 		
 		Long numVersions = wikiPageDao.getNumberOfVersions(key1);

@@ -1,24 +1,31 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.*;
-import static org.sagebionetworks.client.ClientUtils.*;
-import static org.sagebionetworks.client.Method.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.sagebionetworks.client.ClientUtils.ERROR_REASON_TAG;
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.http.HttpHeaders;
-
-import static org.mockito.Mockito.*;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.client.ClientUtils;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
@@ -231,7 +238,7 @@ public class ClientUtilsTest {
 
 	@Test
 	public void testCreateRequestUrlWithParams() throws Exception{
-		Map<String, String> params = new HashMap<String, String>();
+		Map<String, String> params = new LinkedHashMap<String, String>();
 		params.put("limit", "1");
 		params.put("offset", "0");
 		assertEquals("http://synapse.org/uri?limit=1&offset=0",

@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -33,7 +33,7 @@ public class UserInfo {
 	public UserInfo(boolean isAdmin, Long id){
 		this.isAdmin = isAdmin;
 		this.id = id;
-		this.groups = new HashSet<Long>();
+		this.groups = new LinkedHashSet<Long>();
 		this.groups.add(this.id);
 	}
 

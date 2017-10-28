@@ -128,7 +128,7 @@
 				<artifactId>commons-logging</artifactId>
 				<version>${commonslogging.version}</version>
 			</dependency>
-			
+
 			<!-- OAuth support -->
 			<dependency>
 				<groupId>org.scribe</groupId>
@@ -712,8 +712,8 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>2.3.2</version>
 					<configuration>
-						<source>1.7</source>
-						<target>1.7</target>
+						<source>1.8</source>
+						<target>1.8</target>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -831,7 +831,7 @@
 		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
 		<mysql.mysql-connector-java.version>5.1.13</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
-		<org.aspectj.version>1.6.10</org.aspectj.version>
+		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
 		<schema-to-pojo.version>0.3.12</schema-to-pojo.version>
 		<com.amazonaws.version>1.11.45</com.amazonaws.version>
