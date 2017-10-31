@@ -83,13 +83,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
-
-		// anonymous can at most READ
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ && objectType != ObjectType.TEAM && objectType != ObjectType.USER_PROFILE)
-				return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
-		}
-
 		switch (objectType) {
 			case ENTITY:
 				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
@@ -137,8 +130,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			case WIKI:{
+				ACCESS_TYPE ownerAccessType = accessType;
+				if(ACCESS_TYPE.DOWNLOAD == accessType){
+					// Wiki download is checked against owner read.
+					ownerAccessType = ACCESS_TYPE.READ;
+				}
 				WikiPageKey key = wikiPageDaoV2.lookupWikiKey(objectId);
-				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+				// check against the wiki owner
+				return canAccess(userInfo, key.getOwnerObjectId(), key.getOwnerObjectType(), ownerAccessType);
 			}
 			case USER_PROFILE: {
 				// everyone should be able to download userProfile picture, even anonymous.

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.util.Date;
 import java.util.LinkedList;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.http.entity.ContentType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManagerImpl;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -42,7 +45,13 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -52,6 +61,7 @@ import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.ProxyStorageLocationSettings;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -99,8 +109,12 @@ public class FileHandleManagerImplAutowireTest {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 	
+	@Autowired
+	private V2WikiManager v2WikiManager;
+	
 	private UserInfo userInfo;
 	private UserInfo userInfo2;
+	private UserInfo anonymousUserInfo;
 	private String username;
 	
 	/**
@@ -130,6 +144,8 @@ public class FileHandleManagerImplAutowireTest {
 		user.setUserName(username2);
 		userInfo2 = userManager.getUserInfo(userManager.createUser(user));
 		userInfo2.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		
+		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		Project project = new Project();
 		projectName = "project" + new Random().nextInt();
@@ -481,6 +497,68 @@ public class FileHandleManagerImplAutowireTest {
 		}finally{
 			input.close();
 		}
+	}
+	
+	/**
+	 * Test for PLFM-4689.  Uses should be able to anonymously download wiki attachments
+	 * if the wiki is publicly readable.
+	 * @throws IOException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testGetWikiFileHandleAnonymous() throws Exception {
+		Date now = new Date();
+		S3FileHandle markdownHandle = fileUploadManager.createFileFromByteArray(userInfo
+				.getId().toString(), now, "markdown contents".getBytes("UTF-8"), "markdown.txt",
+				ContentType.TEXT_PLAIN, null);
+		toDelete.add(markdownHandle);
+		S3FileHandle attachmentFileHandle = fileUploadManager.createFileFromByteArray(userInfo
+				.getId().toString(), now, "attachment data".getBytes("UTF-8"), "attachment.txt",
+				ContentType.TEXT_PLAIN, null);
+		toDelete.add(attachmentFileHandle);
+
+		// add a wiki to the project
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setTitle("new wiki");
+		wiki.setMarkdownFileHandleId(markdownHandle.getId());
+		wiki.setAttachmentFileHandleIds(Lists.newArrayList(attachmentFileHandle.getId()));
+		wiki = v2WikiManager.createWikiPage(userInfo, projectId, ObjectType.ENTITY, wiki);
+				
+		// setup a wiki file download.
+		FileHandleAssociation association = new FileHandleAssociation();
+		association.setAssociateObjectId(wiki.getId());
+		association.setAssociateObjectType(FileHandleAssociateType.WikiAttachment);
+		association.setFileHandleId(attachmentFileHandle.getId());
+		
+		BatchFileRequest batchRequest = new BatchFileRequest();
+		batchRequest.setIncludeFileHandles(true);
+		batchRequest.setIncludePreSignedURLs(true);
+		batchRequest.setIncludePreviewPreSignedURLs(true);
+		batchRequest.setRequestedFiles(Lists.newArrayList(association));
+		
+		// call under test - anonymous should not have access yet
+		BatchFileResult results = fileUploadManager.getFileHandleAndUrlBatch(anonymousUserInfo, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(1, results.getRequestedFiles().size());
+		FileResult result = results.getRequestedFiles().get(0);
+		assertNotNull(result);
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, result.getFailureCode());
+		
+		// grant public read on the project
+		addAcl(projectId, anonymousUserInfo.getId());
+		
+		// call under test - anonymous should now have access.
+		results = fileUploadManager.getFileHandleAndUrlBatch(anonymousUserInfo, batchRequest);
+		assertNotNull(results);
+		assertNotNull(results.getRequestedFiles());
+		assertEquals(1, results.getRequestedFiles().size());
+		result = results.getRequestedFiles().get(0);
+		assertNotNull(result);
+		assertEquals(null, result.getFailureCode());
+		assertEquals(attachmentFileHandle, result.getFileHandle());
+		assertNotNull(result.getPreSignedURL());
+		
 	}
 
 	private void addAcl(String projectId, Long principalId) throws Exception {
