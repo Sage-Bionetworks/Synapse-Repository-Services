@@ -130,8 +130,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationManagerUtil.accessDenied("Unexpected access type "+accessType);
 				}
 			case WIKI:{
+				ACCESS_TYPE ownerAccessType = accessType;
+				if(ACCESS_TYPE.DOWNLOAD == accessType){
+					// Wiki download is checked against owner read.
+					ownerAccessType = ACCESS_TYPE.READ;
+				}
 				WikiPageKey key = wikiPageDaoV2.lookupWikiKey(objectId);
-				return canAccess(userInfo, key.getOwnerObjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+				// check against the wiki owner
+				return canAccess(userInfo, key.getOwnerObjectId(), key.getOwnerObjectType(), ownerAccessType);
 			}
 			case USER_PROFILE: {
 				// everyone should be able to download userProfile picture, even anonymous.

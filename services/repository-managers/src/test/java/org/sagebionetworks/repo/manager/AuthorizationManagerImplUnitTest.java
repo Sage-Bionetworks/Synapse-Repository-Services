@@ -498,10 +498,24 @@ public class AuthorizationManagerImplUnitTest {
 		String entityId = "syn123";
 		WikiPageKey key = new WikiPageKey();
 		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+	
+	@Test
+	public void testCanAccessWikiUpdate() throws Exception {
+		String wikiId = "1";
+		String entityId = "syn123";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
+		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
 	
 	/**
@@ -515,6 +529,7 @@ public class AuthorizationManagerImplUnitTest {
 		String entityId = "syn123";
 		WikiPageKey key = new WikiPageKey();
 		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, anonymousUserInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
