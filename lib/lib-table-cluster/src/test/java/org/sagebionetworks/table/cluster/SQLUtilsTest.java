@@ -1534,6 +1534,24 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateViewTypeFilterFile(){
+		String result = SQLUtils.createViewTypeFilter(ViewType.file);
+		assertEquals("TYPE IN ('file')", result);
+	}
+	
+	@Test
+	public void testCreateViewTypeFilterProject(){
+		String result = SQLUtils.createViewTypeFilter(ViewType.project);
+		assertEquals("TYPE IN ('project')", result);
+	}
+	
+	@Test
+	public void testCreateViewTypeFilterFileAndTable(){
+		String result = SQLUtils.createViewTypeFilter(ViewType.file_and_table);
+		assertEquals("TYPE IN ('file','table')", result);
+	}
+	
+	@Test
 	public void testCreateSelectInsertFromEntityReplication(){
 		String viewId = "syn123";
 		ColumnModel one = TableModelTestUtils.createColumn(1L);
@@ -1547,7 +1565,7 @@ public class SQLUtilsTest {
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
-				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE IN ('file')", sql);
 	}
 	
 	@Test
@@ -1564,7 +1582,7 @@ public class SQLUtilsTest {
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'col_1')"
-				+ " WHERE R.ID IN (:parentIds) AND TYPE = :typeParam", sql);
+				+ " WHERE R.ID IN (:parentIds) AND TYPE IN ('project')", sql);
 	}
 
 	@Test
@@ -1583,7 +1601,7 @@ public class SQLUtilsTest {
 				+ " FROM ENTITY_REPLICATION R"
 				+ " LEFT OUTER JOIN ANNOTATION_REPLICATION A0"
 				+ " ON (R.ID = A0.ENTITY_ID AND A0.ANNO_KEY = 'doubleAnnotation')"
-				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE = :typeParam", sql);
+				+ " WHERE R.PARENT_ID IN (:parentIds) AND TYPE IN ('file')", sql);
 	}
 	
 	@Test
@@ -1591,6 +1609,33 @@ public class SQLUtilsTest {
 		String viewId = "syn123";
 		String sql = SQLUtils.buildTableViewCRC32Sql(viewId);
 		assertEquals("SELECT SUM(CRC32(CONCAT(ROW_ID, '-', ROW_ETAG, '-', ROW_BENEFACTOR))) FROM T123", sql);
+	}
+	
+	@Test
+	public void testGetCalculateCRC32SqlProject(){
+		String sql = SQLUtils.getCalculateCRC32Sql(ViewType.project);
+		String expected = 
+				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
+				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('project') AND ID IN (:parentIds)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetCalculateCRC32SqlFile(){
+		String sql = SQLUtils.getCalculateCRC32Sql(ViewType.file);
+		String expected = 
+				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
+				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('file') AND PARENT_ID IN (:parentIds)";
+		assertEquals(expected, sql);
+	}
+	
+	@Test
+	public void testGetCalculateCRC32SqlFileAndTable(){
+		String sql = SQLUtils.getCalculateCRC32Sql(ViewType.file_and_table);
+		String expected = 
+				"SELECT SUM(CRC32(CONCAT(ID, '-',ETAG, '-', BENEFACTOR_ID)))"
+				+ " FROM ENTITY_REPLICATION WHERE TYPE IN ('file','table') AND PARENT_ID IN (:parentIds)";
+		assertEquals(expected, sql);
 	}
 	
 	@Test
@@ -1912,6 +1957,8 @@ public class SQLUtilsTest {
 				SQLUtils.getViewScopeFilterColumnForType(ViewType.project));
 		assertEquals(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID,
 				SQLUtils.getViewScopeFilterColumnForType(ViewType.file));
+		assertEquals(TableConstants.ENTITY_REPLICATION_COL_PARENT_ID,
+				SQLUtils.getViewScopeFilterColumnForType(ViewType.file_and_table));
 	}
 	
 	@Test

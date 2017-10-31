@@ -3,11 +3,11 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_WEB_LINK;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -493,7 +494,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
-		return new HashSet<String>(membershipInvtnSubmissionDAO.
+		return new LinkedHashSet<String>(membershipInvtnSubmissionDAO.
 			getInvitersByTeamAndUser(teamId, inviteeId, System.currentTimeMillis()));
 	}	
 

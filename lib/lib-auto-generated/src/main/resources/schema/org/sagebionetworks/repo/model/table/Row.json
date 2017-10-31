@@ -10,6 +10,10 @@
             "type":"integer",
             "description":"The version number of this row. Each row version is immutable, so when a row is updated a new version is created."
         },
+        "etag": {
+			"type": "string",
+			"description": "For queries against EntityViews with query.includeEtag=true, this field will contain the etag of the entity.  Will be null for all other cases."
+        },
 		"values": {
 			"description": "The values for each column of this row.",
 			"type": "array",

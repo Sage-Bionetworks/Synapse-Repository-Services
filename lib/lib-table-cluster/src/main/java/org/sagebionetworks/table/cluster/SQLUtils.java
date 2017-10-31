@@ -1,9 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.FILE_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-import static org.sagebionetworks.repo.model.table.TableConstants.SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 import java.sql.PreparedStatement;
@@ -18,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AbstractDouble;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
@@ -1255,9 +1252,44 @@ public class SQLUtils {
 		builder.append(" IN (:");
 		builder.append(TableConstants.PARENT_ID_PARAMETER_NAME);
 		builder.append(") AND ");
+		builder.append(createViewTypeFilter(viewType));
+		return builder.toString();
+	}
+	
+	/**
+	 * Filter for each view type.
+	 * @param type
+	 * @return
+	 */
+	public static String createViewTypeFilter(ViewType type){
+		ValidateArgument.required(type, "type");
+		StringBuilder builder = new StringBuilder();
 		builder.append(TableConstants.ENTITY_REPLICATION_COL_TYPE);
-		builder.append(" = :");
-		builder.append(TableConstants.TYPE_PARAMETER_NAME);
+		builder.append(" IN (");
+		switch(type){
+		case file:
+			builder.append("'");
+			builder.append(EntityType.file.name());
+			builder.append("'");
+			break;
+		case project:
+			builder.append("'");
+			builder.append(EntityType.project.name());
+			builder.append("'");
+			break;
+		case file_and_table:
+			builder.append("'");
+			builder.append(EntityType.file.name());
+			builder.append("'");
+			builder.append(",");
+			builder.append("'");
+			builder.append(EntityType.table.name());
+			builder.append("'");
+			break;
+			default:
+				throw new IllegalArgumentException("Unknown type: "+type.name());
+		}
+		builder.append(")");
 		return builder.toString();
 	}
 
@@ -1541,8 +1573,11 @@ public class SQLUtils {
 		switch (type) {
 		case project:
 			return TableConstants.ENTITY_REPLICATION_COL_ID;
-		default:
+		case file:
+		case file_and_table:
 			return TableConstants.ENTITY_REPLICATION_COL_PARENT_ID;
+		default:
+			throw new IllegalArgumentException("Unknown type: "+type.name());
 		}
 	}
 	
@@ -1564,8 +1599,9 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getCalculateCRC32Sql(ViewType type){
+		String typeFilter = createViewTypeFilter(type);
 		String filterColumln = getViewScopeFilterColumnForType(type);
-		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, filterColumln);
+		return String.format(TableConstants.SQL_ENTITY_REPLICATION_CRC_32_TEMPLATE, typeFilter, filterColumln);
 	}
 	
 	/**

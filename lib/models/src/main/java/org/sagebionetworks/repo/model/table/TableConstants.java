@@ -218,9 +218,7 @@ public class TableConstants {
 					+ ENTITY_REPLICATION_COL_ID+ ", '-',"+ ENTITY_REPLICATION_COL_ETAG+", '-', "+ENTITY_REPLICATION_COL_BENEFACTOR_ID
 			+ ")))"
 			+ " FROM "+ ENTITY_REPLICATION_TABLE
-			+ " WHERE "
-			+ ENTITY_REPLICATION_COL_TYPE + " = :"+TYPE_PARAMETER_NAME+""
-					+ " AND "+ "%1$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
+			+ " WHERE %1$s AND %2$s IN (:"+PARENT_ID_PARAMETER_NAME+")";
 	
 	// template to calculate CRC32 of a table view.
 	public static final String SQL_TABLE_VIEW_CRC_32_TEMPLATE = 

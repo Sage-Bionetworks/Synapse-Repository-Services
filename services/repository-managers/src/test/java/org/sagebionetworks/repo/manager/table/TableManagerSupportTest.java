@@ -569,6 +569,13 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testcreateViewOverLimitMessageFileAndTableView(){
+		// call under test
+		String message = manager.createViewOverLimitMessage(ViewType.file_and_table);
+		assertEquals(TableManagerSupportImpl.SCOPE_SIZE_LIMITED_EXCEEDED_FILE_VIEW, message);
+	}
+	
+	@Test
 	public void testcreateViewOverLimitMessageProjectView(){
 		// call under test
 		String message = manager.createViewOverLimitMessage(ViewType.project);
@@ -742,6 +749,17 @@ public class TableManagerSupportTest {
 		}
 		// call under test
 		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDefaultTableViewColumnsFileAntTableView(){
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		for(EntityField field: EntityField.values()){
+			expected.add(field.getColumnModel());
+		}
+		// call under test
+		List<ColumnModel> results = manager.getDefaultTableViewColumns(ViewType.file_and_table);
 		assertEquals(expected, results);
 	}
 	

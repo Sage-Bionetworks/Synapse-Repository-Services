@@ -74,6 +74,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
@@ -2081,6 +2082,60 @@ public class TableWorkerIntegrationTest {
 			System.out.println(status.getErrorDetails());
 		}
 		assertTrue("Job failed after rebuild",TableState.AVAILABLE.equals(status.getState()));
+	}
+	
+	/**
+	 * PLFM-4303 occurs when a column name either is a reserved word
+	 * or contains a reserved word.
+	 * @throws InterruptedException 
+	 * 
+	 */
+	@Test
+	public void testPLFM4303() throws Exception {
+		// faceted range column with a keyword name.
+		ColumnModel rangeColumn = new ColumnModel();
+		rangeColumn.setColumnType(ColumnType.INTEGER);
+		rangeColumn.setName("year");
+		rangeColumn.setFacetType(FacetType.range);
+		rangeColumn = columnManager.createColumnModel(adminUserInfo, rangeColumn);
+		// faceted enum column with a keyword name.
+		ColumnModel enumColumn = new ColumnModel();
+		enumColumn.setColumnType(ColumnType.STRING);
+		enumColumn.setMaximumSize(50L);
+		enumColumn.setName("day");
+		enumColumn.setFacetType(FacetType.enumeration);
+		enumColumn = columnManager.createColumnModel(adminUserInfo, enumColumn);
+		schema = Lists.newArrayList(rangeColumn, enumColumn);
+		// build a table with this column.
+		createTableWithSchema();
+		// add some rows
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(
+				TableModelTestUtils.createRow(null, null, "1970", "Monday"),
+				TableModelTestUtils.createRow(null, null, "1990", "Tuesday")));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		referenceSet = tableEntityManager.appendRows(adminUserInfo, tableId,
+				rowSet, mockPprogressCallback);
+		// query for results and include facets
+		FacetColumnRangeRequest range = new FacetColumnRangeRequest();
+		range.setColumnName(rangeColumn.getName());
+		range.setMin("1980");
+		range.setMax("2000");
+		// enum request
+		FacetColumnValuesRequest enumRequest = new FacetColumnValuesRequest();
+		enumRequest.setColumnName(enumColumn.getName());
+		enumRequest.setFacetValues(Sets.newHashSet("Tuesday"));
+		List<FacetColumnRequest> facetList = Lists.newArrayList((FacetColumnRequest)range, (FacetColumnRequest)enumRequest);
+		Query query = new Query();
+		query.setSql("select * from "+tableId);
+		query.setSelectedFacets(facetList);
+		boolean runQuery = true;
+		boolean runCount = true;
+		boolean returnFacets = true;
+		// call under test (this type of query would fail)
+		QueryResult results = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
+		assertNotNull(results);
 	}
 	
 	/**

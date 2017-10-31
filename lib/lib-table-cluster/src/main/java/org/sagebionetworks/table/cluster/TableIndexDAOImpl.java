@@ -310,7 +310,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
 			@Override
 			public void processRow(ResultSet rs) throws SQLException {
-				Row row = SQLTranslatorUtils.readRow(rs, query.createCompatibleRow(), query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
+				Row row = SQLTranslatorUtils.readRow(rs, query.includesRowIdAndVersion(), query.includeEntityEtag(), infoArray);
 				handler.nextRow(row);
 			}
 		});
@@ -722,7 +722,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.getCalculateCRC32Sql(viewType);
 		Long crc32 = namedTemplate.queryForObject(sql, param, Long.class);
@@ -753,7 +752,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		}
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(TYPE_PARAMETER_NAME, viewType.name());
 		param.addValue(PARENT_ID_PARAMETER_NAME, allContainersInScope);
 		String sql = SQLUtils.createSelectInsertFromEntityReplication(viewId, viewType, currentSchema);
 		namedTemplate.update(sql, param);

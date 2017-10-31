@@ -233,11 +233,11 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setTo(to);
-		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setCc(cc);
-		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		dto = messageDAO.createMessage(dto);
 		cleanup.add(dto.getId());

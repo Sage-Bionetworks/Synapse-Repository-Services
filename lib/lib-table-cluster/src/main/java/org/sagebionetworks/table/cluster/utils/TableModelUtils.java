@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.EntityRow;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
@@ -1192,9 +1191,7 @@ public class TableModelUtils {
 			array[index++] = row.getRowId().toString();
 			array[index++] = row.getVersionNumber().toString();
 			if(includeRowEtag){
-				ValidateArgument.requirement(row instanceof EntityRow, "Expected an EntityRow but was: "+row.getClass().getName());
-				EntityRow entityRow = (EntityRow) row;
-				array[index++] = entityRow.getEtag();
+				array[index++] = row.getEtag();
 			}
 			for(String value: row.getValues()){
 				array[index] = value;
@@ -1403,9 +1400,7 @@ public class TableModelUtils {
 			SparseRow sparse = changeSet.addEmptyRow();
 			sparse.setRowId(row.getRowId());
 			sparse.setVersionNumber(row.getVersionNumber());
-			if(row instanceof HasEtag){
-				sparse.setRowEtag(((HasEtag)row).getEtag());
-			}
+			sparse.setRowEtag(row.getEtag());
 			if(row.getValues() != null && !row.getValues().isEmpty()){
 				// add each value that matches the schema
 				for(ColumnModel column: schema){

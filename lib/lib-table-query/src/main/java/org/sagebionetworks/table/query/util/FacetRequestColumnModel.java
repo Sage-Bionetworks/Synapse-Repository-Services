@@ -113,7 +113,9 @@ public class FacetRequestColumnModel {
 		StringBuilder builder = new StringBuilder("(");
 		
 		//at this point we know at least one value is not null and is not empty string
+		builder.append("\"");
 		builder.append(facetRange.getColumnName());
+		builder.append("\"");
 		if(min == null){ //only max exists
 			builder.append("<=");
 			appendValueToStringBuilder(builder, max, columnType);
@@ -142,7 +144,9 @@ public class FacetRequestColumnModel {
 			if(builder.length() > initialSize){
 				builder.append(" OR ");
 			}
+			builder.append("\"");
 			builder.append(facetValues.getColumnName());
+			builder.append("\"");
 			if(value.equals(NULL_VALUE_KEYWORD)){
 				builder.append(" IS NULL");
 			}else{

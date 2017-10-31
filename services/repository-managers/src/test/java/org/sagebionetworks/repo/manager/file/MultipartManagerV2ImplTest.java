@@ -205,12 +205,12 @@ public class MultipartManagerV2ImplTest {
 		//call under test
 		manager.startOrResumeMultipartUpload(userInfo, request, forceRestart);
 	}
-	
+
 
 	@Test
 	public void testCalculateMD5AsHex(){
 		// This md5 was generated from the json string of the request.
-		String expected = "b492959f313596e14ae6ab380e5ceb36";
+		String expected = "08f53fbc385931af4c45c02053d8fcec";
 		//call under test
 		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
 		assertEquals(expected, md5Hex);
@@ -226,7 +226,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals(MultipartUploadState.UPLOADING, status.getState());
 		assertEquals("000000000000000000000", status.getPartsState());
 		assertEquals("123456", status.getUploadId());
-		
+
 		// the status should not be reset.
 		verify(mockMultiparUploadDAO, never()).deleteUploadStatus(anyLong(), anyString());
 		
