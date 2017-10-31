@@ -83,13 +83,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
-
-		// anonymous can at most READ
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
-			if (accessType != ACCESS_TYPE.READ && objectType != ObjectType.TEAM && objectType != ObjectType.USER_PROFILE)
-				return AuthorizationManagerUtil.accessDenied("Anonymous users are unauthorized for all but public read operations.");
-		}
-
 		switch (objectType) {
 			case ENTITY:
 				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
