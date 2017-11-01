@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -138,14 +137,14 @@ public class SearchServiceImplTest {
 	
 	@Test
 	public void testFilterSearchForAuthorizationUserIsNotAdmin(){
-		assertEquals("q.parser=structured&q=( and (and 'RIP' 'Harambe') (or acl:'8008135' acl:'123'))&return=id,freeze,mage,fun&interactive=deck"
+		assertEquals("q.parser=structured&q=( and (and 'RIP' 'Harambe') (or acl:'123' acl:'8008135'))&return=id,freeze,mage,fun&interactive=deck"
 				, SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
 	}
 	
 	@Test
 	public void testFilterSearchForAuthorizationUserIsNotAdminNoOtherParameters(){
 		searchQuery = "q.parser=structured&q=(and 'ayy' 'lmao' 'XD')";
-		assertEquals("q.parser=structured&q=( and (and 'ayy' 'lmao' 'XD') (or acl:'8008135' acl:'123'))", SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
+		assertEquals("q.parser=structured&q=( and (and 'ayy' 'lmao' 'XD') (or acl:'123' acl:'8008135'))", SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
 	}
 
 }

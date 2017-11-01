@@ -112,6 +112,8 @@ public class UploadPreviewBuilder {
 						row.setRowId(parseAsLong(thisValue));
 					} else if (TableConstants.ROW_VERSION.equals(header[i])) {
 						row.setVersionNumber(parseAsLong(thisValue));
+					}  else if (TableConstants.ROW_ETAG.equals(header[i])) {
+						row.setEtag(thisValue);
 					} else {
 						values.add(thisValue);
 					}

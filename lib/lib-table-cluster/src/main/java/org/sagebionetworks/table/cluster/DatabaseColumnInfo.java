@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.util.Comparator;
@@ -66,12 +66,16 @@ public class DatabaseColumnInfo {
 		this.columnType = columnType;
 	}
 	/**
-	 * Is this column ROW_ID or ROW_VERSION?
+	 * Is this column for for metadata such as:
+	 *  ROW_ID, ROW_VERSION, ROW_ETAG, or ROW_BENEFACTOR
 	 * 
 	 * @return
 	 */
-	public boolean isRowIdOrVersion(){
-		return ROW_ID.equals(this.columnName) || ROW_VERSION.equals(this.columnName);
+	public boolean isMetadata(){
+		return ROW_ID.equals(this.columnName)
+				|| ROW_VERSION.equals(this.columnName)
+				|| ROW_ETAG.equals(this.columnName)
+				|| ROW_BENEFACTOR.equals(this.columnName);
 	}
 	
 	

@@ -96,13 +96,13 @@ public interface TableIndexManager {
 	 * 
 	 * @param currentSchema
 	 */
-	public void setIndexSchema(String tableId, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
+	public void setIndexSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnModel> currentSchema);
 	
 	/**
 	 * 
 	 * @param currentSchema
 	 */
-	public boolean updateTableSchema(String tableId, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
+	public boolean updateTableSchema(String tableId, boolean isTableView, ProgressCallback progressCallback, List<ColumnChangeDetails> changes);
 	
 	/**
 	 * Delete the index for this table.

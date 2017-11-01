@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.FacetRequestColumnModel;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -52,7 +53,7 @@ public class FacetTransformerRangeTest {
 		selectedMin = "12";
 		selectedMax = "34";
 		originalSearchCondition = "i0 LIKE 'asdf%'";
-		originalQuery = new SqlQuery("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema);
+		originalQuery = new SqlQueryBuilder("SELECT * FROM syn123 WHERE " + originalSearchCondition, schema).build();
 		
 		rowSet = new RowSet();
 		
@@ -84,11 +85,10 @@ public class FacetTransformerRangeTest {
 	
 	@Test
 	public void testGenerateFacetSqlQuery(){
-
 		//check the non-transformed sql
-		String expectedString = "SELECT MIN(" + columnName + ") AS " 
-		+ FacetTransformerRange.MIN_ALIAS + ", MAX(" + columnName + ") AS " 
-		+ FacetTransformerRange.MAX_ALIAS + " FROM syn123 WHERE "+originalSearchCondition;
+		String expectedString = "SELECT MIN(\"i2\") AS minimum"
+				+ ", MAX(\"i2\") AS maximum"
+				+ " FROM syn123 WHERE i0 LIKE 'asdf%'";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getModel().toSql());
 		
 		//transformed model will be correct if schema and non-transformed query are correct

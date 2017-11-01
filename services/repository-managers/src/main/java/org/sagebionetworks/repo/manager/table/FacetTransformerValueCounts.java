@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -60,7 +61,9 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		TableExpression tableExpressionFromModel = originalQuery.getModel().getTableExpression();
 		Pagination pagination = new Pagination(MAX_NUM_FACET_CATEGORIES, null);
 		StringBuilder builder = new StringBuilder("SELECT ");
+		builder.append("\"");
 		builder.append(columnName);
+		builder.append("\"");
 		builder.append(" AS ");
 		builder.append(VALUE_ALIAS);
 		builder.append(", COUNT(*) AS ");
@@ -68,11 +71,14 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		builder.append(" ");
 		builder.append(tableExpressionFromModel.getFromClause().toSql());
 		FacetUtils.appendFacetWhereClauseToStringBuilderIfNecessary(builder, facetSearchConditionString, tableExpressionFromModel.getWhereClause());
-		builder.append(" GROUP BY " + columnName + " ");
+		builder.append(" GROUP BY ");
+		builder.append("\"");
+		builder.append(columnName);
+		builder.append("\" ");
 		builder.append(pagination.toSql());
 		
 		try {
-			return new SqlQuery(builder.toString(), originalQuery.getTableSchema());
+			return new SqlQueryBuilder(builder.toString(), originalQuery.getTableSchema()).build();
 		} catch (ParseException e) {
 			throw new RuntimeException(e);
 		}

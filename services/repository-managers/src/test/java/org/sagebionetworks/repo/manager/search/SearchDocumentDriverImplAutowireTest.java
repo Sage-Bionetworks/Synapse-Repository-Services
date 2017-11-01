@@ -268,8 +268,8 @@ public class SearchDocumentDriverImplAutowireTest {
 
 		// Check the faceted fields
 		assertEquals(2, fields.getNum_samples().size());
-		assertEquals(new Long(42), fields.getNum_samples().get(0));
-		assertEquals(new Long(999), fields.getNum_samples().get(1));
+		assertTrue(fields.getNum_samples().contains(new Long(42)));
+		assertTrue(fields.getNum_samples().contains(new Long(999L)));
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));

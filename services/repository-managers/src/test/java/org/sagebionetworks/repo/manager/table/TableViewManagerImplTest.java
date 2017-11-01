@@ -227,32 +227,12 @@ public class TableViewManagerImplTest {
 				);
 		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchemaWithRequiredColumns(tableId);
+		List<ColumnModel> result = manager.getViewSchema(tableId);
 		assertEquals(rawSchema, result);
 	}
 	
 	@Test
-	public void testGetViewSchemaWithRequiredColumnsAllMissing(){
-		String tableId = "syn123";
-		List<ColumnModel> rawSchema = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel()
-				);
-		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
-		// call under test
-		List<ColumnModel> result = manager.getViewSchemaWithRequiredColumns(tableId);
-		
-		List<ColumnModel> expected = Lists.newArrayList(
-				EntityField.createdBy.getColumnModel(),
-				EntityField.createdOn.getColumnModel(),
-				EntityField.etag.getColumnModel(),
-				EntityField.benefactorId.getColumnModel()
-				);
-		assertEquals(expected, result);
-	}
-	
-	@Test
-	public void testGetViewSchemaWithRequiredColumnsMissingOne(){
+	public void testGetViewSchema(){
 		String tableId = "syn123";
 		List<ColumnModel> rawSchema = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
@@ -261,13 +241,12 @@ public class TableViewManagerImplTest {
 				);
 		when(tableManagerSupport.getColumnModelsForTable(tableId)).thenReturn(rawSchema);
 		// call under test
-		List<ColumnModel> result = manager.getViewSchemaWithRequiredColumns(tableId);
+		List<ColumnModel> result = manager.getViewSchema(tableId);
 		
 		List<ColumnModel> expected = Lists.newArrayList(
 				EntityField.createdBy.getColumnModel(),
 				EntityField.createdOn.getColumnModel(),
-				EntityField.benefactorId.getColumnModel(),
-				EntityField.etag.getColumnModel()
+				EntityField.benefactorId.getColumnModel()
 				);
 		assertEquals(expected, result);
 	}

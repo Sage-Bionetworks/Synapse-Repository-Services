@@ -213,7 +213,10 @@ public class TableSqlProcessorTest {
 		selectedFacets.add(stringFacet);
 		
 		String result = TableSqlProcessor.generateSqlWithFacets(basicSql, selectedFacets, schema);
-		assertEquals("SELECT * FROM " + tableId + " WHERE ( ( " + intColumnName + " <= " + max +" ) AND ( " + stringColumnName + " = '" + val+ "' ) ) ORDER BY " + intColumnName + " DESC",
+		assertEquals("SELECT * FROM syn123"
+				+ " WHERE ( ( \"integerColumn\" <= 12345 )"
+				+ " AND ( \"stringColumn\" = 'testeroni' ) )"
+				+ " ORDER BY integerColumn DESC",
 				result);
 	}
 	

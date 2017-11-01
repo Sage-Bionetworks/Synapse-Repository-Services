@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.table.cluster.SqlQueryBuilder;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -98,7 +99,7 @@ public class TableServicesImplTest {
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		sqlQuery = new SqlQuery("select * from " + tableId, columns);
+		sqlQuery = new SqlQueryBuilder("select * from " + tableId, columns).build();
 		
 		List<ColumnModel> columns = new LinkedList<ColumnModel>();
 		

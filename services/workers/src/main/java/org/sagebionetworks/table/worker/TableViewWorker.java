@@ -130,13 +130,14 @@ public class TableViewWorker implements ChangeMessageDrivenRunner {
 			List<ColumnModel> originalSchema = tableManagerSupport.getColumnModelsForTable(tableId);
 			String originalSchemaMD5Hex = TableModelUtils.createSchemaMD5HexCM(originalSchema);
 			// The expanded schema includes etag and benefactorId even if they are not included in the original schema.
-			List<ColumnModel> expandedSchema = tableViewManager.getViewSchemaWithRequiredColumns(tableId);
+			List<ColumnModel> expandedSchema = tableViewManager.getViewSchema(tableId);
 			
 			// Get the containers for this view.
 			Set<Long> allContainersInScope  = tableManagerSupport.getAllContainerIdsForViewScope(tableId, viewType);
 
 			// create the table in the index.
-			indexManager.setIndexSchema(tableId, callback, expandedSchema);
+			boolean isTableView = true;
+			indexManager.setIndexSchema(tableId, isTableView, callback, expandedSchema);
 			tableManagerSupport.attemptToUpdateTableProgress(tableId, token, "Copying data to view...", 0L, 1L);
 			// populate the view by coping data from the entity replication tables.
 			Long viewCRC = indexManager.populateViewFromEntityReplication(tableId, callback, viewType, allContainersInScope, expandedSchema);

@@ -121,10 +121,8 @@ public class IT502SynapseJavaClientAccountTest {
 		// complete the email addition
 		String encodedToken = getTokenFromFile(s3KeyToDelete, endpoint);
 		EmailValidationSignedToken token = SerializationUtils.hexDecodeAndDeserialize(encodedToken, EmailValidationSignedToken.class);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationSignedToken(token);
 		// we are _not_ setting it to be the notification email
-		synapseOne.addEmail(addEmailInfo, false);
+		synapseOne.addEmail(token, false);
 		
 		// now remove the email
 		synapseOne.removeEmail(email);
