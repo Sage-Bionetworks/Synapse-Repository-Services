@@ -6,12 +6,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -85,13 +80,13 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * Add a new email address to an existing account.
 	 * 
 	 * @param userId
-	 * @param addEmailInfo
+	 * @param emailValidationSignedToken
 	 * @param setAsNotificationEmail
 	 * @throws NotFoundException
 	 */
-	public void addEmail(Long userId, AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws NotFoundException {
+	public void addEmail(Long userId, EmailValidationSignedToken emailValidationSignedToken, Boolean setAsNotificationEmail) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		principalManager.addEmail(userInfo, addEmailInfo, setAsNotificationEmail);
+		principalManager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 	}
 	
 	/**

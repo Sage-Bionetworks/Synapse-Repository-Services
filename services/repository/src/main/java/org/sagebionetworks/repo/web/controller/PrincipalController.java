@@ -4,12 +4,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -79,7 +74,6 @@ public class PrincipalController extends BaseController {
 	 * complete the account creation process.
 	 * 
 	 * @param user the first name, last name and email address for the user
-	 * @param client Synapse
 	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
 	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
 	 *        string must be included with the <a href="${POST.account}">POST /account</a> request.
@@ -100,7 +94,6 @@ public class PrincipalController extends BaseController {
 	 * and a session token returned to the client.
 	 * 
 	 * @param accountSetupInfo user's first name, last name, requested user name, password, and validation token
-	 * @param client Synapse
 	 * @return a session token, allowing the client to begin making authenticated requests
 	 * @throws NotFoundException
 	 */
@@ -121,7 +114,6 @@ public class PrincipalController extends BaseController {
 	 *        making the request.
 	 * @param userId
 	 * @param email the email address to be added to the account
-	 * @param client Synapse
 	 * @param portalEndpoint the beginning of the URL included in the email verification message. When concatenated with
 	 *        a list of ampersand (&) separated request parameters, must become a well formed URL. The concatenated
 	 *        string must be included with the <a href="${POST.email}">POST /email</a> request.
@@ -150,7 +142,7 @@ public class PrincipalController extends BaseController {
 	 * @param userId
 	 * @param setAsNotificationEmail if true then the newly added email address becomes the address
 	 * used by the system for sending messages to the user.
-	 * @param addEmailInfo the validation token sent by email
+	 * @param emailValidationSignedToken the validation token sent by email
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -158,10 +150,10 @@ public class PrincipalController extends BaseController {
 	public void addEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.SET_AS_NOTIFICATION_EMAIL_PARM) Boolean setAsNotificationEmail,
-			@RequestBody AddEmailInfo addEmailInfo
+			@RequestBody EmailValidationSignedToken emailValidationSignedToken
 
 			) throws NotFoundException {
-		serviceProvider.getPrincipalService().addEmail(userId, addEmailInfo, setAsNotificationEmail);
+		serviceProvider.getPrincipalService().addEmail(userId, emailValidationSignedToken, setAsNotificationEmail);
 	}
 	
 	/**
@@ -221,7 +213,7 @@ public class PrincipalController extends BaseController {
 	/**
 	 * Lookup a principal ID using an alias and alias type.
 	 * 
-	 * @param alias
+	 * @param request
 	 * @throws NotFoundException
 	 *             If the given alias is not assigned to a principal.
 	 */
