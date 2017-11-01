@@ -461,6 +461,7 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
@@ -498,6 +499,7 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_APPEND_ROW_ASYNC_GET, method = RequestMethod.GET)
 	public @ResponseBody
