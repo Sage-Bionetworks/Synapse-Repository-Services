@@ -1,9 +1,9 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -188,6 +188,62 @@ public class UploadPreviewBuilderTest {
 		row.setValues(Arrays.asList("true", "2.2"));
 		row.setRowId(2L);
 		row.setVersionNumber(0L);;
+		expectedRows.add(row);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CSVReader reader = new CSVReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockProgressCallback, request);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(2), result.getRowsScanned());
+		assertEquals(expectedRows, result.getSampleRows());
+		assertEquals(expectedSchema, result.getSuggestedColumns());
+	}
+	
+	/**
+	 * Test for PLFM-4697.  CSV with an etag column results in off-by-one error.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void testBuildResultsWithRowIdAndVersionEtag() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(3);
+		// This CSV has ROW_ID and ROW_VERSION
+		input.add(new String[] {ROW_ID, ROW_VERSION, ROW_ETAG, "boolean", "double" });
+		input.add(new String[] { "1", "0", "etag1", "false", "1.1" });
+		input.add(new String[] { "2", "0", "etag2", "true", "2.2", });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		// RowId and version should not be included as suggested columns.
+		List<ColumnModel> expectedSchema = new ArrayList<ColumnModel>();
+		// 0
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.BOOLEAN);
+		cm.setName("boolean");
+		expectedSchema.add(cm);
+		// 1
+		cm = new ColumnModel();
+		cm.setColumnType(ColumnType.DOUBLE);
+		cm.setName("double");
+		expectedSchema.add(cm);
+		
+		List<Row> expectedRows = new ArrayList<Row>();
+		// 0
+		Row row = new Row();
+		row.setValues(Arrays.asList("false", "1.1"));
+		row.setRowId(1L);
+		row.setVersionNumber(0L);
+		row.setEtag("etag1");
+		expectedRows.add(row);
+		// 1
+		row = new Row();
+		row.setValues(Arrays.asList("true", "2.2"));
+		row.setRowId(2L);
+		row.setVersionNumber(0L);
+		row.setEtag("etag2");
 		expectedRows.add(row);
 		
 		StringReader sReader = new StringReader(eachTypeCSV);
