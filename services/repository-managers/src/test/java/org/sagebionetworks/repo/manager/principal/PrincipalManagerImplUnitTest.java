@@ -244,7 +244,6 @@ public class PrincipalManagerImplUnitTest {
 		accountSetupInfo.setLastName(LAST_NAME);
 		accountSetupInfo.setPassword(PASSWORD);
 		accountSetupInfo.setUsername(USER_NAME);
-		long USER_ID = 111L;
 		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
 		manager.createNewAccount(accountSetupInfo);
 		ArgumentCaptor<NewUser> newUserCaptor = ArgumentCaptor.forClass(NewUser.class);
