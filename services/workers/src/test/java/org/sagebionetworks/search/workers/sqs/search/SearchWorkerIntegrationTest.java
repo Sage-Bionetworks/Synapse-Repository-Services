@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -177,7 +178,7 @@ public class SearchWorkerIntegrationTest {
 		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);
-		waitForQuery("q="+uuid);
+		waitForQuery(new SearchRequest().withQuery(uuid));
 	}
 
 	public void waitForPojectToAppearInSearch() throws Exception {
@@ -190,10 +191,10 @@ public class SearchWorkerIntegrationTest {
 		}
 	}
 	
-	public void waitForQuery(String query) throws Exception {
+	public void waitForQuery(SearchRequest request) throws Exception {
 		long start = System.currentTimeMillis();
-		while (searchDao.executeSearch(query).getHits().size() < 1) {
-			System.out.println("Waiting for search query: "+query);
+		while (searchDao.executeSearch(request).getHits().size() < 1) {
+			System.out.println("Waiting for search query: "+request);
 			Thread.sleep(5000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue(	"Failed to a new Entity in the search index within the timeout period.",elapse < MAX_WAIT);

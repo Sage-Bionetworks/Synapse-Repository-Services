@@ -1,5 +1,6 @@
 package org.sagebionetworks.search;
 
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
@@ -22,15 +23,18 @@ import java.util.List;
 import java.util.Map;
 
 public class CloudsSearchDomainClientAdapter {
-	private boolean initialized = false; //TODO: use autowire? or use the client builder? decide later?
+	private boolean initialized;
 	private AmazonCloudSearchDomainClient client;
 
 
-	public CloudsSearchDomainClientAdapter(){//TODO: maybe need to change constructor?
+	public CloudsSearchDomainClientAdapter(AWSCredentials awsCredentials){//TODO: maybe need to change constructor?
+		this.client = new AmazonCloudSearchDomainClient(awsCredentials);
 		this.initialized = false;
 	}
 
 	public void sendDocuments(String documents){
+		checEndpointInitilaization();
+
 		byte[] documentBytes = documents.getBytes();
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")
@@ -41,18 +45,25 @@ public class CloudsSearchDomainClientAdapter {
 
 	public void setEndpoint(String endpoint){
 		client.setEndpoint(endpoint);
-		initialized = true;
+		initialized = (endpoint != null && !"".equals(endpoint));
+	}
+
+	public SearchResults search(SearchRequest request){
+		checEndpointInitilaization();
+		return convertToSynapseSearchResult(client.search(request));
 	}
 
 	public boolean isInitialized(){
 		return initialized;
 	}
 
-	public SearchResults search(SearchRequest request){
-		return convertToSynapseSearchResult(client.search(request));
+	private void checEndpointInitilaization(){
+		if(!isInitialized()){
+			throw new IllegalArgumentException("The endpoint is not yet initialized, please use setEndpoint() before calling this method"); //TODO: use different exception
+		}
 	}
 
-	public SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
+	private SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
 
 		//Handle Translating of facets

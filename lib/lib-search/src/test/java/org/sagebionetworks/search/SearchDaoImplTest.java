@@ -45,6 +45,7 @@ public class SearchDaoImplTest {
 	
 	@Test(expected=ServiceUnavailableException.class)
 	public void testInitializePostInitFalse() throws Exception {
+		//TODO: fix
 		mockCloudSearchClient = mock(AmazonCloudSearchClient.class);
 		
 		mockSearchDomainSetup = mock(SearchDomainSetupImpl.class);
@@ -70,6 +71,7 @@ public class SearchDaoImplTest {
 
 	@Test
 	public void testInitializePostInitTrue() throws Exception {
+		//TODO: fix
 		mockCloudSearchClient = mock(AmazonCloudSearchClient.class);
 		
 		mockSearchDomainSetup = mock(SearchDomainSetupImpl.class);

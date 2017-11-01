@@ -81,24 +81,9 @@ public interface SearchDao {
 	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResults executeSearch(String search) throws ClientProtocolException, IOException,
-			ServiceUnavailableException, CloudSearchClientException;
-	 
-	 /**
-	 * The unprocessed form of the search
-	 * 
-	 * @param search
-	 * @return
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws ServiceUnavailableException
-	 * @throws CloudSearchClientException 
-	 */
-	String executeRawSearch(String search) throws ClientProtocolException, IOException,
+	SearchResults executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException;
 
-	//TODO:z Documentation!!!!!!!!!!!!!!!!!!
-	SearchResults executeCloudSearchDomainSearch(SearchRequest searchRequest);
 
 	/**
 	 * Does a document already exist with the given id and etag?

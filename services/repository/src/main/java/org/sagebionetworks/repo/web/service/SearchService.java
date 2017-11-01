@@ -30,6 +30,4 @@ public interface SearchService {
 	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException, IOException,
 			DatastoreException, NotFoundException, ServiceUnavailableException, CloudSearchClientException;
 
-	@ResponseBody
-	SearchResults proxySearchAwsApi(UserInfo userInfo, SearchQuery searchQuery);
 }

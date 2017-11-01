@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -64,7 +65,7 @@ public class SearchServiceImplTest {
 		Hit hit = new Hit();
 		hit.setId("syn123");
 		sample.getHits().add(hit);
-		when(mockSearchDao.executeSearch(any(String.class))).thenReturn(sample);
+		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 		// make sure the path is returned from the document driver
 		when(mockSearchDocumentDriver.getEntityPath("syn123")).thenReturn(new EntityPath());
 		
@@ -76,7 +77,7 @@ public class SearchServiceImplTest {
 		query.getBooleanQuery().add(kv);
 		
 		// Setup the expected query
-		String serchQueryString = service.createQueryString(userInfo, query);
+		SearchRequest searchRequest = SearchUtil.generateSearchRequest(query,userInfo);
 		// Path should not get passed along to the search index as it is not there anymore.
 		query.setReturnFields(new LinkedList<String>());
 		query.getReturnFields().add(FIELD_PATH);
@@ -90,7 +91,7 @@ public class SearchServiceImplTest {
 		// Path should get filled in since we asked for it.
 		assertNotNull(returnedHit.getPath());
 		// Validate that path was not passed along to the search index as it is not there.
-		verify(mockSearchDao, times(1)).executeSearch(serchQueryString);
+		verify(mockSearchDao, times(1)).executeSearch(searchRequest);
 	}
 	
 	@Test
@@ -101,7 +102,7 @@ public class SearchServiceImplTest {
 		Hit hit = new Hit();
 		hit.setId("syn123");
 		sample.getHits().add(hit);
-		when(mockSearchDao.executeSearch(any(String.class))).thenReturn(sample);
+		when(mockSearchDao.executeSearch(any(SearchRequest.class))).thenReturn(sample);
 		
 		SearchQuery query = new SearchQuery();
 		query.setBooleanQuery(new LinkedList<KeyValue>());
@@ -111,8 +112,7 @@ public class SearchServiceImplTest {
 		query.getBooleanQuery().add(kv);
 		
 		// Setup the expected query
-		String serchQueryString = service.createQueryString(userInfo, query);
-
+		SearchRequest searchRequest = SearchUtil.generateSearchRequest(query, userInfo);
 		// Make the call
 		SearchResults results = service.proxySearch(userInfo, query);
 		assertNotNull(results);
@@ -121,7 +121,7 @@ public class SearchServiceImplTest {
 		Hit returnedHit = results.getHits().get(0);
 		// The path should not be returned unless requested.
 		assertNull(returnedHit.getPath());
-		verify(mockSearchDao, times(1)).executeSearch(serchQueryString);
+		verify(mockSearchDao, times(1)).executeSearch(searchRequest);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)

@@ -11,6 +11,7 @@ import java.util.Random;
 import java.util.Set;
 
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
+import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.apache.http.client.ClientProtocolException;
@@ -41,14 +42,14 @@ import com.amazonaws.services.cloudsearchv2.model.DomainStatus;
  */
 public class SearchDaoImpl implements SearchDao {
 
-	private static final String QUERY_BY_ID_AND_ETAG = "q.parser=structured&q=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
+	private static final String QUERY_BY_ID_AND_ETAG = "(and "+FIELD_ID+":'%1$s' "+FIELD_ETAG+":'%2$s')";
 	
-	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "q.parser=structured&q="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = FIELD_ID+":'*'";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
-	
+
 	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
-	
+
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
@@ -59,6 +60,7 @@ public class SearchDaoImpl implements SearchDao {
 //	@Autowired
 //	AmazonCloudSearchDomain cloudSearchDomainClient;
 	//TODO: figure out initialization of this client
+	@Autowired
 	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
 
 
@@ -74,18 +76,18 @@ public class SearchDaoImpl implements SearchDao {
 		}
 
 		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
-		log.info("Search endpoint: " + searchEndPoint);
-		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
-		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
-		log.info("Document endpoint: " + documentEndPoint);
-		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
+//		log.info("Search endpoint: " + searchEndPoint);
+//		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
+//		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
+//		log.info("Document endpoint: " + documentEndPoint);
+//		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
 		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
 		//cloudHttpClient._init();
 		//TODO: figure out for the document endpoint also
 		log.info("THis is snek:" + searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
 
 		//Note: even though we only gave it the search endpoint, the client seems to be able to change to the document upload endpoint automatically
-		cloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
+		cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
 		return true;
 	}
 	
@@ -232,30 +234,10 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException,
+	public SearchResults executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
 		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
-
-		String results = searchClient.performSearch(search);
-		try {
-			return searchResultsFactory.fromAwesomeSearchResults(results);
-		} catch (JSONObjectAdapterException e) {
-			// Convert to runtime
-			throw new RuntimeException(e);
-		}
-	}
-
-	//TODO: no usage of this method is found. REmove?
-	@Override
-	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
-			ServiceUnavailableException, CloudSearchClientException {
-		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
-		return searchClient.performSearch(search);
-	}
-
-	@Override
-	public SearchResults executeCloudSearchDomainSearch(SearchRequest searchRequest){
-		return cloudSearchClientAdapter.search(searchRequest);
+		return searchClient.search(search);
 	}
 
 	@Override
@@ -264,7 +246,7 @@ public class SearchDaoImpl implements SearchDao {
 		validateSearchEnabled();
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
-		SearchResults results = executeSearch(query);
+		SearchResults results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
 		return results.getHits().size() > 0;
 	}
 
@@ -272,8 +254,9 @@ public class SearchDaoImpl implements SearchDao {
 	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
 		validateSearchEnabled();
-		String query = String.format(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE, limit, offset);
-		return executeSearch(query);
+		return executeSearch(new SearchRequest().withQuery(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE)
+												.withQueryParser(QueryParser.Structured)
+												.withSize(limit).withStart(offset));
 	}
 
 	@Override

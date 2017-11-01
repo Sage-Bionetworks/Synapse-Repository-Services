@@ -84,7 +84,7 @@ public class SearchServiceImpl implements SearchService {
 			throws ClientProtocolException,	IOException, DatastoreException,
 			NotFoundException, ServiceUnavailableException, CloudSearchClientException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return proxySearchAwsApi(userInfo, searchQuery);
+		return proxySearch(userInfo, searchQuery);
 	}
 
 	/**
@@ -106,23 +106,14 @@ public class SearchServiceImpl implements SearchService {
 			searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
 		}
 		// Create the query string
-		String cleanedSearchQuery = createQueryString(userInfo, searchQuery);
-		SearchResults results = searchDao.executeSearch(cleanedSearchQuery);
+		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery, userInfo);
+		SearchResults results = searchDao.executeSearch(searchRequest);
 		// Add any extra return results to the hits
 		if(results != null && results.getHits() != null){
 			addReturnDataToHits(results.getHits(), includePath);
 		}
 		return results;
 	}
-
-	@Override
-	public @ResponseBody
-	SearchResults proxySearchAwsApi(UserInfo userInfo, SearchQuery searchQuery){
-		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery, userInfo);
-		return searchDao.executeCloudSearchDomainSearch(searchRequest);
-	}
-
-
 
 	/**
 	 * Add extra return results to the hit list.
