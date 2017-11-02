@@ -152,9 +152,8 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 					anyValues = true;
 					value = lastRow[csvColumnIndex];
 				}
+				values.put(columnId.toString(), value);
 			}
-			values.put(columnId.toString(), value);
-
 		}
 		if (anyValues) {
 			row.setValues(values);

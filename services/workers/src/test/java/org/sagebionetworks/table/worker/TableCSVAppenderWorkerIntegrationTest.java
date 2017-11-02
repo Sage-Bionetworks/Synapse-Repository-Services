@@ -43,6 +43,10 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -312,6 +316,134 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		List<TableRowChange> changes = this.tableEntityManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
 		assertEquals(2, changes.size());
+	}
+	
+	/**
+	 * Test added for support of SYNR-976
+	 * Update a table from a CSV that does not include all of the columns.
+	 * The update should only change the column in the CSV, the other
+	 * column should not be modified.
+	 */
+	@Test
+	public void testPartialCSVUpdate() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
+			IOException, InterruptedException {
+		// Create a few columns
+		// String
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setName("somestrings");
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		this.schema.add(cm);
+		// integer
+		cm = new ColumnModel();
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setName("someinteger");
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema.add(cm);
+		// create the table.
+		createTableWithSchema();
+
+		// Create a CSV file to upload
+		File tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
+		tempFiles.add(tempFile);
+		CSVWriter csv = new CSVWriter(new FileWriter(tempFile));
+		int rowCount = 1;
+		try {
+			// Write the header
+			csv.writeNext(new String[] { schema.get(1).getName(), schema.get(0).getName() });
+			// Write some rows
+			for (int i = 0; i < rowCount; i++) {
+				csv.writeNext(new String[] { "" + i, "stringdata" + i });
+			}
+		} finally {
+			csv.close();
+		}
+		S3FileHandle fileHandle = uploadFile(tempFile);
+		// We are now ready to start the job
+		UploadToTableRequest body = new UploadToTableRequest();
+		body.setTableId(tableId);
+		body.setEntityId(tableId);
+		body.setUploadFileHandleId(fileHandle.getId());
+		System.out.println("Inserting");
+		TableUpdateTransactionRequest txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		// download the csv
+		DownloadFromTableRequest download = new DownloadFromTableRequest();
+		download.setSql("select somestrings from " + tableId);
+		download.setIncludeRowIdAndRowVersion(true);
+		download.setCsvTableDescriptor(new CsvTableDescriptor());
+		download.getCsvTableDescriptor().setIsFirstLineHeader(true);
+		System.out.println("Downloading");
+		status = asynchJobStatusManager.startJob(adminUserInfo, download);
+		status = waitForStatus(adminUserInfo, status);
+		DownloadFromTableResult downloadResult = (DownloadFromTableResult) status.getResponseBody();
+		S3FileHandle resultFile = (S3FileHandle) fileHandleDao.get(downloadResult.getResultsFileHandleId());
+		fileHandles.add(resultFile);
+		tempFile = File.createTempFile("DownloadCSV", ".csv");
+		tempFiles.add(tempFile);
+		s3Client.getObject(new GetObjectRequest(resultFile.getBucketName(), resultFile.getKey()), tempFile);
+		// Load the CSV data
+		CSVReader csvReader = new CSVReader(new FileReader(tempFile));
+		List<String[]> results = csvReader.readAll();
+		csvReader.close();
+
+		// modify it
+		int i = 3000;
+		for (String[] row : results.subList(1, results.size())) {
+			assertEquals(3, row.length);
+			row[2] += "-changed" + i++;
+		}
+
+		tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest2", ".csv");
+		tempFiles.add(tempFile);
+		csv = new CSVWriter(new FileWriter(tempFile));
+		for (String[] row : results) {
+			csv.writeNext(row);
+		}
+		csv.close();
+
+		fileHandle = uploadFile(tempFile);
+		// We are now ready to start the job
+		body = new UploadToTableRequest();
+		body.setTableId(tableId);
+		body.setEntityId(tableId);
+		body.setUploadFileHandleId(fileHandle.getId());
+		CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor();
+		csvTableDescriptor.setIsFirstLineHeader(true);
+		csvTableDescriptor.setSeparator(",");
+		body.setCsvTableDescriptor(csvTableDescriptor);
+		System.out.println("Appending");
+		txRequest = TableModelUtils.wrapInTransactionRequest(body);
+		status = asynchJobStatusManager.startJob(adminUserInfo, txRequest);
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		
+		// query for the results
+		Query query = new Query();
+		query.setSql("select * from "+tableId+" limit 1");
+		QueryBundleRequest queryBundle = new QueryBundleRequest();
+		queryBundle.setQuery(query);
+		
+		status = asynchJobStatusManager.startJob(adminUserInfo, queryBundle);
+		// Wait for the job to complete.
+		status = waitForStatus(adminUserInfo, status);
+		QueryResultBundle bundleResults = (QueryResultBundle) status.getResponseBody();
+		assertNotNull(bundleResults);
+		assertNotNull(bundleResults.getQueryResult());
+		assertNotNull(bundleResults.getQueryResult().getQueryResults());
+		assertNotNull(bundleResults.getQueryResult().getQueryResults().getRows());
+		List<Row> rows = bundleResults.getQueryResult().getQueryResults().getRows();
+		assertEquals(1, rows.size());
+		Row row = rows.get(0);
+		assertNotNull(row.getValues());
+		assertEquals(2, row.getValues().size());
+		// the column changed in the CSV should be changed.
+		assertEquals("stringdata0-changed3000",row.getValues().get(0));
+		// validate the column not included in the update CVS remains unchanged.
+		assertEquals("0",row.getValues().get(1));
 	}
 	
 	/**
