@@ -146,6 +146,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	private AuthorizationManagerImpl authorizationManager;
 	private UserInfo userInfo;
+	private UserInfo anonymousUserInfo;
 	private UserInfo adminUser;
 	private Evaluation evaluation;
 	private String threadId;
@@ -184,6 +185,8 @@ public class AuthorizationManagerImplUnitTest {
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 		adminUser = new UserInfo(true, 456L);
+		
+		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		evaluation = new Evaluation();
 		evaluation.setId(EVAL_ID);
@@ -495,10 +498,42 @@ public class AuthorizationManagerImplUnitTest {
 		String entityId = "syn123";
 		WikiPageKey key = new WikiPageKey();
 		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
 		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
 		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo))
 				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
+	}
+	
+	@Test
+	public void testCanAccessWikiUpdate() throws Exception {
+		String wikiId = "1";
+		String entityId = "syn123";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
+		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, userInfo))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertTrue(authorizationManager.canAccess(userInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.UPDATE).getAuthorized());
+	}
+	
+	/**
+	 * This test was added for PLFM-4689. Anonymous users must be able to download wiki attachments
+	 * when the wiki is public read.
+	 * @throws Exception
+	 */
+	@Test
+	public void testCanAccessWikiAnonymous() throws Exception {
+		String wikiId = "1";
+		String entityId = "syn123";
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId(entityId);
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		when(mockWikiPageDaoV2.lookupWikiKey(wikiId)).thenReturn(key);
+		when(mockEntityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, anonymousUserInfo))
+				.thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		assertTrue(authorizationManager.canAccess(anonymousUserInfo, wikiId, ObjectType.WIKI, ACCESS_TYPE.DOWNLOAD).getAuthorized());
 	}
 
 	@Test
