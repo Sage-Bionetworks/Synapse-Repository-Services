@@ -1,5 +1,8 @@
 package org.sagebionetworks.client;
 
+
+import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_GET;
+import static org.sagebionetworks.client.SynapseClientImpl.ASYNC_START;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_BULK;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_APPEND;
 import static org.sagebionetworks.client.SynapseClientImpl.TABLE_DOWNLOAD_CSV;
@@ -41,9 +44,6 @@ public enum AsynchJobType {
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;
 	RestEndpointType restEndpointType;
-	private static final String ASYNC_START = "/async/start";
-	private static final String ASYNC_GET = "/async/get/";
-	
 	
 	AsynchJobType(String prefix, Class<? extends AsynchronousResponseBody> responseClass, RestEndpointType endpoint){
 		this.prefix = prefix;

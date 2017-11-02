@@ -290,6 +290,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MESSAGE_ORDER_BY_PARAM = "orderBy";
 	private static final String MESSAGE_DESCENDING_PARAM = "descending";
 
+	protected static final String ASYNC_START = "/async/start";
+	protected static final String ASYNC_GET = "/async/get/";
+
 	protected static final String COLUMN = "/column";
 	protected static final String COLUMN_BATCH = COLUMN + "/batch";
 	protected static final String COLUMN_VIEW_DEFAULT = COLUMN + "/tableview/defaults/";
