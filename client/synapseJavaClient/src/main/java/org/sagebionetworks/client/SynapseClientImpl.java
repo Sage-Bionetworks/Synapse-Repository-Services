@@ -121,16 +121,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasList;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
-import org.sagebionetworks.repo.model.principal.TypeFilter;
-import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
+import org.sagebionetworks.repo.model.principal.*;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -604,7 +595,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	/**
 	 * Add a new email address to an existing account.
 	 * 
-	 * @param addEmailInfo
+	 * @param emailValidationSignedToken
 	 *            the token sent to the user via email
 	 * @param setAsNotificationEmail
 	 *            if true then set the new email address to be the user's
@@ -612,16 +603,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public void addEmail(AddEmailInfo addEmailInfo,
+	public void addEmail(EmailValidationSignedToken emailValidationSignedToken,
 			Boolean setAsNotificationEmail) throws SynapseException {
-		ValidateArgument.required(addEmailInfo, "addEmailInfo");
+		ValidateArgument.required(emailValidationSignedToken, "emailValidationSignedToken");
 
 		Map<String, String> paramMap = new HashMap<String, String>();
 		if (setAsNotificationEmail != null) {
 			paramMap.put(SET_AS_NOTIFICATION_EMAIL_PARAM, setAsNotificationEmail.toString());
 		}
 
-		voidPost(getRepoEndpoint(), EMAIL, addEmailInfo, paramMap);
+		voidPost(getRepoEndpoint(), EMAIL, emailValidationSignedToken, paramMap);
 	}
 
 	/**

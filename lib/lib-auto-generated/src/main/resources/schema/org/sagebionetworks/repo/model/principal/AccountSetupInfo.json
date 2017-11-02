@@ -17,10 +17,6 @@
 			"type": "string",
 			"description": "The password to be applied to the new account."
 		},
-		"emailValidationToken": {
-			"type": "string",
-			"description": "Deprecated. The validation token sent via email"
-		},
 		"emailValidationSignedToken": {
 			"type": "object",
 			"description": "Signed token containing the email address of the new account.",

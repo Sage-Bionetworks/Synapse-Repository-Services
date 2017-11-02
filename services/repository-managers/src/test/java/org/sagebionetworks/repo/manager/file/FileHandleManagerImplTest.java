@@ -1285,7 +1285,6 @@ public class FileHandleManagerImplTest {
 		verify(mockObjectRecordQueue, times(1)).pushObjectRecordBatch(any(ObjectRecordBatch.class));
 		verify(mockFileHandleDao, times(1)).getAllFileHandlesBatch(any(Iterable.class));
 	}
-	
 
 	/**
 	 * This a file handle that has all of the required fields filled in.
