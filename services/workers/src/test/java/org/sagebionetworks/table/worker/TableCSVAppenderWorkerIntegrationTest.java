@@ -143,12 +143,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		doTestRoundTrip(true);
 	}
 
-	@Test
-	public void testRoundTripWithColumnIds() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException,
-			IOException, InterruptedException {
-		doTestRoundTrip(false);
-	}
-
 	private void doTestRoundTrip(boolean useCSVHeader) throws DatastoreException, InvalidModelException, UnauthorizedException,
 			NotFoundException, IOException,
 			InterruptedException {
