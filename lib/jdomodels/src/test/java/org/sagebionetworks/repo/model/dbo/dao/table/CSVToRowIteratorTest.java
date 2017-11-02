@@ -47,7 +47,7 @@ public class CSVToRowIteratorTest {
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		List<Map<String, String>> inputTranslate = TableModelTestUtils.mapInput(input, columns);
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null);
 		// Since no header was provide, the values should remain in the same
 		// order.
 		List<SparseRowDto> asList = readAll(iterator);
@@ -87,7 +87,7 @@ public class CSVToRowIteratorTest {
 		List<Map<String, String>> inputTranslate = TableModelTestUtils.mapInput(input, columns);
 		boolean isFirstLineHeader= true;
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null);
 		List<SparseRowDto> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());
@@ -107,83 +107,6 @@ public class CSVToRowIteratorTest {
 		assertEquals(inputTranslate.get(3), row.getValues());
 	}
 	
-	@Test
-	public void testCSVToRowIteratorWithColumnIds() throws IOException {
-		// Create a reader with some data.
-		List<String[]> input = new ArrayList<String[]>(3);
-		// This time add a header row.
-		input.add(new String[] { "AAA", "2", "true" });
-		input.add(new String[] { "CCC", "3", "false" });
-		input.add(new String[] { "FFF", "4", "true" });
-		CSVReader reader = TableModelTestUtils.createReader(input);
-		// Create some columns
-		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
-				"a", "b", "c");
-		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.INTEGER);
-		columns.get(2).setColumnType(ColumnType.BOOLEAN);
-		List<Map<String, String>> inputTranslate = TableModelTestUtils.mapInput(input, columns);
-		
-		boolean isFirstLineHeader= false;
-		List<String> columnIds = Lists.newArrayList(columns.get(0).getId(), columns.get(1).getId(), columns.get(2).getId());
-		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, columnIds, null);
-		List<SparseRowDto> asList = readAll(iterator);
-		assertEquals("The header should not be included in the results", 3,
-				asList.size());
-		// zero
-		SparseRowDto row = asList.get(0);
-		assertNull(row.getRowId());
-		assertNull(row.getVersionNumber());
-		assertNotNull(row.getValues());
-		assertEquals(3, row.getValues().size());
-		assertEquals(inputTranslate.get(0), row.getValues());
-		// last
-		row = asList.get(2);
-		assertNull(row.getRowId());
-		assertNull(row.getVersionNumber());
-		assertNotNull(row.getValues());
-		assertEquals(3, row.getValues().size());
-		assertEquals(inputTranslate.get(2), row.getValues());
-	}
-	
-
-	@Test
-	public void testCSVToRowIteratorWithBrokenHeaderAndColumnsInSameOrder() throws IOException {
-		// Create a reader with some data.
-		List<String[]> input = new ArrayList<String[]>(3);
-		// This time add a header row.
-		input.add(new String[] { "a-not", "b-not", "c-not" });
-		input.add(new String[] { "AAA", "2", "true" });
-		input.add(new String[] { "CCC", "3", "false" });
-		input.add(new String[] { "FFF", "4", "true" });
-		CSVReader reader = TableModelTestUtils.createReader(input);
-		// Create some columns
-		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
-		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.INTEGER);
-		columns.get(2).setColumnType(ColumnType.BOOLEAN);
-		List<Map<String, String>> inputTranslate = TableModelTestUtils.mapInput(input, columns);
-		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, Lists.newArrayList(columns.get(0).getId(), columns.get(1)
-				.getId(), columns.get(2).getId()), null);
-		List<SparseRowDto> asList = readAll(iterator);
-		assertEquals("The header should not be included in the results", 3, asList.size());
-		// zero
-		SparseRowDto row = asList.get(0);
-		assertNull(row.getRowId());
-		assertNull(row.getVersionNumber());
-		assertNotNull(row.getValues());
-		assertEquals(3, row.getValues().size());
-		assertEquals(inputTranslate.get(1), row.getValues());
-		// last
-		row = asList.get(2);
-		assertNull(row.getRowId());
-		assertNull(row.getVersionNumber());
-		assertNotNull(row.getValues());
-		assertEquals(3, row.getValues().size());
-		assertEquals(inputTranslate.get(3), row.getValues());
-	}
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testCSVToRowIteratorWithHeadersMissing() throws IOException {
@@ -201,25 +124,7 @@ public class CSVToRowIteratorTest {
 		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		// Should throw an exception since the headers are missing.
-		new CSVToRowIterator(columns, reader, true, null, null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testCSVToRowIteratorWithColumnIdsWrong() throws IOException {
-		// Create a reader with some data.
-		List<String[]> input = new ArrayList<String[]>(3);
-		// This time add a header row.
-		input.add(new String[] { "AAA", "2", "true" });
-		input.add(new String[] { "CCC", "3", "false" });
-		input.add(new String[] { "FFF", "4", "true" });
-		CSVReader reader = TableModelTestUtils.createReader(input);
-		// Create some columns
-		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
-		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.INTEGER);
-		columns.get(2).setColumnType(ColumnType.BOOLEAN);
-		// Should throw an exception since the column ids are incorrect.
-		new CSVToRowIterator(columns, reader, false, Lists.newArrayList("111", "222", "444"), null);
+		new CSVToRowIterator(columns, reader, true, null);
 	}
 
 	@Test
@@ -240,7 +145,7 @@ public class CSVToRowIteratorTest {
 		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.STRING);
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null);
 		List<SparseRowDto> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());
@@ -278,7 +183,7 @@ public class CSVToRowIteratorTest {
 		columns.get(2).setColumnType(ColumnType.STRING);
 
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null);
 		List<SparseRowDto> asList = readAll(iterator);
 		assertEquals("The header should not be included in the results", 3,
 				asList.size());
@@ -315,16 +220,21 @@ public class CSVToRowIteratorTest {
 		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
+		List<ColumnModel> csvColumns = Lists.newArrayList(columns.get(2), columns.get(0));
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		assertEquals(3, rows.size());
-		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, columns, null, null, "AAA"), rows.get(0));
-		assertEquals(TableModelTestUtils.createSparseRow(null, null, columns, "false", null, "CCC"), rows.get(1));
+		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, csvColumns, "AAA", null), rows.get(0));
+		assertEquals(TableModelTestUtils.createSparseRow(null, null, csvColumns, "CCC", "false"), rows.get(1));
 		assertEquals(TableModelTestUtils.createDeletionSparseRow(3L, 10L), rows.get(2));
 	}
 
+	/**
+	 * This case
+	 * @throws IOException
+	 */
 	@Test
 	public void testCSVToRowIteratorWithNotAllHeaders() throws IOException {
 		// Create a reader with some data.
@@ -336,38 +246,17 @@ public class CSVToRowIteratorTest {
 		CSVReader reader = new CSVReader(new StringReader(csv));
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
+		List<ColumnModel> csvColumns = Lists.newArrayList(columns.get(2), columns.get(0));
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		assertEquals(3, rows.size());
-		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, columns, null, null, "AAA"), rows.get(0));
-		assertEquals(TableModelTestUtils.createSparseRow(null, null, columns, "false", null, "CCC"), rows.get(1));
+		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, csvColumns,"AAA", null), rows.get(0));
+		assertEquals(TableModelTestUtils.createSparseRow(null, null, csvColumns, "CCC", "false"), rows.get(1));
 		assertEquals(TableModelTestUtils.createDeletionSparseRow(3L, 10L), rows.get(2));
 	}
 
-	@Test
-	public void testCSVToRowIteratorWithColumnIdsIgnoreColumns() throws IOException {
-		// Create a reader with some data.
-		String csv =
-			"ROW_ID,ROW_VERSION,aa,bb,cc\n" +
-			"1,11,AAA,2,\n" +
-			",,CCC,3,false\n" +
-			"3,10\n";
-		CSVReader reader = new CSVReader(new StringReader(csv));
-		// Create some columns
-		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("a", "b", "c");
-		
-		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, Lists.newArrayList("ROW_ID", "ROW_VERSION", columns.get(2)
-				.getId(), null, columns.get(0).getId()), null);
-		List<SparseRowDto> rows = readAll(iterator);
-
-		assertEquals(3, rows.size());
-		assertEquals(TableModelTestUtils.createSparseRow(1L, 11L, columns, null, null, "AAA"), rows.get(0));
-		assertEquals(TableModelTestUtils.createSparseRow(null, null, columns, "false", null, "CCC"), rows.get(1));
-		assertEquals(TableModelTestUtils.createDeletionSparseRow(3L, 10L), rows.get(2));
-	}
 
 	@Test
 	public void testCSVToRowIteratorReadDeletion() throws IOException {
@@ -381,7 +270,7 @@ public class CSVToRowIteratorTest {
 		// Create some columns
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames("c", "b", "a");
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, true, null);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		assertEquals(3, rows.size());
@@ -405,7 +294,7 @@ public class CSVToRowIteratorTest {
 		Long linesToSkip = 1L;
 		 
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, linesToSkip);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		/*
@@ -432,7 +321,7 @@ public class CSVToRowIteratorTest {
 		Long linesToSkip = null;
 		 
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, linesToSkip);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		/*
@@ -459,7 +348,7 @@ public class CSVToRowIteratorTest {
 		Long linesToSkip = 1L;
 		 
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, null, linesToSkip);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, isFirstLineHeader, linesToSkip);
 		List<SparseRowDto> rows = readAll(iterator);
 
 		/*
