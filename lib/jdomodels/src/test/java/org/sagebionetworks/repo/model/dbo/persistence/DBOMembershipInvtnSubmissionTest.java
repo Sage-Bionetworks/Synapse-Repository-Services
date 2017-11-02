@@ -17,9 +17,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.MembershipInvtnSubmissionUtils;
+import org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -108,9 +108,9 @@ public class DBOMembershipInvtnSubmissionTest {
 		assertEquals(clone, clone2);
 	}
 
-	private static MembershipInvtnSubmission createMembershipInvtnSubmission(Date createdOn) {
+	private static MembershipInvitation createMembershipInvtnSubmission(Date createdOn) {
 		//It's easiest to create a DBO object by first creating a DTO object and then converting it
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		MembershipInvitation dto = new MembershipInvitation();
 		dto.setId("101");
 		dto.setCreatedOn(createdOn);
 		dto.setExpiresOn(null);
@@ -123,15 +123,15 @@ public class DBOMembershipInvtnSubmissionTest {
 
 	@Test
 	public void testTranslator() throws Exception {
-		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(new Date());
+		MembershipInvitation dto = createMembershipInvtnSubmission(new Date());
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		MembershipInvitationUtils.copyDtoToDbo(dto, dbo);
 		// now do the round trip
 		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
 		DBOMembershipInvtnSubmission actual = dbo.getTranslator().createDatabaseObjectFromBackup(backup);
 		DBOMembershipInvtnSubmission expected = backup;
 		expected.setEtag(DBOMembershipInvtnSubmission.defaultEtag);
 		assertEquals(expected, actual);
-		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
+		assertEquals(dto, MembershipInvitationUtils.copyDboToDto(dbo));
 	}
 }

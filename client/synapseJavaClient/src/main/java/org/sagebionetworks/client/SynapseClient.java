@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -1551,8 +1550,8 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission createMembershipInvitation(
-			MembershipInvtnSubmission invitation,
+	MembershipInvitation createMembershipInvitation(
+			MembershipInvitation invitation,
 			String acceptInvitationEndpoint, 
 			String notificationUnsubscribeEndpoint ) throws SynapseException;
 
@@ -1562,7 +1561,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
+	MembershipInvitation getMembershipInvitation(String invitationId) throws SynapseException;
 
 	/**
 	 * Retrieve membership invitation using a signed token for authorization
@@ -1571,7 +1570,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipInvtnSubmission getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException;
+	MembershipInvitation getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException;
 
 	/**
 	 * 
@@ -1593,7 +1592,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return a list of open invitations issued by a team, optionally filtered by invitee
 	 * @throws SynapseException
 	 */
-	PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(String teamId, String inviteeId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipInvitation> getOpenMembershipInvitationSubmissions(String teamId, String inviteeId, long limit, long offset) throws SynapseException;
 
 	/**
 	 * 
@@ -1610,7 +1609,7 @@ public interface SynapseClient extends BaseClient {
 	Count getOpenMembershipInvitationCount() throws SynapseException;
 
 	/**
-	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the authenticated user.
+	 * Verify whether the inviteeEmail of the indicated MembershipInvitation is associated with the authenticated user.
 	 * If it is, the response body will contain an InviteeVerificationSignedToken.
 	 * If it is not, a response status 403 Forbidden will be returned.
 	 * @param membershipInvitationId

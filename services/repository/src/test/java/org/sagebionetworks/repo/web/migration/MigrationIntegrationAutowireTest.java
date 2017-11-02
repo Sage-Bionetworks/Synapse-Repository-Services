@@ -50,8 +50,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
@@ -87,14 +87,14 @@ import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Request;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.AuthenticationReceiptDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.dbo.file.CompositeMultipartUploadStatus;
@@ -213,7 +213,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 
 	@Autowired
-	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	private MembershipInvitationDAO membershipInvitationDAO;
 
 	@Autowired
 	private ColumnModelDAO columnModelDao;
@@ -880,8 +880,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		mrs.setUserId(otherUserId);
 		membershipRqstSubmissionDAO.create(mrs);
 
-		// create a MembershipInvtnSubmission
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		// create a MembershipInvitation
+		MembershipInvitation mis = new MembershipInvitation();
 		mis.setCreatedOn(createdOn);
 		mis.setExpiresOn(expiresOn);
 		mis.setMessage("Please join the team.");
@@ -890,7 +890,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		// need another valid user group
 		mis.setInviteeId(otherUserId);
 
-		membershipInvtnSubmissionDAO.create(mis);
+		membershipInvitationDAO.create(mis);
 	}
 	
 	private void createThrottleRule(){

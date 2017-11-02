@@ -4,7 +4,18 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
@@ -227,7 +238,7 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType);
+	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mis, ACCESS_TYPE accessType);
 
 	/**
 	 * Check whether the token is valid for the access_type
@@ -236,7 +247,7 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
+	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
 
 	/**
 	 * Check whether the token is valid for the access_type
@@ -246,5 +257,5 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
+	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
 }

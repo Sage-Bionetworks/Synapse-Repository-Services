@@ -15,7 +15,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -93,17 +93,17 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		// create an invitation
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		MembershipInvitation mis = new MembershipInvitation();
 		mis.setInviteeId(testInvitee.getId().toString());
 		mis.setTeamId(teamToDelete.getId());
-		MembershipInvtnSubmission created = servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis,
+		MembershipInvitation created = servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis,
 				acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
 		// get the invitation
-		MembershipInvtnSubmission mis2 = servletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());
+		MembershipInvitation mis2 = servletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());
 		assertEquals(created, mis2);
 		// get all invitations for the team
-		PaginatedResults<MembershipInvtnSubmission> miss = servletTestHelper.
+		PaginatedResults<MembershipInvitation> miss = servletTestHelper.
 				getMembershipInvitationSubmissions(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));

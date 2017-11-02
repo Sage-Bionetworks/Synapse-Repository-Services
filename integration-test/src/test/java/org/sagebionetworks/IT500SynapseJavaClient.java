@@ -44,7 +44,45 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.ResponseMessage;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.entity.query.Condition;
 import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
@@ -1309,7 +1347,7 @@ public class IT500SynapseJavaClient {
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create an invitation
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		MembershipInvitation dto = new MembershipInvitation();
 		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
@@ -1321,7 +1359,7 @@ public class IT500SynapseJavaClient {
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		MembershipInvitation created = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(myPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -1335,7 +1373,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1L, openInvitationCount.getCount().longValue());
 
 		// get the invitation
-		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
+		MembershipInvitation retrieved = synapseOne.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
 		
 		{
@@ -1346,7 +1384,7 @@ public class IT500SynapseJavaClient {
 			assertEquals(expiresOn, invitation.getExpiresOn());
 			assertEquals(message, invitation.getMessage());
 			assertEquals(createdTeam.getId(), invitation.getTeamId());
-			assertEquals(inviteePrincipalId, invitation.getUserId());
+			assertEquals(inviteePrincipalId, invitation.getInviteeId());
 			// check pagination
 			invitations = synapseOne.getOpenMembershipInvitations(inviteePrincipalId, null, 2, 1);
 			assertEquals(0L, invitations.getResults().size());
@@ -1363,10 +1401,10 @@ public class IT500SynapseJavaClient {
 		
 		// query for invitation SUBMISSIONs based on team
 		{
-			PaginatedResults<MembershipInvtnSubmission> invitationSubmissions = 
+			PaginatedResults<MembershipInvitation> invitationSubmissions =
 					synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
-			MembershipInvtnSubmission submission = invitationSubmissions.getResults().get(0);
+			MembershipInvitation submission = invitationSubmissions.getResults().get(0);
 			assertEquals(created, submission);
 			// check pagination
 			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
@@ -1393,7 +1431,7 @@ public class IT500SynapseJavaClient {
 		// create an invitation with null inviteeId and non null inviteeEmail
 		dto.setInviteeId(null);
 		dto.setInviteeEmail(TEST_EMAIL);
-		MembershipInvtnSubmission mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		MembershipInvitation mis = synapseOne.createMembershipInvitation(dto, MOCK_ACCEPT_INVITATION_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		InviteeVerificationSignedToken token = synapseTwo.getInviteeVerificationSignedToken(mis.getId());
 		// test if getInviteeVerificationSignedToken succeeded
 		assertNotNull(token);
@@ -1524,7 +1562,7 @@ public class IT500SynapseJavaClient {
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create an invitation
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		MembershipInvitation dto = new MembershipInvitation();
 		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());
@@ -1598,7 +1636,7 @@ public class IT500SynapseJavaClient {
 		teamsToDelete.add(createdTeam.getId());
 		
 		// create an invitation
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		MembershipInvitation dto = new MembershipInvitation();
 		UserProfile inviteeUserProfile = synapseTwo.getMyProfile();
 		List<String> inviteeEmails = inviteeUserProfile.getEmails();
 		assertEquals(1, inviteeEmails.size());

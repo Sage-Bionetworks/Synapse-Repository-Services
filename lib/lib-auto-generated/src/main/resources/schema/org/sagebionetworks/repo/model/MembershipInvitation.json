@@ -3,22 +3,30 @@
 	"description": "JSON schema for MembershipInvitation POJO",
 
 	"properties": {
-		"userId": {
+		"id": {
 			"type": "string",
-			"description": "The id of the user to which the invitation is given."
+			"description": "The id of the MembershipInvitation."
 		},
 		"teamId": {
 			"type": "string",
-			"description": "The id of the Team to which the request is sent."
+			"description": "The id of the Team which the user is invited to join."
+		},
+		"inviteeId": {
+			"type":"string",
+			"description": "The principal ID of the user being invited to join the Team."
+		},
+		"inviteeEmail": {
+			"type":"string",
+			"description": "The email address of the user being invited to join the Team."
 		},
 		"message": {
 			"type": "string",
-			"description": "The invitation message."
+			"description": "The invitation message (optional)."
 		},
 		"expiresOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this MembershipInvitation expires.",
+			"description": "The date this invitation expires (optional).",
 			"title": "Expires On"
 		},
 		"createdOn": {
@@ -26,6 +34,11 @@
 			"format": "date-time",
 			"description": "The date this MembershipInvitation was created.",
 			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this MembershipInvitation.",
+			"title": "Created By"
 		}
 	}
 }
