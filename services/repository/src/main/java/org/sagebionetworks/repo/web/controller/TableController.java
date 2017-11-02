@@ -87,8 +87,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * Once the columns for a TableEntity have been created and assigned to the
  * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>. Each <a
- * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
+ * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>. 
+ * Each <a href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
  * table will automatically be assigned a rowId and a versionNumber and can be
  * found in the resulting <a
  * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
@@ -105,7 +105,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * table. The returned <a
  * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
  * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table.append.async.start}">POST /entity/{id}/table/append/async/start</a>.
+ * href="${POST.entity.id.table.transaction.async.start}">POST /entity/{id}/table/transaction/async/start</a>.
  * </p>
  * <p>
  * There is also an <a
@@ -483,8 +483,8 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a PartialRowSet update to a table
-	 * started with <a href="${POST.entity.id.table.append.async.start}">POST
-	 * /entity/{id}/table/partial/async/start</a>
+	 * started with <a href="${POST.entity.id.table.transaction.async.start}">POST
+	 * /entity/{id}/table/transaction/async/start</a>
 	 * <p>
 	 * Note: When the result is not ready yet, this method will return a status
 	 * code of 202 (ACCEPTED) and the response body will be a <a
