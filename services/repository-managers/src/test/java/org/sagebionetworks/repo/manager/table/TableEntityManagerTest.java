@@ -1378,7 +1378,7 @@ public class TableEntityManagerTest {
 			columns.add(TableModelTestUtils.createColumn(i));
 		}
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null);
 		long startMemory = getMemoryUsed();
 		List<SparseRowDto> rows = new LinkedList<>();
 		for(int i=0; i<numberRows; i++){
@@ -1412,7 +1412,7 @@ public class TableEntityManagerTest {
 			columns.add(TableModelTestUtils.createColumn(i));
 		}
 		// Create the iterator.
-		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null, null);
+		Iterator<SparseRowDto> iterator = new CSVToRowIterator(columns, reader, false, null);
 		long startMemory = getMemoryUsed();
 		List<SparseRowDto> rows = new LinkedList<>();
 		for(int i=0; i<numberRows; i++){

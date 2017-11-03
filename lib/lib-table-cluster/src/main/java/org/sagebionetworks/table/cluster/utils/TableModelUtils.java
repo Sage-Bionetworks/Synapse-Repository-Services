@@ -1244,28 +1244,6 @@ public class TableModelUtils {
 		return columnIdToColumnIndexMap;
 	}
 
-	public static Map<Long, Integer> createColumnIdToColumnIndexMapFromColumnIds(List<String> columnIds, List<ColumnModel> resultSchema) {
-		Set<Long> existingColumnIds = Sets.newHashSet(Lists.transform(resultSchema, COLUMN_MODEL_TO_ID));
-		// Build the map from the ids
-		Map<Long, Integer> columnIdToColumnIndexMap = Maps.newHashMap();
-		for (int i = 0; i < columnIds.size(); i++) {
-			String columnIdString = columnIds.get(i);
-			Long id = null;
-			if (columnIdString != null) {
-				id = TableConstants.getReservedColumnId(columnIdString);
-				if (id == null) {
-					id = Long.parseLong(columnIdString);
-					// make sure the column ID is a valid one for this schema
-					if (!existingColumnIds.contains(id)) {
-						throw new IllegalArgumentException("The column ID " + columnIdString + " is not a valid column ID for this table");
-					}
-				}
-				columnIdToColumnIndexMap.put(id, i);
-			}
-		}
-		return columnIdToColumnIndexMap;
-	}
-
 	public static SelectColumn createSelectColumn(String name, ColumnType columnType, String id) {
 		SelectColumn newSelectColumn = new SelectColumn();
 		newSelectColumn.setName(name);
