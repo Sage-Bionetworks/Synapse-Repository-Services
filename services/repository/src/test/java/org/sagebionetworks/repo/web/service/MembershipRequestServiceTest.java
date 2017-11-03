@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
@@ -50,7 +50,7 @@ public class MembershipRequestServiceTest {
 		String acceptRequestEndpoint = "acceptRequestEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		List<MessageToUserAndBody> result = Collections.singletonList(new MessageToUserAndBody(mtu, content, "text/plain"));
-		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		MembershipRequest mrs = new MembershipRequest();
 		when(mockMembershipRequestManager.create(userInfo, mrs)).thenReturn(mrs);
 		when(mockMembershipRequestManager.createMembershipRequestNotification(mrs,
 				acceptRequestEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);

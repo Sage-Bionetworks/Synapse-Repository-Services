@@ -69,7 +69,6 @@ import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -4106,8 +4105,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public MembershipRqstSubmission createMembershipRequest(
-			MembershipRqstSubmission request,
+	public MembershipRequest createMembershipRequest(
+			MembershipRequest request,
 			String acceptRequestEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException {
 		String uri = MEMBERSHIP_REQUEST;
@@ -4115,14 +4114,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri += 	"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
 					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
 		}
-		return postJSONEntity(getRepoEndpoint(), uri, request, MembershipRqstSubmission.class);
+		return postJSONEntity(getRepoEndpoint(), uri, request, MembershipRequest.class);
 	}
 
 	@Override
-	public MembershipRqstSubmission getMembershipRequest(String requestId)
+	public MembershipRequest getMembershipRequest(String requestId)
 			throws SynapseException {
 		String url = MEMBERSHIP_REQUEST + "/" + requestId;
-		return getJSONEntity(getRepoEndpoint(), url, MembershipRqstSubmission.class);
+		return getJSONEntity(getRepoEndpoint(), url, MembershipRequest.class);
 	}
 
 	@Override
@@ -4142,7 +4141,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
+	public PaginatedResults<MembershipRequest> getOpenMembershipRequestSubmissions(
 			String requesterId, String teamId, long limit, long offset)
 			throws SynapseException {
 		String uri = null;
@@ -4154,7 +4153,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 					+ TEAM_ID_REQUEST_PARAMETER + "=" + teamId + "&" + OFFSET
 					+ "=" + offset + "&" + LIMIT + "=" + limit;
 		}
-		return getPaginatedResults(getRepoEndpoint(), uri, MembershipRqstSubmission.class);
+		return getPaginatedResults(getRepoEndpoint(), uri, MembershipRequest.class);
 	}
 
 	@Override

@@ -53,7 +53,6 @@ import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.ProjectHeader;
@@ -1638,16 +1637,16 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request,
-			String acceptRequestEndpoint, 
-			String notificationUnsubscribeEndpoint) throws SynapseException;
+	MembershipRequest createMembershipRequest(MembershipRequest request,
+	                                          String acceptRequestEndpoint,
+	                                          String notificationUnsubscribeEndpoint) throws SynapseException;
 	/**
 	 * 
 	 * @param requestId
 	 * @return
 	 * @throws SynapseException
 	 */
-	MembershipRqstSubmission getMembershipRequest(String requestId) throws SynapseException;
+	MembershipRequest getMembershipRequest(String requestId) throws SynapseException;
 
 	/**
 	 * 
@@ -1669,7 +1668,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return a list of membership requests from a requester, optionally filtered by the team to which the request was sent
 	 * @throws SynapseException
 	 */
-	PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(String requesterId, String teamId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequestSubmissions(String requesterId, String teamId, long limit, long offset) throws SynapseException;
 
 	/**
 	 * 

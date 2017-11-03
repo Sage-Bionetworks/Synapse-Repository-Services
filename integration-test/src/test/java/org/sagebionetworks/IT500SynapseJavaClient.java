@@ -67,7 +67,6 @@ import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.LogEntry;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -1134,7 +1133,7 @@ public class IT500SynapseJavaClient {
 		String otherDName = otherUp.getUserName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
-		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		MembershipRequest mrs = new MembershipRequest();
 		mrs.setTeamId(createdTeam.getId());
 		synapseTwo.createMembershipRequest(mrs, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		// check membership status
@@ -1470,13 +1469,13 @@ public class IT500SynapseJavaClient {
 		
 		// create a request
 		String otherPrincipalId = synapseTwo.getMyProfile().getOwnerId();
-		MembershipRqstSubmission dto = new MembershipRqstSubmission();
+		MembershipRequest dto = new MembershipRequest();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
+		MembershipRequest created = synapseTwo.createMembershipRequest(dto, MOCK_ACCEPT_MEMB_RQST_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 		assertEquals(otherPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -1485,7 +1484,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		// get the request
-		MembershipRqstSubmission retrieved = synapseTwo.getMembershipRequest(created.getId());
+		MembershipRequest retrieved = synapseTwo.getMembershipRequest(created.getId());
 		assertEquals(created, retrieved);
 
 		// check that request count is 1
@@ -1518,9 +1517,9 @@ public class IT500SynapseJavaClient {
 		
 		// query for request SUBMISSIONs based on team
 		{
-			PaginatedResults<MembershipRqstSubmission> requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
+			PaginatedResults<MembershipRequest> requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			MembershipRqstSubmission requestSubmission = requestSubmissions.getResults().get(0);
+			MembershipRequest requestSubmission = requestSubmissions.getResults().get(0);
 			assertEquals(created, requestSubmission);
 			// check pagination
 			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 2, 1);
@@ -1698,7 +1697,7 @@ public class IT500SynapseJavaClient {
 		// create a request
 		UserProfile requesterProfile = synapseTwo.getMyProfile();
 		String requesterPrincipalId = requesterProfile.getOwnerId();
-		MembershipRqstSubmission dto = new MembershipRqstSubmission();
+		MembershipRequest dto = new MembershipRequest();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";
@@ -1771,7 +1770,7 @@ public class IT500SynapseJavaClient {
 		// create a request
 		UserProfile requesterProfile = synapseTwo.getMyProfile();
 		String requesterPrincipalId = requesterProfile.getOwnerId();
-		MembershipRqstSubmission dto = new MembershipRqstSubmission();
+		MembershipRequest dto = new MembershipRequest();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";

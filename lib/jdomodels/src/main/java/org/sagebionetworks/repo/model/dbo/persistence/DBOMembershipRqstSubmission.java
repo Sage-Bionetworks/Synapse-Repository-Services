@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
- * Database Object for a MembershipRqstSubmission.
+ * Database Object for a MembershipRequest.
  *
  */
 public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBOMembershipRqstSubmission, DBOMembershipRqstSubmission> {

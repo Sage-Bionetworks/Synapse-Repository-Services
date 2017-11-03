@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,7 +26,7 @@ public interface MembershipRequestManager {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public MembershipRqstSubmission create(UserInfo userInfo, MembershipRqstSubmission mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException;
+	public MembershipRequest create(UserInfo userInfo, MembershipRequest mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException;
 	
 	/**
 	 * Retrieve an request by its ID
@@ -37,7 +36,7 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public MembershipRqstSubmission get(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipRequest get(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Delete a request
@@ -82,7 +81,7 @@ public interface MembershipRequestManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+	public PaginatedResults<MembershipRequest> getOpenSubmissionsByRequesterInRange(
 			UserInfo userInfo, String requesterId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
@@ -96,7 +95,7 @@ public interface MembershipRequestManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
+	public PaginatedResults<MembershipRequest> getOpenSubmissionsByTeamAndRequesterInRange(
 			UserInfo userInfo, String teamId, String requesterId, long limit,
 			long offset) throws DatastoreException, NotFoundException;
 
@@ -106,7 +105,7 @@ public interface MembershipRequestManager {
 	 * @param mrs
 	 * @return the message metadata and the message content, one for each team administrator
 	 */
-	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRqstSubmission mrs,
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRequest mrs,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint);
 
 	/**

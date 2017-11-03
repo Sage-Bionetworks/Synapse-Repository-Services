@@ -46,7 +46,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
-import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRequestDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -99,7 +99,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private MembershipInvitationDAO membershipInvitationDAO;
 	@Autowired
-	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	private MembershipRequestDAO membershipRequestDAO;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -441,7 +441,7 @@ public class TeamManagerImpl implements TeamManager {
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
 			if (alreadyInTeam) return true;
-			long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+			long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openRequestCount>0L;
 		}
 	}
@@ -519,7 +519,7 @@ public class TeamManagerImpl implements TeamManager {
 		// clean up any invitations
 		membershipInvitationDAO.deleteByTeamAndUser(Long.parseLong(teamId), principalUserInfo.getId());
 		// clean up and membership requests
-		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
+		membershipRequestDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
 		
 		return !alreadyInTeam;
 	}
@@ -646,7 +646,7 @@ public class TeamManagerImpl implements TeamManager {
 		long now = System.currentTimeMillis();
 		long openInvitationCount = membershipInvitationDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenInvitation(openInvitationCount>0L);
-		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		long openRequestCount = membershipRequestDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo, isMember));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));

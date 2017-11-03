@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -20,10 +19,10 @@ public interface MembershipRequestService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto,
-			String acceptRequestEndpoint, 
-			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
+	public MembershipRequest create(Long userId,
+	                                MembershipRequest dto,
+	                                String acceptRequestEndpoint,
+	                                String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -50,7 +49,7 @@ public interface MembershipRequestService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(Long userId, String requesterId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipRequest> getOpenRequestSubmissions(Long userId, String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -62,7 +61,7 @@ public interface MembershipRequestService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public MembershipRqstSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipRequest get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

@@ -52,8 +52,8 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRequestDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -210,7 +210,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private CommentDAO commentDAO;
 
 	@Autowired
-	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	private MembershipRequestDAO membershipRequestDAO;
 
 	@Autowired
 	private MembershipInvitationDAO membershipInvitationDAO;
@@ -868,8 +868,8 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		team.setDescription("test team");
 		team = teamDAO.create(team);
 
-		// create a MembershipRqstSubmission
-		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		// create a MembershipRequest
+		MembershipRequest mrs = new MembershipRequest();
 		Date createdOn = new Date();
 		Date expiresOn = new Date();
 		mrs.setCreatedOn(createdOn);
@@ -878,7 +878,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		mrs.setTeamId("" + group.getId());
 		// need another valid user group
 		mrs.setUserId(otherUserId);
-		membershipRqstSubmissionDAO.create(mrs);
+		membershipRequestDAO.create(mrs);
 
 		// create a MembershipInvitation
 		MembershipInvitation mis = new MembershipInvitation();
