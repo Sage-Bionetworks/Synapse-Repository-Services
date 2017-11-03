@@ -241,5 +241,12 @@ public class AnnotationsTest {
 		assertEquals(anno, clone);
 		
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReplaceDate() {
+		java.sql.Date wrongDate = new java.sql.Date(123L);
+		Annotations anno = new Annotations();
+		anno.replaceAnnotation("wrong", wrongDate);
+	}
 
 }
