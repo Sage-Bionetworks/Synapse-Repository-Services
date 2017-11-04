@@ -1,12 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+
+import com.amazonaws.util.IOUtils;
 
 public class MembershipInvitationUtils {
 
@@ -14,7 +20,7 @@ public class MembershipInvitationUtils {
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
 
-	private static final String CLASS_ALIAS = "MembershipInvitation";
+	public static final String CLASS_ALIAS = "MembershipInvitation";
 
 	public static void copyDtoToDbo(MembershipInvitation dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
@@ -56,5 +62,21 @@ public class MembershipInvitationUtils {
 	
 	public static MembershipInvitation copyFromSerializedField(DBOMembershipInvtnSubmission dbo) throws DatastoreException {
 		return deserialize(dbo.getProperties());
+	}
+
+	public static byte[] unzip(byte[] zippedBytes) throws IOException {
+		ByteArrayInputStream inputStream = new ByteArrayInputStream(zippedBytes);
+		GZIPInputStream gzipInputStream = new GZIPInputStream(inputStream);
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		IOUtils.copy(gzipInputStream, outputStream);
+		return outputStream.toByteArray();
+	}
+
+	public static byte[] zip(byte[] unzippedBytes) throws IOException {
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		GZIPOutputStream gzip = new GZIPOutputStream(outputStream);
+		gzip.write(unzippedBytes);
+		gzip.finish();
+		return outputStream.toByteArray();
 	}
 }

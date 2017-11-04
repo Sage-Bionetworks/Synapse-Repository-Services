@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.CLASS_ALIAS;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.unzip;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.zip;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON;
@@ -11,11 +14,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_INVITATION_SUBMISSION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -180,6 +185,17 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 			public DBOMembershipInvtnSubmission createDatabaseObjectFromBackup(DBOMembershipInvtnSubmission backup) {
 				if (backup.getEtag() == null) {
 					backup.setEtag(defaultEtag);
+				}
+				try {
+					String backupProperties = new String(unzip(backup.getProperties()));
+					if (backupProperties.contains("MembershipInvtnSubmission")) {
+						// This backup object has a MembershipInvtnSubmission in its properties field
+						// Set its properties to be a MembershipInvitation instead
+						String correctedProperties = backupProperties.replace("MembershipInvtnSubmission", CLASS_ALIAS);
+						backup.setProperties(zip(correctedProperties.getBytes()));
+					}
+				} catch (IOException e) {
+					throw new DatastoreException(e);
 				}
 				return backup;
 			}

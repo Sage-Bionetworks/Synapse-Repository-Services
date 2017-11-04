@@ -1,9 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.unzip;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.zip;
+import static org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils.UTF8;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.LinkedList;
@@ -133,5 +138,20 @@ public class DBOMembershipInvtnSubmissionTest {
 		expected.setEtag(DBOMembershipInvtnSubmission.defaultEtag);
 		assertEquals(expected, actual);
 		assertEquals(dto, MembershipInvitationUtils.copyDboToDto(dbo));
+	}
+
+	@Test
+	public void testTranslatorRefactor() throws IOException {
+		DBOMembershipInvtnSubmission backup = new DBOMembershipInvtnSubmission();
+		String oldProperties = "<MembershipInvtnSubmission/>";
+		backup.setProperties(zip(oldProperties.getBytes(UTF8)));
+
+		// Method under test
+		DBOMembershipInvtnSubmission translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		String expectedProperties = "<MembershipInvitation/>";
+		String translatedProperties = new String(unzip(translated.getProperties()), UTF8);
+		assertEquals(expectedProperties, translatedProperties);
+		assertNotEquals(oldProperties, translatedProperties);
 	}
 }
