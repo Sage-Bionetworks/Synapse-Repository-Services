@@ -590,6 +590,11 @@
 			<dependency>
 				<groupId>com.sun</groupId>
 				<artifactId>tools</artifactId>
+				<!-- 
+				A copy of the tools.jar from 
+				jdk1.8.0_152 was manually added to 
+				atrifactory to create version 1.8.20171103.
+				-->
 				<version>1.8.20171103</version>
 			</dependency>
 
