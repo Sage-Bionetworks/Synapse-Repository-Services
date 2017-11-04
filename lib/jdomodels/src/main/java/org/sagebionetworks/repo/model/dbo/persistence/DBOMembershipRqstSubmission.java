@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.unzip;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.zip;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipRequestUtils.CLASS_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_ID;
@@ -9,11 +12,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_REQUEST_SUBMISSION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -170,6 +175,17 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 
 			@Override
 			public DBOMembershipRqstSubmission createDatabaseObjectFromBackup(DBOMembershipRqstSubmission backup) {
+				try {
+					String backupProperties = new String(unzip(backup.getProperties()));
+					if (backupProperties.contains("MembershipRqstSubmission")) {
+						// This backup object has a MembershipRqstSubmission in its properties field
+						// Set its properties to be a MembershipRequest instead
+						String correctedProperties = backupProperties.replace("MembershipRqstSubmission", CLASS_ALIAS);
+						backup.setProperties(zip(correctedProperties.getBytes()));
+					}
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
 				return backup;
 			}
 

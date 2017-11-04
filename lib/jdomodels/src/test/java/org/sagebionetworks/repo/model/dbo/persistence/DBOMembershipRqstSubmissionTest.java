@@ -1,9 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.unzip;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.zip;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
@@ -104,4 +108,18 @@ public class DBOMembershipRqstSubmissionTest {
 		assertEquals(clone, clone2);
 	}
 
+	@Test
+	public void testTranslatorRefactor() throws IOException {
+		DBOMembershipRqstSubmission backup = new DBOMembershipRqstSubmission();
+		String oldProperties = "<MembershipRqstSubmission/>";
+		backup.setProperties(zip(oldProperties.getBytes()));
+
+		// Method under test
+		DBOMembershipRqstSubmission translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		String expectedProperties = "<MembershipRequest/>";
+		String translatedProperties = new String(unzip(translated.getProperties()));
+		assertEquals(expectedProperties, translatedProperties);
+		assertNotEquals(oldProperties, translatedProperties);
+	}
 }

@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.unzip;
 import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.zip;
-import static org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils.UTF8;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -144,13 +143,13 @@ public class DBOMembershipInvtnSubmissionTest {
 	public void testTranslatorRefactor() throws IOException {
 		DBOMembershipInvtnSubmission backup = new DBOMembershipInvtnSubmission();
 		String oldProperties = "<MembershipInvtnSubmission/>";
-		backup.setProperties(zip(oldProperties.getBytes(UTF8)));
+		backup.setProperties(zip(oldProperties.getBytes()));
 
 		// Method under test
 		DBOMembershipInvtnSubmission translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
 		String expectedProperties = "<MembershipInvitation/>";
-		String translatedProperties = new String(unzip(translated.getProperties()), UTF8);
+		String translatedProperties = new String(unzip(translated.getProperties()));
 		assertEquals(expectedProperties, translatedProperties);
 		assertNotEquals(oldProperties, translatedProperties);
 	}

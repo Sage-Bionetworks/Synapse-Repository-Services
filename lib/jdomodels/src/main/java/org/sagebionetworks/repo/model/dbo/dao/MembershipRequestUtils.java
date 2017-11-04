@@ -14,7 +14,7 @@ public class MembershipRequestUtils {
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
 
-	private static final String CLASS_ALIAS = "MembershipRequest";
+	public static final String CLASS_ALIAS = "MembershipRequest";
 
 	public static void copyDtoToDbo(MembershipRequest dto, DBOMembershipRqstSubmission dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
