@@ -330,7 +330,8 @@ public class TableViewIntegrationTest {
 		query.setIncludeEntityEtag(true);
 
 		// run the query again
-		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query);
+		int expectedRowCount = fileCount;
+		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, query, expectedRowCount);
 		assertNotNull(results);
 		assertEquals(new Long(fileCount), results.getQueryCount());
 		assertNotNull(results.getQueryResult());
