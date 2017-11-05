@@ -19,6 +19,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -483,6 +485,27 @@ public class DBOColumnModelImplTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
+	}
+	
+	/**
+	 * Test to validate the a new ColumnModel hash is created each time 
+	 * a ColumnModel is restored from a Backup.
+	 */
+	@Test
+	public void testPLFM_4710() {
+		int maxNumberEnums = 10;
+		ColumnModel dto = new ColumnModel();
+		dto.setName("foo");
+		dto.setColumnType(ColumnType.STRING);
+		dto.setId("123");
+		dto.setMaximumSize(50L);
+		DBOColumnModel backup = ColumnModelUtils.createDBOFromDTO(dto, maxNumberEnums);
+		// clear the hash
+		backup.setHash(null);
+		// call under test
+		DBOColumnModel databaseDbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+		// the database DBO should receive a new hash.
+		assertNotNull(databaseDbo.getHash());
 	}
 	
 	/**
