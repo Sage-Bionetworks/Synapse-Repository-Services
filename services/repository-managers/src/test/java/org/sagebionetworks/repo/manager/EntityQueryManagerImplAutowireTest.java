@@ -14,12 +14,14 @@ import java.util.UUID;
 
 import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -64,7 +66,9 @@ import com.google.common.collect.Lists;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityQueryManagerImplAutowireTest {
-
+	@Autowired
+	StackConfiguration config;
+	
 	@Autowired
 	private EntityManager entityManager;
 	
@@ -99,6 +103,9 @@ public class EntityQueryManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception {
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
+				
 		MockitoAnnotations.initMocks(this);
 		assertNotNull(entityManager);
 		nodesToDelete = new ArrayList<String>();
