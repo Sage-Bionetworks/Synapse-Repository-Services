@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -286,13 +286,13 @@ public class MembershipInvitationDAOImplTest {
 		// Get the invitation's etag
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, misId);
-		DBOMembershipInvtnSubmission dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		DBOMembershipInvitation dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param);
 		String oldEtag = dbo.getEtag();
 
 		// Update the inviteeId and get the updated invitation
 		String inviteeId = individUser.getId();
 		membershipInvitationDAO.updateInviteeId(misId, Long.parseLong(inviteeId));
-		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, param);
+		dbo = basicDAO.getObjectByPrimaryKey(DBOMembershipInvitation.class, param);
 
 		// inviteeId should be updated
 		assertEquals(inviteeId, dbo.getInviteeId().toString());

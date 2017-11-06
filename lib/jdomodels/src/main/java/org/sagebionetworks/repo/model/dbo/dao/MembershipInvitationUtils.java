@@ -1,18 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-
-import com.amazonaws.util.IOUtils;
 
 public class MembershipInvitationUtils {
 
@@ -22,7 +16,7 @@ public class MembershipInvitationUtils {
 
 	public static final String CLASS_ALIAS = "MembershipInvitation";
 
-	public static void copyDtoToDbo(MembershipInvitation dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static void copyDtoToDbo(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
@@ -32,7 +26,7 @@ public class MembershipInvitationUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
-	public static MembershipInvitation copyDboToDto(DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static MembershipInvitation copyDboToDto(DBOMembershipInvitation dbo) throws DatastoreException {
 		MembershipInvitation dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
@@ -43,7 +37,7 @@ public class MembershipInvitationUtils {
 		return dto;
 	}
 
-	public static void copyToSerializedField(MembershipInvitation dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static void copyToSerializedField(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		try {
 			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto, CLASS_ALIAS));
 		} catch (IOException e) {
@@ -60,23 +54,7 @@ public class MembershipInvitationUtils {
 		
 	}
 	
-	public static MembershipInvitation copyFromSerializedField(DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static MembershipInvitation copyFromSerializedField(DBOMembershipInvitation dbo) throws DatastoreException {
 		return deserialize(dbo.getProperties());
-	}
-
-	public static byte[] unzip(byte[] zippedBytes) throws IOException {
-		ByteArrayInputStream inputStream = new ByteArrayInputStream(zippedBytes);
-		GZIPInputStream gzipInputStream = new GZIPInputStream(inputStream);
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		IOUtils.copy(gzipInputStream, outputStream);
-		return outputStream.toByteArray();
-	}
-
-	public static byte[] zip(byte[] unzippedBytes) throws IOException {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		GZIPOutputStream gzip = new GZIPOutputStream(outputStream);
-		gzip.write(unzippedBytes);
-		gzip.finish();
-		return outputStream.toByteArray();
 	}
 }

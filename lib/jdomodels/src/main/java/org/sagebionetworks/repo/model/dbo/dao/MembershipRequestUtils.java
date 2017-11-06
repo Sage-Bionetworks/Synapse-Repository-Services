@@ -5,7 +5,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class MembershipRequestUtils {
@@ -16,7 +16,7 @@ public class MembershipRequestUtils {
 
 	public static final String CLASS_ALIAS = "MembershipRequest";
 
-	public static void copyDtoToDbo(MembershipRequest dto, DBOMembershipRqstSubmission dbo) throws DatastoreException {
+	public static void copyDtoToDbo(MembershipRequest dto, DBOMembershipRequest dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
@@ -25,7 +25,7 @@ public class MembershipRequestUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
-	public static MembershipRequest copyDboToDto(DBOMembershipRqstSubmission dbo) throws DatastoreException {
+	public static MembershipRequest copyDboToDto(DBOMembershipRequest dbo) throws DatastoreException {
 		MembershipRequest dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
@@ -35,7 +35,7 @@ public class MembershipRequestUtils {
 		return dto;
 	}
 	
-	public static void copyToSerializedField(MembershipRequest dto, DBOMembershipRqstSubmission dbo) throws DatastoreException {
+	public static void copyToSerializedField(MembershipRequest dto, DBOMembershipRequest dbo) throws DatastoreException {
 		try {
 			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto, CLASS_ALIAS));
 		} catch (IOException e) {
@@ -52,7 +52,7 @@ public class MembershipRequestUtils {
 		
 	}
 	
-	public static MembershipRequest copyFromSerializedField(DBOMembershipRqstSubmission dbo) throws DatastoreException {
+	public static MembershipRequest copyFromSerializedField(DBOMembershipRequest dbo) throws DatastoreException {
 		return deserialize(dbo.getProperties());
 	}
 }

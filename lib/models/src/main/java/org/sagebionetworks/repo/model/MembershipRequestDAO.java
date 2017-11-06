@@ -35,7 +35,7 @@ public interface MembershipRequestDAO {
 			long requesterId, long now, long limit, long offset);
 
 	/**
-	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team
+	 * Get the open (unexpired and unfulfilled) MembershipRequests received by the given team
 	 * 
 	 * @param teamId
 	 * @param now current time, expressed as a long
@@ -46,7 +46,7 @@ public interface MembershipRequestDAO {
 	public List<MembershipRequest> getOpenByTeamInRange(long teamId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team from a given requester
+	 * Get the open (unexpired and unfulfilled) MembershipRequests received by the given team from a given requester
 	 * @param teamId
 	 * @param requesterId
 	 * @param now
