@@ -7,6 +7,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -50,7 +51,7 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		Mockito.when(mockIdGenerator.generateNewId(IdType.PROJECT_SETTINGS_ID)).thenReturn(projectSettingId);
 		Mockito.when(mockBasicDao.createNew(dbo)).thenReturn(dbo);
 
-		Mockito.when(mockBasicDao.getObjectByPrimaryKey(
+		Mockito.when((DatabaseObject)mockBasicDao.getObjectByPrimaryKey(
 				(Class)Mockito.any(), (SinglePrimaryKeySqlParameterSource)Mockito.any())).thenReturn(dbo);
 		Mockito.when(mockBasicDao.update(dbo)).thenReturn(true);
 		

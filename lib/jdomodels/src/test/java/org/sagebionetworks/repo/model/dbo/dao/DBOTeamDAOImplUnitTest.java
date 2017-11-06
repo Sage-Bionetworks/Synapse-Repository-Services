@@ -67,7 +67,7 @@ public class DBOTeamDAOImplUnitTest {
 		dbo.setId(Long.parseLong(team.getId()));
 		dbo.setEtag(team.getEtag());
 		TeamUtils.copyDtoToDbo(team, dbo);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), (RowMapper)any(RowMapper.class))).thenReturn(dbo);
 		when(mockBasicDao.update(any(DatabaseObject.class))).thenReturn(true);
 	}
 

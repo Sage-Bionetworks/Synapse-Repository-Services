@@ -158,7 +158,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		
 		// Just call the caller.
-		stub(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
+		stub(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
@@ -193,7 +193,7 @@ public class TableQueryManagerImplTest {
 			}
 		});	
 		// Just call the caller.
-		stub(mockTableIndexDAO.executeInReadTransaction(any(TransactionCallback.class))).toAnswer(new Answer<Void>() {
+		stub(mockTableIndexDAO.executeInReadTransaction( (TransactionCallback)any(TransactionCallback.class))).toAnswer(new Answer<Void>() {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				if (invocation == null)
@@ -308,7 +308,7 @@ public class TableQueryManagerImplTest {
 		assertEquals("Consistent query must return the etag of the current status",
 				status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must be held for a consistent query.
-		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class));
 		// The table status should be checked only for a consistent query.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(tableId);
 	}
@@ -317,7 +317,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamIsConsistentTrueNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new NotFoundException("not found"));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
@@ -332,7 +332,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamIsConsistentTrueTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
@@ -347,7 +347,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamIsConsistentTrueTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
@@ -362,7 +362,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamIsConsistentTrueLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
@@ -377,7 +377,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryAsStreamEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new EmptyResultException());
 		RowHandler rowHandler = new SinglePageRowHandler();
 		boolean runCount = true;
@@ -402,7 +402,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result.getQueryResult().getQueryResults());
 		assertNull("Non-Consistent query result must not contain an etag.", result.getQueryResult().getQueryResults().getEtag());
 		// an exclusive lock must not be held for a non-consistent query.
-		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+		verify(mockTableManagerSupport, never()).tryRunWithTableNonexclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class));
 		// The table status should not be checked only for a non-consistent query.
 		verify(mockTableManagerSupport, never()).getTableStatusOrCreateIfNotExists(tableId);
 	}

@@ -85,7 +85,7 @@ public class EntityServiceImplUnitTest {
 		
 		project = new Project();
 		project.setId("syn123");
-		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), any(Class.class))).thenReturn(project);
+		when(mockEntityManager.getEntity(any(UserInfo.class), anyString(), (Class)any(Class.class))).thenReturn(project);
 		
 		when(mockRequest.getServletPath()).thenReturn("path");
 

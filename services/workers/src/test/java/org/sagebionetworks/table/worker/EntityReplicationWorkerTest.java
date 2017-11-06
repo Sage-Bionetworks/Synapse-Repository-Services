@@ -98,7 +98,7 @@ public class EntityReplicationWorkerTest {
 				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
 				callback.doInTransaction(transactionStatus);
 				return null;
-			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+			}}).when(mockIndexDao).executeInWriteTransaction((TransactionCallback)any(TransactionCallback.class));
 	}
 	
 	@Test

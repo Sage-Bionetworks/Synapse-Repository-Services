@@ -61,7 +61,7 @@ public class DBOActivityDAOImplTest {
 	@Test(expected=NotFoundException.class) 
 	public void testUpdateNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(Class.class))).thenReturn((Long)0L);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), (Class)any(Class.class))).thenReturn((Long)0L);
 		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 
 		Activity act = new Activity();
@@ -72,7 +72,7 @@ public class DBOActivityDAOImplTest {
 	@Test(expected=NotFoundException.class)
 	public void testGetNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(Class.class))).thenReturn((Long)0L);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), (Class)any(Class.class))).thenReturn((Long)0L);
 		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 		
 		activityDao.get(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID).toString());
@@ -87,7 +87,7 @@ public class DBOActivityDAOImplTest {
 		when(mockDbo.getId()).thenReturn(id);
 		when(mockDbo.getEtag()).thenReturn(newEtag);
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(id);
-		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn(oldEtag);
+		when(mockJdbcTemplate.queryForObject(anyString(), (Class)any(Class.class), any())).thenReturn(oldEtag);
 		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(mockDbo);
 		
 		ChangeType type = ChangeType.UPDATE;
@@ -101,7 +101,7 @@ public class DBOActivityDAOImplTest {
 		String oldEtag = "oldEtag";
 		Long id = 123L;
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn(id);
-		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn(oldEtag);
+		when(mockJdbcTemplate.queryForObject(anyString(), (Class)any(Class.class), any())).thenReturn(oldEtag);
 		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 		
 		activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, ChangeType.UPDATE);
@@ -110,7 +110,7 @@ public class DBOActivityDAOImplTest {
 	@Test(expected=ConflictingUpdateException.class)
 	public void testLockActivityAndIncrementEtagConflictingUpdate() throws Exception {
 		when(mockIdGenerator.generateNewId(IdType.ACTIVITY_ID)).thenReturn((long)123);
-		when(mockJdbcTemplate.queryForObject(anyString(), any(Class.class), any())).thenReturn("newEtag");
+		when(mockJdbcTemplate.queryForObject(anyString(), (Class)any(Class.class), any())).thenReturn("newEtag");
 		
 		activityDao.lockActivityAndGenerateEtag("1234", "oldEtag", ChangeType.UPDATE);
 	}
