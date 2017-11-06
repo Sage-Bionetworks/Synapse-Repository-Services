@@ -155,7 +155,7 @@ public class PreviewManagerImplTest {
 	public void testTemporarilyUnavailable() throws Exception{
 		// Simulate a TemporarilyUnavailable exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
-		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new TemporarilyUnavailableException());
+		when(previewManager.resourceTracker.allocateAndUseResources((Callable)any(Callable.class), any(Long.class))).thenThrow(new TemporarilyUnavailableException());
 		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
@@ -164,7 +164,7 @@ public class PreviewManagerImplTest {
 	public void testExceedsMaximumResources() throws Exception{
 		// Simulate a ExceedsMaximumResources exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
-		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new ExceedsMaximumResources());
+		when(previewManager.resourceTracker.allocateAndUseResources((Callable)any(Callable.class), any(Long.class))).thenThrow(new ExceedsMaximumResources());
 		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}

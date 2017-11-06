@@ -71,7 +71,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		dbo.setId(Long.parseLong(ug.getId()));
 		dbo.setEtag(ug.getEtag());
 		UserGroupUtils.copyDtoToDbo(ug, dbo);
-		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
+		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), (RowMapper)any(RowMapper.class))).thenReturn(dbo);
 		when(mockBasicDAO.update(any(DatabaseObject.class))).thenReturn(true);
 	}
 	

@@ -100,7 +100,7 @@ public class TableEntityTransactionManagerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenReturn(response);
+						(ProgressingCallable)any(ProgressingCallable.class))).thenReturn(response);
 		
 		when(tableIndexConnectionFactory.connectToTableIndex(tableId)).thenReturn(tableIndexManager);
 		
@@ -111,7 +111,7 @@ public class TableEntityTransactionManagerTest {
 				TransactionCallback<TableUpdateTransactionResponse> callback = (TransactionCallback<TableUpdateTransactionResponse>) invocation.getArguments()[0];
 				return callback.doInTransaction(mockTransactionStatus);
 			}
-		}).when(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+		}).when(readCommitedTransactionTemplate).execute((TransactionCallback)any(TransactionCallback.class));
 	}
 
 	@Test
@@ -132,7 +132,7 @@ public class TableEntityTransactionManagerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new TableUnavailableException(null));
 		// call under test.
 		manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -146,7 +146,7 @@ public class TableEntityTransactionManagerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException());
 		// call under test.
 		manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -160,7 +160,7 @@ public class TableEntityTransactionManagerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new RecoverableMessageException());
 		// call under test.
 		manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -174,7 +174,7 @@ public class TableEntityTransactionManagerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new RuntimeException());
 		// call under test.
 		manager.updateTableWithTransaction(progressCallback, userInfo, request);
@@ -244,6 +244,6 @@ public class TableEntityTransactionManagerTest {
 		// call under test
 		manager.updateTableWithTransactionWithExclusiveLock(progressCallback, userInfo, request);
 		verify(tableEntityManager).updateTable(progressCallback, userInfo, uploadRequest);
-		verify(readCommitedTransactionTemplate).execute(any(TransactionCallback.class));
+		verify(readCommitedTransactionTemplate).execute((TransactionCallback)any(TransactionCallback.class));
 	}
 }

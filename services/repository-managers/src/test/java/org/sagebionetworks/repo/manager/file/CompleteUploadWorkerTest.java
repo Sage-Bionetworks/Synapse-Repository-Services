@@ -65,7 +65,7 @@ public class CompleteUploadWorkerTest {
 	@Test
 	public void testTimeout() throws Exception{
 		Future<ChunkResult> mockFuture = Mockito.mock(Future.class);
-		when(mockThreadPool.submit(any(Callable.class))).thenReturn(mockFuture);
+		when(mockThreadPool.submit((Callable)any(Callable.class))).thenReturn(mockFuture);
 		when(mockFuture.isDone()).thenReturn(false);
 		CompleteUploadWorker cuw = new CompleteUploadWorker(stubUploadDaemonStatusDao, mockThreadPool, uploadStatus, cacf,
 				mockmulltipartManager, maxWaitMS, userId);
@@ -81,7 +81,7 @@ public class CompleteUploadWorkerTest {
 	@Test
 	public void testCopyFailed() throws Exception{
 		Future<ChunkResult> mockFuture = Mockito.mock(Future.class);
-		when(mockThreadPool.submit(any(Callable.class))).thenReturn(mockFuture);
+		when(mockThreadPool.submit((Callable)any(Callable.class))).thenReturn(mockFuture);
 		when(mockFuture.isDone()).thenReturn(true);
 		when(mockFuture.get()).thenThrow(new ExecutionException("some kind of error", new IllegalArgumentException("foo")));
 		maxWaitMS = 2000;

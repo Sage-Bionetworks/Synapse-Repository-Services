@@ -227,7 +227,7 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		
 		// Just call the caller.
-		stub(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
+		stub(mockTableManagerSupport.tryRunWithTableNonexclusiveLock(any(ProgressCallback.class),anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class))).toAnswer(new Answer<Object>() {
 			@Override
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
@@ -857,10 +857,10 @@ public class TableEntityManagerTest {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
-				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
+				ProgressingCallable runner = (ProgressingCallable<Void>) invocation.getArguments()[3];
 				runner.call(callback);
 				return null;
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.
@@ -877,7 +877,7 @@ public class TableEntityManagerTest {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				throw new LockUnavilableException("No Lock for you!");
-			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), any(ProgressingCallable.class));
+			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class));
 		
 		List<String> schema = Lists.newArrayList("111","222");
 		// call under test.

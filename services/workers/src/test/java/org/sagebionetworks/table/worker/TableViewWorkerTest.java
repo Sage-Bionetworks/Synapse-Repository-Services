@@ -116,8 +116,8 @@ public class TableViewWorkerTest {
 				return null;
 			}
 		}).when(tableManagerSupport).tryRunWithTableExclusiveLock(
-				any(ProgressCallback.class), anyString(), anyInt(),
-				any(ProgressingCallable.class));
+				(ProgressCallback)any(ProgressCallback.class), anyString(), anyInt(),
+				(ProgressingCallable)any(ProgressingCallable.class));
 		
 		schema = new LinkedList<>();
 		schema.add(EntityField.id.getColumnModel());
@@ -187,7 +187,7 @@ public class TableViewWorkerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new LockUnavilableException("No lock for you"));
 		// call under test
 		worker.run(outerCallback, change);
@@ -200,7 +200,7 @@ public class TableViewWorkerTest {
 		when(
 				tableManagerSupport.tryRunWithTableExclusiveLock(
 						any(ProgressCallback.class), anyString(), anyInt(),
-						any(ProgressingCallable.class))).thenThrow(
+						(ProgressingCallable)any(ProgressingCallable.class))).thenThrow(
 				new RecoverableMessageException("Should get re-thrown"));
 		// call under test
 		worker.run(outerCallback, change);

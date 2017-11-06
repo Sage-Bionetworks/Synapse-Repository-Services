@@ -137,7 +137,7 @@ public class TableIndexManagerImplTest {
 				TransactionCallback callback = (TransactionCallback) invocation.getArguments()[0];
 				callback.doInTransaction(mockTransactionStatus);
 				return null;
-			}}).when(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+			}}).when(mockIndexDao).executeInWriteTransaction((TransactionCallback)any(TransactionCallback.class));
 		
 		crc32 = 5678L;
 		when(mockIndexDao.calculateCRC32ofTableView(anyString())).thenReturn(crc32);
@@ -172,7 +172,7 @@ public class TableIndexManagerImplTest {
 		//call under test.
 		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
 		// All changes should be executed in a transaction
-		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		verify(mockIndexDao).executeInWriteTransaction((TransactionCallback)any(TransactionCallback.class));
 		// both groups should be written
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupTwo);
@@ -189,7 +189,7 @@ public class TableIndexManagerImplTest {
 		//call under test.
 		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
 		// nothing do do.
-		verify(mockIndexDao, never()).executeInWriteTransaction(any(TransactionCallback.class));
+		verify(mockIndexDao, never()).executeInWriteTransaction((TransactionCallback)any(TransactionCallback.class));
 		verify(mockIndexDao, never()).createOrUpdateOrDeleteRows(any(Grouping.class));
 		verify(mockIndexDao, never()).applyFileHandleIdsToTable(anyString(), anySet());
 		verify(mockIndexDao, never()).setMaxCurrentCompleteVersionForTable(anyString(), anyLong());
@@ -214,7 +214,7 @@ public class TableIndexManagerImplTest {
 		//call under test.
 		manager.applyChangeSetToIndex(tableId, sparseChangeSet, versionNumber);
 		// All changes should be executed in a transaction
-		verify(mockIndexDao).executeInWriteTransaction(any(TransactionCallback.class));
+		verify(mockIndexDao).executeInWriteTransaction((TransactionCallback)any(TransactionCallback.class));
 		// change should be written to the index
 		verify(mockIndexDao).createOrUpdateOrDeleteRows(groupOne);
 		// there are no files
