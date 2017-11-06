@@ -116,7 +116,7 @@ public class TableViewWorkerTest {
 				return null;
 			}
 		}).when(tableManagerSupport).tryRunWithTableExclusiveLock(
-				(ProgressCallback)any(ProgressCallback.class), anyString(), anyInt(),
+				any(ProgressCallback.class), anyString(), anyInt(),
 				(ProgressingCallable)any(ProgressingCallable.class));
 		
 		schema = new LinkedList<>();

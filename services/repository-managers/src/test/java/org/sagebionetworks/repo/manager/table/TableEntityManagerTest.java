@@ -857,7 +857,7 @@ public class TableEntityManagerTest {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
-				ProgressingCallable runner = (ProgressingCallable<Void>) invocation.getArguments()[3];
+				ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[3];
 				runner.call(callback);
 				return null;
 			}}).when(mockTableManagerSupport).tryRunWithTableExclusiveLock(any(ProgressCallback.class), anyString(), anyInt(), (ProgressingCallable)any(ProgressingCallable.class));
