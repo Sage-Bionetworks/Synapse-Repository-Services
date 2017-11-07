@@ -111,13 +111,25 @@ public class DBOMembershipRequestTest {
 	@Test
 	public void testTranslatorRefactor() throws IOException {
 		DBOMembershipRequest backup = new DBOMembershipRequest();
-		String oldProperties = "<MembershipRqstSubmission/>";
+		String oldProperties =
+				"<MembershipRqstSubmission>\n" +
+				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
+				"  <createdBy>1976831</createdBy>\n" +
+				"  <userId>2223382</userId>\n" +
+				"  <teamId>2223746</teamId>\n" +
+				"</MembershipRqstSubmission>\n";
 		backup.setProperties(zip(oldProperties.getBytes()));
 
 		// Method under test
 		DBOMembershipRequest translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
-		String expectedProperties = "<MembershipRequest/>";
+		String expectedProperties =
+				"<MembershipRequest>\n" +
+				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
+				"  <createdBy>1976831</createdBy>\n" +
+				"  <userId>2223382</userId>\n" +
+				"  <teamId>2223746</teamId>\n" +
+				"</MembershipRequest>\n";
 		String translatedProperties = new String(unzip(translated.getProperties()));
 		assertEquals(expectedProperties, translatedProperties);
 		assertNotEquals(oldProperties, translatedProperties);
