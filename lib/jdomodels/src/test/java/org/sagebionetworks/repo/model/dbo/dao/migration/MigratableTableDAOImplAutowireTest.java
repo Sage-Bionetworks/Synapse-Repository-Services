@@ -303,8 +303,8 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.DOCKER_REPOSITORY_NAME);
 		expectedPrimaryTypes.add(MigrationType.DOCKER_COMMIT);
 		expectedPrimaryTypes.add(MigrationType.TEAM);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION_SUBMISSIONS);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);

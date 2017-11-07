@@ -165,7 +165,7 @@ public class DBOMembershipRequest implements MigratableDatabaseObject<DBOMembers
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MEMBERSHIP_REQUEST;
+		return MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
 	}
 
 	@Override
