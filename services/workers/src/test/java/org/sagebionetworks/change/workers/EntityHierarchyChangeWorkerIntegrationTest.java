@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -38,6 +39,9 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	
 	private static final int MAX_WAIT_MS = 30*1000;
 	
+	@Autowired
+	StackConfiguration config;
+		
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
