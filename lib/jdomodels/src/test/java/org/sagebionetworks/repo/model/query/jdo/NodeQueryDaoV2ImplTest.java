@@ -10,11 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -38,7 +40,9 @@ import com.google.common.collect.Lists;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class NodeQueryDaoV2ImplTest {
-	
+	@Autowired
+	StackConfiguration config;
+
 	@Autowired
 	ConnectionFactory connectionFactory;
 	@Autowired
@@ -58,6 +62,9 @@ public class NodeQueryDaoV2ImplTest {
 	
 	@Before
 	public void before(){
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
+		
 		// Only the ProgressCallback is mocked for this test.  All other dependencies are autowired.
 		MockitoAnnotations.initMocks(this);
 		// create the dao from the connection.

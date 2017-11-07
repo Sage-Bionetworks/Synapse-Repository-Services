@@ -11,10 +11,12 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -31,7 +33,9 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class QueryControllerAutowireTest extends AbstractAutowiredControllerTestBase {
-	
+	@Autowired
+	StackConfiguration config;
+		
 	@Autowired
 	private QueryController controller;
 	
@@ -81,6 +85,9 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@Test
 	public void testQueryForRoot() throws Exception{
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
+				
 		// Only an admin can see the root node
 		String query = "select id, eTag from entity where parentId == null";
 		QueryResults results = controller.query(adminUserId, query, mockRequest);
@@ -91,6 +98,9 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Ignore
 	@Test
 	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
+
 		// Create a project
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());
