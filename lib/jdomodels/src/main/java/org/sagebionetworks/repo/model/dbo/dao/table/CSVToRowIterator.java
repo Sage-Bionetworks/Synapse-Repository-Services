@@ -39,11 +39,10 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 	 * @param resultSchema Each row returned will match this schema.
 	 * @param reader The CSV stream that contains the source data. Data will be read from this stream and translated
 	 *        into rows. It is the job of the caller to close this stream when finished.
-	 * @param columnIds
 	 * @param progressReporter
 	 * @throws IOException
 	 */
-	public CSVToRowIterator(List<ColumnModel> resultSchema, CSVReader reader, boolean isFirstLineHeader, List<String> columnIds, Long linesToSkipLong)
+	public CSVToRowIterator(List<ColumnModel> resultSchema, CSVReader reader, boolean isFirstLineHeader, Long linesToSkipLong)
 			throws IOException {
 		this.resultSchema = resultSchema;
 		this.reader = reader;
@@ -65,11 +64,7 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 		lastRow = reader.readNext();
 		rowLineNumber++;
 
-		if (!CollectionUtils.isEmpty(columnIds)) {
-			columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToColumnIndexMapFromColumnIds(columnIds, resultSchema);
-		} else {
-			columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(headers, resultSchema);
-		} 
+		columnIdToCsvColumnIndexMap = TableModelUtils.createColumnIdToColumnIndexMapFromFirstRow(headers, resultSchema);
 	}
 	
 	/**
@@ -151,10 +146,9 @@ public class CSVToRowIterator implements Iterator<SparseRowDto> {
 				if (lastRow.length > csvColumnIndex) {
 					anyValues = true;
 					value = lastRow[csvColumnIndex];
+					values.put(columnId.toString(), value);
 				}
 			}
-			values.put(columnId.toString(), value);
-
 		}
 		if (anyValues) {
 			row.setValues(values);

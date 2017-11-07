@@ -44,9 +44,13 @@ public class TableUploadManagerImpl implements TableUploadManager {
 			// Note: The CSVToRowIterator handles linesToSkip so we pass null linesToSkip for the reader.
 			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), request.getCsvTableDescriptor(), null);
 			
+			if(request.getColumnIds() != null && !request.getColumnIds().isEmpty()){
+				throw new IllegalArgumentException("Unsupported columnIds");
+			}
+			
 			// Create the iterator
 			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(request.getCsvTableDescriptor());
-			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, request.getColumnIds(), request.getLinesToSkip());
+			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader, request.getLinesToSkip());
 			// Append the data to the table
 			return rowProcessor.processRows(user, request.getTableId(),
 					tableSchema, iterator, request.getUpdateEtag(), progressCallback);

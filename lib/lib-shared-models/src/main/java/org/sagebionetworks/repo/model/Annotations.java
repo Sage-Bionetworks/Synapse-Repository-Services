@@ -402,6 +402,9 @@ public class Annotations implements JSONEntity, Serializable {
 	public void replaceAnnotation(String key, Date value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(value instanceof java.sql.Date) {
+			throw new IllegalArgumentException("Wrong Date type: 'java.sql.Date'");
+		}
 		List<Date> current = new ArrayList<Date>();
 		this.dateAnnotations.put(key, current);
 		current.add(value);	
