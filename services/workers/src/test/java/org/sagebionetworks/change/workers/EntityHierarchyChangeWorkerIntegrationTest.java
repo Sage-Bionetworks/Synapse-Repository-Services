@@ -7,11 +7,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.Date;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -38,6 +40,9 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	private static final int MAX_WAIT_MS = 30*1000;
 	
 	@Autowired
+	StackConfiguration config;
+		
+	@Autowired
 	EntityManager entityManager;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
@@ -56,6 +61,9 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 	
 	@Before
 	public void before(){
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
+		
 		// this is still an integration test even though a mock progress is used.
 		MockitoAnnotations.initMocks(this);
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(); 
