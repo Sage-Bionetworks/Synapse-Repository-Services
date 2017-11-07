@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.deserialize;
 import static org.sagebionetworks.util.ZipUtils.unzip;
 import static org.sagebionetworks.util.ZipUtils.zip;
 
@@ -156,6 +156,11 @@ public class DBOMembershipInvitationTest {
 		// Method under test
 		DBOMembershipInvitation translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
+		String translatedProperties = new String(unzip(translated.getProperties()));
+		// Assert that the top level xml tags are updated
+		assertTrue(translatedProperties.startsWith("<MembershipInvitation>"));
+		assertTrue(translatedProperties.endsWith("</MembershipInvitation>"));
+
 		String expectedProperties =
 				"<MembershipInvitation>\n" +
 				"  <createdOn>2017-10-30 15:54:48.793 UTC</createdOn>\n" +
@@ -165,8 +170,37 @@ public class DBOMembershipInvitationTest {
 				"  <inviteeId>3341743</inviteeId>\n" +
 				"  <teamId>3320424</teamId>\n" +
 				"</MembershipInvitation>\n";
-		String translatedProperties = new String(unzip(translated.getProperties()));
-		assertEquals(expectedProperties, translatedProperties);
-		assertNotEquals(oldProperties, translatedProperties);
+		MembershipInvitation expectedDTO = deserialize(zip(expectedProperties.getBytes()));
+		MembershipInvitation translatedDTO = deserialize(translated.getProperties());
+		// Assert that the translated DTO's contents are identical to the old DTO's
+		assertEquals(expectedDTO, translatedDTO);
+	}
+
+	@Test
+	public void testTranslatorRefactorAlreadyTranslated() throws IOException {
+		DBOMembershipInvitation backup = new DBOMembershipInvitation();
+		String backupProperties =
+				"<MembershipInvitation>\n" +
+				"  <createdOn>2017-10-30 15:54:48.793 UTC</createdOn>\n" +
+				"  <message></message>\n" +
+				"  <id>9603838</id>\n" +
+				"  <createdBy>273995</createdBy>\n" +
+				"  <inviteeId>3341743</inviteeId>\n" +
+				"  <teamId>3320424</teamId>\n" +
+				"</MembershipInvitation>\n";
+		backup.setProperties(zip(backupProperties.getBytes()));
+
+		// Method under test
+		DBOMembershipInvitation translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		String translatedProperties = new String(unzip(translated.getProperties())).trim();
+		// Assert that the top level xml tags are still correct
+		assertTrue(translatedProperties.startsWith("<MembershipInvitation>"));
+		assertTrue(translatedProperties.endsWith("</MembershipInvitation>"));
+
+		MembershipInvitation backupDTO = deserialize(zip(backupProperties.getBytes()));
+		MembershipInvitation translatedDTO = deserialize(translated.getProperties());
+		// Assert that the backup and the translated DTOs are identical
+		assertEquals(backupDTO, translatedDTO);
 	}
 }
