@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
@@ -45,6 +46,8 @@ public class SQLUtilsTest {
 	
 	List<ColumnModel> simpleSchema;
 	
+	Map<Long, ColumnModel> schemaIdToModelMap;
+	
 	AnnotationDTO annotationDto;
 	
 	boolean isFirst;
@@ -57,19 +60,24 @@ public class SQLUtilsTest {
 		col.setColumnType(ColumnType.INTEGER);
 		col.setDefaultValue(null);
 		col.setId("456");
+		col.setName("colOne");
 		simpleSchema.add(col);
 		col = new ColumnModel();
 		col.setColumnType(ColumnType.STRING);
 		col.setDefaultValue(null);
 		col.setId("789");
 		col.setMaximumSize(300L);
+		col.setName("coTwo");
 		simpleSchema.add(col);
 		col = new ColumnModel();
 		col.setColumnType(ColumnType.STRING);
 		col.setDefaultValue(null);
 		col.setId("123");
 		col.setMaximumSize(150L);
+		col.setName("colThree");
 		simpleSchema.add(col);
+		
+		schemaIdToModelMap = TableModelUtils.createIDtoColumnModelMap(simpleSchema);
 		
 		annotationDto = new AnnotationDTO();
 		annotationDto.setEntityId(123L);
@@ -2107,5 +2115,30 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setDouble(6, AbstractDouble.NEGATIVE_INFINITY.getApproximateValue());
 		verify(mockPreparedStatement).setString(7, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
+	}
+	
+	@Test
+	public void testReplaceAllTableReferences() {
+		String input = "Cannot update T123 because T123 does not exist";
+		assertEquals("Cannot update syn123 because syn123 does not exist", SQLUtils.replaceAllTableReferences(input, "syn123"));
+	}
+	
+	/**
+	 * Test included for PLFM-4466.
+	 */
+	@Test
+	public void testReplaceAllColumnReferences() {
+		// Note: _C999_ does not exist.
+		String input = "This string contains column references '_C123_' and _C456_ but not _C999_ include '_C789_'";
+		// call under test
+		String results = SQLUtils.replaceAllColumnReferences(input, schemaIdToModelMap);
+		assertEquals("This string contains column references 'colThree' and colOne but not _C999_ include 'coTwo'", results);
+	}
+	
+	@Test
+	public void testReplaceAllColumnReferencesNoColumns() {
+		String input = "This string contains no column references.";
+		String results = SQLUtils.replaceAllColumnReferences(input, schemaIdToModelMap);
+		assertEquals(input, results);
 	}
 }

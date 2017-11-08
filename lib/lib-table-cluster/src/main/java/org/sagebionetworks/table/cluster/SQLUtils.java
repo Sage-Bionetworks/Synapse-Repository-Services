@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.EntityType;
@@ -66,6 +67,10 @@ public class SQLUtils {
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
+	
+	
+	private static Pattern PATTERN_TABLE_NAME = Pattern.compile(TABLE_PREFIX+"[0-9]*");
+	private static Pattern PATTERN_COLUMM_ID = Pattern.compile(COLUMN_PREFIX+"[0-9]*"+COLUMN_POSTFIX);
 
 	public enum TableType {
 		/**
@@ -1663,6 +1668,44 @@ public class SQLUtils {
 		}else{
 			ps.setBoolean(parameterIndex, booleanValue);
 		}
+	}
+	
+	/**
+	 * Replace all SQL table references (T123) in the input string with the given tableId.
+	 * 
+	 * @param input
+	 * @param talbeId
+	 * @return
+	 */
+	public static String replaceAllTableReferences(String input, String talbeId) {
+		Matcher matcher = PATTERN_TABLE_NAME.matcher(input);
+		return matcher.replaceAll(talbeId);
+	}
+	
+	/**
+	 * Replace all column id (_C123_) in the given input string with the name of the column.
+	 *  
+	 * @param input
+	 * @param idToColumnMap
+	 * @return
+	 */
+	public static String replaceAllColumnReferences(String input, Map<Long, ColumnModel> idToColumnMap) {
+		Matcher matcher = PATTERN_COLUMM_ID.matcher(input);
+    	// This will contain the new string
+        StringBuffer sb = new StringBuffer();
+		while(matcher.find()) {
+        	// The group will be a raw value like: ${<key>}
+        	String group = matcher.group();
+        	Long id = Long.parseLong(group.substring(2, group.length()-1));
+        	// match to the column
+        	ColumnModel cm = idToColumnMap.get(id);
+        	if(cm != null) {
+            	// Replace the entire group with the value.
+            	matcher.appendReplacement(sb, cm.getName());
+        	}
+		}
+        matcher.appendTail(sb);
+        return sb.toString();
 	}
 
 }
