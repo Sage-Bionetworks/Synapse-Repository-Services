@@ -2,7 +2,14 @@ package org.sagebionetworks.repo.manager.team;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MembershipInvitationManager {
@@ -18,7 +25,7 @@ public interface MembershipInvitationManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public MembershipInvitation create(UserInfo userInfo, MembershipInvitation mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Create an invitation message addressed to an existing user
@@ -29,7 +36,7 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	MessageToUserAndBody createInvitationToUser(MembershipInvtnSubmission mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	MessageToUserAndBody createInvitationToUser(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	/**
 	 * Send an invitation message to an email address
@@ -40,7 +47,7 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	void sendInvitationToEmail(MembershipInvtnSubmission mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	void sendInvitationToEmail(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	/**
 	 * Retrieve an invitation by its ID
@@ -51,7 +58,7 @@ public interface MembershipInvitationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
+	public MembershipInvitation get(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Retrieve an invitation by its ID using a signed token for authorization
@@ -62,7 +69,7 @@ public interface MembershipInvitationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException;
+	public MembershipInvitation get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete an invitation
@@ -105,7 +112,7 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForTeamInRange(
+	public PaginatedResults<MembershipInvitation> getOpenSubmissionsForTeamInRange(
 			UserInfo userInfo, String teamId, long limit, long offset) throws NotFoundException;
 
 	/**
@@ -118,7 +125,7 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForUserAndTeamInRange(
+	public PaginatedResults<MembershipInvitation> getOpenSubmissionsForUserAndTeamInRange(
 			UserInfo userInfo, String inviteeId, String teamId, long limit,
 			long offset)  throws NotFoundException;
 
@@ -131,7 +138,7 @@ public interface MembershipInvitationManager {
 	public Count getOpenInvitationCountForUser(String principalId);
 
 	/**
-	 * Verify whether the inviteeEmail of the indicated MembershipInvtnSubmission is associated with the given user.
+	 * Verify whether the inviteeEmail of the indicated MembershipInvitation is associated with the given user.
 	 * Return an InviteeVerificationSignedToken if the verification succeeds.
 	 * Throw UnauthorizedException if it fails.
 	 *
@@ -143,7 +150,7 @@ public interface MembershipInvitationManager {
 	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId);
 
 	/**
-	 * Set the inviteeId of the indicated MembershipInvtnSubmission if the given token is valid.
+	 * Set the inviteeId of the indicated MembershipInvitation if the given token is valid.
 	 * The indicated mis must have null inviteeId and a non null inviteeEmail.
 	 *
 	 * @param userId

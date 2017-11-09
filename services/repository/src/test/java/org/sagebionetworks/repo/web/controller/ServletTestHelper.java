@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -1585,9 +1585,9 @@ public class ServletTestHelper {
 				HttpStatus.NO_CONTENT);
 	}
 
-	public MembershipInvtnSubmission createMembershipInvitation(
+	public MembershipInvitation createMembershipInvitation(
 			HttpServlet dispatchServlet, Long userId,
-			MembershipInvtnSubmission mis,
+			MembershipInvitation mis,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, userId, mis);
@@ -1597,10 +1597,10 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 
 		return objectMapper.readValue(response.getContentAsString(),
-				MembershipInvtnSubmission.class);
+				MembershipInvitation.class);
 	}
 
-	public MembershipInvtnSubmission getMembershipInvitation(
+	public MembershipInvitation getMembershipInvitation(
 			HttpServlet dispatchServlet, Long userId, String misId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
@@ -1610,11 +1610,11 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
-		return new MembershipInvtnSubmission(
+		return new MembershipInvitation(
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public PaginatedResults<MembershipInvtnSubmission> getMembershipInvitationSubmissions(
+	public PaginatedResults<MembershipInvitation> getMembershipInvitationSubmissions(
 			HttpServlet dispatchServlet, Long userId, String teamId)
 			throws Exception {
 
@@ -1626,11 +1626,11 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				MembershipInvtnSubmission.class);
+				MembershipInvitation.class);
 	}
 
 	public void deleteMembershipInvitation(HttpServlet dispatchServlet,
-			Long userId, MembershipInvtnSubmission mis) throws Exception {
+			Long userId, MembershipInvitation mis) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE,
 				UrlHelpers.MEMBERSHIP_INVITATION + "/" + mis.getId(), userId,

@@ -19,8 +19,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.team.TeamManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -643,7 +657,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testCanAccessMembershipInvitation() {
 		// Create invitation from team to userInfo
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		MembershipInvitation mis = new MembershipInvitation();
 		String misId = "1";
 		mis.setId(misId);
 		mis.setTeamId(team.getId());
@@ -653,21 +667,21 @@ public class AuthorizationManagerImplTest {
 		// Test all access types
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Invitee can only read or delete the invitation
-			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(userInfo, mis, accessType);
+			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipInvitation(userInfo, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
 				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
 			} else {
 				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
 			}
 			// Team admin can only create, read or delete the invitation
-			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(teamAdmin, mis, accessType);
+			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipInvitation(teamAdmin, mis, accessType);
 			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE) {
 				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
 			} else {
 				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
 			}
 			// Synapse admin has access of any type
-			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitationSubmission(adminUser, mis, accessType);
+			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipInvitation(adminUser, mis, accessType);
 			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
 		}
 	}
@@ -679,7 +693,7 @@ public class AuthorizationManagerImplTest {
 		SignedTokenUtil.signToken(token);
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
-			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(token, accessType);
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, accessType);
 			// Only reading is allowed
 			if (accessType != ACCESS_TYPE.READ) {
 				assertFalse(status.getAuthorized());
@@ -690,7 +704,7 @@ public class AuthorizationManagerImplTest {
 
 		token.setMembershipInvitationId("corruptedId");
 		// Non valid signed token should be denied
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(token, ACCESS_TYPE.READ).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ).getAuthorized());
 	}
 
 	@Test
@@ -703,7 +717,7 @@ public class AuthorizationManagerImplTest {
 
 		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
 			// Only updating is allowed
-			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitationSubmission(userId, token, accessType);
+			AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(userId, token, accessType);
 			if (accessType != ACCESS_TYPE.UPDATE) {
 				assertFalse(status.getAuthorized());
 			} else {
@@ -713,9 +727,9 @@ public class AuthorizationManagerImplTest {
 
 		// Incorrect user id should be denied
 		Long incorrectUserId = 2L;
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(incorrectUserId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(incorrectUserId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 		// Invalid token should be denied
 		token.setMembershipInvitationId("corruptedId");
-		assertFalse(authorizationManager.canAccessMembershipInvitationSubmission(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+		assertFalse(authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
 	}
 }

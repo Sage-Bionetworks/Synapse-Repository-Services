@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
@@ -49,7 +49,7 @@ public class MembershipInvitationServiceTest {
 		mtu.setRecipients(Collections.singleton("222"));
 		String content = "foo";
 		MessageToUserAndBody result = new MessageToUserAndBody(mtu, content, "text/plain");
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		MembershipInvitation mis = new MembershipInvitation();
 		mis.setInviteeId("1");
 		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";

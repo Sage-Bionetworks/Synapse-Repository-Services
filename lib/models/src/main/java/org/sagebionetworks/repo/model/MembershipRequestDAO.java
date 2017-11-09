@@ -4,14 +4,14 @@ import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface MembershipRqstSubmissionDAO {
+public interface MembershipRequestDAO {
 	/**
 	 * @param dto object to be created
 	 * @return the newly created object
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public MembershipRqstSubmission create(MembershipRqstSubmission dto) throws DatastoreException, InvalidModelException;
+	public MembershipRequest create(MembershipRequest dto) throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Retrieves the object given its id
@@ -21,7 +21,7 @@ public interface MembershipRqstSubmissionDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public MembershipRqstSubmission get(String id) throws DatastoreException, NotFoundException;
+	public MembershipRequest get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -31,25 +31,11 @@ public interface MembershipRqstSubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+	public List<MembershipRequest> getOpenByRequesterInRange(
 			long requesterId, long now, long limit, long offset);
 
 	/**
-	 * 
-	 * @param teamId
-	 * @param requesterId
-	 * @param time
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public List<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
-			long teamId, long requesterId, long time, long limit, long offset) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team
+	 * Get the open (unexpired and unfulfilled) MembershipRequests received by the given team
 	 * 
 	 * @param teamId
 	 * @param now current time, expressed as a long
@@ -60,7 +46,7 @@ public interface MembershipRqstSubmissionDAO {
 	public List<MembershipRequest> getOpenByTeamInRange(long teamId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team from a given requester
+	 * Get the open (unexpired and unfulfilled) MembershipRequests received by the given team from a given requester
 	 * @param teamId
 	 * @param requesterId
 	 * @param now
@@ -128,5 +114,5 @@ public interface MembershipRqstSubmissionDAO {
 	 * @param expireAfter
 	 * @return
 	 */
-	public long getOpenRequestByTeamsCount(List<String> teamIds, long expireAfter);
+	public long getOpenByTeamsCount(List<String> teamIds, long expireAfter);
 }

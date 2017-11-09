@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.table.AnnotationDTO;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.util.Pair;
-import org.sagebionetworks.util.ValidateArgument;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -339,7 +338,7 @@ public class JDOSecondaryPropertyUtils {
 				}
 			}finally{
 				unZipper.close();
-			}			
+			}
 		}
 		return null;
 	}

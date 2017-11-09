@@ -10,7 +10,14 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipInvitationManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -39,16 +46,16 @@ public class MembershipInvitationServiceImpl implements
 	}
 	
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
+	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipInvitation)
 	 */
 	@Override
-	public MembershipInvtnSubmission create(Long userId,
-			MembershipInvtnSubmission dto,
-			String acceptInvitationEndpoint, 
-			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
+	public MembershipInvitation create(Long userId,
+	                                   MembershipInvitation dto,
+	                                   String acceptInvitationEndpoint,
+	                                   String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		MembershipInvtnSubmission created = membershipInvitationManager.create(userInfo, dto);
+		MembershipInvitation created = membershipInvitationManager.create(userInfo, dto);
 		// Post condition: created either has inviteeId or inviteeEmail, never both
 		if (created.getInviteeId() != null) {
 		    // Invitation to existing user
@@ -86,7 +93,7 @@ public class MembershipInvitationServiceImpl implements
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#getOpenInvitations(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(
+	public PaginatedResults<MembershipInvitation> getOpenInvitationSubmissions(
 			Long userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 			UserInfo userInfo = userManager.getUserInfo(userId);
@@ -102,14 +109,14 @@ public class MembershipInvitationServiceImpl implements
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#get(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public MembershipInvtnSubmission get(Long userId, String dtoId)
+	public MembershipInvitation get(Long userId, String dtoId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return membershipInvitationManager.get(userInfo, dtoId);
 	}
 
 	@Override
-	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public MembershipInvitation get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return membershipInvitationManager.get(misId, token);
 	}
 
