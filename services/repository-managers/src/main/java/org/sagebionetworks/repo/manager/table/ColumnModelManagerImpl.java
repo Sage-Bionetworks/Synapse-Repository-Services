@@ -114,11 +114,6 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if (TableConstants.isReservedColumnName(columnModel.getName())) {
 			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
 		}
-		// Is the name a key word?
-		if (TableConstants.isKeyWord(columnModel.getName())) {
-			throw new IllegalArgumentException("The name: " + columnModel.getName()
-					+ " is a SQL key word and cannot be used as a column name.");
-		}
 	}
 	
 	void validateFacetType(ColumnModel columnModel){
