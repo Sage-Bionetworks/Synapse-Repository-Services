@@ -278,10 +278,6 @@ public class UploadPreviewBuilder {
 		if(!(Pattern.compile("[a-zA-Z0-9]").matcher(newHeader).find())){
 			newHeader = "col";
 		}
-		// key words cannot be used as column names.
-		if(TableConstants.isKeyWord(newHeader)){
-			newHeader = "_"+newHeader;
-		}
 		return newHeader;
 	}
 
