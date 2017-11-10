@@ -59,6 +59,10 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 					throw new IllegalArgumentException("Entity type: "+EntityTypeUtils.getEntityTypeClassName(objectType)+" cannot have a parent of type: "+EntityTypeUtils.getEntityTypeClassName(parentType));
 				}
 			}
+		} else {
+			if (objectType!=EntityType.project) {
+				throw new InvalidModelException("Missing parent id.");
+			}
 		}
 		
 		// Is this a create or update?
