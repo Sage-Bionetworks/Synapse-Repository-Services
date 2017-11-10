@@ -321,13 +321,6 @@ public class IT500SynapseJavaClient {
 		// now push it, should get a SynapseBadRequestException
 		synapseOne.updateACL(acl);
 	}
-	
-	@Test
-	public void testMissingParent() throws Exception {
-		Folder folder = new Folder();
-		folder.setName("test missing parent");
-		synapseOne.createEntity(folder);
-	}
 
 	@Test
 	public void testJavaClientCRUD() throws Exception {

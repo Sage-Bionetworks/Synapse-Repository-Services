@@ -7,14 +7,12 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.mail.Folder;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
@@ -134,4 +132,15 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 		// This should not be valid
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
 	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testFolderNullParent() throws Exception {
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
+				
+		Folder folder = new Folder();
+		folder.setParentId("456");
+		// This should not be valid
+		allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, null, null));
+	}
+
 }
