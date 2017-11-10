@@ -39,7 +39,59 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.TeamSubmissionEligibility;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
+import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
+import org.sagebionetworks.repo.model.Challenge;
+import org.sagebionetworks.repo.model.ChallengePagedResults;
+import org.sagebionetworks.repo.model.ChallengeTeam;
+import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityChildrenRequest;
+import org.sagebionetworks.repo.model.EntityChildrenResponse;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.JoinTeamSignedToken;
+import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.LogEntry;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.ProjectHeader;
+import org.sagebionetworks.repo.model.ProjectListSortColumn;
+import org.sagebionetworks.repo.model.ProjectListType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResponseMessage;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
+import org.sagebionetworks.repo.model.RestrictionInformationRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationResponse;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserBundle;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -52,20 +104,20 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dataaccess.Request;
-import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionOrder;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionPageRequest;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -121,7 +173,16 @@ import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
-import org.sagebionetworks.repo.model.principal.*;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.AliasList;
+import org.sagebionetworks.repo.model.principal.EmailValidationSignedToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasRequest;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
+import org.sagebionetworks.repo.model.principal.TypeFilter;
+import org.sagebionetworks.repo.model.principal.UserGroupHeaderResponse;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
@@ -3962,8 +4023,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 
 	@Override
-	public MembershipInvtnSubmission createMembershipInvitation(
-			MembershipInvtnSubmission invitation,
+	public MembershipInvitation createMembershipInvitation(
+			MembershipInvitation invitation,
 			String acceptInvitationEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException {
 		String uri = MEMBERSHIP_INVITATION;
@@ -3971,20 +4032,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri += "?" + ACCEPT_INVITATION_ENDPOINT_PARAM + "=" + urlEncode(acceptInvitationEndpoint) +
 					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
 		}
-		return postJSONEntity(getRepoEndpoint(), uri, invitation, MembershipInvtnSubmission.class);
+		return postJSONEntity(getRepoEndpoint(), uri, invitation, MembershipInvitation.class);
 	}
 
 	@Override
-	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
+	public MembershipInvitation getMembershipInvitation(String invitationId)
 			throws SynapseException {
 		String url = MEMBERSHIP_INVITATION + "/" + invitationId;
-		return getJSONEntity(getRepoEndpoint(), url, MembershipInvtnSubmission.class);
+		return getJSONEntity(getRepoEndpoint(), url, MembershipInvitation.class);
 	}
 
 	@Override
-	public MembershipInvtnSubmission getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException {
+	public MembershipInvitation getMembershipInvitation(MembershipInvtnSignedToken token) throws SynapseException {
 		String uri = MEMBERSHIP_INVITATION + "/" + token.getMembershipInvitationId();
-		return postJSONEntity(getRepoEndpoint(), uri, token, MembershipInvtnSubmission.class);
+		return postJSONEntity(getRepoEndpoint(), uri, token, MembershipInvitation.class);
 	}
 
 	@Override
@@ -4005,7 +4066,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
+	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitationSubmissions(
 			String teamId, String inviteeId, long limit, long offset)
 			throws SynapseException {
 
@@ -4018,7 +4079,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 					+ INVITEE_ID_REQUEST_PARAMETER + "=" + inviteeId + "&"
 					+ OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		}
-		return getPaginatedResults(getRepoEndpoint(), uri, MembershipInvtnSubmission.class);
+		return getPaginatedResults(getRepoEndpoint(), uri, MembershipInvitation.class);
 	}
 
 	@Override
@@ -4044,8 +4105,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public MembershipRqstSubmission createMembershipRequest(
-			MembershipRqstSubmission request,
+	public MembershipRequest createMembershipRequest(
+			MembershipRequest request,
 			String acceptRequestEndpoint,
 			String notificationUnsubscribeEndpoint) throws SynapseException {
 		String uri = MEMBERSHIP_REQUEST;
@@ -4053,14 +4114,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			uri += 	"?" + ACCEPT_REQUEST_ENDPOINT_PARAM + "=" + urlEncode(acceptRequestEndpoint) +
 					"&" + NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM + "=" + urlEncode(notificationUnsubscribeEndpoint);
 		}
-		return postJSONEntity(getRepoEndpoint(), uri, request, MembershipRqstSubmission.class);
+		return postJSONEntity(getRepoEndpoint(), uri, request, MembershipRequest.class);
 	}
 
 	@Override
-	public MembershipRqstSubmission getMembershipRequest(String requestId)
+	public MembershipRequest getMembershipRequest(String requestId)
 			throws SynapseException {
 		String url = MEMBERSHIP_REQUEST + "/" + requestId;
-		return getJSONEntity(getRepoEndpoint(), url, MembershipRqstSubmission.class);
+		return getJSONEntity(getRepoEndpoint(), url, MembershipRequest.class);
 	}
 
 	@Override
@@ -4080,7 +4141,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
+	public PaginatedResults<MembershipRequest> getOpenMembershipRequestSubmissions(
 			String requesterId, String teamId, long limit, long offset)
 			throws SynapseException {
 		String uri = null;
@@ -4092,7 +4153,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 					+ TEAM_ID_REQUEST_PARAMETER + "=" + teamId + "&" + OFFSET
 					+ "=" + offset + "&" + LIMIT + "=" + limit;
 		}
-		return getPaginatedResults(getRepoEndpoint(), uri, MembershipRqstSubmission.class);
+		return getPaginatedResults(getRepoEndpoint(), uri, MembershipRequest.class);
 	}
 
 	@Override
