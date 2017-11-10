@@ -135,12 +135,32 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testFolderNullParent() throws Exception {
-		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
-				
 		Folder folder = new Folder();
-		folder.setParentId("456");
+		folder.setId("123");
+		folder.setParentId(null);
 		// This should not be valid
 		allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, null, null));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testFolderRootParent() throws Exception {
+		String rootId="456";
+		when(mockNodeDAO.isNodeRoot(eq(rootId))).thenReturn(true);
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
+				
+		List<EntityHeader> path = new ArrayList<EntityHeader>();
+		// This is our direct parent header
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(rootId);
+		parentHeader.setName("p");
+		parentHeader.setType(Folder.class.getName());
+		path.add(parentHeader);
+
+		Folder folder = new Folder();
+		folder.setId("123");
+		folder.setParentId(rootId);
+		// This should not be valid
+		allTypesValidator.validateEntity(folder, new EntityEvent(EventType.CREATE, path, null));
 	}
 
 }
