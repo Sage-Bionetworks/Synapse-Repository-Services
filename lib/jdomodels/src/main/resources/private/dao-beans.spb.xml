@@ -332,5 +332,8 @@
 		
 	<bean id="nodeQueryDaoFactory"
 		class="org.sagebionetworks.repo.model.query.entity.NodeQueryDaoFactoryImpl" />
+		
+	<bean id="tableExceptionTranslator"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslatorImpl"/>
 	
 </beans>

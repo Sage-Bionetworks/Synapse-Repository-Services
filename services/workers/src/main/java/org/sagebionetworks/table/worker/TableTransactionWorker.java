@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.table.TableTransactionManagerProvider;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -49,6 +50,9 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 	
 	@Autowired
 	TableTransactionManagerProvider tableTransactionManagerProvider;
+	
+	@Autowired
+	TableExceptionTranslator tableExceptionTranslator;
 
 
 	@Override
@@ -107,8 +111,10 @@ public class TableTransactionWorker implements MessageDrivenRunner {
 			throw e;
 		}catch (Throwable e){
 			log.error("Job failed:", e);
+			// Attempt to translate the exception to make it 'user-friendly'
+			RuntimeException translated = tableExceptionTranslator.translateException(e);
 			// job failed.
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			asynchJobStatusManager.setJobFailed(status.getJobId(), translated);
 		}
 	}
 

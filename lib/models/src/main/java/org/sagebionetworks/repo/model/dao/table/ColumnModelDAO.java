@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author John
  *
  */
-public interface ColumnModelDAO {
+public interface ColumnModelDAO extends ColumnNameProvider {
 	
 	/**
 	 * List all column models filtered by the given name prefix.
@@ -147,4 +147,5 @@ public interface ColumnModelDAO {
 	 * @return
 	 */
 	public List<String> getColumnIdsForObject(String id);
+	
 }

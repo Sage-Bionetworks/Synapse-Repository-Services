@@ -3,22 +3,17 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
-import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
-import org.sagebionetworks.table.cluster.ColumnMetadata;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.sagebionetworks.table.cluster.TableExceptionTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.model.Grouping;
@@ -195,11 +190,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {
-			// Map the columnIds to ColumnModels
-			Map<Long, ColumnModel> idToModelMap = TableModelUtils.createIDtoColumnModeMapDetails(changes);
- 			// attempt to convert the exception to a user friendly message.
-			RuntimeException translated = TableExceptionTranslator.translateException(e, idToModelMap);
-			throw translated;
+			throw new RuntimeException(e);
 		}
 	}
 	

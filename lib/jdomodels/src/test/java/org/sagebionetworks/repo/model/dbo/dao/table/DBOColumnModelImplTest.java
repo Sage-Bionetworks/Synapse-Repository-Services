@@ -8,9 +8,11 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -508,6 +510,32 @@ public class DBOColumnModelImplTest {
 		assertNotNull(databaseDbo.getHash());
 	}
 	
+	
+	@Test
+	public void testGetColumnNames() {
+		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
+		// Create each one
+		Set<Long> colIds = new HashSet<>();
+		Map<Long, String> expected = new HashMap<>();
+		for(ColumnModel cm: raw){
+			cm = columnModelDao.createColumnModel(cm);
+			Long id = Long.parseLong(cm.getId());
+			colIds.add(id);
+			expected.put(id, cm.getName());
+		}
+		// call under test
+		Map<Long, String> results = columnModelDao.getColumnNames(colIds);
+		assertEquals(expected, results);	
+	}
+	
+	@Test
+	public void testGetColumnNamesEmptyInput() {
+		Set<Long> colIds = new HashSet<>();
+		// call under test
+		Map<Long, String> results = columnModelDao.getColumnNames(colIds);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
 	/**
 	 * Helper to create columns by name
 	 * @param names

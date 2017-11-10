@@ -2116,29 +2116,4 @@ public class SQLUtilsTest {
 		verify(mockPreparedStatement).setString(7, AbstractDouble.NEGATIVE_INFINITY.getEnumerationValue());
 		verify(mockPreparedStatement).setNull(8, Types.BOOLEAN);
 	}
-	
-	@Test
-	public void testReplaceAllTableReferences() {
-		String input = "Cannot update T123 because T123 does not exist";
-		assertEquals("Cannot update syn123 because syn123 does not exist", SQLUtils.replaceAllTableReferences(input, "syn123"));
-	}
-	
-	/**
-	 * Test included for PLFM-4466.
-	 */
-	@Test
-	public void testReplaceAllColumnReferences() {
-		// Note: _C999_ does not exist.
-		String input = "This string contains column references '_C123_' and _C456_ but not _C999_ include '_C789_'";
-		// call under test
-		String results = SQLUtils.replaceAllColumnReferences(input, schemaIdToModelMap);
-		assertEquals("This string contains column references 'colThree' and colOne but not _C999_ include 'coTwo'", results);
-	}
-	
-	@Test
-	public void testReplaceAllColumnReferencesNoColumns() {
-		String input = "This string contains no column references.";
-		String results = SQLUtils.replaceAllColumnReferences(input, schemaIdToModelMap);
-		assertEquals(input, results);
-	}
 }
