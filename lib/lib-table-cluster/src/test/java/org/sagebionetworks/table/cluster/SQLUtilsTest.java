@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
@@ -45,6 +46,8 @@ public class SQLUtilsTest {
 	
 	List<ColumnModel> simpleSchema;
 	
+	Map<Long, ColumnModel> schemaIdToModelMap;
+	
 	AnnotationDTO annotationDto;
 	
 	boolean isFirst;
@@ -57,19 +60,24 @@ public class SQLUtilsTest {
 		col.setColumnType(ColumnType.INTEGER);
 		col.setDefaultValue(null);
 		col.setId("456");
+		col.setName("colOne");
 		simpleSchema.add(col);
 		col = new ColumnModel();
 		col.setColumnType(ColumnType.STRING);
 		col.setDefaultValue(null);
 		col.setId("789");
 		col.setMaximumSize(300L);
+		col.setName("coTwo");
 		simpleSchema.add(col);
 		col = new ColumnModel();
 		col.setColumnType(ColumnType.STRING);
 		col.setDefaultValue(null);
 		col.setId("123");
 		col.setMaximumSize(150L);
+		col.setName("colThree");
 		simpleSchema.add(col);
+		
+		schemaIdToModelMap = TableModelUtils.createIDtoColumnModelMap(simpleSchema);
 		
 		annotationDto = new AnnotationDTO();
 		annotationDto.setEntityId(123L);

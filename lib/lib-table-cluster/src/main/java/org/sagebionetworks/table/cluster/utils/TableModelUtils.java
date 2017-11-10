@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
@@ -1117,6 +1118,36 @@ public class TableModelUtils {
 			index++;
 		}
 		return columnIndexMap;
+	}
+	
+	/**
+	 * Create a list of all column models included in the provided details.
+	 * 
+	 * @param details
+	 * @return
+	 */
+	public static List<ColumnModel> createListOfAllColumnModels(Iterable<ColumnChangeDetails> details) {
+		List<ColumnModel> fullList = new LinkedList<>();
+		for(ColumnChangeDetails detail: details) {
+			if(detail.getNewColumn() != null) {
+				fullList.add(detail.getNewColumn());
+			}
+			if(detail.getOldColumn() != null) {
+				fullList.add(detail.getOldColumn());
+			}
+		}
+		return fullList;
+	}
+	
+	/**
+	 * Map column Id to column Models for all columns in the details.
+	 * 
+	 * @param columns
+	 * @return
+	 */
+	public static Map<Long, ColumnModel> createIDtoColumnModeMapDetails(Iterable<ColumnChangeDetails> details) {
+		List<ColumnModel> fullList = createListOfAllColumnModels(details);
+		return createIDtoColumnModelMap(fullList);
 	}
 
 	/**

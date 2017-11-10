@@ -4,17 +4,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
-import org.sagebionetworks.repo.model.table.EntityField;
 import org.sagebionetworks.repo.model.table.ViewType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
-import org.sagebionetworks.table.cluster.ColumnMetadata;
 import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -189,7 +186,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	 * @return
 	 * @throws Exception
 	 */
-	private boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
+	boolean alterTableAsNeededWithProgress(ProgressCallback progressCallback, final String tableId, final List<ColumnChangeDetails> changes, final boolean alterTemp){
 		try {
 			return alterTableAsNeededWithinAutoProgress(tableId, changes, alterTemp);
 		} catch (Exception e) {

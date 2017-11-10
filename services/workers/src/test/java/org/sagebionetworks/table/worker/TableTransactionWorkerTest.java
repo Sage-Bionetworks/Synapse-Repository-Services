@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
@@ -55,6 +56,8 @@ public class TableTransactionWorkerTest {
 	TableTransactionManager mockTableTransactionManager;
 	@Mock
 	TableTransactionManagerProvider mockTransactionManagerProvider;
+	@Mock
+	TableExceptionTranslator mockTableExceptionTranslator;
 	
 	
 	TableTransactionWorker worker;
@@ -67,6 +70,7 @@ public class TableTransactionWorkerTest {
 	TableUpdateTransactionResponse responseBody;
 	Long userId;
 	UserInfo userInfo;
+	RuntimeException translatedException;
 
 	@Before
 	public void before() throws RecoverableMessageException, TableUnavailableException{
@@ -76,6 +80,7 @@ public class TableTransactionWorkerTest {
 		ReflectionTestUtils.setField(worker, "tableManagerSupport", mockTableManagerSupport);
 		ReflectionTestUtils.setField(worker, "userManager", mockUserManager);
 		ReflectionTestUtils.setField(worker, "tableTransactionManagerProvider", mockTransactionManagerProvider);
+		ReflectionTestUtils.setField(worker, "tableExceptionTranslator", mockTableExceptionTranslator);
 		
 		userId = 987L;
 		userInfo = new UserInfo(false);
@@ -122,6 +127,16 @@ public class TableTransactionWorkerTest {
 				return null;
 			}
 		}).when(mockProgressCallback).addProgressListener(any(ProgressListener.class));
+		
+		doAnswer(new Answer<RuntimeException>() {
+
+			@Override
+			public RuntimeException answer(InvocationOnMock invocation) throws Throwable {
+				Throwable exception = (Throwable) invocation.getArguments()[0];
+				translatedException = new RuntimeException("translated",exception);
+				return translatedException;
+			}
+		}).when(mockTableExceptionTranslator).translateException(any(Throwable.class));
 
 	}
 	
@@ -151,7 +166,10 @@ public class TableTransactionWorkerTest {
 		worker.run(mockProgressCallback, mockMessage);
 		verify(mockProgressCallback).addProgressListener(any(ProgressListener.class));
 		verify(mockProgressCallback).removeProgressListener(any(ProgressListener.class));
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, error);
+		// The error should be translated.
+		verify(mockTableExceptionTranslator).translateException(error);
+		// The translated exception should be set
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 	
 	@Test
@@ -258,6 +276,9 @@ public class TableTransactionWorkerTest {
 		} catch (Throwable e) {
 			// expected
 		}
-		verify(mockAsynchJobStatusManager).setJobFailed(jobId, exception);
+		// the exception should be translated.
+		verify(mockTableExceptionTranslator).translateException(exception);
+		// The translated exception should be set
+		verify(mockAsynchJobStatusManager).setJobFailed(jobId, translatedException);
 	}
 }
