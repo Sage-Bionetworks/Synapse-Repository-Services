@@ -157,22 +157,22 @@ public class EntityTypeUtils {
 	/**
 	 *  
 	 * @param child - the child type
-	 * @param parent - the parent type
+	 * @param parentType - the parent type or null if the child has no parent
 	 * @return true if parent is a valid parent type of child, false otherwise
 	 */
-	public static boolean isValidParentType(EntityType child, EntityType parent){
-		return isValidTypeInList(parent, getMetadata(child).getValidParentTypes());
+	public static boolean isValidParentType(EntityType child, EntityType parentType) {
+		return isValidTypeInList(parentType, getMetadata(child).getValidParentTypes());
 	}
 	
-	private static boolean isValidTypeInList(EntityType type, List<String> typeUrlList) {
-		String prefix;
-		if(type == null){
-			prefix = "DEFAULT";
-		}else{
-			prefix = getEntityTypeClassName(type);
+	private static boolean isValidTypeInList(EntityType type, List<String> validParentTypes) {
+		String entityTypeClassName;
+		if (type == null) {
+			entityTypeClassName = "DEFAULT";
+		} else {
+			entityTypeClassName = getEntityTypeClassName(type);
 		}
-		for(String validParent:  typeUrlList){
-			if(validParent.equals(prefix)) return true;
+		for (String validParent: validParentTypes) {
+			if(validParent.equals(entityTypeClassName)) return true;
 		}
 		// No match found
 		return false;				
