@@ -253,7 +253,6 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 					view.setType(ViewType.file);
 				}
 				if(object instanceof DockerRepository){
-					object.setParentId(project.getId());
 					DockerRepository dockerRepository = (DockerRepository)object;
 					dockerRepository.setIsManaged(false);
 					dockerRepository.setRepositoryName("foo/bar");
@@ -286,9 +285,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		// First try null
 		if(EntityTypeUtils.isValidParentType(type, null)) return null;
 		// Try each entry in the list
-		for(EntityHeader header: path){
-			EntityType parentType = EntityType.valueOf(header.getType());
-			if(EntityTypeUtils.isValidParentType(type, parentType)){
+		for(EntityHeader header: path) {
+			if ("syn4489".equals(header.getId()) ) continue;// the root node has misleading type 'Folder' and we've already checked the null parent case above
+			EntityType parentType = EntityTypeUtils.getEntityTypeForClassName(header.getType());
+			if(EntityTypeUtils.isValidParentType(type, parentType)) { 
 				return header.getId();
 			}
 		}
