@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -731,5 +732,37 @@ public class AuthorizationManagerImplTest {
 		// Invalid token should be denied
 		token.setMembershipInvitationId("corruptedId");
 		assertFalse(authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE).getAuthorized());
+	}
+
+	@Test
+	public void testCanAccessMembershipRequest() {
+		// Create request from userInfo to team
+		MembershipRequest mr = new MembershipRequest();
+		String mrId = "1";
+		mr.setId(mrId);
+		mr.setTeamId(team.getId());
+		mr.setUserId(userInfo.getId().toString());
+		mr.setMessage("Please let me join your team.");
+
+		// Test all access types
+		for (ACCESS_TYPE accessType : ACCESS_TYPE.values()) {
+			// Invitee can only read or delete the invitation
+			AuthorizationStatus inviteeAuthorization = authorizationManager.canAccessMembershipRequest(userInfo, mr, accessType);
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
+				assertTrue(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+			} else {
+				assertFalse(inviteeAuthorization.getReason(), inviteeAuthorization.getAuthorized());
+			}
+			// Team admin can only read or delete the request
+			AuthorizationStatus teamAdminAuthorization = authorizationManager.canAccessMembershipRequest(teamAdmin, mr, accessType);
+			if (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE) {
+				assertTrue(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+			} else {
+				assertFalse(teamAdminAuthorization.getReason(), teamAdminAuthorization.getAuthorized());
+			}
+			// Synapse admin has access of any type
+			AuthorizationStatus adminAuthorization = authorizationManager.canAccessMembershipRequest(adminUser, mr, accessType);
+			assertTrue(adminAuthorization.getReason(), adminAuthorization.getAuthorized());
+		}
 	}
 }

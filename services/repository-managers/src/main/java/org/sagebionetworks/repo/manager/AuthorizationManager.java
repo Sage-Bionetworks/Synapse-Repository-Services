@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -258,4 +259,6 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
+
+	AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType);
 }
