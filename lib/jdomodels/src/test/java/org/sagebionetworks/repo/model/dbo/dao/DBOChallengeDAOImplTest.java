@@ -380,4 +380,21 @@ public class DBOChallengeDAOImplTest {
 		challenge=null;
 	}
 
+	@Test
+	public void testDeleteTeam() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		
+		teamDAO.delete(participantId.toString()); // trigger cascade delete in challenge object
+		
+		try {
+			challengeDAO.get(Long.parseLong(challenge.getId()));
+			fail("Expected that participant team deletion would cascade to challenge.");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+		challenge=null;
+	}
+
 }
