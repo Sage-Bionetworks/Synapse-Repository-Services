@@ -42,23 +42,25 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		
 		// Does entity have a parent?
 		if (entity.getParentId() != null) {
-			// Check if the parent entity is root
-			boolean isParentRoot;			
+			// Check if the parent entity is root		
 			try {
-				isParentRoot = nodeDAO.isNodeRoot(entity.getParentId());
+				if (nodeDAO.isNodeRoot(entity.getParentId())) {
+					parentType=null;					
+				}
 			} catch (NotFoundException e) {
 				throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
 			} catch (DatastoreException e) {
 				throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
 			}				
-			
-			// If entity has a parent other than the root entity, validate the parent type
-			if (!isParentRoot) {		
-				// Note: Null parent type is valid for some object types.
-				if(!EntityTypeUtils.isValidParentType(objectType, parentType)){
-					throw new IllegalArgumentException("Entity type: "+EntityTypeUtils.getEntityTypeClassName(objectType)+" cannot have a parent of type: "+EntityTypeUtils.getEntityTypeClassName(parentType));
-				}
-			}
+		}
+		
+		//  validate the parent type
+		// Note: Null parent type is valid for some object types.
+		if (!EntityTypeUtils.isValidParentType(objectType, parentType)) {
+			throw new IllegalArgumentException("Entity type: "+
+					(objectType==null?"null":EntityTypeUtils.getEntityTypeClassName(objectType))+
+					" cannot have a parent of type: "+
+					(parentType==null?"null":EntityTypeUtils.getEntityTypeClassName(parentType)));
 		}
 		
 		// Is this a create or update?

@@ -42,17 +42,17 @@ public class EntityTypeUtils {
 				// project
 				buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project"),
 				// file
-				buildMetadata(EntityType.file, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
+				buildMetadata(EntityType.file, Arrays.asList(Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
 				// folder
-				buildMetadata(EntityType.folder, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
+				buildMetadata(EntityType.folder, Arrays.asList(Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
 				// table
-				buildMetadata(EntityType.table, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table"),
+				buildMetadata(EntityType.table, Arrays.asList(Project.class.getName(), Folder.class.getName()), TableEntity.class, "Table"),
 				// link
-				buildMetadata(EntityType.link, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
+				buildMetadata(EntityType.link, Arrays.asList(Project.class.getName(), Folder.class.getName()), Link.class, "Link"),
 				// EntityView
-				buildMetadata(EntityType.entityview, Arrays.asList("DEFAULT",Project.class.getName(), Folder.class.getName()), EntityView.class, "View"),
+				buildMetadata(EntityType.entityview, Arrays.asList(Project.class.getName(), Folder.class.getName()), EntityView.class, "View"),
 				// dockerrepo
-				buildMetadata(EntityType.dockerrepo, Arrays.asList("DEFAULT", Project.class.getName()), DockerRepository.class, "Docker Repository"),
+				buildMetadata(EntityType.dockerrepo, Arrays.asList(Project.class.getName()), DockerRepository.class, "Docker Repository"),
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -157,22 +157,22 @@ public class EntityTypeUtils {
 	/**
 	 *  
 	 * @param child - the child type
-	 * @param parent - the parent type
+	 * @param parentType - the parent type or null if the child has no parent
 	 * @return true if parent is a valid parent type of child, false otherwise
 	 */
-	public static boolean isValidParentType(EntityType child, EntityType parent){
-		return isValidTypeInList(parent, getMetadata(child).getValidParentTypes());
+	public static boolean isValidParentType(EntityType child, EntityType parentType) {
+		return isValidTypeInList(parentType, getMetadata(child).getValidParentTypes());
 	}
 	
-	private static boolean isValidTypeInList(EntityType type, List<String> typeUrlList) {
-		String prefix;
-		if(type == null){
-			prefix = "DEFAULT";
-		}else{
-			prefix = getEntityTypeClassName(type);
+	private static boolean isValidTypeInList(EntityType type, List<String> validParentTypes) {
+		String entityTypeClassName;
+		if (type == null) {
+			entityTypeClassName = "DEFAULT";
+		} else {
+			entityTypeClassName = getEntityTypeClassName(type);
 		}
-		for(String validParent:  typeUrlList){
-			if(validParent.equals(prefix)) return true;
+		for (String validParent: validParentTypes) {
+			if(validParent.equals(entityTypeClassName)) return true;
 		}
 		// No match found
 		return false;				

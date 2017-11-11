@@ -268,7 +268,7 @@ public class EntityBundleControllerTest extends AbstractAutowiredControllerTestB
 		toDelete.add(id);
 		
 		FileEntity file = new FileEntity();
-		file.setParentId(p.getId());
+		file.setParentId(p2.getId());
 		file.setDataFileHandleId(handleOne.getId());
 		file.setEntityType(FileEntity.class.getName());
 		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
