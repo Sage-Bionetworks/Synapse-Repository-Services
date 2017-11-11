@@ -254,10 +254,12 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		when(mockMembershipRequestDAO.get(anyString())).thenReturn(mrs);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
 		
 		// ok to get for another user, if you are an admin
 		mrs.setUserId("-1");
+		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		assertEquals(mrs, membershipRequestManagerImpl.get(adminInfo, "001"));
 	}
 
@@ -267,6 +269,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setTeamId(TEAM_ID);
 		mrs.setUserId("-1");
 		when(mockMembershipRequestDAO.get(anyString())).thenReturn(mrs);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
 		assertEquals(mrs, membershipRequestManagerImpl.get(userInfo, "001"));
 	}
 
@@ -278,11 +281,13 @@ public class MembershipRequestManagerImplTest {
 		mrs.setUserId(MEMBER_PRINCIPAL_ID);
 		mrs.setId(MRS_ID);
 		when(mockMembershipRequestDAO.get(MRS_ID)).thenReturn(mrs);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		membershipRequestManagerImpl.delete(userInfo, MRS_ID);
 		Mockito.verify(mockMembershipRequestDAO).delete(MRS_ID);
 		
 		// ok to delete if you are an admin
 		mrs.setUserId("333");
+		when(mockAuthorizationManager.canAccessMembershipRequest(adminInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		membershipRequestManagerImpl.delete(adminInfo, MRS_ID);
 	}
 	
@@ -294,6 +299,7 @@ public class MembershipRequestManagerImplTest {
 		mrs.setUserId("333");
 		mrs.setId(MRS_ID);
 		when(mockMembershipRequestDAO.get(MRS_ID)).thenReturn(mrs);
+		when(mockAuthorizationManager.canAccessMembershipRequest(userInfo, mrs, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
 		membershipRequestManagerImpl.delete(userInfo, MRS_ID);
 		Mockito.verify(mockMembershipRequestDAO).delete(MRS_ID);
 	}
