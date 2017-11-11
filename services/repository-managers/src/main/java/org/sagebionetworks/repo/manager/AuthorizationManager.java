@@ -35,7 +35,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+	AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
 
 
@@ -50,7 +50,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
+	AuthorizationStatus canCreate(UserInfo userInfo, String parentId, EntityType nodeType) throws NotFoundException, DatastoreException ;
 
 	/**
 	 * Checks whether the given user can modify the settings for the given node.
@@ -61,7 +61,7 @@ public interface AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public AuthorizationStatus canChangeSettings(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException;
+	AuthorizationStatus canChangeSettings(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 
@@ -69,7 +69,7 @@ public interface AuthorizationManager {
 	 * @param activityId activity that generated the entities
 	 * @return Returns true if the specified user can read at least one entity with the specified activity Id.  Returns whether access is granted and, if not, a String giving the reason why
 	 */
-	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
+	AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
 	
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
@@ -78,7 +78,7 @@ public interface AuthorizationManager {
 	 * @param creator
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
+	AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
 	
 	/**
 	 * Is the user the creator or are they an admin
@@ -86,7 +86,7 @@ public interface AuthorizationManager {
 	 * @param creator
 	 * @return
 	 */
-	public boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator);
+	boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator);
 	
 	/**
 	 * 
@@ -95,7 +95,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+	AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
 	/**
 	 * 
@@ -105,7 +105,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 */
 	@Deprecated
-	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
+	void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
 			throws NotFoundException;
 	
 	/**
@@ -126,8 +126,8 @@ public interface AuthorizationManager {
 	 * @param associations
 	 * @return Map key
 	 */
-	public List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
-			List<String> fileHandleId, String associatedObjectId, FileHandleAssociateType associationType);
+	List<FileHandleAuthorizationStatus> canDownloadFile(UserInfo user,
+	                                                    List<String> fileHandleId, String associatedObjectId, FileHandleAssociateType associationType);
 
 
 	/**
@@ -138,14 +138,14 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 */
-	public AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
+	AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 	/**
 	 * Is this the AnonymousUser?
 	 * @param userInfo
 	 * @return
 	 */
-	public boolean isAnonymousUser(UserInfo userInfo);
+	boolean isAnonymousUser(UserInfo userInfo);
 	
 	/**
 	 * Checks whether the parent (or other ancestors) are subject to access restrictions and whether 
@@ -157,7 +157,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
+	AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 
 	/**
 	 * 
@@ -168,7 +168,7 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
+	AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -186,8 +186,8 @@ public interface AuthorizationManager {
 	 * @param originalBenefactors
 	 * @return
 	 */
-	public Set<Long> getAccessibleBenefactors(UserInfo userInfo,
-			Set<Long> originalBenefactors);
+	Set<Long> getAccessibleBenefactors(UserInfo userInfo,
+	                                   Set<Long> originalBenefactors);
 
 	/**
 	 * Check user access to an subscribable object
@@ -200,8 +200,8 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
-			SubscriptionObjectType objectType) throws DatastoreException,
+	AuthorizationStatus canSubscribe(UserInfo userInfo, String objectId,
+	                                 SubscriptionObjectType objectType) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -211,7 +211,7 @@ public interface AuthorizationManager {
 	 * @param principalIds
 	 * @return
 	 */
-	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
+	Set<Long> getAccessibleProjectIds(Set<Long> principalIds);
 	
 	/**
 	 * 
@@ -221,7 +221,7 @@ public interface AuthorizationManager {
 	 * @param actionTypes
 	 * @return the permitted actions for the given user on the given repository
 	 */
-	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
+	Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes);
 
 	/**
 	 * Validate and throw exception for HasAccessorRequirement
@@ -229,17 +229,17 @@ public interface AuthorizationManager {
 	 * @param req
 	 * @param accessors
 	 */
-	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
+	void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors);
 
 	/**
-	 * Check whether a user has access to a membership invitation submission
+	 * Check whether a user has access to a MembershipInvitation
 	 *
 	 * @param userInfo
 	 * @param mis
 	 * @param accessType
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mis, ACCESS_TYPE accessType);
+	AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mis, ACCESS_TYPE accessType);
 
 	/**
 	 * Check whether the token is valid for the access_type
@@ -248,7 +248,7 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
+	AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType);
 
 	/**
 	 * Check whether the token is valid for the access_type
@@ -258,7 +258,15 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * @return
 	 */
-	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
+	AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType);
 
+	/**
+	 * Check whether a user has access to a MembershipRequest
+	 *
+	 * @param userInfo
+	 * @param mr
+	 * @param accessType
+	 * @return
+	 */
 	AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType);
 }
