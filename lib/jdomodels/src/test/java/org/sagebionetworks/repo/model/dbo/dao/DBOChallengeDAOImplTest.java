@@ -386,7 +386,7 @@ public class DBOChallengeDAOImplTest {
 		createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
 		
-		teamDAO.delete(participantId.toString()); // trigger cascade delete in challenge object
+		teamDAO.delete(participantTeam.getId()); // trigger cascade delete in challenge object
 		
 		try {
 			challengeDAO.get(Long.parseLong(challenge.getId()));
