@@ -21,13 +21,16 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -631,8 +634,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-<<<<<<< HEAD
-=======
 	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
 		if (req.getIsCertifiedUserRequired()) {
 			ValidateArgument.requirement(groupMembersDao.areMemberOf(
@@ -668,7 +669,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
->>>>>>> 399437b2ecb8a5e70f932dbab385276dfac57b1a
 	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
 		String miId = token.getMembershipInvitationId();
 		try {
