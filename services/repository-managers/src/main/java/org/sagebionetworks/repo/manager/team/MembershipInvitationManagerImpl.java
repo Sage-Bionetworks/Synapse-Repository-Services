@@ -68,19 +68,19 @@ public class MembershipInvitationManagerImpl implements
 
 	protected static final long TWENTY_FOUR_HOURS_IN_MS = 1000 * 60 * 60 * 24;
 
-	public static void validateForCreate(MembershipInvitation mis) {
-		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
-		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
-		if (mis.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if ((mis.getInviteeId() == null ^ mis.getInviteeEmail() == null) == false) {
+	public static void validateForCreate(MembershipInvitation mi) {
+		if (mi.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
+		if (mi.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
+		if (mi.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
+		if ((mi.getInviteeId() == null ^ mi.getInviteeEmail() == null) == false) {
 			throw new InvalidModelException("One and only one of the fields 'inviteeId' and 'inviteeEmail' is required");
 		}
-		if (mis.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
+		if (mi.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 
-	public static void populateCreationFields(UserInfo userInfo, MembershipInvitation mis, Date now) {
-		mis.setCreatedBy(userInfo.getId().toString());
-		mis.setCreatedOn(now);
+	public static void populateCreationFields(UserInfo userInfo, MembershipInvitation mi, Date now) {
+		mi.setCreatedBy(userInfo.getId().toString());
+		mi.setCreatedOn(now);
 	}
 
 	/* (non-Javadoc)
@@ -89,56 +89,56 @@ public class MembershipInvitationManagerImpl implements
 	@WriteTransactionReadCommitted
 	@Override
 	public MembershipInvitation create(UserInfo userInfo,
-	                                   MembershipInvitation mis) throws DatastoreException,
+	                                   MembershipInvitation mi) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
-		validateForCreate(mis);
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE).getAuthorized())
+		validateForCreate(mi);
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.CREATE).getAuthorized())
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
-		populateCreationFields(userInfo, mis, now);
-		MembershipInvitation created = membershipInvitationDAO.create(mis);
+		populateCreationFields(userInfo, mi, now);
+		MembershipInvitation created = membershipInvitationDAO.create(mi);
 		return created;
 	}
 	
 	@Override
-	public MessageToUserAndBody createInvitationToUser(MembershipInvitation mis,
+	public MessageToUserAndBody createInvitationToUser(MembershipInvitation mi,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
-		if (mis.getCreatedOn() == null) mis.setCreatedOn(new Date());
+		if (mi.getCreatedOn() == null) mi.setCreatedOn(new Date());
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
-		mtu.setRecipients(Collections.singleton(mis.getInviteeId()));
+		mtu.setRecipients(Collections.singleton(mi.getInviteeId()));
 		mtu.setNotificationUnsubscribeEndpoint(notificationUnsubscribeEndpoint);
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mis.getTeamId()).getName());
-		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mi.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-				acceptInvitationEndpoint, mis.getInviteeId(), mis.getInviteeId(), mis.getTeamId(), mis.getCreatedOn()));
-		if (mis.getMessage()==null || mis.getMessage().length()==0) {
+				acceptInvitationEndpoint, mi.getInviteeId(), mi.getInviteeId(), mi.getTeamId(), mi.getCreatedOn()));
+		if (mi.getMessage()==null || mi.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, "");
 		} else {
 			fieldValues.put(TEMPLATE_KEY_INVITER_MESSAGE, 
 							"The inviter sends the following message: <Blockquote> "+
-							mis.getMessage()+" </Blockquote> ");
+							mi.getMessage()+" </Blockquote> ");
 		}
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
 		return new MessageToUserAndBody(mtu, messageContent, ContentType.TEXT_HTML.getMimeType());
 	}
 
 	@Override
-	public void sendInvitationToEmail(MembershipInvitation mis,
+	public void sendInvitationToEmail(MembershipInvitation mi,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return;
-		String teamName = teamDAO.get(mis.getTeamId()).getName();
+		String teamName = teamDAO.get(mi.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;
 		Map<String,String> fieldValues = new HashMap<>();
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mis.getTeamId());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_ID, mi.getTeamId());
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_TEAM_NAME, teamName);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mis.getId()));
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mis.getMessage());
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createMembershipInvtnLink(acceptInvitationEndpoint, mi.getId()));
+		fieldValues.put(EmailUtils.TEMPLATE_KEY_INVITER_MESSAGE, mi.getMessage());
 		String messageBody = EmailUtils.readMailTemplate("message/teamMembershipInvitationExtendedToEmailTemplate.html", fieldValues);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
-			.withRecipientEmail(mis.getInviteeEmail())
+			.withRecipientEmail(mi.getInviteeEmail())
 			.withSubject(subject)
 			.withBody(messageBody, SendRawEmailRequestBuilder.BodyType.HTML)
 			.withIsNotificationMessage(true)
@@ -152,19 +152,19 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MembershipInvitation get(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException {
-		MembershipInvitation mis = membershipInvitationDAO.get(id);
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.READ).getAuthorized())
+		MembershipInvitation mi = membershipInvitationDAO.get(id);
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.READ).getAuthorized())
 			throw new UnauthorizedException("Cannot retrieve membership invitation.");
-		return mis;
+		return mi;
 	}
 
 	@Override
-	public MembershipInvitation get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
+	public MembershipInvitation get(String miId, MembershipInvtnSignedToken token) throws DatastoreException, NotFoundException {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(token, ACCESS_TYPE.READ);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}
-		return membershipInvitationDAO.get(misId);
+		return membershipInvitationDAO.get(miId);
 	}
 
 	/* (non-Javadoc)
@@ -174,14 +174,15 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipInvitation mis = null;
+		MembershipInvitation mi;
 		try {
-			mis = membershipInvitationDAO.get(id);
+			mi = membershipInvitationDAO.get(id);
 		} catch (NotFoundException e) {
 			return;
 		}
-		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.DELETE).getAuthorized())
+		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.DELETE).getAuthorized()) {
 			throw new UnauthorizedException("Cannot delete membership invitation.");
+		}
 		membershipInvitationDAO.delete(id);
 	}
 
@@ -215,14 +216,14 @@ public class MembershipInvitationManagerImpl implements
 	public InviteeVerificationSignedToken getInviteeVerificationSignedToken(Long userId, String membershipInvitationId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(membershipInvitationId, "membershipInvitationId");
-		MembershipInvitation mis = membershipInvitationDAO.get(membershipInvitationId);
-		if (mis.getExpiresOn() != null && mis.getExpiresOn().before(new Date())) {
+		MembershipInvitation mi = membershipInvitationDAO.get(membershipInvitationId);
+		if (mi.getExpiresOn() != null && mi.getExpiresOn().before(new Date())) {
 			throw new IllegalArgumentException("Indicated MembershipInvitation is expired.");
 		}
-		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {
+		if (!(mi.getInviteeId() == null && mi.getInviteeEmail() != null)) {
 			throw new IllegalArgumentException("The indicated invitation must have a null inviteeId and a non null inviteeEmail.");
 		}
-		if (!principalAliasDAO.aliasIsBoundToPrincipal(mis.getInviteeEmail(), Long.toString(userId))) {
+		if (!principalAliasDAO.aliasIsBoundToPrincipal(mi.getInviteeEmail(), Long.toString(userId))) {
 			// inviteeEmail is not associated with the user
 			throw new UnauthorizedException("This membership invitation is not addressed to the authenticated user.");
 		}
@@ -236,12 +237,12 @@ public class MembershipInvitationManagerImpl implements
 
 	@WriteTransactionReadCommitted
 	@Override
-	public void updateInviteeId(Long userId, String misId, InviteeVerificationSignedToken token) {
+	public void updateInviteeId(Long userId, String miId, InviteeVerificationSignedToken token) {
 		AuthorizationStatus status = authorizationManager.canAccessMembershipInvitation(userId, token, ACCESS_TYPE.UPDATE);
 		if (!status.getAuthorized()) {
 			throw new UnauthorizedException(status.getReason());
 		}
-		if (!misId.equals(token.getMembershipInvitationId())) {
+		if (!miId.equals(token.getMembershipInvitationId())) {
 			throw new IllegalArgumentException("ID in URI and ID in signed token don't match");
 		}
 		if (token.getExpiresOn() == null ) {
@@ -250,11 +251,11 @@ public class MembershipInvitationManagerImpl implements
 		if (token.getExpiresOn().before(new Date())) {
 			throw new IllegalArgumentException("InviteeVerificationSignedToken is expired");
 		}
-		MembershipInvitation mis = membershipInvitationDAO.getWithUpdateLock(misId);
-		if (!(mis.getInviteeId() == null && mis.getInviteeEmail() != null)) {
+		MembershipInvitation mi = membershipInvitationDAO.getWithUpdateLock(miId);
+		if (!(mi.getInviteeId() == null && mi.getInviteeEmail() != null)) {
 			throw new IllegalArgumentException("Cannot update inviteeId. The target invitation must have a null inviteeId and a non null inviteeEmail.");
 		}
-		membershipInvitationDAO.updateInviteeId(misId, userId);
+		membershipInvitationDAO.updateInviteeId(miId, userId);
 	}
 
 	/* (non-Javadoc)

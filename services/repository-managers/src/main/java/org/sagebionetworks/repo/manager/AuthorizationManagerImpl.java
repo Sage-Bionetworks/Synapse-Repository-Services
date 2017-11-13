@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -630,30 +631,83 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
+<<<<<<< HEAD
+=======
+	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
+		if (req.getIsCertifiedUserRequired()) {
+			ValidateArgument.requirement(groupMembersDao.areMemberOf(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+					accessors),
+					"Accessors must be Synapse Certified Users.");
+		}
+		if (req.getIsValidatedProfileRequired()) {
+			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
+					"Accessors must have validated profiles.");
+		}
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mi, ACCESS_TYPE accessType) {
+		if (mi.getInviteeId() != null) {
+			// The invitee should be able to read or delete the invitation
+			boolean userIsInvitee = Long.parseLong(mi.getInviteeId()) == userInfo.getId();
+			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
+				return AuthorizationManagerUtil.AUTHORIZED;
+			}
+		}
+		// An admin of the team should be able to create, read or delete the invitation
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// A Synapse admin should have access of any type
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + mi.getId());
+	}
+
+	@Override
+>>>>>>> 399437b2ecb8a5e70f932dbab385276dfac57b1a
 	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
-		String misId = token.getMembershipInvitationId();
+		String miId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
 	}
 
 	@Override
 	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
-		String misId = token.getMembershipInvitationId();
+		String miId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
-		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(misId) && accessType == ACCESS_TYPE.UPDATE) {
+		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType) {
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// An admin of the team should be able to read or delete the request
+		// The requester should also be able to read or delete the request
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsRequester = Long.parseLong(mr.getUserId()) == userInfo.getId();
+		if ((userIsTeamAdmin || userIsRequester) && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType + " membership request " + mr.getId());
 	}
 }
