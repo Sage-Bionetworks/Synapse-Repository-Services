@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,16 +21,13 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DockerNodeDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
-import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.Node;
@@ -62,7 +61,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
-	
+
+	private static final String REPOSITORY_TYPE = "repository";
+	private static final String REGISTRY_TYPE = "registry";
+	private static final String REGISTRY_CATALOG = "catalog";	
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
 			StackConfiguration.getTrashFolderEntityIdStatic());
 
@@ -535,13 +537,43 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes) {
+	public Set<String> getPermittedDockerActions(UserInfo userInfo, String service, String type, String name, String actionTypes) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(service, "service");
-		ValidateArgument.required(repositoryPath, "repositoryPath");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(name, "name");
 		ValidateArgument.required(actionTypes, "actionTypes");
+		
+		String[] actionArray = actionTypes.split(",");
+		if (REGISTRY_TYPE.equalsIgnoreCase(type)) {
+			return getPermittedDockerRegistryActions(userInfo, service, name, actionArray);
+		} else if (REPOSITORY_TYPE.equalsIgnoreCase(type)) {
+			Set<RegistryEventAction> approvedActions = getPermittedDockerRepositoryActions(userInfo, service, name, actionArray);
+			Set<String> result = new HashSet<String>();
+			for (RegistryEventAction a : approvedActions) result.add(a.name());
+			return result;
+		} else {
+			throw new IllegalArgumentException("Unexpected type "+type);
+		}
+	}
 
-		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
+	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, String service, String name, String[] actionTypes) {
+		if (name.equalsIgnoreCase(REGISTRY_CATALOG)) {
+			// OK, it's a request to list the catalog
+			if (userInfo.isAdmin()) { 
+				// an admin can do *anything*
+				return new HashSet<String>(Arrays.asList(actionTypes));
+			} else {
+				// non-admins cannot list the catalog
+				return Collections.emptySet();
+			}
+		} else {
+			// unrecognized name
+			return Collections.emptySet();
+		}
+	}
+
+	private Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String[] actionTypes) {		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
@@ -552,7 +584,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
 			isInTrash = TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
 		}
-		for (String requestedActionString : actionTypes.split(",")) {
+		for (String requestedActionString : actionTypes) {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
 			case push:
@@ -595,41 +627,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 		}
 		return permittedActions;
-	}
-
-	@Override
-	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
-		if (req.getIsCertifiedUserRequired()) {
-			ValidateArgument.requirement(groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors),
-					"Accessors must be Synapse Certified Users.");
-		}
-		if (req.getIsValidatedProfileRequired()) {
-			ValidateArgument.requirement(verificationDao.haveValidatedProfiles(accessors),
-					"Accessors must have validated profiles.");
-		}
-	}
-
-	@Override
-	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mis, ACCESS_TYPE accessType) {
-		if (mis.getInviteeId() != null) {
-			// The invitee should be able to read or delete the invitation
-			boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
-			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
-				return AuthorizationManagerUtil.AUTHORIZED;
-			}
-		}
-		// An admin of the team should be able to create, read or delete the invitation
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
-		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		// A Synapse admin should have access of any type
-		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
 	}
 
 	@Override

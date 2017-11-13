@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.*;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +31,8 @@ public class DockerTokenUtilTest {
 		String registry = "docker.synapse.org";
 		String repository1 = "syn12345/myrepo";
 		String repository2 = "syn12345/myotherrepo";
-		Set<RegistryEventAction> pushAndPullActions = new HashSet<RegistryEventAction>(Arrays.asList(new RegistryEventAction[] {RegistryEventAction.push, RegistryEventAction.pull}));
-		Set<RegistryEventAction> pullActionOnly = new HashSet<RegistryEventAction>(Arrays.asList(new RegistryEventAction[] {RegistryEventAction.pull}));
+		Set<String> pushAndPullActions = new HashSet<String>(Arrays.asList(new String[] {push.name(), pull.name()}));
+		Set<String> pullActionOnly = new HashSet<String>(Arrays.asList(new String[] {pull.name()}));
 		
 		
 		
@@ -72,7 +72,7 @@ public class DockerTokenUtilTest {
 		expectedClaimSetStringBuilder.append(repository1);
 		expectedClaimSetStringBuilder.append("\",\"type\":\"");
 		expectedClaimSetStringBuilder.append(type);
-		expectedClaimSetStringBuilder.append("\",\"actions\":[\"push\",\"pull\"]},{\"name\":\"");
+		expectedClaimSetStringBuilder.append("\",\"actions\":[\"pull\",\"push\"]},{\"name\":\"");
 		expectedClaimSetStringBuilder.append(repository2);
 		expectedClaimSetStringBuilder.append("\",\"type\":\"");
 		expectedClaimSetStringBuilder.append(type);
