@@ -12,7 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.docker.RegistryEventAction.*;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,8 +37,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -67,7 +66,6 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -138,6 +136,7 @@ public class AuthorizationManagerImplUnitTest {
 	private static final long USER_ID = 111L;
 
 	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	private static final UserInfo ADMIN_INFO = new UserInfo(true, 1L);
 	
 	private static final String REGISTRY_HOST = "docker.synapse.org";
 	private static final String SERVICE = REGISTRY_HOST;
@@ -147,6 +146,8 @@ public class AuthorizationManagerImplUnitTest {
 	
 	private static final String REPOSITORY_TYPE = "repository";
 	private static final String REGISTRY_TYPE = "registry";
+	private static final String CATALOG_NAME = "catalog";
+	private static final String ALL_ACCESS_TYPES = "*";
 	
 	private AuthorizationManagerImpl authorizationManager;
 	private UserInfo userInfo;
@@ -1026,6 +1027,33 @@ public class AuthorizationManagerImplUnitTest {
 				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
 		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistry() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertEquals(new HashSet(Arrays.asList(new String[]{ALL_ACCESS_TYPES})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNotAdmin() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNotCatalog() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, "not-catalog", ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
 	}
 
 	@Test
