@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -15,6 +13,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -28,9 +27,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -46,12 +43,20 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
 	
+	private static final String SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS = 
+			"SELECT CONSTRAINT_NAME, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME"
+			+ " FROM information_schema.REFERENTIAL_CONSTRAINTS "
+			+ "WHERE"
+			+ " DELETE_RULE != 'RESTRICT' AND UNIQUE_CONSTRAINT_SCHEMA = ?";
+
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private StackConfiguration stackConfiguration;
 	
 	/**
 	 * For unit testing
@@ -145,6 +150,49 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Change must always be last
 		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
+		}
+	}
+
+	/**
+	 * <p>
+	 * See: PLFM-4729
+	 * </p>
+	 * <p>
+	 * In order to correctly migrate a change to a secondary table, the etag of the
+	 * corresponding row in the primary table must also be updated. If a foreign key
+	 * constraint triggers the modification of a row in a secondary table by
+	 * deleting the row ('ON DELETE CASCADE'), or setting a value to null ('ON
+	 * DELETE SET NULL') without also updating the corresponding row in the primary
+	 * table, then the change to the secondary table will not migrate.
+	 * </p>
+	 * <p>
+	 * Therefore, we limit foreign key constraint on secondary tables to
+	 * 'RESTRICTED' when the referenced table does not belong to the same primary
+	 * table.
+	 * </p>
+	 * 
+	 * @param keyInfoList
+	 * @param tableNameToPrimaryGroup Mapping of the name of each secondary table to the 
+	 * set of table names that belong to the same primary table.  Note: The primary table
+	 * name is included in the set.
+	 */
+	public static void validateForeignKeys(List<ForeignKeyInfo> nonRestrictedForeignKeys,
+			Map<String, Set<String>> tableNameToPrimaryGroup) {
+		for(ForeignKeyInfo nonRestrictedForeignKey: nonRestrictedForeignKeys) {
+			String tableName = nonRestrictedForeignKey.getTableName().toUpperCase();
+			String refrencedTalbeName = nonRestrictedForeignKey.getReferencedTableName().toUpperCase();
+			Set<String> tablesInPrimaryGroup = tableNameToPrimaryGroup.get(tableName);
+			if(tablesInPrimaryGroup != null) {
+				/*
+				 * This is a secondary table so it can only have non-restricted references to //
+				 * tables within its same primary group.
+				 */
+				if (!tablesInPrimaryGroup.contains(refrencedTalbeName)) {
+					throw new IllegalStateException("See: PLFM-4729. Table: " + tableName
+							+ " cannot have a non-restricted foreign key refrence to table: " + refrencedTalbeName
+							+ " becuase the refrenced table does not belong to the same primary table.");
+				}
+			}
 		}
 	}
 
@@ -277,9 +325,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 					+ mapping.getTableName() + ":");
 			log.debug("\t" + names.toString());
 		}
-
 	}
-
+	
 	@Override
 	public long getCount(MigrationType type) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
@@ -599,7 +646,21 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public boolean isMigrationTypeRegistered(MigrationType type) {
 		return this.registeredMigrationTypes.contains(type);
 	}
-	
-	
+
+	@Override
+	public List<ForeignKeyInfo> listNonRestrictedForeignKeys() {
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
+		return jdbcTemplate.query(SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS, new RowMapper<ForeignKeyInfo>() {
+
+			@Override
+			public ForeignKeyInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ForeignKeyInfo info = new ForeignKeyInfo();
+				info.setConstraintName(rs.getString("CONSTRAINT_NAME"));
+				info.setDeleteRule(rs.getString("DELETE_RULE"));
+				info.setTableName(rs.getString("TABLE_NAME"));
+				info.setReferencedTableName(rs.getString("REFERENCED_TABLE_NAME"));
+				return info;
+			}}, schema);
+	}
 	
 }

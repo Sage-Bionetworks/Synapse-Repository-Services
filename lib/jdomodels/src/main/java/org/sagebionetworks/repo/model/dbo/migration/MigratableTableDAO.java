@@ -139,6 +139,12 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public boolean isMigrationTypeRegistered(MigrationType type);
+	
+	/**
+	 * List all non-restricted foreign keys in the schema.
+	 * @return
+	 */
+	public List<ForeignKeyInfo> listNonRestrictedForeignKeys();
 
 
 }
