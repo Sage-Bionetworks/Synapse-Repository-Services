@@ -43,6 +43,11 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
 	
+	private static final String REFERENCED_TABLE_NAME = "REFERENCED_TABLE_NAME";
+	private static final String TABLE_NAME = "TABLE_NAME";
+	private static final String DELETE_RULE = "DELETE_RULE";
+	private static final String CONSTRAINT_NAME = "CONSTRAINT_NAME";
+
 	private static final String SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS = 
 			"SELECT CONSTRAINT_NAME, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME"
 			+ " FROM information_schema.REFERENTIAL_CONSTRAINTS "
@@ -152,49 +157,32 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
 	}
-
-	/**
-	 * <p>
-	 * See: PLFM-4729
-	 * </p>
-	 * <p>
-	 * In order to correctly migrate a change to a secondary table, the etag of the
-	 * corresponding row in the primary table must also be updated. If a foreign key
-	 * constraint triggers the modification of a row in a secondary table by
-	 * deleting the row ('ON DELETE CASCADE'), or setting a value to null ('ON
-	 * DELETE SET NULL') without also updating the corresponding row in the primary
-	 * table, then the change to the secondary table will not migrate.
-	 * </p>
-	 * <p>
-	 * Therefore, we limit foreign key constraint on secondary tables to
-	 * 'RESTRICTED' when the referenced table does not belong to the same primary
-	 * table.
-	 * </p>
-	 * 
-	 * @param keyInfoList
-	 * @param tableNameToPrimaryGroup Mapping of the name of each secondary table to the 
-	 * set of table names that belong to the same primary table.  Note: The primary table
-	 * name is included in the set.
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#mapSecondaryTablesToPrimaryGroups()
 	 */
-	public static void validateForeignKeys(List<ForeignKeyInfo> nonRestrictedForeignKeys,
-			Map<String, Set<String>> tableNameToPrimaryGroup) {
-		for(ForeignKeyInfo nonRestrictedForeignKey: nonRestrictedForeignKeys) {
-			String tableName = nonRestrictedForeignKey.getTableName().toUpperCase();
-			String refrencedTalbeName = nonRestrictedForeignKey.getReferencedTableName().toUpperCase();
-			Set<String> tablesInPrimaryGroup = tableNameToPrimaryGroup.get(tableName);
-			if(tablesInPrimaryGroup != null) {
-				/*
-				 * This is a secondary table so it can only have non-restricted references to //
-				 * tables within its same primary group.
-				 */
-				if (!tablesInPrimaryGroup.contains(refrencedTalbeName)) {
-					throw new IllegalStateException("See: PLFM-4729. Table: " + tableName
-							+ " cannot have a non-restricted foreign key refrence to table: " + refrencedTalbeName
-							+ " becuase the refrenced table does not belong to the same primary table.");
+	@Override
+	public Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups(){
+		Map<String, Set<String>> results = new HashMap<>();
+		for(MigratableDatabaseObject migratable: databaseObjectRegister) {
+			List<MigratableDatabaseObject> secondaryTypes = migratable.getSecondaryTypes();
+			if(secondaryTypes != null) {
+				Set<String> primaryGroupNames = new HashSet<>(secondaryTypes.size()+1);
+				// Add the primary table to the group
+				primaryGroupNames.add(migratable.getTableMapping().getTableName().toUpperCase());
+				// Add each secondary type to the map
+				for(MigratableDatabaseObject secondary: secondaryTypes) {
+					String secondaryName = secondary.getTableMapping().getTableName().toUpperCase();
+					// add this secondary to the primary group
+					primaryGroupNames.add(secondaryName);
+					results.put(secondaryName, primaryGroupNames);
 				}
 			}
 		}
+		return results;
 	}
+
 
 	/**
 	 * What is the index of this type in the enumeration?
@@ -655,10 +643,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			@Override
 			public ForeignKeyInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ForeignKeyInfo info = new ForeignKeyInfo();
-				info.setConstraintName(rs.getString("CONSTRAINT_NAME"));
-				info.setDeleteRule(rs.getString("DELETE_RULE"));
-				info.setTableName(rs.getString("TABLE_NAME"));
-				info.setReferencedTableName(rs.getString("REFERENCED_TABLE_NAME"));
+				info.setConstraintName(rs.getString(CONSTRAINT_NAME));
+				info.setDeleteRule(rs.getString(DELETE_RULE));
+				info.setTableName(rs.getString(TABLE_NAME));
+				info.setReferencedTableName(rs.getString(REFERENCED_TABLE_NAME));
 				return info;
 			}}, schema);
 	}
