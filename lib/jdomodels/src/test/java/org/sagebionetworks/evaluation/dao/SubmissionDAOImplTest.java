@@ -354,6 +354,10 @@ public class SubmissionDAOImplTest {
         assertEquals(initialCount + 1, submissionDAO.getCount());
         assertEquals(submission2, clone);
         
+        // with no foreign key relationship between submission and team, we can delete the team before deleting the submission
+		deleteTeam(submissionTeam);
+		submissionTeam=null;
+        
         // delete it
         submissionDAO.delete(SUBMISSION_2_ID);
         try {
