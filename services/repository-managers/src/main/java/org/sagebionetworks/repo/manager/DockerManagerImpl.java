@@ -91,14 +91,14 @@ public class DockerManagerImpl implements DockerManager {
 			for(String scope : scopes){
 				String[] scopeParts = scope.split(":");
 				if (scopeParts.length!=3) throw new RuntimeException("Expected 3 parts in scope param but found "+scopeParts.length + ". Scope param was " + scope);
-				String type = scopeParts[0]; // type='repository'
+				String type = scopeParts[0]; // type='repository' or 'registry'
 				
-				String repositoryPath = scopeParts[1]; // i.e. the 'path'
+				String name = scopeParts[1]; // if type is 'repository' then this is the name. if type is 'registry' this might be 'catalog'
 				
 				String actionTypes = scopeParts[2]; // e.g. push, pull
-				Set<RegistryEventAction> permittedActions = authorizationManager.getPermittedDockerRepositoryActions(userInfo,  service, repositoryPath, actionTypes);
+				Set<String> permittedActions = authorizationManager.getPermittedDockerActions(userInfo,  service, type, name, actionTypes);
 				
-				accessPermissions.add(new DockerScopePermission(type, repositoryPath, permittedActions));
+				accessPermissions.add(new DockerScopePermission(type, name, permittedActions));
 			}
 		}
 

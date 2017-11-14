@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.docker.RegistryEventAction;
-
 /**
  * Object representing the allowed actions for a Docker scope
  * @author zdong
@@ -12,7 +10,7 @@ import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 public class DockerScopePermission {
 	private String scopeType;
 	private String repositoryPath;
-	private Set<RegistryEventAction> permittedActions;
+	private Set<String> permittedActions;
 
 
 	public String getScopeType() {
@@ -23,11 +21,11 @@ public class DockerScopePermission {
 		return repositoryPath;
 	}
 	
-	public Set<RegistryEventAction> getPermittedActions() {
+	public Set<String> getPermittedActions() {
 		return permittedActions;
 	}
 	
-	public DockerScopePermission(String scopeType, String repositoryPath, Set<RegistryEventAction> permittedActions){
+	public DockerScopePermission(String scopeType, String repositoryPath, Set<String> permittedActions){
 		this.scopeType = scopeType;
 		this.repositoryPath = repositoryPath;
 		this.permittedActions = permittedActions;
