@@ -54,14 +54,14 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	private String title;
 	
 	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)
-	@ForeignKey(name = "V2_WIKI_CREATED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = false)
+	@ForeignKey(name = "V2_WIKI_CREATED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
 	
 	@Field(name = V2_COL_WIKI_CREATED_ON, nullable = false)
 	private Long createdOn;
 	
 	@Field(name = V2_COL_WIKI_MODIFIED_BY, nullable = false)
-	@ForeignKey(name = "V2_WIKI_MODIFIED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = false)
+	@ForeignKey(name = "V2_WIKI_MODIFIED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long modifiedBy;
 	
 	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)
