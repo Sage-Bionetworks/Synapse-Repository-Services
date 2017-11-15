@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -46,9 +47,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Boolean withUnsubscribeLink;
 	private Boolean withProfileSettingLink;
 	private Boolean isNotificationMessage;
-	private String to;
-	private String cc;
-	private String bcc;
+	private byte[] to;
+	private byte[] cc;
+	private byte[] bcc;
 	
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -63,9 +64,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				if (replyTo != null) {
 					result.setInReplyTo(Long.parseLong(replyTo));
 				};
-				java.sql.Blob blob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
-				if(blob != null){
-					result.setSubjectBytes(blob.getBytes(1, (int) blob.length()));
+				Blob subjectBytesBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
+				if(subjectBytesBlob != null){
+					result.setSubjectBytes(subjectBytesBlob.getBytes(1, (int) subjectBytesBlob.length()));
 				}
 
 				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
@@ -74,9 +75,19 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				result.setWithUnsubscribeLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK));
 				result.setWithProfileSettingLink(rs.getBoolean(SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK));
 				result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
-				result.setTo(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_TO));
-				result.setCc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_CC));
-				result.setBcc(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_BCC));
+				Blob toBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_TO);
+				if (toBlob != null) {
+					result.setTo(toBlob.getBytes(1, (int) toBlob.length()));
+				}
+				Blob ccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_CC);
+				if (ccBlob != null) {
+					result.setCc(ccBlob.getBytes(1, (int) ccBlob.length()));
+				}
+
+				Blob bccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_BCC);
+				if (bccBlob != null) {
+					result.setBcc(bccBlob.getBytes(1, (int) bccBlob.length()));
+				}
 				return result;
 			}
 			
@@ -182,27 +193,27 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.isNotificationMessage = isNotificationMessage;
 	}
 
-	public String getTo() {
+	public byte[] getTo() {
 		return to;
 	}
 
-	public void setTo(String to) {
+	public void setTo(byte[] to) {
 		this.to = to;
 	}
 
-	public String getCc() {
+	public byte[] getCc() {
 		return cc;
 	}
 
-	public void setCc(String cc) {
+	public void setCc(byte[] cc) {
 		this.cc = cc;
 	}
 
-	public String getBcc() {
+	public byte[] getBcc() {
 		return bcc;
 	}
 
-	public void setBcc(String bcc) {
+	public void setBcc(byte[] bcc) {
 		this.bcc = bcc;
 	}
 
@@ -247,8 +258,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((bcc == null) ? 0 : bcc.hashCode());
-		result = prime * result + ((cc == null) ? 0 : cc.hashCode());
+		result = prime * result + Arrays.hashCode(bcc);
+		result = prime * result + Arrays.hashCode(cc);
 		result = prime * result + ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
 		result = prime * result + ((isNotificationMessage == null) ? 0 : isNotificationMessage.hashCode());
 		result = prime * result + ((messageId == null) ? 0 : messageId.hashCode());
@@ -257,7 +268,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		result = prime * result + ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
 		result = prime * result + Arrays.hashCode(subjectBytes);
-		result = prime * result + ((to == null) ? 0 : to.hashCode());
+		result = prime * result + Arrays.hashCode(to);
 		result = prime * result + ((withProfileSettingLink == null) ? 0 : withProfileSettingLink.hashCode());
 		result = prime * result + ((withUnsubscribeLink == null) ? 0 : withUnsubscribeLink.hashCode());
 		return result;
@@ -273,15 +284,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessageToUser other = (DBOMessageToUser) obj;
-		if (bcc == null) {
-			if (other.bcc != null)
-				return false;
-		} else if (!bcc.equals(other.bcc))
+		if (!Arrays.equals(to, other.to))
 			return false;
-		if (cc == null) {
-			if (other.cc != null)
-				return false;
-		} else if (!cc.equals(other.cc))
+		if (!Arrays.equals(cc, other.cc))
 			return false;
 		if (inReplyTo == null) {
 			if (other.inReplyTo != null)
@@ -320,10 +325,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			return false;
 		if (!Arrays.equals(subjectBytes, other.subjectBytes))
 			return false;
-		if (to == null) {
-			if (other.to != null)
-				return false;
-		} else if (!to.equals(other.to))
+		if (!Arrays.equals(to, other.to))
 			return false;
 		if (withProfileSettingLink == null) {
 			if (other.withProfileSettingLink != null)
@@ -345,8 +347,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", sent=" + sent
 				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
 				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
-				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", to=" + to + ", cc="
-				+ cc + ", bcc=" + bcc + "]";
+				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", to="
+				+ Arrays.toString(to) + ", cc=" + Arrays.toString(cc) + ", bcc=" + Arrays.toString(bcc) + "]";
 	}
 
 }

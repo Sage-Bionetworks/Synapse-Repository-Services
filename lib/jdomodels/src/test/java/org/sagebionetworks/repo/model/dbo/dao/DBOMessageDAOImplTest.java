@@ -151,7 +151,7 @@ public class DBOMessageDAOImplTest {
 		dto.setIsNotificationMessage(true);
 		String to = "Foo<foo@sb.com>";
 		dto.setTo(to);
-		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String cc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
@@ -177,7 +177,7 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String to = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setTo(to);
 		String cc = "Foo<foo@sb.com>";
 		dto.setCc(cc);
@@ -209,7 +209,7 @@ public class DBOMessageDAOImplTest {
 		dto.setTo(to);
 		String cc = "Baz<baz@sb.com>";
 		dto.setCc(cc);
-		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String bcc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		try {
 			dto = messageDAO.createMessage(dto);
@@ -233,11 +233,11 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setTo(to);
-		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setCc(cc);
-		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		dto = messageDAO.createMessage(dto);
 		cleanup.add(dto.getId());
