@@ -40,7 +40,7 @@ public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<
 	private Long wikiId;
 	
 	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, primary = true, nullable = false)
-	@ForeignKey(name = "V2_WIKI_FILE_HAND_RESERVE_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
+	@ForeignKey(name = "V2_WIKI_FILE_HAND_RESERVE_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = false)
 	private Long fileHandleId;
 	
 	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP, nullable = false)
