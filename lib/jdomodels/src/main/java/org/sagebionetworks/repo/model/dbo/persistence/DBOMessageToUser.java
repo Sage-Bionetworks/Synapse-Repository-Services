@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,7 +17,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * Contains information specific to a message sent to a user
  */
-public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUser> {
+public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUserBackup> {
 	
 	public static final String MESSAGE_ID_FIELD_NAME = "messageId";
 	
@@ -225,23 +226,71 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	// once this has run for a single release, the back up objects will no longer have a 'subject'
 	// field.  Then the translator can then be reverted to the simple, default version
 	@Override
-	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser> getTranslator() {
-		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser>() {
+	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup> getTranslator() {
+		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup>() {
 			@Override
-			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
-				return backup;
+			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUserBackup backup) {
+				DBOMessageToUser dbo = new DBOMessageToUser();
+				dbo.setMessageId(backup.getMessageId());
+				dbo.setRootMessageId(backup.getRootMessageId());
+				dbo.setInReplyTo(backup.getInReplyTo());
+				dbo.setSubjectBytes(backup.getSubjectBytes());
+				dbo.setSent(backup.getSent());
+				dbo.setNotificationsEndpoint(backup.getNotificationsEndpoint());
+				dbo.setProfileSettingEndpoint(backup.getProfileSettingEndpoint());
+				dbo.setWithUnsubscribeLink(backup.getWithUnsubscribeLink());
+				dbo.setWithProfileSettingLink(backup.getWithProfileSettingLink());
+				dbo.setIsNotificationMessage(backup.getIsNotificationMessage());
+				try {
+					if (backup.getTo() != null) {
+						dbo.setTo(backup.getTo().getBytes("UTF-8"));
+					}
+					if (backup.getCc() != null) {
+						dbo.setCc(backup.getCc().getBytes("UTF-8"));
+					}
+					if (backup.getBcc() != null) {
+						dbo.setBcc(backup.getBcc().getBytes("UTF-8"));
+					}
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				}
+				return dbo;
 			}
 			
 			@Override
-			public DBOMessageToUser createBackupFromDatabaseObject(DBOMessageToUser dbo) {
-				return dbo;
+			public DBOMessageToUserBackup createBackupFromDatabaseObject(DBOMessageToUser dbo) {
+				DBOMessageToUserBackup backup = new DBOMessageToUserBackup();
+				backup.setMessageId(dbo.getMessageId());
+				backup.setRootMessageId(dbo.getRootMessageId());
+				backup.setInReplyTo(dbo.getInReplyTo());
+				backup.setSubjectBytes(dbo.getSubjectBytes());
+				backup.setSent(dbo.getSent());
+				backup.setNotificationsEndpoint(dbo.getNotificationsEndpoint());
+				backup.setProfileSettingEndpoint(dbo.getProfileSettingEndpoint());
+				backup.setWithUnsubscribeLink(dbo.getWithUnsubscribeLink());
+				backup.setWithProfileSettingLink(dbo.getWithProfileSettingLink());
+				backup.setIsNotificationMessage(dbo.getIsNotificationMessage());
+				try {
+					if (dbo.getTo() != null) {
+						backup.setTo(new String(dbo.getTo(), "UTF-8"));
+					}
+					if (dbo.getCc() != null) {
+						backup.setCc(new String(dbo.getCc(), "UTF-8"));
+					}
+					if (dbo.getBcc() != null) {
+						backup.setBcc(new String(dbo.getBcc(), "UTF-8"));
+					}
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				}
+				return backup;
 			}
 		};
 	}
 
 	@Override
-	public Class<? extends DBOMessageToUser> getBackupClass() {
-		return DBOMessageToUser.class;
+	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
+		return DBOMessageToUserBackup.class;
 	}
 	
 	@Override
