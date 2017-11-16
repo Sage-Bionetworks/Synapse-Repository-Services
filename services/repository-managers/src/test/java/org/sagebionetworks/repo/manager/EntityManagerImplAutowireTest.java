@@ -15,6 +15,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -132,6 +133,7 @@ public class EntityManagerImplAutowireTest {
 		}
 	}
 	
+	@Ignore // See PLFM-4734
 	@Test
 	public void testMoveRestrictedEntity() throws Exception {
 		// create a project with a child
