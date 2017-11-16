@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
@@ -168,6 +169,7 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeParentId, nodeDAO.getBenefactor(nodeChildRetrieved.getId()));
 	}
 	
+	@Ignore // See PLFM-4734
 	@Test
 	public void testRestrictedNodeRoundTrip() throws Exception {
 		inspectUsersTrashCan(testUserInfo, 0);

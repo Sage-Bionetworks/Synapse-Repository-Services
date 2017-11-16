@@ -141,7 +141,6 @@ public class BackupDriverImplAutowireTest {
 		if(backupTwo != null){
 			backupTwo.delete();
 		}
-		
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){
 				fileHandleDao.delete(id);

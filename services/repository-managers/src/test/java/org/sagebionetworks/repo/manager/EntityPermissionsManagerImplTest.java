@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -131,6 +132,8 @@ public class EntityPermissionsManagerImplTest {
 
 	@After
 	public void tearDown() throws Exception {
+		// delete in reverse order.
+		Collections.reverse((List<?>) nodeList);
 		for (Node n : nodeList) {
 			try {
 				nodeManager.delete(adminUserInfo, n.getId());

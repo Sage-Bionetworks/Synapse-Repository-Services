@@ -92,6 +92,7 @@ public class ProjectStatsWorkerIntegrationTest {
 	private String teamId;
 	private S3FileHandle handleOne;
 	private V2WikiPage v2RootWiki;
+	WikiPageKey rootWikikey;
 
 	@Before
 	public void before() throws NotFoundException {
@@ -122,6 +123,16 @@ public class ProjectStatsWorkerIntegrationTest {
 				}
 			}
 		}
+		if (v2RootWiki != null) {
+			v2wikiPageDAO.delete(rootWikikey);
+		}
+		
+		if (handleOne != null) {
+			fileMetadataDao.delete(handleOne.getId());
+		}
+		if (teamId != null) {
+			teamDAO.delete(teamId);
+		}
 		if (userId != null) {
 			userManager.deletePrincipal(adminUserInfo, userId);
 		}
@@ -129,19 +140,6 @@ public class ProjectStatsWorkerIntegrationTest {
 			if (userId2 != null) {
 				userManager.deletePrincipal(adminUserInfo, userId2);
 			}
-		}
-		if (teamId != null) {
-			teamDAO.delete(teamId);
-		}
-		if (handleOne != null) {
-			fileMetadataDao.delete(handleOne.getId());
-		}
-		if (v2RootWiki != null) {
-			WikiPageKey key = new WikiPageKey();
-			key.setWikiPageId(v2RootWiki.getId());
-			key.setOwnerObjectId(handleOne.getId());
-			key.setOwnerObjectType(ObjectType.ENTITY);
-			v2wikiPageDAO.delete(key);
 		}
 	}
 
@@ -319,8 +317,14 @@ public class ProjectStatsWorkerIntegrationTest {
 
 		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 		map.put(handleOne.getFileName(), handleOne);
-		v2RootWiki = v2wikiPageDAO.create(v2RootWiki, map, KeyFactory.keyToString(projectStat.getProjectId()), ObjectType.ENTITY,
+		String projectId = KeyFactory.keyToString(projectStat.getProjectId());
+		v2RootWiki = v2wikiPageDAO.create(v2RootWiki, map, projectId, ObjectType.ENTITY,
 				Lists.newArrayList(handleOne.getId()));
+		
+		rootWikikey = new WikiPageKey();
+		rootWikikey.setOwnerObjectId(projectId);
+		rootWikikey.setOwnerObjectType(ObjectType.ENTITY);
+		rootWikikey.setWikiPageId(v2RootWiki.getId());
 
 		assertTrue(TimeUtils.waitFor(WAIT_FOR_STAT_CHANGE_MS, 200L, projectStat, new Predicate<ProjectStat>() {
 			@Override
