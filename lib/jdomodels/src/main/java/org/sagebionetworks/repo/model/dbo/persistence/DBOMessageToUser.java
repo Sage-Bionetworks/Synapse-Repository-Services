@@ -40,7 +40,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	private Long messageId;
 	private Long rootMessageId;
 	private Long inReplyTo;
-	// we use a byte array bytesTo allow non-latin-1 characters
+	// we use a byte array to allow non-latin-1 characters
 	private byte[] subjectBytes;
 	private byte[] bytesTo;
 	private byte[] bytesCc;
