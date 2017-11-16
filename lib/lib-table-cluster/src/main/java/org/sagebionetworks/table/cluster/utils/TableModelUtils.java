@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
@@ -1118,6 +1119,36 @@ public class TableModelUtils {
 		}
 		return columnIndexMap;
 	}
+	
+	/**
+	 * Create a list of all column models included in the provided details.
+	 * 
+	 * @param details
+	 * @return
+	 */
+	public static List<ColumnModel> createListOfAllColumnModels(Iterable<ColumnChangeDetails> details) {
+		List<ColumnModel> fullList = new LinkedList<>();
+		for(ColumnChangeDetails detail: details) {
+			if(detail.getNewColumn() != null) {
+				fullList.add(detail.getNewColumn());
+			}
+			if(detail.getOldColumn() != null) {
+				fullList.add(detail.getOldColumn());
+			}
+		}
+		return fullList;
+	}
+	
+	/**
+	 * Map column Id to column Models for all columns in the details.
+	 * 
+	 * @param columns
+	 * @return
+	 */
+	public static Map<Long, ColumnModel> createIDtoColumnModeMapDetails(Iterable<ColumnChangeDetails> details) {
+		List<ColumnModel> fullList = createListOfAllColumnModels(details);
+		return createIDtoColumnModelMap(fullList);
+	}
 
 	/**
 	 * Map column Id to column Models.
@@ -1236,28 +1267,6 @@ public class TableModelUtils {
 						throw new IllegalArgumentException(
 								"The first line is expected to be a header but the values do not match the names of of the columns of the table ("
 										+ name + " is not a vaild column name or id). Header row: " + StringUtils.join(rowValues, ','));
-					}
-				}
-				columnIdToColumnIndexMap.put(id, i);
-			}
-		}
-		return columnIdToColumnIndexMap;
-	}
-
-	public static Map<Long, Integer> createColumnIdToColumnIndexMapFromColumnIds(List<String> columnIds, List<ColumnModel> resultSchema) {
-		Set<Long> existingColumnIds = Sets.newHashSet(Lists.transform(resultSchema, COLUMN_MODEL_TO_ID));
-		// Build the map from the ids
-		Map<Long, Integer> columnIdToColumnIndexMap = Maps.newHashMap();
-		for (int i = 0; i < columnIds.size(); i++) {
-			String columnIdString = columnIds.get(i);
-			Long id = null;
-			if (columnIdString != null) {
-				id = TableConstants.getReservedColumnId(columnIdString);
-				if (id == null) {
-					id = Long.parseLong(columnIdString);
-					// make sure the column ID is a valid one for this schema
-					if (!existingColumnIds.contains(id)) {
-						throw new IllegalArgumentException("The column ID " + columnIdString + " is not a valid column ID for this table");
 					}
 				}
 				columnIdToColumnIndexMap.put(id, i);

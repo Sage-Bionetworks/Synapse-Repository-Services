@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.table.parser;
 
-import java.sql.Date;
+
+import java.util.Date;
 
 import org.sagebionetworks.repo.model.table.ValueParser;
 

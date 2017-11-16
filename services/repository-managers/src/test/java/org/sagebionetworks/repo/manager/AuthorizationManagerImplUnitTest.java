@@ -12,6 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
+import static org.sagebionetworks.repo.model.docker.RegistryEventAction.push;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,8 +37,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -66,7 +66,6 @@ import org.sagebionetworks.repo.model.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
-import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationManager;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -137,12 +136,18 @@ public class AuthorizationManagerImplUnitTest {
 	private static final long USER_ID = 111L;
 
 	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	private static final UserInfo ADMIN_INFO = new UserInfo(true, 1L);
 	
 	private static final String REGISTRY_HOST = "docker.synapse.org";
 	private static final String SERVICE = REGISTRY_HOST;
 	private static final String REPOSITORY_PATH = PARENT_ID+"/reponame";
 	private static final String REPOSITORY_NAME = SERVICE+"/"+REPOSITORY_PATH;
 	private static final String ACCESS_TYPES_STRING="push,pull";
+	
+	private static final String REPOSITORY_TYPE = "repository";
+	private static final String REGISTRY_TYPE = "registry";
+	private static final String CATALOG_NAME = "catalog";
+	private static final String ALL_ACCESS_TYPES = "*";
 	
 	private AuthorizationManagerImpl authorizationManager;
 	private UserInfo userInfo;
@@ -997,31 +1002,58 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetPermittedAccessTypesNullUserInfo() throws Exception{
-		authorizationManager.getPermittedDockerRepositoryActions(null, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		authorizationManager.getPermittedDockerActions(null, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetPermittedAccessTypesNullService() throws Exception{
-		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, null, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		authorizationManager.getPermittedDockerActions(USER_INFO, null, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetPermittedAccessTypesNullRepositoryPath() throws Exception{
-		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, SERVICE, null, ACCESS_TYPES_STRING);
+		authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, null, ACCESS_TYPES_STRING);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetPermittedAccessTypesNullAction() throws Exception{
-		authorizationManager.getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, null);
+		authorizationManager.getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, null);
 	}
 	
 	@Test
 	public void testGetPermittedAccessTypesHappyCase() throws Exception {
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistry() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertEquals(new HashSet(Arrays.asList(new String[]{ALL_ACCESS_TYPES})), permitted);
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNotAdmin() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REGISTRY_TYPE, CATALOG_NAME, ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
+	}
+
+	@Test
+	public void testGetPermittedAccessTypesRegistryNotCatalog() throws Exception {
+		// method under test:
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(ADMIN_INFO, SERVICE, REGISTRY_TYPE, "not-catalog", ALL_ACCESS_TYPES);
+		
+		assertTrue(permitted.isEmpty());
 	}
 
 	@Test
@@ -1029,8 +1061,8 @@ public class AuthorizationManagerImplUnitTest {
 		String repositoryPath = "garbage/"+REPOSITORY_NAME;
 		
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.isEmpty());
 	}
@@ -1045,11 +1077,11 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockDockerNodeDao.getEntityIdForRepositoryName(SERVICE+"/"+repositoryPath)).thenReturn(null);
 
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 		
 		// client needs both push and pull access to push a not-yet-existing repo to the registry
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.push, RegistryEventAction.pull})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{push.name(), pull.name()})), permitted);
 	}
 
 	@Test
@@ -1061,8 +1093,8 @@ public class AuthorizationManagerImplUnitTest {
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we DO have create access, but that doesn't let us 'push' since the repo already exists
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -1082,11 +1114,11 @@ public class AuthorizationManagerImplUnitTest {
 						ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
 
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we can pull (but not push!) since we have admin access to evaluation
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
 	}
 
 	@Test
@@ -1098,11 +1130,11 @@ public class AuthorizationManagerImplUnitTest {
 			thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, "pull");
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, "pull");
 
 		// it's allowed because it's *DOWNLOAD* permission, not *READ* permission which we must have
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
 
 	}
 
@@ -1119,8 +1151,8 @@ public class AuthorizationManagerImplUnitTest {
 			thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, repositoryPath, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, repositoryPath, ACCESS_TYPES_STRING);
 
 		// Note, we DO have update access, but that doesn't let us 'push' since the repo doesn't exist
 		assertTrue(permitted.toString(), permitted.isEmpty());
@@ -1131,8 +1163,8 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(REPO_ENTITY_ID)).thenReturn(KeyFactory.keyToString(AuthorizationManagerImpl.TRASH_FOLDER_ID));
 
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 		
 		assertTrue(permitted.toString(), permitted.isEmpty());
 	}
@@ -1148,11 +1180,11 @@ public class AuthorizationManagerImplUnitTest {
 						ACCESS_TYPE.READ_PRIVATE_SUBMISSION)).thenReturn(true);
 
 		// method under test:
-		Set<RegistryEventAction> permitted = authorizationManager.
-				getPermittedDockerRepositoryActions(USER_INFO, SERVICE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
+		Set<String> permitted = authorizationManager.
+				getPermittedDockerActions(USER_INFO, SERVICE, REPOSITORY_TYPE, REPOSITORY_PATH, ACCESS_TYPES_STRING);
 
 		// Note, we can pull (but not push!) since we have admin access to evaluation
-		assertEquals(new HashSet(Arrays.asList(new RegistryEventAction[]{RegistryEventAction.pull})), permitted);
+		assertEquals(new HashSet(Arrays.asList(new String[]{pull.name()})), permitted);
 	}
 
 	@Test (expected = IllegalArgumentException.class)

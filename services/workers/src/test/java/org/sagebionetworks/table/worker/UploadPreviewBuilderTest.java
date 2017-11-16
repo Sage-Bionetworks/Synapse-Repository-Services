@@ -557,7 +557,7 @@ public class UploadPreviewBuilderTest {
 		
 		List<String> names = getColumnNames(result.getSuggestedColumns());
 		//The first two should not be changed.
-		assertEquals(Arrays.asList("_Date", "_all", "_avg", "quote", "col", "okay", "_all1", "col1"), names);
+		assertEquals(Arrays.asList("Date", "all", "avg", "quote", "col", "okay", "all1", "col1"), names);
 	}
 	
 	@Test
@@ -589,7 +589,7 @@ public class UploadPreviewBuilderTest {
 	@Test
 	public void testProcessHeaderKeyWord(){
 		// prefix key words with underscore
-		assertEquals("_AS", UploadPreviewBuilder.processHeader("AS"));
+		assertEquals("AS", UploadPreviewBuilder.processHeader("AS"));
 	}
 	
 	@Test

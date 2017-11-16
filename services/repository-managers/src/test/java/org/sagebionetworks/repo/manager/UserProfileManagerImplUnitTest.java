@@ -330,9 +330,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -420,9 +418,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -445,9 +441,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -470,9 +464,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -495,9 +487,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public.
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublic(userToGetFor.getGroups());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -520,9 +510,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(userToGetFor.getGroups(), userToGetFor.getId());
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);
@@ -548,9 +536,7 @@ public class UserProfileManagerImplUnitTest {
 		// the groups for the userToGetFor should exclude public, and the user
 		Set<Long> expectedUserToGetGroups = Sets.newHashSet(teamId);
 		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedUserToGetGroups);
-		// the groups for the caller should exclude public
-		Set<Long> expectedCallerGroups = UserProfileManagerImpl.getGroupsMinusPublic(caller.getGroups());
-		verify(mockAuthorizationManager).getAccessibleProjectIds(expectedCallerGroups);
+		verify(mockAuthorizationManager).getAccessibleProjectIds(caller.getGroups());
 		// The projectIds passed to the dao should be the intersection of the caller's projects
 		// and the userToGetFor's projects.
 		Set<Long> expectedProjectIds = Sets.intersection(visibleProjectsOne, visibleProjectsTwo);

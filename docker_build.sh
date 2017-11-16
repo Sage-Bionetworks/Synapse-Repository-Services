@@ -7,7 +7,7 @@
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
 # rds_password - the password for the build database, common to all dev builds
-# JOB_NAME - a unique string differenting concurrent builds.  if omitted is the stack + user
+# JOB_NAME - a unique string differentiating concurrent builds.  if omitted is the stack + user
 
 # if anything fails, stop
 set -e

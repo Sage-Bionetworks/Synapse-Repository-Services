@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.Writer;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
@@ -15,6 +14,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -28,10 +28,10 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.amazonaws.services.sqs.model.Message;
+
 import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
-
-import com.amazonaws.services.sqs.model.Message;
 
 /**
  * This worker will stream the results of a table SQL query to a local CSV file and upload the file
@@ -47,13 +47,15 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 	@Autowired
 	private AsynchJobStatusManager asynchJobStatusManager;
 	@Autowired
-	private TableQueryManager tableQueryManger;
+	private TableQueryManager tableQueryManager;
 	@Autowired
 	private UserManager userManger;
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	Clock clock;	
+	private Clock clock;
+	@Autowired
+	private TableExceptionTranslator tableExceptionTranslator;
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws Exception {
@@ -68,7 +70,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			boolean runCount = true;
 			boolean returnFacets = false;
 			// Before we start determine how many rows there are.
-			QueryResultBundle queryResult = tableQueryManger.querySinglePage(progressCallback, user, request, runQuery, runCount, returnFacets);
+			QueryResultBundle queryResult = tableQueryManager.querySinglePage(progressCallback, user, request, runQuery, runCount, returnFacets);
 			long rowCount = queryResult.getQueryCount();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -86,7 +88,7 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableQueryManger.runQueryDownloadAsStream(progressCallback, user, request, stream);
+				result = tableQueryManager.runQueryDownloadAsStream(progressCallback, user, request, stream);
 			}finally{
 				writer.close();
 			}
@@ -117,8 +119,10 @@ public class TableCSVDownloadWorker implements MessageDrivenRunner {
 			// This means we cannot use this table
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
 		}catch(Throwable e){
+			// Attempt to translate the exception into a 'user-friendly' message.
+			RuntimeException translatedException = tableExceptionTranslator.translateException(e);
 			// The job failed
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
 			log.error("Worker Failed", e);
 		}finally{
 			if(writer != null){

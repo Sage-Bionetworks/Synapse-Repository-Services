@@ -2,8 +2,14 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -11,8 +17,32 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationStatus;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DockerNodeDao;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvitationDAO;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VerificationDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.discussion.DiscussionThreadDAO;
@@ -35,7 +65,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
-	
+
+	private static final String REPOSITORY_TYPE = "repository";
+	private static final String REGISTRY_TYPE = "registry";
+	private static final String REGISTRY_CATALOG = "catalog";	
 	public static final Long TRASH_FOLDER_ID = Long.parseLong(
 			StackConfiguration.getTrashFolderEntityIdStatic());
 
@@ -77,7 +110,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
 	@Autowired
-	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	private MembershipInvitationDAO membershipInvitationDAO;
 
 	
 	@Override
@@ -508,13 +541,43 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String actionTypes) {
+	public Set<String> getPermittedDockerActions(UserInfo userInfo, String service, String type, String name, String actionTypes) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(service, "service");
-		ValidateArgument.required(repositoryPath, "repositoryPath");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(name, "name");
 		ValidateArgument.required(actionTypes, "actionTypes");
+		
+		String[] actionArray = actionTypes.split(",");
+		if (REGISTRY_TYPE.equalsIgnoreCase(type)) {
+			return getPermittedDockerRegistryActions(userInfo, service, name, actionArray);
+		} else if (REPOSITORY_TYPE.equalsIgnoreCase(type)) {
+			Set<RegistryEventAction> approvedActions = getPermittedDockerRepositoryActions(userInfo, service, name, actionArray);
+			Set<String> result = new HashSet<String>();
+			for (RegistryEventAction a : approvedActions) result.add(a.name());
+			return result;
+		} else {
+			throw new IllegalArgumentException("Unexpected type "+type);
+		}
+	}
 
-		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
+	private Set<String> getPermittedDockerRegistryActions(UserInfo userInfo, String service, String name, String[] actionTypes) {
+		if (name.equalsIgnoreCase(REGISTRY_CATALOG)) {
+			// OK, it's a request to list the catalog
+			if (userInfo.isAdmin()) { 
+				// an admin can do *anything*
+				return new HashSet<String>(Arrays.asList(actionTypes));
+			} else {
+				// non-admins cannot list the catalog
+				return Collections.emptySet();
+			}
+		} else {
+			// unrecognized name
+			return Collections.emptySet();
+		}
+	}
+
+	private Set<RegistryEventAction> getPermittedDockerRepositoryActions(UserInfo userInfo, String service, String repositoryPath, String[] actionTypes) {		Set<RegistryEventAction> permittedActions = new HashSet<RegistryEventAction>();
 
 		String repositoryName = service+DockerNameUtil.REPO_NAME_PATH_SEP+repositoryPath;
 
@@ -525,7 +588,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			String benefactor = nodeDao.getBenefactor(existingDockerRepoId);
 			isInTrash = TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor));
 		}
-		for (String requestedActionString : actionTypes.split(",")) {
+		for (String requestedActionString : actionTypes) {
 			RegistryEventAction requestedAction = RegistryEventAction.valueOf(requestedActionString);
 			switch (requestedAction) {
 			case push:
@@ -585,16 +648,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(UserInfo userInfo, MembershipInvtnSubmission mis, ACCESS_TYPE accessType) {
-		if (mis.getInviteeId() != null) {
+	public AuthorizationStatus canAccessMembershipInvitation(UserInfo userInfo, MembershipInvitation mi, ACCESS_TYPE accessType) {
+		if (mi.getInviteeId() != null) {
 			// The invitee should be able to read or delete the invitation
-			boolean userIsInvitee = Long.parseLong(mis.getInviteeId()) == userInfo.getId();
+			boolean userIsInvitee = Long.parseLong(mi.getInviteeId()) == userInfo.getId();
 			if (userIsInvitee && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
 				return AuthorizationManagerUtil.AUTHORIZED;
 			}
 		}
 		// An admin of the team should be able to create, read or delete the invitation
-		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mi.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (userIsTeamAdmin && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE || accessType == ACCESS_TYPE.CREATE)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
@@ -602,34 +665,49 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + mis.getId() + " for " + accessType);
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + mi.getId());
 	}
 
 	@Override
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
-		String misId = token.getMembershipInvitationId();
+	public AuthorizationStatus canAccessMembershipInvitation(MembershipInvtnSignedToken token, ACCESS_TYPE accessType) {
+		String miId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
 		if (accessType == ACCESS_TYPE.READ) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
 	}
 
 	@Override
-	public AuthorizationStatus canAccessMembershipInvitationSubmission(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
-		String misId = token.getMembershipInvitationId();
+	public AuthorizationStatus canAccessMembershipInvitation(Long userId, InviteeVerificationSignedToken token, ACCESS_TYPE accessType) {
+		String miId = token.getMembershipInvitationId();
 		try {
 			SignedTokenUtil.validateToken(token);
 		} catch (IllegalArgumentException e) {
-			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + "(" + e.getMessage() + ")");
+			return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + miId + "(" + e.getMessage() + ")");
 		}
-		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(misId) && accessType == ACCESS_TYPE.UPDATE) {
+		if (token.getInviteeId().equals(userId.toString()) && token.getMembershipInvitationId().equals(miId) && accessType == ACCESS_TYPE.UPDATE) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return AuthorizationManagerUtil.accessDenied("Unauthorized to access membership invitation " + misId + " for " + accessType);
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType +  " membership invitation " + miId);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessMembershipRequest(UserInfo userInfo, MembershipRequest mr, ACCESS_TYPE accessType) {
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		// An admin of the team should be able to read or delete the request
+		// The requester should also be able to read or delete the request
+		boolean userIsTeamAdmin = aclDAO.canAccess(userInfo.getGroups(), mr.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		boolean userIsRequester = Long.parseLong(mr.getUserId()) == userInfo.getId();
+		if ((userIsTeamAdmin || userIsRequester) && (accessType == ACCESS_TYPE.READ || accessType == ACCESS_TYPE.DELETE)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		return AuthorizationManagerUtil.accessDenied("Unauthorized to " + accessType + " membership request " + mr.getId());
 	}
 }

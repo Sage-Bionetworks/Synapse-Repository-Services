@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeDao;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -38,6 +40,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.thoughtworks.xstream.XStream;
 
 public class TableViewManagerImplTest {
 
@@ -68,6 +71,7 @@ public class TableViewManagerImplTest {
 	ColumnModel etagColumn;
 	ColumnModel anno1;
 	ColumnModel anno2;
+	ColumnModel dateColumn;
 	SparseRowDto row;
 	
 	NamedAnnotations namedAnnotations;
@@ -141,6 +145,11 @@ public class TableViewManagerImplTest {
 		anno2.setColumnType(ColumnType.INTEGER);
 		anno2.setName("bar");
 		anno2.setId("2");
+		
+		dateColumn = new ColumnModel();
+		dateColumn.setName("aDate");
+		dateColumn.setColumnType(ColumnType.DATE);
+		dateColumn.setId("3");
 		
 		etagColumn = EntityField.etag.getColumnModel();
 		etagColumn.setId("3");
@@ -314,6 +323,40 @@ public class TableViewManagerImplTest {
 		assertEquals(new Long(123),annos.getSingleValue(anno2.getName()));
 		// etag should not be included.
 		assertNull(annos.getSingleValue(EntityField.etag.name()));
+	}
+	
+	/**
+	 * This test was added for PLFM-4706
+	 * 
+	 */
+	@Test
+	public void testUpdateAnnotationsDate(){
+		Date date = new Date(1509744902000L);
+		viewSchema = Lists.newArrayList(dateColumn);
+		Annotations annos = new Annotations();
+		// update the values.
+		Map<String, String> values = new HashMap<>();
+		values.put(dateColumn.getId(), ""+date.getTime());
+		// call under test
+		boolean updated = TableViewManagerImpl.updateAnnotationsFromValues(annos, viewSchema, values);
+		// the resulting annotations must be valid.
+		AnnotationUtils.validateAnnotations(annos);
+		assertTrue(updated);
+		/*
+		 * Copy the annotations by writing to XML.
+		 * Note: With PLFM-4706 this is where the date gets 
+		 * converted to the same day at time 0.
+		 */
+		XStream xstream = JDOSecondaryPropertyUtils.createXStream();
+		String xml = xstream.toXML(annos);
+		Annotations annotationCopy = new Annotations();
+		xstream.fromXML(xml, annotationCopy);
+		
+		Object value = annotationCopy.getSingleValue(dateColumn.getName());
+		assertNotNull(value);
+		assertTrue(value instanceof Date);
+		Date dateValue = (Date)value;
+		assertEquals(date.getTime(), dateValue.getTime());
 	}
 	
 	@Test

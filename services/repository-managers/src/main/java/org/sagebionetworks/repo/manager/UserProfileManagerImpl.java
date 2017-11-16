@@ -199,7 +199,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		 * The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, /*
 		 * and CERTIFIED_USERS
 		 */
-		Set<Long> callerPrincipalIds = getGroupsMinusPublic(caller.getGroups());
 		Set<Long> userToGetPrincipalIds;
 		switch (type) {
 		case MY_PROJECTS:
@@ -231,7 +230,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			 * as the user-to-get-for. Therefore, the return projects must only
 			 * include the intersection of projects that both users can read.
 			 */
-			Set<Long> currentUserAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(callerPrincipalIds);
+			Set<Long> currentUserAccessibleProjectIds = authorizationManager.getAccessibleProjectIds(caller.getGroups());
 			// use the intersection.
 			projectIdsToFilterBy = Sets.intersection(userToGetAccessibleProjectIds,	currentUserAccessibleProjectIds);
 		} else {

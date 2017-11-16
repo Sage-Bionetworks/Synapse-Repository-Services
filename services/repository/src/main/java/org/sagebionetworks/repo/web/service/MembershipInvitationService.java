@@ -1,7 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MembershipInvitationService {
@@ -17,10 +23,10 @@ public interface MembershipInvitationService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission create(Long userId,
-			MembershipInvtnSubmission dto,
-			String acceptInvitationEndpoint, 
-			String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, NotFoundException;
+	public MembershipInvitation create(Long userId,
+	                                   MembershipInvitation dto,
+	                                   String acceptInvitationEndpoint,
+	                                   String notificationUnsubscribeEndpoint) throws UnauthorizedException, InvalidModelException, NotFoundException;
 	
 	/**
 	 * 
@@ -45,7 +51,7 @@ public interface MembershipInvitationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(Long userId, String inviteeId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipInvitation> getOpenInvitationSubmissions(Long userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -57,7 +63,7 @@ public interface MembershipInvitationService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipInvitation get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 *
@@ -67,7 +73,7 @@ public interface MembershipInvitationService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipInvitation get(String misId, MembershipInvtnSignedToken token) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 

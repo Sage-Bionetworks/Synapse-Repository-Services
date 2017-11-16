@@ -260,8 +260,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	/**
 	 * Create a project view with three rows.
 	 * @return
+	 * @throws Exception 
 	 */
-	private EntityView createProjectView(){
+	private EntityView createProjectView() throws Exception{
 		String uuid = UUID.randomUUID().toString();
 		List<String> projectIds = new LinkedList<String>();
 		// Create three projects
@@ -284,6 +285,9 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, view, null);
 		toDelete.add(tableId);
 		tableViewManager.setViewSchemaAndScope(adminUserInfo, headers, projectIds, ViewType.project, tableId);
+		// Wait for the three rows to appear in the view
+		int expectedRowCount = 3;
+		waitForConsistentQuery(adminUserInfo, "SELECT * FROM "+tableId, expectedRowCount);
 		return entityManager.getEntity(adminUserInfo, tableId, EntityView.class);
 	}
 
@@ -316,7 +320,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// This is the starting input stream
 		CSVReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null, null);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true, null);
 		tableEntityManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator,
 				null, null, null);
 		return input;
@@ -363,8 +367,22 @@ public class TableCSVDownloadWorkerIntegrationTest {
 			temp.delete();
 		}
 	}
-
+	
+	
 	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws Exception {
+		Integer expectedRowCount = null;
+		return waitForConsistentQuery(user, sql,expectedRowCount);
+	}
+	
+	/**
+	 * Wait for the query results for a given query.
+	 * @param user
+	 * @param sql
+	 * @param expectedRowCount If not null, then will continue to wait while the row count is less than the expected count.
+	 * @return
+	 * @throws Exception
+	 */
+	private RowSet waitForConsistentQuery(UserInfo user, String sql, Integer expectedRowCount) throws Exception {
 		long start = System.currentTimeMillis();
 		boolean runQuery = true;
 		boolean runCount = false;
@@ -373,7 +391,15 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		query.setSql(sql);
 		while(true){
 			try {
-				return tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, runQuery, runCount, returnFacets).getQueryResult().getQueryResults();
+				RowSet results = tableQueryManger.querySinglePage(mockProgressCallback, adminUserInfo, query, runQuery, runCount, returnFacets).getQueryResult().getQueryResults();
+				if(expectedRowCount != null) {
+					if(results.getRows() == null || results.getRows().size() < expectedRowCount) {
+						System.out.println("Waiting for row count: "+expectedRowCount);
+						Thread.sleep(1000);
+						continue;
+					}
+				}
+				return results;
 			}  catch (LockUnavilableException e) {
 				System.out.println("Waiting for table lock: "+e.getLocalizedMessage());
 			} catch (TableUnavailableException e) {

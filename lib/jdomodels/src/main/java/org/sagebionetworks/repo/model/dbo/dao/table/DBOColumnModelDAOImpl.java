@@ -17,10 +17,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,15 +41,17 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 import com.google.common.collect.Sets;
 
@@ -59,6 +63,8 @@ import com.google.common.collect.Sets;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
+	private static final String INPUT = "input";
+	private static final String SELECT_COLUMN_NAME = "SELECT "+ COL_CM_ID+","+COL_CM_NAME+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN (:"+INPUT+")";
 	private static final String SQL_SELECT_OWNER_ETAG_FOR_UPDATE = "SELECT "+COL_BOUND_OWNER_ETAG+" FROM "+TABLE_BOUND_COLUMN_OWNER+" WHERE "+COL_BOUND_OWNER_OBJECT_ID+" = ? FOR UPDATE";
 	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
 	private static final String SQL_GET_COLUMN_ID_FOR_OBJECT = "SELECT "+COL_BOUND_CM_ORD_COLUMN_ID+" FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO WHERE BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
@@ -79,6 +85,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private DBOBasicDao basicDao;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -367,6 +375,28 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 				return rs.getString(COL_BOUND_OWNER_ETAG);
 			}
 		}, objectId);
+	}
+	
+	
+	@Override
+	public Map<Long, String> getColumnNames(Set<Long> columnIds) {
+		ValidateArgument.required(columnIds, "columnIds");
+		final Map<Long, String> results = new HashMap<>(columnIds.size());
+		if(columnIds.isEmpty()) {
+			return results;
+		}
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(INPUT, columnIds);
+		namedJdbcTemplate.query(SELECT_COLUMN_NAME, param, new RowCallbackHandler() {
+			
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				long id = rs.getLong(COL_CM_ID);
+				String name = rs.getString(COL_CM_NAME);
+				results.put(id, name);
+			}
+		});
+		return results;
 	}
 
 }

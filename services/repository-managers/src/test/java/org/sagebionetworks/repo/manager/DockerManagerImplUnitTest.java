@@ -152,6 +152,18 @@ public class DockerManagerImplUnitTest {
 		assertNotNull(token.getToken());
 	}
 	
+	@Test
+	public void testAuthorizeDockerListCatalog() throws Exception {
+		List<String> scope = new ArrayList<String>();
+		scope.add("registry:catalog:*");
+		
+		// method under test:
+		DockerAuthorizationToken token = dockerManager.
+				authorizeDockerAccess(USER_INFO, SERVICE, scope);
+		
+		assertNotNull(token.getToken());
+	}
+	
 	// Docker login calls the authorization service, but without a 'scope' param
 	@Test
 	public void testDockerLogin() throws Exception {

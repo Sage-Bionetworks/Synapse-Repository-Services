@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -46,16 +45,16 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 
 	
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipRqstSubmission)
+	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipRequest)
 	 */
 	@Override
-	public MembershipRqstSubmission create(Long userId,
-			MembershipRqstSubmission dto,
-			String acceptRequestEndpoint,
-			String notificationUnsubscribeEndpoint) throws UnauthorizedException,
+	public MembershipRequest create(Long userId,
+	                                MembershipRequest dto,
+	                                String acceptRequestEndpoint,
+	                                String notificationUnsubscribeEndpoint) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		MembershipRqstSubmission created = membershipRequestManager.create(userInfo, dto);
+		MembershipRequest created = membershipRequestManager.create(userInfo, dto);
 		List<MessageToUserAndBody> messages = membershipRequestManager.
 				createMembershipRequestNotification(created,
 						acceptRequestEndpoint, notificationUnsubscribeEndpoint);
@@ -82,8 +81,8 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#getOpenRequestSubmissions(java.lang.String, java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(Long userId,
-			String requesterId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipRequest> getOpenRequestSubmissions(Long userId,
+	                                                                     String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (teamId==null) {
@@ -97,7 +96,7 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#get(java.lang.String, java.lang.String)
 	 */
 	@Override
-	public MembershipRqstSubmission get(Long userId, String dtoId)
+	public MembershipRequest get(Long userId, String dtoId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return membershipRequestManager.get(userInfo, dtoId);

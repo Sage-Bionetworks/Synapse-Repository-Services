@@ -4,14 +4,14 @@ import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface MembershipInvtnSubmissionDAO {
+public interface MembershipInvitationDAO {
 	/**
 	 * @param dto object to be created
 	 * @return the newly created object
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public MembershipInvtnSubmission create(MembershipInvtnSubmission dto) throws DatastoreException, InvalidModelException;
+	public MembershipInvitation create(MembershipInvitation dto) throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Retrieves the object given its id
@@ -21,7 +21,7 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(String id) throws DatastoreException, NotFoundException;
+	public MembershipInvitation get(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Retrieves the object given its id, while locking the object's row for the current transaction
@@ -29,7 +29,7 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @param id
 	 * @return
 	 */
-	public MembershipInvtnSubmission getWithUpdateLock(String id);
+	public MembershipInvitation getWithUpdateLock(String id);
 
 	/**
 	 * 
@@ -39,21 +39,9 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @param offset
 	 * @return
 	 */
-	public List<MembershipInvtnSubmission> getOpenSubmissionsByTeamInRange(
+	public List<MembershipInvitation> getOpenByTeamInRange(
 			long teamId, long now, long limit, long offset);
 
-	/**
-	 * 
-	 * @param teamId
-	 * @param userId
-	 * @param now
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public List<MembershipInvtnSubmission> getOpenSubmissionsByTeamAndUserInRange(
-			long teamId, long userId, long now, long limit, long offset);
-	
 	/**
 	 * 
 	 * @param teamId

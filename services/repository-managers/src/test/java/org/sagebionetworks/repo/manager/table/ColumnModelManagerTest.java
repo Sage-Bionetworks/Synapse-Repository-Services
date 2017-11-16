@@ -246,39 +246,6 @@ public class ColumnModelManagerTest {
 		}
 	}
 	
-	/**
-	 * Should not be able to create a column with a name that is a SQL key word
-	 * 
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	@Test
-	public void testCreateColumnModelKeyWordsAsName() throws DatastoreException, NotFoundException{
-		ColumnModel valid = new ColumnModel();
-		valid.setName("abc");
-		ColumnModel invalid = new ColumnModel();
-		invalid.setName("max");
-		// Setup the anonymous users
-		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
-		when(mockColumnModelDAO.createColumnModel(invalid)).thenReturn(invalid);
-		try{
-			columnModelManager.createColumnModel(user, invalid);
-			fail("should not be able to create a column model with a key word column name");
-		}catch(IllegalArgumentException e){
-			// expected
-			assertTrue(e.getMessage().contains(invalid.getName()));
-			assertTrue(e.getMessage().contains("SQL key word"));
-		}
-		try {
-			columnModelManager.createColumnModels(user, Lists.newArrayList(valid, invalid));
-			fail("should not be able to create a column model with a reserved column name");
-		} catch (IllegalArgumentException e) {
-			// expected
-			assertTrue(e.getMessage().contains(invalid.getName()));
-			assertTrue(e.getMessage().contains("SQL key word"));
-		}
-	}
-	
 	@Test (expected = IllegalArgumentException.class)
 	public void testCreateColumnModelInvalidFacetType(){
 		ColumnModel cm = new ColumnModel();

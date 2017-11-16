@@ -4,19 +4,19 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
-public class MembershipInvtnSubmissionUtils {
+public class MembershipInvitationUtils {
 
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
 
-	private static final String CLASS_ALIAS = "MembershipInvtnSubmission";
+	public static final String CLASS_ALIAS = "MembershipInvitation";
 
-	public static void copyDtoToDbo(MembershipInvtnSubmission dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static void copyDtoToDbo(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
@@ -26,8 +26,8 @@ public class MembershipInvtnSubmissionUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
-	public static MembershipInvtnSubmission copyDboToDto(DBOMembershipInvtnSubmission dbo) throws DatastoreException {
-		MembershipInvtnSubmission dto = copyFromSerializedField(dbo);
+	public static MembershipInvitation copyDboToDto(DBOMembershipInvitation dbo) throws DatastoreException {
+		MembershipInvitation dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		if (dbo.getExpiresOn()==null) dto.setExpiresOn(null); else dto.setExpiresOn(new Date(dbo.getExpiresOn()));
@@ -37,7 +37,7 @@ public class MembershipInvtnSubmissionUtils {
 		return dto;
 	}
 
-	public static void copyToSerializedField(MembershipInvtnSubmission dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static void copyToSerializedField(MembershipInvitation dto, DBOMembershipInvitation dbo) throws DatastoreException {
 		try {
 			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto, CLASS_ALIAS));
 		} catch (IOException e) {
@@ -45,16 +45,16 @@ public class MembershipInvtnSubmissionUtils {
 		}
 	}
 	
-	public static MembershipInvtnSubmission deserialize(byte[] b) {
+	public static MembershipInvitation deserialize(byte[] b) {
 		try {
-			return (MembershipInvtnSubmission)JDOSecondaryPropertyUtils.decompressedObject(b, CLASS_ALIAS, MembershipInvtnSubmission.class);
+			return (MembershipInvitation)JDOSecondaryPropertyUtils.decompressedObject(b, CLASS_ALIAS, MembershipInvitation.class);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
 		
 	}
 	
-	public static MembershipInvtnSubmission copyFromSerializedField(DBOMembershipInvtnSubmission dbo) throws DatastoreException {
+	public static MembershipInvitation copyFromSerializedField(DBOMembershipInvitation dbo) throws DatastoreException {
 		return deserialize(dbo.getProperties());
 	}
 }

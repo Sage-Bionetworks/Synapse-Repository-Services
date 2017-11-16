@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.EntityType;
@@ -58,15 +59,16 @@ public class SQLUtils {
 	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
-	private static final String COLUMN_PREFIX = "_C";
-	private static final String COLUMN_POSTFIX = "_";
+	public static final String COLUMN_PREFIX = "_C";
+	public static final String COLUMN_POSTFIX = "_";
 
 	private static final String DOUBLE_NAN = Double.toString(Double.NaN);
 	private static final String DOUBLE_POSITIVE_INFINITY = Double.toString(Double.POSITIVE_INFINITY);
 	private static final String DOUBLE_NEGATIVE_INFINITY = Double.toString(Double.NEGATIVE_INFINITY);
 	private static final String DOUBLE_ENUM_CLAUSE = " ENUM ('" + DOUBLE_NAN + "', '" + DOUBLE_POSITIVE_INFINITY + "', '"
 			+ DOUBLE_NEGATIVE_INFINITY + "') DEFAULT null";
-
+	
+	
 	public enum TableType {
 		/**
 		 * The index tables
