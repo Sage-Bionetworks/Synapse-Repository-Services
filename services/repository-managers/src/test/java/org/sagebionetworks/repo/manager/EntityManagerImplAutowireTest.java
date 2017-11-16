@@ -133,7 +133,6 @@ public class EntityManagerImplAutowireTest {
 		}
 	}
 	
-	@Ignore // See PLFM-4734
 	@Test
 	public void testMoveRestrictedEntity() throws Exception {
 		// create a project with a child

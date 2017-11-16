@@ -169,7 +169,6 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeParentId, nodeDAO.getBenefactor(nodeChildRetrieved.getId()));
 	}
 	
-	@Ignore // See PLFM-4734
 	@Test
 	public void testRestrictedNodeRoundTrip() throws Exception {
 		inspectUsersTrashCan(testUserInfo, 0);
