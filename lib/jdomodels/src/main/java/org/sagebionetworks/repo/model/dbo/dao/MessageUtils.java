@@ -100,18 +100,18 @@ public class MessageUtils {
 		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
 		bundle.setIsNotificationMessage(info.getIsNotificationMessage());
 		try {
-			if (info.getTo() != null) {
-				bundle.setTo(new String(info.getTo(), "UTF-8"));
+			if (info.getBytesTo() != null) {
+				bundle.setTo(new String(info.getBytesTo(), "UTF-8"));
 			} else {
 				bundle.setTo(null);
 			}
-			if (info.getCc() != null) {
-				bundle.setCc(new String(info.getCc(), "UTF-8"));
+			if (info.getBytesCc() != null) {
+				bundle.setCc(new String(info.getBytesCc(), "UTF-8"));
 			} else {
 				bundle.setCc(null);
 			}
-			if (info.getBcc() != null) {
-				bundle.setBcc(new String(info.getBcc(), "UTF-8"));
+			if (info.getBytesBcc() != null) {
+				bundle.setBcc(new String(info.getBytesBcc(), "UTF-8"));
 			} else {
 				bundle.setBcc(null);
 			}
@@ -270,19 +270,19 @@ public class MessageUtils {
 		}
 		try {
 			if (dto.getTo() != null) {
-				info.setTo(dto.getTo().getBytes("UTF-8"));
+				info.setBytesTo(dto.getTo().getBytes("UTF-8"));
 			} else {
-				info.setTo(null);
+				info.setBytesTo(null);
 			}
 			if (dto.getCc() != null) {
-				info.setCc(dto.getCc().getBytes("UTF-8"));
+				info.setBytesCc(dto.getCc().getBytes("UTF-8"));
 			} else {
-				info.setCc(null);
+				info.setBytesCc(null);
 			}
 			if (dto.getBcc() != null) {
-				info.setBcc(dto.getBcc().getBytes("UTF-8"));
+				info.setBytesBcc(dto.getBcc().getBytes("UTF-8"));
 			} else {
-				info.setBcc(null);
+				info.setBytesBcc(null);
 			}
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
@@ -363,11 +363,11 @@ public class MessageUtils {
 		ValidateArgument.required(dbo.getMessageId(), "Message info must have an ID.");
 		ValidateArgument.required(dbo.getRootMessageId(), "Message info must point to a root message.");
 		ValidateArgument.required(dbo.getSent(), "Message info must have a status value.");
-		ValidateArgument.requirement(dbo.getTo() == null || dbo.getTo().length <= BLOB_MAX_SIZE,
+		ValidateArgument.requirement(dbo.getBytesTo() == null || dbo.getBytesTo().length <= BLOB_MAX_SIZE,
 				"To field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
-		ValidateArgument.requirement(dbo.getCc() == null || dbo.getCc().length <= BLOB_MAX_SIZE,
+		ValidateArgument.requirement(dbo.getBytesCc() == null || dbo.getBytesCc().length <= BLOB_MAX_SIZE,
 				"CC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
-		ValidateArgument.requirement(dbo.getBcc() == null || dbo.getBcc().length <= BLOB_MAX_SIZE,
+		ValidateArgument.requirement(dbo.getBytesBcc() == null || dbo.getBytesBcc().length <= BLOB_MAX_SIZE,
 				"BCC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
 	}
 	

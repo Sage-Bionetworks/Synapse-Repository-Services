@@ -20,6 +20,9 @@ public class DBOMessageToUserBackup {
 	private String to;
 	private String cc;
 	private String bcc;
+	private byte[] bytesTo;
+	private byte[] bytesCc;
+	private byte[] bytesBcc;
 
 	public Long getMessageId() {
 		return messageId;
@@ -125,6 +128,30 @@ public class DBOMessageToUserBackup {
 		this.bcc = bcc;
 	}
 
+	public byte[] getBytesTo() {
+		return bytesTo;
+	}
+
+	public void setBytesTo(byte[] bytesTo) {
+		this.bytesTo = bytesTo;
+	}
+
+	public byte[] getBytesCc() {
+		return bytesCc;
+	}
+
+	public void setBytesCc(byte[] bytesCc) {
+		this.bytesCc = bytesCc;
+	}
+
+	public byte[] getBytesBcc() {
+		return bytesBcc;
+	}
+
+	public void setBytesBcc(byte[] bytesBcc) {
+		this.bytesBcc = bytesBcc;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -142,6 +169,9 @@ public class DBOMessageToUserBackup {
 		result = prime * result + ((to == null) ? 0 : to.hashCode());
 		result = prime * result + ((withProfileSettingLink == null) ? 0 : withProfileSettingLink.hashCode());
 		result = prime * result + ((withUnsubscribeLink == null) ? 0 : withUnsubscribeLink.hashCode());
+		result = prime * result + Arrays.hashCode(bytesCc);
+		result = prime * result + Arrays.hashCode(bytesBcc);
+		result = prime * result + Arrays.hashCode(bytesTo);
 		return result;
 	}
 
@@ -216,6 +246,12 @@ public class DBOMessageToUserBackup {
 				return false;
 		} else if (!withUnsubscribeLink.equals(other.withUnsubscribeLink))
 			return false;
+		if (!Arrays.equals(bytesTo, other.bytesTo))
+			return false;
+		if (!Arrays.equals(bytesCc, other.bytesCc))
+			return false;
+		if (!Arrays.equals(bytesBcc, other.bytesBcc))
+			return false;
 		return true;
 	}
 
@@ -226,6 +262,7 @@ public class DBOMessageToUserBackup {
 				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
 				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
 				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", to=" + to + ", cc="
-				+ cc + ", bcc=" + bcc + "]";
+				+ cc + ", bcc=" + bcc + ", bytesTo=" + Arrays.toString(bytesTo) +
+				", bytesCc=" + Arrays.toString(bytesCc) + ", bytesBcc=" + Arrays.toString(bytesBcc) + "]";
 	}
 }

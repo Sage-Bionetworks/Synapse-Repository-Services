@@ -18,44 +18,44 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * Contains information specific to a message sent to a user
  */
 public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUserBackup> {
-	
+
 	public static final String MESSAGE_ID_FIELD_NAME = "messageId";
-	
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn(MESSAGE_ID_FIELD_NAME, SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
-		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
-		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
-		new FieldColumn("subjectBytes", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
-		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
-		new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
-		new FieldColumn("profileSettingEndpoint", SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT),
-		new FieldColumn("withUnsubscribeLink", SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK),
-		new FieldColumn("withProfileSettingLink", SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK),
-		new FieldColumn("isNotificationMessage", SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE),
-		new FieldColumn("to", SqlConstants.COL_MESSAGE_TO_USER_TO),
-		new FieldColumn("cc", SqlConstants.COL_MESSAGE_TO_USER_CC),
-		new FieldColumn("bcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
+			new FieldColumn(MESSAGE_ID_FIELD_NAME, SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
+			new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID),
+			new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID),
+			new FieldColumn("subjectBytes", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
+			new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT),
+			new FieldColumn("notificationsEndpoint", SqlConstants.COL_MESSAGE_NOTIFICATIONS_ENDPOINT),
+			new FieldColumn("profileSettingEndpoint", SqlConstants.COL_MESSAGE_PROFILE_SETTING_ENDPOINT),
+			new FieldColumn("withUnsubscribeLink", SqlConstants.COL_MESSAGE_WITH_UNSUBSCRIBE_LINK),
+			new FieldColumn("withProfileSettingLink", SqlConstants.COL_MESSAGE_WITH_PROFILE_SETTING_LINK),
+			new FieldColumn("isNotificationMessage", SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE),
+			new FieldColumn("bytesTo", SqlConstants.COL_MESSAGE_TO_USER_TO),
+			new FieldColumn("bytesCc", SqlConstants.COL_MESSAGE_TO_USER_CC),
+			new FieldColumn("bytesBcc", SqlConstants.COL_MESSAGE_TO_USER_BCC)
 	};
-	
+
 	private Long messageId;
 	private Long rootMessageId;
 	private Long inReplyTo;
-	// we use a byte array to allow non-latin-1 characters
+	// we use a byte array bytesTo allow non-latin-1 characters
 	private byte[] subjectBytes;
+	private byte[] bytesTo;
+	private byte[] bytesCc;
+	private byte[] bytesBcc;
 	private Boolean sent;
 	private String notificationsEndpoint;
 	private String profileSettingEndpoint;
 	private Boolean withUnsubscribeLink;
 	private Boolean withProfileSettingLink;
 	private Boolean isNotificationMessage;
-	private byte[] to;
-	private byte[] cc;
-	private byte[] bcc;
-	
+
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
 		return new TableMapping<DBOMessageToUser>() {
-			
+
 			@Override
 			public DBOMessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMessageToUser result = new DBOMessageToUser();
@@ -78,35 +78,35 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				result.setIsNotificationMessage(rs.getBoolean(SqlConstants.COL_MESSAGE_IS_NOTIFICATION_MESSAGE));
 				Blob toBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_TO);
 				if (toBlob != null) {
-					result.setTo(toBlob.getBytes(1, (int) toBlob.length()));
+					result.setBytesTo(toBlob.getBytes(1, (int) toBlob.length()));
 				}
 				Blob ccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_CC);
 				if (ccBlob != null) {
-					result.setCc(ccBlob.getBytes(1, (int) ccBlob.length()));
+					result.setBytesCc(ccBlob.getBytes(1, (int) ccBlob.length()));
 				}
 
 				Blob bccBlob = rs.getBlob(SqlConstants.COL_MESSAGE_TO_USER_BCC);
 				if (bccBlob != null) {
-					result.setBcc(bccBlob.getBytes(1, (int) bccBlob.length()));
+					result.setBytesBcc(bccBlob.getBytes(1, (int) bccBlob.length()));
 				}
 				return result;
 			}
-			
+
 			@Override
 			public String getTableName() {
 				return SqlConstants.TABLE_MESSAGE_TO_USER;
 			}
-			
+
 			@Override
 			public FieldColumn[] getFieldColumns() {
 				return FIELDS;
 			}
-			
+
 			@Override
 			public String getDDLFileName() {
 				return SqlConstants.DDL_MESSAGE_TO_USER;
 			}
-			
+
 			@Override
 			public Class<? extends DBOMessageToUser> getDBOClass() {
 				return DBOMessageToUser.class;
@@ -194,28 +194,28 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.isNotificationMessage = isNotificationMessage;
 	}
 
-	public byte[] getTo() {
-		return to;
+	public byte[] getBytesTo() {
+		return bytesTo;
 	}
 
-	public void setTo(byte[] to) {
-		this.to = to;
+	public void setBytesTo(byte[] bytesTo) {
+		this.bytesTo = bytesTo;
 	}
 
-	public byte[] getCc() {
-		return cc;
+	public byte[] getBytesCc() {
+		return bytesCc;
 	}
 
-	public void setCc(byte[] cc) {
-		this.cc = cc;
+	public void setBytesCc(byte[] bytesCc) {
+		this.bytesCc = bytesCc;
 	}
 
-	public byte[] getBcc() {
-		return bcc;
+	public byte[] getBytesBcc() {
+		return bytesBcc;
 	}
 
-	public void setBcc(byte[] bcc) {
-		this.bcc = bcc;
+	public void setBytesBcc(byte[] bytesBcc) {
+		this.bytesBcc = bytesBcc;
 	}
 
 	@Override
@@ -223,8 +223,6 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		return MigrationType.MESSAGE_TO_USER;
 	}
 
-	// once this has run for a single release, the back up objects will no longer have a 'subject'
-	// field.  Then the translator can then be reverted to the simple, default version
 	@Override
 	public MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup> getTranslator() {
 		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUserBackup>() {
@@ -241,22 +239,39 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				dbo.setWithUnsubscribeLink(backup.getWithUnsubscribeLink());
 				dbo.setWithProfileSettingLink(backup.getWithProfileSettingLink());
 				dbo.setIsNotificationMessage(backup.getIsNotificationMessage());
-				try {
-					if (backup.getTo() != null) {
-						dbo.setTo(backup.getTo().getBytes("UTF-8"));
+				if (toCcBccAreStrings(backup)) {
+					try {
+						if (backup.getTo() != null) {
+							dbo.setBytesTo(backup.getTo().getBytes("UTF-8"));
+						}
+						if (backup.getCc() != null) {
+							dbo.setBytesCc(backup.getCc().getBytes("UTF-8"));
+						}
+						if (backup.getBcc() != null) {
+							dbo.setBytesBcc(backup.getBcc().getBytes("UTF-8"));
+						}
+					} catch (UnsupportedEncodingException e) {
+						throw new RuntimeException(e);
 					}
-					if (backup.getCc() != null) {
-						dbo.setCc(backup.getCc().getBytes("UTF-8"));
-					}
-					if (backup.getBcc() != null) {
-						dbo.setBcc(backup.getBcc().getBytes("UTF-8"));
-					}
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
+				} else if (toCcBccAreByteArrays(backup)) {
+					dbo.setBytesTo(backup.getBytesTo());
+					dbo.setBytesCc(backup.getBytesCc());
+					dbo.setBytesBcc(backup.getBytesBcc());
+				} else {
+					throw new IllegalStateException(
+							"The backup object should not have mixed to, cc and bcc field types (String and byte[])");
 				}
 				return dbo;
 			}
-			
+
+			private boolean toCcBccAreStrings(DBOMessageToUserBackup backup) {
+				return backup.getBytesTo() == null && backup.getBytesCc() == null && backup.getBytesBcc() == null;
+			}
+
+			private boolean toCcBccAreByteArrays(DBOMessageToUserBackup backup) {
+				return backup.getTo() == null && backup.getCc() == null && backup.getBcc() == null;
+			}
+
 			@Override
 			public DBOMessageToUserBackup createBackupFromDatabaseObject(DBOMessageToUser dbo) {
 				DBOMessageToUserBackup backup = new DBOMessageToUserBackup();
@@ -270,18 +285,14 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				backup.setWithUnsubscribeLink(dbo.getWithUnsubscribeLink());
 				backup.setWithProfileSettingLink(dbo.getWithProfileSettingLink());
 				backup.setIsNotificationMessage(dbo.getIsNotificationMessage());
-				try {
-					if (dbo.getTo() != null) {
-						backup.setTo(new String(dbo.getTo(), "UTF-8"));
-					}
-					if (dbo.getCc() != null) {
-						backup.setCc(new String(dbo.getCc(), "UTF-8"));
-					}
-					if (dbo.getBcc() != null) {
-						backup.setBcc(new String(dbo.getBcc(), "UTF-8"));
-					}
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
+				if (dbo.getBytesTo() != null) {
+					backup.setBytesTo(dbo.getBytesTo());
+				}
+				if (dbo.getBytesCc() != null) {
+					backup.setBytesCc(dbo.getBytesCc());
+				}
+				if (dbo.getBytesBcc() != null) {
+					backup.setBytesBcc(dbo.getBytesBcc());
 				}
 				return backup;
 			}
@@ -292,12 +303,12 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public Class<? extends DBOMessageToUserBackup> getBackupClass() {
 		return DBOMessageToUserBackup.class;
 	}
-	
+
 	@Override
 	public Class<? extends DBOMessageToUser> getDatabaseObjectClass() {
 		return DBOMessageToUser.class;
 	}
-	
+
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		return null;
@@ -307,8 +318,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + Arrays.hashCode(bcc);
-		result = prime * result + Arrays.hashCode(cc);
+		result = prime * result + Arrays.hashCode(bytesBcc);
+		result = prime * result + Arrays.hashCode(bytesCc);
 		result = prime * result + ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
 		result = prime * result + ((isNotificationMessage == null) ? 0 : isNotificationMessage.hashCode());
 		result = prime * result + ((messageId == null) ? 0 : messageId.hashCode());
@@ -317,7 +328,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		result = prime * result + ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
 		result = prime * result + Arrays.hashCode(subjectBytes);
-		result = prime * result + Arrays.hashCode(to);
+		result = prime * result + Arrays.hashCode(bytesTo);
 		result = prime * result + ((withProfileSettingLink == null) ? 0 : withProfileSettingLink.hashCode());
 		result = prime * result + ((withUnsubscribeLink == null) ? 0 : withUnsubscribeLink.hashCode());
 		return result;
@@ -333,9 +344,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessageToUser other = (DBOMessageToUser) obj;
-		if (!Arrays.equals(to, other.to))
+		if (!Arrays.equals(bytesTo, other.bytesTo))
 			return false;
-		if (!Arrays.equals(cc, other.cc))
+		if (!Arrays.equals(bytesCc, other.bytesCc))
 			return false;
 		if (inReplyTo == null) {
 			if (other.inReplyTo != null)
@@ -374,7 +385,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			return false;
 		if (!Arrays.equals(subjectBytes, other.subjectBytes))
 			return false;
-		if (!Arrays.equals(to, other.to))
+		if (!Arrays.equals(bytesTo, other.bytesTo))
 			return false;
 		if (withProfileSettingLink == null) {
 			if (other.withProfileSettingLink != null)
@@ -396,8 +407,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", sent=" + sent
 				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
 				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
-				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", to="
-				+ Arrays.toString(to) + ", cc=" + Arrays.toString(cc) + ", bcc=" + Arrays.toString(bcc) + "]";
+				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", bytesTo="
+				+ Arrays.toString(bytesTo) + ", bytesCc=" + Arrays.toString(bytesCc) + ", bytesBcc=" + Arrays.toString(bytesBcc) + "]";
 	}
 
 }
+

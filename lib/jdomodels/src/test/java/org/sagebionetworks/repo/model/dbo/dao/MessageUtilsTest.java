@@ -275,7 +275,7 @@ public class MessageUtilsTest {
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
 		String to = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setTo(to.getBytes("UTF-8"));
+		dbo.setBytesTo(to.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
@@ -289,9 +289,9 @@ public class MessageUtilsTest {
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		dbo.setTo("user@synapse.org".getBytes("UTF-8"));
+		dbo.setBytesTo("user@synapse.org".getBytes("UTF-8"));
 		String cc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setCc(cc.getBytes("UTF-8"));
+		dbo.setBytesCc(cc.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
@@ -305,9 +305,9 @@ public class MessageUtilsTest {
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		dbo.setTo("user@synapse.org".getBytes("UTF-8"));
+		dbo.setBytesTo("user@synapse.org".getBytes("UTF-8"));
 		String bcc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setBcc(bcc.getBytes("UTF-8"));
+		dbo.setBytesBcc(bcc.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
