@@ -1070,6 +1070,14 @@ public class TableViewIntegrationTest {
 	}
 	
 	/**
+	 * Test for PLFM-4733
+	 */
+	@Test
+	public void testPLFM_4733() {
+		
+	}
+	
+	/**
 	 * Helper to update a view using a result set.
 	 * @param rowSet
 	 * @param viewId
