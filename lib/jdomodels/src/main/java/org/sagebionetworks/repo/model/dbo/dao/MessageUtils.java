@@ -352,11 +352,11 @@ public class MessageUtils {
 		ValidateArgument.required(dbo.getRootMessageId(), "Message info must point to a root message.");
 		ValidateArgument.required(dbo.getSent(), "Message info must have a status value.");
 		ValidateArgument.requirement(dbo.getTo() == null || dbo.getTo().length <= BLOB_MAX_SIZE,
-				"To field must have "+ BLOB_MAX_SIZE +" characters or less.");
+				"To field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
 		ValidateArgument.requirement(dbo.getCc() == null || dbo.getCc().length <= BLOB_MAX_SIZE,
-				"CC field must have "+ BLOB_MAX_SIZE +" characters or less.");
+				"CC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
 		ValidateArgument.requirement(dbo.getBcc() == null || dbo.getBcc().length <= BLOB_MAX_SIZE,
-				"BCC field must have "+ BLOB_MAX_SIZE +" characters or less.");
+				"BCC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
 	}
 	
 	/**
