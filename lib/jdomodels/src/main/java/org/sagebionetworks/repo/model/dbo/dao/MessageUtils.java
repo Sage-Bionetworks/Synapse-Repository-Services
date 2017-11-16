@@ -102,12 +102,18 @@ public class MessageUtils {
 		try {
 			if (info.getTo() != null) {
 				bundle.setTo(new String(info.getTo(), "UTF-8"));
+			} else {
+				bundle.setTo(null);
 			}
 			if (info.getCc() != null) {
 				bundle.setCc(new String(info.getCc(), "UTF-8"));
+			} else {
+				bundle.setCc(null);
 			}
 			if (info.getBcc() != null) {
 				bundle.setBcc(new String(info.getBcc(), "UTF-8"));
+			} else {
+				bundle.setBcc(null);
 			}
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
@@ -265,12 +271,18 @@ public class MessageUtils {
 		try {
 			if (dto.getTo() != null) {
 				info.setTo(dto.getTo().getBytes("UTF-8"));
+			} else {
+				info.setTo(null);
 			}
 			if (dto.getCc() != null) {
 				info.setCc(dto.getCc().getBytes("UTF-8"));
+			} else {
+				info.setCc(null);
 			}
 			if (dto.getBcc() != null) {
 				info.setBcc(dto.getBcc().getBytes("UTF-8"));
+			} else {
+				info.setBcc(null);
 			}
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
