@@ -22,7 +22,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -197,7 +196,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// To prevent deadlock we sort by object id to guarantee a consistent update order.
 		batchDTO = ChangeMessageUtils.sortByObjectId(batchDTO);
 		// Send each replace them in order.
-		List<ChangeMessage> results = Collections.synchronizedList(new ArrayList<>());
+		List<ChangeMessage> results = new ArrayList<>();
 		for(ChangeMessage change: batchDTO){
 			results.add(replaceChange(change));
 		}
