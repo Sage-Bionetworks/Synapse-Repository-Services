@@ -110,39 +110,6 @@ public class DBOMembershipRequestTest {
 	}
 
 	@Test
-	public void testTranslatorRefactor() throws IOException {
-		DBOMembershipRequest backup = new DBOMembershipRequest();
-		String backupProperties =
-				"<MembershipRqstSubmission>\n" +
-				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
-				"  <createdBy>1976831</createdBy>\n" +
-				"  <userId>2223382</userId>\n" +
-				"  <teamId>2223746</teamId>\n" +
-				"</MembershipRqstSubmission>\n";
-		backup.setProperties(zip(backupProperties.getBytes()));
-
-		// Method under test
-		DBOMembershipRequest translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-
-		String translatedProperties = new String(unzip(translated.getProperties())).trim();
-		// Assert that the top level xml tags are updated
-		assertTrue(translatedProperties.startsWith("<MembershipRequest>"));
-		assertTrue(translatedProperties.endsWith("</MembershipRequest>"));
-
-		String expectedProperties =
-				"<MembershipRequest>\n" +
-				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
-				"  <createdBy>1976831</createdBy>\n" +
-				"  <userId>2223382</userId>\n" +
-				"  <teamId>2223746</teamId>\n" +
-				"</MembershipRequest>\n";
-		MembershipRequest expectedDTO = deserialize(zip(expectedProperties.getBytes()));
-		MembershipRequest translatedDTO = deserialize(translated.getProperties());
-		// Assert that the translated DTO's contents are identical to the backup DTO's
-		assertEquals(expectedDTO, translatedDTO);
-	}
-
-	@Test
 	public void testTranslatorRefactorAlreadyTranslated() throws IOException {
 		DBOMembershipRequest backup = new DBOMembershipRequest();
 		String backupProperties =
