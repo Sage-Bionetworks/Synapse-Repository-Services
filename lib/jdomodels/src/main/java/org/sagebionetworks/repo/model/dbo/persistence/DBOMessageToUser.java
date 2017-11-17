@@ -285,15 +285,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				backup.setWithUnsubscribeLink(dbo.getWithUnsubscribeLink());
 				backup.setWithProfileSettingLink(dbo.getWithProfileSettingLink());
 				backup.setIsNotificationMessage(dbo.getIsNotificationMessage());
-				if (dbo.getBytesTo() != null) {
-					backup.setBytesTo(dbo.getBytesTo());
-				}
-				if (dbo.getBytesCc() != null) {
-					backup.setBytesCc(dbo.getBytesCc());
-				}
-				if (dbo.getBytesBcc() != null) {
-					backup.setBytesBcc(dbo.getBytesBcc());
-				}
+				backup.setBytesTo(dbo.getBytesTo());
+				backup.setBytesCc(dbo.getBytesCc());
+				backup.setBytesBcc(dbo.getBytesBcc());
 				return backup;
 			}
 		};
