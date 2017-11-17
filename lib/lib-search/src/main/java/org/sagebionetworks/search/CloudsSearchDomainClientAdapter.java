@@ -19,10 +19,32 @@ import org.apache.commons.lang.math.NumberUtils; //TODO: are there different ver
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class CloudsSearchDomainClientAdapter {
+	public static final Map<String, FacetTypeNames> FACET_TYPES;
+
+	static {
+		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
+		facetTypes.put("node_type", FacetTypeNames.LITERAL);
+		facetTypes.put("disease", FacetTypeNames.LITERAL);
+		facetTypes.put("tissue", FacetTypeNames.LITERAL);
+		facetTypes.put("species", FacetTypeNames.LITERAL);
+		facetTypes.put("platform", FacetTypeNames.LITERAL);
+		facetTypes.put("created_by", FacetTypeNames.LITERAL);
+		facetTypes.put("modified_by", FacetTypeNames.LITERAL);
+		facetTypes.put("reference", FacetTypeNames.LITERAL);
+		facetTypes.put("acl", FacetTypeNames.LITERAL);
+		facetTypes.put("created_on", FacetTypeNames.DATE);
+		facetTypes.put("modified_on", FacetTypeNames.DATE);
+		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
+		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
+	}
+
+
 	private boolean initialized;
 	private AmazonCloudSearchDomainClient client;
 
@@ -63,7 +85,8 @@ public class CloudsSearchDomainClientAdapter {
 		}
 	}
 
-	private SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
+	//TODO: move into own class?
+	private static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
 
 		//Handle Translating of facets
@@ -75,7 +98,7 @@ public class CloudsSearchDomainClientAdapter {
 
 				String facetName = facetInfo.getKey();
 				//TODO: REFACTOR AwesomeSearchFactory
-				FacetTypeNames facetType = AwesomeSearchFactory.FACET_TYPES.get(facetName);
+				FacetTypeNames facetType = FACET_TYPES.get(facetName);
 				if (facetType == null) {
 					throw new IllegalArgumentException(
 							"facet "
@@ -107,7 +130,7 @@ public class CloudsSearchDomainClientAdapter {
 		synapseSearchResults.setFound(hits.getFound());
 		synapseSearchResults.setStart(hits.getStart());
 
-		//class names clashing feelsbadman
+		//class names are clashing feelsbadman
 		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
 		for(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()){
 			org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
@@ -135,7 +158,7 @@ public class CloudsSearchDomainClientAdapter {
 	}
 
 
-	private String getFirstListValueFromMap(Map<String, List<String>> map, String key){
+	private static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
 		//TODO: are we on Java 8 yet? switch to lambda function?
 		List<String> value = map.get(key);
 		return value == null || value.isEmpty() ? null : value.get(0);

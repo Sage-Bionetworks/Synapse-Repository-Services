@@ -33,8 +33,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
 	private static final String CLOUD_SEARCH_API_VERSION = "2013-01-01";
-	private static final String SEARCH_ENDPOINT_TEMPALTE = "http://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/search";
-	private static final String DOCUMENT_ENDPOINT_TEMPALTE = "httpS://%1$s/"+ CLOUD_SEARCH_API_VERSION + "/documents/batch";
 
 	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.singleton().getStack(),	StackConfiguration.getStackInstance());
 
@@ -307,14 +305,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	}
 
 	@Override
-	public String getSearchEndpoint() {
-		DomainStatus status = getDomainStatus();
-		return  String.format(SEARCH_ENDPOINT_TEMPALTE, status.getSearchService().getEndpoint());
-	}
-
-	@Override
-	public String getDocumentEndpoint() {
-		DomainStatus status = getDomainStatus();
-		return String.format(DOCUMENT_ENDPOINT_TEMPALTE, status.getDocService().getEndpoint());
+	public String getDomainSearchEndpoint(){ //TODO:z better name?
+		return getDomainStatus().getSearchService().getEndpoint();
 	}
 }

@@ -17,7 +17,7 @@ import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
  * 
  */
 public class AwesomeSearchFactoryTest {
-
+	//TODO: convert into test for CloudSearchDomainClientAdpater
 	AwesomeSearchFactory factory = new AwesomeSearchFactory(
 			new AdapterFactoryImpl());
 

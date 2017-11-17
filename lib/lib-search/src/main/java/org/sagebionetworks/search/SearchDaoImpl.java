@@ -54,11 +54,7 @@ public class SearchDaoImpl implements SearchDao {
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
-//	@Autowired
-//	CloudSearchClient cloudHttpClient = null;
 
-//	@Autowired
-//	AmazonCloudSearchDomain cloudSearchDomainClient;
 	//TODO: figure out initialization of this client
 	@Autowired
 	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
@@ -75,19 +71,8 @@ public class SearchDaoImpl implements SearchDao {
 			return false;
 		}
 
-		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
-//		log.info("Search endpoint: " + searchEndPoint);
-//		cloudHttpClient.setSearchServiceEndpoint(searchEndPoint);
-//		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
-//		log.info("Document endpoint: " + documentEndPoint);
-//		cloudHttpClient.setDocumentServiceEndpoint(documentEndPoint);
-		//cloudHttpClient = new CloudSearchClient(searchEndPoint,	documentEndPoint);
-		//cloudHttpClient._init();
-		//TODO: figure out for the document endpoint also
-		log.info("THis is snek:" + searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
-
 		//Note: even though we only gave it the search endpoint, the client seems to be able to change to the document upload endpoint automatically
-		cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainStatus().getSearchService().getEndpoint());
+		cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
 		return true;
 	}
 	
@@ -294,7 +279,7 @@ public class SearchDaoImpl implements SearchDao {
 			if (status == null) {
 				throw new ServiceUnavailableException("Search service not initialized...");
 			} else {
-				cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getSearchEndpoint());
+				cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
 				if (status.isProcessing()) {
 					throw new ServiceUnavailableException("Search service processing...");
 				}

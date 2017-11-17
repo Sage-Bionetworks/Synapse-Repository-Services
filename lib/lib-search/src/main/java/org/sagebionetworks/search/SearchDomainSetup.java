@@ -40,18 +40,12 @@ public interface SearchDomainSetup {
 	 * @return
 	 */
 	 AccessPoliciesStatus getAccessPoliciesStatus();
-	 
-	 /**
-	  * Get the search endpoint.
-	  * @return
-	  */
-	 public String getSearchEndpoint();
-	 
-	 /**
-	  * Get the document endpoint.
-	  * @return
-	  */
-	 public String getDocumentEndpoint();
+
+	/**
+	 * Get the CloudSearch domain endpoint for search service.
+	 * @return
+	 */
+	public String getDomainSearchEndpoint();
 
 	 /**
 	  * Is Search enabled?

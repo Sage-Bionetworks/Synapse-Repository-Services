@@ -2,14 +2,20 @@ package org.sagebionetworks.search;
 
 import static org.junit.Assert.*;
 
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.mockito.Matchers.any;
 
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -26,11 +32,23 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  * @author jmhill
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class SearchDaoImplTest {
+	@Mock
 	AmazonCloudSearchClient mockCloudSearchClient;
+	@Mock
 	SearchDomainSetup mockSearchDomainSetup;
-	CloudSearchClient mockHttpclient;
+	@Mock
+	CloudsSearchDomainClientAdapter mockCloudSearchDomainClient;
 	SearchDaoImpl dao;
+
+	@Before
+	public void setUp(){
+		dao = new SearchDaoImpl();
+		ReflectionTestUtils.setField(dao, "awsSearchClient", mockCloudSearchClient);
+		ReflectionTestUtils.setField(dao, "searchDomainSetup", mockSearchDomainSetup);
+		ReflectionTestUtils.setField(dao, "cloudSearchClientAdapter", mockCloudSearchDomainClient);
+	}
 	
 	@Test
 	public void testPrepareDocument(){
@@ -45,85 +63,53 @@ public class SearchDaoImplTest {
 	
 	@Test(expected=ServiceUnavailableException.class)
 	public void testInitializePostInitFalse() throws Exception {
-		//TODO: fix
-		mockCloudSearchClient = mock(AmazonCloudSearchClient.class);
-		
-		mockSearchDomainSetup = mock(SearchDomainSetupImpl.class);
 		when(mockSearchDomainSetup.isSearchEnabled()).thenReturn(true);
 		when(mockSearchDomainSetup.postInitialize()).thenReturn(false);
 		
-		mockHttpclient = mock(CloudSearchClient.class);
-		
-		SearchDaoImpl dao = new SearchDaoImpl();
-		ReflectionTestUtils.setField(dao, "awsSearchClient", mockCloudSearchClient);
-		ReflectionTestUtils.setField(dao, "searchDomainSetup", mockSearchDomainSetup);
-		ReflectionTestUtils.setField(dao, "cloudHttpClient", mockHttpclient);
-		
 		dao.initialize();
 
-		verify(mockSearchDomainSetup, never()).getDocumentEndpoint();
-		verify(mockSearchDomainSetup, never()).getSearchEndpoint();
-		
+		verify(mockSearchDomainSetup, never()).getDomainSearchEndpoint();
+
 		// Note: calls to mockSearchDomainSetup.getDomainStatus() will all return null
 		//       Should throw svc unavailable
-		dao.executeSearch("someSearch");
+		dao.executeSearch(new SearchRequest().withQuery("someSearch"));
 	}
 
 	@Test
 	public void testInitializePostInitTrue() throws Exception {
 		//TODO: fix
-		mockCloudSearchClient = mock(AmazonCloudSearchClient.class);
-		
-		mockSearchDomainSetup = mock(SearchDomainSetupImpl.class);
+
 		when(mockSearchDomainSetup.isSearchEnabled()).thenReturn(true);
 		when(mockSearchDomainSetup.postInitialize()).thenReturn(true);
-		when(mockSearchDomainSetup.getDocumentEndpoint()).thenReturn("http://docendpoint");
-		when(mockSearchDomainSetup.getSearchEndpoint()).thenReturn("http://searchendpoint");
+		when(mockSearchDomainSetup.getDomainSearchEndpoint()).thenReturn("http://searchendpoint");
 		DomainStatus expectedStatus1 = new DomainStatus().withProcessing(false);
 		when(mockSearchDomainSetup.getDomainStatus()).thenReturn(expectedStatus1);
 		
-		mockHttpclient = mock(CloudSearchClient.class);
-		when(mockHttpclient.performSearch(anyString())).thenReturn("{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'prostate,cancer' modified_on:1368973180..1429453180 (or acl:'test-user@sagebase.org' acl:'AUTHENTICATED_USERS' acl:'PUBLIC' acl:'test-group'))\",\"hits\":{\"found\":0,\"start\":0,\"hit\":[]},\"facets\":{},\"info\":{\"rid\":\"6ddcaa561c05c4cc85ddb10cb46568af0024f6e4f534231d657d53613aed2d4ea69ed14f5fdff3d1951b339a661631f4\",\"time-ms\":3,\"cpu-time-ms\":0}}");
-		when(mockHttpclient.getDocumentServiceEndpoint()).thenReturn("http://docendpoint");
-		when(mockHttpclient.getSearchServiceEndpoint()).thenReturn("http://searchendpoint");
-		
-		SearchDaoImpl dao = new SearchDaoImpl();
-		ReflectionTestUtils.setField(dao, "awsSearchClient", mockCloudSearchClient);
-		ReflectionTestUtils.setField(dao, "searchDomainSetup", mockSearchDomainSetup);
-		ReflectionTestUtils.setField(dao, "cloudHttpClient", mockHttpclient);
+		SearchResults searchResults = new SearchResults();
+
+		when(mockCloudSearchDomainClient.search(any(SearchRequest.class))).thenReturn(new SearchResults());
+		when(mockCloudSearchDomainClient.isInitialized()).thenReturn(true);
+
 		
 		dao.initialize();
 
-		verify(mockSearchDomainSetup).getDocumentEndpoint();
-		verify(mockSearchDomainSetup).getSearchEndpoint();
-		assertEquals("http://docendpoint",mockHttpclient.getDocumentServiceEndpoint());
-		assertEquals("http://searchendpoint", mockHttpclient.getSearchServiceEndpoint());
+		verify(mockSearchDomainSetup).getDomainSearchEndpoint();
+		assertEquals(true, mockCloudSearchDomainClient.isInitialized());
 		
-		SearchResults results = dao.executeSearch("someSearch");
+		SearchResults results = dao.executeSearch(new SearchRequest().withQuery("someSearch"));
 		assertNotNull(results);
 	}
 
 	@Test
 	public void testInitializePostInitException() throws Exception {
-		mockCloudSearchClient = mock(AmazonCloudSearchClient.class);
-		
-		mockSearchDomainSetup = mock(SearchDomainSetupImpl.class);
+
 		when(mockSearchDomainSetup.isSearchEnabled()).thenReturn(true);
 		when(mockSearchDomainSetup.postInitialize()).thenThrow(new Exception("Some exception occured in SearchDomainSetup.postInitialize()!"));
-		
-		mockHttpclient = mock(CloudSearchClient.class);
-		
-		SearchDaoImpl dao = new SearchDaoImpl();
-		ReflectionTestUtils.setField(dao, "awsSearchClient", mockCloudSearchClient);
-		ReflectionTestUtils.setField(dao, "searchDomainSetup", mockSearchDomainSetup);
-		ReflectionTestUtils.setField(dao, "cloudHttpClient", mockHttpclient);
-		
+
 		dao.initialize();
 
-		verify(mockSearchDomainSetup, never()).getDocumentEndpoint();
-		verify(mockSearchDomainSetup, never()).getSearchEndpoint();
-		assertNull(mockHttpclient.getDocumentServiceEndpoint());
-		assertNull(mockHttpclient.getSearchServiceEndpoint());
+		verify(mockSearchDomainSetup, never()).getDomainSearchEndpoint();
+		assertFalse(mockCloudSearchDomainClient.isInitialized());
 	}
 
 }
