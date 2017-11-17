@@ -142,7 +142,17 @@ public class SearchDocumentDriverImplAutowireTest {
 	 */
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException {
-		//Before we delete the two wiki pages, clean up file handles
+		
+		if(subPageKey != null){
+			wikiPageDao.delete(subPageKey);
+		}
+		if(rootKey != null){
+			wikiPageDao.delete(rootKey);
+		}
+		if(project != null){
+			entityManager.deleteEntity(adminUserInfo, project.getId());
+		}
+		
 		if(subPage != null) {
 			String markdownHandleId = subPage.getMarkdownFileHandleId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
@@ -154,16 +164,6 @@ public class SearchDocumentDriverImplAutowireTest {
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 			fileMetadataDao.delete(markdownHandleId);
-		}
-		
-		if(subPageKey != null){
-			wikiPageDao.delete(subPageKey);
-		}
-		if(rootKey != null){
-			wikiPageDao.delete(rootKey);
-		}
-		if(project != null){
-			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 	}
 

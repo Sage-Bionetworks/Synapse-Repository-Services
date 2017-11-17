@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -13,6 +15,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.*;
@@ -43,18 +46,6 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * The maximum size of a backup batch.
 	 */
 	int backupBatchMax = 500;
-
-	/**
-	 * Used for unit testing.
-	 * @param migratableTableDao
-	 * @param backupBatchMax
-	 */
-	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, int backupBatchMax) {
-		super();
-		this.migratableTableDao = migratableTableDao;
-		this.stackStatusDao = stackStatusDao;
-		this.backupBatchMax = backupBatchMax;
-	}
 	
 	public MigrationManagerImpl(){
 		// Default the batch max 
@@ -496,5 +487,39 @@ public class MigrationManagerImpl implements MigrationManager {
 		Long limit = mReq.getLimit();
 		Long offset = mReq.getOffset();
 		return getRowMetadataByRangeForType(user, mt, minId, maxId, limit, offset);
+	}
+
+	@Override
+	public void validateForeignKeys() {
+		// lookup the all restricted foreign keys.
+		List<ForeignKeyInfo> nonRestrictedForeignKeys = this.migratableTableDao.listNonRestrictedForeignKeys();
+		// lookup the primary group for each secondary table.
+		Map<String, Set<String>> tableNameToPrimaryGroup = this.migratableTableDao.mapSecondaryTablesToPrimaryGroups();
+ 		for(ForeignKeyInfo nonRestrictedForeignKey: nonRestrictedForeignKeys) {
+			String tableName = nonRestrictedForeignKey.getTableName().toUpperCase();
+			String refrencedTalbeName = nonRestrictedForeignKey.getReferencedTableName().toUpperCase();
+			Set<String> tablesInPrimaryGroup = tableNameToPrimaryGroup.get(tableName);
+			if(tablesInPrimaryGroup != null) {
+				/*
+				 * This is a secondary table so it can only have non-restricted references to
+				 * tables within its same primary group.
+				 */
+				if (!tablesInPrimaryGroup.contains(refrencedTalbeName)) {
+					throw new IllegalStateException("See: PLFM-4729. Table: " + tableName + " cannot have a 'ON DELETE "
+							+ nonRestrictedForeignKey.getDeleteRule() + "' foreign key refrence to table: "
+							+ refrencedTalbeName
+							+ " becuase the refrenced table does not belong to the same primary table.");
+				}
+			}
+		}
+		
+	}
+
+	/**
+	 * Called after Spring creates the manager.
+	 */
+	public void initialize() {
+		// validate all of the foreign keys.
+		validateForeignKeys();
 	}
 }

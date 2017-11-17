@@ -110,6 +110,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		
 		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
 
@@ -575,8 +576,7 @@ public class DBOAccessControlListDAOImplTest {
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		aclDAO.create(acl, ObjectType.ENTITY);
-		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
+		createAcl(acl, ObjectType.ENTITY);
 		assertNotNull(acl);
 		
 		Set<Long> principalIs = Sets.newHashSet(Long.parseLong(ug.getId()));
@@ -596,9 +596,9 @@ public class DBOAccessControlListDAOImplTest {
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
 		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
-		aclDAO.create(acl1, ObjectType.ENTITY);
+		createAcl(acl1, ObjectType.ENTITY);
 		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
-		aclDAO.create(acl2, ObjectType.ENTITY);
+		createAcl(acl2, ObjectType.ENTITY);
 		
 		String parentId = node.getId();
 		// one cannot see two
@@ -613,6 +613,19 @@ public class DBOAccessControlListDAOImplTest {
 		assertTrue(results.contains(KeyFactory.stringToKey(visibleToOne.getId())));
 	}
 	
+	/**
+	 * Helper to create an ACL
+	 * @param acl
+	 * @param type
+	 * @return
+	 */
+	public String createAcl(AccessControlList acl, ObjectType type) {
+		String id = aclDAO.create(acl, type);
+		acl = aclDAO.get(id, type);
+		aclList.add(acl);
+		return id;
+	}
+	
 	@Test
 	public void testGetChildrenEntitiesWithAcls(){
 		// add three children to the project
@@ -624,9 +637,9 @@ public class DBOAccessControlListDAOImplTest {
 		UserInfo userTwo = new UserInfo(false, group2.getId());
 		
 		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
-		aclDAO.create(acl1, ObjectType.ENTITY);
+		createAcl(acl1, ObjectType.ENTITY);
 		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToTwo.getId(), userTwo, new Date());
-		aclDAO.create(acl2, ObjectType.ENTITY);
+		createAcl(acl2, ObjectType.ENTITY);
 		
 		String parentId = node.getId();
 		Long parentIdLong = KeyFactory.stringToKey(parentId);

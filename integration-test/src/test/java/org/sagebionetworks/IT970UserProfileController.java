@@ -68,8 +68,6 @@ public class IT970UserProfileController {
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		Team team = new Team();
 		team.setName("team" + new Random().nextInt());
-		teamToDelete = adminSynapse.createTeam(team).getId();
-		adminSynapse.addTeamMember(teamToDelete, userToDelete.toString(), MOCK_TEAM_ENDPOINT, MOCK_NOTIFICATION_UNSUB_ENDPOINT);
 	}
 	
 	@Before

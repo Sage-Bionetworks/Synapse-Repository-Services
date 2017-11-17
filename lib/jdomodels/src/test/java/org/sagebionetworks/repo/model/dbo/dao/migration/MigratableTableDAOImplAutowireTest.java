@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -597,5 +598,17 @@ public class MigratableTableDAOImplAutowireTest {
 		for (MigrationType t: MigrationType.values()) {
 			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
 		}
+	}
+	
+	@Test
+	public void testListNonRestrictedForeignKeys() {
+		List<ForeignKeyInfo> keys = migratableTableDAO.listNonRestrictedForeignKeys();
+		assertNotNull(keys);
+		assertTrue(keys.size() > 1);
+		ForeignKeyInfo info = keys.get(0);
+		assertNotNull(info.getConstraintName());
+		assertNotNull(info.getDeleteRule());
+		assertNotNull(info.getReferencedTableName());
+		assertNotNull(info.getTableName());
 	}
 }

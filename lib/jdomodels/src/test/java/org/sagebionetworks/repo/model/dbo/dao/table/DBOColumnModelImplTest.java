@@ -461,32 +461,6 @@ public class DBOColumnModelImplTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
-		// Create another column model
-		m = new ColumnModel();
-		m.setName("col2");
-		m.setColumnType(ColumnType.STRING);
-		m.setMaximumSize(20L);
-		m = columnModelDao.createColumnModel(m);
-		// Bind it to a table
-		List<String> colIds = new LinkedList<String>();
-		colIds.add(m.getId());
-		int count = columnModelDao.bindColumnToObject(colIds, "syn123");
-		assertEquals(1, count);
-		// Verify binding
-		boundColModelIds = new HashSet<String>();
-		boundColModelIds.add(m.getId());
-		colBindings = columnModelDao.listObjectsBoundToColumn(boundColModelIds, true, 10L, 0);
-		assertEquals(1, colBindings.size());
-		assertEquals("syn123", colBindings.get(0));
-		// Delete the column model should succeed
-		columnModelDao.deleteColumModel(m.getId());
-		// Check that not found
-		try {
-			columnModelDao.getColumnModel(m.getId());
-			fail("This model should have been deleted");
-		} catch (NotFoundException e) {
-			// expected
-		}
 	}
 	
 	/**
