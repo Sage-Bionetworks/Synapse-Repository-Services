@@ -1100,6 +1100,9 @@ public class TableViewIntegrationTest {
 		query.setIncludeEntityEtag(true);
 		int rowCount = 3;
 		QueryResultBundle resuls = waitForConsistentQuery(adminUserInfo, query, rowCount);
+		
+		// Try to add one more column should fail
+		
 	}
 	
 	/**
@@ -1156,6 +1159,7 @@ public class TableViewIntegrationTest {
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
+				throw new 
 				assertTrue("Job failed: "+status.getErrorDetails(), false);
 			case PROCESSING:
 				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
