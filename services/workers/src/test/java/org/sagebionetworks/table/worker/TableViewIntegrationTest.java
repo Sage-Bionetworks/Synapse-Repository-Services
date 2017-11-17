@@ -29,9 +29,11 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -1067,6 +1069,37 @@ public class TableViewIntegrationTest {
 		assertEquals(KeyFactory.stringToKey(table.getId()), last.getRowId());
 		assertEquals(table.getEtag(), last.getEtag());
 		
+	}
+	
+	/**
+	 * See PLFM-4733
+	 * @throws Exception 
+	 * 
+	 */
+	@Test
+	public void testPLFM_4733() throws Exception {
+		defaultSchema.clear();
+		defaultColumnIds.clear();
+		// create a view with just under the max number of columns.
+		int maxColumnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW;
+		for(int i=0; i<maxColumnCount; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.INTEGER);
+			cm.setName("c"+i);
+			cm = columnModelManager.createColumnModel(adminUserInfo, cm);
+			defaultSchema.add(cm);
+			defaultColumnIds.add(cm.getId());
+		}
+		ViewType type = ViewType.file;
+		List<String> scope = Lists.newArrayList(project.getId());
+		fileViewId = createView(type, scope);
+		
+		// Query for the values as strings.
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		QueryResultBundle resuls = waitForConsistentQuery(adminUserInfo, query, rowCount);
 	}
 	
 	/**
