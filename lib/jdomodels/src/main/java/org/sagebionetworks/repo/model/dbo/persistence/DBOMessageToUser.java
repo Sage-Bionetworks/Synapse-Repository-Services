@@ -315,101 +315,67 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	}
 
 	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		DBOMessageToUser that = (DBOMessageToUser) o;
+
+		if (messageId != null ? !messageId.equals(that.messageId) : that.messageId != null) return false;
+		if (rootMessageId != null ? !rootMessageId.equals(that.rootMessageId) : that.rootMessageId != null)
+			return false;
+		if (inReplyTo != null ? !inReplyTo.equals(that.inReplyTo) : that.inReplyTo != null) return false;
+		if (!Arrays.equals(subjectBytes, that.subjectBytes)) return false;
+		if (!Arrays.equals(bytesTo, that.bytesTo)) return false;
+		if (!Arrays.equals(bytesCc, that.bytesCc)) return false;
+		if (!Arrays.equals(bytesBcc, that.bytesBcc)) return false;
+		if (sent != null ? !sent.equals(that.sent) : that.sent != null) return false;
+		if (notificationsEndpoint != null ? !notificationsEndpoint.equals(that.notificationsEndpoint) : that.notificationsEndpoint != null)
+			return false;
+		if (profileSettingEndpoint != null ? !profileSettingEndpoint.equals(that.profileSettingEndpoint) : that.profileSettingEndpoint != null)
+			return false;
+		if (withUnsubscribeLink != null ? !withUnsubscribeLink.equals(that.withUnsubscribeLink) : that.withUnsubscribeLink != null)
+			return false;
+		if (withProfileSettingLink != null ? !withProfileSettingLink.equals(that.withProfileSettingLink) : that.withProfileSettingLink != null)
+			return false;
+		return isNotificationMessage != null ? isNotificationMessage.equals(that.isNotificationMessage) : that.isNotificationMessage == null;
+	}
+
+	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + Arrays.hashCode(bytesBcc);
-		result = prime * result + Arrays.hashCode(bytesCc);
-		result = prime * result + ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
-		result = prime * result + ((isNotificationMessage == null) ? 0 : isNotificationMessage.hashCode());
-		result = prime * result + ((messageId == null) ? 0 : messageId.hashCode());
-		result = prime * result + ((notificationsEndpoint == null) ? 0 : notificationsEndpoint.hashCode());
-		result = prime * result + ((profileSettingEndpoint == null) ? 0 : profileSettingEndpoint.hashCode());
-		result = prime * result + ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
-		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
-		result = prime * result + Arrays.hashCode(subjectBytes);
-		result = prime * result + Arrays.hashCode(bytesTo);
-		result = prime * result + ((withProfileSettingLink == null) ? 0 : withProfileSettingLink.hashCode());
-		result = prime * result + ((withUnsubscribeLink == null) ? 0 : withUnsubscribeLink.hashCode());
+		int result = messageId != null ? messageId.hashCode() : 0;
+		result = 31 * result + (rootMessageId != null ? rootMessageId.hashCode() : 0);
+		result = 31 * result + (inReplyTo != null ? inReplyTo.hashCode() : 0);
+		result = 31 * result + Arrays.hashCode(subjectBytes);
+		result = 31 * result + Arrays.hashCode(bytesTo);
+		result = 31 * result + Arrays.hashCode(bytesCc);
+		result = 31 * result + Arrays.hashCode(bytesBcc);
+		result = 31 * result + (sent != null ? sent.hashCode() : 0);
+		result = 31 * result + (notificationsEndpoint != null ? notificationsEndpoint.hashCode() : 0);
+		result = 31 * result + (profileSettingEndpoint != null ? profileSettingEndpoint.hashCode() : 0);
+		result = 31 * result + (withUnsubscribeLink != null ? withUnsubscribeLink.hashCode() : 0);
+		result = 31 * result + (withProfileSettingLink != null ? withProfileSettingLink.hashCode() : 0);
+		result = 31 * result + (isNotificationMessage != null ? isNotificationMessage.hashCode() : 0);
 		return result;
 	}
 
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBOMessageToUser other = (DBOMessageToUser) obj;
-		if (!Arrays.equals(bytesTo, other.bytesTo))
-			return false;
-		if (!Arrays.equals(bytesCc, other.bytesCc))
-			return false;
-		if (inReplyTo == null) {
-			if (other.inReplyTo != null)
-				return false;
-		} else if (!inReplyTo.equals(other.inReplyTo))
-			return false;
-		if (isNotificationMessage == null) {
-			if (other.isNotificationMessage != null)
-				return false;
-		} else if (!isNotificationMessage.equals(other.isNotificationMessage))
-			return false;
-		if (messageId == null) {
-			if (other.messageId != null)
-				return false;
-		} else if (!messageId.equals(other.messageId))
-			return false;
-		if (notificationsEndpoint == null) {
-			if (other.notificationsEndpoint != null)
-				return false;
-		} else if (!notificationsEndpoint.equals(other.notificationsEndpoint))
-			return false;
-		if (profileSettingEndpoint == null) {
-			if (other.profileSettingEndpoint != null)
-				return false;
-		} else if (!profileSettingEndpoint.equals(other.profileSettingEndpoint))
-			return false;
-		if (rootMessageId == null) {
-			if (other.rootMessageId != null)
-				return false;
-		} else if (!rootMessageId.equals(other.rootMessageId))
-			return false;
-		if (sent == null) {
-			if (other.sent != null)
-				return false;
-		} else if (!sent.equals(other.sent))
-			return false;
-		if (!Arrays.equals(subjectBytes, other.subjectBytes))
-			return false;
-		if (!Arrays.equals(bytesTo, other.bytesTo))
-			return false;
-		if (withProfileSettingLink == null) {
-			if (other.withProfileSettingLink != null)
-				return false;
-		} else if (!withProfileSettingLink.equals(other.withProfileSettingLink))
-			return false;
-		if (withUnsubscribeLink == null) {
-			if (other.withUnsubscribeLink != null)
-				return false;
-		} else if (!withUnsubscribeLink.equals(other.withUnsubscribeLink))
-			return false;
-		return true;
-	}
-
-
 	@Override
 	public String toString() {
-		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId=" + rootMessageId + ", inReplyTo="
-				+ inReplyTo + ", subjectBytes=" + Arrays.toString(subjectBytes) + ", sent=" + sent
-				+ ", notificationsEndpoint=" + notificationsEndpoint + ", profileSettingEndpoint="
-				+ profileSettingEndpoint + ", withUnsubscribeLink=" + withUnsubscribeLink + ", withProfileSettingLink="
-				+ withProfileSettingLink + ", isNotificationMessage=" + isNotificationMessage + ", bytesTo="
-				+ Arrays.toString(bytesTo) + ", bytesCc=" + Arrays.toString(bytesCc) + ", bytesBcc=" + Arrays.toString(bytesBcc) + "]";
+		return "DBOMessageToUser{" +
+				"messageId=" + messageId +
+				", rootMessageId=" + rootMessageId +
+				", inReplyTo=" + inReplyTo +
+				", subjectBytes=" + Arrays.toString(subjectBytes) +
+				", bytesTo=" + Arrays.toString(bytesTo) +
+				", bytesCc=" + Arrays.toString(bytesCc) +
+				", bytesBcc=" + Arrays.toString(bytesBcc) +
+				", sent=" + sent +
+				", notificationsEndpoint='" + notificationsEndpoint + '\'' +
+				", profileSettingEndpoint='" + profileSettingEndpoint + '\'' +
+				", withUnsubscribeLink=" + withUnsubscribeLink +
+				", withProfileSettingLink=" + withProfileSettingLink +
+				", isNotificationMessage=" + isNotificationMessage +
+				'}';
 	}
-
 }
 
