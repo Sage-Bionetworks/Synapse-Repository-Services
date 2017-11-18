@@ -201,8 +201,7 @@ public class SearchUtil{
 		return searchRequest;
 	}
 
-
-	//TODO: move into own class?
+	//TODO: Test
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
 
@@ -243,32 +242,35 @@ public class SearchUtil{
 		}
 
 		Hits hits = cloudSearchResult.getHits();
-
-		synapseSearchResults.setFound(hits.getFound());
-		synapseSearchResults.setStart(hits.getStart());
-
 		//class names are clashing feelsbadman
 		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
-		for(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()){
-			org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
-			Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
-			//TODO: test to make sure the values are correct
 
-			synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
-			synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
-			synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, "description"));
-			synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, "disease"));
-			synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, "etag"));
-			synapseHit.setId(getFirstListValueFromMap(fieldsMap, "id"));
-			synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, "modified_by"));
-			synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "modified_on")));
-			synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
-			synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
-			synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
-			synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
-			//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+		if (hits != null) {
+			synapseSearchResults.setFound(hits.getFound());
+			synapseSearchResults.setStart(hits.getStart());
 
-			hitList.add(synapseHit);
+
+			for (com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()) {
+				org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
+				Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
+				//TODO: test to make sure the values are correct
+
+				synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
+				synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
+				synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, "description"));
+				synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, "disease"));
+				synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, "etag"));
+				synapseHit.setId(getFirstListValueFromMap(fieldsMap, "id"));
+				synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, "modified_by"));
+				synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "modified_on")));
+				synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
+				synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
+				synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
+				synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
+				//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+
+				hitList.add(synapseHit);
+			}
 		}
 		synapseSearchResults.setHits(hitList);
 		return synapseSearchResults;
@@ -281,7 +283,7 @@ public class SearchUtil{
 		return value == null || value.isEmpty() ? null : value.get(0);
 	}
 
-	
+	//TODO: DELETE
 	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
 			throw new IllegalArgumentException("No search query was provided.");
