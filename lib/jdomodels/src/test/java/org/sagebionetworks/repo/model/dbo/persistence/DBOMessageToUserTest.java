@@ -31,9 +31,6 @@ public class DBOMessageToUserTest {
 		assertArrayEquals(backup.getTo().getBytes("UTF-8"), translated.getBytesTo());
 		assertArrayEquals(backup.getCc().getBytes("UTF-8"), translated.getBytesCc());
 		assertArrayEquals(backup.getBcc().getBytes("UTF-8"), translated.getBytesBcc());
-		assertNull(backup.getBytesTo());
-		assertNull(backup.getBytesCc());
-		assertNull(backup.getBytesBcc());
 	}
 
 	@Test
@@ -51,9 +48,6 @@ public class DBOMessageToUserTest {
 		assertArrayEquals(backup.getBytesTo(), translated.getBytesTo());
 		assertArrayEquals(backup.getBytesCc(), translated.getBytesCc());
 		assertArrayEquals(backup.getBytesBcc(), translated.getBytesBcc());
-		assertNull(backup.getTo());
-		assertNull(backup.getCc());
-		assertNull(backup.getBcc());
 	}
 
 	@Test
@@ -106,6 +100,9 @@ public class DBOMessageToUserTest {
 		assertEquals(dbo.getWithUnsubscribeLink(), translated.getWithUnsubscribeLink());
 		assertEquals(dbo.getWithProfileSettingLink(), translated.getWithProfileSettingLink());
 		assertEquals(dbo.getIsNotificationMessage(), translated.getIsNotificationMessage());
+		assertNull(translated.getTo());
+		assertNull(translated.getCc());
+		assertNull(translated.getBcc());
 	}
 
 	private DBOMessageToUserBackup createBackup() throws UnsupportedEncodingException {
