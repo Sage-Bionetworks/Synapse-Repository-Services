@@ -1083,7 +1083,7 @@ public class TableViewIntegrationTest {
 		int maxColumnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW;
 		for(int i=0; i<maxColumnCount; i++) {
 			ColumnModel cm = new ColumnModel();
-			cm.setColumnType(ColumnType.INTEGER);
+			cm.setColumnType(ColumnType.DOUBLE);
 			cm.setName("c"+i);
 			cm = columnModelManager.createColumnModel(adminUserInfo, cm);
 			defaultSchema.add(cm);
