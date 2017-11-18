@@ -29,12 +29,15 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.manager.table.TableViewManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -1073,8 +1076,56 @@ public class TableViewIntegrationTest {
 	 * Test for PLFM-4733
 	 */
 	@Test
-	public void testPLFM_4733() {
+	public void testPLFM_4733() throws Exception {
+		defaultSchema.clear();
+		defaultColumnIds.clear();
+		// create a view with just under the max number of columns.
+		int maxColumnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW;
+		for(int i=0; i<maxColumnCount; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.INTEGER);
+			cm.setName("c"+i);
+			cm = columnModelManager.createColumnModel(adminUserInfo, cm);
+			defaultSchema.add(cm);
+			defaultColumnIds.add(cm.getId());
+		}
+		ViewType type = ViewType.file;
+		List<String> scope = Lists.newArrayList(project.getId());
+		fileViewId = createView(type, scope);
 		
+		// Query for the values as strings.
+		Query query = new Query();
+		query.setSql("select * from "+fileViewId);
+		query.setIncludeEntityEtag(true);
+		int rowCount = 3;
+		// query should work without failure.
+		waitForConsistentQuery(adminUserInfo, query, rowCount);
+		
+		// Try to add one more column should fail
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.INTEGER);
+		cm.setName("c"+maxColumnCount+1);
+		cm = columnModelManager.createColumnModel(adminUserInfo, cm);
+		ColumnChange columnAddition = new ColumnChange();
+		columnAddition.setNewColumnId(cm.getId());
+		
+		TableSchemaChangeRequest changeRequest = new TableSchemaChangeRequest();
+		changeRequest.setEntityId(fileViewId);
+		changeRequest.setChanges(Lists.newArrayList(columnAddition));
+		
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		List<TableUpdateRequest> changes = new LinkedList<TableUpdateRequest>();
+		changes.add(changeRequest);
+		transactionRequest.setChanges(changes);
+		transactionRequest.setEntityId(fileViewId);
+		//  start the job to update the table
+		try {
+			startAndWaitForJob(adminUserInfo, transactionRequest, TableUpdateTransactionResponse.class);
+			fail();
+		} catch (AsynchJobFailedException e) {
+			// expected.
+			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
+		}
 	}
 	
 	/**
@@ -1083,8 +1134,9 @@ public class TableViewIntegrationTest {
 	 * @param viewId
 	 * @return
 	 * @throws InterruptedException
+	 * @throws AsynchJobFailedException 
 	 */
-	public List<EntityUpdateResult> updateView(RowSet rowSet, String viewId) throws InterruptedException{
+	public List<EntityUpdateResult> updateView(RowSet rowSet, String viewId) throws InterruptedException, AsynchJobFailedException{
 		AppendableRowSetRequest appendRequest = new AppendableRowSetRequest();
 		appendRequest.setEntityId(viewId);
 		appendRequest.setToAppend(rowSet);
@@ -1122,16 +1174,17 @@ public class TableViewIntegrationTest {
 	 * @param body
 	 * @return
 	 * @throws InterruptedException 
+	 * @throws AsynchJobFailedException 
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException{
+	public <T extends AsynchronousResponseBody> T  startAndWaitForJob(UserInfo user, AsynchronousRequestBody body, Class<? extends T> clazz) throws InterruptedException, AsynchJobFailedException{
 		long startTime = System.currentTimeMillis();
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(user, body);
 		while(true){
 			status = asynchJobStatusManager.getJobStatus(user, status.getJobId());
 			switch(status.getJobState()){
 			case FAILED:
-				assertTrue("Job failed: "+status.getErrorDetails(), false);
+				throw new AsynchJobFailedException(status);
 			case PROCESSING:
 				assertTrue("Timed out waiting for job to complete",(System.currentTimeMillis()-startTime) < MAX_WAIT_MS);
 				System.out.println("Waiting for job: "+status.getProgressMessage());

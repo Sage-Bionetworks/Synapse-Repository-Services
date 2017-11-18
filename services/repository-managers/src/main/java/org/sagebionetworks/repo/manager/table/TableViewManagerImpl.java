@@ -29,7 +29,14 @@ public class TableViewManagerImpl implements TableViewManager {
 	
 	public static final String ETG_COLUMN_MISSING = "The view schema must include '"+EntityField.etag.name()+"' column.";
 	public static final String ETAG_MISSING_MESSAGE = "The '"+EntityField.etag.name()+"' must be included to update an Entity's annotations.";
-
+	
+	/**
+	 * Currently the maximum number of columns in a view is limited by: 'MySQL can only use 61 tables in a join'.
+	 * The query used to populate a view's table currently uses a join for each column of the view.  Since 'MySQL can only use 61 tables in a join'
+	 * a view is currently limited to 61 columns.
+	 * There is always at least one join to ENTITY_REPLICATION.
+	 */
+	public static final int MAX_COLUMNS_PER_VIEW = 61-1;
 	
 	@Autowired
 	ViewScopeDao viewScopeDao;
@@ -52,7 +59,7 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<String> scope, ViewType type, String viewIdString) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(type, "viewType");
-		
+		validateViewSchemaSize(schema);
 		Long viewId = KeyFactory.stringToKey(viewIdString);
 		Set<Long> scopeIds = null;
 		if(scope != null){
@@ -86,12 +93,25 @@ public class TableViewManagerImpl implements TableViewManager {
 			List<ColumnChange> changes, List<String> orderedColumnIds) {
 		// first determine what the new Schema will be
 		List<String> newSchemaIds = columModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, orderedColumnIds);
+		validateViewSchemaSize(newSchemaIds);
 		columModelManager.bindColumnToObject(user, newSchemaIds, viewId);
 		boolean keepOrder = true;
 		List<ColumnModel> newSchema = columModelManager.getColumnModel(user, newSchemaIds, keepOrder);
 		// trigger an update.
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(viewId);
 		return newSchema;
+	}
+	
+	/**
+	 * Validate that the new schema is within the allowed size for views.
+	 * @param newSchema
+	 */
+	public static void validateViewSchemaSize(List<String> newSchema) {
+		if(newSchema != null) {
+			if(newSchema.size() > MAX_COLUMNS_PER_VIEW) {
+				throw new IllegalArgumentException("A view must have "+MAX_COLUMNS_PER_VIEW+" columns or less.");
+			}
+		}
 	}
 	
 	@Override
