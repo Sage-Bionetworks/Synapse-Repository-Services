@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.search;
 
 import static org.junit.Assert.assertEquals;
 

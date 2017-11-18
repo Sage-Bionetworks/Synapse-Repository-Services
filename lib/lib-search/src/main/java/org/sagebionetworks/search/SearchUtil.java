@@ -1,24 +1,61 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.search;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import com.amazonaws.services.cloudsearchdomain.model.Bucket;
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
-import org.sagebionetworks.repo.manager.search.SearchHelper;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import org.apache.commons.lang.math.NumberUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Facet;
+import org.sagebionetworks.repo.model.search.FacetConstraint;
+import org.sagebionetworks.repo.model.search.FacetTypeNames;
+import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class SearchUtil{
+	public static final Map<String, FacetTypeNames> FACET_TYPES;
+
+	/**
+	 * The index field holding the access control list info
+	 */
+	public static final String ACL_INDEX_FIELD = "acl";
+
+	static {
+		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
+		facetTypes.put("node_type", FacetTypeNames.LITERAL);
+		facetTypes.put("disease", FacetTypeNames.LITERAL);
+		facetTypes.put("tissue", FacetTypeNames.LITERAL);
+		facetTypes.put("species", FacetTypeNames.LITERAL);
+		facetTypes.put("platform", FacetTypeNames.LITERAL);
+		facetTypes.put("created_by", FacetTypeNames.LITERAL);
+		facetTypes.put("modified_by", FacetTypeNames.LITERAL);
+		facetTypes.put("reference", FacetTypeNames.LITERAL);
+		facetTypes.put("acl", FacetTypeNames.LITERAL);
+		facetTypes.put("created_on", FacetTypeNames.DATE);
+		facetTypes.put("modified_on", FacetTypeNames.DATE);
+		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
+		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
+	}
+
 
 	public static SearchRequest generateSearchRequest(SearchQuery searchQuery, UserInfo userInfo){
 		ValidateArgument.required(searchQuery, "searchQuery");
 		SearchRequest searchRequest = new SearchRequest();
-		//TODO:z
+		//TODO:z TEST
 
 
 		List<String> params = new ArrayList<String>();
@@ -102,9 +139,9 @@ public class SearchUtil{
 		}
 
 		//add additional condition to filter for only documents that user can see
-		if(!userInfo.isAdmin()){
+		if(!userInfo.isAdmin()){ //TODO:z TEST
 			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
-			queryTermsStringBuilder.append(SearchHelper.formulateAuthorizationFilter(userInfo));
+			queryTermsStringBuilder.append(formulateAuthorizationFilter(userInfo));
 			queryTermsStringBuilder.append(')');
 		}
 
@@ -163,6 +200,87 @@ public class SearchUtil{
 
 		return searchRequest;
 	}
+
+
+	//TODO: move into own class?
+	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
+		SearchResults synapseSearchResults = new SearchResults();
+
+		//Handle Translating of facets
+		Map<String, BucketInfo> facetMap = cloudSearchResult.getFacets();
+		if(facetMap != null) {
+			List<Facet> facetList = new ArrayList<>();
+
+			for (Map.Entry<String, BucketInfo> facetInfo : facetMap.entrySet()) {//iterate over each facet
+
+				String facetName = facetInfo.getKey();
+				//TODO: REFACTOR AwesomeSearchFactory
+				FacetTypeNames facetType = FACET_TYPES.get(facetName);
+				if (facetType == null) {
+					throw new IllegalArgumentException(
+							"facet "
+									+ facetName
+									+ " is not properly configured, add it to the facet type map");
+				}
+
+				Facet synapseFacet = new Facet();
+				synapseFacet.setName(facetName);
+				synapseFacet.setType(facetType);
+				//Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
+
+				BucketInfo bucketInfo = facetInfo.getValue();
+				List<FacetConstraint> facetConstraints = new ArrayList<>();
+				for (Bucket bucket: bucketInfo.getBuckets()){
+					FacetConstraint facetConstraint = new FacetConstraint();
+					facetConstraint.setValue(bucket.getValue());
+					facetConstraint.setCount(bucket.getCount());
+				}
+				synapseFacet.setConstraints(facetConstraints);
+
+				facetList.add(synapseFacet);
+			}
+			synapseSearchResults.setFacets(facetList);
+		}
+
+		Hits hits = cloudSearchResult.getHits();
+
+		synapseSearchResults.setFound(hits.getFound());
+		synapseSearchResults.setStart(hits.getStart());
+
+		//class names are clashing feelsbadman
+		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
+		for(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()){
+			org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
+			Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
+			//TODO: test to make sure the values are correct
+
+			synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
+			synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
+			synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, "description"));
+			synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, "disease"));
+			synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, "etag"));
+			synapseHit.setId(getFirstListValueFromMap(fieldsMap, "id"));
+			synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, "modified_by"));
+			synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "modified_on")));
+			synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
+			synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
+			synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
+			synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
+			//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
+
+			hitList.add(synapseHit);
+		}
+		synapseSearchResults.setHits(hitList);
+		return synapseSearchResults;
+	}
+
+
+	private static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
+		//TODO: are we on Java 8 yet? switch to lambda function?
+		List<String> value = map.get(key);
+		return value == null || value.isEmpty() ? null : value.get(0);
+	}
+
 	
 	public static String generateStructuredQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException{
 		if (searchQuery == null) {
@@ -362,5 +480,36 @@ public class SearchUtil{
 		}
 		return true;
 	}
-	
+
+	/**
+	 * Formulate the boolean query to enforce an access controll list for a
+	 * particular user
+	 *
+	 * @param userInfo
+	 * @return the acl boolean query
+	 * @throws DatastoreException
+	 */
+	public static String formulateAuthorizationFilter(UserInfo userInfo)
+			throws DatastoreException {
+		//TOOD:z test
+		Set<Long> groups = userInfo.getGroups();
+		if (0 == groups.size()) {
+			// being extra paranoid here, this is unlikely
+			throw new DatastoreException("no groups for user " + userInfo);
+		}
+
+		// Make our boolean query
+		String authorizationFilter = "";
+		for (Long group : groups) {
+			if (0 < authorizationFilter.length()) {
+				authorizationFilter += " ";
+			}
+			authorizationFilter += ACL_INDEX_FIELD
+					+ ":'" + group + "'";
+		}
+		if (groups.size() > 1){
+			authorizationFilter = "(or " + authorizationFilter + ")";
+		}
+		return authorizationFilter;
+	}
 }

@@ -52,10 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
-	 * The index field holding the access control list info
-	 */
-	public static final String ACL_INDEX_FIELD = "acl";
-	/**
 	 * No more than 100 values in a field value array
 	 */
 	public static final int FIELD_VALUE_SIZE_LIMIT = 100;

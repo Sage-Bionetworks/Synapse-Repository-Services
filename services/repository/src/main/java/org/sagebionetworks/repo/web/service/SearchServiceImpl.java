@@ -2,31 +2,19 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 
-import com.amazonaws.services.cloudsearchdomain.model.Bucket;
-import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
-import org.sagebionetworks.repo.manager.search.SearchHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -35,6 +23,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -141,39 +130,5 @@ public class SearchServiceImpl implements SearchService {
 		if(!toRemove.isEmpty()){
 			hits.removeAll(toRemove);
 		}
-	}
-	/**
-	 * @param userInfo
-	 * @param searchQuery
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public String createQueryString(UserInfo userInfo, SearchQuery searchQuery)
-			throws UnsupportedEncodingException {
-		String searchQueryString = SearchUtil.generateStructuredQueryString(searchQuery);
-		searchQueryString = filterSeachForAuthorization(userInfo, searchQueryString);
-		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQueryString);
-		return cleanedSearchQuery;
-	}
-
-	/**
-	 * @param userInfo
-	 * @param searchQuery
-	 * @return
-	 */
-	public static String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
-		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if (!userInfo.isAdmin()) {
-			String[] splitQuery = searchQuery.split("q=");
-			String actualQuery = splitQuery[1];
-			int otherParametersIndex = actualQuery.indexOf("&");
-			if(otherParametersIndex == -1){
-				//no other parameters 
-				otherParametersIndex = actualQuery.length();
-			}
-			searchQuery =  splitQuery[0] + "q=( and "+ actualQuery.substring(0,otherParametersIndex) + " " + SearchHelper.formulateAuthorizationFilter(userInfo) + ")" + actualQuery.substring(otherParametersIndex);
-		}
-		return searchQuery;
 	}
 }

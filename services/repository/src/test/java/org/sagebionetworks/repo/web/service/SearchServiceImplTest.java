@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.search.SearchUtil;
 
 /**
  * Test for SearchServiceImpl
@@ -123,28 +124,4 @@ public class SearchServiceImplTest {
 		assertNull(returnedHit.getPath());
 		verify(mockSearchDao, times(1)).executeSearch(searchRequest);
 	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testFilterSeachForAuthorizationUserIsNull(){
-		SearchServiceImpl.filterSeachForAuthorization(null, searchQuery);
-	}
-	
-	@Test
-	public void testFilterSeachForAuthorizationUserIsAdmin(){
-		UserInfo adminUser = new UserInfo(true, 420L);
-		assertEquals(searchQuery, SearchServiceImpl.filterSeachForAuthorization(adminUser, searchQuery));
-	}
-	
-	@Test
-	public void testFilterSearchForAuthorizationUserIsNotAdmin(){
-		assertEquals("q.parser=structured&q=( and (and 'RIP' 'Harambe') (or acl:'123' acl:'8008135'))&return=id,freeze,mage,fun&interactive=deck"
-				, SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
-	}
-	
-	@Test
-	public void testFilterSearchForAuthorizationUserIsNotAdminNoOtherParameters(){
-		searchQuery = "q.parser=structured&q=(and 'ayy' 'lmao' 'XD')";
-		assertEquals("q.parser=structured&q=( and (and 'ayy' 'lmao' 'XD') (or acl:'123' acl:'8008135'))", SearchServiceImpl.filterSeachForAuthorization(userInfo, searchQuery));
-	}
-
 }

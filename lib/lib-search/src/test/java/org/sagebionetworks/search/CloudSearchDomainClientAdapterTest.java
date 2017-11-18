@@ -36,8 +36,8 @@ public class CloudSearchDomainClientAdapterTest {
 		ReflectionTestUtils.setField(cloudSearchDomainClientAdapter, "client", mockCloudSearchDomainClient);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 	}
-	
-	
+
+
 	@Test
 	public void testPLFM2968NoError() throws Exception {
 		//TODO: fix
@@ -47,7 +47,7 @@ public class CloudSearchDomainClientAdapterTest {
 		assertEquals(mockResponse.getContent(), cloudSearchDomainClientAdapter.search(searchRequest));
 		verify(mockCloudSearchDomainClient).get(any(SimpleHttpRequest.class));
 	}
-	
+
 	@Test
 	public void testPLFM2968NoRecover() throws Exception {
 		//TODO: fix
