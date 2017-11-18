@@ -109,7 +109,7 @@ public class TableViewManagerImpl implements TableViewManager {
 	public static void validateViewSchemaSize(List<String> newSchema) {
 		if(newSchema != null) {
 			if(newSchema.size() > MAX_COLUMNS_PER_VIEW) {
-				throw new IllegalArgumentException("A view must have "+MAX_COLUMNS_PER_VIEW+" columns or less.");
+				throw new IllegalArgumentException("A view cannot have "+newSchema.size()+" columns.  It must have "+MAX_COLUMNS_PER_VIEW+" columns or less.");
 			}
 		}
 	}
