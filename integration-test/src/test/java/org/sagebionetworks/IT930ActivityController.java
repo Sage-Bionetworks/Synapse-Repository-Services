@@ -98,15 +98,7 @@ public class IT930ActivityController {
 		Reference ref = refs.getResults().get(0);
 		assertEquals(entity.getId(), ref.getTargetId());
 		assertEquals(new Long(1), ref.getTargetVersionNumber());
-		
-		// delete activity
-		synapse.deleteActivity(act.getId());
-		try {
-			synapse.getActivity(act.getId());
-			fail();
-		} catch (SynapseNotFoundException e) {
-			//good
-		}		
+			
 	}
 
 }

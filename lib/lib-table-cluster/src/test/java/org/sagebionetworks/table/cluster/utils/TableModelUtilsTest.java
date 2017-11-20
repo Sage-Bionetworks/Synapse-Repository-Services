@@ -50,18 +50,19 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.table.model.SparseRow;
-
-import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import au.com.bytecode.opencsv.CSVReader;
+import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * 
@@ -77,19 +78,22 @@ public class TableModelUtilsTest {
 	StringWriter outWritter;
 	CSVWriter out;
 	
+	ColumnModel columnOne;
+	ColumnModel columnTwo;
+	
 	@Before
 	public void before() {
 		validModel = new LinkedList<ColumnModel>();
-		ColumnModel cm1 = new ColumnModel();
-		cm1.setName("one");
-		cm1.setId("1");
-		cm1.setColumnType(ColumnType.BOOLEAN);
-		validModel.add(cm1);
-		ColumnModel cm2 = new ColumnModel();
-		cm2.setName("two");
-		cm2.setId("2");
-		cm2.setColumnType(ColumnType.INTEGER);
-		validModel.add(cm2);
+		columnOne = new ColumnModel();
+		columnOne.setName("one");
+		columnOne.setId("1");
+		columnOne.setColumnType(ColumnType.BOOLEAN);
+		validModel.add(columnOne);
+		columnTwo = new ColumnModel();
+		columnTwo.setName("two");
+		columnTwo.setId("2");
+		columnTwo.setColumnType(ColumnType.INTEGER);
+		validModel.add(columnTwo);
 
 		List<String> ids = Lists.newArrayList("2", "1");
 		List<Row> rows = new LinkedList<Row>();
@@ -113,7 +117,7 @@ public class TableModelUtilsTest {
 		rows.add(row);
 		validRowSet = new RawRowSet(ids, null, "syn123", rows);
 		
-		validSparseRowSet = TableModelUtils.createSparseChangeSet(validRowSet, Lists.newArrayList(cm2, cm1));
+		validSparseRowSet = TableModelUtils.createSparseChangeSet(validRowSet, Lists.newArrayList(columnTwo, columnOne));
 
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
@@ -1951,5 +1955,49 @@ public class TableModelUtilsTest {
 		} catch (Exception e) {
 			assertEquals(String.format(TableModelUtils.EXCEEDS_MAX_SIZE_TEMPLATE, maxBytesPerRequest), e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testCreateListOfAllColumnModelsBothNull() {
+		ColumnModel oldModel = null;
+		ColumnModel newModel = null;
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
+		assertNotNull(results);
+		assertTrue(results.isEmpty());
+	}
+	
+	@Test
+	public void testCreateListOfAllColumnModelsOldNull() {
+		ColumnModel oldModel = null;
+		ColumnModel newModel = columnOne;
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(columnOne, results.get(0));
+	}
+	
+	@Test
+	public void testCreateListOfAllColumnModelsNewNull() {
+		ColumnModel oldModel = columnOne;
+		ColumnModel newModel = null;
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(columnOne, results.get(0));
+	}
+	
+	@Test
+	public void testCreateListOfAllColumnModelsWithBoth() {
+		ColumnModel oldModel = columnOne;
+		ColumnModel newModel = columnTwo;
+		ColumnChangeDetails changeOne = new ColumnChangeDetails(oldModel, newModel);
+		List<ColumnModel> results = TableModelUtils.createListOfAllColumnModels(Lists.newArrayList(changeOne));
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(newModel, results.get(0));
+		assertEquals(oldModel, results.get(1));
 	}
 }

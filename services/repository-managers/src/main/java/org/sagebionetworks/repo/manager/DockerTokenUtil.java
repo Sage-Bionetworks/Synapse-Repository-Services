@@ -64,9 +64,9 @@ public class DockerTokenUtil {
 
 			JSONArray actionArray = new JSONArray();
 			//put set into a list and sort for deterministic ordering of actions
-			List<RegistryEventAction> actions = new ArrayList<RegistryEventAction>(permission.getPermittedActions());
+			List<String> actions = new ArrayList<String>(permission.getPermittedActions());
 			Collections.sort(actions);
-			for (RegistryEventAction action : actions) actionArray.add(action.name());
+			for (String action : actions) actionArray.add(action);
 			accessEntry.put("actions", actionArray);
 		}
 		

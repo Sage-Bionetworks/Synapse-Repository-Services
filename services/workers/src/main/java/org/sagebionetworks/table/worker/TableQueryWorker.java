@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -36,7 +37,8 @@ public class TableQueryWorker implements MessageDrivenRunner {
 	private TableQueryManager tableQueryManager;
 	@Autowired
 	private UserManager userManger;
-
+	@Autowired
+	TableExceptionTranslator tableExceptionTranslator;
 
 	@Override
 	public void run(final ProgressCallback progressCallback, final Message message) throws JSONObjectAdapterException, RecoverableMessageException{
@@ -62,8 +64,10 @@ public class TableQueryWorker implements MessageDrivenRunner {
 			// This means we cannot use this table
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
 		} catch (Throwable e) {
+			// Attempt to translate the exception into a 'user-friendly' message.
+			RuntimeException translatedException = tableExceptionTranslator.translateException(e);
 			// The job failed
-			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			asynchJobStatusManager.setJobFailed(status.getJobId(), translatedException);
 			log.error("Failed", e);
 		}
 	}
