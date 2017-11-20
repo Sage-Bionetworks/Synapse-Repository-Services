@@ -187,6 +187,23 @@ public class TableViewManagerImplTest {
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
 	}
 	
+	@Test
+	public void testSetViewSchemaAndScopeTooManyColumns(){
+		this.schema = new LinkedList<>();
+		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;
+		for(int i=0; i<columnCount; i++) {
+			schema.add(""+i);
+		}
+		try {
+			// call under test
+			manager.setViewSchemaAndScope(userInfo, schema, scope, viewType, viewId);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
+		}
+	}
+	
 	
 	@Test
 	public void testSetViewSchemaAndScopeWithNullSchema(){
@@ -279,6 +296,40 @@ public class TableViewManagerImplTest {
 		assertEquals(schema, newSchema);
 		verify(columnModelManager).calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds);
 		verify(tableManagerSupport).setTableToProcessingAndTriggerUpdate(viewId);
+	}
+	
+	/**
+	 * Test for PLFM-4733. Schema change on a view should enforce the view max.
+	 * 
+	 */
+	@Test 
+	public void testApplySchemaChangeOverLimit(){
+		String viewId = "syn123";
+		ColumnChange change = new ColumnChange();
+		change.setOldColumnId(null);
+		change.setNewColumnId("456");
+		List<ColumnChange> changes = Lists.newArrayList(change);
+		ColumnModel model = EntityField.benefactorId.getColumnModel();
+		model.setId(change.getNewColumnId());
+		List<ColumnModel> schema = Lists.newArrayList(model);
+		// the new schema should be over the limit
+		List<String> newSchemaColumnIds = new LinkedList<>();
+		int columnCount = TableViewManagerImpl.MAX_COLUMNS_PER_VIEW+1;
+		for(int i=0; i<columnCount; i++) {
+			newSchemaColumnIds.add(""+i);
+		}
+		List<String> newColumnIds = Lists.newArrayList(change.getNewColumnId());
+		when(columnModelManager.calculateNewSchemaIdsAndValidate(viewId, changes, newColumnIds)).thenReturn(newSchemaColumnIds);
+		when(columnModelManager.getColumnModel(userInfo, newColumnIds, true)).thenReturn(schema);
+		
+		try {
+			// call under test
+			manager.applySchemaChange(userInfo, viewId, changes, newColumnIds);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(""+TableViewManagerImpl.MAX_COLUMNS_PER_VIEW));
+		}
 	}
 	
 	@Test
