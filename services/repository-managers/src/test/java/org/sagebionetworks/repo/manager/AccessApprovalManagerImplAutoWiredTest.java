@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -83,6 +84,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private static final String TERMS_OF_USE = "my dog has fleas";
 
 	private List<String> nodesToDelete;
+	private List<String> approvalsToDelete;
 
 	private String nodeAId;
 	private String nodeBId;
@@ -94,6 +96,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 
 	@Before
 	public void before() throws Exception {
+		approvalsToDelete = new LinkedList<String>();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		DBOCredential cred = new DBOCredential();
 		cred.setSecretKey("");
@@ -160,6 +163,11 @@ public class AccessApprovalManagerImplAutoWiredTest {
 				arB=null;
 			}
 		}
+		for(String accessApprovalId: approvalsToDelete) {
+			try {
+				accessApprovalManager.deleteAccessApproval(adminUserInfo, accessApprovalId);
+			} catch (Exception e) {}
+		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
@@ -195,6 +203,18 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		return ar;
 	}
+	
+	/**
+	 * Helper to create an AccessApproval
+	 * @param user
+	 * @param aa
+	 * @return
+	 */
+	public AccessApproval createAccessApproval(UserInfo user, AccessApproval aa) {
+		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+		this.approvalsToDelete.add(""+aa.getId());
+		return aa;
+	}
 
 	@Test
 	public void testApprovalRetrieval() throws Exception {
@@ -205,7 +225,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		List<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(0, aas.size());
 		AccessApproval aa = newAccessApproval(ar.getId(),ar.getVersionNumber(),  adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+		aa = createAccessApproval(adminUserInfo, aa);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(1, aas.size());
 		
@@ -218,7 +238,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(1, aas.size());
 		
 		AccessApproval aaB = newAccessApproval(arB.getId(), arB.getVersionNumber(), adminUserInfo.getId().toString());
-		aaB = accessApprovalManager.createAccessApproval(adminUserInfo, aaB);
+		aaB = createAccessApproval(adminUserInfo, aaB);
 		
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod, 10L, 0L);
 		assertEquals(2, aas.size());
@@ -241,7 +261,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ar = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar.getId().toString(), ar);
 		assertEquals((Long)1L, ar.getVersionNumber());
 		AccessApproval aa = newAccessApproval(ar.getId(), ar.getVersionNumber(), adminUserInfo.getId().toString());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+		aa = createAccessApproval(adminUserInfo, aa);
 		assertEquals(ar.getVersionNumber(), aa.getRequirementVersion());
 	}
 

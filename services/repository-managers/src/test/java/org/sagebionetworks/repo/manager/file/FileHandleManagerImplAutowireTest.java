@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.BatchFileResult;
 import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
@@ -66,6 +67,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.context.request.NativeWebRequest;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Constants;
@@ -86,6 +88,7 @@ public class FileHandleManagerImplAutowireTest {
 	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
 	
 	private List<S3FileHandle> toDelete;
+	private List<WikiPageKey> wikisToDelete;
 	private final List<String> entitiesToDelete = Lists.newArrayList();
 	
 	@Autowired
@@ -131,6 +134,7 @@ public class FileHandleManagerImplAutowireTest {
 
 	@Before
 	public void before() throws Exception{
+		wikisToDelete = new LinkedList<>();
 		NewUser user = new NewUser();
 		username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
@@ -194,6 +198,10 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@After
 	public void after() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		for(WikiPageKey key: wikisToDelete) {
+			v2WikiManager.deleteWiki(adminUserInfo, key);
+		}
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
 			for(S3FileHandle meta: toDelete){
@@ -209,7 +217,7 @@ public class FileHandleManagerImplAutowireTest {
 			entityManager.deleteEntity(userInfo, id);
 		}
 		
-		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo2.getId().toString()));
 	}
@@ -523,6 +531,11 @@ public class FileHandleManagerImplAutowireTest {
 		wiki.setMarkdownFileHandleId(markdownHandle.getId());
 		wiki.setAttachmentFileHandleIds(Lists.newArrayList(attachmentFileHandle.getId()));
 		wiki = v2WikiManager.createWikiPage(userInfo, projectId, ObjectType.ENTITY, wiki);
+		WikiPageKey wikiKey = new WikiPageKey();
+		wikiKey.setOwnerObjectId(projectId);
+		wikiKey.setOwnerObjectType(ObjectType.ENTITY);
+		wikiKey.setWikiPageId(wiki.getId());
+		wikisToDelete.add(wikiKey);
 				
 		// setup a wiki file download.
 		FileHandleAssociation association = new FileHandleAssociation();

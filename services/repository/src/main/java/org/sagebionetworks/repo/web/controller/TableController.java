@@ -513,31 +513,7 @@ public class TableController extends BaseController {
 		return TableModelUtils.extractResponseFromTransaction(jobStatus.getResponseBody(), RowReferenceSetResults.class) ;
 	}
 
-	/**
-	 * <p>
-	 * This method is used to delete rows in a TableEntity. The rows in the
-	 * passed in RowSelection will be deleted if they exist (a 400 will be
-	 * returned if a row ID is provided that does not actually exist). A single
-	 * POST to this service will be treated as a single transaction, meaning
-	 * either all of the rows will be deleted or none of the rows will be
-	 * deleted. If this web-services fails for any reason all changes will be
-	 * "rolled back".
-	 * </p>
-	 * <p>
-	 * Note: The caller must have the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity from which to delete rows.
-	 * @param rows
-	 *            The set of rows to delete.
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody

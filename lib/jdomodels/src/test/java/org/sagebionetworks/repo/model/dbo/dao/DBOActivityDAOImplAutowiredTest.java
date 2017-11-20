@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
@@ -42,7 +41,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.IllegalTransactionStateException;
 
 /**
  * This test of the DBOActivityDAOImpl is only for DB function and DB enforced 
@@ -87,13 +85,6 @@ public class DBOActivityDAOImplAutowiredTest {
 	
 	@After
 	public void after() throws DatastoreException{
-		// delete activites
-		if(toDelete != null && activityDao != null){
-			for(String id : toDelete){
-				// Delete each				
-				activityDao.delete(id);				
-			}
-		}
 		
 		// delete nodes
 		if(nodesToDelete != null && nodeDao != null){
@@ -104,6 +95,14 @@ public class DBOActivityDAOImplAutowiredTest {
 				}catch (NotFoundException e) {
 					// happens if the object no longer exists.
 				}
+			}
+		}
+		
+		// delete activites
+		if(toDelete != null && activityDao != null){
+			for(String id : toDelete){
+				// Delete each				
+				activityDao.delete(id);				
 			}
 		}
 
@@ -313,29 +312,6 @@ public class DBOActivityDAOImplAutowiredTest {
 		assertEquals(0, results.getResults().size());		
 		assertEquals(3, results.getTotalNumberOfResults());				
 	}
-		
-	@Test
-	public void testDeleteActivityRevisionForeignKeyConstraint() throws Exception {
-		Activity act = newTestActivity(idGenerator.generateNewId(IdType.ACTIVITY_ID).toString());		
-		activityDao.create(act);
-		toDelete.add(act.getId().toString());
-
-		Node toCreate = NodeTestUtils.createNew("soonToNotHaveActivity", creatorUserGroupId, creatorUserGroupId);
-		toCreate.setActivityId(act.getId());
-		String nodeId = nodeDao.createNew(toCreate);
-		nodesToDelete.add(nodeId);
-		Node createdNode = nodeDao.getNode(nodeId);
-		// assure that activity is set as a baseline for the rest of this test
-		assertNotNull(createdNode.getActivityId());		
-		
-		// delete activity
-		activityDao.delete(act.getId());
-		
-		// assure that activity id was set to null with deletion of activity
-		Node alteredNode = nodeDao.getNode(nodeId);
-		assertNull(alteredNode.getActivityId());
-	}
-
 	
 	/*
 	 * Private Methods

@@ -259,6 +259,7 @@
 	<bean
 		id="migrationManager"
 		class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
+		init-method="initialize"
 		scope="singleton" >
 		<property
 			name="backupBatchMax"
