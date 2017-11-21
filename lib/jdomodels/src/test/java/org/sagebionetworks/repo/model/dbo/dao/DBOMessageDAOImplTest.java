@@ -49,45 +49,45 @@ public class DBOMessageDAOImplTest {
 
 	@Autowired
 	private MessageDAO messageDAO;
-	
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	private FileHandleDao fileDAO;
-	
+
 	@Autowired
 	private DBOBasicDao basicDAO;
-	
+
 	@Autowired
 	private DBOChangeDAO changeDAO;
 
 	@Autowired
 	private IdGenerator idGenerator;
-	
+
 	private String fileHandleId;
-	
+
 	private UserGroup maliciousUser;
 	private UserGroup maliciousGroup;
-	
+
 	// These messages are named by their sender and receiver
 	private MessageToUser userToUser;
 	private MessageToUser userToUserAndGroup;
 	private MessageToUser userToGroup;
 	private MessageToUser groupReplyToUser;
 	private MessageToUser userReplyToGroup;
-	
+
 	private List<String> cleanup;
-	
+
 	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
-	
+
 	@SuppressWarnings("serial")
 	@Before
 	public void spamMessages() throws Exception {
 		cleanup = new ArrayList<String>();
-		
+
 		changeDAO.deleteAllChanges();
-		
+
 		// These two principals will act as mutual spammers
 		maliciousUser = new UserGroup();
 		maliciousUser.setIsIndividual(true);
@@ -96,7 +96,7 @@ public class DBOMessageDAOImplTest {
 		maliciousGroup = new UserGroup();
 		maliciousGroup.setIsIndividual(false);
 		maliciousGroup.setId(userGroupDAO.create(maliciousGroup).toString());
-		
+
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
 		// Also, it doesn't matter who the handle is tied to
@@ -105,17 +105,17 @@ public class DBOMessageDAOImplTest {
 		fileHandleId = handle.getId();
 
 		// Create all the messages
-		userToUser = createMessage(maliciousUser.getId(), "userToUser", 
+		userToUser = createMessage(maliciousUser.getId(), "userToUser",
 				new HashSet<String>() {{add(maliciousUser.getId());}}, null);
-		userToUserAndGroup = createMessage(maliciousUser.getId(), "userToUserAndGroup", 
+		userToUserAndGroup = createMessage(maliciousUser.getId(), "userToUserAndGroup",
 				new HashSet<String>() {{add(maliciousUser.getId()); add(maliciousGroup.getId());}}, null);
-		userToGroup = createMessage(maliciousUser.getId(), "userToGroup", 
+		userToGroup = createMessage(maliciousUser.getId(), "userToGroup",
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, null);
-		groupReplyToUser = createMessage(maliciousGroup.getId(), "groupReplyToUser", 
+		groupReplyToUser = createMessage(maliciousGroup.getId(), "groupReplyToUser",
 				new HashSet<String>() {{add(maliciousUser.getId());}}, userToGroup.getId());
-		userReplyToGroup = createMessage(maliciousUser.getId(), "userReplyToGroup", 
+		userReplyToGroup = createMessage(maliciousUser.getId(), "userReplyToGroup",
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, groupReplyToUser.getId());
-		
+
 		// Send all the messages
 		messageDAO.createMessageStatus_SameTransaction(userToUser.getId(), maliciousUser.getId(), null);
 		messageDAO.createMessageStatus_NewTransaction(userToUserAndGroup.getId(), maliciousUser.getId(), null);
@@ -123,13 +123,23 @@ public class DBOMessageDAOImplTest {
 		messageDAO.createMessageStatus_NewTransaction(userToGroup.getId(), maliciousGroup.getId(), null);
 		messageDAO.createMessageStatus_SameTransaction(groupReplyToUser.getId(), maliciousUser.getId(), null);
 		messageDAO.createMessageStatus_NewTransaction(userReplyToGroup.getId(), maliciousGroup.getId(), null);
-		
+
 		// to simulate sending we also have to set the 'sent' flag to 'true'
 		messageDAO.updateMessageTransmissionAsComplete(userToUser.getId());
 		messageDAO.updateMessageTransmissionAsComplete(userToUserAndGroup.getId());
 		messageDAO.updateMessageTransmissionAsComplete(userToGroup.getId());
 		messageDAO.updateMessageTransmissionAsComplete(groupReplyToUser.getId());
 		messageDAO.updateMessageTransmissionAsComplete(userReplyToGroup.getId());
+	}
+
+	@After
+	public void cleanup() throws Exception {
+		for (String id : cleanup) {
+			messageDAO.deleteMessage(id);
+		}
+		fileDAO.delete(fileHandleId);
+		userGroupDAO.delete(maliciousUser.getId());
+		userGroupDAO.delete(maliciousGroup.getId());
 	}
 
 	/**
@@ -151,7 +161,7 @@ public class DBOMessageDAOImplTest {
 		dto.setIsNotificationMessage(true);
 		String to = "Foo<foo@sb.com>";
 		dto.setTo(to);
-		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setCc(cc);
 		String bcc = "Baz<baz@sb.com>";
 		dto.setBcc(bcc);
@@ -177,7 +187,7 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setTo(to);
 		String cc = "Foo<foo@sb.com>";
 		dto.setCc(cc);
@@ -209,7 +219,7 @@ public class DBOMessageDAOImplTest {
 		dto.setTo(to);
 		String cc = "Baz<baz@sb.com>";
 		dto.setCc(cc);
-		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		try {
 			dto = messageDAO.createMessage(dto);
@@ -233,87 +243,16 @@ public class DBOMessageDAOImplTest {
 		dto.setWithUnsubscribeLink(true);
 		dto.setWithProfileSettingLink(false);
 		dto.setIsNotificationMessage(true);
-		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String to = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setTo(to);
-		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String cc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setCc(cc);
-		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
+		String bcc = RandomStringUtils.randomAlphanumeric(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH)+EMAIL_POST_FIX;
 		dto.setBcc(bcc);
 		dto = messageDAO.createMessage(dto);
 		cleanup.add(dto.getId());
 	}
-	
-	/**
-	 * Creates a message row
-	 */
-	private MessageToUser createMessage(String userId, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException {
-		assertNotNull(userId);
-		
-		MessageToUser dto = new MessageToUser();
-		// Note: ID is auto generated
-		dto.setCreatedBy(userId);
-		dto.setFileHandleId(fileHandleId);
-		// Note: CreatedOn is set by the DAO
-		dto.setSubject(subject);
-		dto.setRecipients(recipients);
-		dto.setInReplyTo(inReplyTo);
-		String unsubEndpoint = "https://www.synapse.org/#foo:";
-		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
-		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
-		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
-		dto.setWithUnsubscribeLink(true);
-		dto.setWithProfileSettingLink(false);
-		dto.setIsNotificationMessage(true);
-		// Note: InReplyToRoot is calculated by the DAO
-		String to = "Foo<foo@sb.com>";
-		dto.setTo(to);
-		String cc = "Bar<bar@sb.com>";
-		dto.setCc(cc);
-		String bcc = "Baz<baz@sb.com>";
-		dto.setBcc(bcc);
-		
-		// Insert the message
-		dto = messageDAO.createMessage(dto);
-		assertNotNull(dto.getId());
-		cleanup.add(dto.getId());
-		
-		// make sure its created properly
-		assertNotNull(dto.getCreatedOn());
-		assertNotNull(dto.getInReplyToRoot());
-		assertEquals(userId, dto.getCreatedBy());
-		assertEquals(fileHandleId, dto.getFileHandleId());
-		assertEquals(inReplyTo, dto.getInReplyTo());
-		assertEquals(unsubEndpoint, dto.getNotificationUnsubscribeEndpoint());
-		assertEquals(userProfileSettingEndpoint, dto.getUserProfileSettingEndpoint());
-		assertTrue(dto.getWithUnsubscribeLink());
-		assertTrue(dto.getIsNotificationMessage());
-		assertFalse(dto.getWithProfileSettingLink());
-		assertEquals(recipients, dto.getRecipients());
-		assertEquals(subject, dto.getSubject());
-		assertEquals(to, dto.getTo());
-		assertEquals(cc, dto.getCc());
-		assertEquals(bcc, dto.getBcc());
-		
-		// make sure 'getMessage' returns the same thing
-		MessageToUser clone = messageDAO.getMessage(dto.getId());
-		assertEquals(dto, clone);
-		
-		// Make sure the timestamps on the messages are different 
-		Thread.sleep(2);
-		
-		return dto;
-	}
-	
-	@After
-	public void cleanup() throws Exception {
-		for (String id : cleanup) {
-			messageDAO.deleteMessage(id);
-		}
-		fileDAO.delete(fileHandleId);
-		userGroupDAO.delete(maliciousUser.getId());
-		userGroupDAO.delete(maliciousGroup.getId());
-	}
-	
+
 	@Test
 	public void testGetMessage() throws Exception {
 		// All the created messages should exactly match the DTOs
@@ -519,10 +458,98 @@ public class DBOMessageDAOImplTest {
 	}
 	
 	@Test
-	public void testNotAsciiSubject() throws Exception {
-		userToUser = createMessage(maliciousUser.getId(), "non-ascii subject ライブで行ったことのな", 
-				new HashSet<String>() {{add(maliciousUser.getId());}}, null);
+	public void testNonLatin1Subject() throws InterruptedException {
+		MessageToUser toCreate = createBasicDTO();
+		toCreate.setSubject("non-latin1 subject ライブで行ったことのな");
+		createMessage(toCreate);
 	}
-	
-	
+
+	@Test
+	public void testNonLatin1To() throws InterruptedException {
+		MessageToUser toCreate = createBasicDTO();
+		toCreate.setTo("中文 <chinese@person.cn");
+		createMessage(toCreate);
+	}
+
+	@Test
+	public void testNonLatin1Cc() throws InterruptedException {
+		MessageToUser toCreate = createBasicDTO();
+		toCreate.setCc("日本語 <japanese@person.jp");
+		createMessage(toCreate);
+	}
+
+	@Test
+	public void testNonLatin1Bcc() throws InterruptedException {
+		MessageToUser toCreate = createBasicDTO();
+		toCreate.setBcc("한글 <korean@person.kr");
+		createMessage(toCreate);
+	}
+
+	private MessageToUser createBasicDTO() {
+		MessageToUser dto = new MessageToUser();
+		// Note: ID is auto generated
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		// Note: CreatedOn is set by the DAO
+		dto.setSubject("basic subject");
+		dto.setRecipients(new HashSet<String>() {{ add(maliciousUser.getId()); }});
+		dto.setInReplyTo(null);
+		String unsubEndpoint = "https://www.synapse.org/#foo:";
+		String userProfileSettingEndpoint = "https://www.synapse.org/#Profile:edit";
+		dto.setNotificationUnsubscribeEndpoint(unsubEndpoint);
+		dto.setUserProfileSettingEndpoint(userProfileSettingEndpoint);
+		dto.setWithUnsubscribeLink(true);
+		dto.setWithProfileSettingLink(false);
+		dto.setIsNotificationMessage(true);
+		// Note: InReplyToRoot is calculated by the DAO
+		String to = "Foo <foo@sb.com>";
+		dto.setTo(to);
+		String cc = "Bar <bar@sb.com";
+		dto.setCc(cc);
+		String bcc = "Baz <baz@sb.com>";
+		dto.setBcc(bcc);
+		return dto;
+	}
+
+	private MessageToUser createMessage(String userId, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException {
+		assertNotNull(userId);
+		MessageToUser messageToCreate = createBasicDTO();
+		messageToCreate.setCreatedBy(userId);
+		messageToCreate.setSubject(subject);
+		messageToCreate.setRecipients(recipients);
+		messageToCreate.setInReplyTo(inReplyTo);
+
+		return createMessage(messageToCreate);
+	}
+
+	private MessageToUser createMessage(MessageToUser toCreate) throws InterruptedException {
+		// Insert the message
+		MessageToUser dto = messageDAO.createMessage(toCreate);
+		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
+
+		// make sure its created properly
+		assertNotNull(dto.getCreatedOn());
+		assertNotNull(dto.getInReplyToRoot());
+		assertEquals(toCreate.getCreatedBy(), dto.getCreatedBy());
+		assertEquals(fileHandleId, dto.getFileHandleId());
+		assertEquals(toCreate.getInReplyTo(), dto.getInReplyTo());
+		assertEquals(toCreate.getNotificationUnsubscribeEndpoint(), dto.getNotificationUnsubscribeEndpoint());
+		assertEquals(toCreate.getUserProfileSettingEndpoint(), dto.getUserProfileSettingEndpoint());
+		assertTrue(dto.getWithUnsubscribeLink());
+		assertTrue(dto.getIsNotificationMessage());
+		assertFalse(dto.getWithProfileSettingLink());
+		assertEquals(toCreate.getRecipients(), dto.getRecipients());
+		assertEquals(toCreate.getSubject(), dto.getSubject());
+		assertEquals(toCreate.getTo(), dto.getTo());
+		assertEquals(toCreate.getCc(), dto.getCc());
+		assertEquals(toCreate.getBcc(), dto.getBcc());
+		// make sure 'getMessage' returns the same thing
+		MessageToUser clone = messageDAO.getMessage(dto.getId());
+		assertEquals(dto, clone);
+
+		// Make sure the timestamps on the messages are different
+		Thread.sleep(2);
+		return dto;
+	}
 }

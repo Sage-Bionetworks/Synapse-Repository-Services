@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class MessageUtils {
-	public static final int MAX_LENGTH = 1024;
+	public static final int BLOB_MAX_SIZE = 65535;
 
 	/**
 	 * Copies message information from three DBOs into one DTO
@@ -39,7 +39,7 @@ public class MessageUtils {
 	/**
 	 * Copies message information from two DBOs into one DTO
 	 * The DBOs should be complimentary (same message ID)
-	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOMessageContent, MessageToUser)}
+	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOMessageContent, MessageContent}
 	 */
 	public static void copyDBOToDTO(DBOMessageContent content, DBOMessageToUser info, MessageToUser bundle) {
 		if (!content.getMessageId().equals(info.getMessageId())) {
@@ -99,9 +99,25 @@ public class MessageUtils {
 		bundle.setWithUnsubscribeLink(info.getWithUnsubscribeLink());
 		bundle.setWithProfileSettingLink(info.getWithProfileSettingLink());
 		bundle.setIsNotificationMessage(info.getIsNotificationMessage());
-		bundle.setTo(info.getTo());
-		bundle.setCc(info.getCc());
-		bundle.setBcc(info.getBcc());
+		try {
+			if (info.getBytesTo() != null) {
+				bundle.setTo(new String(info.getBytesTo(), "UTF-8"));
+			} else {
+				bundle.setTo(null);
+			}
+			if (info.getBytesCc() != null) {
+				bundle.setCc(new String(info.getBytesCc(), "UTF-8"));
+			} else {
+				bundle.setCc(null);
+			}
+			if (info.getBytesBcc() != null) {
+				bundle.setBcc(new String(info.getBytesBcc(), "UTF-8"));
+			} else {
+				bundle.setBcc(null);
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
@@ -252,11 +268,27 @@ public class MessageUtils {
 		} else {
 			info.setIsNotificationMessage(dto.getIsNotificationMessage());
 		}
-		info.setTo(dto.getTo());
-		info.setCc(dto.getCc());
-		info.setBcc(dto.getBcc());
+		try {
+			if (dto.getTo() != null) {
+				info.setBytesTo(dto.getTo().getBytes("UTF-8"));
+			} else {
+				info.setBytesTo(null);
+			}
+			if (dto.getCc() != null) {
+				info.setBytesCc(dto.getCc().getBytes("UTF-8"));
+			} else {
+				info.setBytesCc(null);
+			}
+			if (dto.getBcc() != null) {
+				info.setBytesBcc(dto.getBcc().getBytes("UTF-8"));
+			} else {
+				info.setBytesBcc(null);
+			}
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
-	
+
 	/**
 	 * Copies comment information
 	 * Note: DBOComment contains a subset of the fields of Comment
@@ -331,12 +363,12 @@ public class MessageUtils {
 		ValidateArgument.required(dbo.getMessageId(), "Message info must have an ID.");
 		ValidateArgument.required(dbo.getRootMessageId(), "Message info must point to a root message.");
 		ValidateArgument.required(dbo.getSent(), "Message info must have a status value.");
-		ValidateArgument.requirement(dbo.getTo() == null || dbo.getTo().length() <= MAX_LENGTH,
-				"To field must have "+MAX_LENGTH+" characters or less.");
-		ValidateArgument.requirement(dbo.getCc() == null || dbo.getCc().length() <= MAX_LENGTH,
-				"CC field must have "+MAX_LENGTH+" characters or less.");
-		ValidateArgument.requirement(dbo.getBcc() == null || dbo.getBcc().length() <= MAX_LENGTH,
-				"BCC field must have "+MAX_LENGTH+" characters or less.");
+		ValidateArgument.requirement(dbo.getBytesTo() == null || dbo.getBytesTo().length <= BLOB_MAX_SIZE,
+				"To field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
+		ValidateArgument.requirement(dbo.getBytesCc() == null || dbo.getBytesCc().length <= BLOB_MAX_SIZE,
+				"CC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
+		ValidateArgument.requirement(dbo.getBytesBcc() == null || dbo.getBytesBcc().length <= BLOB_MAX_SIZE,
+				"BCC field must be "+ BLOB_MAX_SIZE +" bytes long or shorter.");
 	}
 	
 	/**

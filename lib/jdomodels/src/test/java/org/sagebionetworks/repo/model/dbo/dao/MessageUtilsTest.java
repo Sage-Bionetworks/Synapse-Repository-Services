@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -268,13 +269,13 @@ public class MessageUtilsTest {
 	}
 
 	@Test
-	public void testValidateDBOMessageToUserWithInvalidTo() {
+	public void testValidateDBOMessageToUserWithInvalidTo() throws UnsupportedEncodingException {
 		DBOMessageToUser dbo = new DBOMessageToUser();
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		String to = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setTo(to);
+		String to = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		dbo.setBytesTo(to.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
@@ -283,14 +284,14 @@ public class MessageUtilsTest {
 	}
 
 	@Test
-	public void testValidateDBOMessageToUserWithInvalidCC() {
+	public void testValidateDBOMessageToUserWithInvalidCC() throws UnsupportedEncodingException {
 		DBOMessageToUser dbo = new DBOMessageToUser();
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		dbo.setTo("user@synapse.org");
-		String cc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setCc(cc);
+		dbo.setBytesTo("user@synapse.org".getBytes("UTF-8"));
+		String cc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		dbo.setBytesCc(cc.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
@@ -299,14 +300,14 @@ public class MessageUtilsTest {
 	}
 
 	@Test
-	public void testValidateDBOMessageToUserWithInvalidBCC() {
+	public void testValidateDBOMessageToUserWithInvalidBCC() throws UnsupportedEncodingException {
 		DBOMessageToUser dbo = new DBOMessageToUser();
 		dbo.setMessageId(1L);
 		dbo.setRootMessageId(1L);
 		dbo.setSent(false);
-		dbo.setTo("user@synapse.org");
-		String bcc = RandomStringUtils.random(MessageUtils.MAX_LENGTH-EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
-		dbo.setBcc(bcc);
+		dbo.setBytesTo("user@synapse.org".getBytes("UTF-8"));
+		String bcc = RandomStringUtils.random(MessageUtils.BLOB_MAX_SIZE -EMAIL_POST_FIX_LENGTH+1)+EMAIL_POST_FIX;
+		dbo.setBytesBcc(bcc.getBytes("UTF-8"));
 		try {
 			MessageUtils.validateDBO(dbo);
 		} catch (IllegalArgumentException e) {
