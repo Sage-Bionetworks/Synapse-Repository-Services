@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -332,5 +333,86 @@ public class DBOTeamDAOImplTest {
 		return acl;
 	}
 
+	private UserGroup user;
+	private Team aTeam;
+	private Team bTeam;
+	private Team cTeam;
+	private static final String aTeamName = "A team";
+	private static final String bTeamName = "B team";
+	private static final String cTeamName = "C team";
 
+	private void beforeGetIdsForMember() {
+		user = new UserGroup();
+		user.setIsIndividual(true);
+		user.setId(userGroupDAO.create(user).toString());
+		userToDelete = user.getId();
+
+		aTeam = createTeam(aTeamName);
+		bTeam = createTeam(bTeamName);
+		cTeam = createTeam(cTeamName);
+
+		groupMembersDAO.addMembers(aTeam.getId(), Arrays.asList(user.getId()));
+		groupMembersDAO.addMembers(bTeam.getId(), Arrays.asList(user.getId()));
+		groupMembersDAO.addMembers(cTeam.getId(), Arrays.asList(user.getId()));
+	}
+
+	@Test
+	public void testGetIdsForMemberNoOrder() {
+		beforeGetIdsForMember();
+
+		// Method under test
+		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 3, 0, null, null);
+
+		assertEquals(3, teamIds.size());
+		assertTrue(teamIds.contains(aTeam.getId()));
+		assertTrue(teamIds.contains(bTeam.getId()));
+		assertTrue(teamIds.contains(cTeam.getId()));
+	}
+
+	@Test
+	public void testGetIdsForMemberOrderByNameAsc() {
+		beforeGetIdsForMember();
+
+		// Method under test
+		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 2, 0, TeamSortOrder.TEAM_NAME, true);
+
+		assertEquals(2, teamIds.size());
+		assertEquals(aTeam.getId(), teamIds.get(0));
+		assertEquals(bTeam.getId(), teamIds.get(1));
+	}
+
+	@Test
+	public void testGetIdsForMemberOrderByNameDesc() {
+		beforeGetIdsForMember();
+
+		// Method under test
+		List<String> teamIds = teamDAO.getIdsForMember(user.getId(), 2, 0, TeamSortOrder.TEAM_NAME, false);
+
+		assertEquals(2, teamIds.size());
+		assertEquals(cTeam.getId(), teamIds.get(0));
+		assertEquals(bTeam.getId(), teamIds.get(1));
+	}
+
+	private Team createTeam(String teamName) {
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group).toString());
+		teamsToDelete.add(group.getId());
+
+		Team team = new Team();
+		Long id = Long.parseLong(group.getId());
+		team.setId(""+id);
+		team.setName(teamName);
+		team.setDescription("This is a Team designated for testing.");
+		team.setIcon("999");
+		team.setCreatedOn(new Date());
+		team.setCreatedBy("101");
+		team.setModifiedOn(new Date());
+		team.setModifiedBy("102");
+		Team createdTeam = teamDAO.create(team);
+		assertNotNull(createdTeam.getEtag());
+		createdTeam.setEtag(null); // to allow comparison with 'team'
+		assertEquals(team, createdTeam);
+		return team;
+	}
 }

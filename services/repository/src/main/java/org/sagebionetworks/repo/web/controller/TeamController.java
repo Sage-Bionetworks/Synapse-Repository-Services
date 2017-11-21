@@ -16,11 +16,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -138,7 +140,27 @@ public class TeamController extends BaseController {
 			) {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
 	}
-	
+
+	/**
+	 * Retrieve a paginated list of IDs of Teams to which the given user belongs.
+	 *
+	 * @param principalId the principal ID of the user of interest
+	 * @param nextPageToken controls pagination
+	 * @param sortBy the field to sort the team IDs on. Available options <a href="${org.sagebionetworks.repo.model.TeamSortOrder}">TeamSortOrder</a>
+	 * @param ascending the direction of sort: true for ascending, and false for descending
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_TEAM_IDS, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedTeamIds getTeamIdsByMember(
+			@PathVariable String principalId,
+			@RequestParam(value = ServiceConstants.NEXT_PAGE_TOKEN, required = false) String nextPageToken,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) TeamSortOrder sortBy,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending) {
+		return serviceProvider.getTeamService().getIdsByMember(principalId, nextPageToken, sortBy, ascending);
+	}
+
 	/**
 	 * Retrieve a list of Teams given their IDs. 
 	 *  

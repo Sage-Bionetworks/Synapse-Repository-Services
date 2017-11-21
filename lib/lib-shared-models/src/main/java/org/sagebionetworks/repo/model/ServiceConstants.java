@@ -251,4 +251,6 @@ public class ServiceConstants {
 	public static final String ACCESS_REQUIREMENT_ID_PARAM = "requirementId";
 
 	public static final String ACCESSOR_ID_PARAM = "accessorId";
+
+	public static final String NEXT_PAGE_TOKEN = "nextPageToken";
 }

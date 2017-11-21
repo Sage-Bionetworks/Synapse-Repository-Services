@@ -21,10 +21,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -185,6 +187,11 @@ public class TeamServiceImpl implements TeamService {
 		return teamManager.listByMember(principalId, limit, offset);
 	}
 
+	@Override
+	public PaginatedTeamIds getIdsByMember(String principalId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
+		return teamManager.listIdsByMember(principalId, nextPageToken, sortBy, ascending);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#get(java.lang.String)
 	 */
@@ -311,5 +318,4 @@ public class TeamServiceImpl implements TeamService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return teamManager.updateACL(userInfo, acl);
 	}
-
 }

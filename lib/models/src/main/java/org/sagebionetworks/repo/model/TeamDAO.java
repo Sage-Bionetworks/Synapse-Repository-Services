@@ -78,7 +78,7 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset) throws DatastoreException;
-	
+
 	/**
 	 * 
 	 * @param teamId
@@ -104,14 +104,25 @@ public interface TeamDAO {
 	
 	/**
 	 * Get the Teams a member belongs to
-	 * @param princialId the team member
+	 * @param principalId the team member
 	 * @param offset
 	 * @param limit
 	 * @return the Teams this principal belongs to
 	 * @throws DatastoreException 
 	 */
 	public List<Team> getForMemberInRange(String principalId, long limit, long offset) throws DatastoreException;
-	
+
+	/**
+	 * Get the IDs of the Teams a member belongs to
+	 * @param principalId
+	 * @param limit
+	 * @param offset
+	 * @param sortBy
+	 * @param ascending
+	 * @return
+	 */
+	List<String> getIdsForMember(String principalId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending);
+
 	/**
 	 * 
 	 * @param principalId
@@ -155,5 +166,4 @@ public interface TeamDAO {
 	 * @return
 	 */
 	public List<String> getAllTeamsUserIsAdmin(String userId);
-
 }

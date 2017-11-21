@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.team;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -50,7 +51,9 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipRequestDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -58,6 +61,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -427,6 +431,54 @@ public class TeamManagerImplTest {
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 
+	}
+
+	@Test
+	public void testListIdsByMemberNullPrincipalId() {
+		try {
+			teamManagerImpl.listIdsByMember(null, null, null, null);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+	}
+
+	@Test
+	public void testListIdsByMemberIllegalOrderAndAscending() {
+		try {
+			teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, null, null, true);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+		try {
+			teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, null, TeamSortOrder.TEAM_NAME, null);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+	}
+
+	@Test
+	public void testListIdsByMemberWithNullNextPageToken() {
+		List<String> expected = new ArrayList<>();
+		when(mockTeamDAO.getIdsForMember(MEMBER_PRINCIPAL_ID, NextPageToken.DEFAULT_LIMIT + 1,
+				NextPageToken.DEFAULT_OFFSET, null, null)).thenReturn(expected);
+		PaginatedTeamIds result = teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, null, null, null);
+		verify(mockTeamDAO).getIdsForMember(MEMBER_PRINCIPAL_ID, NextPageToken.DEFAULT_LIMIT + 1,
+				NextPageToken.DEFAULT_OFFSET, null, null);
+		assertEquals(expected, result.getTeamIds());
+		assertNull(result.getNextPageToken());
+	}
+
+	@Test
+	public void testListIdsByMemberWithNextPageToken() {
+		List<String> expected = new ArrayList<>(Arrays.asList("1" , "2"));
+		when(mockTeamDAO.getIdsForMember(MEMBER_PRINCIPAL_ID, 2, 0, null, null)).thenReturn(expected);
+		PaginatedTeamIds result = teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, new NextPageToken(1, 0).toToken(), null, null);
+		verify(mockTeamDAO).getIdsForMember(MEMBER_PRINCIPAL_ID, 2, 0, null, null);
+		assertEquals(expected, result.getTeamIds());
+		assertEquals(new NextPageToken(1, 1).toToken(), result.getNextPageToken());
 	}
 	
 	@Test
