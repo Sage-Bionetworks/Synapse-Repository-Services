@@ -24,7 +24,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 public class CloudSearchClient {
 
 	static private Logger logger = LogManager.getLogger(CloudSearchClient.class);
-	
+
 	private static final Map<String, String> SEND_DOCUMENTS_REQUEST_HEADERS;
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
