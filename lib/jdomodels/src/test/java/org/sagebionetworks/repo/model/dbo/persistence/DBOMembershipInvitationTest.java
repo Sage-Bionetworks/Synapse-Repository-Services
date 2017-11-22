@@ -3,13 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.deserialize;
-import static org.sagebionetworks.util.ZipUtils.unzip;
-import static org.sagebionetworks.util.ZipUtils.zip;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,9 +16,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -110,60 +103,5 @@ public class DBOMembershipInvitationTest {
 		params.addValue("id", clone.getId());
 		DBOMembershipInvitation clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvitation.class, params);
 		assertEquals(clone, clone2);
-	}
-
-	private static MembershipInvitation createMembershipInvitation(Date createdOn) {
-		//It's easiest to create a DBO object by first creating a DTO object and then converting it
-		MembershipInvitation dto = new MembershipInvitation();
-		dto.setId("101");
-		dto.setCreatedOn(createdOn);
-		dto.setExpiresOn(null);
-		dto.setInviteeId("987");
-		dto.setTeamId("456");
-		dto.setCreatedBy("123");
-		dto.setMessage("foo");
-		return dto;
-	}
-
-	@Test
-	public void testTranslator() throws Exception {
-		MembershipInvitation dto = createMembershipInvitation(new Date());
-		DBOMembershipInvitation dbo = new DBOMembershipInvitation();
-		MembershipInvitationUtils.copyDtoToDbo(dto, dbo);
-		// now do the round trip
-		DBOMembershipInvitation backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
-		DBOMembershipInvitation actual = dbo.getTranslator().createDatabaseObjectFromBackup(backup);
-		DBOMembershipInvitation expected = backup;
-		expected.setEtag(DBOMembershipInvitation.defaultEtag);
-		assertEquals(expected, actual);
-		assertEquals(dto, MembershipInvitationUtils.copyDboToDto(dbo));
-	}
-
-	@Test
-	public void testTranslatorRefactorAlreadyTranslated() throws IOException {
-		DBOMembershipInvitation backup = new DBOMembershipInvitation();
-		String backupProperties =
-				"<MembershipInvitation>\n" +
-				"  <createdOn>2017-10-30 15:54:48.793 UTC</createdOn>\n" +
-				"  <message></message>\n" +
-				"  <id>9603838</id>\n" +
-				"  <createdBy>273995</createdBy>\n" +
-				"  <inviteeId>3341743</inviteeId>\n" +
-				"  <teamId>3320424</teamId>\n" +
-				"</MembershipInvitation>\n";
-		backup.setProperties(zip(backupProperties.getBytes()));
-
-		// Method under test
-		DBOMembershipInvitation translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-
-		String translatedProperties = new String(unzip(translated.getProperties())).trim();
-		// Assert that the top level xml tags are still correct
-		assertTrue(translatedProperties.startsWith("<MembershipInvitation>"));
-		assertTrue(translatedProperties.endsWith("</MembershipInvitation>"));
-
-		MembershipInvitation backupDTO = deserialize(zip(backupProperties.getBytes()));
-		MembershipInvitation translatedDTO = deserialize(translated.getProperties());
-		// Assert that the backup and the translated DTOs are identical
-		assertEquals(backupDTO, translatedDTO);
 	}
 }
