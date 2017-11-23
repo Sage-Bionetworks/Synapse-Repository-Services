@@ -241,13 +241,9 @@ public class QueryDAOImpl implements QueryDAO {
 		appendTable(builder, null, tablePrefix, ANNO_OWNER, ALIAS_ANNO_OWNER, true);
 		appendTable(builder, aliases, tablePrefix, ANNO_BLOB, ALIAS_ANNO_BLOB, false);
 		
-		// Inject the user-defined "FROM" filter
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_SCOPE_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, KeyFactory.stringToKey(objId));
 		if (query.getFilters() == null) {
 			query.setFilters(new ArrayList<Expression>());
 		}
-		query.getFilters().add(exp);
 		
 		// Add the typed table for each filter
 		for (int i = 0; i < query.getFilters().size(); i++) {
@@ -280,7 +276,7 @@ public class QueryDAOImpl implements QueryDAO {
 		builder.append("WHERE ");
 		String joinColumn = queryObjType.joinColumn();
 		
-		// enfore the scope
+		// Inject the user-defined "FROM" filter
 		builder.append(ALIAS_ANNO_OWNER);
 		builder.append('.');
 		builder.append(COL_SUBSTATUS_ANNO_EVALID);
