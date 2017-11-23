@@ -188,8 +188,8 @@ public class TeamServiceImpl implements TeamService {
 	}
 
 	@Override
-	public PaginatedTeamIds getIdsByMember(String principalId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
-		return teamManager.listIdsByMember(principalId, nextPageToken, sortBy, ascending);
+	public PaginatedTeamIds getIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
+		return teamManager.listIdsByMember(teamMemberId, nextPageToken, sortBy, ascending);
 	}
 
 	/* (non-Javadoc)

@@ -231,11 +231,11 @@ public interface TeamService {
 
 	/**
 	 *
-	 * @param principalId
+	 * @param teamMemberId
 	 * @param nextPageToken
 	 * @param sortBy
 	 * @param ascending
 	 * @return
 	 */
-	PaginatedTeamIds getIdsByMember(String principalId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
+	PaginatedTeamIds getIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
 }

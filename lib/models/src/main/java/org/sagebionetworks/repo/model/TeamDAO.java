@@ -114,14 +114,14 @@ public interface TeamDAO {
 
 	/**
 	 * Get the IDs of the Teams a member belongs to
-	 * @param principalId
+	 * @param teamMemberId
 	 * @param limit
 	 * @param offset
 	 * @param sortBy
 	 * @param ascending
 	 * @return
 	 */
-	List<String> getIdsForMember(String principalId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending);
+	List<String> getIdsForMember(String teamMemberId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending);
 
 	/**
 	 * 
@@ -135,7 +135,7 @@ public interface TeamDAO {
 	 * Updates the 'shallow' properties of an object.
 	 * Note:  leaving createdBy and createdOn null in the dto tells the DAO to use the currently stored values
 	 *
-	 * @param dto
+	 * @param team
 	 * @throws DatastoreException
 	 */
 	public Team update(Team team) throws InvalidModelException,

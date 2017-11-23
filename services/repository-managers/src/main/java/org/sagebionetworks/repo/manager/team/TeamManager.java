@@ -107,13 +107,13 @@ public interface TeamManager {
 
 	/**
 	 * Retrieve the IDs of the Teams to which the given user belongs, paginated
-	 * @param principalId
+	 * @param teamMemberId
 	 * @param nextPageToken
 	 * @param sortBy
 	 * @param ascending
 	 * @return
 	 */
-	PaginatedTeamIds listIdsByMember(String principalId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
+	PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
 
 	/**
 	 * Get a Team by its ID

@@ -61,7 +61,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -431,32 +430,6 @@ public class TeamManagerImplTest {
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 
-	}
-
-	@Test
-	public void testListIdsByMemberNullPrincipalId() {
-		try {
-			teamManagerImpl.listIdsByMember(null, null, null, null);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
-	}
-
-	@Test
-	public void testListIdsByMemberIllegalOrderAndAscending() {
-		try {
-			teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, null, null, true);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
-		try {
-			teamManagerImpl.listIdsByMember(MEMBER_PRINCIPAL_ID, null, TeamSortOrder.TEAM_NAME, null);
-			fail("Expected an IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-			// As expected
-		}
 	}
 
 	@Test

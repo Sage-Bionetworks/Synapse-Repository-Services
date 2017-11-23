@@ -142,9 +142,10 @@ public class TeamController extends BaseController {
 	}
 
 	/**
-	 * Retrieve a paginated list of IDs of Teams to which the given user belongs.
+	 * Retrieve a paginated list of IDs of Teams to which the given user belongs. If sorting is desired, both sortBy and
+	 * ascending must be specified. If they are omitted, results are not sorted.
 	 *
-	 * @param principalId the principal ID of the user of interest
+	 * @param teamMemberId the principal ID of the user of interest
 	 * @param nextPageToken controls pagination
 	 * @param sortBy the field to sort the team IDs on. Available options <a href="${org.sagebionetworks.repo.model.TeamSortOrder}">TeamSortOrder</a>
 	 * @param ascending the direction of sort: true for ascending, and false for descending
@@ -154,11 +155,11 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_TEAM_IDS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedTeamIds getTeamIdsByMember(
-			@PathVariable String principalId,
+			@PathVariable String teamMemberId,
 			@RequestParam(value = ServiceConstants.NEXT_PAGE_TOKEN, required = false) String nextPageToken,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) TeamSortOrder sortBy,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending) {
-		return serviceProvider.getTeamService().getIdsByMember(principalId, nextPageToken, sortBy, ascending);
+		return serviceProvider.getTeamService().getIdsByMember(teamMemberId, nextPageToken, sortBy, ascending);
 	}
 
 	/**

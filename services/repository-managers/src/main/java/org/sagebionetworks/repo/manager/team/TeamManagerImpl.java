@@ -359,12 +359,9 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public PaginatedTeamIds listIdsByMember(String principalId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
-		ValidateArgument.required(principalId, "principalId");
-		ValidateArgument.requirement((sortBy == null && ascending == null)
-				|| (sortBy != null && ascending != null),"sortBy and ascending must both be null or both be not null");
+	public PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
 		NextPageToken token = new NextPageToken(nextPageToken);
-		List<String> teamIds = teamDAO.getIdsForMember(principalId, token.getLimitForQuery(), token.getOffset(), sortBy, ascending);
+		List<String> teamIds = teamDAO.getIdsForMember(teamMemberId, token.getLimitForQuery(), token.getOffset(), sortBy, ascending);
 		PaginatedTeamIds result = new PaginatedTeamIds();
 		result.setTeamIds(teamIds);
 		result.setNextPageToken(token.getNextPageTokenForCurrentResults(teamIds));

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -90,7 +91,7 @@ public class DBOTeamDAOImplTest {
 		}
 		if (userToDelete!=null) userGroupDAO.delete(userToDelete);
 	}
-	
+
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up, String userName) {
 		UserGroupHeader ugh = new UserGroupHeader();
 		ugh.setOwnerId(up.getOwnerId());
@@ -100,7 +101,7 @@ public class DBOTeamDAOImplTest {
 		ugh.setLastName(up.getLastName());
 		return ugh;
 	}
-	
+
 	@Test
 	public void testListTeams() throws Exception {
 		List<Team> createdTeams = new ArrayList<Team>();
@@ -109,7 +110,7 @@ public class DBOTeamDAOImplTest {
 			group.setIsIndividual(false);
 			group.setId(userGroupDAO.create(group).toString());
 			teamsToDelete.add(group.getId());
-	
+
 			// create a team
 			Team team = new Team();
 			Long id = Long.parseLong(group.getId());
@@ -124,10 +125,10 @@ public class DBOTeamDAOImplTest {
 			createdTeams.add(teamDAO.create(team));
 		}
 		assertEquals(Arrays.asList(new Team[] {createdTeams.get(1), createdTeams.get(0)}),
-		teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)), 
+		teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)),
 				Long.parseLong(teamsToDelete.get(0))})).getList());
 		try {
-			teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)), 
+			teamDAO.list(Arrays.asList(new Long[]{Long.parseLong(teamsToDelete.get(1)),
 					98776654L+Long.parseLong(teamsToDelete.get(0))}));
 			fail("NotFoundException expected");
 		} catch (NotFoundException e) {
@@ -213,7 +214,7 @@ public class DBOTeamDAOImplTest {
 
 		Long teamId = Long.parseLong(team.getId());
 		Long userIdLong = Long.parseLong(user.getId());
-		ListWrapper<TeamMember> listedMembers = 
+		ListWrapper<TeamMember> listedMembers =
 				teamDAO.listMembers(Collections.singletonList(teamId), Arrays.asList(new Long[]{userIdLong, userIdLong}));
 		assertEquals(2, listedMembers.getList().size());
 		TeamMember member = teamDAO.getMember(team.getId(), user.getId());
@@ -312,10 +313,10 @@ public class DBOTeamDAOImplTest {
 		listedMembers = teamDAO.listMembers(Collections.singletonList(teamId), Collections.singletonList(Long.parseLong(user.getId())));
 		assertEquals(member, listedMembers.getList().get(0));
 	}
-	
+
 	public static AccessControlList createAdminAcl(
-			final String pid, 
-			final String teamId, 
+			final String pid,
+			final String teamId,
 			final Date creationDate) {
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
@@ -347,12 +348,12 @@ public class DBOTeamDAOImplTest {
 		user.setId(userGroupDAO.create(user).toString());
 		userToDelete = user.getId();
 
-		aTeam = createTeam(aTeamName);
 		bTeam = createTeam(bTeamName);
+		aTeam = createTeam(aTeamName);
 		cTeam = createTeam(cTeamName);
 
-		groupMembersDAO.addMembers(aTeam.getId(), Arrays.asList(user.getId()));
 		groupMembersDAO.addMembers(bTeam.getId(), Arrays.asList(user.getId()));
+		groupMembersDAO.addMembers(aTeam.getId(), Arrays.asList(user.getId()));
 		groupMembersDAO.addMembers(cTeam.getId(), Arrays.asList(user.getId()));
 	}
 
@@ -393,6 +394,32 @@ public class DBOTeamDAOImplTest {
 		assertEquals(bTeam.getId(), teamIds.get(1));
 	}
 
+	@Test
+	public void testGetIdsForMemberNullPrincipalId() {
+		try {
+			teamDAO.getIdsForMember(null, 0, 0, null, null);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+	}
+
+	@Test
+	public void testGetIdsForMemberIllegalOrderAndAscending() {
+		try {
+			teamDAO.getIdsForMember(null, 0, 0, null, true);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+		try {
+			teamDAO.getIdsForMember(null, 0, 0, TeamSortOrder.TEAM_NAME, null);
+			fail("Expected an IllegalArgumentException");
+		} catch (IllegalArgumentException e) {
+			// As expected
+		}
+	}
+
 	private Team createTeam(String teamName) {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
@@ -413,6 +440,24 @@ public class DBOTeamDAOImplTest {
 		assertNotNull(createdTeam.getEtag());
 		createdTeam.setEtag(null); // to allow comparison with 'team'
 		assertEquals(team, createdTeam);
+
+		bindTeamName(teamName, id);
+
 		return team;
+	}
+
+	private void bindTeamName(String name, Long teamId){
+		// Determine if the email already exists
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(name);
+		if(alias != null && !alias.getPrincipalId().equals(teamId)){
+			throw new NameConflictException("Name "+name+" is already used.");
+		}
+		// Bind the team name
+		alias = new PrincipalAlias();
+		alias.setAlias(name);
+		alias.setPrincipalId(teamId);
+		alias.setType(AliasType.TEAM_NAME);
+		// bind this alias
+		principalAliasDAO.bindAliasToPrincipal(alias);
 	}
 }
