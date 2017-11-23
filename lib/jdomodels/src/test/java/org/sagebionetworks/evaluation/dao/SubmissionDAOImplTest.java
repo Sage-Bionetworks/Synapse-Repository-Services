@@ -45,7 +45,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -353,10 +352,6 @@ public class SubmissionDAOImplTest {
         clone.setContributors(nullifiedDates);
         assertEquals(initialCount + 1, submissionDAO.getCount());
         assertEquals(submission2, clone);
-        
-        // with no foreign key relationship between submission and team, we can delete the team before deleting the submission
-		deleteTeam(submissionTeam);
-		submissionTeam=null;
         
         // delete it
         submissionDAO.delete(SUBMISSION_2_ID);

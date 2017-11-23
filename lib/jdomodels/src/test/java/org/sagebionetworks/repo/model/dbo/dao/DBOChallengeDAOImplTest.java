@@ -386,15 +386,12 @@ public class DBOChallengeDAOImplTest {
 		createNodeAndChallenge(participantTeam);
 		challenge = challengeDAO.create(challenge);
 		
-		teamDAO.delete(participantTeam.getId()); // trigger cascade delete in challenge object
-		
 		try {
-			challengeDAO.get(Long.parseLong(challenge.getId()));
-			fail("Expected that participant team deletion would cascade to challenge.");
-		} catch (NotFoundException e) {
+			teamDAO.delete(participantTeam.getId()); // this will cause an error
+		} catch (IllegalArgumentException e) {
 			// as expected
 		}
-		challenge=null;
+		
 	}
 
 }

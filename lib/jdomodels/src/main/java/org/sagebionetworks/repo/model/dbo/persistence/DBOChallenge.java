@@ -38,7 +38,7 @@ public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOC
 	// NOTE:  This is a FK to the TEAM table, not the USER_GROUP table, ensuring that the
 	// principal registered is a Team
 	@Field(name = COL_CHALLENGE_PARTICIPANT_TEAM_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = true)
+	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = false)
 	private Long participantTeamId;
 	
 	@Field(name = COL_CHALLENGE_PROJECT_ID, backupId = false, primary = false, nullable = false)
