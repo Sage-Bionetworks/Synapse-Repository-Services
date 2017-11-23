@@ -388,6 +388,7 @@ public class DBOChallengeDAOImplTest {
 		
 		try {
 			teamDAO.delete(participantTeam.getId()); // this will cause an error
+			fail("IllegalArgumentException expected");
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
