@@ -217,15 +217,20 @@ public class UserProfileManagerImplTest {
 		// Grant user two read access to the project.
 		grantReadAcess(userIdTwo, userOnesProject.getId());
 
-		// User two does not have any projects yet.
+		// User two should now have one project.
 		headers = getProjects(userInfoTwo, userInfoTwo);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
 		
-		// Anonymous should be able to see the project on user two's list.
+		// call under test
 		headers = getProjects(anonymous, userInfoTwo);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
+		/*
+		 * Anonymous should be able to see the public project explicitly shared with
+		 * user two.
+		 */
+		assertEquals(userOnesProject.getId(), headers.get(0).getId());
 	}
 
 	/**
