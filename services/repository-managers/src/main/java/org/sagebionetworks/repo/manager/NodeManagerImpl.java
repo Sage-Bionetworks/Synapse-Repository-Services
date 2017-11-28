@@ -366,6 +366,7 @@ public class NodeManagerImpl implements NodeManager {
 
 		// Make sure the eTags match
 		if (updatedAnnos != null) {
+			ValidateArgument.required(updatedNode.getETag(), "eTag");
 			if (!updatedNode.getETag().equals(updatedAnnos.getEtag())) {
 				throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
 			}

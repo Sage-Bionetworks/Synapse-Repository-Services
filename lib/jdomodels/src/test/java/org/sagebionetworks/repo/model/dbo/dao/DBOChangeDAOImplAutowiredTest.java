@@ -541,11 +541,11 @@ public class DBOChangeDAOImplAutowiredTest {
 	 */
 	@Test
 	public void testPLFM2756() throws InterruptedException, ExecutionException{
-		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
 		final int timesToRun = 100;
 		Callable<Integer> callable = new Callable<Integer>(){
 			@Override
 			public Integer call() throws Exception {
+				List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
 				for(int i=0; i<timesToRun; i++){
 					changeDAO.replaceChange(toSpam);
 				}

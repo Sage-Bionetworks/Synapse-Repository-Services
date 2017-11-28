@@ -660,6 +660,18 @@ public class NodeManagerImplUnitTest {
 		verify(mockNodeDao, never()).getChildCount(newParentId);
 	}
 
+	// PLFM-4651
+	@Test(expected=IllegalArgumentException.class)
+	public void testUpdateNodeNoEtag() throws Exception {
+		String id = "101";
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations annots = named.getAdditionalAnnotations();
+		annots.addAnnotation("k", "a");
+		named.setEtag("etag");
+
+		nodeManager.update(mockUserInfo, mockNode, named, false);
+	}
+
 	@Test
 	public void testPromoteVersionAuthorized() throws Exception {
 		String nodeId = "123";

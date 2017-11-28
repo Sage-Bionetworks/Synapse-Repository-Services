@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.dbo.dao.MembershipInvitationUtils.copyToSerializedField;
-import static org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils.decompressedObject;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_EXPIRES_ON;
@@ -13,21 +11,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_INVITATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_INVITATION;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-
-import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 
 /**
  * Database Object for a MembershipInvitation.
@@ -185,23 +178,6 @@ public class DBOMembershipInvitation implements MigratableDatabaseObject<DBOMemb
 
 			@Override
 			public DBOMembershipInvitation createDatabaseObjectFromBackup(DBOMembershipInvitation backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(defaultEtag);
-				}
-				try {
-					try {
-						MembershipInvitation mr = (MembershipInvitation) decompressedObject(
-								backup.getProperties(), "MembershipInvtnSubmission", MembershipInvitation.class);
-						copyToSerializedField(mr, backup);
-					} catch (CannotResolveClassException e) {
-						// The backup properties field didn't contain a MembershipInvtnSubmission
-						// Make sure that it contains a MembershipInvitation
-						MembershipInvitation mr = (MembershipInvitation) decompressedObject(
-								backup.getProperties(), "MembershipInvitation", MembershipInvitation.class);
-					}
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
 				return backup;
 			}
 
