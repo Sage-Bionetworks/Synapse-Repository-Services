@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -118,14 +120,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		}};
 		
 		// We need a file handle to satisfy a foreign key constraint
-		// And so that sent messages can be "downloaded"
-		// Alice creates the file and the other users get access when the file is sent to them via a message
-		ExternalFileHandle handle = new ExternalFileHandle();
-		handle.setContentType("text/plain");
-		handle.setFileName("foobar");
-		URL url = MessageControllerAutowiredTest.class.getClassLoader().getResource("images/notAnImage.txt");
-		handle.setExternalURL(url.toString());
-		handle = fileHandleManager.createExternalFileHandle(userManager.getUserInfo(Long.parseLong(aliceId)), handle);
+		String fileContents = "This is text and not an image.";
+		S3FileHandle handle = fileHandleManager.createCompressedFileFromString(aliceId, new Date(),
+				fileContents);
 		fileHandleId = handle.getId();
 	}
 	
