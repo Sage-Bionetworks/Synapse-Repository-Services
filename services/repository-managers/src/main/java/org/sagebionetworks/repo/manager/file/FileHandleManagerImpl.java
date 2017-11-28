@@ -952,11 +952,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			String contentEncoding = metadata.getContentEncoding();
 			String contentTypeString = metadata.getContentType();
 			Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
-			if (contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
-				return FileUtils.readStreamAsString(s3Object.getObjectContent(), charset, /*gunzip*/true);
-			} else {
-				return FileUtils.readStreamAsString(s3Object.getObjectContent(), charset, /*gunzip*/false);
-			}
+			boolean gunZip = contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding);
+			return FileUtils.readStreamAsString(s3Object.getObjectContent(), charset, gunZip);
 		}finally{
 			// unconditionally close the stream
 			s3Object.close();
