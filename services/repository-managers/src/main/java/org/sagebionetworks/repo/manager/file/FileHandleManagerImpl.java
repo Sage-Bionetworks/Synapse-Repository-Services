@@ -119,6 +119,7 @@ import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.BinaryUtils;
 import com.google.common.collect.Lists;
 
@@ -940,35 +941,23 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @return
 	 */
 	public String downloadFileToString(String fileHandleId) throws IOException {
-		URL url;
-		try {
-			url = new URL(getRedirectURLForFileHandle(fileHandleId));
-		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(e.getMessage(), e);
+		FileHandle file = fileHandleDao.get(fileHandleId);
+		if(!(file instanceof S3FileHandle)) {
+			throw new IllegalArgumentException("File: "+fileHandleId+" is not an S3 file.");
 		}
-
-		// Read the file
+		S3FileHandle s3Handle = (S3FileHandle) file;
+		S3Object s3Object = s3Client.getObject(s3Handle.getBucketName(), s3Handle.getKey());
 		try {
-			InputStream in = null;
-			try {
-				URLConnection connection = url.openConnection();
-				String contentEncoding = connection.getHeaderField(HttpHeaders.CONTENT_ENCODING);
-				String contentTypeString = connection.getHeaderField(HttpHeaders.CONTENT_TYPE);
-				Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
-				in = connection.getInputStream();
-				if (contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding)) {
-					return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-				} else {
-					return FileUtils.readStreamAsString(in, charset, /*gunzip*/false);
-				}
-			} finally {
-				if (in != null) {
-					in.close();
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}		
+			ObjectMetadata metadata = s3Object.getObjectMetadata();
+			String contentEncoding = metadata.getContentEncoding();
+			String contentTypeString = metadata.getContentType();
+			Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
+			boolean gunZip = contentEncoding!=null && GZIP_CONTENT_ENCODING.equals(contentEncoding);
+			return FileUtils.readStreamAsString(s3Object.getObjectContent(), charset, gunZip);
+		}finally{
+			// unconditionally close the stream
+			s3Object.close();
+		}	
 	}
 
 	@Override
