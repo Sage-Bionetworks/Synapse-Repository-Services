@@ -60,6 +60,7 @@ public class DBOSubscriptionDAOImplTest {
 	private NodeDAO nodeDAO;
 
 	private String userId = null;
+	private Long userIdLong;
 	private String threadId;
 	private List<String> usersToDelete;
 	private List<String> subscriptionIdToDelete;
@@ -76,7 +77,8 @@ public class DBOSubscriptionDAOImplTest {
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
-		userId = userGroupDAO.create(user).toString();
+		userIdLong = userGroupDAO.create(user);
+		userId = userIdLong.toString();
 		usersToDelete.add(userId);
 		
 		subscriber = new Subscriber();
@@ -112,7 +114,7 @@ public class DBOSubscriptionDAOImplTest {
 		Node node = new Node();
 		node.setId(projectId);
 		node.setModifiedByPrincipalId(1L);
-		node.setModifiedOn(new Date());
+		node.setModifiedOn(new Date()); 
 		node.setNodeType(EntityType.project);
 		node.setName("project");
 		node.setCreatedByPrincipalId(1L);
@@ -128,9 +130,12 @@ public class DBOSubscriptionDAOImplTest {
 
 	@After
 	public void after() {
-		for (String subscriptionId : subscriptionIdToDelete) {
-			subscriptionDao.delete(Long.parseLong(subscriptionId));
-		}
+		try {
+			principalAliasDAO.removeAllAliasFromPrincipal(userIdLong);
+		}  catch (Exception e1) {}
+		try {
+			subscriptionDao.deleteAll(userIdLong);
+		} catch (Exception e1) {}
 		try {
 			nodeDAO.delete(projectId);
 		} catch (Exception e) {}

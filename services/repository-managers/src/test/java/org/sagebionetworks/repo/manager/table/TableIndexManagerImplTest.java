@@ -297,7 +297,7 @@ public class TableIndexManagerImplTest {
 		verify(mockIndexDao).provideCardinality(infoList, tableId);
 		verify(mockIndexDao).provideIndexName(infoList, tableId);
 		// optimization called.
-		verify(mockIndexDao).optimizeTableIndices(infoList, tableId, 63);
+		verify(mockIndexDao).optimizeTableIndices(infoList, tableId, TableIndexManagerImpl.MAX_MYSQL_INDEX_COUNT);
 	}
 	
 	@Test

@@ -3,8 +3,11 @@ package org.sagebionetworks.repo.manager.migration;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.migration.*;
 
 /**
@@ -150,6 +153,31 @@ public interface MigrationManager {
 	
 	public RowMetadataResult processAsyncMigrationRowMetadataRequest(
 			final UserInfo user, final AsyncMigrationRowMetadataRequest mReq);
+	
+	/**
+	 * <p>
+	 * See: PLFM-4729
+	 * </p>
+	 * <p>
+	 * In order to correctly migrate a change to a secondary table, the etag of the
+	 * corresponding row in the primary table must also be updated. If a foreign key
+	 * constraint triggers the modification of a row in a secondary table by
+	 * deleting the row ('ON DELETE CASCADE'), or setting a value to null ('ON
+	 * DELETE SET NULL') without also updating the corresponding row in the primary
+	 * table, then the change to the secondary table will not migrate.
+	 * </p>
+	 * <p>
+	 * Therefore, we limit foreign key constraint on secondary tables to
+	 * 'RESTRICTED' when the referenced table does not belong to the same primary
+	 * table.
+	 * </p>
+	 * 
+	 * @param keyInfoList
+	 * @param tableNameToPrimaryGroup Mapping of the name of each secondary table to the 
+	 * set of table names that belong to the same primary table.  Note: The primary table
+	 * name is included in the set.
+	 */
+	public void validateForeignKeys();
 	
 	
 }

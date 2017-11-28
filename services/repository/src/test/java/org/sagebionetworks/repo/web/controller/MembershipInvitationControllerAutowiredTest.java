@@ -67,11 +67,6 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 
 	@After
 	public void after() throws Exception {
-		servletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
-		 teamToDelete = null;
-		 
-		 userManager.deletePrincipal(adminUserInfo, testInvitee.getId());
-		 
 		 // creating invitations generates messages. We have to delete
 		 // the file handles as part of cleaning up
 		 PaginatedResults<MessageToUser> messages = 
@@ -82,6 +77,11 @@ public class MembershipInvitationControllerAutowiredTest extends AbstractAutowir
 		 }
 		 
 		S3TestUtils.doDeleteAfter(s3Client);
+		
+		servletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
+		teamToDelete = null;
+
+		userManager.deletePrincipal(adminUserInfo, testInvitee.getId());
 	}
 
 	@Test

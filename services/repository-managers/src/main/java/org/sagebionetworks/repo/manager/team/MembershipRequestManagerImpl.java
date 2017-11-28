@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -66,13 +67,13 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.html";
 	private static final String TEAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "Someone Has Requested to Join Your Team";
 
-	public static void validateForCreate(MembershipRequest mrs, UserInfo userInfo) {
-		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
-		if (mrs.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
-		if (mrs.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if (!userInfo.isAdmin() && mrs.getUserId()!=null && !mrs.getUserId().equals(userInfo.getId().toString())) 
+	public static void validateForCreate(MembershipRequest mr, UserInfo userInfo) {
+		if (mr.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
+		if (mr.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
+		if (mr.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
+		if (!userInfo.isAdmin() && mr.getUserId()!=null && !mr.getUserId().equals(userInfo.getId().toString()))
 			throw new InvalidModelException("May not specify a user id other than yourself.");
-		if (mrs.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
+		if (mr.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 	
 	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
@@ -83,10 +84,10 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	}
 
 
-	public static void populateCreationFields(UserInfo userInfo, MembershipRequest mrs, Date now) {
-		mrs.setCreatedBy(userInfo.getId().toString());
-		mrs.setCreatedOn(now);
-		if (mrs.getUserId()==null) mrs.setUserId(userInfo.getId().toString());
+	public static void populateCreationFields(UserInfo userInfo, MembershipRequest mr, Date now) {
+		mr.setCreatedBy(userInfo.getId().toString());
+		mr.setCreatedOn(now);
+		if (mr.getUserId()==null) mr.setUserId(userInfo.getId().toString());
 	}
 
 	/* (non-Javadoc)
@@ -94,50 +95,50 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 */
 	@Override
 	public MembershipRequest create(UserInfo userInfo,
-	                                MembershipRequest mrs) throws DatastoreException,
+	                                MembershipRequest mr) throws DatastoreException,
 			InvalidModelException, UnauthorizedException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
-		validateForCreate(mrs, userInfo);
+		validateForCreate(mr, userInfo);
 		if (!userInfo.isAdmin()) {
-			if (hasUnmetAccessRequirements(userInfo, mrs.getTeamId()))
+			if (hasUnmetAccessRequirements(userInfo, mr.getTeamId()))
 				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
 		}
-		Team team = teamDAO.get(mrs.getTeamId());
+		Team team = teamDAO.get(mr.getTeamId());
 		if (team.getCanPublicJoin() != null && team.getCanPublicJoin()) {
 			throw new IllegalArgumentException("This team is already open for the public to join, membership requests are not needed.");
 		}
 
 		Date now = new Date();
-		populateCreationFields(userInfo, mrs, now);
-		return membershipRequestDAO.create(mrs);
+		populateCreationFields(userInfo, mr, now);
+		return membershipRequestDAO.create(mr);
 	}
 
 	@Override
-	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRequest mrs,
+	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRequest mr,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
-		if (mrs.getCreatedOn() == null) mrs.setCreatedOn(new Date());
-		UserProfile userProfile = userProfileManager.getUserProfile(mrs.getCreatedBy());
+		if (mr.getCreatedOn() == null) mr.setCreatedOn(new Date());
+		UserProfile userProfile = userProfileManager.getUserProfile(mr.getCreatedBy());
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
-		fieldValues.put(TEMPLATE_KEY_USER_ID, mrs.getCreatedBy());
-		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mrs.getTeamId()).getName());
-		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mrs.getTeamId());
-		if (mrs.getMessage()==null || mrs.getMessage().length()==0) {
+		fieldValues.put(TEMPLATE_KEY_USER_ID, mr.getCreatedBy());
+		fieldValues.put(TEMPLATE_KEY_TEAM_NAME, teamDAO.get(mr.getTeamId()).getName());
+		fieldValues.put(TEMPLATE_KEY_TEAM_ID, mr.getTeamId());
+		if (mr.getMessage()==null || mr.getMessage().length()==0) {
 			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, "");
 		} else {
 			fieldValues.put(TEMPLATE_KEY_REQUESTER_MESSAGE, 
 							"The requester sends the following message: <Blockquote> "+
-							mrs.getMessage()+" </Blockquote> ");
+							mr.getMessage()+" </Blockquote> ");
 		}
 		
-		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
+		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mr.getTeamId()));
 		for (String recipientPrincipalId : teamAdmins) {
 			fieldValues.put(TEMPLATE_KEY_ONE_CLICK_JOIN, EmailUtils.createOneClickJoinTeamLink(
-					acceptRequestEndpoint, recipientPrincipalId, mrs.getCreatedBy(), mrs.getTeamId(), mrs.getCreatedOn()));
+					acceptRequestEndpoint, recipientPrincipalId, mr.getCreatedBy(), mr.getTeamId(), mr.getCreatedOn()));
 			String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
 			MessageToUser mtu = new MessageToUser();
 			mtu.setRecipients(Collections.singleton(recipientPrincipalId));
@@ -154,10 +155,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public MembershipRequest get(UserInfo userInfo, String id)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		MembershipRequest mrs = membershipRequestDAO.get(id);
-		if (!userInfo.isAdmin() && !userInfo.getId().toString().equals(mrs.getUserId()))
-			throw new UnauthorizedException("Cannot retrieve membership request for another user.");
-		return mrs;
+		MembershipRequest mr = membershipRequestDAO.get(id);
+		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.READ);
+		if (!status.getAuthorized()) {
+			throw new UnauthorizedException(status.getReason());
+		}
+		return mr;
 	}
 
 	/* (non-Javadoc)
@@ -166,14 +169,16 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipRequest mrs = null;
+		MembershipRequest mr;
 		try {
-			mrs = membershipRequestDAO.get(id);
+			mr = membershipRequestDAO.get(id);
 		} catch (NotFoundException e) {
 			return;
 		}
-		if (!userInfo.isAdmin() && !userInfo.getId().toString().equals(mrs.getUserId()))
-			throw new UnauthorizedException("Cannot delete membership request for another user.");
+		AuthorizationStatus status = authorizationManager.canAccessMembershipRequest(userInfo, mr, ACCESS_TYPE.DELETE);
+		if (!status.getAuthorized()) {
+			throw new UnauthorizedException(status.getReason());
+		}
 		membershipRequestDAO.delete(id);
 	}
 

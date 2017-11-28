@@ -24,7 +24,7 @@ import org.springframework.transaction.support.TransactionCallback;
 
 public class TableIndexManagerImpl implements TableIndexManager {
 
-	public static final int MAX_MYSQL_INDEX_COUNT = 63; // mysql only supports a max of 64 secondary indices per table.
+	public static final int MAX_MYSQL_INDEX_COUNT = 60; // mysql only supports a max of 64 secondary indices per table.
 	
 	private final TableIndexDAO tableIndexDao;
 	private final TableManagerSupport tableManagerSupport;

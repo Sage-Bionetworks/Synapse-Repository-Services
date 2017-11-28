@@ -149,11 +149,12 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 				evaluationDAO.delete(id);
 			} catch (Exception e) {}
 		}
-		
+		// Delete children before parents
+		Collections.reverse(nodesToDelete);
 		// clean up nodes
 		for (String id : nodesToDelete) {
 			try {
-				nodeDAO.delete(id);
+				nodeManager.delete(adminUserInfo, id);
 			} catch (Exception e) {}
 		}
 		

@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -139,6 +140,20 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public boolean isMigrationTypeRegistered(MigrationType type);
+	
+	/**
+	 * List all non-restricted foreign keys in the schema.
+	 * @return
+	 */
+	public List<ForeignKeyInfo> listNonRestrictedForeignKeys();
+
+
+	/**
+	 * Map each secondary table name to all of the table names within its primary group.
+	 * Secondary tables can have restricted foreign keys to any table within their primary group.
+	 * @return
+	 */
+	Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups();
 
 
 }

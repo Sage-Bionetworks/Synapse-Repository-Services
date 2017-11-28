@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -15,6 +13,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -28,9 +27,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -46,12 +43,25 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
 	
+	private static final String REFERENCED_TABLE_NAME = "REFERENCED_TABLE_NAME";
+	private static final String TABLE_NAME = "TABLE_NAME";
+	private static final String DELETE_RULE = "DELETE_RULE";
+	private static final String CONSTRAINT_NAME = "CONSTRAINT_NAME";
+
+	private static final String SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS = 
+			"SELECT CONSTRAINT_NAME, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME"
+			+ " FROM information_schema.REFERENTIAL_CONSTRAINTS "
+			+ "WHERE"
+			+ " DELETE_RULE != 'RESTRICT' AND UNIQUE_CONSTRAINT_SCHEMA = ?";
+
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
 
 	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private StackConfiguration stackConfiguration;
 	
 	/**
 	 * For unit testing
@@ -147,6 +157,32 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#mapSecondaryTablesToPrimaryGroups()
+	 */
+	@Override
+	public Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups(){
+		Map<String, Set<String>> results = new HashMap<>();
+		for(MigratableDatabaseObject migratable: databaseObjectRegister) {
+			List<MigratableDatabaseObject> secondaryTypes = migratable.getSecondaryTypes();
+			if(secondaryTypes != null) {
+				Set<String> primaryGroupNames = new HashSet<>(secondaryTypes.size()+1);
+				// Add the primary table to the group
+				primaryGroupNames.add(migratable.getTableMapping().getTableName().toUpperCase());
+				// Add each secondary type to the map
+				for(MigratableDatabaseObject secondary: secondaryTypes) {
+					String secondaryName = secondary.getTableMapping().getTableName().toUpperCase();
+					// add this secondary to the primary group
+					primaryGroupNames.add(secondaryName);
+					results.put(secondaryName, primaryGroupNames);
+				}
+			}
+		}
+		return results;
+	}
+
 
 	/**
 	 * What is the index of this type in the enumeration?
@@ -277,9 +313,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 					+ mapping.getTableName() + ":");
 			log.debug("\t" + names.toString());
 		}
-
 	}
-
+	
 	@Override
 	public long getCount(MigrationType type) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
@@ -599,7 +634,21 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public boolean isMigrationTypeRegistered(MigrationType type) {
 		return this.registeredMigrationTypes.contains(type);
 	}
-	
-	
+
+	@Override
+	public List<ForeignKeyInfo> listNonRestrictedForeignKeys() {
+		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
+		return jdbcTemplate.query(SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS, new RowMapper<ForeignKeyInfo>() {
+
+			@Override
+			public ForeignKeyInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ForeignKeyInfo info = new ForeignKeyInfo();
+				info.setConstraintName(rs.getString(CONSTRAINT_NAME));
+				info.setDeleteRule(rs.getString(DELETE_RULE));
+				info.setTableName(rs.getString(TABLE_NAME));
+				info.setReferencedTableName(rs.getString(REFERENCED_TABLE_NAME));
+				return info;
+			}}, schema);
+	}
 	
 }

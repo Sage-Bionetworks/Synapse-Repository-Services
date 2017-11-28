@@ -370,6 +370,14 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.repository.database.connection.url");
 	}
+	
+	/**
+	 * The repository database schema name.
+	 * @return
+	 */
+	public String getRepositoryDatabaseSchemaName() {
+		return configuration.getStack()+configuration.getStackInstance();
+	}
 
 	/**
 	 * The repository database username.
@@ -380,6 +388,7 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.repository.database.username");
 	}
+	
 
 	/**
 	 * The repository database password.

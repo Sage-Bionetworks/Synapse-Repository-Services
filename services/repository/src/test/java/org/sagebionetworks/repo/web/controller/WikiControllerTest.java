@@ -119,6 +119,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@After
 	public void after() throws Exception{
+		
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteWikiPage(key, adminUserId);
 		}
@@ -131,6 +132,7 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 			UserInfo userInfo = userManager.getUserInfo(adminUserId);
 			nodeManager.delete(userInfo, entity.getId());
 		}
+		
 		if(handleOne != null && handleOne.getId() != null){
 			fileHandleDao.delete(handleOne.getId());
 		}
@@ -271,19 +273,6 @@ public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
-		
-		// Delete file handles etc made when creating V2 wikis, starting with abandoned handles
-		// Start with child so resources aren't lost when deleting the parent first
-		S3FileHandle abandonedHandle = (S3FileHandle) fileHandleDao.get(abandonedFileHandleId);
-		s3Client.deleteObject(abandonedHandle.getBucketName(), abandonedHandle.getKey());
-		fileHandleDao.delete(abandonedFileHandleId);
-		for(int i = toDelete.size() - 1; i >= 0; i--) {
-			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i), null);
-			String markdownHandleId = wikiPage.getMarkdownFileHandleId();
-			S3FileHandle markdownHandle = (S3FileHandle) fileHandleDao.get(markdownHandleId);
-			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-			fileHandleDao.delete(markdownHandleId);
-		}
 		
 		// Now delete the wiki
 		entityServletHelper.deleteWikiPage(key, adminUserId);

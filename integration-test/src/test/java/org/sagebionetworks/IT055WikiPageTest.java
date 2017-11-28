@@ -86,16 +86,17 @@ public class IT055WikiPageTest {
 
 	@After
 	public void after() throws Exception {
+		
+		adminSynapse.deleteEntity(project, true);
+		for (WikiPageKey key : toDelete) {
+			adminSynapse.deleteWikiPage(key);
+		}
+		
 		for (String id : handlesToDelete) {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
 			} catch (SynapseClientException e) { }
-		}
-		
-		adminSynapse.deleteEntity(project, true);
-		for (WikiPageKey key : toDelete) {
-			adminSynapse.deleteWikiPage(key);
 		}
 	}
 	

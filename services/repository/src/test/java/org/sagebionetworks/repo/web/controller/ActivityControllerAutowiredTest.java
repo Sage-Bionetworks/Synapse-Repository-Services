@@ -70,10 +70,11 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 
 	@After
 	public void after() throws UnauthorizedException {
-		if (activityService != null && activityIdstoDelete != null) {
-			for (String idToDelete : activityIdstoDelete) {
+
+		if (entityService != null && entityIdsToDelete != null) {
+			for (String idToDelete : entityIdsToDelete) {
 				try {
-					activityService.deleteActivity(userId, idToDelete);
+					entityService.deleteEntity(userId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -81,10 +82,11 @@ public class ActivityControllerAutowiredTest extends AbstractAutowiredController
 				}
 			}
 		}
-		if (entityService != null && entityIdsToDelete != null) {
-			for (String idToDelete : entityIdsToDelete) {
+		
+		if (activityService != null && activityIdstoDelete != null) {
+			for (String idToDelete : activityIdstoDelete) {
 				try {
-					entityService.deleteEntity(userId, idToDelete);
+					activityService.deleteActivity(userId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

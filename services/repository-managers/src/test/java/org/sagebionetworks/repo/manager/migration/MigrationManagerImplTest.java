@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.migration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -11,12 +12,18 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import static org.mockito.Mockito.*;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,6 +31,7 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
+import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
@@ -32,23 +40,43 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * The Unit test for MigrationManagerImpl;
  * @author jmhill
  *
  */
+@RunWith(MockitoJUnitRunner.class)
 public class MigrationManagerImplTest {
 	
-	private MigratableTableDAO mockDao;
-	private StackStatusDao mockStatusDao;
+	@Mock
+	MigratableTableDAO mockDao;
+	@Mock
+	StackStatusDao mockStatusDao;
+	
 	MigrationManagerImpl manager;
 	
 	@Before
 	public void before(){
-		mockDao = Mockito.mock(MigratableTableDAO.class);
-		mockStatusDao = Mockito.mock(StackStatusDao.class);
-		manager = new MigrationManagerImpl(mockDao, mockStatusDao, 10);
+		manager = new MigrationManagerImpl();
+		ReflectionTestUtils.setField(manager, "backupBatchMax", 50);
+		ReflectionTestUtils.setField(manager, "migratableTableDao", mockDao);
+		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStatusDao);
+		
+		ForeignKeyInfo info = new ForeignKeyInfo();
+		info.setTableName("foo");
+		info.setReferencedTableName("bar");
+		List<ForeignKeyInfo> nonRestrictedForeignKeys = Lists.newArrayList(info);
+		when(mockDao.listNonRestrictedForeignKeys()).thenReturn(nonRestrictedForeignKeys);
+		
+		Map<String, Set<String>> tableNameToPrimaryGroup = new HashMap<>();
+		// bar is within foo's primary group.
+		tableNameToPrimaryGroup.put("FOO", Sets.newHashSet("BAR"));
+		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
 	}
 	
 	@Test
@@ -257,6 +285,74 @@ public class MigrationManagerImplTest {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		UserInfo user = new UserInfo(true, "0");
 		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
+	}
+	
+	/**
+	 * Case where secondary table references a table within its primary group.
+	 */
+	@Test
+	public void testValidateForeignKeysRefrenceWithinPrimaryGroup() {		
+		// Call under test
+		manager.validateForeignKeys();
+		verify(mockDao).listNonRestrictedForeignKeys();
+		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+	}
+	
+	@Test
+	public void testInitialize() {
+		manager.initialize();
+		// should trigger foreign key validation
+		verify(mockDao).listNonRestrictedForeignKeys();
+		verify(mockDao).mapSecondaryTablesToPrimaryGroups();
+	}
+	
+	/**
+	 * Case where secondary table references a table outside its primary group.
+	 */
+	@Test
+	public void testValidateForeignKeysRefrenceOutsidePrimaryGroup() {
+		ForeignKeyInfo info = new ForeignKeyInfo();
+		info.setTableName("foo");
+		info.setReferencedTableName("bar");
+		info.setDeleteRule("CASCADE");
+		
+		List<ForeignKeyInfo> nonRestrictedForeignKeys = Lists.newArrayList(info);
+		when(mockDao.listNonRestrictedForeignKeys()).thenReturn(nonRestrictedForeignKeys);
+		Map<String, Set<String>> tableNameToPrimaryGroup = new HashMap<>();
+		// bar is not in foo's primary group.
+		tableNameToPrimaryGroup.put("FOO", Sets.newHashSet("cats"));
+		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
+		try {
+			// Call under test
+			manager.validateForeignKeys();
+			fail();
+		} catch (IllegalStateException e) {
+			System.out.println(e.getMessage());
+			// expected
+			assertTrue(e.getMessage().contains(info.getTableName().toUpperCase()));
+			assertTrue(e.getMessage().contains(info.getReferencedTableName().toUpperCase()));
+			assertTrue(e.getMessage().contains(info.getDeleteRule()));
+		}
+	}
+	
+	/**
+	 * Case where non-secondary table has a restricted foreign key.
+	 */
+	@Test
+	public void testValidateForeignKeysRefrenceNonSecondaryTable() {
+		ForeignKeyInfo info = new ForeignKeyInfo();
+		info.setTableName("foo");
+		info.setReferencedTableName("bar");
+		info.setDeleteRule("CASCADE");
+		
+		List<ForeignKeyInfo> nonRestrictedForeignKeys = Lists.newArrayList(info);
+		when(mockDao.listNonRestrictedForeignKeys()).thenReturn(nonRestrictedForeignKeys);
+		Map<String, Set<String>> tableNameToPrimaryGroup = new HashMap<>();
+		// foo is not a secondary table so it has no entry in this map.
+		tableNameToPrimaryGroup.put("bar", Sets.newHashSet("foobar"));
+		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
+		// Call under test
+		manager.validateForeignKeys();
 	}
 
 }
