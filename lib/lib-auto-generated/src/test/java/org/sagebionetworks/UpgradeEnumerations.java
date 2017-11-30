@@ -7,46 +7,42 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Utility to convert old enumeration to the new enumerations with for all
  * schemas.
- *
  */
 public class UpgradeEnumerations {
 	
-	public static void main(String[] args) throws IOException, JSONObjectAdapterException, JSONException {
+	public static void main(String[] args) throws IOException, JSONObjectAdapterException {
 
 		File dir = new File("src/main/resources");
 		Iterator<?> itr = FileUtils.iterateFiles(dir, new String[] { "json" }, true);
 
-		while (itr.hasNext()) {
-			File file = (File) itr.next();
-			JSONObjectAdapterImpl adapter = null;
-			try {
-				String json = readFileToString(file.getAbsolutePath());
-				adapter = new JSONObjectAdapterImpl(json);
-				// attempt to read the schema.
-				ObjectSchema schema = new ObjectSchema(adapter);
-			} catch (JSONObjectAdapterException e) {
-				// this is the error message when the enumeration is the old style.
-				if(e.getMessage().contains("JSONArray[0] is not a JSONObject")) {
-					System.out.println("Need to translate: "+file.getAbsolutePath());
-					translateEnumRecursive(adapter);
-					JSONObject object = new JSONObject(adapter.toJSONString());
-					String newJson = object.toString(4);
-					FileUtils.writeStringToFile(file, newJson, "UTF-8");
-				}
-			}
-		}
+//		while (itr.hasNext()) {
+//			File file = (File) itr.next();
+//			JSONObjectAdapterImpl adapter = null;
+//			try {
+//				String json = readFileToString(file.getAbsolutePath());
+//				adapter = new JSONObjectAdapterImpl(json);
+//				// attempt to read the schema.
+//				ObjectSchema schema = new ObjectSchema(adapter);
+//			} catch (JSONObjectAdapterException e) {
+//				// this is the error message when the enumeration is the old style.
+//				if(e.getMessage().contains("JSONArray[0] is not a JSONObject")) {
+//					System.out.println("Need to translate: "+file.getAbsolutePath());
+//					translateEnumRecursive(adapter);
+//					JSONObject object = new JSONObject(adapter.toJSONString());
+//					String newJson = object.toString(4);
+//					FileUtils.writeStringToFile(file, newJson, "UTF-8");
+//				}
+//			}
+//		}
 	}
 	
 	private static void translateEnumRecursive(JSONObjectAdapter adapter) throws JSONObjectAdapterException {
