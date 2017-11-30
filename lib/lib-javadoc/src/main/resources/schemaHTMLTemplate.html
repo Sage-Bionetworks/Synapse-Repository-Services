@@ -71,11 +71,13 @@
 								<h5>Enumeration</h5>
 								<table>
 									<tr>
-										<th>value</th>
+										<th>name</th>
+										<th>description</th>
 									</tr>
 									#foreach( $value in $model.enumValues )
 									<tr>
-										<td>$value</td>
+										<td>$value.name</td>
+										<td>$value.description</td>
 									</tr>
 									#end
 								</table>

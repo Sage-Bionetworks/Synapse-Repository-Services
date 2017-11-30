@@ -56,7 +56,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>

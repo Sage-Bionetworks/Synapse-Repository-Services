@@ -210,7 +210,7 @@ public class MultipartManagerV2ImplTest {
 	@Test
 	public void testCalculateMD5AsHex(){
 		// This md5 was generated from the json string of the request.
-		String expected = "08f53fbc385931af4c45c02053d8fcec";
+		String expected = "7c6ab3ed2219a64b4e86726e4eb0fee0";
 		//call under test
 		String md5Hex = MultipartManagerV2Impl.calculateMD5AsHex(request);
 		assertEquals(expected, md5Hex);

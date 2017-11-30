@@ -1,10 +1,19 @@
 {
-    "description":"Filter results based on principal type.",
+    "description": "Filter results based on principal type.",
     "name": "TypeFilter",
-    "type":"string",
-    "enum":[
-    	"USERS_ONLY",
-    	"TEAMS_ONLY",
-    	"ALL"
+    "type": "string",
+    "enum": [
+        {
+            "name": "USERS_ONLY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAMS_ONLY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ALL",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

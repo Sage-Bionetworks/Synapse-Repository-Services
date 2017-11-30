@@ -1,12 +1,23 @@
 {
-    "description":"The enumeration of possible upload types.",
+    "description": "The enumeration of possible upload types.",
     "name": "UploadType",
-    "type":"string",
-    "enum":[
-		"S3",
-		"SFTP",
-		"HTTPS",
-		"PROXYLOCAL"
-	]
+    "type": "string",
+    "enum": [
+        {
+            "name": "S3",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SFTP",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "HTTPS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PROXYLOCAL",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }
-    

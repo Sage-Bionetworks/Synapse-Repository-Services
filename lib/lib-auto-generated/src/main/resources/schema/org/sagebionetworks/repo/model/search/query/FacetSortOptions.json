@@ -1,11 +1,23 @@
 {
-	"description": "The type of sort option for a facet",
-	"type": "string",
-	"name": "FacetSortOptions",
-	"enum": [
-		"ALPHA",
-		"COUNT",
-		"MAX",
-		"SUM"
-	]
+    "description": "The type of sort option for a facet",
+    "type": "string",
+    "name": "FacetSortOptions",
+    "enum": [
+        {
+            "name": "ALPHA",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "COUNT",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MAX",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SUM",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

@@ -1,9 +1,21 @@
 {
-	"type":"string",
-	"enum":[
-		"NUMBER_OF_REPLIES",
-		"NUMBER_OF_VIEWS",
-		"PINNED_AND_LAST_ACTIVITY",
-		"THREAD_TITLE"
-	]
+    "type": "string",
+    "enum": [
+        {
+            "name": "NUMBER_OF_REPLIES",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "NUMBER_OF_VIEWS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PINNED_AND_LAST_ACTIVITY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "THREAD_TITLE",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

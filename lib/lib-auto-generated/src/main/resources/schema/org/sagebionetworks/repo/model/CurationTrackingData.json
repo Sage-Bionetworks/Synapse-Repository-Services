@@ -1,27 +1,34 @@
 {
-	"description": "JSON schema for CurationTrackingData",
-	"properties": {
-		"status": {
-			"description": "The status of data curation process",
-			"type": "string",
-			"name": "CurationStatusNames",
-			"id": "org.sagebionetworks.repo.model.CurationStatusNames",
-			"enum": [
-				"loaded",
-				"processed",
-				"published"
-			]
-		},
-		"curator": {
-			"description": "Contact id of person who curated the data",
-			"type": "string"
-		},
-		"history": {
-			"description": "Status history",
-			"type": "array",
-			"items": {
-				"$ref": "org.sagebionetworks.repo.model.StatusHistoryRecord"
-			}
-		}
-	}
+    "description": "JSON schema for CurationTrackingData",
+    "properties": {
+        "status": {
+            "description": "The status of data curation process",
+            "type": "string",
+            "name": "CurationStatusNames",
+            "id": "org.sagebionetworks.repo.model.CurationStatusNames",
+            "enum": [
+                {
+                    "name": "loaded",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "processed",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "published",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
+        },
+        "curator": {
+            "description": "Contact id of person who curated the data",
+            "type": "string"
+        },
+        "history": {
+            "description": "Status history",
+            "type": "array",
+            "items": {"$ref": "org.sagebionetworks.repo.model.StatusHistoryRecord"}
+        }
+    }
 }

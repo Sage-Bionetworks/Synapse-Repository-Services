@@ -1,10 +1,22 @@
 {
-	"description": "Status of DOI creation.",
-	"type": "string",
-	"enum": [
-		"IN_PROCESS",
-		"CREATED",
-		"READY",
-		"ERROR"
-	]
+    "description": "Status of DOI creation.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "IN_PROCESS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CREATED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "READY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ERROR",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

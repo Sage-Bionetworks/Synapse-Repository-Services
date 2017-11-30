@@ -72,7 +72,7 @@ public class ClientUtilsTest {
 	@Test (expected = SynapseUnauthorizedException.class)
 	public void testThrowExceptionWithJSONResponse() throws Exception{
 		JSONObject response = new JSONObject();
-		response.append(ERROR_REASON_TAG, "test");
+		response.put(ERROR_REASON_TAG, "test");
 		ClientUtils.throwException(401, response);
 	}
 
