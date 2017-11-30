@@ -1,10 +1,19 @@
 {
-    "description":"The filter that helps determine what threads/ replies to return.",
+    "description": "The filter that helps determine what threads/ replies to return.",
     "name": "DiscussionFilter",
-    "type":"string",
-    "enum":[
-        "NO_FILTER",
-        "DELETED_ONLY",
-        "EXCLUDE_DELETED"
+    "type": "string",
+    "enum": [
+        {
+            "name": "NO_FILTER",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DELETED_ONLY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "EXCLUDE_DELETED",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

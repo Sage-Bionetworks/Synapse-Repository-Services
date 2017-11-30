@@ -1,10 +1,19 @@
 {
-    "description":"JSON schema for Datsset Status enumeration POJO",
+    "description": "JSON schema for Datsset Status enumeration POJO",
     "name": "DatasetStatusNames",
-    "type":"string",
-    "enum":[
-        "Identified",
-        "Contributed",
-        "Curated"
+    "type": "string",
+    "enum": [
+        {
+            "name": "Identified",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Contributed",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Curated",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

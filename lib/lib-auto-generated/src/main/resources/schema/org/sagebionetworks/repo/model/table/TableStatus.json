@@ -1,62 +1,71 @@
 {
-	"description": "Object used to track the status of a Table.",
-	"properties": {
-		"state": {
-			"type": "string",
-			"description": "The Table's state can be one of the following enumerations",
-			"name": "TableState",
-			"id": "org.sagebionetworks.repo.model.table.TableState",
-			"enum": [
-				"AVAILABLE",
-				"PROCESSING",
-				"PROCESSING_FAILED"
-			]
-		},
-		"tableId": {
-			"type": "string",
-			"description": "The ID of the table."
-		},
-		"startedOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date-time when the status of this table last changed to PROCESSING."
-		},
-		"changedOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date-time when the status of this table last changed."
-		},
-		"resetToken": {
-			"type": "string",
-			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE by providing the current reset-token."
-		},
-		"lastTableChangeEtag": {
-			"type": "string",
-			"description": "Whenever the status of a table is set to AVAILABLE, this will be set to the etag of the last table change applied to the index."
-		},
-		"progressMessage": {
-			"type": "string",
-			"description": "The current message of the progress tracker."
-		},
-		"progressCurrent": {
-			"type": "integer",
-			"description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
-		},
-		"progressTotal": {
-			"type": "integer",
-			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
-		},
-		"errorMessage": {
-			"type": "string",
-			"description": "When processing fails, this is a one line error message."
-		},
-		"errorDetails": {
-			"type": "string",
-			"description": "When processing fails, this is the full stack trace of the error."
-		},
-		"totalTimeMS": {
-			"type": "integer",
-			"description": "The total run time (MS) of the last processing job."
-		}
-	}
+    "description": "Object used to track the status of a Table.",
+    "properties": {
+        "state": {
+            "type": "string",
+            "description": "The Table's state can be one of the following enumerations",
+            "name": "TableState",
+            "id": "org.sagebionetworks.repo.model.table.TableState",
+            "enum": [
+                {
+                    "name": "AVAILABLE",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "PROCESSING",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "PROCESSING_FAILED",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
+        },
+        "tableId": {
+            "type": "string",
+            "description": "The ID of the table."
+        },
+        "startedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date-time when the status of this table last changed to PROCESSING."
+        },
+        "changedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date-time when the status of this table last changed."
+        },
+        "resetToken": {
+            "type": "string",
+            "description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE by providing the current reset-token."
+        },
+        "lastTableChangeEtag": {
+            "type": "string",
+            "description": "Whenever the status of a table is set to AVAILABLE, this will be set to the etag of the last table change applied to the index."
+        },
+        "progressMessage": {
+            "type": "string",
+            "description": "The current message of the progress tracker."
+        },
+        "progressCurrent": {
+            "type": "integer",
+            "description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+        },
+        "progressTotal": {
+            "type": "integer",
+            "description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+        },
+        "errorMessage": {
+            "type": "string",
+            "description": "When processing fails, this is a one line error message."
+        },
+        "errorDetails": {
+            "type": "string",
+            "description": "When processing fails, this is the full stack trace of the error."
+        },
+        "totalTimeMS": {
+            "type": "integer",
+            "description": "The total run time (MS) of the last processing job."
+        }
+    }
 }

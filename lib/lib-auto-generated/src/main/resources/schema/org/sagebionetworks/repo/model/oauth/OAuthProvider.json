@@ -1,8 +1,14 @@
 {
-    "description":"Supported OAuth providers",
-    "type":"string",
-    "enum":[
-        "GOOGLE_OAUTH_2_0",
-        "ORCID"
+    "description": "Supported OAuth providers",
+    "type": "string",
+    "enum": [
+        {
+            "name": "GOOGLE_OAUTH_2_0",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ORCID",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

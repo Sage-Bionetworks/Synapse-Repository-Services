@@ -2,6 +2,8 @@ package org.sagebionetworks.javadoc.velocity.schema;
 
 import java.util.List;
 
+import org.sagebionetworks.schema.EnumValue;
+
 /**
  * This is the model object that contains the context data that will be rendered to the schema view.
  * 
@@ -15,15 +17,15 @@ public class ObjectSchemaModel {
 	String description;
 	List<SchemaFields> fields;
 	String effectiveSchema;
-	List<String> enumValues;
+	List<EnumValue> enumValues;
 	String sample;
 	boolean isInterface;
 	List<TypeReference> knownImplementations;
 	
-	public List<String> getEnumValues() {
+	public List<EnumValue> getEnumValues() {
 		return enumValues;
 	}
-	public void setEnumValues(List<String> enumValues) {
+	public void setEnumValues(List<EnumValue> enumValues) {
 		this.enumValues = enumValues;
 	}
 	public String getName() {

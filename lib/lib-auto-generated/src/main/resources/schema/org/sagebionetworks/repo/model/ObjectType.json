@@ -1,35 +1,122 @@
 {
-    "description":"JSON enum for the types of objects in Synapse.",
-    "type":"string",
-    "links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
-    "enum":[
-    	"ENTITY",
-    	"ENTITY_CONTAINER",
-    	"PRINCIPAL",
-    	"ACTIVITY",
-    	"EVALUATION",
-    	"SUBMISSION",
-    	"EVALUATION_SUBMISSIONS",
-    	"FILE",
-    	"MESSAGE", 
-    	"WIKI",
-    	"FAVORITE",
-    	"ACCESS_REQUIREMENT",
-    	"ACCESS_APPROVAL",
-    	"TEAM",
-    	"TABLE",
-    	"ACCESS_CONTROL_LIST",
-    	"PROJECT_SETTING",
-    	"VERIFICATION_SUBMISSION",
-    	"CERTIFIED_USER_PASSING_RECORD",
-        "FORUM",
-    	"THREAD",
-    	"REPLY",
-    	"ENTITY_VIEW",
-		"USER_PROFILE",
-		"DATA_ACCESS_REQUEST",
-		"DATA_ACCESS_SUBMISSION",
-		"DATA_ACCESS_SUBMISSION_STATUS",
-		"MEMBERSHIP_INVITATION"
+    "description": "JSON enum for the types of objects in Synapse.",
+    "type": "string",
+    "links": [{
+        "rel": "describedby",
+        "href": "http://synapse.sagebase.org/access/public"
+    }],
+    "enum": [
+        {
+            "name": "ENTITY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ENTITY_CONTAINER",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PRINCIPAL",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ACTIVITY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "EVALUATION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "EVALUATION_SUBMISSIONS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "FILE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MESSAGE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "WIKI",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "FAVORITE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ACCESS_REQUIREMENT",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ACCESS_APPROVAL",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAM",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TABLE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ACCESS_CONTROL_LIST",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PROJECT_SETTING",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "VERIFICATION_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CERTIFIED_USER_PASSING_RECORD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "FORUM",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "THREAD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "REPLY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ENTITY_VIEW",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "USER_PROFILE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATA_ACCESS_REQUEST",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATA_ACCESS_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATA_ACCESS_SUBMISSION_STATUS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MEMBERSHIP_INVITATION",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

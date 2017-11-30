@@ -1,23 +1,29 @@
 {
-	"description": "This object is deprecated and will be removed in future versions of Synapse.",
-	"properties": {
-		"tokenID": {
-			"type": "string",
-			"description": "The token ID for this url"
-		},
-		"presignedUrl": {
-			"type": "string",
-			"description": "A presigned url for downloading."
-		},
-		"status": {
-			"type": "string",
-			"description": "The status of this URL",
-			"name": "URLStatus",
-			"id": "org.sagebionetworks.repo.model.attachment.URLStatus",
-			"enum": [
-				"DOES_NOT_EXIST",
-				"READ_FOR_DOWNLOAD"
-			]
-		}
-	}
+    "description": "This object is deprecated and will be removed in future versions of Synapse.",
+    "properties": {
+        "tokenID": {
+            "type": "string",
+            "description": "The token ID for this url"
+        },
+        "presignedUrl": {
+            "type": "string",
+            "description": "A presigned url for downloading."
+        },
+        "status": {
+            "type": "string",
+            "description": "The status of this URL",
+            "name": "URLStatus",
+            "id": "org.sagebionetworks.repo.model.attachment.URLStatus",
+            "enum": [
+                {
+                    "name": "DOES_NOT_EXIST",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "READ_FOR_DOWNLOAD",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
+        }
+    }
 }

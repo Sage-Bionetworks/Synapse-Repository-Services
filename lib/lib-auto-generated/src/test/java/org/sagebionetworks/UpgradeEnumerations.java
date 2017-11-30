@@ -34,13 +34,16 @@ public class UpgradeEnumerations {
 			try {
 				String json = readFileToString(file.getAbsolutePath());
 				adapter = new JSONObjectAdapterImpl(json);
+				// attempt to read the schema.
 				ObjectSchema schema = new ObjectSchema(adapter);
 			} catch (JSONObjectAdapterException e) {
+				// this is the error message when the enumeration is the old style.
 				if(e.getMessage().contains("JSONArray[0] is not a JSONObject")) {
 					System.out.println("Need to translate: "+file.getAbsolutePath());
 					translateEnumRecursive(adapter);
 					JSONObject object = new JSONObject(adapter.toJSONString());
-					System.out.println(object.toString(4));
+					String newJson = object.toString(4);
+					FileUtils.writeStringToFile(file, newJson, "UTF-8");
 				}
 			}
 		}

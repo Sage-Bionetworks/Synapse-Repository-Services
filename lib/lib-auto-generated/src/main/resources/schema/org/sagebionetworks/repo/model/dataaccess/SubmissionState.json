@@ -1,10 +1,22 @@
 {
-	"description":"The state of a Submission.",
-	"type":"string",
-	"enum":[
-		"SUBMITTED",
-		"APPROVED",
-		"REJECTED",
-		"CANCELLED"
-	]
+    "description": "The state of a Submission.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "SUBMITTED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "APPROVED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "REJECTED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CANCELLED",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

@@ -1,10 +1,16 @@
 {
-	"description":"JSON enum dictating how messages should be sorted",
-	"name":"MessageSortBy",
-    "type":"string",
-    "id":"org.sagebionetworks.repo.model.message.MessageSortBy", 
-	"enum": [
-		"SEND_DATE",
-		"SUBJECT"
-	]
+    "description": "JSON enum dictating how messages should be sorted",
+    "name": "MessageSortBy",
+    "type": "string",
+    "id": "org.sagebionetworks.repo.model.message.MessageSortBy",
+    "enum": [
+        {
+            "name": "SEND_DATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SUBJECT",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

@@ -1,52 +1,79 @@
 {
-    "title":"Column Model",
-    "description":"A column model contains the metadata of a single column of a TableEntity",
-    "properties":{
-        "id":{
-            "type":"string",
-            "description":"The immutable ID issued to new columns"
+    "title": "Column Model",
+    "description": "A column model contains the metadata of a single column of a TableEntity",
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "The immutable ID issued to new columns"
         },
-        "name":{
-            "type":"string",
-            "description":"The display name of the column"
+        "name": {
+            "type": "string",
+            "description": "The display name of the column"
         },
-        "defaultValue":{
-            "type":"string",
-            "description":"The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
+        "defaultValue": {
+            "type": "string",
+            "description": "The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
         },
         "columnType": {
-			"type": "string",
-			"description": "The type of the column must be from this enumeration.",
-			"name": "ColumnType",
-			"id": "org.sagebionetworks.repo.model.table.ColumnType",
-			"enum": [
-				"STRING",
-				"DOUBLE",
-				"INTEGER",
-				"BOOLEAN",
-				"DATE",
-				"FILEHANDLEID",
-				"ENTITYID",
-				"LINK",
-				"LARGETEXT",
-				"USERID"
-			]
-		},
-        "maximumSize":{
-            "type":"integer",
-            "description":"A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+            "type": "string",
+            "description": "The type of the column must be from this enumeration.",
+            "name": "ColumnType",
+            "id": "org.sagebionetworks.repo.model.table.ColumnType",
+            "enum": [
+                {
+                    "name": "STRING",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "DOUBLE",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "INTEGER",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "BOOLEAN",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "DATE",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "FILEHANDLEID",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "ENTITYID",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "LINK",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "LARGETEXT",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "USERID",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
         },
-		"enumValues": {
-			"description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		},
-		"facetType": {
-			"description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
-			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
-		}
-		
+        "maximumSize": {
+            "type": "integer",
+            "description": "A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+        },
+        "enumValues": {
+            "description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "facetType": {
+            "description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
+            "$ref": "org.sagebionetworks.repo.model.table.FacetType"
+        }
     }
 }
