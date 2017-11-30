@@ -38,16 +38,34 @@ public class UpgradeEnumerations {
 			} catch (JSONObjectAdapterException e) {
 				if(e.getMessage().contains("JSONArray[0] is not a JSONObject")) {
 					System.out.println("Need to translate: "+file.getAbsolutePath());
-					if(adapter.has(ObjectSchema.JSON_ENUM)) {
-						JSONArrayAdapter array = adapter.getJSONArray(ObjectSchema.JSON_ENUM);
-						JSONArrayAdapter newArray = translateOldToNew(array);
-						// Replace the old array with a new array
-						adapter.put(ObjectSchema.JSON_ENUM, newArray);
-						JSONObject object = new JSONObject(adapter.toJSONString());
-						System.out.println(object.toString(4));
-					}
+					translateEnumRecursive(adapter);
+					JSONObject object = new JSONObject(adapter.toJSONString());
+					System.out.println(object.toString(4));
 				}
 			}
+		}
+	}
+	
+	private static void translateEnumRecursive(JSONObjectAdapter adapter) throws JSONObjectAdapterException {
+		translateLeaf(adapter);
+		Iterator<String> keyIt = adapter.keys();
+		while(keyIt.hasNext()) {
+			String key = keyIt.next();
+			try {
+				JSONObjectAdapter child = adapter.getJSONObject(key);
+				translateEnumRecursive(child);
+			} catch (JSONObjectAdapterException e) {
+				// not an object so ignore
+			}
+		}
+	}
+	
+	private static void translateLeaf(JSONObjectAdapter adapter) throws JSONObjectAdapterException {
+		if(adapter.has(ObjectSchema.JSON_ENUM)) {
+			JSONArrayAdapter array = adapter.getJSONArray(ObjectSchema.JSON_ENUM);
+			JSONArrayAdapter newArray = translateOldToNew(array);
+			// Replace the old array with a new array
+			adapter.put(ObjectSchema.JSON_ENUM, newArray);
 		}
 	}
 	
@@ -55,7 +73,7 @@ public class UpgradeEnumerations {
 		JSONArrayAdapter newArray = array.createNewArray();
 		for(int i=0; i<array.length(); i++) {
 			String name = array.getString(i);
-			EnumValue value = new EnumValue(name, "TODO Auto-generated description");
+			EnumValue value = new EnumValue(name, "TODO: Auto-generated description");
 			JSONObjectAdapter newValueAdapter = array.createNew();
 			value.writeToJSONObject(newValueAdapter);
 			newArray.put(i, newValueAdapter);
