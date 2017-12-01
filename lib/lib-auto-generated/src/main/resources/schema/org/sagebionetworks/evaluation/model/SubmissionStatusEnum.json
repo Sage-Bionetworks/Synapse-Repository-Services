@@ -1,16 +1,43 @@
 {
-    "description":"The possible states of a Synapse Submission.",
+    "description": "The possible states of a Synapse Submission.",
     "name": "SubmissionStatusEnum",
-    "type":"string",
-    "enum":[
-        "OPEN",
-        "CLOSED",
-        "SCORED",
-        "INVALID",
-        "VALIDATED",
-        "EVALUATION_IN_PROGRESS",
-        "RECEIVED",
-        "REJECTED",
-        "ACCEPTED"
+    "type": "string",
+    "enum": [
+        {
+            "name": "OPEN",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CLOSED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SCORED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "INVALID",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "VALIDATED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "EVALUATION_IN_PROGRESS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "RECEIVED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "REJECTED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "ACCEPTED",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

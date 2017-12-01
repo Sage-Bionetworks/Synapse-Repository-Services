@@ -1,9 +1,18 @@
 {
-    "description":"JSON enum for the types of objects which can be restricted by an AccessRequirement.",
-    "type":"string",
-    "enum":[
-        "ENTITY",
-        "EVALUATION",
-        "TEAM"
+    "description": "JSON enum for the types of objects which can be restricted by an AccessRequirement.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "ENTITY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "EVALUATION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAM",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

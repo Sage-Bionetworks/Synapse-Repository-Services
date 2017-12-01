@@ -1,12 +1,27 @@
 {
-    "description":"The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum",
+    "description": "The enumeration of the possible alias types that can be bound to a principal.  Note, these names must match those in AliasEnum",
     "name": "AliasType",
-    "type":"string",
-    "enum":[
-    	"USER_NAME",
-    	"TEAM_NAME",
-    	"USER_EMAIL",
-    	"USER_OPEN_ID",
-    	"USER_ORCID"
+    "type": "string",
+    "enum": [
+        {
+            "name": "USER_NAME",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAM_NAME",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "USER_EMAIL",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "USER_OPEN_ID",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "USER_ORCID",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

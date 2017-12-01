@@ -1,8 +1,14 @@
 {
-    "description":"Enum for the different types of project lists",
-    "type":"string",
-    "enum":[
-    	"LAST_ACTIVITY",
-    	"PROJECT_NAME"
+    "description": "Enum for the different types of project lists",
+    "type": "string",
+    "enum": [
+        {
+            "name": "LAST_ACTIVITY",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PROJECT_NAME",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

@@ -1,8 +1,17 @@
 {
-    "type":"string",
-    "enum":[
-    	"push",
-		"pull",
-		"mount"
+    "type": "string",
+    "enum": [
+        {
+            "name": "push",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "pull",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "mount",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

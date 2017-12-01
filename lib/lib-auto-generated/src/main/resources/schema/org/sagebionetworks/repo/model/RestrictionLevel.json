@@ -1,9 +1,18 @@
 {
-	"type":"string",
-	"name": "RestrictionLevel",
-	"enum":[
-		"OPEN",
-		"RESTRICTED_BY_TERMS_OF_USE",
-		"CONTROLLED_BY_ACT"
-	]
+    "type": "string",
+    "name": "RestrictionLevel",
+    "enum": [
+        {
+            "name": "OPEN",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "RESTRICTED_BY_TERMS_OF_USE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CONTROLLED_BY_ACT",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

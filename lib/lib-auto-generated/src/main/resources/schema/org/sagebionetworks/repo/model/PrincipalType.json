@@ -1,8 +1,14 @@
 {
-    "description":"JSON enum for the type of Principal within Synapse",
-    "type":"string",
-    "enum":[
-    	"USER",
-    	"TEAM"
+    "description": "JSON enum for the type of Principal within Synapse",
+    "type": "string",
+    "enum": [
+        {
+            "name": "USER",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAM",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

@@ -1,10 +1,19 @@
 {
-    "description":"The type of this facet",
-    "type":"string",
-    "name":"FacetTypeNames",
-    "enum":[
-        "LITERAL",
-        "DATE",
-        "CONTINUOUS"
+    "description": "The type of this facet",
+    "type": "string",
+    "name": "FacetTypeNames",
+    "enum": [
+        {
+            "name": "LITERAL",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CONTINUOUS",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

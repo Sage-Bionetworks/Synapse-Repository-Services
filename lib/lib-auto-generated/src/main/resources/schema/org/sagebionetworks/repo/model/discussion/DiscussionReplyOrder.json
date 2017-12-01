@@ -1,6 +1,7 @@
 {
-	"type":"string",
-	"enum":[
-		"CREATED_ON"
-	]
+    "type": "string",
+    "enum": [{
+        "name": "CREATED_ON",
+        "description": "TODO: Auto-generated description"
+    }]
 }

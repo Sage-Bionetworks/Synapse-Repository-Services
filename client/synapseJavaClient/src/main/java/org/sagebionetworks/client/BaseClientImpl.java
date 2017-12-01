@@ -732,13 +732,13 @@ public class BaseClientImpl implements BaseClient {
 	protected boolean getBooleanResult(String endpoint, String uri) throws SynapseException {
 		try {
 			JSONObject jsonObj = getJson(endpoint, uri);
-			String resultString = null;
+			Boolean booleanResult = null;
 			try {
-				resultString = jsonObj.getString("result");
+				booleanResult = jsonObj.getBoolean("result");
 			} catch (NullPointerException e) {
 				throw new SynapseClientException(jsonObj.toString(), e);
 			}
-			return Boolean.parseBoolean(resultString);
+			return booleanResult;
 		} catch (JSONException e) {
 			throw new SynapseClientException(e);
 		}

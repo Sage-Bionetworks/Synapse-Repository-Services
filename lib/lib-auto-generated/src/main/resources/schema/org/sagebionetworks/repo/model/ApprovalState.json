@@ -1,8 +1,14 @@
 {
-	"description":"JSON enum for the state of AccessApproval",
-	"type":"string",
-	"enum":[
-		"APPROVED",
-		"REVOKED"
-	]
+    "description": "JSON enum for the state of AccessApproval",
+    "type": "string",
+    "enum": [
+        {
+            "name": "APPROVED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "REVOKED",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

@@ -1,7 +1,13 @@
 {
-    "type":"string",
-    "enum":[
-		"enumeration",
-		"range"
+    "type": "string",
+    "enum": [
+        {
+            "name": "enumeration",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "range",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

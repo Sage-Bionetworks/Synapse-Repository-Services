@@ -1,8 +1,14 @@
 {
-	"type":"string",
-	"name": "SubmissionOrder",
-	"enum":[
-		"CREATED_ON",
-		"MODIFIED_ON"
-	]
+    "type": "string",
+    "name": "SubmissionOrder",
+    "enum": [
+        {
+            "name": "CREATED_ON",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MODIFIED_ON",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

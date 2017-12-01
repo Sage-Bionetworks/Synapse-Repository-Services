@@ -1,23 +1,71 @@
 {
-    "description":"The enumeration of possible permission.",
+    "description": "The enumeration of possible permission.",
     "name": "ACCESS_TYPE",
-    "type":"string",
-    "enum":[
-        "CREATE",
-        "READ",
-        "UPDATE",
-        "DELETE",
-        "CHANGE_PERMISSIONS",
-	 	"DOWNLOAD",
-	 	"UPLOAD",
-	 	"PARTICIPATE",
-	 	"SUBMIT",
-	 	"READ_PRIVATE_SUBMISSION",
-	 	"UPDATE_SUBMISSION",
-	 	"DELETE_SUBMISSION",
-	 	"TEAM_MEMBERSHIP_UPDATE",
-	 	"SEND_MESSAGE",
-	 	"CHANGE_SETTINGS",
-	 	"MODERATE"
+    "type": "string",
+    "enum": [
+        {
+            "name": "CREATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "READ",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "UPDATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DELETE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CHANGE_PERMISSIONS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DOWNLOAD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "UPLOAD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "PARTICIPATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SUBMIT",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "READ_PRIVATE_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "UPDATE_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DELETE_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TEAM_MEMBERSHIP_UPDATE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SEND_MESSAGE",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CHANGE_SETTINGS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MODERATE",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

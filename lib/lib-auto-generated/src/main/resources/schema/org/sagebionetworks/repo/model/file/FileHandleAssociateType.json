@@ -1,18 +1,54 @@
 {
-	"description":"Enumeration of all possible objects types that can be associated with a file.",
-	"type":"string",
-	"enum": [
-		"FileEntity",
-		"TableEntity",
-		"WikiAttachment",
-		"WikiMarkdown",
-		"UserProfileAttachment",
-		"MessageAttachment",
-		"TeamAttachment",
-		"SubmissionAttachment",
-		"VerificationSubmission",
-		"AccessRequirementAttachment",
-		"DataAccessRequestAttachment",
-		"DataAccessSubmissionAttachment"
-	]
+    "description": "Enumeration of all possible objects types that can be associated with a file.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "FileEntity",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TableEntity",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "WikiAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "WikiMarkdown",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "UserProfileAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "MessageAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TeamAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SubmissionAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "VerificationSubmission",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "AccessRequirementAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DataAccessRequestAttachment",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DataAccessSubmissionAttachment",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

@@ -1,52 +1,79 @@
 {
-    "title":"Column Model",
-    "description":"A column model contains the metadata of a single column of a TableEntity",
-    "properties":{
-        "id":{
-            "type":"string",
-            "description":"The immutable ID issued to new columns"
+    "title": "Column Model",
+    "description": "A column model contains the metadata of a single column of a TableEntity",
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "The immutable ID issued to new columns"
         },
-        "name":{
-            "type":"string",
-            "description":"The display name of the column"
+        "name": {
+            "type": "string",
+            "description": "The display name of the column"
         },
-        "defaultValue":{
-            "type":"string",
-            "description":"The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
+        "defaultValue": {
+            "type": "string",
+            "description": "The default value for this column. Columns of type FILEHANDLEID and ENTITYID are not allowed to have default values."
         },
         "columnType": {
-			"type": "string",
-			"description": "The type of the column must be from this enumeration.",
-			"name": "ColumnType",
-			"id": "org.sagebionetworks.repo.model.table.ColumnType",
-			"enum": [
-				"STRING",
-				"DOUBLE",
-				"INTEGER",
-				"BOOLEAN",
-				"DATE",
-				"FILEHANDLEID",
-				"ENTITYID",
-				"LINK",
-				"LARGETEXT",
-				"USERID"
-			]
-		},
-        "maximumSize":{
-            "type":"integer",
-            "description":"A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+            "type": "string",
+            "description": "The column type determines the type of data that can be stored in a column.",
+            "name": "ColumnType",
+            "id": "org.sagebionetworks.repo.model.table.ColumnType",
+            "enum": [
+                {
+                    "name": "STRING",
+                    "description": "The STRING data type is a small text strings with between 1 and 1,000 characters.  Each STRING column will have a declared maximum size between 1 and 1,000 characters (with 50 characters as the default when maximumSize = null).  The maximum STRING size is applied to the budget of the maximum table width, therefore it is best to use the smallest possible maximum size for the data.  For strings larger than 250 characters, consider using the LARGETEXT column type for improved performance."
+                },
+                {
+                    "name": "DOUBLE",
+                    "description": "The DOUBLE data type is a double-precision 64-bit IEEE 754 floating point. Its range of values is approximately ±1.79769313486231570E+308 (15 significant decimal digits)."
+                },
+                {
+                    "name": "INTEGER",
+                    "description": "The INTEGER data type is a 64-bit two's complement integer. The signed integer has a minimum value of -2^63 and a maximum value of 2^63-1."
+                },
+                {
+                    "name": "BOOLEAN",
+                    "description": "The BOOLEAN data type has only two possible values: 'true' and 'false'."
+                },
+                {
+                    "name": "DATE",
+                    "description": "The DATE data type represent the specified number of milliseconds since the standard base time known as 'the epoch', namely January 1, 1970, 00:00:00 GMT"
+                },
+                {
+                    "name": "FILEHANDLEID",
+                    "description": "The FILEHANDLEID data type represents a file stored within a table.  To store a file in a table, first use the 'File Services' to upload a file to generate a new FileHandle, then apply the fileHandle.id as the value for this column.  Note: This column type works best for files that are binary (non-text) or text files that are 1 MB or larger.  For text files that are smaller than 1 MB consider using the LARGETEXT column type to improve download performance."
+                },
+                {
+                    "name": "ENTITYID",
+                    "description": "The ENTITYID type represents a reference to a Synapse Entity.  Values will include the 'syn' prefix, such as 'syn123'."
+                },
+                {
+                    "name": "LINK",
+                    "description": "The LINK data type represents any URL with 1,000 characters or less."
+                },
+                {
+                    "name": "LARGETEXT",
+                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 349,525 characters (1 MB of UTF-8 chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
+                },
+                {
+                    "name": "USERID",
+                    "description": "The USERID data type represents a reference to a Synapse User.  The value should be the ID of the referenced User."
+                }
+            ]
         },
-		"enumValues": {
-			"description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",
-			"type": "array",
-			"items": {
-				"type": "string"
-			}
-		},
-		"facetType": {
-			"description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
-			"$ref":"org.sagebionetworks.repo.model.table.FacetType"
-		}
-		
+        "maximumSize": {
+            "type": "integer",
+            "description": "A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+        },
+        "enumValues": {
+            "description": "Columns of type STRING can be constrained to an enumeration values set on this list. The maximum number of entries for an enum is 100",
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "facetType": {
+            "description": "Set to one of the enumerated values to indicate this column should be treated as a facet. \"Enumeration\" will return the most frequently seen values and their counts; selecting these values will cause the table results to be filtered. \"Range\" will allow the table to be filtered by a chosen lower and upper bound; these bounds are inclusive.",
+            "$ref": "org.sagebionetworks.repo.model.table.FacetType"
+        }
     }
 }

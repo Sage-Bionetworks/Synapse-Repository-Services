@@ -1,23 +1,26 @@
 {
-	"description": "This object is deprecated and will be removed in future versions of Synapse.",
-	"properties": {
-		"message": {
-			"type": "string",
-			"description": "The uplaod message"
-		},
-		"uploadStatus": {
-			"type": "string",
-			"description": "The status of the upload.",
-			"name": "UploadStatus",
-			"id": "org.sagebionetworks.repo.model.attachment.UploadStatus",
-			"enum": [
-				"FAILED",
-				"SUCCESS"
-			]
-		},
-		"attachmentData": {
-			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"
-		}
-		
-	}
+    "description": "This object is deprecated and will be removed in future versions of Synapse.",
+    "properties": {
+        "message": {
+            "type": "string",
+            "description": "The uplaod message"
+        },
+        "uploadStatus": {
+            "type": "string",
+            "description": "The status of the upload.",
+            "name": "UploadStatus",
+            "id": "org.sagebionetworks.repo.model.attachment.UploadStatus",
+            "enum": [
+                {
+                    "name": "FAILED",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "SUCCESS",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
+        },
+        "attachmentData": {"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"}
+    }
 }
