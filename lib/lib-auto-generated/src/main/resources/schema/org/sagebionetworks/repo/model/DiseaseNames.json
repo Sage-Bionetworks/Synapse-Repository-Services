@@ -1,26 +1,83 @@
 {
-    "description":"JSON schema for Disease Data POJO",
+    "description": "JSON schema for Disease Data POJO",
     "name": "DiseaseNames",
-    "type":"string",
-    "enum":[
-        "Alzheimers",
-        "Asthma",
-        "Autism",
-        "Cancer",
-        "CVD",
-        "Diabetes",
-        "Disease",
-        "Drug_Response",
-        "Healthy",
-        "Infectious_Disease",
-        "Inflammatory_Disease",
-        "Metabolic_Disease",
-        "Multiple",
-        "Multiple_Sclerosis",
-        "Neurological_Disease",
-        "Respiratory_Disease",
-        "Sarcopenia",
-        "Schizophrenia",
-        "TBD"
+    "type": "string",
+    "enum": [
+        {
+            "name": "Alzheimers",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Asthma",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Autism",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Cancer",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "CVD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Diabetes",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Drug_Response",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Healthy",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Infectious_Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Inflammatory_Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Metabolic_Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Multiple",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Multiple_Sclerosis",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Neurological_Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Respiratory_Disease",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Sarcopenia",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "Schizophrenia",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TBD",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

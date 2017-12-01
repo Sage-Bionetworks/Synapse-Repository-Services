@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.dbo.dao.MembershipRequestUtils.copyToSerializedField;
-import static org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils.decompressedObject;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_ID;
@@ -11,21 +9,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_REQUEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_REQUEST;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-
-import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 
 /**
  * Database Object for a MembershipRequest.
@@ -177,20 +170,6 @@ public class DBOMembershipRequest implements MigratableDatabaseObject<DBOMembers
 
 			@Override
 			public DBOMembershipRequest createDatabaseObjectFromBackup(DBOMembershipRequest backup) {
-				try {
-					try {
-						MembershipRequest mr = (MembershipRequest) decompressedObject(
-								backup.getProperties(), "MembershipRqstSubmission", MembershipRequest.class);
-						copyToSerializedField(mr, backup);
-					} catch (CannotResolveClassException e) {
-						// The backup properties field didn't contain a MembershipRqstSubmission
-						// Make sure that it contains a MembershipRequest
-						MembershipRequest mr = (MembershipRequest) decompressedObject(
-								backup.getProperties(), "MembershipRequest", MembershipRequest.class);
-					}
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
 				return backup;
 			}
 

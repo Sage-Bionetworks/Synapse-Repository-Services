@@ -1,34 +1,39 @@
 {
-	"title": "ChangeMessage",
-	"description": "JSON schema for a change message",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.message.Message"
-		}
-	],
-	"properties": {
-		"changeNumber": {
-			"type": "integer",
-			"description":"The application change number created as a result of this change."
-		},
-		"objectEtag": {
-			"type": "string",
-			"description":"The new Etag of the changed object"
-		},
-		"changeType": {
-			"type": "string",
-			"description": "The type of change that occurred",
-			"name": "ChangeType",
-			"id": "org.sagebionetworks.repo.model.message.ChangeType",
-			"enum": [
-				"CREATE",
-				"UPDATE",
-				"DELETE"
-			]
-		},
-		"userId": {
-			"type": "integer",
-			"description": "The ID of the user who created this change message"
-		}
-	}
+    "title": "ChangeMessage",
+    "description": "JSON schema for a change message",
+    "implements": [{"$ref": "org.sagebionetworks.repo.model.message.Message"}],
+    "properties": {
+        "changeNumber": {
+            "type": "integer",
+            "description": "The application change number created as a result of this change."
+        },
+        "objectEtag": {
+            "type": "string",
+            "description": "The new Etag of the changed object"
+        },
+        "changeType": {
+            "type": "string",
+            "description": "The type of change that occurred",
+            "name": "ChangeType",
+            "id": "org.sagebionetworks.repo.model.message.ChangeType",
+            "enum": [
+                {
+                    "name": "CREATE",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "UPDATE",
+                    "description": "TODO: Auto-generated description"
+                },
+                {
+                    "name": "DELETE",
+                    "description": "TODO: Auto-generated description"
+                }
+            ]
+        },
+        "userId": {
+            "type": "integer",
+            "description": "The ID of the user who created this change message"
+        }
+    }
 }

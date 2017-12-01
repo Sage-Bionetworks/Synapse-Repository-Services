@@ -53,7 +53,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 
 /**
@@ -197,11 +196,11 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// To prevent deadlock we sort by object id to guarantee a consistent update order.
 		batchDTO = ChangeMessageUtils.sortByObjectId(batchDTO);
 		// Send each replace them in order.
-		List<ChangeMessage> resutls = new ArrayList<ChangeMessage>();
+		List<ChangeMessage> results = new ArrayList<>();
 		for(ChangeMessage change: batchDTO){
-			resutls.add(replaceChange(change));
+			results.add(replaceChange(change));
 		}
-		return resutls;
+		return results;
 	}
 
 	@WriteTransaction

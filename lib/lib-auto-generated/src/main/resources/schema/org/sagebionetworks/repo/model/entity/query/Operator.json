@@ -1,13 +1,34 @@
 {
-	"type": "string",
-	"description": "The enumeration of query condition operators.",
-	"enum": [
-			"EQUALS",
-			"NOT_EQUALS",
-			"GREATER_THAN",
-			"LESS_THAN",
-			"GREATER_THAN_OR_EQUALS",
-			"LESS_THAN_OR_EQUALS",
-			"IN"
-		]
+    "type": "string",
+    "description": "The enumeration of query condition operators.",
+    "enum": [
+        {
+            "name": "EQUALS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "NOT_EQUALS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "GREATER_THAN",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "LESS_THAN",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "GREATER_THAN_OR_EQUALS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "LESS_THAN_OR_EQUALS",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "IN",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

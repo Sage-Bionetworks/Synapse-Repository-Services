@@ -46,7 +46,7 @@ public class JobHashProviderImplTest {
 		body.setEntityId("syn123");
 		body.setSql("select * from syn123");
 		String hash = provider.getJobHash(body);
-		assertEquals("6e1004998c65dfe299ea947cd55a1bbe", hash);
+		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
 	}
 	
 	@Test
@@ -91,7 +91,7 @@ public class JobHashProviderImplTest {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(body1.getEntityId())).thenReturn(tableStatus);
 		// call under test
 		String etag = provider.getJobHash(body1);
-		assertEquals("a677a454999341a94f51f26b3ddd4d74", etag);
+		assertEquals("172bcd947ddd904155e4cc35e06a410d", etag);
 	}
 
 	@Test
@@ -101,7 +101,7 @@ public class JobHashProviderImplTest {
 		body1.setSql("select * from syn123");
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("6e1004998c65dfe299ea947cd55a1bbe", hash);
+		assertEquals("104e5a592b453d31a58da6f9e4ec998a", hash);
 	}
 
 	@Test
@@ -113,7 +113,7 @@ public class JobHashProviderImplTest {
 		body1.setQuery(query);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("6ec21be4052a97470dddc248e01633f1", hash);
+		assertEquals("783a9c542fff9a43542046eed61a15df", hash);
 	}
 
 	@Test
@@ -121,7 +121,7 @@ public class JobHashProviderImplTest {
 		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L, true, null);
 		// call under test
 		String hash = provider.getJobHash(body1);
-		assertEquals("a27d83c50b1666f2ed22b11f67598fad", hash);
+		assertEquals("143599eb9ac5480fbea70d5cafa14464", hash);
 	}
 	
 }

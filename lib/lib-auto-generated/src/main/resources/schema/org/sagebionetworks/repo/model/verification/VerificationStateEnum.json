@@ -1,13 +1,27 @@
 {
-    "description":"The enumeration of possible verification states.",
+    "description": "The enumeration of possible verification states.",
     "name": "VerificationStateEnum",
-    "type":"string",
-    "enum":[
-        "SUBMITTED",
-        "APPROVED",
-	 	"REJECTED",
-	 	"SUSPENDED"
+    "type": "string",
+    "enum": [
+        {
+            "name": "SUBMITTED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "APPROVED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "REJECTED",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "SUSPENDED",
+            "description": "TODO: Auto-generated description"
+        }
     ],
-    "links": [{"rel": "describedby", "href": "http://synapse.sagebase.org/access/public"}]
-    
+    "links": [{
+        "rel": "describedby",
+        "href": "http://synapse.sagebase.org/access/public"
+    }]
 }

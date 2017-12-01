@@ -1,12 +1,33 @@
 {
-    "type":"string",
-    "enum":[
-    	"project",
-		"folder",
-		"file",
-		"table",
-		"link",
-		"entityview",
-		"dockerrepo"
+    "type": "string",
+    "enum": [
+        {
+            "name": "project",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "folder",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "file",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "table",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "link",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "entityview",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "dockerrepo",
+            "description": "TODO: Auto-generated description"
+        }
     ]
 }

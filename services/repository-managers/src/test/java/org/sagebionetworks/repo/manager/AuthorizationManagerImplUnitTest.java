@@ -951,33 +951,6 @@ public class AuthorizationManagerImplUnitTest {
 		authorizationManager.getAccessibleProjectIds(principalIds);
 	}
 	
-	/**
-	 * This method cannot be called with PUBLIC_GROUP
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAccessibleProjectIdsWithPublic(){
-		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue());
-		authorizationManager.getAccessibleProjectIds(principalIds);
-	}
-	
-	/**
-	 * This method cannot be called with AUTHENTICATED_USERS_GROUP
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAccessibleProjectIdsWithAuthenticated(){
-		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue());
-		authorizationManager.getAccessibleProjectIds(principalIds);
-	}
-	
-	/**
-	 * This method cannot be called with CERTIFIED_USERS.
-	 */
-	@Test (expected=IllegalArgumentException.class)
-	public void testGetAccessibleProjectIdsWithCertified(){
-		Set<Long> principalIds = Sets.newHashSet(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue());
-		authorizationManager.getAccessibleProjectIds(principalIds);
-	}
-	
 	@Test
 	public void testValidParentProjectIdInvalidRepoName() {
 		assertEquals(null, authorizationManager.validDockerRepositoryParentId("/invalid/"));

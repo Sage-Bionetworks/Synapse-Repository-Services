@@ -1,7 +1,13 @@
 {
-	"type":"string",
-	"enum":[
-		"CREATED_ON",
-		"TAG"
-	]
+    "type": "string",
+    "enum": [
+        {
+            "name": "CREATED_ON",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "TAG",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

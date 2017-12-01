@@ -491,15 +491,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public Set<Long> getAccessibleProjectIds(Set<Long> principalIds) {
 		ValidateArgument.required(principalIds, "principalIds");
-		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().longValue())){
-			throw new IllegalArgumentException("PUBLIC cannot be included in the passed princpalIds");
-		}
-		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().longValue())){
-			throw new IllegalArgumentException("AUTHENTICATED_USERS_GROUP cannot be included in the passed princpalIds");
-		}
-		if(principalIds.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().longValue())){
-			throw new IllegalArgumentException("CERTIFIED_USERS cannot be included in the passed princpalIds");
-		}
 		if(principalIds.isEmpty()){
 			return new HashSet<>(0);
 		}

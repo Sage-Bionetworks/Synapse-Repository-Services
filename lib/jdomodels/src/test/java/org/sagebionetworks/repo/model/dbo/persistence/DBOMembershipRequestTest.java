@@ -3,11 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.dbo.dao.MembershipRequestUtils.deserialize;
-import static org.sagebionetworks.util.ZipUtils.unzip;
-import static org.sagebionetworks.util.ZipUtils.zip;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,7 +16,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,64 +102,5 @@ public class DBOMembershipRequestTest {
 		params.addValue("id", clone.getId());
 		DBOMembershipRequest clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipRequest.class, params);
 		assertEquals(clone, clone2);
-	}
-
-	@Test
-	public void testTranslatorRefactor() throws IOException {
-		DBOMembershipRequest backup = new DBOMembershipRequest();
-		String backupProperties =
-				"<MembershipRqstSubmission>\n" +
-				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
-				"  <createdBy>1976831</createdBy>\n" +
-				"  <userId>2223382</userId>\n" +
-				"  <teamId>2223746</teamId>\n" +
-				"</MembershipRqstSubmission>\n";
-		backup.setProperties(zip(backupProperties.getBytes()));
-
-		// Method under test
-		DBOMembershipRequest translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-
-		String translatedProperties = new String(unzip(translated.getProperties())).trim();
-		// Assert that the top level xml tags are updated
-		assertTrue(translatedProperties.startsWith("<MembershipRequest>"));
-		assertTrue(translatedProperties.endsWith("</MembershipRequest>"));
-
-		String expectedProperties =
-				"<MembershipRequest>\n" +
-				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
-				"  <createdBy>1976831</createdBy>\n" +
-				"  <userId>2223382</userId>\n" +
-				"  <teamId>2223746</teamId>\n" +
-				"</MembershipRequest>\n";
-		MembershipRequest expectedDTO = deserialize(zip(expectedProperties.getBytes()));
-		MembershipRequest translatedDTO = deserialize(translated.getProperties());
-		// Assert that the translated DTO's contents are identical to the backup DTO's
-		assertEquals(expectedDTO, translatedDTO);
-	}
-
-	@Test
-	public void testTranslatorRefactorAlreadyTranslated() throws IOException {
-		DBOMembershipRequest backup = new DBOMembershipRequest();
-		String backupProperties =
-				"<MembershipRequest>\n" +
-				"  <createdOn>2014-02-05 22:21:37.765 UTC</createdOn>\n" +
-				"  <createdBy>1976831</createdBy>\n" +
-				"  <userId>2223382</userId>\n" +
-				"  <teamId>2223746</teamId>\n" +
-				"</MembershipRequest>\n";
-		backup.setProperties(zip(backupProperties.getBytes()));
-
-		// Method under test
-		DBOMembershipRequest translated = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-
-		String translatedProperties = new String(unzip(translated.getProperties())).trim();
-		// Assert that the top level xml tag are still correct
-		assertTrue(translatedProperties.startsWith("<MembershipRequest>"));
-		assertTrue(translatedProperties.endsWith("</MembershipRequest>"));
-
-		MembershipRequest backupDTO = deserialize(zip(backupProperties.getBytes()));
-		MembershipRequest translatedDTO = deserialize(translated.getProperties());
-		// Assert that the backup and the translated DTOs are identical
-		assertEquals(backupDTO, translatedDTO);
 	}
 }

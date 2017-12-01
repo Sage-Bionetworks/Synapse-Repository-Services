@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -251,9 +252,9 @@ public class SchemaUtils {
 		}
 		if(schema.getEnum() != null){
 			// This is an enumeration.
-			List<String> enumValues = new LinkedList<String>();
+			List<EnumValue> enumValues = new LinkedList<EnumValue>();
 			results.setEnumValues(enumValues);
-			for(String en: schema.getEnum()){
+			for(EnumValue en: schema.getEnum()){
 				enumValues.add(en);
 			}
 		}

@@ -21,10 +21,6 @@
 		"remote_ip":{
 			"type":"string",
 			"description":"The IP address of the server that is sending this message to the CloudMailin servers"
-		},
-		"spf": {
-			"type": "string",
-			"description":"The SPF result for the given IP address and Domain."
 		}
 	} 
 }

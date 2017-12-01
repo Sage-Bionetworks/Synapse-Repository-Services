@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 
@@ -271,14 +272,16 @@ public class SchemaUtilsTest {
 		schema.setDescription(description);
 		schema.setSchema(effective);
 		schema.setName(name);
-		schema.setEnum(new String[]{"a", "b"});
+		EnumValue a = new EnumValue("a");
+		EnumValue b = new EnumValue("b", "b's description");
+		schema.setEnum(new EnumValue[]{a,b});
 		ObjectSchemaModel model = SchemaUtils.translateToModel(schema, null);
 		assertNotNull(model);
 		assertEquals(description, model.getDescription());
 		assertEquals(id, model.getId());
 		assertEquals(name, model.getName());
 		assertEquals(effective, model.getEffectiveSchema());
-		assertEquals(Arrays.asList("a", "b"), model.getEnumValues());
+		assertEquals(Arrays.asList(a,b), model.getEnumValues());
 	}
 	
 	@Test

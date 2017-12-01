@@ -1,11 +1,23 @@
 {
-	"description":"The types of object that can be subscribed.",
-	"name": "SubscriptionObjectType",
-	"type":"string",
-	"enum":[
-		"FORUM",
-		"THREAD",
-		"DATA_ACCESS_SUBMISSION",
-		"DATA_ACCESS_SUBMISSION_STATUS"
-	]
+    "description": "The types of object that can be subscribed.",
+    "name": "SubscriptionObjectType",
+    "type": "string",
+    "enum": [
+        {
+            "name": "FORUM",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "THREAD",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATA_ACCESS_SUBMISSION",
+            "description": "TODO: Auto-generated description"
+        },
+        {
+            "name": "DATA_ACCESS_SUBMISSION_STATUS",
+            "description": "TODO: Auto-generated description"
+        }
+    ]
 }

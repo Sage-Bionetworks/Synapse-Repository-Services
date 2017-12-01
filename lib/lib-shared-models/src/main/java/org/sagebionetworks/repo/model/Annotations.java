@@ -672,7 +672,7 @@ public class Annotations implements JSONEntity, Serializable {
 			this.etag = toInitFrom.getString(JSON_ETAG);
 		}
 		if(toInitFrom.has(JSON_CREATION_DATE)){
-			this.creationDate = toInitFrom.convertStringToDate(FORMAT.UTC_MILLISEC, toInitFrom.getString(JSON_CREATION_DATE));
+			this.creationDate = new Date(toInitFrom.getLong(JSON_CREATION_DATE));
 		}
 		if(toInitFrom.has(JSON_STRING_ANNOTATIONS)){
 			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_STRING_ANNOTATIONS);
