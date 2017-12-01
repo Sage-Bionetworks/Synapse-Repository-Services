@@ -1,5 +1,5 @@
 {	
-	"description":"Selected minimum and maximum values for a range type facet",
+	"description":"Contains the name and type of the column to be filtered, and the facet values to filter on.",
 	"implements": [
 		{
 		"$ref": "org.sagebionetworks.repo.model.table.FacetColumnRequest"
