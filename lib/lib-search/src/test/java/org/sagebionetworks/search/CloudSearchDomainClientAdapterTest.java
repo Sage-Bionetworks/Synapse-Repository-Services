@@ -21,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -38,6 +39,9 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Mock
 	SearchResult mockResponse;
+
+	@Mock
+	SearchException mockedSearchException; //no idea how to change the .getStatusCode() without mocking
 
 	SearchRequest searchRequest;
 
@@ -83,13 +87,51 @@ public class CloudSearchDomainClientAdapterTest {
 	public void testSearchNoError() throws Exception {
 		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenReturn(mockResponse);
-		assertEquals(SearchUtil.convertToSynapseSearchResult(mockResponse), cloudSearchDomainClientAdapter.search(searchRequest));
+
+		//method under test
+		SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+
+		assertEquals(SearchUtil.convertToSynapseSearchResult(mockResponse), result);
 		verify(mockCloudSearchDomainClient).search(searchRequest);
 		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
-	//TODO: test error handling
+	@Test
+	public void testSearchOnErrorCode5xx() throws Exception {
+		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 
+		when(mockedSearchException.getStatusCode()).thenReturn(504);
+		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
+
+		//method under test
+		try {
+			SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+		} catch (SearchException e){
+			assertEquals(mockedSearchException, e);
+		}
+		verify(mockCloudSearchDomainClient).search(searchRequest);
+		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
+	}
+
+	@Test
+	public void testSearchOnErrorCode4xx() throws Exception {
+		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+
+		String exceptionMessage = "Some message";
+		when(mockedSearchException.getStatusCode()).thenReturn(400);
+		when(mockedSearchException.getMessage()).thenReturn(exceptionMessage);
+		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
+
+		//method under test
+		try {
+			SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+		} catch (CloudSearchClientException e){
+			assertEquals(exceptionMessage, e.getMessage());
+		}
+
+		verify(mockCloudSearchDomainClient).search(searchRequest);
+		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
+	}
 
 	/**
 	 * sendDocument() Tests
@@ -106,7 +148,7 @@ public class CloudSearchDomainClientAdapterTest {
 	}
 
 	@Test
-	public void testSendDocumentt() throws IOException {
+	public void testSendDocument() throws IOException {
 		String documentString = "omae wa mou shindeiru";
 		ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor = ArgumentCaptor.forClass(UploadDocumentsRequest.class);
 		cloudSearchDomainClientAdapter.setEndpoint(endpoint);

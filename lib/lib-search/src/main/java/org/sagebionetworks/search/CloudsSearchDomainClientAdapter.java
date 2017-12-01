@@ -77,9 +77,10 @@ public class CloudsSearchDomainClientAdapter {
 				//The AWS API already has retry logic for 5xx status codes so getting one here means retries failed
 				logger.error("search(): Failed after retries (request="+request+") with status: " + e.getStatusCode());
 				throw e;
+			}else {
+				logger.error("search(): Failed for unexpected reasons (request=" + request + ") with status: " + e.getStatusCode());
+				throw e;
 			}
-			logger.error("search(): Failed for unexpected reasons (request="+request+") with status: " + e.getStatusCode());
-			throw e;
 		}
 	}
 
