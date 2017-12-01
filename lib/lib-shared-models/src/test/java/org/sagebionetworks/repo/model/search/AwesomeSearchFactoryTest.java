@@ -187,4 +187,18 @@ public class AwesomeSearchFactoryTest {
 		assertEquals("99911", hit.getId());
 		assertEquals("3", hit.getEtag());
 	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testSearchResultsNonStringField() throws Exception {
+		String response = "{\"hits\":{\"hit\":[{\"id\":\"99911\",\"fields\":{\"id\":\"99911\",\"etag\":\"3\",\"ancestor\":[\"one\",\"two\"]}}],\"time-ms\":17,\"found\":1,\"start\":46000}}";
+		SearchResults results = factory.fromAwesomeSearchResults(response);
+		assertEquals(1, results.getHits().size());
+		assertEquals(new Long(1), results.getFound());
+		Hit hit = results.getHits().get(0);
+		assertEquals("99911", hit.getId());
+		assertEquals("3", hit.getEtag());
+	}
 }
