@@ -54,7 +54,7 @@
                 },
                 {
                     "name": "LARGETEXT",
-                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 34,9525 characters (1 MB of UTF-8 chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
+                    "description": "The LARGETEXT data type represents a string that is greater than 250 characters but less than 349,525 characters (1 MB of UTF-8 chars).  For smaller strings consider using the STRING column type.  For larger strings, consider using the FILEHANDELID column type."
                 },
                 {
                     "name": "USERID",
