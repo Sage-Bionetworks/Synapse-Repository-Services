@@ -3,9 +3,10 @@ package org.sagebionetworks.evaluation.manager;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_CHALLENGE_WEB_LINK;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
-import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_EVAL_QUEUE_NAME;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_ID;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_TEAM_NAME;
+import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_USER_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -321,6 +322,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);
 		fieldValues.put(TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(TEMPLATE_KEY_USER_ID, submitterId);
+		fieldValues.put(TEMPLATE_KEY_EVAL_QUEUE_NAME, evaluation.getName());
 		// notify all but the one who submitted.  If there is no one else on the team
 		// then this list will be empty and no notification will be sent.
 		for (SubmissionContributor contributor : submission.getContributors()) {
