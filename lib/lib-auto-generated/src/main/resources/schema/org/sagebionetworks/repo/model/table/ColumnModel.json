@@ -26,7 +26,7 @@
                 },
                 {
                     "name": "DOUBLE",
-                    "description": "The DOUBLE data type is a double-precision 64-bit IEEE 754 floating point. Its range of values is 4.94065645841246544e-324d to 1.79769313486231570e+308d (positive or negative)."
+                    "description": "The DOUBLE data type is a double-precision 64-bit IEEE 754 floating point. Its range of values is approximately ±1.79769313486231570E+308 (15 significant decimal digits)."
                 },
                 {
                     "name": "INTEGER",
