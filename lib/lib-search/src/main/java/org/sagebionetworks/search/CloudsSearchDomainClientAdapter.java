@@ -2,32 +2,16 @@ package org.sagebionetworks.search;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
-import com.amazonaws.services.cloudsearchdomain.model.Bucket;
-import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
-import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
-import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.apache.commons.lang.math.NumberUtils; //TODO: are there different version of apache commons for different parts of the codebase? I can't use the lang3 library here but I can in SearchServiceImpl
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 
 
 public class CloudsSearchDomainClientAdapter {
@@ -44,7 +28,7 @@ public class CloudsSearchDomainClientAdapter {
 
 	public void sendDocuments(String documents){
 		ValidateArgument.required(documents, "documents");
-		checEndpointInitilaization();
+		checkEndpointInitilaization();
 
 		byte[] documentBytes = documents.getBytes();
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
@@ -64,7 +48,7 @@ public class CloudsSearchDomainClientAdapter {
 
 	public SearchResults search(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
 		ValidateArgument.required(request, "request");
-		checEndpointInitilaization();
+		checkEndpointInitilaization();
 
 		try{
 			return SearchUtil.convertToSynapseSearchResult(client.search(request));
@@ -88,9 +72,9 @@ public class CloudsSearchDomainClientAdapter {
 		return initialized;
 	}
 
-	private void checEndpointInitilaization(){
+	private void checkEndpointInitilaization(){
 		if(!isInitialized()){
-			throw new IllegalStateException("The endpoint is not yet initialized, please use setEndpoint() before calling this method"); //TODO: use different exception
+			throw new IllegalStateException("The endpoint is not yet initialized, please use setEndpoint() before calling this method");
 		}
 	}
 }

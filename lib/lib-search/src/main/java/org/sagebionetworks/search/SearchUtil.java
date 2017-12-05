@@ -213,7 +213,6 @@ public class SearchUtil{
 			for (Map.Entry<String, BucketInfo> facetInfo : facetMap.entrySet()) {//iterate over each facet
 
 				String facetName = facetInfo.getKey();
-				//TODO: REFACTOR AwesomeSearchFactory
 				FacetTypeNames facetType = FACET_TYPES.get(facetName);
 				if (facetType == null) {
 					throw new IllegalArgumentException(
@@ -249,11 +248,12 @@ public class SearchUtil{
 			synapseSearchResults.setFound(hits.getFound());
 			synapseSearchResults.setStart(hits.getStart());
 
-
 			for (com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit : hits.getHit()) {
 				org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
 				Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
 				//TODO: test to make sure the values are correct
+
+
 
 				synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
 				synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
@@ -278,9 +278,9 @@ public class SearchUtil{
 
 
 	private static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
-		//TODO: are we on Java 8 yet? switch to lambda function?
-		List<String> value = map.get(key);
-		return value == null || value.isEmpty() ? null : value.get(0);
+		ValidateArgument.required(map, "map");
+		List<String> list = map.get(key);
+		return list == null || list.isEmpty() ? null : list.get(0);
 	}
 
 	//TODO: DELETE

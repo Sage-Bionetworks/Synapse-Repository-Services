@@ -28,14 +28,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * CloudSearch search controller. It currently offers two methods:
- * <ol>
- * <li>/search appends a authorization filter to the user's search and reformats the result
- * </ol>
- * 
+ * CloudSearch search service.
  * @author deflaux
  * 
  */
+//TODO: more class documentation?
 public class SearchServiceImpl implements SearchService {
 	private static final Logger log = LogManager.getLogger(SearchServiceImpl.class
 			.getName());
