@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.thoughtworks.xstream.mapper.CannotResolveClassException;
+import com.thoughtworks.xstream.converters.ConversionException;
 
 
 /**
@@ -143,7 +143,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			public List<Long> call() throws Exception {
 				// Get the database object from the dao
 				MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
-				return createOrUpdateBatch(mdo, type, in);
+				return createOrUpdateBatch(mdo, in);
 			}
 		});
 	}
@@ -253,10 +253,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * The Generics version of the create/update batch.
 	 * @param mdo
-	 * @param type
 	 * @param in
 	 */
-	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, InputStream in){
+	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, InputStream in){
 		String tableName = mdo.getTableMapping().getTableName();
 		String migrationTypeName = mdo.getMigratableTableType().name();
 		// Read the list from the stream
@@ -264,7 +263,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		try {
 			// First try using the table name as the alias
 			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), tableName, in);
-		} catch (CannotResolveClassException e) {
+		} catch (ConversionException e) {
 			// The backups must be using the MigrationType name as the alias
 			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), migrationTypeName, in);
 		}
@@ -278,7 +277,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			// Now write the batch to the database
 			List<Long> results = migratableTableDao.createOrUpdateBatch(databaseList);
 			// Let listeners know about the change
-			fireCreateOrUpdateBatchEvent(type, databaseList);
+			fireCreateOrUpdateBatchEvent(mdo.getMigratableTableType(), databaseList);
 			return results;
 		}else{
 			return new LinkedList<Long>();
