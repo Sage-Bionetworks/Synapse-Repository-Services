@@ -380,4 +380,19 @@ public class DBOChallengeDAOImplTest {
 		challenge=null;
 	}
 
+	@Test
+	public void testDeleteTeam() throws Exception {
+		Team participantTeam = createTeam(participantId.toString());
+		createNodeAndChallenge(participantTeam);
+		challenge = challengeDAO.create(challenge);
+		
+		try {
+			teamDAO.delete(participantTeam.getId()); // this will cause an error
+			fail("IllegalArgumentException expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		
+	}
+
 }
