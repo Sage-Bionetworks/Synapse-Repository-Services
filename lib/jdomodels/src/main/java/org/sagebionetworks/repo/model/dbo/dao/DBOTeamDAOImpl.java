@@ -3,9 +3,10 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.TeamSortOrder.TEAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
@@ -48,6 +50,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -97,8 +100,19 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_FOR_MEMBER_PAGINATED = 
 			"SELECT t.* "+SELECT_FOR_MEMBER_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	private static final String SELECT_FOR_MEMBER_COUNT = 
+
+	private static final String SELECT_IDS_FOR_MEMBER =
+			"SELECT t." + COL_TEAM_ID + SELECT_FOR_MEMBER_CORE;
+
+	private static final String SELECT_IDS_FOR_MEMBER_SORTED_BY_NAME_PREFIX =
+			"SELECT t." + COL_TEAM_ID +
+			" FROM " + TABLE_TEAM + " t " +
+			" JOIN (" + TABLE_GROUP_MEMBERS + " gm, " + TABLE_PRINCIPAL_ALIAS + " pa)" +
+			" ON (t." + COL_TEAM_ID + " = gm." + COL_GROUP_MEMBERS_GROUP_ID +
+			" AND t." + COL_TEAM_ID + " = pa." + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + ")" +
+			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+" = :"+COL_GROUP_MEMBERS_MEMBER_ID;
+
+	private static final String SELECT_FOR_MEMBER_COUNT =
 			"SELECT count(*) "+SELECT_FOR_MEMBER_CORE;
 
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
@@ -114,7 +128,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
 			"SELECT t.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
-			", pa."+COL_BOUND_ALIAS_DISPLAY+
+			", pa."+ COL_PRINCIPAL_ALIAS_DISPLAY +
 			" FROM "+TABLE_TEAM+" t, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
 			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
 			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
@@ -126,7 +140,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
 			", gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			", pa."+COL_BOUND_ALIAS_DISPLAY+
+			", pa."+ COL_PRINCIPAL_ALIAS_DISPLAY +
 			" FROM "+TABLE_GROUP_MEMBERS+" gm "+
 			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
 			COL_GROUP_MEMBERS_MEMBER_ID+"=pa."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" AND pa."+
@@ -174,6 +188,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				+" FROM "+TeamUtils.ALL_TEAMS_AND_ADMIN_MEMBERS_CORE
 				+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 
+	private static final String ORDER_BY_TEAM_NAME = " ORDER BY pa." + COL_PRINCIPAL_ALIAS_DISPLAY;
+	private static final String ASC = " ASC ";
+	private static final String DESC = " DESC ";
+
+	private static final String LIMIT_AND_OFFSET = " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+
 	public static class TeamMemberPair {
 		private Team team;
 		private TeamMember teamMember;
@@ -204,7 +224,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			}
 			team.setId(rs.getString(COL_TEAM_ID));
 			tmp.setTeam(team);
-			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
+			String userName = rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY);
 			{
 				UserGroupHeader ugh = new UserGroupHeader();
 				TeamMember tm = new TeamMember();
@@ -251,7 +271,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			tm.setIsAdmin(false);
 			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
 			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
+			String userName = rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY);
 			if (upProperties!=null) {
 				ugh.setIsIndividual(true);
 				UserProfileUtils.fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
@@ -354,6 +374,29 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
+	}
+
+	@Override
+	public List<String> getIdsForMember(String teamMemberId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending) {
+		ValidateArgument.required(teamMemberId, "principalId");
+		ValidateArgument.requirement((sortBy == null && ascending == null)
+				|| (sortBy != null && ascending != null),"sortBy and ascending must both be null or both be not null");
+		String query = SELECT_IDS_FOR_MEMBER;
+		if (sortBy != null && ascending != null) {
+			query = SELECT_IDS_FOR_MEMBER_SORTED_BY_NAME_PREFIX;
+			if (sortBy == TEAM_NAME) {
+				query += ORDER_BY_TEAM_NAME;
+			} else {
+				throw new IllegalArgumentException("Unsupported order " + sortBy);
+			}
+			query += ascending ? ASC : DESC;
+		}
+		query += LIMIT_AND_OFFSET;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_GROUP_MEMBERS_MEMBER_ID, teamMemberId);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		return namedJdbcTemplate.queryForList(query, params, String.class);
 	}
 
 	@Override
@@ -473,7 +516,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		setAdminStatus(teamMembers);
 		return teamMembers;
 	}
-	
+
 	// update the 'isAdmin' field for those members that are admins on their teams
 	private Map<TeamMemberId, TeamMember> setAdminStatus(List<TeamMember> teamMembers) {
 		Set<String> teamIds = new HashSet<String>();

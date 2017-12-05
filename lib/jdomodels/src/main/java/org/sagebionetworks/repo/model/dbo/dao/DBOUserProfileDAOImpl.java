@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
@@ -94,8 +94,8 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			+ " U."+ COL_USER_PROFILE_ID + ","
 			+ " U." + COL_USER_PROFILE_FIRST_NAME + ","
 			+ " U." + COL_USER_PROFILE_LAST_NAME + ","
-			+ " A1." + COL_BOUND_ALIAS_DISPLAY + " AS 'EMAIL',"
-			+ " A2." + COL_BOUND_ALIAS_DISPLAY + " AS 'USERNAME'"
+			+ " A1." + COL_PRINCIPAL_ALIAS_DISPLAY + " AS 'EMAIL',"
+			+ " A2." + COL_PRINCIPAL_ALIAS_DISPLAY + " AS 'USERNAME'"
 			+ " FROM " + TABLE_USER_PROFILE + " U, "
 			+ TABLE_NOTIFICATION_EMAIL + " N, "
 			+ TABLE_PRINCIPAL_ALIAS + " A1, "

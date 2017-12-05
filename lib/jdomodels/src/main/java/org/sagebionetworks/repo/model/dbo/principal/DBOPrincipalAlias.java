@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
@@ -59,7 +59,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	/**
 	 * The display version of the alias.
 	 */
-	@Field(name = COL_BOUND_ALIAS_DISPLAY, varchar = 500, nullable = false)
+	@Field(name = COL_PRINCIPAL_ALIAS_DISPLAY, varchar = 500, nullable = false)
 	private String aliasDisplay;
 	
 	/**
