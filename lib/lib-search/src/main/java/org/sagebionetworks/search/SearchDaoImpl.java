@@ -47,9 +47,6 @@ public class SearchDaoImpl implements SearchDao {
 	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = FIELD_ID+":'*'";
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
-
-	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
-
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 	@Autowired
