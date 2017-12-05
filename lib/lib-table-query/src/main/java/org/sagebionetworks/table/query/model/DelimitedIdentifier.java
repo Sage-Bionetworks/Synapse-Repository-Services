@@ -16,9 +16,9 @@ public class DelimitedIdentifier extends SQLElement {
 		if(parameters.includeQuotes()){
 			// Delimited identifiers must be within double quotes.
 			// And double quote characters must be escaped with another double quote.
-			builder.append("\"");
-			builder.append(delimitedIdentifier.replaceAll("\"", "\"\""));
-			builder.append("\"");
+			builder.append("`");
+			builder.append(delimitedIdentifier.replaceAll("`", "``"));
+			builder.append("`");
 		}else{
 			builder.append(delimitedIdentifier);
 		}

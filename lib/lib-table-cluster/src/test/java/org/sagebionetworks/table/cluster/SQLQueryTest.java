@@ -956,5 +956,15 @@ public class SQLQueryTest {
 		.build();
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
 	}
+	
+	@Test
+	public void testAliasGroupByOrderBy() throws ParseException {
+		sql = "select foo as \"f\", sum(inttype) as \"i` sum\" from syn123 group by \"f\" order by \"i` sum\" DESC";
+		SqlQuery query = new SqlQueryBuilder(sql)
+		.tableSchema(tableSchema)
+		.tableType(EntityType.table)
+		.build();
+		assertEquals("SELECT _C111_ AS `f`, SUM(_C888_) AS `i`` sum` FROM T123 GROUP BY `f` ORDER BY `i`` sum` DESC", query.getOutputSQL());
+	}
 
 }
