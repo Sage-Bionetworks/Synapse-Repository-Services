@@ -103,7 +103,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_IDS_FOR_MEMBER =
 			"SELECT t." + COL_TEAM_ID + SELECT_FOR_MEMBER_CORE;
 
-	private static final String SELECT_IDS_FOR_MEMBER_SORTED =
+	private static final String SELECT_IDS_FOR_MEMBER_SORTED_BY_NAME_PREFIX =
 			"SELECT t." + COL_TEAM_ID +
 			" FROM " + TABLE_TEAM + " t " +
 			" JOIN (" + TABLE_GROUP_MEMBERS + " gm, " + TABLE_PRINCIPAL_ALIAS + " pa)" +
@@ -382,7 +382,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				|| (sortBy != null && ascending != null),"sortBy and ascending must both be null or both be not null");
 		String query = SELECT_IDS_FOR_MEMBER;
 		if (sortBy != null && ascending != null) {
-			query = SELECT_IDS_FOR_MEMBER_SORTED;
+			query = SELECT_IDS_FOR_MEMBER_SORTED_BY_NAME_PREFIX;
 			if (sortBy == TEAM_NAME) {
 				query += ORDER_BY_TEAM_NAME;
 			} else {

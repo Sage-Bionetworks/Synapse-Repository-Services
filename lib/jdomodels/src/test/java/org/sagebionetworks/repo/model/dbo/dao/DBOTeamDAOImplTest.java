@@ -407,13 +407,13 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetIdsForMemberIllegalOrderAndAscending() {
 		try {
-			teamDAO.getIdsForMember(null, 0, 0, null, true);
+			teamDAO.getIdsForMember("1", 0, 0, null, true);
 			fail("Expected an IllegalArgumentException");
 		} catch (IllegalArgumentException e) {
 			// As expected
 		}
 		try {
-			teamDAO.getIdsForMember(null, 0, 0, TeamSortOrder.TEAM_NAME, null);
+			teamDAO.getIdsForMember("1", 0, 0, TeamSortOrder.TEAM_NAME, null);
 			fail("Expected an IllegalArgumentException");
 		} catch (IllegalArgumentException e) {
 			// As expected
