@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -134,7 +133,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		// Get the database object from the dao
 		MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
 		// Forward to the generic method
-		writeBackupBatch(mdo, type, rowIds, writer);
+		writeBackupBatch(mdo, rowIds, writer);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -209,10 +208,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	/**
 	 * The Generics version of the write to backup.
 	 * @param mdo
-	 * @param type
 	 * @param rowIds
 	 */
-	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type,
+	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo,
 			List<Long> rowIds, Writer writer) {
 		// Get all of the data from the DAO batched.
 		List<D> databaseList = getBackupDataBatched(mdo.getDatabaseObjectClass(), rowIds);
@@ -259,9 +257,10 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param mdo
 	 * @param in
 	 */
-	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, InputStream in){
+	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(
+			MigratableDatabaseObject<D, B> mdo, InputStream in) throws IOException {
 		// Store the contents of the input stream so that we can read them more than once
-		byte[] inBuffer = readInputStreamIntoBuffer(in);
+		byte[] inBuffer = IOUtils.toByteArray(in);
 		// Read the list from the buffer
 		List<? extends B> backupList;
 		try {
@@ -288,16 +287,6 @@ public class MigrationManagerImpl implements MigrationManager {
 		}else{
 			return new LinkedList<Long>();
 		}
-	}
-
-	private byte[] readInputStreamIntoBuffer(InputStream in) {
-		ByteArrayOutputStream temp = new ByteArrayOutputStream();
-		try {
-			IOUtils.copy(in, temp);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return temp.toByteArray();
 	}
 
 	/**
