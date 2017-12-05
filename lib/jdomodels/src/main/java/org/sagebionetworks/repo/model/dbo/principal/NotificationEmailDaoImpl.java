@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
@@ -16,11 +16,11 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.sagebionetworks.repo.transactions.WriteTransaction;
 
 public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	private static final String UPDATE_FOR_PRINCIPAL = "UPDATE "+TABLE_NOTIFICATION_EMAIL+
@@ -28,7 +28,7 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 			" WHERE "+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
 	
 	private static final String SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL = 
-			"SELECT a."+COL_BOUND_ALIAS_DISPLAY+" FROM "+TABLE_NOTIFICATION_EMAIL+" n, "+TABLE_PRINCIPAL_ALIAS+
+			"SELECT a."+ COL_PRINCIPAL_ALIAS_DISPLAY +" FROM "+TABLE_NOTIFICATION_EMAIL+" n, "+TABLE_PRINCIPAL_ALIAS+
 			" a WHERE n."+COL_NOTIFICATION_EMAIL_ALIAS_ID+"=a."+COL_PRINCIPAL_ALIAS_ID+
 			" AND n."+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
 	
