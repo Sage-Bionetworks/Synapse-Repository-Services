@@ -109,7 +109,7 @@ public class AwesomeSearchFactory {
 				Iterator<String> dataNames = awesomeSearchHitData.keys();
 				while (dataNames.hasNext()) {
 					String dataName = dataNames.next();
-					String dataValue = awesomeSearchHitData.getString(dataName);
+					String dataValue = awesomeSearchHitData.get(dataName).toString();
 					if(dataName.endsWith(RESULT_FIELD_SUFFIX)) {
 						dataName = dataName.substring(0, dataName.length() - RESULT_FIELD_SUFFIX.length());
 					}

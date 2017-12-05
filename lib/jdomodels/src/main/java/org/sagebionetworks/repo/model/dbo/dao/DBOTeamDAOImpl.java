@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -410,10 +411,14 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 */
 	@WriteTransaction
 	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID.toLowerCase(), id);
-		basicDao.deleteObjectByPrimaryKey(DBOTeam.class, param);
+		try {
+			basicDao.deleteObjectByPrimaryKey(DBOTeam.class, param);
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("Cannot delete team "+id+".  It is referenced by another object.", e);
+		}
 		// update message.
 		transactionalMessenger.sendDeleteMessageAfterCommit(id, ObjectType.PRINCIPAL);
 	}

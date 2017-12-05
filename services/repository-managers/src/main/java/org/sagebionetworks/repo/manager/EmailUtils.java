@@ -52,6 +52,7 @@ public class EmailUtils {
 	
 	public static final String TEMPLATE_KEY_CHALLENGE_NAME = "#challengeName#";
 	public static final String TEMPLATE_KEY_CHALLENGE_WEB_LINK = "#challengeWebLink#";
+	public static final String TEMPLATE_KEY_EVAL_QUEUE_NAME = "#evalQueueName#";
 	
 	public static final String TEMPLATE_KEY_REASON = "#reason#";
 	
