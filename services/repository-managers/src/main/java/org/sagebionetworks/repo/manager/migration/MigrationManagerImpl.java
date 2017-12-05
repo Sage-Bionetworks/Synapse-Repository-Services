@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
@@ -10,6 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -256,16 +260,18 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param in
 	 */
 	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, InputStream in){
-		String tableName = mdo.getTableMapping().getTableName();
-		String migrationTypeName = mdo.getMigratableTableType().name();
-		// Read the list from the stream
+		// Store the contents of the input stream so that we can read them more than once
+		byte[] inBuffer = readInputStreamIntoBuffer(in);
+		// Read the list from the buffer
 		List<? extends B> backupList;
 		try {
 			// First try using the table name as the alias
-			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), tableName, in);
+			String tableName = mdo.getTableMapping().getTableName();
+			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), tableName, new ByteArrayInputStream(inBuffer));
 		} catch (ConversionException e) {
 			// The backups must be using the MigrationType name as the alias
-			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), migrationTypeName, in);
+			String migrationTypeName = mdo.getMigratableTableType().name();
+			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), migrationTypeName, new ByteArrayInputStream(inBuffer));
 		}
 		if(backupList != null && !backupList.isEmpty()){
 			// Now translate from the backup objects to the database objects.
@@ -282,7 +288,16 @@ public class MigrationManagerImpl implements MigrationManager {
 		}else{
 			return new LinkedList<Long>();
 		}
+	}
 
+	private byte[] readInputStreamIntoBuffer(InputStream in) {
+		ByteArrayOutputStream temp = new ByteArrayOutputStream();
+		try {
+			IOUtils.copy(in, temp);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return temp.toByteArray();
 	}
 
 	/**
