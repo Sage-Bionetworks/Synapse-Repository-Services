@@ -18,10 +18,25 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.*;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.ListBucketProvider;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationUtils;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 
 
 /**
@@ -192,7 +207,6 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param mdo
 	 * @param type
 	 * @param rowIds
-	 * @param out
 	 */
 	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type,
 			List<Long> rowIds, Writer writer) {
@@ -205,15 +219,15 @@ public class MigrationManagerImpl implements MigrationManager {
 			backupList.add(translator.createBackupFromDatabaseObject(dbo));
 		}
 		// Now write the backup list to the stream
-		// we use the table name as the Alias
-		String alias = mdo.getTableMapping().getTableName();
+		// we use the MigrationType name as the Alias
+		String alias = mdo.getMigratableTableType().name();
 		// Now write the backup to the stream
 		BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
 	}
 
 	/**
 	 * Get all of the backup data for a list of IDs using batching.
-	 * @param mdo
+	 * @param clazz
 	 * @param rowIds
 	 * @return
 	 */
@@ -240,15 +254,20 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * The Generics version of the create/update batch.
 	 * @param mdo
 	 * @param type
-	 * @param batch
 	 * @param in
 	 */
 	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, InputStream in){
-		// we use the table name as the Alias
-		String alias = mdo.getTableMapping().getTableName();
+		String tableName = mdo.getTableMapping().getTableName();
+		String migrationTypeName = mdo.getMigratableTableType().name();
 		// Read the list from the stream
-		@SuppressWarnings("unchecked")
-		List<B> backupList = (List<B>) BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), alias, in);
+		List<? extends B> backupList;
+		try {
+			// First try using the table name as the alias
+			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), tableName, in);
+		} catch (CannotResolveClassException e) {
+			// The backups must be using the MigrationType name as the alias
+			backupList = BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), migrationTypeName, in);
+		}
 		if(backupList != null && !backupList.isEmpty()){
 			// Now translate from the backup objects to the database objects.
 			MigratableTableTranslation<D, B> translator = mdo.getTranslator();
@@ -282,9 +301,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 	
 	/**
-	 * Fire a create or update event for a given migration type.
+	 * Fire a delete event for a given migration type.
 	 * @param type
-	 * @param databaseList - The Database objects that were created or updated.
+	 * @param toDelete
 	 */
 	private void fireDeleteBatchEvent(MigrationType type, List<Long> toDelete){
 		if(this.migrationListeners != null){
