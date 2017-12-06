@@ -422,17 +422,13 @@ public class EvaluationController extends BaseController {
 	 * (The submitter is taken to be a contributor and need not be included in the list.)
 	 * An individual submission must have a null teamId, a null or empty contributor list, and no
 	 * submissionEligibilityHash parameter.
+	 * </p>
 	 * <p>
-	 * The caller may optionally provide request parameters, challengeEndpoint and notificationUnsubscribeEndpoint.
-	 * These are prefixes of links which are put in submission notification emails and point back to the Synapse
-	 * portal.  The first is the prefix to an entity/challenge page.  The entity ID of the challenge project is
-	 * appended to create the complete URL.  The second is the prefix of a one-click unsubscribe link for notifications.
-	 * A serialization token containing user information is appended to the given endpoint to create the complete URL.
-	 * 
+	 * If challengeEndpoint and notificationUnsubscribeEndpoint are provided, a submission notification email
+	 * will be sent to the submitter's team members.
+	 * </p>
 	 * <p>
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.SUBMIT</a>.  
+	 * <b>Note:</b> The caller must be granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.SUBMIT</a>.
 	 * </p>
 	 * <p>
 	 * This call also creates an associated <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a>, 
@@ -440,13 +436,19 @@ public class EvaluationController extends BaseController {
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param entityEtag - the current eTag of the Entity being submitted
-	 * @param submissionEligibilityHash - the hash provided by the 
+	 * @param entityEtag The current eTag of the Entity being submitted
+	 * @param submissionEligibilityHash The hash provided by the
 	 * <a href="${org.sagebionetworks.evaluation.model.TeamSubmissionEligibility}">TeamSubmissionEligibility</a>
 	 * object.
-	 * @param submissionEligibilityHash
-	 * @param teamEndpoint
-	 * @param notificationUnsubscribeEndpoint
+	 * @param challengeEndpoint The portal endpoint prefix to the an entity/challenge page. The entity ID of the
+	 * challenge project is appended to create the complete URL.
+	 * <br/>
+	 * If omitted, email notifications will not be sent.
+	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete URL:
+	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * <br/>
+	 * If omitted, email notifications will not be sent.
 	 * @param header
 	 * @param request
 	 * @return

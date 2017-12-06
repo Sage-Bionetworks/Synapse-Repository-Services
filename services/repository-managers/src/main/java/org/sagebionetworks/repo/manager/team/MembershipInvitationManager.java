@@ -36,7 +36,7 @@ public interface MembershipInvitationManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	MessageToUserAndBody createInvitationToUser(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	MessageToUserAndBody createInvitationMessageToUser(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
 
 	/**
 	 * Send an invitation message to an email address

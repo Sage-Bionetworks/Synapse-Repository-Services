@@ -36,19 +36,26 @@ public class MembershipRequestController extends BaseController {
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * Create a membership request.  The Team must be specified.  Optionally,
-	 * the creator may include a  message and/or expiration date for the request.
-	 * If no expiration date is specified then the request never expires.
-	 * 
+	 * <p>Create a membership request. The Team must be specified. Optionally,
+	 * the creator may include a message and/or expiration date for the request.
+	 * If no expiration date is specified then the request never expires.</p>
+	 *
+	 * <p>If acceptRequestEndpoint and notificationUnsubscribeEndpoint are provided, an email notification
+	 * will be sent to the administrators of the team.</p>
+	 *
 	 * @param userId
 	 * @param request
 	 * @param acceptRequestEndpoint
-	 * @param acceptRequestEndpoint the portal end-point for one-click acceptance of the membership
-	 * request.  A signed, serialized token is appended to create the complete URL:
-	 * <ahref="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
-	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
-	 * A signed, serialized token is appended to create the complete URL: 
-	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
+	 * @param acceptRequestEndpoint The portal end-point for one-click acceptance of the membership
+	 * request.  A signed, serialized token is appended to create the complete:
+	 * <a href="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
+	 * <br/>
+	 * If omitted, email notifications will not be sent.
+	 * @param notificationUnsubscribeEndpoint The portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete:
+	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * <br/>
+	 * If omitted, email notifications will not be sent.
 	 * @return
 	 * @throws NotFoundException
 	 */

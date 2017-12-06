@@ -101,7 +101,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 	
 	@Override
-	public MessageToUserAndBody createInvitationToUser(MembershipInvitation mi,
+	public MessageToUserAndBody createInvitationMessageToUser(MembershipInvitation mi,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
 		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
 		if (mi.getCreatedOn() == null) mi.setCreatedOn(new Date());

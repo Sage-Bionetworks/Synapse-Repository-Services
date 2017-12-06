@@ -60,7 +60,7 @@ public class MembershipInvitationServiceImpl implements
 		if (created.getInviteeId() != null) {
 		    // Invitation to existing user
 			MessageToUserAndBody message = membershipInvitationManager.
-				createInvitationToUser(created,
+					createInvitationMessageToUser(created,
 					acceptInvitationEndpoint,
 					notificationUnsubscribeEndpoint);
 			if (message != null) {
