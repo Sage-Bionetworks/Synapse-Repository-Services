@@ -959,7 +959,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testAliasGroupByOrderBy() throws ParseException {
-		sql = "select foo as \"f\", sum(inttype) as \"i` sum\" from syn123 group by \"f\" order by \"i` sum\" DESC";
+		sql = "select \"foo\" as \"f\", sum(inttype) as \"i` sum\" from syn123 group by \"f\" order by \"i` sum\" DESC";
 		SqlQuery query = new SqlQueryBuilder(sql)
 		.tableSchema(tableSchema)
 		.tableType(EntityType.table)

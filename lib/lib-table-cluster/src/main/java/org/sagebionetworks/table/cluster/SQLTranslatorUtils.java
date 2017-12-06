@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.BacktickDelimitedIdentifier;
 import org.sagebionetworks.table.query.model.BooleanFunctionPredicate;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.ColumnName;
@@ -33,11 +34,13 @@ import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReferencedColumn;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
+import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.IntervalLiteral;
 import org.sagebionetworks.table.query.model.MySqlFunction;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -464,7 +467,10 @@ public class SQLTranslatorUtils {
 				ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
 				if(model != null){
 					String newName = SQLUtils.getColumnNameForId(model.getId());
-					reference.replaceChildren(new StringOverride(newName));
+					reference.replaceChildren(new RegularIdentifier(newName));
+				}else {
+					// This does not match a column so treat it as a backtick alias
+					reference.replaceChildren(new BacktickDelimitedIdentifier(reference.toSqlWithoutQuotes()));
 				}
 			}
 		}
@@ -510,7 +516,7 @@ public class SQLTranslatorUtils {
 					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
 					if(subRefrence != null){
 						String replacementName = SQLUtils.getColumnNameForId(subRefrence.getId());
-						columnName.replaceChildren(new StringOverride(replacementName));
+						columnName.replaceChildren(new RegularIdentifier(replacementName));
 					}else{
 						// since this does not match a column treat it as a value.
 						translateRightHandeSide(columnName, model, parameters);
@@ -622,7 +628,7 @@ public class SQLTranslatorUtils {
 				}
 			}
 			if(newName != null){
-				columnNameReference.replaceChildren(new StringOverride(newName));
+				columnNameReference.replaceChildren(new RegularIdentifier(newName));
 			}
 		}
 	}
@@ -645,7 +651,10 @@ public class SQLTranslatorUtils {
 			String newName = null;
 			if(model != null){
 				newName = SQLUtils.getColumnNameForId(model.getId());
-				columnNameReference.replaceChildren(new StringOverride(newName));
+				columnNameReference.replaceChildren(new RegularIdentifier(newName));
+			}else {
+				// This does not match a column so treat it as a backtick alias
+				columnNameReference.replaceChildren(new BacktickDelimitedIdentifier(unquotedName));
 			}
 		}
 	}

@@ -389,9 +389,17 @@ ActualIdentifier actualIdentifier():
 {
 	regularIdentifier = regularIdentifier() { return new ActualIdentifier(regularIdentifier); }
 	| delmitedIdentifier = delimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
-	| delmitedIdentifier = backtickDelimitedIdentifier() { return new ActualIdentifier(delmitedIdentifier); }
 }
 DelimitedIdentifier delimitedIdentifier():
+{ 
+	DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier;
+	BacktickDelimitedIdentifier backtickDelimitedIdentifier;
+}
+{
+	doubleQuoteDelimitedIdentifier = doubleQuoteDelimitedIdentifier() { return new DelimitedIdentifier(doubleQuoteDelimitedIdentifier); }
+	| backtickDelimitedIdentifier = backtickDelimitedIdentifier() { return new DelimitedIdentifier(backtickDelimitedIdentifier); }
+}
+DoubleQuoteDelimitedIdentifier doubleQuoteDelimitedIdentifier():
 { 
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
@@ -403,9 +411,9 @@ DelimitedIdentifier delimitedIdentifier():
 		| <escape_double_quote> { builder.append("\""); }
 	)*
 	<end_double_quote>
-	{ return new DelimitedIdentifier(builder.toString()); }
+	{ return new DoubleQuoteDelimitedIdentifier(builder.toString()); }
 }
-DelimitedIdentifier backtickDelimitedIdentifier():
+BacktickDelimitedIdentifier backtickDelimitedIdentifier():
 { 
 	Token token = null;
 	StringBuilder builder = new StringBuilder();
@@ -417,7 +425,7 @@ DelimitedIdentifier backtickDelimitedIdentifier():
 		| <escape_backtick> { builder.append("`"); }
 	)*
 	<end_backtick>
-	{ return new DelimitedIdentifier(builder.toString()); }
+	{ return new BacktickDelimitedIdentifier(builder.toString()); }
 }
 ColumnReference columnReference():
 {
