@@ -92,7 +92,15 @@ public class SearchServiceImpl implements SearchService {
 			searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
 		}
 		// Create the query string
-		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery, userInfo);
+		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery);
+		if(!userInfo.isAdmin()){ //TODO:z TEST
+			StringBuilder authFilteredQueryStringBuilder = new StringBuilder("(and ");
+			authFilteredQueryStringBuilder.append(SearchUtil.formulateAuthorizationFilter(userInfo));
+			authFilteredQueryStringBuilder.append(searchRequest.getQuery());
+			authFilteredQueryStringBuilder.append(')');
+			searchRequest.setQuery(authFilteredQueryStringBuilder.toString());
+		}
+
 		SearchResults results = searchDao.executeSearch(searchRequest);
 		// Add any extra return results to the hits
 		if(results != null && results.getHits() != null){
