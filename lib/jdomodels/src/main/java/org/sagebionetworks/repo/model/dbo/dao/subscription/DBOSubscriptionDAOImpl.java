@@ -1,6 +1,30 @@
 package org.sagebionetworks.repo.model.dbo.dao.subscription;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_IS_DELETED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBSCRIPTION_SUBSCRIBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_EMAIL_NOTIFICATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_FIRST_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_LAST_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBSCRIPTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,8 +66,8 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	private static final String SQL_GET_EMAIL_SUBSCRIBERS = "SELECT S."
 			+ COL_SUBSCRIPTION_ID + ", S." + COL_SUBSCRIPTION_SUBSCRIBER_ID
 			+ ", U." + COL_USER_PROFILE_FIRST_NAME + ", U."
-			+ COL_USER_PROFILE_LAST_NAME + ", A1." + COL_BOUND_ALIAS_DISPLAY
-			+ " AS 'EMAIL', A2." + COL_BOUND_ALIAS_DISPLAY
+			+ COL_USER_PROFILE_LAST_NAME + ", A1." + COL_PRINCIPAL_ALIAS_DISPLAY
+			+ " AS 'EMAIL', A2." + COL_PRINCIPAL_ALIAS_DISPLAY
 			+ " AS 'USERNAME' FROM " + TABLE_SUBSCRIPTION + " S, "
 			+ TABLE_USER_PROFILE + " U, " + TABLE_NOTIFICATION_EMAIL + " N, "
 			+ TABLE_PRINCIPAL_ALIAS + " A1, " + TABLE_PRINCIPAL_ALIAS

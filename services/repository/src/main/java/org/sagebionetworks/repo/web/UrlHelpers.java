@@ -814,6 +814,7 @@ public class UrlHelpers {
 	public static final String TEAM_LIST = "/teamList";
 	public static final String TEAM_ID = TEAM+ID;
 	public static final String USER_TEAM = USER+ID+TEAM;
+	public static final String USER_TEAM_IDS = USER+ID+TEAM+"/id";
 	public static final String NAME_FRAGMENT_FILTER = "fragment";
 	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
 	private static final String MEMBER = "/member";

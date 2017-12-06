@@ -48,13 +48,16 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipRequestDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -353,6 +356,16 @@ public class TeamManagerImpl implements TeamManager {
 			long limit, long offset) throws DatastoreException {
 		List<Team> results = teamDAO.getForMemberInRange(principalId, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(results, limit, offset);
+	}
+
+	@Override
+	public PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending) {
+		NextPageToken token = new NextPageToken(nextPageToken);
+		List<String> teamIds = teamDAO.getIdsForMember(teamMemberId, token.getLimitForQuery(), token.getOffset(), sortBy, ascending);
+		PaginatedTeamIds result = new PaginatedTeamIds();
+		result.setTeamIds(teamIds);
+		result.setNextPageToken(token.getNextPageTokenForCurrentResults(teamIds));
+		return result;
 	}
 
 	/* (non-Javadoc)

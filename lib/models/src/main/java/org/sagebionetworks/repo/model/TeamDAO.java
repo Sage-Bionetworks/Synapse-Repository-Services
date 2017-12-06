@@ -78,7 +78,7 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset) throws DatastoreException;
-	
+
 	/**
 	 * 
 	 * @param teamId
@@ -104,14 +104,25 @@ public interface TeamDAO {
 	
 	/**
 	 * Get the Teams a member belongs to
-	 * @param princialId the team member
+	 * @param principalId the team member
 	 * @param offset
 	 * @param limit
 	 * @return the Teams this principal belongs to
 	 * @throws DatastoreException 
 	 */
 	public List<Team> getForMemberInRange(String principalId, long limit, long offset) throws DatastoreException;
-	
+
+	/**
+	 * Get the IDs of the Teams a member belongs to
+	 * @param teamMemberId
+	 * @param limit
+	 * @param offset
+	 * @param sortBy
+	 * @param ascending
+	 * @return
+	 */
+	List<String> getIdsForMember(String teamMemberId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending);
+
 	/**
 	 * 
 	 * @param principalId
@@ -124,7 +135,7 @@ public interface TeamDAO {
 	 * Updates the 'shallow' properties of an object.
 	 * Note:  leaving createdBy and createdOn null in the dto tells the DAO to use the currently stored values
 	 *
-	 * @param dto
+	 * @param team
 	 * @throws DatastoreException
 	 */
 	public Team update(Team team) throws InvalidModelException,
@@ -155,5 +166,4 @@ public interface TeamDAO {
 	 * @return
 	 */
 	public List<String> getAllTeamsUserIsAdmin(String userId);
-
 }
