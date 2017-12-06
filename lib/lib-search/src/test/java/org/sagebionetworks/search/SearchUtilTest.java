@@ -13,7 +13,6 @@ import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.query.FacetSort;
 import org.sagebionetworks.repo.model.search.query.FacetSortOptions;
 import org.sagebionetworks.repo.model.search.query.FacetTopN;

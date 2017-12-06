@@ -329,7 +329,6 @@ public class SearchUtil{
 	}
 
 
-	//TODO: test?
 	/**
 	 * Formulate the boolean query to enforce an access controll list for a
 	 * particular user
@@ -348,17 +347,16 @@ public class SearchUtil{
 		}
 
 		// Make our boolean query
-		String authorizationFilter = "";
+		StringBuilder authorizationFilterBuilder = new StringBuilder("(or ");
+		int initialLen = authorizationFilterBuilder.length();
 		for (Long group : groups) {
-			if (0 < authorizationFilter.length()) {
-				authorizationFilter += " ";
+			if (authorizationFilterBuilder.length() > initialLen) {
+				authorizationFilterBuilder.append(" ");
 			}
-			authorizationFilter += ACL_INDEX_FIELD
-					+ ":'" + group + "'";
+			authorizationFilterBuilder.append(ACL_INDEX_FIELD).append(":'").append(group).append("'");
 		}
-		if (groups.size() > 1){
-			authorizationFilter = "(or " + authorizationFilter + ")";
-		}
-		return authorizationFilter;
+		authorizationFilterBuilder.append(")");
+
+		return authorizationFilterBuilder.toString();
 	}
 }
