@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
@@ -19,11 +19,9 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -67,7 +65,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_LIST_ALIASES_BY_ID = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	
-	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+COL_BOUND_ALIAS_DISPLAY+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
+	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+ COL_PRINCIPAL_ALIAS_DISPLAY +" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
@@ -79,7 +77,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			"SELECT "
 			+ "A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID
 			+", A."+COL_PRINCIPAL_ALIAS_TYPE
-			+", A."+COL_BOUND_ALIAS_DISPLAY
+			+", A."+ COL_PRINCIPAL_ALIAS_DISPLAY
 			+", P."+COL_USER_PROFILE_FIRST_NAME
 			+", P."+COL_USER_PROFILE_LAST_NAME
 			+ " FROM "
@@ -354,7 +352,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 				UserGroupHeader header = new UserGroupHeader();
 				Long principalId = rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID);
 				header.setOwnerId(""+principalId);
-				header.setUserName(rs.getString(COL_BOUND_ALIAS_DISPLAY));
+				header.setUserName(rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY));
 				AliasEnum type = AliasEnum.valueOf(rs.getString(COL_PRINCIPAL_ALIAS_TYPE));
 				if(AliasEnum.USER_NAME == type){
 					// user
