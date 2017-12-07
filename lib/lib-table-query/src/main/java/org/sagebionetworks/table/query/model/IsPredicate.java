@@ -1,5 +1,7 @@
 package org.sagebionetworks.table.query.model;
 
+import java.util.List;
+
 /**
  * This matches &ltis predicate&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
@@ -42,10 +44,10 @@ public abstract class IsPredicate extends SQLElement implements HasPredicate {
 	public Iterable<UnsignedLiteral> getRightHandSideValues() {
 		return null;
 	}
-
+	
 	@Override
-	public Iterable<ColumnName> getRightHandSideColumnReferences() {
-		return null;
-	}	
+	<T extends Element> void addElements(List<T> elements, Class<T> type) {
+		checkElement(elements, type, columnReferenceLHS);
+	}
 	
 }

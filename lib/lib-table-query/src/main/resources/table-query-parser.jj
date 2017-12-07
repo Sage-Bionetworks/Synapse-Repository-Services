@@ -272,7 +272,6 @@ TOKEN: {
 | < backslash: "\\">
 | < right_bracket: "]">
 | < circumflex: "^">
-| < backtick: "`">
 | < left_curly_brace: "{">
 | < vertical_line: "|">
 | < right_curly_brace: "}">

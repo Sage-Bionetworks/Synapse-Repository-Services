@@ -1,14 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
-import java.util.List;
-
 /**
  * This matches &ltboolean predicate&gt in: <a href="https://github.com/ronsavage/SQL/blob/master/sql-92.bnf">SQL-92</a>
  */
 public class BooleanPredicate extends IsPredicate {
 	
-	ColumnReference columnReferenceLHS;
-	Boolean not;
 	TruthValue truthValue;
 
 	public BooleanPredicate(ColumnReference columnReferenceLHS, Boolean not, TruthValue truthValue) {
@@ -23,11 +19,6 @@ public class BooleanPredicate extends IsPredicate {
 	@Override
 	public String getCompareValue() {
 		return truthValue.name();
-	}
-
-	@Override
-	<T extends Element> void addElements(List<T> elements, Class<T> type) {
-		checkElement(elements, type, columnReferenceLHS);
 	}
 
 }

@@ -485,15 +485,13 @@ public class SQLTranslatorUtils {
 			Map<String, ColumnModel> columnNameToModelMap) {
 		ValidateArgument.required(groupByClause, "groupByClause");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
-		Iterable<ColumnNameReference> references = groupByClause.createIterable(ColumnNameReference.class);
-		if(references != null){
-			for(ColumnNameReference reference: references){
-				// Lookup the column
-				ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
-				if(model != null){
-					String newName = SQLUtils.getColumnNameForId(model.getId());
-					reference.replaceChildren(new RegularIdentifier(newName));
-				}
+		Iterable<ColumnName> references = groupByClause.createIterable(ColumnName.class);
+		for(ColumnName reference: references){
+			// Lookup the column
+			ColumnModel model = columnNameToModelMap.get(reference.toSqlWithoutQuotes());
+			if(model != null){
+				String newName = SQLUtils.getColumnNameForId(model.getId());
+				reference.replaceChildren(new RegularIdentifier(newName));
 			}
 		}
 	}
@@ -514,14 +512,9 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(predicate, "predicate");
 		ValidateArgument.required(parameters, "parameters");
 		ValidateArgument.required(columnNameToModelMap, "columnNameToModelMap");
-		// Translate the left-hand-side
-		ColumnReference leftHandSide = predicate.getLeftHandSide();
-		// lookup the column name
-		ColumnNameReference columnNameReference = leftHandSide.getNameRHS().getFirstElementOfType(ColumnNameReference.class);
-		ColumnModel model = columnNameToModelMap.get(columnNameReference.toSqlWithoutQuotes());
+		// lookup the column name from the left-hand-side
+		ColumnModel model = columnNameToModelMap.get(predicate.getLeftHandSide().toSqlWithoutQuotes());
 		if(model != null){
-			String newName = SQLUtils.getColumnNameForId(model.getId());
-			columnNameReference.replaceChildren(new RegularIdentifier(newName));
 			// handle the right-hand-side values
 			Iterable<UnsignedLiteral> rightHandSide = predicate.getRightHandSideValues();
 			if(rightHandSide != null){
@@ -529,17 +522,16 @@ public class SQLTranslatorUtils {
 					translateRightHandeSide(element, model, parameters);
 				}
 			}
-			// handle the right-hand-side references
-			Iterable<ColumnName> rightHandReferences = predicate.getRightHandSideColumnReferences();
-			if(rightHandReferences != null){
-				for(ColumnName columnName: rightHandReferences){
-					// is this a reference to a column?
-					ColumnModel subRefrence = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
-					if(subRefrence != null){
-						String replacementName = SQLUtils.getColumnNameForId(subRefrence.getId());
-						columnName.replaceChildren(new RegularIdentifier(replacementName));
-					}
-				}
+		}
+		
+		// replace all column references in the predicate
+		Iterable<ColumnName> rightHandReferences = predicate.createIterable(ColumnName.class);
+		for (ColumnName columnName : rightHandReferences) {
+			// is this a reference to a column?
+			ColumnModel referencedColumn = columnNameToModelMap.get(columnName.toSqlWithoutQuotes());
+			if (referencedColumn != null) {
+				String replacementName = SQLUtils.getColumnNameForId(referencedColumn.getId());
+				columnName.replaceChildren(new RegularIdentifier(replacementName));
 			}
 		}
 	}
