@@ -377,17 +377,17 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 
 	@Override
-	public List<String> getIdsForMember(String teamMemberId, long limit, long offset, TeamSortOrder sortBy, Boolean ascending) {
+	public List<String> getIdsForMember(String teamMemberId, long limit, long offset, TeamSortOrder sort, Boolean ascending) {
 		ValidateArgument.required(teamMemberId, "principalId");
-		ValidateArgument.requirement((sortBy == null && ascending == null)
-				|| (sortBy != null && ascending != null),"sortBy and ascending must both be null or both be not null");
+		ValidateArgument.requirement((sort == null && ascending == null)
+				|| (sort != null && ascending != null),"sort and ascending must both be null or both be not null");
 		String query = SELECT_IDS_FOR_MEMBER;
-		if (sortBy != null && ascending != null) {
+		if (sort != null && ascending != null) {
 			query = SELECT_IDS_FOR_MEMBER_SORTED_BY_NAME_PREFIX;
-			if (sortBy == TEAM_NAME) {
+			if (sort == TEAM_NAME) {
 				query += ORDER_BY_TEAM_NAME;
 			} else {
-				throw new IllegalArgumentException("Unsupported order " + sortBy);
+				throw new IllegalArgumentException("Unsupported order " + sort);
 			}
 			query += ascending ? ASC : DESC;
 		}

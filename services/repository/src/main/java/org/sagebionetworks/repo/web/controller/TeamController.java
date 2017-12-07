@@ -3,6 +3,8 @@
  */
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
+
 import java.io.IOException;
 import java.util.Collections;
 
@@ -142,12 +144,12 @@ public class TeamController extends BaseController {
 	}
 
 	/**
-	 * Retrieve a paginated list of IDs of Teams to which the given user belongs. If sorting is desired, both sortBy and
+	 * Retrieve a paginated list of IDs of Teams to which the given user belongs. If sorting is desired, both sort and
 	 * ascending must be specified. If they are omitted, results are not sorted.
 	 *
 	 * @param teamMemberId the principal ID of the user of interest
 	 * @param nextPageToken controls pagination
-	 * @param sortBy the field to sort the team IDs on. Available options <a href="${org.sagebionetworks.repo.model.TeamSortOrder}">TeamSortOrder</a>
+	 * @param sort the field to sort the team IDs on. Available options <a href="${org.sagebionetworks.repo.model.TeamSortOrder}">TeamSortOrder</a>
 	 * @param ascending the direction of sort: true for ascending, and false for descending
 	 * @return
 	 */
@@ -155,11 +157,11 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_TEAM_IDS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedTeamIds getTeamIdsByMember(
-			@PathVariable String teamMemberId,
+			@PathVariable(ID_PATH_VARIABLE) String teamMemberId,
 			@RequestParam(value = ServiceConstants.NEXT_PAGE_TOKEN, required = false) String nextPageToken,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) TeamSortOrder sortBy,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false) TeamSortOrder sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false) Boolean ascending) {
-		return serviceProvider.getTeamService().getIdsByMember(teamMemberId, nextPageToken, sortBy, ascending);
+		return serviceProvider.getTeamService().getIdsByMember(teamMemberId, nextPageToken, sort, ascending);
 	}
 
 	/**
