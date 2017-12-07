@@ -2,6 +2,10 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
+/**
+ * BacktickDelimitedIdentifier ::= ` identifier `
+ *
+ */
 public class BacktickDelimitedIdentifier extends SQLElement {
 	
 	private static final String DOUBLE_BACKTICK = "``";

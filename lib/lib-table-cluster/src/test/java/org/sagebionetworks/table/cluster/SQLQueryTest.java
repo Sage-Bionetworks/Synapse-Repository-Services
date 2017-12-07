@@ -664,29 +664,25 @@ public class SQLQueryTest {
 	}
 	
 	/**
-	 * We should be throwing 'column a not found' for this case but for backwards compatibility
-	 * we still support it.
+	 * We should be throwing 'column a not found' for this case.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3866">3866</a>
 	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_3866() throws ParseException{
 		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo in (\"a\")", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( :b0 )", translator.getOutputSQL());
-		assertEquals("a", translator.getParameters().get("b0"));
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ IN ( `a` )", translator.getOutputSQL());
 	}
 	
 	/**
-	 * We should be throwing 'column a not found' for this case but for backwards compatibility
-	 * we still support it.
+	 * We should be throwing 'column a not found' for this case.
 	 * @see <a href="https://sagebionetworks.jira.com/browse/PLFM-3867">3867</a>
 	 * @throws Exception
 	 */
 	@Test
 	public void testPLFM_3867() throws ParseException{
 		SqlQuery translator = new SqlQueryBuilder("select foo from syn123 where foo = \"a\"", tableSchema).build();
-		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
-		assertEquals("a", translator.getParameters().get("b0"));
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE _C111_ = `a`", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -957,6 +953,10 @@ public class SQLQueryTest {
 		assertEquals("SELECT COUNT(*) FROM T123", query.getOutputSQL());
 	}
 	
+	/**
+	 * This is a test for PLFM-4736.
+	 * @throws ParseException
+	 */
 	@Test
 	public void testAliasGroupByOrderBy() throws ParseException {
 		sql = "select \"foo\" as \"f\", sum(inttype) as \"i` sum\" from syn123 group by \"f\" order by \"i` sum\" DESC";

@@ -2,6 +2,10 @@ package org.sagebionetworks.table.query.model;
 
 import java.util.List;
 
+/**
+ * DoubleQuoteDelimitedIdentifier ::= " identifier "
+ *
+ */
 public class DoubleQuoteDelimitedIdentifier extends SQLElement {
 	
 	private static final String DOUBLE_DOUBLE_QUOTES = "\"\"";
