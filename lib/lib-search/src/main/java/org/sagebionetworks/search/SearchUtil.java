@@ -1,7 +1,5 @@
 package org.sagebionetworks.search;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +31,18 @@ public class SearchUtil{
 	 * The index field holding the access control list info
 	 */
 	public static final String ACL_INDEX_FIELD = "acl";
+	public static final String CREATED_BY_RETURN_FIELD = "created_by_r";
+	public static final String CREATED_ON_FIELD = "created_on";
+	public static final String DESCRIPTION_FIELD = "description";
+	public static final String DISEASE_RETURN_FIELD = "disease_r";
+	public static final String ETAG_FIELD = "etag";
+	public static final String ID_FIELD = "id";
+	public static final String MODIFIED_BY_RETURN_FIELD = "modified_by_r";
+	public static final String MODIFIED_ON_FIELD = "modified_on";
+	public static final String NAME_FIELD = "name";
+	public static final String NODE_TYPE_FIELD = "node_type_r";
+	public static final String NUM_SAMPLES_FIELD = "num_samples";
+	public static final String TISSUE_FIELD = "tissue_r";
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
@@ -214,7 +224,8 @@ public class SearchUtil{
 				Facet synapseFacet = new Facet();
 				synapseFacet.setName(facetName);
 				synapseFacet.setType(facetType);
-				//Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
+				// Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
+				// A IllegalArgumentException would have been throw when converting from Synapse's SearchQuery to Amazon's SearchRequest
 
 				BucketInfo bucketInfo = facetInfo.getValue();
 				List<FacetConstraint> facetConstraints = new ArrayList<>();
@@ -230,9 +241,9 @@ public class SearchUtil{
 			synapseSearchResults.setFacets(facetList);
 		}
 
-		Hits hits = cloudSearchResult.getHits();
 		//class names are clashing feelsbadman
 		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
+		Hits hits = cloudSearchResult.getHits();
 
 		if (hits != null) {
 			synapseSearchResults.setFound(hits.getFound());
@@ -250,18 +261,18 @@ public class SearchUtil{
 		Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
 
 		org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
-		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, "created_by"));
-		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "created_on")));
-		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, "description"));
-		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, "disease"));
-		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, "etag"));
-		synapseHit.setId(getFirstListValueFromMap(fieldsMap, "id"));
-		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, "modified_by"));
-		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "modified_on")));
-		synapseHit.setName(getFirstListValueFromMap(fieldsMap, "name"));
-		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, "node_type"));
-		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, "num_samples")));
-		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, "tissue"));
+		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, CREATED_BY_RETURN_FIELD));
+		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, CREATED_ON_FIELD)));
+		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, DESCRIPTION_FIELD));
+		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, DISEASE_RETURN_FIELD));
+		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, ETAG_FIELD));
+		synapseHit.setId(getFirstListValueFromMap(fieldsMap, ID_FIELD));
+		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, MODIFIED_BY_RETURN_FIELD));
+		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, MODIFIED_ON_FIELD)));
+		synapseHit.setName(getFirstListValueFromMap(fieldsMap, NAME_FIELD));
+		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, NODE_TYPE_FIELD));
+		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, NUM_SAMPLES_FIELD)));
+		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, TISSUE_FIELD));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		return synapseHit;
 	}

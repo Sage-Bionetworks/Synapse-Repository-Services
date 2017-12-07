@@ -1,16 +1,23 @@
 package org.sagebionetworks.search;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
+import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
+import com.amazonaws.services.cloudsearchdomain.model.SearchStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.search.query.FacetSort;
@@ -25,7 +32,8 @@ public class SearchUtilTest {
 	private SearchQuery query;
 	private SearchRequest searchRequest;
 	private SearchRequest expectedSearchRequestBase;
-	
+	private SearchResult searchResult;
+
 	private List<String> q;
 	private List<KeyValue> bq;
 	private List<KeyValue> bqNot;
@@ -70,6 +78,8 @@ public class SearchUtilTest {
 		kv.setKey("Facet1");
 		kv.setValue("c:\\dave's_folde,r");
 		bqSpecialChar.add(kv);
+
+		searchResult = new SearchResult().withHits(new Hits()).withFacets(new HashMap<String, BucketInfo>()).withStatus(new SearchStatus());
 	}
 
 	//////////////////////////////////////
@@ -281,11 +291,9 @@ public class SearchUtilTest {
 	 */
 	@Test
 	public void testParseHitsList() throws Exception {
+		SearchResult searchResult = new SearchResult().withHits(new Hits().withHit(new com.amazonaws.services.cloudsearchdomain.model.Hit(), new com.amazonaws.services.cloudsearchdomain.model.Hit()));
 
-		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'prostate')\",\"hits\":{\"found\":260,\"start\":0,\"hit\":[{\"id\":\"4494\",\"data\":{\"name\":[\"MSKCC Prostate Cancer\"]}},{\"id\":\"4610\",\"data\":{\"name\":[\"Prostate Cancer FHCRC\"]}},{\"id\":\"4566\",\"data\":{\"name\":[\"Prostate Cancer ICGC\"]}},{\"id\":\"114535\",\"data\":{\"name\":[\"114535\"]}},{\"id\":\"115510\",\"data\":{\"name\":[\"115510\"]}},{\"id\":\"112949\",\"data\":{\"name\":[\"GSE11842\"]}},{\"id\":\"100287\",\"data\":{\"name\":[\"GSE11842\"]}},{\"id\":\"112846\",\"data\":{\"name\":[\"GSE15580\"]}},{\"id\":\"108857\",\"data\":{\"name\":[\"GSE17483\"]}},{\"id\":\"108942\",\"data\":{\"name\":[\"GSE25500\"]}}]},\"info\":{\"rid\":\"6ddcaa561c05c4cc85ddb10cb46568af0024f6e4f534231d8e5a4d7098b31e11e39838035983b8cc226dc7099b535033\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		SearchResult response = new SearchResult().withHits(new Hit());
-
-		SearchResults results = SearchUtil.convertToSynapseSearchResult(response);
+		SearchResults results = SearchUtil.convertToSynapseSearchResult(searchResult);
 		assertEquals(2, results.getHits().size());
 		assertEquals(0, results.getFacets().size());
 		assertEquals(new Long(260), results.getFound());
@@ -296,11 +304,30 @@ public class SearchUtilTest {
 	 */
 	@Test
 	public void testHitAllFields() throws Exception {
+		int found = 1;
+		String createdBy = "1213324";
+		String createdOn = "1234567890";
+		String description = "Description";
+		String disease = "space aids";
+		String etag = "etag";
+		String id = "id";
+		String modifiedBy = "modifiedBy";
+		String modifiedOn = "modifiedOn";
+		String name = "my name is Jeff";
+		String nodeType = "dataset";
+		String numSamples = "42";
+		String setTissue = "achoo";
+
+		Map<String, List<String>> hitMap = //TODO: Map initialization
+
+
+
+		searchResult.getHits().withFound().with;
 
 		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'syn4494')\",\"hits\":{\"found\":1,\"start\":0,\"hit\":[{\"id\":\"syn4494\",\"fields\":{\"created_by_r\":\"Charles Sawyers\",\"created_on\":\"1312679743\",\"description\":\"Genetic and epigenetic alterations have been identified that lead to transcriptional Annotation of prostate cancer genomes provides a foundation for discoveries that can impact disease understanding and treatment. Concordant assessment of DNA copy number, mRNA expression, and focused exon resequencing in the 218 prostate cancer tumors represented in this dataset haveidentified the nuclear receptor coactivator NCOA2 as an oncogene in approximately 11% of tumors. Additionally, the androgen-driven TMPRSS2-ERG fusion was associated with a previously unrecognized, prostate-specific deletion at chromosome 3p14 that implicates FOXP1, RYBP, and SHQ1 as potential cooperative tumor suppressors. DNA copy-number data from primary tumors revealed that copy-number alterations robustly define clusters of low- and high-risk disease beyond that achieved by Gleason score.\",\"disease_r\":\"Cancer\",\"etag\":\"6\",\"id\":\"syn4494\",\"modified_by_r\":\"platform@sagebase.org\",\"modified_on\":\"1327395121\",\"name\":\"MSKCC Prostate Cancer\",\"node_type_r\":\"dataset\",\"num_samples\":\"261\",\"tissue_r\":\"Prostate\"}}]},\"info\":{\"rid\":\"3d0b49c233c06da5e8576eb86b17339cd0f07fb44135dde6d6aa4d616f2113e5d2a7c04f557dee86\",\"time-ms\":2,\"cpu-time-ms\":0}}";
-		SearchResults results = factory.fromAwesomeSearchResults(response);
+		SearchResults results = SearchUtil.convertToSynapseSearchResult(response);
 		assertEquals(1, results.getHits().size());
-		Hit hit = results.getHits().get(0);
+		org.sagebionetworks.repo.model.search.Hit hit = results.getHits().get(0);
 		assertEquals("syn4494", hit.getId());
 		assertEquals("MSKCC Prostate Cancer", hit.getName());
 		assertTrue(hit.getDescription().startsWith("Genetic and epigenetic alterations"));
