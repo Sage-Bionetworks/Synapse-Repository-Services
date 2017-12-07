@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
@@ -164,22 +165,23 @@ public class BackupDriverImplAutowireTest {
 		List<Long> ids1 = new LinkedList<Long>();
 		ids1.add(Long.parseLong(wiki.getId()));
 		backupOne = File.createTempFile("backupOne", ".zip");
-		backupDriver.writeBackup(adminUser, backupOne, new Progress(), MigrationType.V2_WIKI_PAGE, ids1);
+		BackupAliasType backupAliasType = BackupAliasType.TABLE_NAME;
+		backupDriver.writeBackup(adminUser, backupOne, new Progress(), MigrationType.V2_WIKI_PAGE, ids1, backupAliasType);
 		// Now delete one of the attachments and take another backup copy.
 		fileNameToFileHandleMap.remove(preview.getFileName());
 		wiki = wikiPageDao.updateWikiPage(wiki, fileNameToFileHandleMap, wikiKey.getOwnerObjectId(), wikiKey.getOwnerObjectType(), new ArrayList<String>());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		// Now create another backup
 		backupTwo = File.createTempFile("backupTwo", ".zip");
-		backupDriver.writeBackup(adminUser, backupTwo, new Progress(), MigrationType.V2_WIKI_PAGE, ids1);
+		backupDriver.writeBackup(adminUser, backupTwo, new Progress(), MigrationType.V2_WIKI_PAGE, ids1, backupAliasType);
 		
 		// Now apply the first backup, should restore the deleted attachment
-		backupDriver.restoreFromBackup(adminUser, backupOne, new Progress());
+		backupDriver.restoreFromBackup(adminUser, backupOne, new Progress(), backupAliasType);
 		// We should have two attachments
 		wiki = wikiPageDao.get(wikiKey, null);
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
 		// Now apply the second backup
-		backupDriver.restoreFromBackup(adminUser, backupTwo, new Progress());
+		backupDriver.restoreFromBackup(adminUser, backupTwo, new Progress(), backupAliasType);
 		wiki = wikiPageDao.get(wikiKey, null);
 		assertEquals("update did not clear secondary table rows",1, wiki.getAttachmentFileHandleIds().size());
 	}

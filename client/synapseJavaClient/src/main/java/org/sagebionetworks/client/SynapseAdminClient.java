@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -119,19 +120,21 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * Start a backup daemon task
 	 * @param migrationType
 	 * @param ids
+	 * @param backupAliasType
 	 * @return
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws SynapseException;
+	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids, BackupAliasType backupAliasType) throws SynapseException;
 	
 	/**
 	 * Start a restore daemon task
 	 * @param migrationType
 	 * @param req
+	 * @param backupAliasType
 	 * @return
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws SynapseException;
+	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req, BackupAliasType backupAliasType) throws SynapseException;
 	
 	/**
 	 * Get the status of a daemon backup/restore task

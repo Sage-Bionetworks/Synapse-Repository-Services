@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -75,18 +76,18 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 
 
 	@Override
-	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<Long> idsToBackup) {
+	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<Long> idsToBackup, BackupAliasType backupAliasType) {
 		// Create a new daemon and start it
 		AmazonS3Client client = createNewAWSClient();
-		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, idsToBackup, type);
+		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, idsToBackup, type, backupAliasType);
 		return daemon.startBackup();
 	}
 
 	@Override
 	public BackupRestoreStatus startRestore(UserInfo user, String fileName,
-			MigrationType type) {
+	                                        MigrationType type, BackupAliasType backupAliasType) {
 		AmazonS3Client client = createNewAWSClient();
-		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, null, type);
+		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, null, type, backupAliasType);
 		return daemon.startRestore(fileName);
 	}
 
