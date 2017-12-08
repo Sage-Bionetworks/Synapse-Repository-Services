@@ -355,9 +355,11 @@ public class SearchUtil{
 	 */
 	public static String formulateAuthorizationFilter(UserInfo userInfo)
 			throws DatastoreException {
-		//TOOD:z test
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(userInfo.getGroups(), "userInfo.getGroups()");
+
 		Set<Long> groups = userInfo.getGroups();
-		if (0 == groups.size()) {
+		if (groups.isEmpty()) {
 			// being extra paranoid here, this is unlikely
 			throw new DatastoreException("no groups for user " + userInfo);
 		}

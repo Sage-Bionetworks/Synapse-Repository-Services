@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -23,9 +24,13 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.SearchStatus;
+import com.amazonaws.services.identitymanagement.model.User;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
@@ -450,4 +455,34 @@ public class SearchUtilTest {
 		SearchResults convertedResults = SearchUtil.convertToSynapseSearchResult(searchResult);
 	}
 
+
+	////////////////////////////////////////
+	// formulateAuthorizationFilter() tests
+	///////////////////////////////////////
+	@Test (expected = IllegalArgumentException.class)
+	public void testFormulateAuthorizationFilterNullUserInfo(){
+		SearchUtil.formulateAuthorizationFilter(null);
+	}
+
+	@Test (expected = IllegalArgumentException.class)
+	public void testFormulateAuthorizationFilterNullUserGroups(){
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(null);
+		SearchUtil.formulateAuthorizationFilter(userInfo);
+	}
+
+	@Test (expected = DatastoreException.class)
+	public void testFormulateAuthorizationFilterEmptyUserGroups(){
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(new HashSet<>());
+		SearchUtil.formulateAuthorizationFilter(userInfo);
+	}
+
+	@Test
+	public void testFormulateAuthorizationFilterHappyCase(){
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
+		String authFilter = SearchUtil.formulateAuthorizationFilter(userInfo);
+		assertEquals("(or acl:'123' acl:'456' acl:'789')", authFilter);
+	}
 }

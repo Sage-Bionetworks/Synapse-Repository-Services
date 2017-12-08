@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 
 public class CloudsSearchDomainClientAdapter {
@@ -30,7 +31,7 @@ public class CloudsSearchDomainClientAdapter {
 		ValidateArgument.required(documents, "documents");
 		checkEndpointInitilaization();
 
-		byte[] documentBytes = documents.getBytes();
+		byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")
 										.withDocuments(new ByteArrayInputStream(documentBytes))
