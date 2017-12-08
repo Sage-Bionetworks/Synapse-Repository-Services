@@ -34,30 +34,40 @@ public class SearchUtil{
 	public static final String CREATED_BY_RETURN_FIELD = "created_by_r";
 	public static final String CREATED_ON_FIELD = "created_on";
 	public static final String DESCRIPTION_FIELD = "description";
+	public static final String DISEASE_FACET_FIELD = "disease";
 	public static final String DISEASE_RETURN_FIELD = "disease_r";
 	public static final String ETAG_FIELD = "etag";
 	public static final String ID_FIELD = "id";
 	public static final String MODIFIED_BY_RETURN_FIELD = "modified_by_r";
 	public static final String MODIFIED_ON_FIELD = "modified_on";
 	public static final String NAME_FIELD = "name";
-	public static final String NODE_TYPE_FIELD = "node_type_r";
+	public static final String NODE_TYPE_FACET_FIELD = "node_type";
+	public static final String NODE_TYPE_RETURN_FIELD = "node_type_r";
 	public static final String NUM_SAMPLES_FIELD = "num_samples";
-	public static final String TISSUE_FIELD = "tissue_r";
+	public static final String SPECIES_FACET_FIELD = "species";
+	public static final String TISSUE_FACET_FIELD = "tissue";
+	public static final String TISSUE_RETURN_FIELD = "tissue_r";
+	public static final String PLATFORM_FACET_FIELD = "platform";
+	public static final String CREATED_BY_FACET_FIELD = "created_by";
+	public static final String MODIFIED_BY_FACET_FIELD = "modified_by";
+	public static final String REFERENCE_FACET_FIELD = "reference";
+
+
 
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put("node_type", FacetTypeNames.LITERAL);
-		facetTypes.put("disease", FacetTypeNames.LITERAL);
-		facetTypes.put("tissue", FacetTypeNames.LITERAL);
-		facetTypes.put("species", FacetTypeNames.LITERAL);
-		facetTypes.put("platform", FacetTypeNames.LITERAL);
-		facetTypes.put("created_by", FacetTypeNames.LITERAL);
-		facetTypes.put("modified_by", FacetTypeNames.LITERAL);
-		facetTypes.put("reference", FacetTypeNames.LITERAL);
-		facetTypes.put("acl", FacetTypeNames.LITERAL);
-		facetTypes.put("created_on", FacetTypeNames.DATE);
-		facetTypes.put("modified_on", FacetTypeNames.DATE);
-		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
+		facetTypes.put(NODE_TYPE_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(DISEASE_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(TISSUE_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(SPECIES_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(PLATFORM_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(CREATED_BY_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(MODIFIED_BY_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(REFERENCE_FACET_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(ACL_INDEX_FIELD, FacetTypeNames.LITERAL);
+		facetTypes.put(CREATED_ON_FIELD, FacetTypeNames.DATE);
+		facetTypes.put(MODIFIED_ON_FIELD, FacetTypeNames.DATE);
+		facetTypes.put(NUM_SAMPLES_FIELD, FacetTypeNames.CONTINUOUS);
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
@@ -141,7 +151,7 @@ public class SearchUtil{
 			}
 
 			//turns it from (and <q1> <q2> ... <qN>) into (and (and <q1> <q2> ... <qN>) <bqterm1> <bqterm2> ... <bqtermN>)
-			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + join(bqTerms, " ")+ ")");
+			queryTermsStringBuilder.append( (queryTermsStringBuilder.length() > 0 ? " ":"") + String.join(" ", bqTerms)+ ")");
 			queryTermsStringBuilder.insert(0, "(and "); //add to the beginning of string
 		}
 
@@ -188,7 +198,7 @@ public class SearchUtil{
 		// return-fields
 		if (searchQuery.getReturnFields() != null
 				&& searchQuery.getReturnFields().size() > 0)
-			searchRequest.setReturn(join(searchQuery.getReturnFields(), ","));
+			searchRequest.setReturn(String.join(",", searchQuery.getReturnFields()));
 
 		// size
 		if (searchQuery.getSize() != null)
@@ -201,50 +211,23 @@ public class SearchUtil{
 		return searchRequest;
 	}
 
-	//TODO: Test
 	public static SearchResults convertToSynapseSearchResult(SearchResult cloudSearchResult){
 		SearchResults synapseSearchResults = new SearchResults();
 
 		//Handle Translating of facets
+		List<Facet> facetList = new ArrayList<>();
 		Map<String, BucketInfo> facetMap = cloudSearchResult.getFacets();
 		if(facetMap != null) {
-			List<Facet> facetList = new ArrayList<>();
-
 			for (Map.Entry<String, BucketInfo> facetInfo : facetMap.entrySet()) {//iterate over each facet
-
-				String facetName = facetInfo.getKey();
-				FacetTypeNames facetType = FACET_TYPES.get(facetName);
-				if (facetType == null) {
-					throw new IllegalArgumentException(
-							"facet "
-									+ facetName
-									+ " is not properly configured, add it to the facet type map");
-				}
-
-				Facet synapseFacet = new Facet();
-				synapseFacet.setName(facetName);
-				synapseFacet.setType(facetType);
-				// Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
-				// A IllegalArgumentException would have been throw when converting from Synapse's SearchQuery to Amazon's SearchRequest
-
-				BucketInfo bucketInfo = facetInfo.getValue();
-				List<FacetConstraint> facetConstraints = new ArrayList<>();
-				for (Bucket bucket: bucketInfo.getBuckets()){
-					FacetConstraint facetConstraint = new FacetConstraint();
-					facetConstraint.setValue(bucket.getValue());
-					facetConstraint.setCount(bucket.getCount());
-				}
-				synapseFacet.setConstraints(facetConstraints);
-
-				facetList.add(synapseFacet);
+				facetList.add(convertToSynapseSearchFacet(facetInfo.getKey(), facetInfo.getValue()));
 			}
-			synapseSearchResults.setFacets(facetList);
 		}
+		synapseSearchResults.setFacets(facetList);
 
+		//Handle translation of Hits
 		//class names are clashing feelsbadman
 		List<org.sagebionetworks.repo.model.search.Hit> hitList = new ArrayList<>();
 		Hits hits = cloudSearchResult.getHits();
-
 		if (hits != null) {
 			synapseSearchResults.setFound(hits.getFound());
 			synapseSearchResults.setStart(hits.getStart());
@@ -254,7 +237,34 @@ public class SearchUtil{
 			}
 		}
 		synapseSearchResults.setHits(hitList);
+
 		return synapseSearchResults;
+	}
+
+	private static Facet convertToSynapseSearchFacet(String facetName, BucketInfo bucketInfo) {
+		FacetTypeNames facetType = FACET_TYPES.get(facetName);
+		if (facetType == null) {
+			throw new IllegalArgumentException(
+					"facet "
+							+ facetName
+							+ " is not properly configured, add it to the facet type map");
+		}
+
+		Facet synapseFacet = new Facet();
+		synapseFacet.setName(facetName);
+		synapseFacet.setType(facetType);
+		// Note: min and max are never set since the frontend never makes use of them and so the results won't ever have them.
+		// A IllegalArgumentException would have been throw when converting from Synapse's SearchQuery to Amazon's SearchRequest
+
+		List<FacetConstraint> facetConstraints = new ArrayList<>();
+		for (Bucket bucket: bucketInfo.getBuckets()){
+			FacetConstraint facetConstraint = new FacetConstraint();
+			facetConstraint.setValue(bucket.getValue());
+			facetConstraint.setCount(bucket.getCount());
+			facetConstraints.add(facetConstraint);
+		}
+		synapseFacet.setConstraints(facetConstraints);
+		return synapseFacet;
 	}
 
 	private static org.sagebionetworks.repo.model.search.Hit convertToSynapseHit(com.amazonaws.services.cloudsearchdomain.model.Hit cloudSearchHit){
@@ -270,9 +280,9 @@ public class SearchUtil{
 		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, MODIFIED_BY_RETURN_FIELD));
 		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, MODIFIED_ON_FIELD)));
 		synapseHit.setName(getFirstListValueFromMap(fieldsMap, NAME_FIELD));
-		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, NODE_TYPE_FIELD));
+		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, NODE_TYPE_RETURN_FIELD));
 		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, NUM_SAMPLES_FIELD)));
-		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, TISSUE_FIELD));
+		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, TISSUE_RETURN_FIELD));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		return synapseHit;
 	}
@@ -299,11 +309,6 @@ public class SearchUtil{
 			throw new IllegalArgumentException("the prefixString does not contain an * (asterisk) symbol");
 		}
 		return "(prefix" + (fieldName==null ? "" : " field=" + fieldName) + " '" + prefixStringWithAsterisk.substring(0, asteriskIndex) + "')";
-	}
-	
-	
-	private static String join(List<String> list, String delimiter){
-		return joinHelper(list, delimiter, false);
 	}
 	
 	private static String joinQueries(List<String> list, String delimiter){
