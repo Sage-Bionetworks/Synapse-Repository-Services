@@ -554,7 +554,7 @@ public class TableViewIntegrationTest {
 		FileEntity file = entityManager.getEntity(adminUserInfo, ""+fileId, FileEntity.class);
 		waitForEntityReplication(fileViewId, file.getId());
 		
-		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = "+fileId;
+		String sql = "select id, parentId, projectId, benefactorId from "+fileViewId+" where id = '"+fileId+"'";
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql);
 		List<Row> rows  = extractRows(results);
 		assertEquals(1, rows.size());
@@ -719,7 +719,7 @@ public class TableViewIntegrationTest {
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, fileViewId);
 		// query for the file that inherits from the folder.
-		String sql = "select * from "+fileViewId+" where benefactorId="+folderId+" and id = "+fileId;
+		String sql = "select * from "+fileViewId+" where benefactorId='"+folderId+"' and id = '"+fileId+"'";
 		int expectedRowCount = 1;
 		QueryResultBundle results = waitForConsistentQuery(adminUserInfo, sql, expectedRowCount);
 		List<Row> rows  = extractRows(results);
@@ -759,7 +759,7 @@ public class TableViewIntegrationTest {
 		// wait for the view to be available for query
 		waitForEntityReplication(fileViewId, firstFileId);
 		// query the view as a user that does not permission
-		String sql = "select * from "+fileViewId+" where id ="+firstFileId;
+		String sql = "select * from "+fileViewId+" where id ='"+firstFileId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 		
@@ -791,7 +791,7 @@ public class TableViewIntegrationTest {
 		// wait for the view.
 		waitForEntityReplication(viewId, projectId);
 		// query the view as a user that does not permission
-		String sql = "select * from "+viewId+" where id ="+projectId;
+		String sql = "select * from "+viewId+" where id ='"+projectId+"'";
 		int rowCount = 1;
 		waitForConsistentQuery(adminUserInfo, sql, rowCount);
 		
