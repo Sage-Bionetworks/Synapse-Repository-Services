@@ -1,0 +1,16 @@
+{
+  "description": "Container for a page of team IDs.",
+  "properties": {
+    "teamIds": {
+      "type": "array",
+      "description": "The requested team IDs.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nextPageToken": {
+      "type": "string",
+      "description": "Token that can be used to get the next page.  Null if there are no more results."
+    }
+  }
+}

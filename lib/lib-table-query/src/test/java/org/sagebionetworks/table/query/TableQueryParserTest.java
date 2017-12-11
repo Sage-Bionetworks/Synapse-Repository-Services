@@ -7,9 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -351,5 +349,22 @@ public class TableQueryParserTest {
 	public void testArithmetic() throws ParseException{
 		QuerySpecification element = TableQueryParser.parserQuery("select foo/100 from syn123");
 		assertEquals("SELECT foo/100 FROM syn123", element.toSql());
+	}
+
+	/**
+	 * Test for PLFM-4510
+	 * Make sure that all ASCII values are recognized by the parser
+	 */
+	@Test
+	public void testAsciiTokens() {
+		for (char c = 0; c < 256; c++) {
+			try {
+				TableQueryParser.parserQuery("select foo" + c + " from syn123");
+			} catch (ParseException pe) {
+				// No problem
+			} catch (TokenMgrError tme) {
+				fail("Encountered an unexpected TokenMgrError: " + tme);
+			}
+		}
 	}
 }

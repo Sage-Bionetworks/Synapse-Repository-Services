@@ -645,7 +645,7 @@ public class SqlConstants {
 	public static final String COL_PRINCIPAL_ALIAS_ETAG				= "ETAG";
 	public static final String COL_PRINCIPAL_ALIAS_PRINCIPAL_ID		= "PRINCIPAL_ID";
 	public static final String COL_PRINCIPAL_ALIAS_UNIQUE			= "ALIAS_UNIQUE";
-	public static final String COL_BOUND_ALIAS_DISPLAY				= "ALIAS_DISPLAY";
+	public static final String COL_PRINCIPAL_ALIAS_DISPLAY          = "ALIAS_DISPLAY";
 	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
 	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
 	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
@@ -873,7 +873,7 @@ public class SqlConstants {
 	public static final String TYPE_COLUMN_NAME = "nodeType";
 	
 	public static final String AUTH_FILTER_ALIAS = "auth";
-	
+
 	// standard range parameters
 	public static final String OFFSET_PARAM_NAME = "OFFSET";
 	public static final String LIMIT_PARAM_NAME = "LIMIT";
