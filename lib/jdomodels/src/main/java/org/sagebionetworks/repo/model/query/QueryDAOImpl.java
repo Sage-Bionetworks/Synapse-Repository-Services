@@ -183,7 +183,7 @@ public class QueryDAOImpl implements QueryDAO {
 		StringBuilder from = buildFrom(objType, objId, aliases, userQuery, sortFieldType);
 
 		// <where>
-		StringBuilder where = buildWhere(objType, aliases, userQuery, queryParams, includePrivate);
+		StringBuilder where = buildWhere(objType, objId, aliases, userQuery, queryParams, includePrivate);
 		
 		// <sort>
 		StringBuilder sort = buildSort(userQuery);
@@ -241,13 +241,9 @@ public class QueryDAOImpl implements QueryDAO {
 		appendTable(builder, null, tablePrefix, ANNO_OWNER, ALIAS_ANNO_OWNER, true);
 		appendTable(builder, aliases, tablePrefix, ANNO_BLOB, ALIAS_ANNO_BLOB, false);
 		
-		// Inject the user-defined "FROM" filter
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_SCOPE_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, KeyFactory.stringToKey(objId));
 		if (query.getFilters() == null) {
 			query.setFilters(new ArrayList<Expression>());
 		}
-		query.getFilters().add(exp);
 		
 		// Add the typed table for each filter
 		for (int i = 0; i < query.getFilters().size(); i++) {
@@ -273,16 +269,23 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the WHERE clause
 	 */
-	private static StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
+	private static StringBuilder buildWhere(QueryObjectType queryObjType, String scopeId, List<String> aliases, 
 			BasicQuery query, Map<String, Object> queryParams, boolean includePrivate) 
 			throws DatastoreException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("WHERE ");
 		String joinColumn = queryObjType.joinColumn();
 		
+		// Inject the user-defined "FROM" filter
+		builder.append(ALIAS_ANNO_OWNER);
+		builder.append('.');
+		builder.append(COL_SUBSTATUS_ANNO_EVALID);
+		builder.append(Comparator.EQUALS.getSql());
+		builder.append(scopeId);
+		
 		// Join the tables
 		for (int i = 0; i < aliases.size(); i++) {
-			appendJoin(builder, ALIAS_ANNO_OWNER, aliases.get(i), joinColumn, i == 0);
+			appendJoin(builder, ALIAS_ANNO_OWNER, aliases.get(i), joinColumn, false);
 		}		
 		
 		// Add the sort filter

@@ -9,10 +9,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JoinTeamSignedToken;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -121,7 +123,6 @@ public interface TeamService {
 	 * Add a member to a Team, based on a JoinedTeamSignedToken object
 	 * 
 	 * @param joinTeamToken
-	 * @param team
 	 * @param teamEndpoint
 	 * @param notificationUnsubscribeEndpoint
 	 * @throws DatastoreException
@@ -227,4 +228,14 @@ public interface TeamService {
 	 * @return
 	 */
 	public AccessControlList updateAccessControlList(Long userId, AccessControlList acl);
+
+	/**
+	 *
+	 * @param teamMemberId
+	 * @param nextPageToken
+	 * @param sortBy
+	 * @param ascending
+	 * @return
+	 */
+	PaginatedTeamIds getIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
 }

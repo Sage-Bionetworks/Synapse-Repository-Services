@@ -11,9 +11,11 @@ import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ListWrapper;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -102,7 +104,17 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 */
 	public PaginatedResults<Team> listByMember(String principalId, long limit, long offset) throws DatastoreException;
-	
+
+	/**
+	 * Retrieve the IDs of the Teams to which the given user belongs, paginated
+	 * @param teamMemberId
+	 * @param nextPageToken
+	 * @param sortBy
+	 * @param ascending
+	 * @return
+	 */
+	PaginatedTeamIds listIdsByMember(String teamMemberId, String nextPageToken, TeamSortOrder sortBy, Boolean ascending);
+
 	/**
 	 * Get a Team by its ID
 	 * @param id
