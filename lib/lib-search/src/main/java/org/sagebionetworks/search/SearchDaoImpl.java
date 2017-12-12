@@ -266,7 +266,6 @@ public class SearchDaoImpl implements SearchDao {
 	private CloudsSearchDomainClientAdapter validateSearchAvailable() throws ServiceUnavailableException {
 		validateSearchEnabled();
 
-		//TODO: no way to check that the endpoint was set
 		if(!cloudSearchClientAdapter.isInitialized()) {
 			DomainStatus status = searchDomainSetup.getDomainStatus();
 			if (status == null) {

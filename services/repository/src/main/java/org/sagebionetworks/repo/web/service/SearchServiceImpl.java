@@ -93,13 +93,7 @@ public class SearchServiceImpl implements SearchService {
 		}
 		// Create the query string
 		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery);
-		if(!userInfo.isAdmin()){ //TODO:z TEST
-			StringBuilder authFilteredQueryStringBuilder = new StringBuilder("(and ");
-			authFilteredQueryStringBuilder.append(SearchUtil.formulateAuthorizationFilter(userInfo));
-			authFilteredQueryStringBuilder.append(searchRequest.getQuery());
-			authFilteredQueryStringBuilder.append(')');
-			searchRequest.setQuery(authFilteredQueryStringBuilder.toString());
-		}
+		filterSearchForAuthorization(userInfo, searchRequest);
 
 		SearchResults results = searchDao.executeSearch(searchRequest);
 		// Add any extra return results to the hits
@@ -134,6 +128,21 @@ public class SearchServiceImpl implements SearchService {
 		}
 		if(!toRemove.isEmpty()){
 			hits.removeAll(toRemove);
+		}
+	}
+
+	/**
+	 * Appends a filter query if necessary to the searchRequest if the user is not an admin.
+	 * @param userInfo
+	 * @param searchRequest
+	 */
+	public static void filterSearchForAuthorization(UserInfo userInfo, SearchRequest searchRequest){
+		if(!userInfo.isAdmin()){
+			if(searchRequest.getFilterQuery() != null){
+				//Nothing else in the code should have set a Filter Query.
+				throw new IllegalArgumentException("did not expect searchRequest to already contain a Filter Query: "+ searchRequest.getFilterQuery());
+			}
+			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
 		}
 	}
 }

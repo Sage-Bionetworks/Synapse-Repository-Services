@@ -42,7 +42,7 @@ public class SearchServiceImplTest {
 	private SearchServiceImpl service;
 	private UserInfo userInfo;
 	private String searchQuery;
-	
+	private SearchRequest searchRequest;
 	
 	@Before
 	public void before(){
@@ -56,6 +56,7 @@ public class SearchServiceImplTest {
 		userGroups.add(123L);
 		userGroups.add(8008135L);
 		userInfo.setGroups(userGroups);
+		searchRequest = new SearchRequest();
 	}
 	
 	@Test
@@ -77,8 +78,6 @@ public class SearchServiceImplTest {
 		kv.setValue("syn123");
 		query.getBooleanQuery().add(kv);
 		
-		// Setup the expected query
-		SearchRequest searchRequest = SearchUtil.generateSearchRequest(query,userInfo);
 		// Path should not get passed along to the search index as it is not there anymore.
 		query.setReturnFields(new LinkedList<String>());
 		query.getReturnFields().add(FIELD_PATH);
@@ -92,7 +91,7 @@ public class SearchServiceImplTest {
 		// Path should get filled in since we asked for it.
 		assertNotNull(returnedHit.getPath());
 		// Validate that path was not passed along to the search index as it is not there.
-		verify(mockSearchDao, times(1)).executeSearch(searchRequest);
+		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
 	}
 	
 	@Test
@@ -111,9 +110,7 @@ public class SearchServiceImplTest {
 		kv.setKey(FIELD_ID);
 		kv.setValue("syn123");
 		query.getBooleanQuery().add(kv);
-		
-		// Setup the expected query
-		SearchRequest searchRequest = SearchUtil.generateSearchRequest(query, userInfo);
+
 		// Make the call
 		SearchResults results = service.proxySearch(userInfo, query);
 		assertNotNull(results);
@@ -122,6 +119,25 @@ public class SearchServiceImplTest {
 		Hit returnedHit = results.getHits().get(0);
 		// The path should not be returned unless requested.
 		assertNull(returnedHit.getPath());
-		verify(mockSearchDao, times(1)).executeSearch(searchRequest);
+		verify(mockSearchDao, times(1)).executeSearch(any(SearchRequest.class));
+	}
+
+	@Test
+	public void testFilterSeachForAuthorizationUserIsAdmin(){
+		UserInfo adminUser = new UserInfo(true, 420L);
+		SearchServiceImpl.filterSearchForAuthorization(adminUser, searchRequest);
+		assertEquals(null, searchRequest.getFilterQuery());
+	}
+
+	@Test
+	public void testFilterSearchForAuthorizationUserIsNotAdmin(){
+		SearchServiceImpl.filterSearchForAuthorization(userInfo, searchRequest);
+		assertEquals(SearchUtil.formulateAuthorizationFilter(userInfo), searchRequest.getFilterQuery());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testFilterSearchForAuthorizationUserIsNotAdminFilterQueryAlreadyExists(){
+		searchRequest.setFilterQuery("(or memes:'dank')");
+		SearchServiceImpl.filterSearchForAuthorization(userInfo, searchRequest);
 	}
 }

@@ -289,7 +289,6 @@ public class SearchUtil{
 
 
 	private static String getFirstListValueFromMap(Map<String, List<String>> map, String key){
-		ValidateArgument.required(map, "map");
 		List<String> list = map.get(key);
 		return (list == null || list.isEmpty()) ? null : list.get(0);
 	}
@@ -312,22 +311,14 @@ public class SearchUtil{
 	}
 	
 	private static String joinQueries(List<String> list, String delimiter){
-		return joinHelper(list, delimiter, true);
-	}
-	
-	private static String joinHelper(List<String> list, String delimiter, boolean forQueries) {
 		StringBuilder sb = new StringBuilder();
 		for (String item : list) {
-			if(forQueries){
-				if(item.contains("*")){
-					sb.append(createPrefixQuery(item, null));
-				}else{
-					sb.append('\''); //appends ' character
-					sb.append(item);
-					sb.append('\'');
-				}
+			if(item.contains("*")){
+				sb.append(createPrefixQuery(item, null));
 			}else{
+				sb.append('\''); //appends ' character
 				sb.append(item);
+				sb.append('\'');
 			}
 			sb.append(delimiter);
 		}

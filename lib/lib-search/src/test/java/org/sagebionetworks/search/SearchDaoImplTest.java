@@ -77,8 +77,6 @@ public class SearchDaoImplTest {
 
 	@Test
 	public void testInitializePostInitTrue() throws Exception {
-		//TODO: fix
-
 		when(mockSearchDomainSetup.isSearchEnabled()).thenReturn(true);
 		when(mockSearchDomainSetup.postInitialize()).thenReturn(true);
 		when(mockSearchDomainSetup.getDomainSearchEndpoint()).thenReturn("http://searchendpoint");
