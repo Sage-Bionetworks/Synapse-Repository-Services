@@ -107,9 +107,6 @@ public class MembershipInvitationManagerImpl implements
 		if (acceptInvitationEndpoint == null) {
 			acceptInvitationEndpoint = ServiceConstants.ACCEPT_INVITATION_ENDPOINT;
 		}
-		if (notificationUnsubscribeEndpoint == null) {
-			notificationUnsubscribeEndpoint = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT;
-		}
 		if (mi.getCreatedOn() == null) mi.setCreatedOn(new Date());
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
