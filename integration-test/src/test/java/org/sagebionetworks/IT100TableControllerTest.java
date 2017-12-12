@@ -34,6 +34,7 @@ import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
@@ -627,6 +628,46 @@ public class IT100TableControllerTest {
 		for (Row row : queryResults.getRows()) {
 			String value = row.getValues().get(0);
 			assertEquals("test changed", value);
+		}
+	}
+	
+	/**
+	 * Test an upload with a payload larger than the max size fails.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_4761() throws Exception {
+		// Create a value that will be pushed to a table to exceed the max request size
+		String sampleValue = "1234567890123456789012345678901234567890";
+		long maxCharacters = sampleValue.length();
+		long bytesPerRow = maxCharacters*3;
+		long maxBytesPerRequest = 1024*1024*2;
+		long maxRows = maxBytesPerRequest/bytesPerRow;
+		// Create a column to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one.setMaximumSize(maxCharacters);
+		one = synapse.createColumnModel(one);
+
+		TableEntity table = createTable(Lists.newArrayList(one.getId()));
+
+		// Add enough rows to exceed the maximum request size.
+		PartialRowSet partialSet = new PartialRowSet();
+		List<PartialRow> partialRows = new LinkedList<PartialRow>();
+		for(long i=0; i<maxRows+10;i++) {
+			PartialRow row = TableModelTestUtils.createPartialRow(null, one.getId(), sampleValue);
+			partialRows.add(row);
+		}
+		partialSet.setRows(partialRows);
+		partialSet.setTableId(table.getId());
+		
+		try {
+			synapse.appendRowsToTable(partialSet, MAX_APPEND_TIMEOUT, table.getId());
+		} catch (SynapseServerException e) {
+			// this should result in a 413 "Payload Too Large"
+			assertEquals(413, e.getStatusCode());
 		}
 	}
 
