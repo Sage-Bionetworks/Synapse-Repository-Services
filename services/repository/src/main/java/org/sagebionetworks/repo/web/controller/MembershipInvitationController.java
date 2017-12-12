@@ -41,12 +41,10 @@ public class MembershipInvitationController extends BaseController {
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * <p>Create a membership invitation. The team must be specified. Also, either an inviteeId or an inviteeEmail must be
-	 * specified. Optionally, the creator may include an invitation message and/or expiration date for the invitation.
-	 * If no expiration date is specified then the invitation never expires.</p>
-	 *
-	 * <p>If acceptInvitationEndpoint and notificationUnsubscribeEndpoint are provided, an email notification
-	 * will be sent to the invitee.</p>
+	 * <p>Create a membership invitation and send an email notification to the invitee. The team must be specified.
+	 * Also, either an inviteeId or an inviteeEmail must be specified. Optionally, the creator may include an
+	 * invitation message and/or expiration date for the invitation. If no expiration date is specified then the
+	 * invitation never expires.</p>
 	 *
 	 * <p>Note: The client must be an administrator of the specified Team to make this request.</p>
 	 *
@@ -58,13 +56,9 @@ public class MembershipInvitationController extends BaseController {
 	 * if an inviteeId is specified, or
 	 * <a href="${org.sagebionetworks.repo.model.MembershipInvtnSignedToken}">MembershipInvtnSignedToken</a>
 	 * if an inviteeEmail is specified.
-	 * <br/>
-	 * If omitted, email notifications will not be sent.
 	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
 	 * A signed, serialized token is appended to create the complete URL:
 	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
-	 * <br/>
-	 * If omitted, email notifications will not be sent.
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -73,8 +67,8 @@ public class MembershipInvitationController extends BaseController {
 	public @ResponseBody
 	MembershipInvitation createInvitation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, required = false) String acceptInvitationEndpoint,
-			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
+			@RequestParam(value = AuthorizationConstants.ACCEPT_INVITATION_ENDPOINT_PARAM, defaultValue = ServiceConstants.ACCEPT_INVITATION_ENDPOINT) String acceptInvitationEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipInvitation invitation
 			) throws NotFoundException {
 		return serviceProvider.
