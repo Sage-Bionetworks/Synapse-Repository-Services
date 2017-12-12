@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
 import org.sagebionetworks.repo.model.MembershipInvtnSignedToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -103,7 +104,12 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MessageToUserAndBody createInvitationMessageToUser(MembershipInvitation mi,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
-		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return null;
+		if (acceptInvitationEndpoint == null) {
+			acceptInvitationEndpoint = ServiceConstants.ACCEPT_INVITATION_ENDPOINT;
+		}
+		if (notificationUnsubscribeEndpoint == null) {
+			notificationUnsubscribeEndpoint = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT;
+		}
 		if (mi.getCreatedOn() == null) mi.setCreatedOn(new Date());
 		MessageToUser mtu = new MessageToUser();
 		mtu.setSubject(TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT);
@@ -126,9 +132,10 @@ public class MembershipInvitationManagerImpl implements
 	}
 
 	@Override
-	public void sendInvitationToEmail(MembershipInvitation mi,
-			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
-		if (acceptInvitationEndpoint==null || notificationUnsubscribeEndpoint==null) return;
+	public void sendInvitationToEmail(MembershipInvitation mi, String acceptInvitationEndpoint) {
+		if (acceptInvitationEndpoint == null) {
+			acceptInvitationEndpoint = ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT;
+		}
 		String teamName = teamDAO.get(mi.getTeamId()).getName();
 		String subject = "You have been invited to join the team " + teamName;
 		Map<String,String> fieldValues = new HashMap<>();

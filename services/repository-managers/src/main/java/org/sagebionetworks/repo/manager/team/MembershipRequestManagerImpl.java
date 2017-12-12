@@ -118,7 +118,6 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRequest mr,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (acceptRequestEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		if (mr.getCreatedOn() == null) mr.setCreatedOn(new Date());
 		UserProfile userProfile = userProfileManager.getUserProfile(mr.getCreatedBy());
 		String displayName = EmailUtils.getDisplayNameWithUsername(userProfile);

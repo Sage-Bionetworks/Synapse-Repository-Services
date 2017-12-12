@@ -259,6 +259,7 @@ public class ServiceConstants {
 	 */
 	public static final String HOST_PAGE_BASE_URL = "https://www.synapse.org/";
 	public static final String ACCEPT_INVITATION_ENDPOINT = HOST_PAGE_BASE_URL + "#!SignedToken:JoinTeam/";
+	public static final String ACCEPT_EMAIL_INVITATION_ENDPOINT = HOST_PAGE_BASE_URL + "#!SignedToken:EmailInvitation/";
 	public static final String ACCEPT_REQUEST_ENDPOINT = ACCEPT_INVITATION_ENDPOINT;
 	public static final String CHALLENGE_ENDPOINT = HOST_PAGE_BASE_URL + "#!Synapse:";
 	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = HOST_PAGE_BASE_URL + "#!SignedToken:Settings/";

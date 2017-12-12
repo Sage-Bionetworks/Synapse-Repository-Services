@@ -66,7 +66,7 @@ public class MembershipInvitationServiceImpl implements
 			}
 		} else {
 			// Invitation to new user
-			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+			membershipInvitationManager.sendInvitationToEmail(created, acceptInvitationEndpoint);
 		}
 
 		return created;

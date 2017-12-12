@@ -354,8 +354,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";
-		String notificationUnsubscribeEndpoint = "https://synapse.org/#notificationUnsubscribeEndpoint:";
-	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
+	    membershipInvitationManagerImpl.sendInvitationToEmail(mis, acceptInvitationEndpoint);
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();

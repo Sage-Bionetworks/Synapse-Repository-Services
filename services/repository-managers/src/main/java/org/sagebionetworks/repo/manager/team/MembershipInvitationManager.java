@@ -43,11 +43,10 @@ public interface MembershipInvitationManager {
 	 *
 	 * @param mis
 	 * @param acceptInvitationEndpoint
-	 * @param notificationUnsubscribeEndpoint
 	 * @return
 	 * @throws NotFoundException
 	 */
-	void sendInvitationToEmail(MembershipInvitation mis, String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) throws NotFoundException;
+	void sendInvitationToEmail(MembershipInvitation mis, String acceptInvitationEndpoint) throws NotFoundException;
 
 	/**
 	 * Retrieve an invitation by its ID
