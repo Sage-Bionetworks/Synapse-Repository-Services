@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -164,13 +165,19 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return getJSONEntity(getRepoEndpoint(), uri, RowMetadataResult.class);
 	}
 	
-	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws SynapseException {
+	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids, BackupAliasType backupAliasType) throws SynapseException {
 		String uri = MIGRATION_BACKUP + "?type=" + migrationType.name();
+		if (backupAliasType != null) {
+			uri += "&backupAliasType=" + backupAliasType.name();
+		}
 		return postJSONEntity(getRepoEndpoint(), uri, ids, BackupRestoreStatus.class);
 	}
 	
-	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws SynapseException {
+	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req, BackupAliasType backupAliasType) throws SynapseException {
 		String uri = MIGRATION_RESTORE + "?type=" + migrationType.name();
+		if (backupAliasType != null) {
+			uri += "&backupAliasType=" + backupAliasType.name();
+		}
 		return postJSONEntity(getRepoEndpoint(), uri, req, BackupRestoreStatus.class);
 	}
 	
