@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -44,7 +45,18 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.migration.*;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
+import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -425,9 +437,18 @@ public class MigrationManagerImplAutowireTest {
 		System.out.println("minid: " + minId + ", maxId: " + maxId + ", resList:" + amrmRes.getList());
 		assertEquals(2, amrmRes.getList().size());
 	}
-	
+
 	@Test
-	public void testRoundTrip() throws Exception{
+	public void testRoundTripWithTableNameAlias() throws Exception {
+		testRoundTrip(BackupAliasType.TABLE_NAME);
+	}
+
+	@Test
+	public void testRoundTripWithMigrationNameAlias() throws Exception {
+		testRoundTrip(BackupAliasType.MIGRATION_TYPE_NAME);
+	}
+
+	private void testRoundTrip(BackupAliasType backupAliasType) throws Exception{
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		// List the delta
@@ -438,13 +459,13 @@ public class MigrationManagerImplAutowireTest {
 		// Write the backup data
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		Writer writer = new OutputStreamWriter(out, "UTF-8");
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, writer);
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, writer, backupAliasType);
 		writer.flush();
 		String xml1 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml1);
 		out = new ByteArrayOutputStream();
 		writer = new OutputStreamWriter(out, "UTF-8");
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, writer);
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, writer, backupAliasType);
 		writer.flush();
 		String xml2 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml2);
@@ -455,15 +476,15 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(startCount, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Now restore them from the xml
 		ByteArrayInputStream in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
-		List<Long> ids = migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		List<Long> ids = migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
 		assertEquals(ids1, ids);
 		in = new ByteArrayInputStream(xml2.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
 		// The count should be backup
 		assertEquals(startCount+2, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Calling again should not fail
 		in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in, backupAliasType);
 		// Now get the data
 		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);

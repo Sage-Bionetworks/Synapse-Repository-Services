@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -23,22 +24,24 @@ public interface BackupDriver {
 	 * @param progress
 	 * @param type
 	 * @param idsToBackup
+	 * @param backupAliasType
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
-	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<Long> idsToBackup) throws IOException, InterruptedException;
+	public boolean writeBackup(UserInfo user, File destination, Progress progress, MigrationType type, List<Long> idsToBackup, BackupAliasType backupAliasType) throws IOException, InterruptedException;
 	
 	/**
 	 * 
+	 * @param type
 	 * @param user
 	 * @param source
 	 * @param progress
-	 * @param type
+	 * @param backupAliasType
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws Exception 
 	 */
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException, Exception;
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress, BackupAliasType backupAliasType) throws IOException, InterruptedException, Exception;
 }

@@ -8,15 +8,16 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -160,7 +161,9 @@ public class MigrationController extends BaseController {
 	 * getStatus method.
 	 * 
 	 * @param userId
-	 * @param header
+	 * @param type
+	 * @param backupAliasType Possible values:
+	 * <a href="#org.sagebionetworks.repo.model.daemon.BackupAliasType">BackupAliasType</a>. Defaults to TABLE_NAME.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -176,19 +179,23 @@ public class MigrationController extends BaseController {
 	BackupRestoreStatus startBackup(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
+			@RequestParam(required = false) BackupAliasType backupAliasType,
 			@RequestBody IdList request) throws DatastoreException, NotFoundException {
 		if (request == null)
 			throw new IllegalArgumentException("Request cannot be null");
-		return serviceProvider.getMigrationService().startBackup(userId, MigrationType.valueOf(type), request.getList());
+		if (backupAliasType == null)
+			backupAliasType = BackupAliasType.TABLE_NAME;
+		return serviceProvider.getMigrationService().startBackup(userId, MigrationType.valueOf(type), request.getList(), backupAliasType);
 	}
 	
 	/**
 	 * Start a system restore daemon using the passed file name.  The file must be in the 
 	 * the bucket belonging to this stack.
 	 * 
-	 * @param fileName
 	 * @param userId
-	 * @param header
+	 * @param type
+	 * @param backupAliasType Possible values:
+	 * <a href="#org.sagebionetworks.repo.model.daemon.BackupAliasType">BackupAliasType</a>. Defaults to TABLE_NAME.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -204,10 +211,13 @@ public class MigrationController extends BaseController {
 	BackupRestoreStatus startRestore(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
+			@RequestParam(required = false) BackupAliasType backupAliasType,
 			@RequestBody RestoreSubmission request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return serviceProvider.getMigrationService().startRestore(userId, MigrationType.valueOf(type), request.getFileName());
+		if (backupAliasType == null)
+			backupAliasType = BackupAliasType.TABLE_NAME;
+		return serviceProvider.getMigrationService().startRestore(userId, MigrationType.valueOf(type), request.getFileName(), backupAliasType);
 	}
 	
 	/**

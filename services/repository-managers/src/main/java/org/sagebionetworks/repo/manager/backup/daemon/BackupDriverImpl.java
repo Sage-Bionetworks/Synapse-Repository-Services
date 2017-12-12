@@ -18,10 +18,10 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The Migration driver updates the progress and read/writes migration data to zip files.
@@ -45,12 +45,13 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @param progress
 	 * @param type
 	 * @param idsToBackup
+	 * @param backupAliasType
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
 	@Override
-	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<Long> idsToBackup) throws IOException, InterruptedException {
+	public boolean writeBackup(UserInfo user, File destination, Progress progress, MigrationType type, List<Long> idsToBackup, BackupAliasType backupAliasType) throws IOException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -73,7 +74,7 @@ public class BackupDriverImpl implements BackupDriver {
 			ZipEntry entry = new ZipEntry(type.name() + ZIP_ENTRY_SUFFIX);
 			zos.putNextEntry(entry);
 			Writer zipWriter = new OutputStreamWriter(zos, "UTF-8");
-			migrationManager.writeBackupBatch(user, type, idsToBackup, zipWriter);
+			migrationManager.writeBackupBatch(user, type, idsToBackup, zipWriter, backupAliasType);
 			zipWriter.flush();
 			progress.incrementProgress();
 			// If this type has secondary types then add them to the zip as well.
@@ -85,7 +86,7 @@ public class BackupDriverImpl implements BackupDriver {
 					entry = new ZipEntry(secondary.name() + ZIP_ENTRY_SUFFIX);
 					zos.putNextEntry(entry);
 					zipWriter = new OutputStreamWriter(zos, "UTF-8");
-					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zipWriter);
+					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zipWriter, backupAliasType);
 					zipWriter.flush();
 					progress.incrementProgress();
 				}
@@ -104,7 +105,7 @@ public class BackupDriverImpl implements BackupDriver {
 
 	@WriteTransaction
 	@Override
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws Exception {
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress, BackupAliasType backupAliasType) throws Exception {
 		if (source == null)
 			throw new IllegalArgumentException("Source file cannot be null");
 		if (!source.exists())
@@ -136,7 +137,7 @@ public class BackupDriverImpl implements BackupDriver {
 					progress.appendLog("Skipping entry " + entry.getName() + ", unused migration type.");
 				} else {
 					// This is a backup file.
-					List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
+					List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin, backupAliasType);
 					// If this is a primary type then we must clear all data for secondary types
 					// that have these backup ids.
 					List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);

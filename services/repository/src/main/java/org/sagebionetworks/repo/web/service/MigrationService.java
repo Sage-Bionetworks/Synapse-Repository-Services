@@ -3,14 +3,15 @@ package org.sagebionetworks.repo.web.service;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -76,22 +77,24 @@ public interface MigrationService {
 	 * @param userId
 	 * @param type
 	 * @param list
+	 * @param backupAliasType
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus startBackup(Long userId, MigrationType type,	List<Long> list) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Start the restore of the provided file.
 	 * @param userId
 	 * @param type
 	 * @param fileName
+	 * @param backupAliasType
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the migration objects identified in tha passed list.

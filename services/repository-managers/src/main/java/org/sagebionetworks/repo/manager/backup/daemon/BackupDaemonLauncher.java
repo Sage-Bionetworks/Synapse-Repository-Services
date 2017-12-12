@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -39,18 +40,20 @@ public interface BackupDaemonLauncher {
 	 * @param username
 	 * @param type
 	 * @param idsToBackup
+	 * @param backupAliasType
 	 * @return
 	 */
-	public BackupRestoreStatus startBackup(UserInfo username, MigrationType type, List<Long> idsToBackup);
+	public BackupRestoreStatus startBackup(UserInfo username, MigrationType type, List<Long> idsToBackup, BackupAliasType backupAliasType);
 	
 	/**
 	 * Start a restore daemon that will read data from the passed file and write it to the database.
 	 * @param username
 	 * @param fileName
 	 * @param type
+	 * @param backupAliasType
 	 * @return
 	 */
-	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigrationType type);
+	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigrationType type, BackupAliasType backupAliasType);
 
 
 }
