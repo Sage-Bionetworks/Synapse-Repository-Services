@@ -228,6 +228,27 @@ TOKEN: {
 | < letter: ["a"-"z","A"-"Z"]>
 }
 
+/* Invalid symbols */
+TOKEN: {
+  < exclamation_mark: "!">
+| < pound_sign: "#">
+| < dollar_sign: "$">
+| < ampersand: "&">
+| < colon: ":">
+| < semicolon: ";">
+| < question_mark: "?">
+| < at_sign: "@">
+| < left_bracket: "[">
+| < backslash: "\\">
+| < right_bracket: "]">
+| < circumflex: "^">
+| < backtick: "`">
+| < left_curly_brace: "{">
+| < vertical_line: "|">
+| < right_curly_brace: "}">
+| < tilde: "~">
+}
+
 RegularIdentifier regularIdentifier():
 {
 	Token token = null;
@@ -586,7 +607,8 @@ Predicate predicate():
 	| ( leftHandSide = columnReference()
 		(
 			comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
-			| <is> isPredicate = isPredicate(leftHandSide) { return new Predicate(isPredicate);}			|(
+			| <is> isPredicate = isPredicate(leftHandSide) { return new Predicate(isPredicate);}
+			|(
 				[ <not> {notB = Boolean.TRUE; }]
 				(
 						betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
@@ -719,7 +741,9 @@ IsPredicate isPredicate(ColumnReference leftHandSide):
 }
 {
 	[ <not> {notB=Boolean.TRUE;}]
-	(	  	  truthValue = truthValue() { return new BooleanPredicate(leftHandSide, notB, truthValue); }	 	| <null_specification> { return new NullPredicate(leftHandSide, notB); }
+	(
+	  	  truthValue = truthValue() { return new BooleanPredicate(leftHandSide, notB, truthValue); }
+	 	| <null_specification> { return new NullPredicate(leftHandSide, notB); }
 	)
 }
 BooleanFunctionPredicate booleanFunctionPredicate():
@@ -816,7 +840,8 @@ NumericPrimary numericPrimary():
 }
 {
 	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
-	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
+	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }
+}
 NumericValueFunction numericValueFunction():
 {
 	MySqlFunction mysqlFunction = null;
