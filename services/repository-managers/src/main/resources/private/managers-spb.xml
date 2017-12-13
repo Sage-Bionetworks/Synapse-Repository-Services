@@ -18,7 +18,7 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:upload-dao.spb.xml" />
-	<!--<import resource="classpath:search-import.xml" />-->
+	<import resource="classpath:search-import.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
