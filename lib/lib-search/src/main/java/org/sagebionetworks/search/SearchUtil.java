@@ -1,16 +1,10 @@
 package org.sagebionetworks.search;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.amazonaws.services.cloudsearchdomain.model.Bucket;
 import com.amazonaws.services.cloudsearchdomain.model.BucketInfo;
 import com.amazonaws.services.cloudsearchdomain.model.Hits;
 import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
+import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.commons.lang.math.NumberUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -21,53 +15,54 @@ import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.sagebionetworks.util.ValidateArgument;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DESCRIPTION;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_DISEASE_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_BY_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_MODIFIED_ON;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NAME;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE_R;
+import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
+import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE_R;
 
 public class SearchUtil{
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
-	/**
-	 * The index field holding the access control list info
-	 */
-	public static final String ACL_INDEX_FIELD = "acl";
-	public static final String CREATED_BY_RETURN_FIELD = "created_by_r";
-	public static final String CREATED_ON_FIELD = "created_on";
-	public static final String DESCRIPTION_FIELD = "description";
-	public static final String DISEASE_FACET_FIELD = "disease";
-	public static final String DISEASE_RETURN_FIELD = "disease_r";
-	public static final String ETAG_FIELD = "etag";
-	public static final String ID_FIELD = "id";
-	public static final String MODIFIED_BY_RETURN_FIELD = "modified_by_r";
-	public static final String MODIFIED_ON_FIELD = "modified_on";
-	public static final String NAME_FIELD = "name";
-	public static final String NODE_TYPE_FACET_FIELD = "node_type";
-	public static final String NODE_TYPE_RETURN_FIELD = "node_type_r";
-	public static final String NUM_SAMPLES_FIELD = "num_samples";
-	public static final String SPECIES_FACET_FIELD = "species";
-	public static final String TISSUE_FACET_FIELD = "tissue";
-	public static final String TISSUE_RETURN_FIELD = "tissue_r";
-	public static final String PLATFORM_FACET_FIELD = "platform";
-	public static final String CREATED_BY_FACET_FIELD = "created_by";
-	public static final String MODIFIED_BY_FACET_FIELD = "modified_by";
-	public static final String REFERENCE_FACET_FIELD = "reference";
-
-
-
 	static {
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put(NODE_TYPE_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(DISEASE_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(TISSUE_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(SPECIES_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(PLATFORM_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(CREATED_BY_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(MODIFIED_BY_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(REFERENCE_FACET_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(ACL_INDEX_FIELD, FacetTypeNames.LITERAL);
-		facetTypes.put(CREATED_ON_FIELD, FacetTypeNames.DATE);
-		facetTypes.put(MODIFIED_ON_FIELD, FacetTypeNames.DATE);
-		facetTypes.put(NUM_SAMPLES_FIELD, FacetTypeNames.CONTINUOUS);
+		facetTypes.put(FIELD_NODE_TYPE, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_DISEASE, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_TISSUE, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_SPECIES, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_PLATFORM, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_CREATED_BY, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_MODIFIED_BY, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_REFERENCE, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_ACL, FacetTypeNames.LITERAL);
+		facetTypes.put(FIELD_CREATED_ON, FacetTypeNames.DATE);
+		facetTypes.put(FIELD_MODIFIED_ON, FacetTypeNames.DATE);
+		facetTypes.put(FIELD_NUM_SAMPLES, FacetTypeNames.CONTINUOUS);
 		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
@@ -271,18 +266,18 @@ public class SearchUtil{
 		Map<String, List<String>> fieldsMap = cloudSearchHit.getFields();
 
 		org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
-		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, CREATED_BY_RETURN_FIELD));
-		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, CREATED_ON_FIELD)));
-		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, DESCRIPTION_FIELD));
-		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, DISEASE_RETURN_FIELD));
-		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, ETAG_FIELD));
-		synapseHit.setId(getFirstListValueFromMap(fieldsMap, ID_FIELD));
-		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, MODIFIED_BY_RETURN_FIELD));
-		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, MODIFIED_ON_FIELD)));
-		synapseHit.setName(getFirstListValueFromMap(fieldsMap, NAME_FIELD));
-		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, NODE_TYPE_RETURN_FIELD));
-		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, NUM_SAMPLES_FIELD)));
-		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, TISSUE_RETURN_FIELD));
+		synapseHit.setCreated_by(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_BY_R));
+		synapseHit.setCreated_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_CREATED_ON)));
+		synapseHit.setDescription(getFirstListValueFromMap(fieldsMap, FIELD_DESCRIPTION));
+		synapseHit.setDisease(getFirstListValueFromMap(fieldsMap, FIELD_DISEASE_R));
+		synapseHit.setEtag(getFirstListValueFromMap(fieldsMap, FIELD_ETAG));
+		synapseHit.setId(getFirstListValueFromMap(fieldsMap, FIELD_ID));
+		synapseHit.setModified_by(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_BY_R));
+		synapseHit.setModified_on(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_MODIFIED_ON)));
+		synapseHit.setName(getFirstListValueFromMap(fieldsMap, FIELD_NAME));
+		synapseHit.setNode_type(getFirstListValueFromMap(fieldsMap, FIELD_NODE_TYPE_R));
+		synapseHit.setNum_samples(NumberUtils.createLong(getFirstListValueFromMap(fieldsMap, FIELD_NUM_SAMPLES)));
+		synapseHit.setTissue(getFirstListValueFromMap(fieldsMap, FIELD_TISSUE_R));
 		//synapseHit.setPath() also exists but there does not appear to be a path field in the cloudsearch anymore.
 		return synapseHit;
 	}
@@ -362,7 +357,7 @@ public class SearchUtil{
 			if (authorizationFilterBuilder.length() > initialLen) {
 				authorizationFilterBuilder.append(" ");
 			}
-			authorizationFilterBuilder.append(ACL_INDEX_FIELD).append(":'").append(group).append("'");
+			authorizationFilterBuilder.append(FIELD_ACL).append(":'").append(group).append("'");
 		}
 		authorizationFilterBuilder.append(")");
 
