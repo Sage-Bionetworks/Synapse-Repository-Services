@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,5 +58,10 @@ public class TeamControllerAutowiredTest extends AbstractAutowiredControllerTest
 		IdList idList = new IdList();
 		idList.setList(Collections.EMPTY_LIST);
 		List<Team> teams = servletTestHelper.listTeams(dispatchServlet, idList);
+	}
+
+	@Test
+	public void testGetTeamIdsByMember() throws Exception {
+		servletTestHelper.getTeamIdsByMember(dispatchServlet, 1L, TeamSortOrder.TEAM_NAME, true);
 	}
 }
