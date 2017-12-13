@@ -4,7 +4,6 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -13,11 +12,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -25,7 +22,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -34,12 +30,10 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
+import org.sagebionetworks.repo.model.message.cloudmailin.Headers;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Simplistic test to see if things are wired up correctly
@@ -314,9 +308,9 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 		envelope.setFrom(aliceEmail);
 		envelope.setRecipients(Collections.singletonList(bobUsername+"@synapse.org"));
 		message.setEnvelope(envelope);
-		JSONObject headers = new JSONObject();
-		headers.put("Subject", "subject");
-		message.setHeaders(headers.toString());
+		Headers headers = new Headers();
+		headers.setSubject("subject");
+		message.setHeaders(headers);
 		message.setPlain("this is the message body");
 		servletTestHelper.createCloudInMessage(message);
 	}

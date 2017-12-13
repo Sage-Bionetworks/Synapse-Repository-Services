@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +19,6 @@ import javax.mail.internet.InternetAddress;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
@@ -28,6 +26,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.MessageToUserUtils;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
+import org.sagebionetworks.repo.model.message.cloudmailin.Headers;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
@@ -74,27 +73,12 @@ public class CloudMailInManagerImpl implements CloudMailInManager {
 			String notificationUnsubscribeEndpoint) throws NotFoundException {
 
 		try {
-			String headerFrom = null;
-			String subject = null;
-			String to = null;
-			String cc = null;
-			String bcc = null;
-			JSONObject headers = new JSONObject(message.getHeaders());
-			Iterator<String> it = headers.keys();
-			while (it.hasNext()) {
-				String key = it.next();
-				if (SUBJECT_HEADER.equalsIgnoreCase(key)) {
-					subject = headers.getString(key);
-				} else if (FROM_HEADER.equalsIgnoreCase(key)) {
-					headerFrom = headers.getString(key);
-				} else if (TO_HEADER.equalsIgnoreCase(key)) {
-					to = headers.getString(key);
-				} else if (CC_HEADER.equalsIgnoreCase(key)) {
-					cc = headers.getString(key);
-				} else if (BCC_HEADER.equalsIgnoreCase(key)) {
-					bcc = headers.getString(key);
-				}
-			}
+			Headers headers = message.getHeaders();
+			String headerFrom = headers.getFrom();
+			String subject = headers.getSubject();
+			String to = headers.getTo();
+			String cc = headers.getCc();
+			String bcc = headers.getBcc();
 			// per CloudMailIn support, the way to determine the recipient ('to') is via the Envelope
 			// the way to determine the sender ('from') is by checking the Envelope and then (if not valid)
 			// checking the header

@@ -13,7 +13,6 @@ import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpStatus;
-import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -27,6 +26,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.cloudmailin.AuthorizationCheckHeader;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
+import org.sagebionetworks.repo.model.message.cloudmailin.Headers;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
@@ -110,14 +110,10 @@ public class ITCloudMailIn {
 			String messageJson = out.toString("utf-8");
 			Message message = EntityFactory.createEntityFromJSONString(
 					messageJson, Message.class);
-			JSONObject origHeaders = new JSONObject(message.getHeaders());
-			JSONObject newHeaders = new JSONObject();
-			newHeaders.put("Subject", origHeaders.get("Subject")); // can copy
-			// other
-			// headers
-			// too
+			Headers newHeaders = new Headers();
+			newHeaders.setSubject(message.getHeaders().getSubject()); // can copy other header too
 			String toemail = userProfile.getEmails().get(0);
-			message.setHeaders(newHeaders.toString());
+			message.setHeaders(newHeaders);
 
 			Envelope newEnvelope = new Envelope();
 			newEnvelope.setFrom(fromemail);
