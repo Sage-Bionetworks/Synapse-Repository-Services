@@ -437,10 +437,11 @@ public class EvaluationController extends BaseController {
 	 * <a href="${org.sagebionetworks.evaluation.model.TeamSubmissionEligibility}">TeamSubmissionEligibility</a>
 	 * object.
 	 * @param challengeEndpoint The portal endpoint prefix to the an entity/challenge page. The entity ID of the
-	 * challenge project is appended to create the complete URL.
+	 * challenge project is appended to create the complete URL. In normal operation, this parameter should be omitted.
 	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
 	 * A signed, serialized token is appended to create the complete URL:
 	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * In normal operation, this parameter should be omitted.
 	 * @param header
 	 * @param request
 	 * @return

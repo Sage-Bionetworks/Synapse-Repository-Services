@@ -117,6 +117,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public List<MessageToUserAndBody> createMembershipRequestNotification(MembershipRequest mr,
 			String acceptRequestEndpoint, String notificationUnsubscribeEndpoint) {
+		ValidateArgument.required(acceptRequestEndpoint, "acceptRequestEndpoint");
+		ValidateArgument.required(notificationUnsubscribeEndpoint, "notificationUnsubscribeEndpoint");
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
 		if (mr.getCreatedOn() == null) mr.setCreatedOn(new Date());
 		UserProfile userProfile = userProfileManager.getUserProfile(mr.getCreatedBy());

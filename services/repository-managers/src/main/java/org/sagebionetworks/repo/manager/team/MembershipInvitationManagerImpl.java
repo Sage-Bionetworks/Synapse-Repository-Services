@@ -104,6 +104,7 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public MessageToUserAndBody createInvitationMessageToUser(MembershipInvitation mi,
 			String acceptInvitationEndpoint, String notificationUnsubscribeEndpoint) {
+		ValidateArgument.required(notificationUnsubscribeEndpoint, "notificationUnsubscribeEndpoint");
 		if (acceptInvitationEndpoint == null) {
 			acceptInvitationEndpoint = ServiceConstants.ACCEPT_INVITATION_ENDPOINT;
 		}

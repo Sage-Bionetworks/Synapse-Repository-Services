@@ -56,9 +56,11 @@ public class MembershipInvitationController extends BaseController {
 	 * if an inviteeId is specified, or
 	 * <a href="${org.sagebionetworks.repo.model.MembershipInvtnSignedToken}">MembershipInvtnSignedToken</a>
 	 * if an inviteeEmail is specified.
+	 * In normal operation, this parameter should be omitted.
 	 * @param notificationUnsubscribeEndpoint The portal endpoint prefix for one-click email unsubscription.
 	 * A signed, serialized token is appended to create the complete URL:
 	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * In normal operation, this parameter should be omitted.
 	 * @return
 	 * @throws NotFoundException
 	 */
