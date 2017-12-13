@@ -338,8 +338,8 @@ public class DBOTeamDAOImplTest {
 	private Team aTeam;
 	private Team bTeam;
 	private Team cTeam;
-	private static final String aTeamName = "A team";
-	private static final String bTeamName = "B team";
+	private static final String aTeamName = "a team";
+	private static final String bTeamName = "b team";
 	private static final String cTeamName = "C team";
 
 	private void beforeGetIdsForMember() {
