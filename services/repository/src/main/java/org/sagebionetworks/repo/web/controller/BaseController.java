@@ -788,7 +788,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleTooManyRequestsException(ByteLimitExceededException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		boolean fullTrace = true;
+		boolean fullTrace = false;
 		return handleException(ex, request, fullTrace);
 	}
 	

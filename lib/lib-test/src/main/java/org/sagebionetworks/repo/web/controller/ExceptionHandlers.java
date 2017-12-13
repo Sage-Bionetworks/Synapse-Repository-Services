@@ -91,6 +91,8 @@ public class ExceptionHandlers {
 		new TestEntry(503,
 				new ExceptionType("org.sagebionetworks.repo.web.TemporarilyUnavailableException", false)),
 		new TestEntry(502,
-				new ExceptionType("com.amazonaws.AmazonServiceException", false)),		
+				new ExceptionType("com.amazonaws.AmazonServiceException", false)),
+		new TestEntry(413,
+				new ExceptionType("org.sagebionetworks.repo.web.filter.ByteLimitExceededException", false)),	
 	};
 }
