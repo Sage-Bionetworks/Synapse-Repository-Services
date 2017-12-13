@@ -253,4 +253,15 @@ public class ServiceConstants {
 	public static final String ACCESSOR_ID_PARAM = "accessorId";
 
 	public static final String NEXT_PAGE_TOKEN = "nextPageToken";
+
+	/**
+	 * Default portal endpoint prefixes
+	 */
+	public static final String HOST_PAGE_BASE_URL = "https://www.synapse.org/";
+	public static final String SIGNED_TOKEN_ENDPOINT = HOST_PAGE_BASE_URL + "#!SignedToken:";
+	public static final String ACCEPT_INVITATION_ENDPOINT = SIGNED_TOKEN_ENDPOINT + "JoinTeam/";
+	public static final String ACCEPT_EMAIL_INVITATION_ENDPOINT = SIGNED_TOKEN_ENDPOINT + "EmailInvitation/";
+	public static final String ACCEPT_REQUEST_ENDPOINT = ACCEPT_INVITATION_ENDPOINT;
+	public static final String CHALLENGE_ENDPOINT = HOST_PAGE_BASE_URL + "#!Synapse:";
+	public static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = SIGNED_TOKEN_ENDPOINT + "Settings/";
 }

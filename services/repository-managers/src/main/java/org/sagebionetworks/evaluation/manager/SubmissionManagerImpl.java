@@ -288,8 +288,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<MessageToUserAndBody> createSubmissionNotifications(UserInfo userInfo, 
 			Submission submission, String submissionEligibilityHash,
 			String challengeEndpoint, String notificationUnsubscribeEndpoint) {
+		ValidateArgument.required(challengeEndpoint, "challengeEndpoint");
+		ValidateArgument.required(notificationUnsubscribeEndpoint, "notificationUnsubscribeEndpoint");
 		List<MessageToUserAndBody> result = new ArrayList<MessageToUserAndBody>();
-		if (challengeEndpoint==null || notificationUnsubscribeEndpoint==null) return result;
 		if (!isTeamSubmission(submission, submissionEligibilityHash)) {
 			// no contributors to notify, so just return an empty list
 			return result;

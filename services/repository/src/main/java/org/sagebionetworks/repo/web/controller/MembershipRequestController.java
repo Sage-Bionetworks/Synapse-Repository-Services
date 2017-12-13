@@ -36,19 +36,21 @@ public class MembershipRequestController extends BaseController {
 	ServiceProvider serviceProvider;
 	
 	/**
-	 * Create a membership request.  The Team must be specified.  Optionally,
-	 * the creator may include a  message and/or expiration date for the request.
-	 * If no expiration date is specified then the request never expires.
-	 * 
+	 * <p>Create a membership request and send an email notification to the administrators of the team.
+	 * The Team must be specified. Optionally, the creator may include a message and/or expiration date for the request.
+	 * If no expiration date is specified then the request never expires.</p>
+	 *
 	 * @param userId
 	 * @param request
 	 * @param acceptRequestEndpoint
-	 * @param acceptRequestEndpoint the portal end-point for one-click acceptance of the membership
-	 * request.  A signed, serialized token is appended to create the complete URL:
-	 * <ahref="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
-	 * @param notificationUnsubscribeEndpoint the portal prefix for one-click email unsubscription.  
-	 * A signed, serialized token is appended to create the complete URL: 
-	 * <ahref="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>
+	 * @param acceptRequestEndpoint The portal end-point for one-click acceptance of the membership
+	 * request.  A signed, serialized token is appended to create the complete:
+	 * <a href="${org.sagebionetworks.repo.model.JoinTeamSignedToken}">JoinTeamSignedToken</a>
+	 * In normal operation, this parameter should be omitted.
+	 * @param notificationUnsubscribeEndpoint The portal prefix for one-click email unsubscription.
+	 * A signed, serialized token is appended to create the complete:
+	 * <a href="${org.sagebionetworks.repo.model.message.NotificationSettingsSignedToken}">NotificationSettingsSignedToken</a>.
+	 * In normal operation, this parameter should be omitted.
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -57,8 +59,8 @@ public class MembershipRequestController extends BaseController {
 	public @ResponseBody
 	MembershipRequest createRequest(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.ACCEPT_REQUEST_ENDPOINT_PARAM, required = false) String acceptRequestEndpoint,
-			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, required = false) String notificationUnsubscribeEndpoint,
+			@RequestParam(value = AuthorizationConstants.ACCEPT_REQUEST_ENDPOINT_PARAM, defaultValue = ServiceConstants.ACCEPT_REQUEST_ENDPOINT) String acceptRequestEndpoint,
+			@RequestParam(value = AuthorizationConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT_PARAM, defaultValue = ServiceConstants.NOTIFICATION_UNSUBSCRIBE_ENDPOINT) String notificationUnsubscribeEndpoint,
 			@RequestBody MembershipRequest request
 			) throws NotFoundException {
 		return serviceProvider.getMembershipRequestService().create(userId, request, acceptRequestEndpoint, notificationUnsubscribeEndpoint);
