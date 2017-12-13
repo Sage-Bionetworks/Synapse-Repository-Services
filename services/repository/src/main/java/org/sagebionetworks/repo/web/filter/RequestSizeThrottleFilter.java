@@ -13,11 +13,6 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.http.HttpStatus;
 
 /**
  * This filter will enforce a size limit on all InputStreams from HTTP requests.
@@ -27,9 +22,7 @@ import org.springframework.http.HttpStatus;
  *
  */
 public class RequestSizeThrottleFilter implements Filter {
-	
-	private static Log log = LogFactory.getLog(RequestSizeThrottleFilter.class);
-	
+		
 	/**
 	 * Current limit is 2 MB.
 	 */
@@ -60,15 +53,8 @@ public class RequestSizeThrottleFilter implements Filter {
 				}
 				return results;
 			}});
-
-		try {
-			// pass the proxied response to the chain.
-			chain.doFilter(requestProxy, response);
-		} catch (ByteLimitExceededException e) {
-			log.info(e.getMessage());
-			// setup an HTTP failed response.
-			FilterUtils.sendFailedResponse((HttpServletResponse) response, e.getMessage(), HttpStatus.PAYLOAD_TOO_LARGE);
-		}
+		// pass the proxied response to the chain.
+		chain.doFilter(requestProxy, response);
 	}
 
 	@Override

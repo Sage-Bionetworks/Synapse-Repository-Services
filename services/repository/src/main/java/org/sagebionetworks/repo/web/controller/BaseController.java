@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.CloudSearchClientException;
 import org.springframework.beans.TypeMismatchException;
@@ -777,6 +778,20 @@ public abstract class BaseController {
 			HttpServletRequest request, HttpServletResponse response) {
 		return handleException(ex, request, true);
 	}
+	
+	/**
+	 * Handle ByteLimitExceededException which occurs when the request is 
+	 * larger than the maximum size.
+	 */
+	@ExceptionHandler(ByteLimitExceededException.class)
+	@ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+	public @ResponseBody
+	ErrorResponse handleTooManyRequestsException(ByteLimitExceededException ex,
+			HttpServletRequest request, HttpServletResponse response) {
+		boolean fullTrace = true;
+		return handleException(ex, request, fullTrace);
+	}
+	
 	
 	
 	/**

@@ -24,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -112,16 +111,13 @@ public class RequestSizeThrottleFilterTest {
 		assertEquals("some data", readFromStream);
 	}
 	
-	@Test
+	@Test (expected=ByteLimitExceededException.class)
 	public void testReadOverLimit() throws IOException, ServletException {
 		// Set limit smaller than the data size
 		maxBytes = dataToRead.length-1;
 		ReflectionTestUtils.setField(filter, "maximumInputStreamBytes", maxBytes);
+		// call under test
 		filter.doFilter(mockRequest, mockResponse, mockChain);
-		// should fail with 413
-		verify(mockResponse).setStatus(HttpStatus.PAYLOAD_TOO_LARGE.value());
-		// Reason should be set
-		verify(mockPrintWriter).println("{\"reason\":\"Request size exceeded maximum number of bytes: 8\"}");
 	}
 	
 }

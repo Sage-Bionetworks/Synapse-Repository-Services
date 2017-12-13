@@ -32,28 +32,31 @@ public class ThrottlingProxyInputStream extends ServletInputStream {
 		// All input stream implementations must implement this method, so this is where the size check occurs.
 		int read = wrapped.read();
 		if(read > -1) {
-			// A byte was read.
-			totalBytesRead++;
-		}
-		if(totalBytesRead > maxAllowedBytes) {
-			throw new ByteLimitExceededException("Request size exceeded maximum number of bytes: "+maxAllowedBytes);
+			// one byte was read.
+			bytesRead(1);
 		}
 		return read;
 	}
 	
 	@Override
 	public int readLine(byte[] b, int off, int len) throws IOException {
-		return wrapped.readLine(b,off,len);
+		int read = wrapped.readLine(b,off,len);
+		bytesRead(read);
+		return read;
 	}
 
 	@Override
 	public int read(byte[] b) throws IOException {
-		return wrapped.read(b);
+		int read = wrapped.read(b);
+		bytesRead(read);
+		return read;
 	}
 
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
-		return wrapped.read(b, off, len);
+		int read = wrapped.read(b, off, len);
+		bytesRead(read);
+		return read;
 	}
 
 	@Override
@@ -86,4 +89,16 @@ public class ThrottlingProxyInputStream extends ServletInputStream {
 		return wrapped.markSupported();
 	}
 
+	/**
+	 * Called whenever bytes are read from the stream.
+	 * @param bytesRead
+	 */
+	private void bytesRead(int bytesRead) {
+		if(bytesRead > -1) {
+			totalBytesRead += bytesRead;
+		}
+		if(totalBytesRead > maxAllowedBytes) {
+			throw new ByteLimitExceededException("Request size exceeded maximum number of bytes: "+maxAllowedBytes);
+		}
+	}
 }

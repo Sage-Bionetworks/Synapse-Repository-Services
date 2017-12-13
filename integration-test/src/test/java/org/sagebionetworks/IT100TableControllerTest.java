@@ -639,11 +639,11 @@ public class IT100TableControllerTest {
 	@Test
 	public void testPLFM_4761() throws Exception {
 		// Create a value that will be pushed to a table to exceed the max request size
-		String sampleValue = "1234567890123456789012345678901234567890";
+		String sampleValue = "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
 		long maxCharacters = sampleValue.length();
 		long bytesPerRow = maxCharacters*3;
 		long maxBytesPerRequest = 1024*1024*2;
-		long maxRows = maxBytesPerRequest/bytesPerRow;
+		long maxRows = maxBytesPerRequest/bytesPerRow*10;
 		// Create a column to add to a table entity
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
