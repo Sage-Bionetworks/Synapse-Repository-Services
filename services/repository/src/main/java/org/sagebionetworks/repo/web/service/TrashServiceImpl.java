@@ -118,7 +118,9 @@ public class TrashServiceImpl implements TrashService {
 
 				// Fetch the provider that will validate this entity.
 				List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-				entityIdToProvidersListMap.put(entityId, providers); // TODO prefix with if (providers != null)
+				if (providers!=null) {
+					entityIdToProvidersListMap.put(entityId, providers);
+				}
 			} catch (NotFoundException e) {
 				// it's ok if it doesn't exist
 			}
@@ -140,11 +142,9 @@ public class TrashServiceImpl implements TrashService {
 					String entityId = entry.getKey();
 					List<EntityProvider<? extends Entity>> providers = entry.getValue();
 					
-					if (providers!=null) {
-						for (EntityProvider<? extends Entity> provider : providers) {
-							if (provider instanceof TypeSpecificDeleteProvider) {
-								((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
-							}
+					for (EntityProvider<? extends Entity> provider : providers) {
+						if (provider instanceof TypeSpecificDeleteProvider) {
+							((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
 						}
 					}
 				}
