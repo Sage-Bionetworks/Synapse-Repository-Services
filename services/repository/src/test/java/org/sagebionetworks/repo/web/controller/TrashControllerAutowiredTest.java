@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import junit.framework.Assert;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,14 +15,16 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import junit.framework.Assert;
 
 public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
@@ -44,6 +44,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	
 	private Entity parent;
 	private Entity child;
+	private Entity child2;
 
 	@Before
 	public void before() throws Exception {
@@ -79,6 +80,13 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	public void after() throws Exception {
 		try {
 			entityService.deleteEntity(testUserId, child.getId());
+		}catch (NotFoundException e){
+			//do nothing if already deleted
+		}
+		try {
+			if (child2!=null) {
+				entityService.deleteEntity(testUserId, child.getId());
+			}
 		}catch (NotFoundException e){
 			//do nothing if already deleted
 		}
@@ -126,6 +134,26 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		}
 
 		// Already purged, no need to clean
+	}
+
+	@Test
+	public void testPurgeLink() throws Exception { // PLFM-4655
+		child2 = new Link();
+		child2.setName("TrashControllerAutowiredTest.link");
+		child2.setParentId(parent.getId());
+		child2.setEntityType(Link.class.getName());
+		child2 = servletTestHelper.createEntity(dispatchServlet, child2, testUserId);
+
+		// Move the Link to the trash can
+		servletTestHelper.trashEntity(testUserId, child2.getId());
+
+		// Purge the Link
+		servletTestHelper.purgeEntityInTrash(testUserId, child2.getId());
+
+		// Link should be gone
+		try {
+			servletTestHelper.getEntity(dispatchServlet, Link.class, child2.getId(), testUserId);
+		} catch (NotFoundException e) { }
 	}
 
 	@Test

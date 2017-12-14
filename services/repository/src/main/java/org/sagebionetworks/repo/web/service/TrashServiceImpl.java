@@ -105,10 +105,10 @@ public class TrashServiceImpl implements TrashService {
 
 	private class TrashPurgeCallback implements PurgeCallback {
 		
-		private Map<String, List<EntityProvider<? extends Entity>> > entityIdToProviersListMap;
+		private Map<String, List<EntityProvider<? extends Entity>> > entityIdToProvidersListMap;
 
 		public TrashPurgeCallback() {
-			this.entityIdToProviersListMap = new HashMap<String, List<EntityProvider<? extends Entity>> >();
+			this.entityIdToProvidersListMap = new HashMap<String, List<EntityProvider<? extends Entity>> >();
 		}
 
 		@Override
@@ -118,7 +118,7 @@ public class TrashServiceImpl implements TrashService {
 
 				// Fetch the provider that will validate this entity.
 				List<EntityProvider<? extends Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-				entityIdToProviersListMap.put(entityId, providers);
+				entityIdToProvidersListMap.put(entityId, providers); // TODO prefix with if (providers != null)
 			} catch (NotFoundException e) {
 				// it's ok if it doesn't exist
 			}
@@ -134,15 +134,17 @@ public class TrashServiceImpl implements TrashService {
 		@Override
 		public void endPurge() {
 			// Do extra cleanup as needed.
-			if ( !entityIdToProviersListMap.isEmpty() ) {
-				for(Entry<String, List<EntityProvider<? extends Entity>>> entry : entityIdToProviersListMap.entrySet()){ //iterate through all key,value pairs in the map
+			if ( !entityIdToProvidersListMap.isEmpty() ) {
+				for(Entry<String, List<EntityProvider<? extends Entity>>> entry : entityIdToProvidersListMap.entrySet()){ //iterate through all key,value pairs in the map
 					//getting the key and value
 					String entityId = entry.getKey();
 					List<EntityProvider<? extends Entity>> providers = entry.getValue();
 					
-					for (EntityProvider<? extends Entity> provider : providers) {
-						if (provider instanceof TypeSpecificDeleteProvider) {
-							((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
+					if (providers!=null) {
+						for (EntityProvider<? extends Entity> provider : providers) {
+							if (provider instanceof TypeSpecificDeleteProvider) {
+								((TypeSpecificDeleteProvider<Entity>) provider).entityDeleted(entityId);
+							}
 						}
 					}
 				}
