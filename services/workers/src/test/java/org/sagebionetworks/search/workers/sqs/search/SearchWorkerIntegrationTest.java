@@ -157,7 +157,7 @@ public class SearchWorkerIntegrationTest {
 			String markdownHandleId = markdownOne.getId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-			fileMetadataDao.delete(markdownHandleId);
+			fileMetadataDao.delete(markdownHandleId); //TODO: this line is causing exception
 		}
 		
 		if (project != null){
@@ -169,7 +169,7 @@ public class SearchWorkerIntegrationTest {
 
 	}	
 	
-	@Ignore
+//	@Ignore
 	@Test
 	public void testRoundTrip() throws Exception {
 		// Wait for the project to appear.
@@ -182,6 +182,7 @@ public class SearchWorkerIntegrationTest {
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);
 		waitForQuery(new SearchRequest().withQuery(uuid));
+		System.out.println("done");
 	}
 
 	public void waitForPojectToAppearInSearch() throws Exception {
