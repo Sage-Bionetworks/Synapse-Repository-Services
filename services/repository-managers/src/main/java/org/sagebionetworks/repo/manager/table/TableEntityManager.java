@@ -230,5 +230,14 @@ public interface TableEntityManager {
 	 */
 	public List<String> getTableSchema(String id);
 
+	/**
+	 * Delete all data about a table if it no longer exists.
+	 * If the passed tableId is in the trash, then this method will not
+	 * delete anything.
+	 * 
+	 * @param tableId
+	 */
+	public void deleteTableIfDoesNotExist(String tableId);
+
 
 }

@@ -406,4 +406,12 @@ public interface TableManagerSupport {
 	 */
 	void triggerScopeReconciliation(ViewType type, Set<Long> expandedScope);
 
+	/**
+	 * Does the given table exist?  If the table is in the trash then this will
+	 * return true.  Will only return true if the table no longer exists.
+	 * @param tableId
+	 * @return
+	 */
+	public boolean doesTableExist(String tableId);
+
 }

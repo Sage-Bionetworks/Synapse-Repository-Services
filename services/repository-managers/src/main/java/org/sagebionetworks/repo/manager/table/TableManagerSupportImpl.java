@@ -292,7 +292,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	public boolean isTableAvailable(String tableId) {
 		return nodeDao.isNodeAvailable(KeyFactory.stringToKey(tableId));
 	}
-
+	
+	@Override
+	public boolean doesTableExist(String tableId) {
+		return nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId));
+	}
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.table.TableManagerSupport#getTableType(java.lang.String)
