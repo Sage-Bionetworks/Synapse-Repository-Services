@@ -225,6 +225,7 @@ public class TableWorkerTest {
 		verify(mockConnectionFactory, times(1)).connectToTableIndex(two.getObjectId());
 		// delete should be called
 		verify(mockTableIndexManager, times(1)).deleteTableIndex(tableId);
+		verify(mockTableEntityManager, times(1)).deleteTableIfDoesNotExist(tableId);
 	}
 	
 	/**

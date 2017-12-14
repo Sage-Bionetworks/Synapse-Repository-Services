@@ -84,6 +84,7 @@ public class TableWorker implements ChangeMessageDrivenRunner, LockTimeoutAware 
 			}
 			if (ChangeType.DELETE.equals(change.getChangeType())) {
 				// Delete the table in the index
+				tableEntityManager.deleteTableIfDoesNotExist(tableId);
 				indexManager.deleteTableIndex(tableId);
 				return;
 			} else {

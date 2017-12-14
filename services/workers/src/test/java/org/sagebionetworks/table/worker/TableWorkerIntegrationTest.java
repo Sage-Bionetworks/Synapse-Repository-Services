@@ -46,6 +46,8 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -171,6 +173,9 @@ public class TableWorkerIntegrationTest {
 	DBOChangeDAO changeDAO;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
+	
+	@Autowired
+	private TrashManager trashManager;
 
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -209,15 +214,19 @@ public class TableWorkerIntegrationTest {
 		runQuery = true;
 		runCount = false;
 		returnFacets = true;
+		
+		Project project = new Project();
+		project.setName("Proj-" + UUID.randomUUID().toString());
+		projectId = entityManager.createEntity(adminUserInfo, project, null);
 	}
 	
 	@After
 	public void after() throws Exception {
 		if (config.getTableEnabled()) {
 			if (tableId != null) {
-				tableEntityManager.deleteAllRows(tableId);
-				columnManager.unbindAllColumnsAndOwnerFromObject(tableId);
-				entityManager.deleteEntity(adminUserInfo, tableId);
+				try {
+					entityManager.deleteEntity(adminUserInfo, tableId);
+				} catch (Exception e) {}
 			}
 			if (projectId != null) {
 				entityManager.deleteEntity(adminUserInfo, projectId);
@@ -256,6 +265,7 @@ public class TableWorkerIntegrationTest {
 		TableEntity table = new TableEntity();
 		table.setName(UUID.randomUUID().toString());
 		table.setColumnIds(headers);
+		table.setParentId(projectId);
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		tableEntityManager.setTableSchema(adminUserInfo, headers, tableId);
@@ -705,6 +715,49 @@ public class TableWorkerIntegrationTest {
 		// now we still should get the index taken care of
 		queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
+	}
+	
+	@Test
+	public void testDeleteTable() throws Exception {
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+		RowSet rowSet = createRowSet(headers);
+		tableEntityManager.appendRows(adminUserInfo, tableId, rowSet, mockPprogressCallback);
+		// Wait for the table to become available
+		String sql = "select * from " + tableId;
+		query.setSql(sql);
+		query.setLimit(8L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
+		assertEquals(2, queryResult.getQueryResults().getRows().size());
+		
+		// Move the table to the trash
+		this.trashManager.moveToTrash(adminUserInfo, tableId);
+		
+		try {
+			queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
+			fail();
+		} catch (EntityInTrashCanException e) {
+			//expected
+		}
+		// should do nothing
+		tableEntityManager.deleteTableIfDoesNotExist(tableId);
+		// restore the table to the original project
+		this.trashManager.restoreFromTrash(adminUserInfo, tableId, projectId);
+		// should now be able to query again
+		queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
+		assertEquals(2, queryResult.getQueryResults().getRows().size());
+		
+		// Now actually delete the table.
+		entityManager.deleteEntity(adminUserInfo, tableId);
+		try {
+			queryResult = waitForConsistentQuery(adminUserInfo, query, runQuery, runCount, returnFacets);
+			fail();
+		} catch (NotFoundException e) {
+			//expected
+		}
+		// should be able to call this multiple times.
+		tableEntityManager.deleteTableIfDoesNotExist(tableId);
+		tableEntityManager.deleteTableIfDoesNotExist(tableId);
 	}
 
 	/**
