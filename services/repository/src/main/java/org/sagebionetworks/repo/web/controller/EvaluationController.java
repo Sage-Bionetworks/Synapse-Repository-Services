@@ -181,12 +181,13 @@ public class EvaluationController extends BaseController {
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, limit, offset, request);
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, activeOnly, limit, offset, request);
 	}
 	
 	/**
@@ -215,11 +216,12 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset);
+		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, activeOnly, limit, offset);
 	}
 	
 	/**
@@ -252,6 +254,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
+			@RequestParam(value = ServiceConstants.ACTIVE_ONLY_PARAM, required=false, defaultValue="false") boolean activeOnly,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
@@ -271,7 +274,7 @@ public class EvaluationController extends BaseController {
 				evalIds.add(l);
 			}
 		}
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, activeOnly, limit, offset, evalIds, request);
 	}	
 
 	/**

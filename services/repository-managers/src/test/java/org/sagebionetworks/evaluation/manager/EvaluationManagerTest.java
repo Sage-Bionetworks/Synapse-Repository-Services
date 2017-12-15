@@ -123,8 +123,8 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
-    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong())).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAccessibleEvaluationsForProject(eq(EVALUATION_CONTENT_SOURCE), (List<Long>)any(), eq(ACCESS_TYPE.READ), anyLong(), anyLong(), anyLong())).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAccessibleEvaluations((List<Long>)any(), eq(ACCESS_TYPE.SUBMIT), anyLong(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
@@ -150,7 +150,8 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetEvaluationByContentSource() throws Exception {
-		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, 10, 0);
+		List<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE, false, 10L, 0L);
+		// TODO test activeOnly=true
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
 	}
@@ -185,7 +186,8 @@ public class EvaluationManagerTest {
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
+		List<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, false, 10L, 0L, null);
+		// TODO test activeOnly=true
 		assertEquals(evaluations, qr);
 		assertEquals(1L, qr.size());
 	}

@@ -14,12 +14,9 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_SUB_INSTRUCT_MSG 	= "submissionInstructionsMessage";
 	public static final String PARAM_EVALUATION_SUB_RECEIPT_MSG		= "submissionReceiptMessage";
 	public static final String PARAM_EVALUATION_SUBMISSIONS_ETAG 	= "submissionsEtag";
-	public static final String PARAM_EVALUATION_QUOTA			 	= "quota";
-	// Participant
-	public static final String PARAM_PARTICIPANT_ID 				= "id";
-	public static final String PARAM_PARTICIPANT_USER_ID 			= "userId";
-	public static final String PARAM_PARTICIPANT_EVAL_ID 			= "evalId";
-	public static final String PARAM_PARTICIPANT_CREATED_ON 		= "createdOn";
+	public static final String PARAM_EVALUATION_QUOTA				= "quota";
+	public static final String PARAM_EVALUATION_START_TIMESTAMP		= "startTimestamp";
+	public static final String PARAM_EVALUATION_END_TIMESTAMP		 	= "endTimestamp";
 	
 	// Submission
 	public static final String PARAM_SUBMISSION_ID 					= "id";

@@ -3,22 +3,26 @@ package org.sagebionetworks.evaluation.dbo;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CREATED_ON;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_END_TIMESTAMP;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ETAG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_QUOTA;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_END_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_QUOTA;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
@@ -58,7 +62,9 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
 			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG),
-			new FieldColumn(PARAM_EVALUATION_QUOTA, COL_EVALUATION_QUOTA)
+			new FieldColumn(PARAM_EVALUATION_QUOTA, COL_EVALUATION_QUOTA),
+			new FieldColumn(PARAM_EVALUATION_START_TIMESTAMP, COL_EVALUATION_START_TIMESTAMP),
+			new FieldColumn(PARAM_EVALUATION_END_TIMESTAMP, COL_EVALUATION_END_TIMESTAMP)
 	};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
@@ -121,6 +127,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private byte[] submissionInstructionsMessage;
 	private byte[] submissionReceiptMessage;
 	private byte[] quota;
+	private Long startTimestamp;
+	private Long endTimestamp;
 	
 	public Long getId() {
 		return id;
@@ -222,6 +230,18 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		return eTag;
 	}
 	
+	public Long getStartTimestamp() {
+		return startTimestamp;
+	}
+	public void setStartTimestamp(Long startTimestamp) {
+		this.startTimestamp = startTimestamp;
+	}
+	public Long getEndTimestamp() {
+		return endTimestamp;
+	}
+	public void setEndTimestamp(Long endTimestamp) {
+		this.endTimestamp = endTimestamp;
+	}
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.EVALUATION;
@@ -255,19 +275,18 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((contentSource == null) ? 0 : contentSource.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((contentSource == null) ? 0 : contentSource.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + Arrays.hashCode(description);
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((endTimestamp == null) ? 0 : endTimestamp.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + Arrays.hashCode(quota);
+		result = prime * result + ((startTimestamp == null) ? 0 : startTimestamp.hashCode());
 		result = prime * result + status;
-		result = prime * result
-				+ Arrays.hashCode(submissionInstructionsMessage);
+		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
@@ -297,6 +316,11 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				return false;
 		} else if (!eTag.equals(other.eTag))
 			return false;
+		if (endTimestamp == null) {
+			if (other.endTimestamp != null)
+				return false;
+		} else if (!endTimestamp.equals(other.endTimestamp))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -314,13 +338,16 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (!Arrays.equals(quota, other.quota))
 			return false;
+		if (startTimestamp == null) {
+			if (other.startTimestamp != null)
+				return false;
+		} else if (!startTimestamp.equals(other.startTimestamp))
+			return false;
 		if (status != other.status)
 			return false;
-		if (!Arrays.equals(submissionInstructionsMessage,
-				other.submissionInstructionsMessage))
+		if (!Arrays.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
 			return false;
-		if (!Arrays.equals(submissionReceiptMessage,
-				other.submissionReceiptMessage))
+		if (!Arrays.equals(submissionReceiptMessage, other.submissionReceiptMessage))
 			return false;
 		return true;
 	}

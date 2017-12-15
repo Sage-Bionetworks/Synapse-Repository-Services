@@ -4,9 +4,11 @@ import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYP
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.AUTHORIZATION_SQL_TABLES;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.BIND_VAR_PREFIX;
 import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_END_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
@@ -84,6 +86,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_AVAILABLE_CONTENT_SOURCE_FILTER =
 			" and "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
 	
+	private static final String CURRENT_TIME_PARAM_NAME = "currentTime";
+	
+	private static final String SELECT_TIME_RANGE_FILTER = 
+			" and ("+COL_EVALUATION_START_TIMESTAMP+" IS NULL OR :"+CURRENT_TIME_PARAM_NAME+">="+COL_EVALUATION_START_TIMESTAMP+
+			") and ("+COL_EVALUATION_END_TIMESTAMP+" IS NULL OR :"+CURRENT_TIME_PARAM_NAME+"<"+COL_EVALUATION_START_TIMESTAMP+")";
+	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
 			" WHERE "+ COL_EVALUATION_NAME + "=:" + NAME;
@@ -155,7 +163,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset) 
+	public List<Evaluation> getAccessibleEvaluationsForProject(String projectId, List<Long> principalIds, ACCESS_TYPE accessType, Long now, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -168,6 +176,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere());
 		sql.append(SELECT_AVAILABLE_CONTENT_SOURCE_FILTER);
+		if (now!=null) {
+			sql.append(SELECT_TIME_RANGE_FILTER);
+			param.addValue(CURRENT_TIME_PARAM_NAME, now);
+		}
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
 		List<EvaluationDBO> dbos = namedJdbcTemplate.query(sql.toString(), param, rowMapper);
@@ -181,7 +193,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * has the given access type
 	 */
 	@Override
-	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
+	public List<Evaluation> getAccessibleEvaluations(List<Long> principalIds, ACCESS_TYPE accessType, Long now, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(BIND_VAR_PREFIX, principalIds);	
@@ -194,6 +206,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
 			param.addValue(COL_EVALUATION_ID, evaluationIds);
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTER);
+		}
+		if (now!=null) {
+			sql.append(SELECT_TIME_RANGE_FILTER);
+			param.addValue(CURRENT_TIME_PARAM_NAME, now);
 		}
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 
@@ -273,11 +289,20 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		if (dto.getQuota() != null) {
 			try {
-				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(dto.getQuota()));
+				SubmissionQuota quota = dto.getQuota();
+				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(quota));
+				Long startTime = quota.getFirstRoundStart().getTime();
+				dbo.setStartTimestamp(startTime);
+				dbo.setEndTimestamp(getEndTimeOrNull(startTime, quota.getRoundDurationMillis(), quota.getNumberOfRounds()));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
+	}
+	
+	public static Long getEndTimeOrNull(Long startTime, Long roundDurationMillis, Long numberOfRounds) {
+		if (startTime==null || roundDurationMillis==null || numberOfRounds==null) return null;
+		return startTime+roundDurationMillis*numberOfRounds;
 	}
 	
 	/**

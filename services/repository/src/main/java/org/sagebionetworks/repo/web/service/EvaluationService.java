@@ -50,7 +50,7 @@ public interface EvaluationService {
 	/**
 	 * Gets all Synapse Evaluations tied to the given Project
 	 */
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, boolean activeOnly, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -62,7 +62,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, boolean activeOnly, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations in which the user has SUBMIT permission, within a given range
@@ -76,7 +76,7 @@ public interface EvaluationService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
+			Long userId, boolean activeOnly, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Find a Evaluation, by name

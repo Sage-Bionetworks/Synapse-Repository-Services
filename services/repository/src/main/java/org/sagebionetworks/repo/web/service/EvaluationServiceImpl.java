@@ -97,19 +97,19 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(Long userId, String id, boolean activeOnly, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, id, limit, offset);
+		List<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, id, activeOnly, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
 	@Override
 	@Deprecated
-	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, long limit, long offset) 
+	public PaginatedResults<Evaluation> getEvaluationsInRange(Long userId, boolean activeOnly, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getInRange(userInfo, limit, offset);
+		List<Evaluation> res = evaluationManager.getInRange(userInfo, activeOnly, limit, offset);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 	
@@ -126,10 +126,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 */
 	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) 
+			Long userId, boolean activeOnly, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset, evaluationIds);
+		List<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, activeOnly, limit, offset, evaluationIds);
 		return PaginatedResults.createWithLimitAndOffset(res, limit, offset);
 	}
 
