@@ -38,6 +38,8 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
+	//TODO: Search enabled/disbaled should be the responsibility of the provider, not this class
+
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 	

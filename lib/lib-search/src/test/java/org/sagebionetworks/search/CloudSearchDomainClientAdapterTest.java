@@ -3,7 +3,6 @@ package org.sagebionetworks.search;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,8 +21,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
@@ -74,12 +71,12 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testSearchNullRequest() throws CloudSearchClientException{
-		cloudSearchDomainClientAdapter.search(null);
+		cloudSearchDomainClientAdapter.rawSearch(null);
 	}
 
 	@Test(expected = IllegalStateException.class)
 	public void testSearchBeforeEndpointSet() throws CloudSearchClientException{
-		cloudSearchDomainClientAdapter.search(searchRequest);
+		cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 	}
 
 
@@ -89,7 +86,7 @@ public class CloudSearchDomainClientAdapterTest {
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenReturn(mockResponse);
 
 		//method under test
-		SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+		SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 
 		assertEquals(SearchUtil.convertToSynapseSearchResult(mockResponse), result);
 		verify(mockCloudSearchDomainClient).search(searchRequest);
@@ -105,7 +102,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 		//method under test
 		try {
-			SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+			SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 		} catch (SearchException e){
 			assertEquals(mockedSearchException, e);
 		}
@@ -124,7 +121,7 @@ public class CloudSearchDomainClientAdapterTest {
 
 		//method under test
 		try {
-			SearchResults result = cloudSearchDomainClientAdapter.search(searchRequest);
+			SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 		} catch (CloudSearchClientException e){
 			assertEquals(exceptionMessage, e.getMessage());
 		}

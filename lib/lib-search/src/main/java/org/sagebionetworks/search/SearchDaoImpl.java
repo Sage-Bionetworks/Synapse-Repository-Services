@@ -45,58 +45,15 @@ public class SearchDaoImpl implements SearchDao {
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
-	@Autowired
-	SearchDomainSetup searchDomainSetup;
+
 
 	//TODO: figure out initialization of this client
 	@Autowired
 	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
 
 
-	@Override
-	public boolean postInitialize() throws Exception {
-		if (!searchDomainSetup.isSearchEnabled()) {
-			log.info("SearchDaoImpl.initialize() will do nothing since search is disabled");
-			return true;
-		}
-
-		if (!searchDomainSetup.postInitialize()) {
-			return false;
-		}
-
-		//Note: even though we only gave it the search endpoint, the client seems to be able to change to the document upload endpoint automatically
-		cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-		return true;
-	}
 	
-	/**
-	 * The initialization of a search index can take hours the first time it is run.
-	 * While the search index is initializing we do not want to block the startup of the rest
-	 * of the application.  Therefore, this initialization worker is executed on a separate
-	 * thread.
-	 */
-	public void initialize(){
-		try {
-			/*
-			 * Since each machine in the cluster will call this method and we only 
-			 * want one machine to initialize the search index, we randomly stagger
-			 * the start for each machine.
-			 */
-			Random random = new Random();
-			// random sleep time from zero to 1 sec.
-			long randomSleepMS = random.nextInt(1000);
-			log.info("Random wait to start search index: "+randomSleepMS+" MS");
-			Thread.sleep(randomSleepMS);
-			// wait for postInitialize() to finish
-			if (!postInitialize()) {
-				log.info("Search index not finished initializing...");
-			} else {
-				log.info("Search index initialized.");
-			}
-		} catch(Exception e) {
-			log.error("Unexpected exception while starting the search index", e);
-		}
-	}
+
 
 	/**
 	 * @throws UnsupportedOperationException when search is disabled.
@@ -105,76 +62,6 @@ public class SearchDaoImpl implements SearchDao {
 		if(!searchDomainSetup.isSearchEnabled()){
 			throw new UnsupportedOperationException("Search is disabled");
 		}
-	}
-	
-	@Override
-	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException,
-			ServiceUnavailableException {
-		validateSearchEnabled();
-		if(document == null) throw new IllegalArgumentException("Document cannot be null");
-		List<Document> list = new LinkedList<Document>();
-		list.add(document);
-		createOrUpdateSearchDocument(list);
-	}
-
-	@Override
-	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException,
-			ServiceUnavailableException {
-		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
-		searchClient.sendDocuments(cleanSearchDocuments(batch));
-	}
-	
-	/**
-	 * Remove any character that is not compatible with cloud search.
-	 * @param document
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	static String cleanSearchDocuments(List<Document> documents) {
-		String serializedDocument;
-		try {
-			StringBuilder builder = new StringBuilder();
-			builder.append("[");
-			int count = 0;
-			for(Document document: documents){
-				prepareDocument(document);
-				serializedDocument = EntityFactory.createJSONStringForEntity(document);
-				// AwesomeSearch pukes on control characters. Some descriptions have
-				// control characters in them for some reason, in any case, just get rid
-				// of all control characters in the search document
-				String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
-
-				// Get rid of escaped control characters too
-				cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
-				if(count > 0){
-					builder.append(", ");
-				}
-				builder.append(cleanedDocument);
-				count++;
-			}
-			builder.append("]");
-			return builder.toString();
-		} catch (JSONObjectAdapterException e) {
-			// Convert to runtime
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * Prepare the document to be sent.
-	 * @param document
-	 */
-	public static void prepareDocument(Document document) {
-		// the version is always the current time.
-		DateTime now = DateTime.now();
-		document.setVersion(now.getMillis() / 1000);
-		document.setType(DocumentTypeNames.add);
-		document.setLang("en");
-		if(document.getFields() == null){
-			document.setFields(new DocumentFields());
-		}
-		// The id field must match the document's id.
-		document.getFields().setId(document.getId());
 	}
 
 	@Override
@@ -215,7 +102,7 @@ public class SearchDaoImpl implements SearchDao {
 	public SearchResults executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
 		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
-		return searchClient.search(search);
+		return searchClient.rawSearch(search);
 	}
 
 	@Override
@@ -266,17 +153,16 @@ public class SearchDaoImpl implements SearchDao {
 	private CloudsSearchDomainClientAdapter validateSearchAvailable() throws ServiceUnavailableException {
 		validateSearchEnabled();
 
-		if(!cloudSearchClientAdapter.isInitialized()) {
-			DomainStatus status = searchDomainSetup.getDomainStatus();
-			if (status == null) {
-				throw new ServiceUnavailableException("Search service not initialized...");
-			} else {
-				cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-				if (status.isProcessing()) {
-					throw new ServiceUnavailableException("Search service processing...");
-				}
+		DomainStatus status = searchDomainSetup.getDomainStatus();
+		if (status == null) {
+			throw new ServiceUnavailableException("Search service not initialized...");
+		} else {
+			cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
+			if (status.isProcessing()) {
+				throw new ServiceUnavailableException("Search service processing...");
 			}
 		}
+
 		return cloudSearchClientAdapter;
 	}
 }

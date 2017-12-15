@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
+import org.sagebionetworks.search.CloudsSearchDomainClientAdapter;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchUtil;
@@ -31,6 +32,7 @@ public class SearchManagerImpl implements SearchManager{
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
 
+	CloudsSearchDomainClientAdapter cloudsearchDomainClient;//TODO: wire up
 
 	@Override
 	/**
@@ -53,9 +55,13 @@ public class SearchManagerImpl implements SearchManager{
 		}
 		// Create the query string
 		SearchRequest searchRequest =  SearchUtil.generateSearchRequest(searchQuery);
-		filterSearchForAuthorization(userInfo, searchRequest);
+		SearchResults results;
+		if (userInfo.isAdmin()){ //TODO: any way to make this look nicer?
+			results = cloudsearchDomainClient.unfilteredSearch(searchQuery);
+		}else{
+			results = cloudsearchDomainClient.filteredSearch(searchQuery, userInfo.getGroups());
+		}
 
-		SearchResults results = searchDao.executeSearch(searchRequest);
 		// Add any extra return results to the hits
 		if(results != null && results.getHits() != null){
 			addReturnDataToHits(results.getHits(), includePath);
@@ -68,7 +74,7 @@ public class SearchManagerImpl implements SearchManager{
 	 * @param hits
 	 * @param includePath
 	 */
-	public void addReturnDataToHits(List<Hit> hits, boolean includePath) {
+	public void addReturnDataToHits(List<Hit> hits, boolean includePath) { //TODO: move in as field of path.
 		List<Hit> toRemove = new LinkedList<Hit>();
 		if(hits != null){
 			// For each hit we need to add the path
@@ -88,21 +94,6 @@ public class SearchManagerImpl implements SearchManager{
 		}
 		if(!toRemove.isEmpty()){
 			hits.removeAll(toRemove);
-		}
-	}
-
-	/**
-	 * Appends a filter query if necessary to the searchRequest if the user is not an admin.
-	 * @param userInfo
-	 * @param searchRequest
-	 */
-	public static void filterSearchForAuthorization(UserInfo userInfo, SearchRequest searchRequest){
-		if(!userInfo.isAdmin()){
-			if(searchRequest.getFilterQuery() != null){
-				//Nothing else in the code should have set a Filter Query.
-				throw new IllegalArgumentException("did not expect searchRequest to already contain a Filter Query: "+ searchRequest.getFilterQuery());
-			}
-			searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userInfo));
 		}
 	}
 }

@@ -8,28 +8,44 @@ import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
-	private boolean initialized;
 	private AmazonCloudSearchDomainClient client;
 
 
-	public CloudsSearchDomainClientAdapter(AWSCredentials awsCredentials){//TODO: maybe need to change constructor?
+	public CloudsSearchDomainClientAdapter(AWSCredentials awsCredentials, String endpoint){//TODO: maybe need to change constructor?
 		this.client = new AmazonCloudSearchDomainClient(awsCredentials);
-		this.initialized = false;
+		this.client.setEndpoint(endpoint);
 	}
 
-	public void sendDocuments(String documents){
+	@Override
+	public void sendDocuments(Document document){//TODO: test
+		ValidateArgument.required(document, "document");
+		sendDocuments(Collections.singletonList(document));
+	}
+
+	@Override
+	public void sendDocuments(List<Document> batch){
+		sendDocuments(SearchUtil.convertSearchDocumentsToJSON(batch));
+	}
+
+	void sendDocuments(String documents){
+		//TODO: private or package visibility?
+
 		ValidateArgument.required(documents, "documents");
-		checkEndpointInitilaization();
 
 		byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
@@ -44,12 +60,32 @@ public class CloudsSearchDomainClientAdapter {
 		ValidateArgument.requirement(!"".equals(endpoint), "endpoint must not be an empty String");
 
 		client.setEndpoint(endpoint);
-		initialized = true;
 	}
 
-	public SearchResults search(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
+
+	public SearchResults unfilteredSearch(SearchQuery searchQuery) throws CloudSearchClientException {
+		SearchRequest searchRequest = SearchUtil.generateSearchRequest(searchQuery);
+		return rawSearch(searchRequest);
+	}
+
+	/**
+	 * Executes the searchQuery but filters limits results to only those that the user belongs.
+	 * @param searchQuery
+	 * @param userGroups Set of user group ids in which the user executing this query belongs. Preferably retrieved from UserInfo.getGroups()
+	 * @return
+	 */
+	public SearchResults filteredSearch(SearchQuery searchQuery, Set<Long> userGroups) throws CloudSearchClientException {
+		SearchRequest searchRequest = SearchUtil.generateSearchRequest(searchQuery);
+		if (searchRequest.getFilterQuery() != null){
+			throw new IllegalArgumentException("did not expect searchRequest to already contain a filterQuery");
+		}
+		searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userGroups));
+		return rawSearch(searchRequest);
+	}
+
+	SearchResults rawSearch(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
+		//TODO: private or package visibility?
 		ValidateArgument.required(request, "request");
-		checkEndpointInitilaization();
 
 		try{
 			return SearchUtil.convertToSynapseSearchResult(client.search(request));
@@ -69,13 +105,4 @@ public class CloudsSearchDomainClientAdapter {
 		}
 	}
 
-	public boolean isInitialized(){
-		return initialized;
-	}
-
-	private void checkEndpointInitilaization(){
-		if(!isInitialized()){
-			throw new IllegalStateException("The endpoint is not yet initialized, please use setEndpoint() before calling this method");
-		}
-	}
 }

@@ -7,14 +7,20 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.commons.lang.math.NumberUtils;
+import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.ArrayList;
@@ -339,13 +345,9 @@ public class SearchUtil{
 	 * @return the acl boolean query
 	 * @throws DatastoreException
 	 */
-	public static String formulateAuthorizationFilter(UserInfo userInfo)
+	public static String formulateAuthorizationFilter(Set<Long> userGroups)
 			throws DatastoreException {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(userInfo.getGroups(), "userInfo.getGroups()");
-
-		Set<Long> groups = userInfo.getGroups();
-		if (groups.isEmpty()) {
+		if (userGroups.isEmpty()) {
 			// being extra paranoid here, this is unlikely
 			throw new DatastoreException("no groups for user " + userInfo);
 		}
@@ -353,7 +355,7 @@ public class SearchUtil{
 		// Make our boolean query
 		StringBuilder authorizationFilterBuilder = new StringBuilder("(or ");
 		int initialLen = authorizationFilterBuilder.length();
-		for (Long group : groups) {
+		for (Long group : userGroups) {
 			if (authorizationFilterBuilder.length() > initialLen) {
 				authorizationFilterBuilder.append(" ");
 			}
@@ -362,5 +364,56 @@ public class SearchUtil{
 		authorizationFilterBuilder.append(")");
 
 		return authorizationFilterBuilder.toString();
+	}
+
+	/**
+	 * Remove any character that is not compatible with cloud search.
+	 * @param document
+	 * @return JSON String of cleaned document
+	 */
+	static String convertSearchDocumentsToJSON(List<Document> documents) { //TODO: Test
+		try {
+			StringBuilder builder = new StringBuilder();
+			builder.append("[");
+			int count = 0;
+			for(Document document: documents){
+				prepareDocument(document);
+				String serializedDocument = EntityFactory.createJSONStringForEntity(document);
+				// AwesomeSearch pukes on control characters. Some descriptions have
+				// control characters in them for some reason, in any case, just get rid
+				// of all control characters in the search document
+				String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
+
+				// Get rid of escaped control characters too
+				cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
+				if(count > 0){
+					builder.append(", ");
+				}
+				builder.append(cleanedDocument);
+				count++;
+			}
+			builder.append("]");
+			return builder.toString();
+		} catch (JSONObjectAdapterException e) {
+			// Convert to runtime
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Prepare the document to be sent.
+	 * @param document
+	 */
+	public static void prepareDocument(Document document) { //TODO: test
+		// the version is always the current time.
+		DateTime now = DateTime.now();
+		document.setVersion(now.getMillis() / 1000);
+		document.setType(DocumentTypeNames.add);
+		document.setLang("en");
+		if(document.getFields() == null){
+			document.setFields(new DocumentFields());
+		}
+		// The id field must match the document's id.
+		document.getFields().setId(document.getId());
 	}
 }

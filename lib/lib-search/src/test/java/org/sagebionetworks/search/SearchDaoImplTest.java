@@ -2,13 +2,11 @@ package org.sagebionetworks.search;
 
 import static org.junit.Assert.*;
 
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Matchers.any;
@@ -85,7 +83,7 @@ public class SearchDaoImplTest {
 		
 		SearchResults searchResults = new SearchResults();
 
-		when(mockCloudSearchDomainClient.search(any(SearchRequest.class))).thenReturn(new SearchResults());
+		when(mockCloudSearchDomainClient.rawSearch(any(SearchRequest.class))).thenReturn(new SearchResults());
 		when(mockCloudSearchDomainClient.isInitialized()).thenReturn(true);
 
 		
