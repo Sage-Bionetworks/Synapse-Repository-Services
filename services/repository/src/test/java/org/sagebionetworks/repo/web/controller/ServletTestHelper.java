@@ -36,11 +36,13 @@ import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedIds;
+import org.sagebionetworks.repo.model.PaginatedTeamIds;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -1574,6 +1576,18 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 		
 		return ListWrapper.unwrap(new JSONObjectAdapterImpl(response.getContentAsString()), Team.class);
+	}
+
+	public PaginatedTeamIds getTeamIdsByMember(
+			HttpServlet dispatchServlet, Long teamMemberId, TeamSortOrder sort, Boolean ascending) throws Exception {
+		String uri = UrlHelpers.USER + "/" + teamMemberId + UrlHelpers.TEAM + "/id";
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, uri, userId, null);
+		request.addParameter(ServiceConstants.SORT_BY_PARAM, sort.name());
+		request.addParameter(ServiceConstants.ASCENDING_PARAM, ascending.toString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		return new PaginatedTeamIds(new JSONObjectAdapterImpl(response.getContentAsString()));
 	}
 
 	public void deleteTeam(HttpServlet dispatchServlet, Long userId,

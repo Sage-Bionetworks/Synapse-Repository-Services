@@ -783,4 +783,14 @@ public class TableEntityManagerImpl implements TableEntityManager, UploadRowProc
 		return new SparseChangeSet(dto, schema);
 	}
 
+
+	@WriteTransactionReadCommitted
+	@Override
+	public void deleteTableIfDoesNotExist(String tableId) {
+		if(!tableManagerSupport.doesTableExist(tableId)) {
+			// The table no longer exists so delete it.
+			this.deleteTable(tableId);
+		}
+	}
+
 }

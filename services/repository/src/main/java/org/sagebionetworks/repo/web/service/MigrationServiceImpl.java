@@ -8,14 +8,15 @@ import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,17 +88,17 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		return backupDaemonLauncher.startBackup(user, type, list);
+		return backupDaemonLauncher.startBackup(user, type, list, backupAliasType);
 	}
 
 	@Override
-	public BackupRestoreStatus startRestore(Long userId, MigrationType type,	String fileName) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName, BackupAliasType backupAliasType) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		return backupDaemonLauncher.startRestore(user, fileName, type);
+		return backupDaemonLauncher.startRestore(user, fileName, type, backupAliasType);
 	}
 
 	@Override

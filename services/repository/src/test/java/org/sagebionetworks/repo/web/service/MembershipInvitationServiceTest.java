@@ -54,14 +54,14 @@ public class MembershipInvitationServiceTest {
 		String acceptInvitationEndpoint = "acceptInvitationEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
 		when(mockMembershipInvitationManager.create(userInfo, mis)).thenReturn(mis);
-		when(mockMembershipInvitationManager.createInvitationToUser(
+		when(mockMembershipInvitationManager.createInvitationMessageToUser(
 				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint)).thenReturn(result);
 
 		membershipInvitationService.create(userId, mis,
 				acceptInvitationEndpoint,  notificationUnsubscribeEndpoint);
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockMembershipInvitationManager).create(userInfo, mis);
-		verify(mockMembershipInvitationManager).createInvitationToUser(
+		verify(mockMembershipInvitationManager).createInvitationMessageToUser(
 				mis, acceptInvitationEndpoint, notificationUnsubscribeEndpoint);
 		
 		ArgumentCaptor<List> messageArg = ArgumentCaptor.forClass(List.class);

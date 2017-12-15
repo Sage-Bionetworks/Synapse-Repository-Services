@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
@@ -63,6 +64,7 @@ public class BackupRestoreDaemon implements Runnable{
 	private volatile Throwable driverError;
 	private UserInfo user;
 	private MigrationType migrationType;
+	private BackupAliasType backupAliasType;
 
 	
 	/**
@@ -70,7 +72,7 @@ public class BackupRestoreDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupRestoreDaemon(UserInfo user, BackupRestoreStatusDAO dao, BackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, List<Long> idsToBackup, MigrationType migrationType){
+	BackupRestoreDaemon(UserInfo user, BackupRestoreStatusDAO dao, BackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, List<Long> idsToBackup, MigrationType migrationType, BackupAliasType backupAliasType){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
 		if(driver == null) throw new IllegalArgumentException("GenericBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
@@ -87,6 +89,7 @@ public class BackupRestoreDaemon implements Runnable{
 		this.idsToBackup = idsToBackup;
 		this.migrationType = migrationType;
 		this.user = user;
+		this.backupAliasType = backupAliasType;
 	}
 	
 	
@@ -193,26 +196,24 @@ public class BackupRestoreDaemon implements Runnable{
 		isDriverDone = false;
 		// The second level pool is used to do the actual work.
 		// We need a second pool to prevent deadlock.
-		workerPool.execute(new Runnable(){
-			@Override
-			public void run() {
-				// Tell the driver to do its thing
-				try {
-					if(DaemonType.BACKUP == type){
-						// This is a backup
-						backupDriver.writeBackup(user, tempBackup, progress, migrationType, idsToBackup);							
-					}else if(DaemonType.RESTORE == type) {
-						// This is a restore
-						backupDriver.restoreFromBackup(user, tempBackup,progress);		
-					}else{
-						throw new IllegalArgumentException("Unknown type: "+type);
-					}
-					isDriverDone = true;
-				} catch (Throwable e) {
-					// Keep track of the error.
-					driverError = e;
-				} 
-		}});
+		workerPool.execute(() -> {
+			// Tell the driver to do its thing
+			try {
+				if(DaemonType.BACKUP == type){
+					// This is a backup
+					backupDriver.writeBackup(user, tempBackup, progress, migrationType, idsToBackup, backupAliasType);
+				}else if(DaemonType.RESTORE == type) {
+					// This is a restore
+					backupDriver.restoreFromBackup(user, tempBackup, progress, backupAliasType);
+				}else{
+					throw new IllegalArgumentException("Unknown type: "+type);
+				}
+				isDriverDone = true;
+			} catch (Throwable e) {
+				// Keep track of the error.
+				driverError = e;
+			}
+	});
 	}
 
 	/**
@@ -256,7 +257,6 @@ public class BackupRestoreDaemon implements Runnable{
 
 	/**
 	 * Start this daemon for a backup..
-	 * @param user
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
@@ -268,8 +268,7 @@ public class BackupRestoreDaemon implements Runnable{
 	
 	/**
 	 * Start this daemon for a restore.
-	 * @param userName
-	 * @param backupFileUrl
+	 * @param fileName
 	 * @return
 	 * @throws DatastoreException
 	 */
