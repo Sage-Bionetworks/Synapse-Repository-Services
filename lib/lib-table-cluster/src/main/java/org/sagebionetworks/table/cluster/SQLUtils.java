@@ -905,6 +905,14 @@ public class SQLUtils {
 			if(info.isMetadata()){
 				continue;
 			}
+			// do not index blobs.
+			if(MySqlColumnType.MEDIUMTEXT.equals(info.getType())) {
+				// remove the index if it has one
+				if(info.hasIndex()){
+					toRemove.add(info);
+				}
+				continue;
+			}
 			if(indexCount < maxNumberOfIndex){
 				// Still under the max.
 				indexCount++;

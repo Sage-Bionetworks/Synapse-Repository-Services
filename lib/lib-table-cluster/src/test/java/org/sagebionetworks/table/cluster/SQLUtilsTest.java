@@ -1005,6 +1005,53 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testCalculateIndexChangesIgnoreBlobs(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		info.setHasIndex(false);
+		info.setIndexName("idx_name");
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		assertEquals(0, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
+	public void testCalculateIndexChangesRemoveBlobIndex(){
+		String tableId = "syn123";
+		int maxNumberOfIndex = 10000;
+		DatabaseColumnInfo info = new DatabaseColumnInfo();
+		info.setCardinality(100L);
+		info.setColumnName("someBlob");
+		info.setColumnType(ColumnType.LARGETEXT);
+		info.setHasIndex(true);
+		info.setIndexName("idx_name");
+		info.setMaxSize(null);
+		info.setType(MySqlColumnType.MEDIUMTEXT);
+		List<DatabaseColumnInfo> currentInfo = Lists.newArrayList(info);
+		IndexChange changes = SQLUtils.calculateIndexOptimization(currentInfo, tableId, maxNumberOfIndex);
+		assertNotNull(changes);
+		assertNotNull(changes.getToAdd());
+		assertNotNull(changes.getToRemove());
+		assertNotNull(changes.getToRename());
+		assertEquals(0, changes.getToAdd().size());
+		// the blob index should be removed.
+		assertEquals(1, changes.getToRemove().size());
+		assertEquals(0, changes.getToRename().size());
+	}
+	
+	@Test
 	public void testCalculateIndexChangesUnderMax(){
 		String tableId = "syn123";
 		int maxNumberOfIndex = 10000;
