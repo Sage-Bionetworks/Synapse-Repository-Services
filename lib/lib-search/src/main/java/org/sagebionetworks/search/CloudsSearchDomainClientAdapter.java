@@ -26,9 +26,8 @@ public class CloudsSearchDomainClientAdapter {
 	private AmazonCloudSearchDomainClient client;
 
 
-	public CloudsSearchDomainClientAdapter(AWSCredentials awsCredentials, String endpoint){//TODO: maybe need to change constructor?
-		this.client = new AmazonCloudSearchDomainClient(awsCredentials);
-		this.client.setEndpoint(endpoint);
+	public CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){//TODO: maybe need to change constructor?
+		this.client = client;
 	}
 
 	@Override
@@ -53,13 +52,6 @@ public class CloudsSearchDomainClientAdapter {
 										.withDocuments(new ByteArrayInputStream(documentBytes))
 										.withContentLength((long) documentBytes.length);
 		UploadDocumentsResult result = client.uploadDocuments(request);
-	}
-
-	public void setEndpoint(String endpoint){
-		ValidateArgument.required(endpoint, "endpoint");
-		ValidateArgument.requirement(!"".equals(endpoint), "endpoint must not be an empty String");
-
-		client.setEndpoint(endpoint);
 	}
 
 

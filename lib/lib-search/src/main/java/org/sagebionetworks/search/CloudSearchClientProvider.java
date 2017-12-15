@@ -1,39 +1,68 @@
 package org.sagebionetworks.search;
 
+import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Random;
 
 public class CloudSearchClientProvider {
+	static private Logger log = LogManager.getLogger(CloudSearchClientProvider.class);
+
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
+
+	@Autowired
+	AmazonCloudSearchDomainClient cloudSearchDomainClient;
+
+	private boolean isSearchEnabled;
+
+	private boolean setupCompleted;
 
 	//TODO: Search enabled/disbaled should be the responsibility of the provider, not this SearchDomainSetup
 
 
 	//TODO: Bean initlaizlation similart to old SearchDAO
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
-		if(!){
-			throw new IllegalStateException("Search has not yet been initialized. Please try again later!");
+		if(!isSearchEnabled()){
+			throw new UnsupportedOperationException("The search feature was disabled."); //TODO: what HTTP code does this map to?
 		}
+		if(!postInitialize()){
+			throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
+		}
+
+		return new CloudsSearchDomainClientAdapter(cloudSearchDomainClient); //TODO: maybe make this as a singleton?
+	}
+
+	/**
+	 * Injected via Spring
+	 * @param isSearchEnabled
+	 */
+	public void setSearchEnabled(boolean isSearchEnabled) {
+		this.isSearchEnabled = isSearchEnabled;
+	}
+
+	@Override
+	public boolean isSearchEnabled() {
+		return isSearchEnabled;
 	}
 
 
 	@Override
-	public boolean postInitialize() throws Exception {
-		if (!searchDomainSetup.isSearchEnabled()) {
-			log.info("SearchDaoImpl.initialize() will do nothing since search is disabled");
+	public boolean postInitialize(){
+		if(setupCompleted){//searchDomainSetup must make
 			return true;
 		}
 
-		if (!searchDomainSetup.postInitialize()) {
+		if (searchDomainSetup.postInitialize()) {
+			cloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
+			setupCompleted = true;
+			return true;
+		}else{
 			return false;
 		}
-
-		//Note: even though we only gave it the search endpoint, the client seems to be able to change to the document upload endpoint automatically
-		cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-		return true;
 	}
 
 	/**

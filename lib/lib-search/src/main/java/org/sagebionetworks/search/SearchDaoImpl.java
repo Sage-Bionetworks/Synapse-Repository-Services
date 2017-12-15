@@ -52,22 +52,9 @@ public class SearchDaoImpl implements SearchDao {
 	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
 
 
-	
-
-
-	/**
-	 * @throws UnsupportedOperationException when search is disabled.
-	 */
-	public void validateSearchEnabled(){
-		if(!searchDomainSetup.isSearchEnabled()){
-			throw new UnsupportedOperationException("Search is disabled");
-		}
-	}
-
 	@Override
 	public void deleteDocument(String documentId) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
-		validateSearchEnabled();
 		// This is just a batch delete of size one.
 		HashSet<String> set = new HashSet<String>(1);
 		set.add(documentId);
@@ -108,7 +95,6 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
-		validateSearchEnabled();
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
 		SearchResults results = executeSearch(new SearchRequest().withQuery(query).withQueryParser(QueryParser.Structured));
@@ -118,7 +104,6 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
-		validateSearchEnabled();
 		return executeSearch(new SearchRequest().withQuery(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE)
 												.withQueryParser(QueryParser.Structured)
 												.withSize(limit).withStart(offset));
@@ -127,7 +112,6 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void deleteAllDocuments() throws ClientProtocolException, IOException, InterruptedException,
 			ServiceUnavailableException, CloudSearchClientException {
-		validateSearchEnabled();
 		// Keep deleting as long as there are documents
 		SearchResults sr = null;
 		do{
@@ -145,13 +129,7 @@ public class SearchDaoImpl implements SearchDao {
 		}while(sr.getFound() > 0);
 	}
 
-	@Override
-	public boolean isSearchEnabled() {
-		return searchDomainSetup.isSearchEnabled();
-	}
-
 	private CloudsSearchDomainClientAdapter validateSearchAvailable() throws ServiceUnavailableException {
-		validateSearchEnabled();
 
 		DomainStatus status = searchDomainSetup.getDomainStatus();
 		if (status == null) {

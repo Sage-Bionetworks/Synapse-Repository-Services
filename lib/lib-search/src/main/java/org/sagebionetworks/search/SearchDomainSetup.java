@@ -14,7 +14,7 @@ public interface SearchDomainSetup {
 	 * 
 	 * @return true when post initialization is done
 	 */
-	public boolean postInitialize() throws Exception;
+	public boolean postInitialize();
 
 	/**
 	 * The name of of the search domain.
@@ -47,9 +47,4 @@ public interface SearchDomainSetup {
 	 */
 	public String getDomainSearchEndpoint();
 
-	 /**
-	  * Is Search enabled?
-	  * @return
-	  */
-	boolean isSearchEnabled();
 }

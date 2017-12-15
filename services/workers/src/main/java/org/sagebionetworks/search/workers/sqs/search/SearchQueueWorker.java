@@ -49,7 +49,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 	public void run(ProgressCallback progressCallback, ChangeMessage change)
 			throws RecoverableMessageException, Exception {
 		// If the feature is disabled then we simply swallow all messages
-		if (!searchDao.isSearchEnabled()) {
+		if (!searchDao.isSearchEnabled()) { //TODO: change to if error is thrown about search disable?
 			return;
 		}
 		// We only care about entity messages as this time

@@ -124,11 +124,6 @@ public interface SearchDao {
 	 */
 	void deleteAllDocuments() throws ClientProtocolException, IOException, InterruptedException,
 			ServiceUnavailableException, CloudSearchClientException;
-	 
-	/**
-	 * Is the search feature enabled?
-	 * @return
-	 */
-	boolean isSearchEnabled();
+
 
 }

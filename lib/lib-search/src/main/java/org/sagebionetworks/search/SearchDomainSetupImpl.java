@@ -27,6 +27,7 @@ import com.amazonaws.services.cloudsearchv2.model.IndexField;
 import com.amazonaws.services.cloudsearchv2.model.IndexFieldStatus;
 import com.amazonaws.services.cloudsearchv2.model.UpdateServiceAccessPoliciesRequest;
 
+//TODO: add missing tests
 public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 
 	private static final String POLICY_TEMPLATE = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"cloudsearch:search\",\"cloudsearch:document\"],\"Condition\":{\"IpAddress\":{\"aws:SourceIp\":\"%1$s\"}}}]}";
@@ -38,44 +39,18 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
-	//TODO: Search enabled/disbaled should be the responsibility of the provider, not this class
-
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
-	
-	boolean isSearchEnabled;
-	
-	@Override
-	public boolean isSearchEnabled() {
-		return isSearchEnabled;
-	}
-
-	/**
-	 * Injected via Spring
-	 * @param isSearchEnabled
-	 */
-	public void setSearchEnabled(boolean isSearchEnabled) {
-		this.isSearchEnabled = isSearchEnabled;
-	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		if(!isSearchEnabled()){
-			log.info("Search is disabled");
-			return;
-		}
 		// Do we have a search index?
 		String domainName = getSearchDomainName();
 		log.info("Search domain name: " + domainName);
 	}
 
 	@Override
-	public boolean postInitialize() throws Exception {
-		if (!isSearchEnabled()) {
-			log.info("Search is disabled");
-			return true;
-		}
-
+	public boolean postInitialize(){//TODO: refactor this logic
 		String domainName = getSearchDomainName();
 		if (domainIsProcessing(domainName)) {
 			return false;
@@ -129,8 +104,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	 * @param domainName
 	 * @throws InterruptedException
 	 */
-	public void createDomainIfNeeded(String domainName)
-			throws InterruptedException {
+	public void createDomainIfNeeded(String domainName) { //TODO: used to throw InterruptedException? investigate if this still occurs
 		DescribeDomainsResult result = awsSearchClient
 				.describeDomains(new DescribeDomainsRequest()
 						.withDomainNames(domainName));
@@ -271,6 +245,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	 * @throws InterruptedException
 	 */
 	private boolean domainIsProcessing(String domainName) {
+		//TODO: refactor all this return true/false logic
 		DomainStatus status = getDomainStatus(domainName);
 		if (status == null) {
 			// The domain does not exist, so isn't processing
@@ -281,8 +256,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 			log.warn("Search domain: " + domainName + " has been deleted!");
 			return false;
 		}
-		log.debug("Domain still processing:" + status.isProcessing());
-		return status.isProcessing();
+
+		boolean isProcessing = status.isProcessing();
+		log.debug("Domain still processing:" + isProcessing);
+		return isProcessing;
 	}
 
 	/**
