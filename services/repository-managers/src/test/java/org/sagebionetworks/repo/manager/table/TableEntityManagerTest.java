@@ -387,6 +387,29 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, tableId);
 	}
 	
+	/**
+	 * Validate that the maximum number of versions is enforced.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@Test
+	public void testAppendRowsOverLimitPLFM_4774() throws DatastoreException, NotFoundException, IOException{
+		IdRange range = new IdRange();
+		range.setVersionNumber(TableEntityManagerImpl.MAXIMUM_VERSIONS_PER_TABLE+1);
+		range.setEtag("etag");
+		range.setMaximumId(111L);
+		range.setMaximumUpdateId(222L);
+		range.setMinimumId(1000L);
+		when(mockTruthDao.reserveIdsInRange(any(String.class), anyLong())).thenReturn(range);
+		try {
+			manager.appendRows(user, tableId, set, mockProgressCallback);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertEquals(TableEntityManagerImpl.MAXIMUM_TABLE_SIZE_EXCEEDED, e.getMessage());
+		}
+	}
+	
 	@Test
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, partialSet, mockProgressCallback);
