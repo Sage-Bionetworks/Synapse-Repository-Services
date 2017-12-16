@@ -59,7 +59,8 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 		// Create the domain it it does not already exist.
 		createDomainIfNeeded(domainName);
 		// Set the policy.
-		setPolicyIfNeeded(domainName);
+//		setPolicyIfNeeded(domainName); //TODO: make sure that if we don't set the policy, then access is only granted to the user that set up the domain.
+
 		// Define the schema
 		defineAndValidateSchema(domainName);
 

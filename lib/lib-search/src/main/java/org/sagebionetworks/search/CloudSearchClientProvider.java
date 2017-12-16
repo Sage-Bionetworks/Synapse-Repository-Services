@@ -3,7 +3,6 @@ package org.sagebionetworks.search;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.NotReadyException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Random;
@@ -29,7 +28,7 @@ public class CloudSearchClientProvider {
 		if(!isSearchEnabled()){
 			throw new UnsupportedOperationException("The search feature was disabled."); //TODO: what HTTP code does this map to?
 		}
-		if(!postInitialize()){
+		if(isCurrentlyInitializing()){
 			throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
 		}
 
@@ -50,18 +49,17 @@ public class CloudSearchClientProvider {
 	}
 
 
-	@Override
-	public boolean postInitialize(){
+	public boolean isCurrentlyInitializing(){
 		if(setupCompleted){//searchDomainSetup must make
-			return true;
+			return false;
 		}
 
 		if (searchDomainSetup.postInitialize()) {
 			cloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
 			setupCompleted = true;
-			return true;
-		}else{
 			return false;
+		}else{
+			return true;
 		}
 	}
 
@@ -73,21 +71,23 @@ public class CloudSearchClientProvider {
 	 */
 	public void initialize(){
 		try {
-			/*
-			 * Since each machine in the cluster will call this method and we only
-			 * want one machine to initialize the search index, we randomly stagger
-			 * the start for each machine.
-			 */
-			Random random = new Random();
-			// random sleep time from zero to 1 sec.
-			long randomSleepMS = random.nextInt(1000);
-			log.info("Random wait to start search index: "+randomSleepMS+" MS");
-			Thread.sleep(randomSleepMS);
-			// wait for postInitialize() to finish
-			if (!postInitialize()) {
-				log.info("Search index not finished initializing...");
-			} else {
-				log.info("Search index initialized.");
+			if(isSearchEnabled()) {
+				/*
+				 * Since each machine in the cluster will call this method and we only
+				 * want one machine to initialize the search index, we randomly stagger
+				 * the start for each machine.
+				 */
+				Random random = new Random();
+				// random sleep time from zero to 1 sec.
+				long randomSleepMS = random.nextInt(1000);
+				log.info("Random wait to start search index: " + randomSleepMS + " MS");
+				Thread.sleep(randomSleepMS);
+				// wait for postInitialize() to finish
+				if (isCurrentlyInitializing()) {
+					log.info("Search index not finished initializing...");
+				} else {
+					log.info("Search index initialized.");
+				}
 			}
 		} catch(Exception e) {
 			log.error("Unexpected exception while starting the search index", e);
