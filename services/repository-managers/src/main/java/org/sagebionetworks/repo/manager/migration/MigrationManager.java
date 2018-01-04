@@ -11,6 +11,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -188,6 +190,15 @@ public interface MigrationManager {
 	 * name is included in the set.
 	 */
 	public void validateForeignKeys();
+
+	/**
+	 * Create a backup file for the given type and list of row IDs.
+	 * 
+	 * @param user
+	 * @param req
+	 * @return
+	 */
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req);
 	
 	
 }

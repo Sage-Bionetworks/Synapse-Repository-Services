@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRowMetadataRequest
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -540,5 +542,11 @@ public class MigrationManagerImpl implements MigrationManager {
 	public void initialize() {
 		// validate all of the foreign keys.
 		validateForeignKeys();
+	}
+
+	@Override
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
