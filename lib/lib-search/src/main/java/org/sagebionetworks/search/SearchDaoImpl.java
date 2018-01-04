@@ -47,9 +47,10 @@ public class SearchDaoImpl implements SearchDao {
 	AmazonCloudSearchClient awsSearchClient;
 
 
-	//TODO: figure out initialization of this client
-	@Autowired
-	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
+	//Not autowired; retrieved via CloudSearchClientProvider
+//	CloudsSearchDomainClientAdapter cloudSearchClientAdapter;
+
+	CloudSearchClientProvider cloudSearchClientProvider;
 
 
 	@Override
@@ -64,11 +65,11 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException,
 			ServiceUnavailableException {
-		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = cloudSearchClientProvider.getCloudSearchClient();
 		DateTime now = DateTime.now();
 		// Note that we cannot use a JSONEntity here because the format is
 		// just a JSON array
-		JSONArray documentBatch = new JSONArray();
+		JSONArray documentBatch = new JSONArray(); //TODO: this does same thing as SearchUtils.convertSearchDocumentsToJSON??? without the cleaning?
 		for (String entityId : docIdsToDelete) {
 			Document document = new Document();
 			document.setType(DocumentTypeNames.delete);
@@ -88,7 +89,7 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public SearchResults executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException {
-		CloudsSearchDomainClientAdapter searchClient = validateSearchAvailable();
+		CloudsSearchDomainClientAdapter searchClient = cloudSearchClientProvider.getCloudSearchClient();
 		return searchClient.rawSearch(search);
 	}
 
@@ -129,18 +130,4 @@ public class SearchDaoImpl implements SearchDao {
 		}while(sr.getFound() > 0);
 	}
 
-	private CloudsSearchDomainClientAdapter validateSearchAvailable() throws ServiceUnavailableException {
-
-		DomainStatus status = searchDomainSetup.getDomainStatus();
-		if (status == null) {
-			throw new ServiceUnavailableException("Search service not initialized...");
-		} else {
-			cloudSearchClientAdapter.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
-			if (status.isProcessing()) {
-				throw new ServiceUnavailableException("Search service processing...");
-			}
-		}
-
-		return cloudSearchClientAdapter;
-	}
 }

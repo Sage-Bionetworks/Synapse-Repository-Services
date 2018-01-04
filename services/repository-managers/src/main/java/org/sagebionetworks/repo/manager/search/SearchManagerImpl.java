@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
+import org.sagebionetworks.search.CloudSearchClientProvider;
 import org.sagebionetworks.search.CloudsSearchDomainClientAdapter;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
@@ -33,6 +34,10 @@ public class SearchManagerImpl implements SearchManager{
 	SearchDocumentDriver searchDocumentDriver;
 
 	CloudsSearchDomainClientAdapter cloudsearchDomainClient;//TODO: wire up
+
+//	@Autowired
+//	CloudSearchClientProvider cloudSearchClientProvider; //TODO: keep this in SearchDao or move search dao into here?
+
 
 	@Override
 	/**

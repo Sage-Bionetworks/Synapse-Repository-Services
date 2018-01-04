@@ -18,14 +18,6 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  *
  */
 public interface SearchDao {
-	
-	/**
-	 * Called by initializing worker. This method should check, initialize where necessary and return relatively quickly
-	 * (i.e. no long waits)
-	 * 
-	 * @return true when post initialization is done
-	 */
-	public boolean postInitialize() throws Exception;
 
 	 /**
 	 * Create a new search document.

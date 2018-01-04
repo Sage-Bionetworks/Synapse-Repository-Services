@@ -42,6 +42,8 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 
+	private boolean setupCompleted = false; //TODO: put in constructor??
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// Do we have a search index?
@@ -246,6 +248,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	 * @throws InterruptedException
 	 */
 	private boolean domainIsProcessing(String domainName) {
+
 		//TODO: refactor all this return true/false logic
 		DomainStatus status = getDomainStatus(domainName);
 		if (status == null) {
@@ -285,7 +288,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	}
 
 	@Override
-	public String getDomainSearchEndpoint(){ //TODO:z better name?
+	public String getDomainSearchEndpoint(){
 		return getDomainStatus().getSearchService().getEndpoint();
 	}
 }

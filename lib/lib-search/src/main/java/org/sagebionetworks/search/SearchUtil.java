@@ -374,7 +374,7 @@ public class SearchUtil{
 	static String convertSearchDocumentsToJSON(List<Document> documents) { //TODO: Test
 		try {
 			StringBuilder builder = new StringBuilder();
-			builder.append("[");
+			builder.append("["); //TOD: use JSONArray instead??
 			int count = 0;
 			for(Document document: documents){
 				prepareDocument(document);

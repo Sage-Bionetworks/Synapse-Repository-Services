@@ -30,13 +30,11 @@ public class CloudsSearchDomainClientAdapter {
 		this.client = client;
 	}
 
-	@Override
 	public void sendDocuments(Document document){//TODO: test
 		ValidateArgument.required(document, "document");
 		sendDocuments(Collections.singletonList(document));
 	}
 
-	@Override
 	public void sendDocuments(List<Document> batch){
 		sendDocuments(SearchUtil.convertSearchDocumentsToJSON(batch));
 	}
