@@ -345,8 +345,12 @@ public class SearchUtil{
 	 * @return the acl boolean query
 	 * @throws DatastoreException
 	 */
-	public static String formulateAuthorizationFilter(Set<Long> userGroups)
+	public static String formulateAuthorizationFilter(UserInfo userInfo)
 			throws DatastoreException {
+		ValidateArgument.required(userInfo, "userInfo");
+		Set<Long> userGroups = userInfo.getGroups();
+		ValidateArgument.required(userGroups, "userInfo.getGroups()");
+
 		if (userGroups.isEmpty()) {
 			// being extra paranoid here, this is unlikely
 			throw new DatastoreException("no groups for user " + userInfo);

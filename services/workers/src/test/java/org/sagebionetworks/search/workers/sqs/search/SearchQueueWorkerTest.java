@@ -15,7 +15,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.common.util.progress.ProgressCallback;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
@@ -27,8 +26,6 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import com.amazonaws.services.sqs.model.Message;
 
 public class SearchQueueWorkerTest {
 	
@@ -90,8 +87,8 @@ public class SearchQueueWorkerTest {
 		when(mockDocumentProvider.formulateSearchDocument("two")).thenReturn(docTwo);
 		
 		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
-		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
+		when(mockDocumentProvider.doesNodeExist("one", "etag1")).thenReturn(true);
+		when(mockDocumentProvider.doesNodeExist("two", "etag2")).thenReturn(true);
 		
 		// Create only occurs if it is not already in the search index
 		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
@@ -115,7 +112,7 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testCreateAlreadyInSearchIndex() throws Exception{
 		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
+		when(mockDocumentProvider.doesNodeExist("one", "etag1")).thenReturn(true);
 		// Create only occurs if it is not already in the search index
 		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(true);
 
@@ -126,8 +123,8 @@ public class SearchQueueWorkerTest {
 		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
 		// create should not be called
 		verify(mockSearchDao, never()).createOrUpdateSearchDocument(any(Document.class));
-		// We should not call doesDocumentExist() on the repository when it already exists in the search index.
-		verify(mockDocumentProvider, never()).doesDocumentExist("one", "etag1");
+		// We should not call doesNodeExist() on the repository when it already exists in the search index.
+		verify(mockDocumentProvider, never()).doesNodeExist("one", "etag1");
 	}
 	
 	/**
@@ -137,7 +134,7 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testCreateDoesNotExistInReposiroty() throws Exception{
 		// Create only occurs if the document exists in the repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(false);
+		when(mockDocumentProvider.doesNodeExist("one", "etag1")).thenReturn(false);
 		// Create only occurs if it is not already in the search index
 		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
 
@@ -148,8 +145,8 @@ public class SearchQueueWorkerTest {
 		verify(mockSearchDao, never()).deleteDocuments(anySetOf(String.class));
 		// create should not be called
 		verify(mockSearchDao, never()).createOrUpdateSearchDocument(anyListOf(Document.class));
-		// We should not call doesDocumentExist() one time.
-		verify(mockDocumentProvider, times(1)).doesDocumentExist("one", "etag1");
+		// We should not call doesNodeExist() one time.
+		verify(mockDocumentProvider, times(1)).doesNodeExist("one", "etag1");
 	}
 	
 	/**
@@ -188,8 +185,8 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testLogCreateUpdateException() throws Exception {
 		// These docs should exist in repository
-		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
-		when(mockDocumentProvider.doesDocumentExist("two", "etag2")).thenReturn(true);
+		when(mockDocumentProvider.doesNodeExist("one", "etag1")).thenReturn(true);
+		when(mockDocumentProvider.doesNodeExist("two", "etag2")).thenReturn(true);
 		// These docs should not already exist in CloudSearch
 		when(mockSearchDao.doesDocumentExist("one", "etag1")).thenReturn(false);
 		when(mockSearchDao.doesDocumentExist("two", "etag2")).thenReturn(false);

@@ -7,6 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Random;
 
+/**
+ * This class is responsible for initializing the setup of AWS CloudSearch
+ * and providing a configured CloudSearch client once setup has completed.
+ */
 public class CloudSearchClientProvider {
 	static private Logger log = LogManager.getLogger(CloudSearchClientProvider.class);
 
@@ -18,19 +22,16 @@ public class CloudSearchClientProvider {
 
 	private boolean isSearchEnabled;
 
-
-	//TODO: Search enabled/disbaled should be the responsibility of the provider, not this SearchDomainSetup
-
-
 	//TODO: Bean initlaizlation similart to old SearchDAO
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
 			throw new UnsupportedOperationException("The search feature was disabled."); //TODO: what HTTP code does this map to?
+			//TODO: maybe throw custom CloudsearchDisabledException???
 		}
 		if(!searchDomainSetup.postInitialize()){
 			throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
 		}
-
+		//TODO: endpoint may not have be set at this point (only happens in initialize() )?
 		return new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient); //TODO: maybe make this as a singleton?
 	}
 
@@ -45,7 +46,6 @@ public class CloudSearchClientProvider {
 	public boolean isSearchEnabled() {
 		return isSearchEnabled;
 	}
-
 
 	/**
 	 * The initialization of a search index can take hours the first time it is run.

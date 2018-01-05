@@ -1,23 +1,20 @@
 package org.sagebionetworks.search;
 
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsRequest;
 import com.amazonaws.services.cloudsearchdomain.model.UploadDocumentsResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 
 public class CloudsSearchDomainClientAdapter {
@@ -36,14 +33,10 @@ public class CloudsSearchDomainClientAdapter {
 	}
 
 	public void sendDocuments(List<Document> batch){
-		sendDocuments(SearchUtil.convertSearchDocumentsToJSON(batch));
-	}
+		ValidateArgument.required(batch, "batch");
+		ValidateArgument.requirement(!batch.isEmpty(), "List<Document> batch cannot be empty");
 
-	void sendDocuments(String documents){
-		//TODO: private or package visibility?
-
-		ValidateArgument.required(documents, "documents");
-
+		String documents = SearchUtil.convertSearchDocumentsToJSON(batch);
 		byte[] documentBytes = documents.getBytes(StandardCharsets.UTF_8);
 		UploadDocumentsRequest request = new UploadDocumentsRequest()
 										.withContentType("application/json")
@@ -52,33 +45,11 @@ public class CloudsSearchDomainClientAdapter {
 		UploadDocumentsResult result = client.uploadDocuments(request);
 	}
 
-
-	public SearchResults unfilteredSearch(SearchQuery searchQuery) throws CloudSearchClientException {
-		SearchRequest searchRequest = SearchUtil.generateSearchRequest(searchQuery);
-		return rawSearch(searchRequest);
-	}
-
-	/**
-	 * Executes the searchQuery but filters limits results to only those that the user belongs.
-	 * @param searchQuery
-	 * @param userGroups Set of user group ids in which the user executing this query belongs. Preferably retrieved from UserInfo.getGroups()
-	 * @return
-	 */
-	public SearchResults filteredSearch(SearchQuery searchQuery, Set<Long> userGroups) throws CloudSearchClientException {
-		SearchRequest searchRequest = SearchUtil.generateSearchRequest(searchQuery);
-		if (searchRequest.getFilterQuery() != null){
-			throw new IllegalArgumentException("did not expect searchRequest to already contain a filterQuery");
-		}
-		searchRequest.setFilterQuery(SearchUtil.formulateAuthorizationFilter(userGroups));
-		return rawSearch(searchRequest);
-	}
-
-	SearchResults rawSearch(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
-		//TODO: private or package visibility?
+	SearchResult rawSearch(SearchRequest request) throws CloudSearchClientException{ //TODO: rename cloudsearch client exception?
 		ValidateArgument.required(request, "request");
 
 		try{
-			return SearchUtil.convertToSynapseSearchResult(client.search(request));
+			return client.search(request);
 		}catch (SearchException e){
 			int statusCode = e.getStatusCode();
 			if(statusCode / 100 == 4){ //4xx status codes
@@ -90,7 +61,7 @@ public class CloudsSearchDomainClientAdapter {
 				throw e;
 			}else {
 				logger.error("search(): Failed for unexpected reasons (request=" + request + ") with status: " + e.getStatusCode());
-				throw e;
+				throw e; //TODO: make sure conversion from Exception to HTTP code is correct.
 			}
 		}
 	}

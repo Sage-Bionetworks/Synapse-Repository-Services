@@ -374,7 +374,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 	@Override
-	public boolean doesDocumentExist(String nodeId, String etag) {
+	public boolean doesNodeExist(String nodeId, String etag) {
 		if (nodeId == null)
 			throw new IllegalAccessError("NodeId cannot be null");
 		if (etag == null)

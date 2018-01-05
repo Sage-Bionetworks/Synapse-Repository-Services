@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -24,4 +25,6 @@ public interface SearchManager {
 	 */
 	SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws UnsupportedEncodingException,
 			ClientProtocolException, IOException, ServiceUnavailableException, CloudSearchClientException;
+
+	void documentChangeMessage(ChangeMessage change) throws IOException, CloudSearchClientException;
 }

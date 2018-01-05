@@ -73,7 +73,7 @@ public interface SearchDao {
 	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResults executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
+	SearchResult executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException;
 
 
@@ -102,7 +102,7 @@ public interface SearchDao {
 	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
+	SearchResult listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
 			ServiceUnavailableException, CloudSearchClientException;
 	 
 	 /**

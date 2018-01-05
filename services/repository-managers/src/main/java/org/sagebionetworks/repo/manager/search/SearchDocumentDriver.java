@@ -22,7 +22,7 @@ public interface SearchDocumentDriver {
 	 * @param etag
 	 * @return
 	 */
-	public boolean doesDocumentExist(String nodeId, String etag);
+	public boolean doesNodeExist(String nodeId, String etag);
 	
 	/**
 	 * Create a search document for a given NodeId.
