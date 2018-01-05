@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.search.SearchDisabledException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -48,7 +49,7 @@ public class SearchQueueWorker implements ChangeMessageDrivenRunner {
 		//TODO: log/throw error is thrown about search disable?
 		try {
 			searchManager.documentChangeMessage(change);
-		} catch (UnsupportedOperationException e){
+		} catch (SearchDisabledException e){
 			// If the feature is disabled then we simply swallow all messages
 		} catch (Throwable e) {
 			workerLogger.logWorkerFailure(SearchQueueWorker.class, change, e,true);

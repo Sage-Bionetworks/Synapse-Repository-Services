@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
@@ -486,5 +487,20 @@ public class SearchUtilTest {
 		userInfo.setGroups(Sets.newLinkedHashSet(Arrays.asList(123L, 456L, 789L)));
 		String authFilter = SearchUtil.formulateAuthorizationFilter(userInfo);
 		assertEquals("(or acl:'123' acl:'456' acl:'789')", authFilter);
+	}
+
+	///////////////////////////
+	// prepareDocument tests
+	///////////////////////////
+	//TODO: add more tests?
+	@Test
+	public void testPrepareDocument(){
+		Document doc = new Document();
+		doc.setId("123");
+		// This should prepare the document to be sent
+		SearchUtil.prepareDocument(doc);
+		assertNotNull(doc.getFields());
+		assertEquals("The document ID must be set in the fields when ",doc.getId(), doc.getFields().getId());
+		assertNotNull("A version was not set.",doc.getVersion());
 	}
 }

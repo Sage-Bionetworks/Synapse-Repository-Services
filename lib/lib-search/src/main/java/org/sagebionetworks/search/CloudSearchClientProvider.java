@@ -22,16 +22,21 @@ public class CloudSearchClientProvider {
 
 	private boolean isSearchEnabled;
 
+	private boolean setupCompleted = false;
+
 	//TODO: Bean initlaizlation similart to old SearchDAO
 	public CloudsSearchDomainClientAdapter getCloudSearchClient(){
 		if(!isSearchEnabled()){
-			throw new UnsupportedOperationException("The search feature was disabled."); //TODO: what HTTP code does this map to?
-			//TODO: maybe throw custom CloudsearchDisabledException???
+			throw new SearchDisabledException(); //TODO: what HTTP code does this map to?
 		}
-		if(!searchDomainSetup.postInitialize()){
-			throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
+		if(!setupCompleted){
+			if(searchDomainSetup.postInitialize()) {
+				awsCloudSearchDomainClient.setEndpoint(searchDomainSetup.getDomainSearchEndpoint());
+				setupCompleted = true;
+			} else{
+				throw new IllegalStateException("Search has not yet been initialized. Please try again later!"); //TODO: different exception? to map to 503 HTTP error?
+			}
 		}
-		//TODO: endpoint may not have be set at this point (only happens in initialize() )?
 		return new CloudsSearchDomainClientAdapter(awsCloudSearchDomainClient); //TODO: maybe make this as a singleton?
 	}
 

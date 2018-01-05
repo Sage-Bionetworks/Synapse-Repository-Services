@@ -408,7 +408,7 @@ public class SearchUtil{
 	 * Prepare the document to be sent.
 	 * @param document
 	 */
-	public static void prepareDocument(Document document) { //TODO: test
+	public static void prepareDocument(Document document) {
 		// the version is always the current time.
 		DateTime now = DateTime.now();
 		document.setVersion(now.getMillis() / 1000);

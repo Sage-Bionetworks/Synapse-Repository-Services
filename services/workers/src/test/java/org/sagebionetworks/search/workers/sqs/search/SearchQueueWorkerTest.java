@@ -45,7 +45,7 @@ public class SearchQueueWorkerTest {
 		mockDocumentProvider = Mockito.mock(SearchDocumentDriver.class);
 		mockWikiPageDao = Mockito.mock(V2WikiPageDao.class);
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
-		when(mockSearchDao.isSearchEnabled()).thenReturn(true);
+//		when(mockSearchDao.isSearchEnabled()).thenReturn(true);
 		worker = new SearchQueueWorker();
 		ReflectionTestUtils.setField(worker, "searchDao", mockSearchDao);
 		ReflectionTestUtils.setField(worker, "searchDocumentDriver", mockDocumentProvider);

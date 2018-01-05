@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.manager.search;
 
-import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
+import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -20,20 +19,16 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientException;
-import org.sagebionetworks.search.CloudSearchClientProvider;
-import org.sagebionetworks.search.CloudsSearchDomainClientAdapter;
 import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.SearchDaoImpl;
 import org.sagebionetworks.search.SearchUtil;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
-
-import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 
 public class SearchManagerImpl implements SearchManager{
 	private static final Logger log = LogManager.getLogger(SearchManagerImpl.class.getName());
@@ -43,7 +38,7 @@ public class SearchManagerImpl implements SearchManager{
 	SearchDocumentDriver searchDocumentDriver;
 
 	@Autowired
-	SearchDaoImpl searchDao;
+	SearchDao searchDao;
 
 	@Autowired
 	V2WikiPageDao wikiPageDao; //TODO: searchDocumentDriver also autowires this. look to combine????
@@ -81,6 +76,11 @@ public class SearchManagerImpl implements SearchManager{
 		return results;
 	}
 
+	@Override
+	public SearchResult rawSearch(SearchRequest searchRequest) throws CloudSearchClientException {
+		return searchDao.executeSearch(searchRequest);
+	}
+
 	/**
 	 * Add extra return results to the hit list.
 	 * @param hits
@@ -109,7 +109,20 @@ public class SearchManagerImpl implements SearchManager{
 		}
 	}
 
+	@Override
+	public void deleteAllDocuments() throws InterruptedException, CloudSearchClientException {
+		searchDao.deleteAllDocuments();
+	}
 
+	@Override
+	public boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException {
+		return searchDao.doesDocumentExist(id, etag);
+	}
+
+	@Override
+	public void createOrUpdateSearchDocument(Document document){
+		searchDao.createOrUpdateSearchDocument(document);
+	}
 
 	/********
 	 * Worker related stuff below
@@ -124,7 +137,7 @@ public class SearchManagerImpl implements SearchManager{
 					|| ChangeType.UPDATE == change.getChangeType()) {
 				processCreateUpdate(change);
 			} else if (ChangeType.DELETE == change.getChangeType()) {
-				searchDao.deleteDocument(change.getObjectId()); //TODO: convert to document
+				searchDao.deleteDocument(change.getObjectId());
 			} else {
 				throw new IllegalArgumentException("Unknown change type: "
 						+ change.getChangeType());
@@ -158,7 +171,7 @@ public class SearchManagerImpl implements SearchManager{
 	private void processCreateUpdate(ChangeMessage change) throws IOException, CloudSearchClientException {
 		Document newDoc = getDocFromMessage(change);
 		if (newDoc != null) {
-			searchDao.sendDocument(newDoc);
+			searchDao.createOrUpdateSearchDocument(newDoc);
 		}
 	}
 

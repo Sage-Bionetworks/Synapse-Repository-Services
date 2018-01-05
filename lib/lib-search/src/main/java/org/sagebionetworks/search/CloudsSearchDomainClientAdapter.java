@@ -16,18 +16,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
-
+/**
+ * A wrapper for AWS's AmazonCloudSearchDomainClient. DO NOT INSTANTIATE.
+ * Use CloudSearchClientProvider to get an instance of this class.
+ */
 public class CloudsSearchDomainClientAdapter {
 	static private Logger logger = LogManager.getLogger(CloudsSearchDomainClientAdapter.class);
 
 	private AmazonCloudSearchDomainClient client;
 
 
-	public CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){//TODO: maybe need to change constructor?
+	CloudsSearchDomainClientAdapter(AmazonCloudSearchDomainClient client){//TODO: maybe need to change constructor?
 		this.client = client;
 	}
 
-	public void sendDocuments(Document document){//TODO: test
+	public void sendDocument(Document document){//TODO: test
 		ValidateArgument.required(document, "document");
 		sendDocuments(Collections.singletonList(document));
 	}

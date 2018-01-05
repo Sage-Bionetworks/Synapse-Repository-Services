@@ -42,7 +42,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
 
-	private boolean setupCompleted = false; //TODO: put in constructor??
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -53,10 +52,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 	@Override
 	public boolean postInitialize(){//TODO: refactor this logic
-		if(setupCompleted){ //skip contacting AWS if we already know setup completed
-			return true;
-		}
-
 		String domainName = getSearchDomainName();
 		if (domainIsProcessing(domainName)) {
 			return false;
@@ -75,7 +70,6 @@ public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBea
 
 		// if we get here, and the domain is not processing, that means we are all done
 		if (!domainIsProcessing(domainName)) {
-			setupCompleted = true;
 			return true;
 		}
 

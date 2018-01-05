@@ -3,7 +3,6 @@ package org.sagebionetworks.search;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ETAG;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ID;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -15,19 +14,13 @@ import com.amazonaws.services.cloudsearchdomain.model.QueryParser;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
 import com.amazonaws.services.cloudsearchdomain.model.SearchResult;
 import com.google.common.collect.Sets;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
-import org.json.JSONArray;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
-import javax.print.Doc;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Implementation of the Search DAO.
@@ -43,13 +36,14 @@ public class SearchDaoImpl implements SearchDao {
 
 	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 
+	@Autowired
 	CloudSearchClientProvider cloudSearchClientProvider;
 
 
 	@Override
-	public void deleteDocument(String documentId) {
+	public void deleteDocument(String docIdToDelete) {
 		// This is just a batch delete of size one.
-		deleteDocuments(Sets.newHashSet(documentId));
+		deleteDocuments(Sets.newHashSet(docIdToDelete));
 	}
 
 	@Override
@@ -62,20 +56,21 @@ public class SearchDaoImpl implements SearchDao {
 			Document document = new Document();
 			document.setType(DocumentTypeNames.delete);
 			document.setId(entityId);
-			document.setVersion(now.getMillis() / 1000);
+			document.setVersion(now.getMillis() / 1000); //TODO: is this still necessary? integration test?
 			documentBatch.add(document);
 		}
 		// Delete the batch.
-		sendDocuments(documentBatch);
+		createOrUpdateSearchDocument(documentBatch);
 	}
 
 	@Override
-	public void sendDocument(Document document){
-		sendDocuments(Collections.singletonList(document));
+	public void createOrUpdateSearchDocument(Document document){
+		ValidateArgument.required(document, "document");
+		createOrUpdateSearchDocument(Collections.singletonList(document));
 	}
 
 	@Override
-	public void sendDocuments(List<Document> document){
+	public void createOrUpdateSearchDocument(List<Document> document){
 		cloudSearchClientProvider.getCloudSearchClient().sendDocuments(document);
 	}
 
@@ -101,7 +96,7 @@ public class SearchDaoImpl implements SearchDao {
 	}
 
 	@Override
-	public void deleteAllDocuments() throws CloudSearchClientException {
+	public void deleteAllDocuments() throws CloudSearchClientException, InterruptedException {
 		// Keep deleting as long as there are documents
 		SearchResult sr = null;
 		do{

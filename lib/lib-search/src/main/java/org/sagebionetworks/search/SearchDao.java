@@ -23,58 +23,38 @@ public interface SearchDao {
 	 * Create a new search document.
 	 * 
 	 * @param toCreate
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 */
-	void createOrUpdateSearchDocument(Document toCreate) throws ClientProtocolException, IOException,
-			ServiceUnavailableException;
+	void createOrUpdateSearchDocument(Document toCreate);
 	 
 	 /**
 	 * Create or update a batch of search documents
 	 * 
 	 * @param batch
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 */
-	void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException,
-			ServiceUnavailableException;
+	void createOrUpdateSearchDocument(List<Document> batch);
 	 
 	 /**
 	 * Delete a document using its id.
 	 * 
-	 * @param documentId
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
+	 * @param docIdToDelete
 	 */
-	void deleteDocument(String docIdToDelete) throws ClientProtocolException, IOException,
-			ServiceUnavailableException;
+	void deleteDocument(String docIdToDelete);
 	 
 	 /**
 	 * Delete all documents with the passed set of document ids.
 	 * 
 	 * @param docIdsToDelete
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 */
-	void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException,
-			ServiceUnavailableException;
+	void deleteDocuments(Set<String> docIdsToDelete);
 	 
 	 /**
 	 * Execute a query.
 	 * 
 	 * @param search
 	 * @return
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResult executeSearch(SearchRequest search) throws ClientProtocolException, IOException,
-			ServiceUnavailableException, CloudSearchClientException;
+	SearchResult executeSearch(SearchRequest search) throws CloudSearchClientException;
 
 
 	/**
@@ -83,13 +63,9 @@ public interface SearchDao {
 	 * @param id
 	 * @param etag
 	 * @return
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException,
-			ServiceUnavailableException, CloudSearchClientException;
+	boolean doesDocumentExist(String id, String etag) throws CloudSearchClientException;
 	 
 	 /**
 	 * List all documents in the search index.
@@ -97,25 +73,16 @@ public interface SearchDao {
 	 * @param limit
 	 * @param offset
 	 * @return
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws ServiceUnavailableException
 	 * @throws CloudSearchClientException 
 	 */
-	SearchResult listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException,
-			ServiceUnavailableException, CloudSearchClientException;
+	SearchResult listSearchDocuments(long limit, long offset) throws CloudSearchClientException;
 	 
 	 /**
 	 * Clear all data in the search index.
-	 * 
-	 * @throws IOException
-	 * @throws ClientProtocolException
+	 *
 	 * @throws InterruptedException
-	 * @throws ServiceUnavailableException
-	 * @throws CloudSearchClientException 
+	 * @throws CloudSearchClientException
 	 */
-	void deleteAllDocuments() throws ClientProtocolException, IOException, InterruptedException,
-			ServiceUnavailableException, CloudSearchClientException;
-
+	void deleteAllDocuments() throws InterruptedException, CloudSearchClientException;
 
 }

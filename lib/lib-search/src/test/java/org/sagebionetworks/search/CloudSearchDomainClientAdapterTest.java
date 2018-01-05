@@ -6,7 +6,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClient;
 import com.amazonaws.services.cloudsearchdomain.model.SearchException;
 import com.amazonaws.services.cloudsearchdomain.model.SearchRequest;
@@ -20,8 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.sagebionetworks.repo.model.search.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -46,24 +44,23 @@ public class CloudSearchDomainClientAdapterTest {
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(new BasicAWSCredentials("FakeKey", "FakeKey")); //TODO:z fix
-		ReflectionTestUtils.setField(cloudSearchDomainClientAdapter, "client", mockCloudSearchDomainClient);
+		cloudSearchDomainClientAdapter = new CloudsSearchDomainClientAdapter(mockCloudSearchDomainClient);
 		searchRequest = new SearchRequest().withQuery("aQuery");
 	}
 
-	/**
-	 * setEndpoint() Tests
-	 */
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testSetEndpointNullEndpoint(){
-		cloudSearchDomainClientAdapter.setEndpoint(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testSetEndpointEmptyStringEndpoint(){
-		cloudSearchDomainClientAdapter.setEndpoint("");
-	}
+//	/**
+//	 * setEndpoint() Tests
+//	 */
+//
+//	@Test(expected = IllegalArgumentException.class)
+//	public void testSetEndpointNullEndpoint(){
+//		cloudSearchDomainClientAdapter.setEndpoint(null);
+//	}
+//
+//	@Test(expected = IllegalArgumentException.class)
+//	public void testSetEndpointEmptyStringEndpoint(){
+//		cloudSearchDomainClientAdapter.setEndpoint("");
+//	}
 
 	/**
 	 * search() Tests
@@ -82,37 +79,37 @@ public class CloudSearchDomainClientAdapterTest {
 
 	@Test
 	public void testSearchNoError() throws Exception {
-		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenReturn(mockResponse);
 
 		//method under test
-		SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
+		SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 
-		assertEquals(SearchUtil.convertToSynapseSearchResult(mockResponse), result);
+		assertEquals(mockResponse, result);
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
+//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	@Test
 	public void testSearchOnErrorCode5xx() throws Exception {
-		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 
 		when(mockedSearchException.getStatusCode()).thenReturn(504);
 		when(mockCloudSearchDomainClient.search(searchRequest)).thenThrow(mockedSearchException);
 
 		//method under test
 		try {
-			SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
+			SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 		} catch (SearchException e){
 			assertEquals(mockedSearchException, e);
 		}
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
+//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	@Test
 	public void testSearchOnErrorCode4xx() throws Exception {
-		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
 
 		String exceptionMessage = "Some message";
 		when(mockedSearchException.getStatusCode()).thenReturn(400);
@@ -121,40 +118,40 @@ public class CloudSearchDomainClientAdapterTest {
 
 		//method under test
 		try {
-			SearchResults result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
+			SearchResult result = cloudSearchDomainClientAdapter.rawSearch(searchRequest);
 		} catch (CloudSearchClientException e){
 			assertEquals(exceptionMessage, e.getMessage());
 		}
 
 		verify(mockCloudSearchDomainClient).search(searchRequest);
-		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
+//		verify(mockCloudSearchDomainClient).setEndpoint(endpoint);
 	}
 
 	/**
-	 * sendDocument() Tests
+	 * createOrUpdateSearchDocument() Tests
 	 */
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testSendNullDocument(){
-		cloudSearchDomainClientAdapter.sendDocuments(null);
+		cloudSearchDomainClientAdapter.sendDocument(null);
 	}
 
-	@Test(expected = IllegalStateException.class)
-	public void testSendDocumentBeforeEndpointSet() throws CloudSearchClientException{
-		cloudSearchDomainClientAdapter.sendDocuments("omae wa mou shindeiru");
-	}
+//	@Test(expected = IllegalStateException.class)
+//	public void testSendDocumentBeforeEndpointSet() throws CloudSearchClientException{
+//		cloudSearchDomainClientAdapter.sendDocument("omae wa mou shindeiru");
+//	}
 
 	@Test
 	public void testSendDocument() throws IOException {
-		String documentString = "omae wa mou shindeiru";
+		Document document = new Document();
 		ArgumentCaptor<UploadDocumentsRequest> uploadRequestCaptor = ArgumentCaptor.forClass(UploadDocumentsRequest.class);
-		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
-		cloudSearchDomainClientAdapter.sendDocuments(documentString);
+//		cloudSearchDomainClientAdapter.setEndpoint(endpoint);
+		cloudSearchDomainClientAdapter.sendDocument(document);
 		verify(mockCloudSearchDomainClient).uploadDocuments(uploadRequestCaptor.capture());
 		UploadDocumentsRequest capturedRequest = uploadRequestCaptor.getValue();
 
 
-		byte[] documentBytes = documentString.getBytes();
+		byte[] documentBytes = document.toString().getBytes();
 		assertEquals("application/json", capturedRequest.getContentType());
 		assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(documentBytes), capturedRequest.getDocuments()));
 		assertEquals(new Long(documentBytes.length), capturedRequest.getContentLength());
