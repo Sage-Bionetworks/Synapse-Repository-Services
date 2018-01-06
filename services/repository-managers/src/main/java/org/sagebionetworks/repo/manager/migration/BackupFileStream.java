@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 
 /**
  * Abstraction for streaming migration backup files, for both creation an
@@ -19,10 +20,12 @@ public interface BackupFileStream {
 	 * sub-file must be small enough to fit in memory. After each sub-file is read,
 	 * all data from that file will be flushed from memory.
 	 * 
+	 * Note: The caller is responsible for closing the passed stream.
+	 * 
 	 * @param input
 	 * @return
 	 */
-	public Iterable<RowData> readBackupFile(InputStream input, BackupAliasType backupAliasType);
+	public Iterable<MigratableDatabaseObject<?,?>> readBackupFile(InputStream input, BackupAliasType backupAliasType);
 
 	/**
 	 * Stream over the provide data to write the given backup file OutputStream.
@@ -38,6 +41,6 @@ public interface BackupFileStream {
 	 *            be started.
 	 * @throws IOException
 	 */
-	public void writeBackupFile(OutputStream out, Iterable<RowData> stream, BackupAliasType backupAliasType,
+	public void writeBackupFile(OutputStream out, Iterable<MigratableDatabaseObject<?,?>> stream, BackupAliasType backupAliasType,
 			int maximumRowsPerFile) throws IOException;
 }
