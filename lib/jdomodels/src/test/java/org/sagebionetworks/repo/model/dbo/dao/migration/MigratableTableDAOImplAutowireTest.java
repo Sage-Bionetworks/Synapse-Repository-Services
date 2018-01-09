@@ -21,10 +21,14 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -32,6 +36,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,6 +54,9 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Autowired
 	private MigratableTableDAO migratableTableDAO;
+	
+	@Autowired
+	ColumnModelDAO columnModelDao;
 
 	@Autowired
 	private IdGenerator idGenerator;
@@ -610,5 +619,40 @@ public class MigratableTableDAOImplAutowireTest {
 		assertNotNull(info.getDeleteRule());
 		assertNotNull(info.getReferencedTableName());
 		assertNotNull(info.getTableName());
+	}
+	
+	@Test
+	public void testStreamDatabaseObjects() {
+		List<Long> ids = new LinkedList<>();
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one  = columnModelDao.createColumnModel(one);
+		ids.add(Long.parseLong(one.getId()));
+		
+		ColumnModel two = new ColumnModel();
+		two.setColumnType(ColumnType.INTEGER);
+		two.setName("two");
+		two = columnModelDao.createColumnModel(two);
+		ids.add(Long.parseLong(two.getId()));
+		
+		ColumnModel three = new ColumnModel();
+		three.setColumnType(ColumnType.INTEGER);
+		three.setName("three");
+		three = columnModelDao.createColumnModel(three);
+		ids.add(Long.parseLong(three.getId()));
+		
+		// Stream over the results
+		long batchSize  = 2;
+		Iterable<MigratableDatabaseObject<?,?>> it = migratableTableDAO.streamDatabaseObjects(MigrationType.COLUMN_MODEL, ids, batchSize);
+		List<DBOColumnModel> results = new LinkedList<>();
+		for(DatabaseObject data: it) {
+			assertTrue(data instanceof DBOColumnModel);
+			results.add((DBOColumnModel) data);
+		}
+		assertEquals(3, results.size());
+		assertEquals(one.getId(), results.get(0).getId().toString());
+		assertEquals(two.getId(), results.get(1).getId().toString());
+		assertEquals(three.getId(), results.get(2).getId().toString());
 	}
 }

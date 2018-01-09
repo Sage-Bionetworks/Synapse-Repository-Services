@@ -4,11 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Arrays;
@@ -21,12 +26,14 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
-import static org.mockito.Mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -34,14 +41,18 @@ import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementB
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.migration.BackupTypeRequest;
+import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -57,15 +68,38 @@ public class MigrationManagerImplTest {
 	MigratableTableDAO mockDao;
 	@Mock
 	StackStatusDao mockStatusDao;
+	@Mock
+	BackupFileStream mockBackupFileStream;
+	@Mock
+	AmazonS3Client mockS3Client;
+	@Mock
+	FileProvider mockFileProvider;
+	@Mock
+	File mockFile;
+	@Mock
+	FileOutputStream mockOutputStream;
+	@Mock
+	UserInfo mockUser;
+	@Captor
+	ArgumentCaptor<Iterable<MigratableDatabaseObject<?, ?>>> iterableCator;
 	
 	MigrationManagerImpl manager;
 	
+	DBONode nodeOne;
+	DBORevision revOne;
+	DBONode nodeTwo;
+	DBORevision revTwo;
+	
+	
 	@Before
-	public void before(){
+	public void before() throws IOException{
 		manager = new MigrationManagerImpl();
 		ReflectionTestUtils.setField(manager, "backupBatchMax", 50);
 		ReflectionTestUtils.setField(manager, "migratableTableDao", mockDao);
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStatusDao);
+		ReflectionTestUtils.setField(manager, "backupFileStream", mockBackupFileStream);
+		ReflectionTestUtils.setField(manager, "s3Client", mockS3Client);
+		ReflectionTestUtils.setField(manager, "fileProvider", mockFileProvider);
 		
 		ForeignKeyInfo info = new ForeignKeyInfo();
 		info.setTableName("foo");
@@ -77,6 +111,25 @@ public class MigrationManagerImplTest {
 		// bar is within foo's primary group.
 		tableNameToPrimaryGroup.put("FOO", Sets.newHashSet("BAR"));
 		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
+		
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
+		// default to admin
+		when(mockUser.isAdmin()).thenReturn(true);
+		
+		when(mockDao.getObjectForType(MigrationType.NODE)).thenReturn(new DBONode());
+		
+		nodeOne = new DBONode();
+		nodeOne.setId(123L);;
+		revOne = new DBORevision();
+		revOne.setOwner(nodeOne.getId());
+		revOne.setRevisionNumber(1L);
+		
+		nodeTwo = new DBONode();
+		nodeTwo.setId(456L);
+		revTwo = new DBORevision();
+		revTwo.setOwner(nodeTwo.getId());
+		revTwo.setRevisionNumber(0L);
 	}
 	
 	@Test
@@ -353,6 +406,92 @@ public class MigrationManagerImplTest {
 		when(mockDao.mapSecondaryTablesToPrimaryGroups()).thenReturn(tableNameToPrimaryGroup);
 		// Call under test
 		manager.validateForeignKeys();
+	}
+	
+	@Test
+	public void testCreateNewBackupKey() {
+		String stack = "dev";
+		String instance = "test1";
+		MigrationType type = MigrationType.NODE_REVISION;
+		String key = MigrationManagerImpl.createNewBackupKey(stack, instance, type);
+		assertNotNull(key);
+		assertTrue(key.startsWith("dev-test1-NODE_REVISION"));
+		assertTrue(key.contains(".zip"));
+	}
+	
+	@Test
+	public void testBackupStreamToS3() throws IOException {
+		List<MigratableDatabaseObject<?, ?>> stream = new LinkedList<>();
+		MigrationType type = MigrationType.NODE;
+		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
+		long batchSize = 2;
+		// call under test
+		BackupTypeResponse response = manager.backupStreamToS3(type, stream, aliasType, batchSize);
+		assertNotNull(response);
+		assertNotNull(response.getBackupFileKey());
+		verify(mockBackupFileStream).writeBackupFile(mockOutputStream, stream, aliasType, batchSize);
+		verify(mockS3Client).putObject(MigrationManagerImpl.backupBucket, response.getBackupFileKey(), mockFile);
+		// the stream must be flushed and closed.
+		verify(mockOutputStream).flush();
+		verify(mockOutputStream, times(2)).close();
+		// the temp file must be deleted
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testBackupStreamToS3Exception() throws IOException {
+		// setup an failure
+		IOException toBeThrown = new IOException("some kind of IO error");
+		doThrow(toBeThrown).when(mockBackupFileStream).writeBackupFile(any(OutputStream.class), any(Iterable.class), any(BackupAliasType.class), anyLong());
+		// call under test
+		List<MigratableDatabaseObject<?, ?>> stream = new LinkedList<>();
+		MigrationType type = MigrationType.NODE;
+		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
+		long batchSize = 2;
+		// call under test
+		try {
+			manager.backupStreamToS3(type, stream, aliasType, batchSize);
+			fail();
+		} catch (Exception e) {
+			// expected
+			assertEquals(toBeThrown.getMessage(), e.getMessage());
+		}
+		// the stream must be closed
+		verify(mockOutputStream).close();
+		// the temp file must be deleted
+		verify(mockFile).delete();
+	}
+	
+	@Test
+	public void testBackupRequest() throws IOException {
+		BackupAliasType backupAlias = BackupAliasType.MIGRATION_TYPE_NAME;
+		BackupTypeRequest request = new BackupTypeRequest();
+		request.setAliasType(backupAlias);
+		request.setBackupType(MigrationType.NODE);
+		Long batchSize = 2L;
+		request.setBatchSize(batchSize);
+		List<Long> backupIds = Lists.newArrayList(123L,456L);
+		request.setRowIdsToBackup(backupIds);
+		
+		List<MigratableDatabaseObject<?, ?>> nodeStream = Lists.newArrayList(nodeOne, nodeTwo);
+		List<MigratableDatabaseObject<?, ?>> revisionStream = Lists.newArrayList(revOne, revTwo);
+		List<MigratableDatabaseObject<?, ?>> allResults = new LinkedList<>();
+		allResults.addAll(nodeStream);
+		allResults.addAll(revisionStream);
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE, backupIds, batchSize)).thenReturn(nodeStream);
+		when(mockDao.streamDatabaseObjects(MigrationType.NODE_REVISION, backupIds, batchSize)).thenReturn(revisionStream);
+		
+		List<MigratableDatabaseObject<?, ?>> allObjects = new LinkedList<>();
+		allObjects.addAll(nodeStream);
+		allObjects.addAll(revisionStream);
+ 		
+		manager.backupRequest(mockUser, request);
+		verify(mockBackupFileStream).writeBackupFile(eq(mockOutputStream), iterableCator.capture(), eq(backupAlias), eq(batchSize));
+		List<MigratableDatabaseObject<?, ?>> results = new LinkedList<>();
+		for(MigratableDatabaseObject<?, ?> object: iterableCator.getValue()) {
+			results.add(object);
+		}
+		assertEquals(allResults,results);
 	}
 
 }

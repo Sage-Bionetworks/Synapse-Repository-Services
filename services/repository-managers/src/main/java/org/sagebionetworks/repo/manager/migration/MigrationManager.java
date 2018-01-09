@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.List;
@@ -197,8 +198,9 @@ public interface MigrationManager {
 	 * @param user
 	 * @param req
 	 * @return
+	 * @throws IOException 
 	 */
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req);
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req) throws IOException;
 	
 	
 }

@@ -19,6 +19,7 @@ import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,17 +44,11 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	@Override
 	public Iterable<MigratableDatabaseObject<?,?>> readBackupFile(InputStream input, BackupAliasType backupAliasType) {
 		ValidateArgument.required(input, "input");
-
-		return new Iterable<MigratableDatabaseObject<?,?>>() {
-			@Override
-			public Iterator<MigratableDatabaseObject<?,?>> iterator() {
-				try {
-					return new InputStreamIterator(input, backupAliasType);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		};
+		try {
+			return new InputStreamIterator(input, backupAliasType);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -61,7 +56,8 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 * All data for any single file must fit in memory.
 	 *
 	 */
-	private class InputStreamIterator implements Iterator<MigratableDatabaseObject<?,?>> {
+	private class InputStreamIterator
+			implements Iterable<MigratableDatabaseObject<?, ?>>, Iterator<MigratableDatabaseObject<?,?>> {
 
 		BackupAliasType backupAliasType;
 		ZipInputStream zipInputStream;
@@ -94,6 +90,11 @@ public class BackupFileStreamImpl implements BackupFileStream {
 				throw new IllegalStateException("hasNext() must be called before next()");
 			}
 			return currentFile.next();
+		}
+
+		@Override
+		public Iterator<MigratableDatabaseObject<?, ?>> iterator() {
+			return this;
 		}
 	}
 
@@ -150,7 +151,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 */
 	@Override
 	public void writeBackupFile(OutputStream out, Iterable<MigratableDatabaseObject<?,?>> stream, BackupAliasType backupAliasType,
-			int maximumRowsPerFile) throws IOException {
+			long maximumRowsPerFile) throws IOException {
 		ValidateArgument.required(out, "OutputStream");
 		ValidateArgument.required(stream, "Stream");
 		ValidateArgument.required(backupAliasType, "BackupAliasType");
@@ -201,7 +202,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 * @throws IOException
 	 * @throws UnsupportedEncodingException
 	 */
-	public void writeBatchToZip(ZipOutputStream zos, List<MigratableDatabaseObject<?,?>> currentBatch, int index, MigrationType currentType,
+	public<D extends DatabaseObject<D>, B> void writeBatchToZip(ZipOutputStream zos, List<MigratableDatabaseObject<?,?>> currentBatch, int index, MigrationType currentType,
 			BackupAliasType backupAliasType) throws IOException {
 		// Write the current batch as a sub-file to the zip
 		String fileName = createFileName(currentType, index);
@@ -209,12 +210,20 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		zos.putNextEntry(entry);
 		Writer zipWriter = new OutputStreamWriter(zos, UTF_8);
 
-		MigratableDatabaseObject<?, ?> mdo = typeProvider.getObjectForType(currentType);
+		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
 		String alias = getAlias(mdo, backupAliasType);
+		MigratableTableTranslation<D,B> translator = mdo.getTranslator();
+		
+		// translate to the backup objects
+		List<B> backupObjects = new LinkedList<>();
+		for(MigratableDatabaseObject<?,?> migrationOjbect: currentBatch) {
+			B backupObject = translator.createBackupFromDatabaseObject((D) migrationOjbect);
+			backupObjects.add(backupObject);
+		}
 
 		XStream xstream = new XStream();
 		xstream.alias(alias, mdo.getBackupClass());
-		xstream.toXML(currentBatch, zipWriter);
+		xstream.toXML(backupObjects, zipWriter);
 		zipWriter.flush();
 	}
 
@@ -226,7 +235,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	 * @return Will return the contents of the next file in the zip.  An empty list will be returned if 
 	 * no more data could be read from the stream.
 	 */
-	public List<MigratableDatabaseObject<?,?>> readBatchFromZip(ZipInputStream zipStream, BackupAliasType backupAliasType) {
+	public <D extends DatabaseObject<D>, B> List<MigratableDatabaseObject<?,?>> readBatchFromZip(ZipInputStream zipStream, BackupAliasType backupAliasType) {
 		try {
 			// Keep reading files until new data is found.
 			ZipEntry entry;
@@ -234,14 +243,15 @@ public class BackupFileStreamImpl implements BackupFileStream {
 				// Read the zip entry.
 				MigrationType type = getTypeFromFileName(entry.getName());
 				// Lookup the object for the type.
-				MigratableDatabaseObject<?, ?> mdo = typeProvider.getObjectForType(type);
+				MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
 				String alias = getAlias(mdo, backupAliasType);
+				MigratableTableTranslation<D,B> translator = mdo.getTranslator();
 
 				XStream xstream = new XStream();
 				xstream.alias(alias, mdo.getBackupClass());
-				List<DatabaseObject<?>> objectList;
+				List<B> backupObjects;
 				try {
-					return ((List<MigratableDatabaseObject<?,?>>) xstream.fromXML(zipStream));
+					backupObjects = (List<B>) xstream.fromXML(zipStream);
 				} catch (StreamException e) {
 					if (!e.getMessage().contains(INPUT_CONTAINED_NO_DATA)) {
 						throw new RuntimeException(e);
@@ -249,6 +259,13 @@ public class BackupFileStreamImpl implements BackupFileStream {
 					// This file is empty so move to the next file...
 					continue;
 				}
+				// Translate the results
+				List<MigratableDatabaseObject<?,?>> translated = new LinkedList<>();
+				for(B backupObject: backupObjects) {
+					D databaseObject = translator.createDatabaseObjectFromBackup(backupObject);
+					translated.add((MigratableDatabaseObject<?, ?>) databaseObject);
+				}
+				return translated;
 			}
 			// No new data was found in the zip
 			return new LinkedList<>();

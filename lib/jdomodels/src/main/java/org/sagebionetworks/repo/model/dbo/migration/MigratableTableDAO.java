@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,6 +96,15 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds);
+	
+	/**
+	 * Stream over all DatabaseObject with backupIds matching the given IDs.
+	 * @param clazz
+	 * @param rowIds
+	 * @param batchSize the maximum number of objects that should be loaded at a time.
+	 * @return
+	 */
+	public Iterable<MigratableDatabaseObject<?,?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds, long batchSize);
 
 	/**
 	 * Create or update a batch.

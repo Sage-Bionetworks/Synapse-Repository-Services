@@ -42,5 +42,5 @@ public interface BackupFileStream {
 	 * @throws IOException
 	 */
 	public void writeBackupFile(OutputStream out, Iterable<MigratableDatabaseObject<?,?>> stream, BackupAliasType backupAliasType,
-			int maximumRowsPerFile) throws IOException;
+			long maximumRowsPerFile) throws IOException;
 }

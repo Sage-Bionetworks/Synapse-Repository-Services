@@ -650,5 +650,16 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				return info;
 			}}, schema);
 	}
+
+	@Override
+	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, List<Long> rowIds,
+			long batchSize) {
+		String sql = getBatchBackupSql(type);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		MigratableDatabaseObject object = getMigratableObject(type);
+		Map<String, Object> parameters = new HashMap<>(3);
+		parameters.put(DMLUtils.BIND_VAR_ID_lIST, rowIds);
+		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
+	}
 	
 }

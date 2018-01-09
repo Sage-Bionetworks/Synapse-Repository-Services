@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.util.Arrays;
@@ -8,8 +11,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.pdfbox.io.IOUtils;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -37,7 +43,11 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.google.common.collect.Iterables;
 
 
 /**
@@ -48,10 +58,21 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class MigrationManagerImpl implements MigrationManager {
 	
+	public static final String BACKUP_KEY_TEMPLATE = "%1$s-%2$s-%3$s-%4$s.zip";
+	public static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
+	public static String stack = StackConfiguration.getStack();
+	public static String instance = StackConfiguration.getStackInstance();
+	
 	@Autowired
 	MigratableTableDAO migratableTableDao;
 	@Autowired
 	StackStatusDao stackStatusDao;
+	@Autowired
+	BackupFileStream backupFileStream;
+	@Autowired
+	AmazonS3Client s3Client;
+	@Autowired
+	FileProvider fileProvider;
 	
 	/**
 	 * The list of migration listeners
@@ -544,9 +565,71 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateForeignKeys();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.manager.migration.MigrationManager#backupRequest(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.migration.BackupTypeRequest)
+	 */
 	@Override
-	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest req) {
-		// TODO Auto-generated method stub
-		return null;
+	public BackupTypeResponse backupRequest(UserInfo user, BackupTypeRequest request) throws IOException {
+		ValidateArgument.required(user, "User");
+		ValidateArgument.required(request, "Request");
+		ValidateArgument.required(request.getAliasType(), "request.aliasType");
+		ValidateArgument.required(request.getBackupType(), "request.backupType");
+		ValidateArgument.required(request.getBatchSize(), "requset.batchSize");
+		ValidateArgument.required(request.getRowIdsToBackup(), "request.rowIdsToBackup");
+		validateUser(user);
+		// Start the stream for the primary
+		Iterable<MigratableDatabaseObject<?, ?>> dataStream = this.migratableTableDao.streamDatabaseObjects(request.getBackupType(), request.getRowIdsToBackup(), request.getBatchSize());
+		// Concatenate all secondary data streams to the main stream.
+		for(MigrationType secondaryType: getSecondaryTypes(request.getBackupType())) {
+			Iterable<MigratableDatabaseObject<?, ?>> secondaryStream = this.migratableTableDao.streamDatabaseObjects(secondaryType, request.getRowIdsToBackup(), request.getBatchSize());
+			dataStream = Iterables.concat(dataStream, secondaryStream);
+		}
+		// Create the backup and upload it to S3.
+		return backupStreamToS3(request.getBackupType(), dataStream, request.getAliasType(), request.getBatchSize());
+	}
+	
+	/**
+	 * Stream the data to a temporary file and upload it to S3.
+	 * 
+	 * @param type
+	 * @param dataStream
+	 * @param aliasType
+	 * @return
+	 * @throws IOException 
+	 */
+	public BackupTypeResponse backupStreamToS3(MigrationType type, Iterable<MigratableDatabaseObject<?, ?>> dataStream, BackupAliasType aliasType, long batchSize) throws IOException {
+		File temp = fileProvider.createTempFile("MigrationBackup", ".zip");
+		FileOutputStream fos = null;
+		try {
+			// stream all of the data to the temp file
+			fos = fileProvider.createFileOutputStream(temp);
+			backupFileStream.writeBackupFile(fos, dataStream, aliasType, batchSize);
+			fos.flush();
+			fos.close();
+			// Upload the file to S3
+			String key = createNewBackupKey(stack, instance, type);
+			s3Client.putObject(backupBucket, key, temp);
+			BackupTypeResponse response = new BackupTypeResponse();
+			response.setBackupFileKey(key);
+			return response;
+		}finally {
+			// close the stream
+			IOUtils.closeQuietly(fos);
+			// delete the temp file.
+			if(temp != null) {
+				temp.delete();
+			}
+		}
+	}
+	
+	/**
+	 * Create new key to to store a backup file in S3.
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static String createNewBackupKey(String stack, String instance, MigrationType type) {
+		return String.format(BACKUP_KEY_TEMPLATE, stack, instance, type, UUID.randomUUID().toString());
 	}
 }

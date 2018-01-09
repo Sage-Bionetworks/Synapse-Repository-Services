@@ -69,7 +69,7 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getStack() {
+	public static String getStack() {
 		return configuration.getStack();
 	}
 

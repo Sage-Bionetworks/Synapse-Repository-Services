@@ -2,7 +2,7 @@
 	"description": "Request to create a migration backup for a given MigrationType and list of row IDs.",
 	"implements": [
 		{
-			"$ref":"org.sagebionetworks.repo.model.migration.AdminRequest"
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
 		}
 	],
 	"properties": {
@@ -13,10 +13,14 @@
 			"$ref": "org.sagebionetworks.repo.model.daemon.BackupAliasType"
 		},
 		"rowIdsToBackup": {
-      		"type": "array",
-      		"items": {
-        		"type": "integer"
-      		}
-    	}
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		},
+		"batchSize": {
+			"description": "The batch size determines the maxiumum number of rows that will be loaded into memory at one time.",
+			"type": "integer"
+		}
 	}
 }
